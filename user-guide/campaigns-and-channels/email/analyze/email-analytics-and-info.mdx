@@ -393,6 +393,45 @@ You can preview the email in either the Web or Mobile mode here for each locale 
 
 # FAQs
 
+<Accordion title="Why is my Delivered count higher than my Sent count?">
+  Delivered occasionally shows a slightly higher number than Sent when both metrics are viewed side by side, particularly on active or recently-completed campaigns. This is expected behavior driven by how the two counters are populated:
+
+  - **Sent** increments when MoEngage hands the message off for delivery.
+  - **Delivered** increments when the email delivery partner (for example, SendGrid) sends back a delivery confirmation callback.
+
+  These two events happen at different points in the pipeline, and the delivery callback can be delayed or, in some pipeline configurations, fire more than once for a single send. When you view the campaign before all callbacks have landed, or across a date range that includes late-arriving callbacks, the counts can drift briefly.
+
+  To reconcile the two numbers:
+
+  - Wait at least 48 hours after the last send before comparing Sent and Delivered for a completed campaign.
+  - Compare over the same date range in both cards (the Global Analytics Filters apply to both).
+  - If the discrepancy persists beyond 48 hours or exceeds a few percent, raise a support ticket with the campaign ID.
+</Accordion>
+
+<Accordion title="What is the difference between Unique Opens and Total Opens?">
+  Both metrics count the same underlying event — a load of the 1×1 tracking pixel embedded in the email. The difference is deduplication:
+
+  - **Total Opens** — Every pixel load is counted. If the same user opens the same email five times, Total Opens increments by 5.
+  - **Unique Opens** — Counts distinct users. If the same user opens the same email five times within an 11-day window, Unique Opens increments by 1.
+
+  The 11-day rolling window per user determines when a repeat open by the same user counts as a new unique event. Any engagement event from the same user, for the same campaign, that falls on the 12th day or later after the previous count is treated as another unique event. Here's how it plays out:
+
+  | User activity | Total Opens | Unique Opens |
+  | --- | --- | --- |
+  | User A opens the email once on Day 1. | 1 | 1 |
+  | User A opens the same email again on Day 5. | 2 | 1 |
+  | User A opens the same email again on Day 12. | 3 | 2 |
+
+  In the third row, Unique Opens increments because Day 12 is the 12th day after Day 1 — outside the 11-day window.
+</Accordion>
+
+<Accordion title="What is the difference between Total Clicks and Unique Clicks?">
+  - **Total Clicks** — Every click is counted, from any user, on any link in the campaign. If a user clicks the same link three times, Total Clicks increments by 3.
+  - **Unique Clicks** — Counted per user × link combination. If a user clicks Link 1 and then Link 2, that counts as 2 unique clicks — even though it's the same user, because each link is tracked separately.
+
+  If you need uniqueness measured at the user level instead (one unique click per user regardless of how many links they click), this can be enabled on request via a configuration change. Reach out to your MoEngage contact to have this turned on.
+</Accordion>
+
 <Accordion title="Do email tracking links and pixels ever expire in MoEngage? How long do they remain active?">
   No, generally, email tracking links and open tracking pixels in MoEngage do not expire. They are designed to remain active indefinitely, allowing for ongoing event tracking and campaign stat updates.
 </Accordion>
