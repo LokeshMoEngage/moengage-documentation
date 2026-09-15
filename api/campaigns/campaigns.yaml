@@ -183,7 +183,7 @@ components:
         connector:
           $ref: '#/components/schemas/Connector'
         campaign_content:
-          $ref: '#/components/schemas/EmailCampaignContent'
+          $ref: '#/components/schemas/EmailCampaignCreateContent'
         segmentation_details:
           $ref: '#/components/schemas/SegmentationDetails'
         scheduling_details:
@@ -1667,6 +1667,56 @@ components:
           properties:
             email:
               $ref: '#/components/schemas/EmailContent'
+
+    # ==================== Email Campaign Content (Create) ====================
+    EmailCampaignCreateContent:
+      type: object
+      description: |
+        Contains the content and variations for the Email campaign.
+
+        This is the Create Campaign variant of `EmailCampaignContent`. It accepts the same fields, plus the link branding and deep linking domains, which can only be set when the campaign is created.
+      required:
+        - content
+      properties:
+        locales:
+          type: array
+          items:
+            type: string
+          description: |
+            List of locales for multi-language campaigns.
+            You can send campaigns in multiple languages using locales.
+          example: ["en-US", "es-ES", "default"]
+        variation_details:
+          $ref: '#/components/schemas/VariationDetails'
+        content:
+          type: object
+          description: The actual Email campaign content.
+          required:
+            - email
+          properties:
+            email:
+              $ref: '#/components/schemas/EmailCreateContent'
+
+    # ==================== Email Content (Create) ====================
+    EmailCreateContent:
+      description: |
+        The Email content accepted by the Create Campaign API. Includes every field in `EmailContent`, plus the domain settings below.
+      allOf:
+        - $ref: '#/components/schemas/EmailContent'
+        - type: object
+          properties:
+            link_branding_domain:
+              type: string
+              description: |
+                The custom domain used to brand links in the email body, in place of the standard MoEngage domain. This is referred to as **Link branding** in the MoEngage dashboard.
+
+                If not provided, the workspace's default link branding domain (if configured) is used.
+              example: "yourbrand.com"
+            deep_link_domain:
+              type: string
+              description: |
+                The deep linking domain used to wrap deep links in the email body, directing recipients to specific in-app or web content instead of a generic landing page.
+              example: "deeplink.yourbrand.com"
 
     # ==================== Variation Details ====================
     VariationDetails:
@@ -3742,6 +3792,8 @@ paths:
                         from_address: "noreply@example.com"
                         reply_to_address: "support@example.com"
                         html_content: "<!DOCTYPE html><html><body><h1>Summer Sale</h1><p>Get 50% off on all items!</p></body></html>"
+                        link_branding_domain: "yourbrand.com"
+                        deep_link_domain: "deeplink.yourbrand.com"
                   segmentation_details:
                     included_filters:
                       filter_operator: "and"
