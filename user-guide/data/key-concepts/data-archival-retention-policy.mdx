@@ -3,7 +3,9 @@ title: "Data Archival (Retention) Policy"
 description: "Understand MoEngage's data archival policy for removing inactive user profiles, events, and devices to optimize performance, maintain data hygiene, and ensure regulatory compliance."
 ---
 
-# Overview
+{/* TODO: Verify keywords/full frontmatter against the live MDX source — this was reconstructed from the rendered page, since the raw file wasn't available. */}
+
+## Overview
 
 Data archival is the systematic process of removing inactive or dormant user data to ensure that your marketing workspace remains lean, focusing exclusively on users who provide genuine engagement opportunities and business value.
 
@@ -13,369 +15,119 @@ MoEngage implements data archival to balance platform performance with global pr
 - **Regulatory Compliance (GDPR, CCPA, and India's DPDP Act):** The policy aligns with the GDPR principles of Storage Limitation and Data Minimization. User data should be kept only as long as there is a legitimate business purpose; once a user is no longer reachable or marketable, archiving their data reduces legal liability and protects user privacy. For how this supports India's Digital Personal Data Protection (DPDP) Act, 2023, see [Data Retention and India's DPDP Act, 2023](#data-retention-and-indias-dpdp-act-2023).
 
 <Info>
-  **Archival Frequency** 
+  **Archival Frequency**
 
   Every 14 days, MoEngage runs a process to remove inactive and unreachable users, events and devices from MoEngage services. Each entity has a separate archival policy, and upon archival, the data points are deleted permanently.
 </Info>
 
-# Archival Criteria
+## Archival Criteria
 
-## User Profiles
+### User Profiles
 
-<Warning>
-  **Document Update**
+MoEngage classifies every user profile as **Registered** or **Anonymous** based on whether the profile has an active identifier. This is the same classification used for [Identity Resolution](/user-guide/data/user-data/unified-identity-identity-resolution) and shown elsewhere on your dashboard — archival doesn't apply a separate rule.
 
-  MoEngage corrected an inaccuracy regarding "Reachability Criteria" present in this document between March 9, 2026, and May 5, 2026. MoEngage sincerely apologizes for any confusion.
+1. **Registered Users:** A profile that has at least one active identifier present.
+   - In workspaces without Identity Resolution enabled, ID is the only active identifier — a user is Registered if ID is present.
+   - In workspaces with Identity Resolution enabled (up to five identifiers can be configured, for example ID, Email ID, Mobile Number), a user is Registered if any one of the active identifiers is present.
+   Because these represent known customers with a higher potential for long-term value, MoEngage archives Registered profiles after a [longer period of inactivity](/user-guide/data/key-concepts/data-archival-retention-policy#archival-rules).
+2. **Anonymous Users:** A profile with none of the active identifiers present. To keep your workspace lean and focused on high-intent audiences, MoEngage archives Anonymous profiles after a [shorter period of inactivity](/user-guide/data/key-concepts/data-archival-retention-policy#archival-rules).
 
-  Note that this was a documentation-only error. MoEngage’s archival logic remained consistent and unaffected throughout this period.
-</Warning>
+- **Activity:** Any interaction with your app or website (any standard or custom event) serves as a signal of intent. Any event or user update is considered as an activity.
+- **Campaign Engagement:** The policy aims to retain users who actively interact with your communications. Interactions such as Opens or Clicks serve as engagement signals. MoEngage-generated and internal campaign-processing events (for example, delivery failures or control-group events) don't count as engagement — see the full list below.
 
-MoEngage's archival policy treats Anonymous and Registered (or Identified) users differently to ensure we take an approach favored by brands and marketers. Here is how we define both:
+The following internal and system-generated events never reset the archival clock, even though they're associated with a campaign:
 
-1. **Registered Users:** Because these represent known customers with a higher potential for long-term value, MoEngage archives these profiles after a longer period of inactivity. These users have an ID as an identifier and also have either an email ID or a mobile number.
-2. **Anonymous Users:** To keep your workspace lean and focused on high-intent audiences, MoEngage archives anonymous profiles after a shorter period of inactivity. Anonymous users either:
-   - Have an ID as an identifier, but do not have an email ID, and do not have a mobile number.
-   - Do not have an ID as an identifier, do not have an email ID, and do not have a mobile number.
+| Event                                              | Category                     |
+| :------------------------------------------------- | :--------------------------- |
+| `MOE_NOTIFICATION_SEND_PUSH_FAILED`                | Push                         |
+| `MOE_NOTIFICATION_SEND_FAILED_IOS`                 | Push                         |
+| `MOE_NOTIFICATION_SEND_FAILED_ANDROID`             | Push                         |
+| `MOE_NOTIFICATION_SEND_FAILED_WEB`                 | Push                         |
+| `MOE_EMAIL_DEFERRED`                               | Email                        |
+| `MOE_EMAIL_DROP`                                   | Email                        |
+| `MOE_EMAIL_SOFT_BOUNCE`                            | Email                        |
+| `MOE_EMAIL_HARD_BOUNCE`                            | Email                        |
+| `MOE_EMAIL_ESP_DROPPED`                            | Email                        |
+| `MOE_EMAIL_SPAM`                                   | Email                        |
+| `MOE_SMS_DELIVERY_FAILED`                          | SMS                          |
+| `MOE_SMS_SENT_FAILED`                              | SMS                          |
+| `MOE_WHATSAPP_DELIVERY_FAILED`                     | WhatsApp                     |
+| `MOE_WHATSAPP_SENDING_FAILED`                      | WhatsApp                     |
+| `MOE_RCS_DELIVERY_FAILED`                          | RCS                          |
+| `MOE_RCS_SENT_FAILED`                              | RCS                          |
+| `MOE_MMS_DELIVERY_FAILED`                          | MMS                          |
+| `TELEMARKETING_SENT`                               | Telemarketing                |
+| `TELEMARKETING_FAILED`                             | Telemarketing                |
+| `TELEMARKETING_SUPPRESSED`                         | Telemarketing                |
+| `USER_ENTERED_FLOW`                                | Flows                        |
+| `USER_EXITED_FLOW`                                 | Flows                        |
+| `USER_FLOW_ADVANCEMENT`                            | Flows                        |
+| `MOE_CAMPAIGN_CONTROL_GROUP`                       | Control group                |
+| `MOE_CAMPAIGN_USER_REMOVED_DUE_TO_CONTROL_GROUP`   | Control group                |
+| `MOE_USER_REMOVED_FROM_CONTROL_GROUP`              | Control group                |
+| `MOE_FB_AUDIENCE_SYNC`                             | Audience sync                |
+| `MOE_GOOGLE_ADS_AUDIENCE_SYNC`                     | Audience sync                |
+| `GAM_SEGMENT_SENT`                                 | Audience sync                |
+| `WEBHOOK_SENT`                                     | Connected apps and webhooks  |
+| `Connected App Campaign Sent`                      | Connected apps and webhooks  |
+| `Connected App Campaign Failed`                    | Connected apps and webhooks  |
+| `MOE_CAMPAIGN_EVENT_STATS`                         | Campaign stats and reporting |
+| `MOE_CAMPAIGN_SEGMENT_STATS`                       | Campaign stats and reporting |
+| `MOE_CAMPAIGN_FLOWS_STATS`                         | Campaign stats and reporting |
+| `MOE_CAMPAIGN_FAILURE_STATS`                       | Campaign stats and reporting |
+| `MOE_CAMPAIGN_CONVERSION_STATS`                    | Campaign stats and reporting |
+| `MOE_CAMPAIGN_META_INFO`                           | Campaign stats and reporting |
+| `MOE_COUPONS_REPORT`                               | Campaign stats and reporting |
+| `n_c_s`                                            | Internal                     |
 
-- **Activity:** Any interaction with your app or website (i.e any standard or custom event) serves as a signal of intent. The policy distinguishes users based on their relationship with your brand to ensure the most appropriate retention lifecycle. Note that only events is considered as an activity. Any user attribute update/unset is not considered user activity.
-- **Campaign Engagement**: The policy aims to retain users who actively interact with your communications. Interactions such as Opens or Clicks serve as engagement signals.
+{/* TODO: This list is reproduced verbatim from the engineering fixes doc. Flagging for review — confirm this level of internal event detail is meant for a customer-facing page, or whether a shorter representative list / no list is preferred. The Category column is a docs-side grouping derived from the event names, not an engineering-defined taxonomy. */}
+
+### Archival Rules
 
 Here is the summary of the rules that apply for archival:
 
-| Type | User criteria | Archival criteria |
-| :-- | :-- | :-- |
-| **Registered (Identified) users** | Users who have a unique identifier (ID) along with either an email ID or a mobile number. | **Activity:** <ul><li>Last seen \> 365 days</li><li>MoEngage did not track any custom or standard event for the last 365 days</li></ul> **Campaign engagement:** <ul><li>User interacted with no campaigns for the last 365 days</li></ul> |
-| **Anonymous (Guest) users** | Users who: <ul><li>Do not have an ID as an identifier, do not have an email ID, and do not have a mobile number</li></ul> | **Activity:** <ul><li>Last seen is \> 60 days</li><li>MoEngage did not track any custom or standard event for the last 60 days</li></ul> **Campaign engagement:** <ul><li>User interacted with no campaigns for the last 60 days</li></ul> |
+| Type                              | User criteria                                                                                                     | Archival criteria                                                                                                                                                                                                                                    |
+| :-------------------------------- | :------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Registered (Identified) users** | Users with at least one active identifier present (ID, or, in workspaces with Identity Resolution enabled, any configured identifier). | **Activity:** <ul><li>No custom or standard event, and no user attribute update, in the last Data Retention Policy (DRP) window (default 365 days)</li></ul> **Campaign engagement:** <ul><li>User interacted with no campaigns for the last DRP window (default 365 days)</li></ul> |
+| **Anonymous (Guest) users**       | Users with none of the active identifiers present.                                                                  | **Activity:** <ul><li>Last seen is > 60 days</li><li>MoEngage did not track any custom or standard event for the last 60 days</li></ul> **Campaign engagement:** <ul><li>User interacted with no campaigns for the last 60 days</li></ul>            |
 
-# Examples
+<Info>
+  **Data Retention Policy (DRP)**
 
-| # | Identifiers & reachability | User type (derived from attributes) | Activity status (Any standard/custom event in last X days) | Campaign engagement | Archived? |
-| :-- | :-- | :-- | :-- | :-- | :-- |
-| 1. | **Identifiers:** ID, email ID, mobile no.: Yes | Registered | No events in last 365 days | No campaign interaction in last 365 days | Yes |
-| 2. | **Identifiers:** ID, email ID, mobile no.: Yes | Registered | No events in last 365 days | Campaign clicked in last 365 days | No |
-| 3. | **Identifiers:** ID, email ID, mobile no.: No | Anonymous | No events in last 60 days | No campaign interaction in last 60 days | Yes |
-| 4. | **Identifiers:** ID, email ID, mobile no.: No | Anonymous | Custom events in last 60 days | No campaign interaction in last 60 days | No |
+  - Registered user profile retention is governed by your workspace's DRP. The default DRP is 365 days.
+  - You can opt for a custom DRP value for Registered user profiles. Contact your MoEngage Customer Success Manager (CSM) or the Support team. {/* TODO: existing custom-override workspaces are slated to eventually move to a single standard DRP — confirm with PM whether/when to communicate this deprecation to customers, or keep this page silent on it until closer to the date. */}
+  - Anonymous user retention is fixed at 60 days and isn't covered by DRP.
+  - If your workspace is on profile-based or hybrid pricing, MoEngage retains Registered user profiles for 10 years. {/* TODO: confirm the customer-facing name for "profile-based/hybrid pricing" matches billing/contract terminology used elsewhere in docs or on the pricing page. */}
+</Info>
 
-### Profile Retention Calculator
+## Examples
 
-If you still have queries, explore the profile retention calculator for specific scenarios.
+The following examples show how the activity and campaign engagement criteria combine to decide whether a profile is archived:
 
-<iframe
-  width="100%"
-  height="500px"
-  style={{ border: 'none', borderRadius: '12px' }}
-  srcDoc={`
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Profile Retention Calculator</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    body {
-        font-family: 'Inter', sans-serif;
-        background-color: transparent; /* Allows Mintlify background to show seamlessly */
-        padding: 10px;
-        display: flex;
-        justify-content: center;
-        margin: 0;
-    }
+| #  | User type  | Activity status                                                      | Campaign engagement                      | Archived?                                  |
+| :- | :--------- | :------------------------------------------------------------------- | :--------------------------------------- | :----------------------------------------- |
+| 1. | Registered | No events or attribute updates in last 365 days                      | No campaign interaction in last 365 days | Yes                                        |
+| 2. | Registered | No events in last 365 days, but an attribute was updated 10 days ago | No campaign interaction in last 365 days | No — the attribute update resets the clock |
+| 3. | Anonymous  | No events in last 60 days                                            | No campaign interaction in last 60 days  | Yes                                        |
+| 4. | Anonymous  | Custom events in last 60 days                                        | No campaign interaction in last 60 days  | No                                         |
 
-    .retention-calculator {
-        border: 1px solid #e1e8ed;
-        border-radius: 12px;
-        background: #ffffff;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        max-width: 950px;
-        width: 100%;
-        overflow: visible;
-        color: #2d3e50;
-        color-scheme: light;
-    }
-
-    .calc-header {
-        background: #023047;
-        color: white;
-        padding: 12px 20px;
-        border-top-left-radius: 11px;
-        border-top-right-radius: 11px;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-    }
-
-    .calc-header span {
-        font-size: 13px;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    .reset-btn {
-        background: rgba(255,255,255,0.2);
-        border: 1px solid rgba(255,255,255,0.3);
-        color: white;
-        font-size: 10px;
-        padding: 4px 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        font-weight: 700;
-    }
-
-    .main-workspace {
-        display: flex;
-        flex-wrap: wrap;
-        background: #e1e8ed;
-        gap: 1px;
-    }
-
-    .input-panel {
-        flex: 1.5;
-        min-width: 350px;
-        display: flex;
-        flex-direction: column;
-        gap: 1px;
-        background: #e1e8ed;
-    }
-
-    .section {
-        background: #ffffff;
-        padding: 20px;
-    }
-
-    .section-title {
-        font-size: 11px;
-        font-weight: 800;
-        color: #6a7c92;
-        text-transform: uppercase;
-        margin-bottom: 12px;
-    }
-
-    .identifier-row {
-        display: flex;
-        gap: 8px;
-    }
-
-    .checkbox-card {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        font-size: 12px;
-        border: 1px solid #e1e8ed;
-        padding: 10px;
-        border-radius: 4px;
-        cursor: pointer;
-        background: #fff;
-    }
-
-    .checkbox-card input {
-        margin-right: 8px;
-    }
-
-    .metric-row {
-        display: flex;
-        align-items: center;
-        gap: 15px;
-    }
-
-    .num-input {
-        flex: 0.3;
-        min-width: 100px;
-        padding: 10px;
-        border: 1px solid #cbd5e0;
-        border-radius: 6px;
-        font-size: 20px;
-        font-weight: 800;
-        color: #023047 !important;
-        background-color: #ffffff !important;
-        appearance: auto;
-    }
-
-    .output-panel {
-        flex: 1;
-        min-width: 300px;
-        background: #f8fafc;
-        padding: 30px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        border-left: 1px solid #e1e8ed;
-    }
-
-    #v_pill {
-        display: block;
-        width: 100%;
-        text-align: center;
-        padding: 12px 0;
-        border-radius: 50px;
-        font-size: 22px;
-        font-weight: 800;
-        text-transform: uppercase;
-        margin-bottom: 24px;
-    }
-
-    .summary-card {
-        background: #ffffff;
-        border: 1px solid #e1e8ed;
-        border-radius: 8px;
-        padding: 16px;
-        border-left: 4px solid #023047;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        width: 100%;
-        box-sizing: border-box;
-    }
-
-    .card-header-row {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 12px;
-        border-bottom: 1px solid #f1f5f9;
-        padding-bottom: 8px;
-    }
-
-    .sub-label {
-        font-size: 11px;
-        font-weight: 700;
-        color: #6a7c92;
-        text-transform: uppercase;
-    }
-
-    .classification-text {
-        font-size: 13px;
-        font-weight: 700;
-        color: #023047;
-    }
-
-    #v_sum {
-        font-size: 13px;
-        color: #475569;
-        line-height: 1.5;
-    }
-  </style>
-</head>
-<body>
-  <div class="retention-calculator">
-    <div class="calc-header">
-      <span>Profile Retention Calculator</span><button class="reset-btn" onclick="resetAll()">RESET</button>
-    </div>
-    <div class="main-workspace">
-      <div class="input-panel">
-        <div class="section">
-          <div class="section-title">1. User Classification</div>
-          <div style="font-size: 10px; font-weight: 700; color: #023047; margin-bottom: 8px; text-transform: uppercase; opacity: 0.7;">Select Identifiers Present</div>
-          <div class="identifier-row">
-            <label class="checkbox-card"><input type="checkbox" id="f_id" onchange="runLogic()"> ID</label><label class="checkbox-card"><input type="checkbox" id="f_em" onchange="runLogic()"> Email ID</label><label class="checkbox-card"><input type="checkbox" id="f_mo" onchange="runLogic()"> Mobile No.</label>
-          </div>
-        </div>
-        <div class="section">
-          <div class="section-title">2. Activity</div>
-          <div class="metric-row">
-            <input type="number" id="f_act" value="0" min="0" oninput="runLogic()" class="num-input"><span style="font-size: 12px; color: #6a7c92;">Days since last brand interaction (events)</span>
-          </div>
-        </div>
-        <div class="section">
-          <div class="section-title">3. Campaign Engagement</div>
-          <div class="metric-row">
-            <input type="number" id="f_eng" value="0" min="0" oninput="runLogic()" class="num-input"><span style="font-size: 12px; color: #6a7c92;">Days since interaction with campaigns</span>
-          </div>
-        </div>
-      </div>
-      <div class="output-panel">
-        <div id="empty_msg" style="color: #6a7c92; font-size: 14px; font-style: italic; text-align: center;">
-          Enter user criteria to evaluate archival status
-        </div>
-        <div id="result_content" style="display: none; width: 100%;">
-          <div id="v_pill">RETAIN</div>
-          <div class="summary-card">
-            <div class="card-header-row">
-              <span class="sub-label">User Classification</span><span id="v_type" class="classification-text">Anonymous</span>
-            </div>
-            <div id="v_sum">Status Detail</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <script>
-    function runLogic() {
-        var hasID = document.getElementById('f_id').checked;
-        var hasEM = document.getElementById('f_em').checked;
-        var hasMO = document.getElementById('f_mo').checked;
-        var actVal = document.getElementById('f_act').value;
-        var engVal = document.getElementById('f_eng').value;
-        var act = parseInt(actVal) || 0;
-        var eng = parseInt(engVal) || 0;
-
-        var interacted = hasID || hasEM || hasMO || (actVal !== "" && actVal !== "0") || (engVal !== "" && engVal !== "0");
-        document.getElementById('empty_msg').style.display = interacted ? 'none' : 'block';
-        document.getElementById('result_content').style.display = interacted ? 'block' : 'none';
-
-        /* NEW LOGIC:
-           - Registered: Has a Unique ID OR Email OR Mobile.
-           - Anonymous: Has NONE of the three.
-           Wait, per your prompt: 
-           "have an ID... but no email/no mobile" should be REGISTERED.
-           "does not have ID, email, or mobile" should be ANONYMOUS.
-        */
-        var registered = hasID || hasEM || hasMO; 
-        
-        // Technically, a MoEngage profile always has at least one identifier to exist, 
-        // but for the sake of the calculator, "Anonymous" is now the 0-identifier state.
-        var isAnonymous = !hasID && !hasEM && !hasMO;
-        var limit = isAnonymous ? 60 : 365;
-        
-        var archived = (act > limit) && (eng > limit);
-
-        var typeLabel = isAnonymous ? "Anonymous" : "Registered";
-        document.getElementById('v_type').innerText = typeLabel + " (" + limit + "d Limit)";
-        
-        var pill = document.getElementById('v_pill');
-        var sum = document.getElementById('v_sum');
-
-        if (archived) {
-            pill.innerText = "ARCHIVE";
-            pill.style.background = "#fdeaea"; pill.style.color = "#d90429"; pill.style.border = "2px solid #d90429";
-            sum.innerHTML = "<b>Status: Archival.</b> " + typeLabel + " user has exceeded the <b>" + limit + "-day</b> inactivity window.";
-        } else {
-            pill.innerText = "RETAIN";
-            pill.style.background = "#e6f7f4"; pill.style.color = "#2a9d8f"; pill.style.border = "2px solid #2a9d8f";
-            sum.innerHTML = "<b>Status: Safe.</b> This profile is within its <b>" + limit + "-day</b> retention window.";
-        }
-    }
-
-    function resetAll() {
-        document.getElementById('f_id').checked = false;
-        document.getElementById('f_em').checked = false;
-        document.getElementById('f_mo').checked = false;
-        document.getElementById('f_act').value = 0;
-        document.getElementById('f_eng').value = 0;
-        runLogic();
-    }
-  </script>
-</body>
-</html>
-`}
-/>
-
-## Events
+### Events
 
 By default, events remain available for 60 days. This determines how far back you can look to analyse user behaviour, for example, "Users who purchased in the last 2 months".
 
-The event retention period (also referred to as Data Retention Policy (DRP)) is extendable on a request basis. Contact your dedicated MoEngage Customer Success Manager or the Support team. Note that the retention period, if increased, will only be applicable for the event retention. It will have no impact on the device/user profile retention policy, and archival will continue based on standard policies mentioned in this article.
+The event retention period (also referred to as Data Retention Policy (DRP)) is extendable on a request basis. Contact your dedicated MoEngage Customer Success Manager or the Support team. This DRP setting also governs Registered user profile retention (see [User Profiles](#user-profiles)). It has no impact on device retention or Anonymous user profile retention, which continue to follow their own fixed windows.
 
-## Devices
+### Devices
 
 MoEngage archives devices that have been inactive for 60 days. Removing the inactive and unreachable devices ensures that your Push campaigns are processed faster and directed only at active devices.
 
 <Info>
-  1. The archival process runs periodically, so the actual archival period may be slightly higher (\+14 days) than the mentioned number of days.
+  1. The archival process runs periodically, so the actual archival period may be slightly higher (+14 days) than the mentioned number of days.
   2. The archival policy can be customised. For further assistance, contact your MoEngage Customer Success Manager (CSM) or the Support team.
   3. MoEngage allows ingestion of data beyond the Data Retention Policy (DRP), but the Segmentation service allows you to query the data only based on your DRP. The Data Storage services delete data beyond DRP periodically.
 </Info>
 
-# Data Retention and India's DPDP Act, 2023
+## Data Retention and India's DPDP Act, 2023
 
 India's Digital Personal Data Protection (DPDP) Act, 2023, sets guidelines for how the personal data of individuals in India is collected, processed, and retained. MoEngage provides APIs and controls that help you respond when your end users in India exercise their rights under the Act.
 
@@ -384,8 +136,16 @@ India's Digital Personal Data Protection (DPDP) Act, 2023, sets guidelines for h
 
 For MoEngage's complete legal data-retention terms and the rights available to Indian data principals, including the grievance and Data Protection Officer contact, refer to the **Additional Information for Indian Residents** and **Data Retention** sections of the [MoEngage Privacy Policy](https://www.moengage.com/privacy-policy/).
 
-# FAQs
+## FAQs
 
 <Accordion title="If an archived user comes back to the platform, does MoEngage retain the user consent and subscription status?">
   No. Once a user is archived, MoEngage removes that user from all MoEngage services. If the user returns, MoEngage treats them as a new user, and none of the earlier attributes are retained, including consent and subscription status.
+</Accordion>
+
+<Accordion title="Does updating a user attribute reset the archival clock?">
+  Yes. Sending a user attribute update — through the SDK, a Data API, or a file import — counts as activity, the same as a standard or custom event, and resets the archival clock.
+</Accordion>
+
+<Accordion title="Does MoEngage check reachability (for example, valid email or mobile number) before archiving a user?">
+  No. Archival is based only on inactivity — how long since the user's last event, attribute update, or campaign interaction. MoEngage does not check whether a user's contact details are valid or reachable.
 </Accordion>
