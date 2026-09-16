@@ -19,6 +19,149 @@ rss: true
 
 {/* ---- 2026 Releases ---- */}
 
+<Update label="16th September 2026" description="SDK 11.2.0">
+
+<CardGroup cols={2}>
+  <Card title="Modules">
+
+    - <span style={{ color: '#008767', fontWeight: 'bold' }}>Core</span>
+    - <span style={{ color: '#008767', fontWeight: 'bold' }}>InApp</span>
+    - <span style={{ color: '#008767', fontWeight: 'bold' }}>Cards</span>
+    - <span style={{ color: '#008767', fontWeight: 'bold' }}>Inbox</span>
+    - <span style={{ color: '#008767', fontWeight: 'bold' }}>Geofence</span>
+    - <span style={{ color: '#008767', fontWeight: 'bold' }}>RealTimeTrigger</span>
+    - <span style={{ color: '#008767', fontWeight: 'bold' }}>Personalize</span>
+    - <span style={{ color: '#008767', fontWeight: 'bold' }}>RichNotification</span>
+    - <span style={{ color: '#008767', fontWeight: 'bold' }}>LiveActivity</span>
+    - <span style={{ color: '#008767', fontWeight: 'bold' }}>Messaging</span>
+
+    CampaignsCore
+  </Card>
+
+  <Card title="Dependencies">
+    - Swift: 5.0.0
+    - iOS: 13.0
+    - tvOS: 13.0
+  </Card>
+</CardGroup>
+
+#### Core
+<span style={{ backgroundColor: 'rgba(212, 56, 13, 0.1)', color: '#D4380D', border: '1px solid #FFCCC7', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Breaking Changes</span>
+
+* The SDK's default **Dismiss** notification action has been removed from its notification categories. Notifications now show only the actions you configure. If your app relies on that button, add it explicitly to your own category definition.
+* `trackUserPushPreference` is deprecated. The API still works in this release but will be removed in a future major version.
+
+<span style={{ backgroundColor: 'rgba(212, 107, 8, 0.1)', color: '#D46B08', border: '1px solid #FFE58F', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Fixes</span>
+
+* Fixed duplicate event identifiers during data syncing. An analytics batch identifier could be reused across two sets of events when the app was terminated before pending writes finished. This typically occurred when a notification dismissal was handled while the app was killed. The identifier is now assigned when the batch is sent, so each batch syncs once under its own identifier.
+
+#### InApp
+<span style={{ backgroundColor: 'rgba(0, 135, 103, 0.1)', color: '#008767', border: '1px solid #B5F5EC', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Improvements</span>
+
+* **Static linking:** The InApp framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+* Manual xcframework integrations require two changes:
+  * Set the framework to **Do Not Embed** and copy `MoEngageInApps.bundle` from the release zip into the app bundle. **Do Not Embed** copies nothing out of the framework, so without this step the app ships without its privacy manifest.
+  * Add `-ObjC` to **Other Linker Flags**. The linker includes a statically linked module's code only where the app references a symbol it defines.
+
+<span style={{ backgroundColor: 'rgba(212, 107, 8, 0.1)', color: '#D46B08', border: '1px solid #FFE58F', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Fixes</span>
+
+* Fixed the module not being initialized in Swift Package Manager integrations, an issue introduced in SDK 11.1.0. Static linking dropped code that no app symbol referenced directly, including classes the SDK resolves by name and `@objcMembers` methods declared in extensions. The module is now built as a single object file, so referencing any part of it links all of it.
+* Fixed race conditions in in-app stats tracking when the SDK is initialized multiple times in a process's lifecycle.
+
+#### Cards
+<span style={{ backgroundColor: 'rgba(0, 135, 103, 0.1)', color: '#008767', border: '1px solid #B5F5EC', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Improvements</span>
+
+* **Static linking:** The Cards framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+* Manual xcframework integrations require two changes:
+  * Set the framework to **Do Not Embed** and copy `MoEngageCards.bundle` from the release zip into the app bundle. **Do Not Embed** copies nothing out of the framework, so without this step the app ships without its privacy manifest.
+  * Add `-ObjC` to **Other Linker Flags**. The linker includes a statically linked module's code only where the app references a symbol it defines.
+
+<span style={{ backgroundColor: 'rgba(212, 107, 8, 0.1)', color: '#D46B08', border: '1px solid #FFE58F', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Fixes</span>
+
+* Fixed the module not being initialized in Swift Package Manager integrations, an issue introduced in SDK 11.1.0. Static linking dropped code that no app symbol referenced directly, including classes the SDK resolves by name and `@objcMembers` methods declared in extensions. The module is now built as a single object file, so referencing any part of it links all of it.
+
+#### Inbox
+<span style={{ backgroundColor: 'rgba(212, 56, 13, 0.1)', color: '#D4380D', border: '1px solid #FFCCC7', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Breaking Changes</span>
+
+* Inbox APIs now follow Swift's concurrency model. `presentInboxViewController`, `pushInboxViewController`, and `getInboxViewController` are main-actor bound. Swift call sites outside the main actor need to be updated. Objective-C callers are unaffected.
+* All Inbox completion blocks are now invoked on the main thread, so you can update UI directly from them.
+* `getInboxViewController` now always invokes its completion block, passing `nil` when no SDK instance is registered for the given Workspace ID.
+* Inbox entries are now immutable snapshots. Read-state changes such as `isRead` and `clickedDate` appear on the next fetch instead of mutating entry objects you already hold. Re-fetch the inbox after marking an entry as read.
+
+<span style={{ backgroundColor: 'rgba(0, 135, 103, 0.1)', color: '#008767', border: '1px solid #B5F5EC', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Improvements</span>
+
+* **Static linking:** The Inbox framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+* Manual xcframework integrations require two changes:
+  * Set the framework to **Do Not Embed** and copy `MoEngageInbox.bundle` from the release zip into the app bundle. **Do Not Embed** copies nothing out of the framework, so without this step the app ships without its privacy manifest.
+  * Add `-ObjC` to **Other Linker Flags**. The linker includes a statically linked module's code only where the app references a symbol it defines.
+
+<span style={{ backgroundColor: 'rgba(212, 107, 8, 0.1)', color: '#D46B08', border: '1px solid #FFE58F', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Fixes</span>
+
+* Fixed the module not being initialized in Swift Package Manager integrations, an issue introduced in SDK 11.1.0. Static linking dropped code that no app symbol referenced directly, including classes the SDK resolves by name and `@objcMembers` methods declared in extensions. The module is now built as a single object file, so referencing any part of it links all of it.
+
+#### Geofence
+<span style={{ backgroundColor: 'rgba(0, 135, 103, 0.1)', color: '#008767', border: '1px solid #B5F5EC', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Improvements</span>
+
+* **Static linking:** The Geofence framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+* Manual xcframework integrations require two changes:
+  * Set the framework to **Do Not Embed** and copy `MoEngageGeofence.bundle` from the release zip into the app bundle. **Do Not Embed** copies nothing out of the framework, so without this step the app ships without its privacy manifest.
+  * Add `-ObjC` to **Other Linker Flags**. The linker includes a statically linked module's code only where the app references a symbol it defines.
+* Geofence now runs on the actor-based concurrency model. Location and campaign handling is structured around Swift concurrency, removing data-race risk in geofence processing.
+
+<span style={{ backgroundColor: 'rgba(212, 107, 8, 0.1)', color: '#D46B08', border: '1px solid #FFE58F', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Fixes</span>
+
+* Fixed the module not being initialized in Swift Package Manager integrations, an issue introduced in SDK 11.1.0. Static linking dropped code that no app symbol referenced directly, including classes the SDK resolves by name and `@objcMembers` methods declared in extensions. The module is now built as a single object file, so referencing any part of it links all of it.
+
+#### RealTimeTrigger
+<span style={{ backgroundColor: 'rgba(0, 135, 103, 0.1)', color: '#008767', border: '1px solid #B5F5EC', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Improvements</span>
+
+* **Static linking:** The RealTimeTrigger framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+* Manual xcframework integrations require two changes:
+  * Set the framework to **Do Not Embed** and copy `MoEngageRealTimeTrigger.bundle` from the release zip into the app bundle. **Do Not Embed** copies nothing out of the framework, so without this step the app ships without its privacy manifest.
+  * Add `-ObjC` to **Other Linker Flags**. The linker includes a statically linked module's code only where the app references a symbol it defines.
+* Trigger evaluation and delivery now run under the actor model for safer concurrent access.
+
+<span style={{ backgroundColor: 'rgba(212, 107, 8, 0.1)', color: '#D46B08', border: '1px solid #FFE58F', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Fixes</span>
+
+* Fixed the module not being initialized in Swift Package Manager integrations, an issue introduced in SDK 11.1.0. Static linking dropped code that no app symbol referenced directly, including classes the SDK resolves by name and `@objcMembers` methods declared in extensions. The module is now built as a single object file, so referencing any part of it links all of it.
+
+#### Personalize
+<span style={{ backgroundColor: 'rgba(0, 135, 103, 0.1)', color: '#008767', border: '1px solid #B5F5EC', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Improvements</span>
+
+* **Static linking:** The Personalize framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+* Manual xcframework integrations require two changes:
+  * Set the framework to **Do Not Embed** and copy `MoEngagePersonalization.bundle` from the release zip into the app bundle. **Do Not Embed** copies nothing out of the framework, so without this step the app ships without its privacy manifest.
+  * Add `-ObjC` to **Other Linker Flags**. The linker includes a statically linked module's code only where the app references a symbol it defines.
+
+<span style={{ backgroundColor: 'rgba(212, 107, 8, 0.1)', color: '#D46B08', border: '1px solid #FFE58F', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Fixes</span>
+
+* Fixed the module not being initialized in Swift Package Manager integrations, an issue introduced in SDK 11.1.0. Static linking dropped code that no app symbol referenced directly, including classes the SDK resolves by name and `@objcMembers` methods declared in extensions. The module is now built as a single object file, so referencing any part of it links all of it.
+
+#### RichNotification
+<span style={{ backgroundColor: 'rgba(212, 107, 8, 0.1)', color: '#D46B08', border: '1px solid #FFE58F', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Fixes</span>
+
+* Fixed rich push media not rendering for dynamic media URLs. Images and other media served from URLs without a recognizable file extension failed to display in the expanded notification. The media type is now resolved from the server response, with the URL extension used as a fallback.
+
+#### LiveActivity
+<span style={{ backgroundColor: 'rgba(212, 107, 8, 0.1)', color: '#D46B08', border: '1px solid #FFE58F', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Fixes</span>
+
+* Fixed race conditions in Live Activity token handling when the SDK is initialized multiple times in a process's lifecycle.
+
+#### Messaging
+<span style={{ backgroundColor: 'rgba(212, 107, 8, 0.1)', color: '#D46B08', border: '1px solid #FFE58F', padding: '2px 10px', borderRadius: '12px', fontSize: '0.85em', fontWeight: 'bold' }}>Fixes</span>
+
+* Fixed the app icon badge being one higher than the notification tray after a notification update. The extension now excludes the notification being replaced when computing the badge.
+
+</Update>
+
+<Update label="1st September 2026" description="SDK 11.1.0">
+
+<Warning>
+  MoEngage does not recommend SDK 11.1.0. In this version, the newly introduced static frameworks (InApps, Personalization, Cards, Inbox, Geofence, and RealTimeTrigger) do not link correctly, so they skip initialization and campaigns do not display to users. This affects Swift Package Manager and manual integrations. Upgrade to [SDK 11.2.0](/release-notes/sdks/ios#16th-september-2026), which includes all changes in 11.1.0 together with additional fixes.
+</Warning>
+
+</Update>
+
 <Update label="22nd July 2026" description="SDK 11.0.0">
 
 <CardGroup cols={2}>
