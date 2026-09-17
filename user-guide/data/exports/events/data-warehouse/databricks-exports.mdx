@@ -161,7 +161,31 @@ The setup steps differ by delivery method. Click the tab for the method you are 
     - `<SCHEMA_NAME>` - The name of your database or schema.
     - `<EMAIL_ID_OF_THE_USER>` - The email ID of the user who created the token.
 
-    **Step 2: Add the Export on the App Marketplace**
+    **Step 2: Use a Unity Catalog Volume for Faster Exports (Recommended)**
+
+    This step is optional. MoEngage can use a Unity Catalog volume to export data more efficiently. To use this method, create a dedicated volume and grant MoEngage access to it.
+
+    Use the following code to create the volume and grant access:
+
+    ```sql wrap
+    -- Create the volume. This is a one-time activity, and Databricks provisions the storage.
+    CREATE VOLUME IF NOT EXISTS <CATALOG_NAME>.<SCHEMA_NAME>.<VOLUME_NAME>;
+
+    -- Grant MoEngage read and write access on the volume.
+    GRANT READ VOLUME, WRITE VOLUME ON VOLUME <CATALOG_NAME>.<SCHEMA_NAME>.<VOLUME_NAME>
+      TO `<GRANTEE>`;
+    ```
+
+    Change the following values:
+
+    - `<CATALOG_NAME>` - The name of your catalog.
+    - `<SCHEMA_NAME>` - The name of your database or schema.
+    - `<VOLUME_NAME>` - The name of the volume you are creating.
+    - `<GRANTEE>` - The service principal's application ID (if using OAuth or a Service Principal PAT) or the user's email address (if using a User PAT).
+
+    Enter the volume name in the **Unity Catalog Volume** field when you add the export.
+
+    **Step 3: Add the Export on the App Marketplace**
 
     Continue with [Add a New Databricks Export on the MoEngage App Marketplace](/user-guide/data/exports/events/data-warehouse/databricks-exports#add-a-new-databricks-export-on-the-moengage-app-marketplace), below.
   </Tab>
@@ -187,10 +211,11 @@ To add a new Databricks export, perform the following steps:
    | **Export name** | Yes | Type a name for the Databricks export. |
    | **Databricks connection** | Yes | Select your Databricks connection. |
    | **Export into schema** | Yes | Select the schema that MoEngage uses to create new tables and export your events into. |
+   | **Unity Catalog Volume** | Optional | Enter the name of the volume you created for MoEngage. Leave it empty if you are not using a volume. To create one and grant MoEngage access, refer to the **Direct Export** tab under [Set Up Your Export](/user-guide/data/exports/events/data-warehouse/databricks-exports#set-up-your-export). |
    | **User properties** | Optional | Select the user properties (user properties and device properties) you want to export with your events. |
    | **Select events** | Yes | Select the events you want to export to Databricks. You can choose to export all events, including existing and new ones coming into MoEngage, or manually select specific events to export. |
 
-   ![Setup exports to Databricks form showing the export name, Databricks connection, export into schema, user properties, and event selection fields, with the Save button highlighted](/images/databricks-add-export-form.png)
+   ![Setup exports to Databricks form showing the export name, Databricks connection, export into schema, Unity Catalog Volume, user properties, and event selection fields, with the Save button highlighted](/images/databricks-add-export-form.png)
 
 6. Click **Save**.
 
