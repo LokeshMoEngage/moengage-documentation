@@ -83,3 +83,56 @@ Using the above code, we can now try to render the table correctly by putting th
 ```
 
 </CodeGroup>
+
+# Does MoEngage Support Dark Mode / prefers-color-scheme Styling in Emails?
+
+MoEngage does not strip, alter, or block dark-mode CSS media queries — including `@media (prefers-color-scheme: dark)`, `[data-ogsc]`, and `[data-ogsb]` selectors. Whatever CSS you add to your template is delivered to the inbox intact, unmodified by MoEngage or the sending infrastructure (SendGrid).
+
+<Warning>
+Support for `prefers-color-scheme` depends entirely on the receiving email client, not on MoEngage. Gmail (on all platforms, including Android) and some Outlook versions do not honor this media query. Instead, these clients apply their own automatic dark-mode inversion to your template's colors and images, overriding any custom dark-mode CSS you've written.
+</Warning>
+
+Check [caniemail.com](https://www.caniemail.com/features/css-at-media-prefers-color-scheme/) for the current client support matrix before relying on `prefers-color-scheme` for critical branding elements like logos.
+
+**Recommended approach for logos/branding that must survive Gmail's auto-invert:**
+
+Use a single transparent PNG with a subtle white stroke, outline, or drop shadow around the artwork:
+
+- In light mode, the white stroke blends into the white background and is invisible.
+- In dark mode (Gmail auto-invert), the background turns black, and the white stroke keeps the logo visible.
+
+This avoids relying on CSS switching entirely, since it works with Gmail's auto-invert rather than fighting it.
+
+<Note>
+As a last-resort, advanced option, you can use a `mix-blend-mode: screen` CSS trick to force a white logo to display on inverted dark backgrounds. This requires careful cross-client testing and is not guaranteed to work in every environment. Check support for `mix-blend-mode` at [caniemail.com](https://www.caniemail.com/features/css-mix-blend-mode/) before relying on this technique.
+</Note>
+
+<CodeGroup>
+
+```html HTML wrap
+<style>
+  /* Standard dark mode support for Apple Mail, Outlook Mac, etc. */
+  @media (prefers-color-scheme: dark) {
+    .light-logo { display: none !important; }
+    .dark-logo { display: block !important; }
+  }
+</style>
+
+<div>
+  <img src="https://your-domain.com/business-black.png" class="light-logo" alt="business" style="display: block; width: 120px; height: auto;">
+
+  <div class="dark-logo" style="display: none; mso-hide: all;">
+    <div style="background: #000000; mix-blend-mode: screen;">
+      <div style="background: #000000; mix-blend-mode: difference;">
+        <img src="https://your-domain.com/business-white.png" alt="business" style="display: block; width: 120px; height: auto; color: #ffffff;">
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+</CodeGroup>
+
+<Info>
+General design tip: choose logo and text colors (for example, grey or brand colors with sufficient contrast in both modes) that remain legible whether or not dark-mode CSS is honored by the recipient's client.
+</Info>

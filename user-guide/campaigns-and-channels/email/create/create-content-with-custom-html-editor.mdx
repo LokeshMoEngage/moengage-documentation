@@ -40,6 +40,20 @@ You can add an HTML code that you have prepared previously or create it with the
 Do not embed base64-encoded image data in your HTML (for example, `<img src="data:image/png;base64,...">`) or paste it into a link or URL field. Reference images with a hosted URL or upload them instead. A large base64 image can exceed the message-size limit during sending and cause the campaign to fail silently, with a Sent count of 0.
 </Warning>
 
+### Known Editor Behavior: HTML Attribute Casing and Inline SVG
+
+The rich-text editor (Froala) parses your code as standard HTML DOM. Standard HTML attributes are not case-sensitive, so the editor normalizes attribute casing — for example, `viewBox` is automatically converted to lowercase `viewbox`.
+
+<Warning>
+If you're using inline SVG, this normalization breaks it. SVG is XML-based and case-sensitive, so `viewbox` is not recognized and the SVG renders blank.
+</Warning>
+
+**Workaround:** To preserve attribute casing exactly as written, use the **HTML editor** or the **Drag and Drop editor** instead of the default rich-text (Froala) editor. The HTML editor passes your code through unprocessed, without DOM normalization.
+
+<Note>
+Even with casing preserved, inline SVG is not recommended for email. Gmail strips inline `<svg>` tags entirely for security reasons, regardless of which editor was used to create the content. If your email needs to render correctly on Gmail, use a PNG or other raster image format instead of inline SVG.
+</Note>
+
 ### Preview the Email Design
 
 The side-by-side view helps you preview any changes made to the HTML code in real-time, enabling you to see the immediate impact of any changes made. Additionally, you can preview your email design on both desktop and mobile resolutions to ensure that it looks good and functions properly on different devices.
@@ -103,7 +117,7 @@ For further assistance, please contact your MoEngage Customer Success Manager (C
 ### Gmail-Specific CSS Behavior
 
 - Gmail ignores `@media` hide/show queries on both mobile and desktop clients — build responsive layout with fluid-hybrid tables (percentage- or max-width-based) instead of relying on media-query toggles alone.
-- Gmail does not honor `prefers-color-scheme` dark-mode CSS — it applies its own automatic color inversion instead. Inline SVG is also stripped or mangled by Gmail and by the editor's HTML parser. Use a single transparent PNG with a white stroke (invisible in light mode, visible once Gmail auto-inverts) instead of trying to detect dark mode, and avoid inline SVG — use the raw-HTML/Ace editor if exact attribute casing matters.
+- Gmail does not honor `prefers-color-scheme` dark-mode CSS — it applies its own automatic color inversion instead, and it strips inline SVG. For attribute-casing and inline SVG details, refer to [Known Editor Behavior: HTML Attribute Casing and Inline SVG](#known-editor-behavior-html-attribute-casing-and-inline-svg). For dark-mode design guidance, refer to [Rendering Issues in HTML Templates](/user-guide/campaigns-and-channels/email/faqs-email/rendering-issues-in-html-templates).
 
 ### Personalization (Jinja) Syntax
 
@@ -115,8 +129,8 @@ For further assistance, please contact your MoEngage Customer Success Manager (C
 
 ### Editor Behavior Quirks
 
-- The rich-text editor can silently append trailing newline characters to a pasted link URL, breaking the click-through with nothing visibly wrong in the UI. If links start failing silently after editing, check the raw href in code view; switching to the raw-HTML editor avoids the mangling since it passes HTML through untouched.
-- The rich-text editor restructures imported HTML — head-level markup (like Gmail annotation schema) can get relocated into the body and broken, and `<script>` tags are rejected outright as a security measure. For head-level structured data, author it once and load it through the raw-HTML editor (plain HTML passthrough, no DOM restructuring).
+- The rich-text editor can silently append trailing newline characters to a pasted link URL, breaking the click-through with nothing visibly wrong in the UI. If links start failing silently after editing, check the raw href in code view; switching to the HTML editor avoids the mangling since it passes HTML through untouched.
+- The rich-text editor restructures imported HTML — head-level markup (like Gmail annotation schema) can get relocated into the body and broken, and `<script>` tags are rejected outright as a security measure. For head-level structured data, author it once and load it through the HTML editor (plain HTML passthrough, no DOM restructuring).
 - Keep the entire `<html>`/`<body>` structure inside one place — never split opening tags in the template from closing tags inside a separately managed content block referenced via a merge tag. The editor can't resolve unresolved merge tags at edit time and may wipe out body content.
 - Pasting raw HTML into the rich-text (WYSIWYG) view instead of the code view gets escaped as literal text and can shift formatting elsewhere in the email. Add HTML only through the code view, or paste plain text in the rich-text view and apply links via the toolbar's "Insert Link."
 - If a link-edit popup won't open, suspect a browser extension (DLP/"safe-link" tooling) before assuming a template or platform problem — test in incognito or a clean browser profile before escalating.
