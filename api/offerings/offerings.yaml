@@ -38,7 +38,7 @@ paths:
           List all offer campaigns in the workspace. Use this as the first step to discover
           existing offerings and their IDs before calling update_offering or inspecting details.
 
-          Returns a paginated summary — ID, name, status, tags, created_at, created_by.
+          Returns a paginated summary — ID, display_name, status, tags, created_at, created_by.
           Use the fields parameter to request only the fields you need (reduces token usage).
 
           Typical agent flow:
@@ -65,8 +65,8 @@ paths:
           fields:
             description: |
               Comma-separated list of fields to return. Omit for all six fields.
-              Use to minimise token usage. Valid values: `id`, `name`, `status`, `tags`, `created_at`, `created_by`.
-              Example: fields=id,name,status
+              Use to minimise token usage. Valid values: `id`, `display_name`, `status`, `tags`, `created_at`, `created_by`.
+              Example: fields=id,display_name,status
           limit:
             description: |
               The number of offerings to return per paginated response.
@@ -85,14 +85,14 @@ paths:
             Look up a single offering by its exact prefixed ID (e.g. offer_6a4f69ee490f66322f968b87).
             Use this when you already know the offering ID and want to confirm it exists
             before updating it.
-        - name: name_contains
+        - name: display_name_contains
           in: query
           required: false
           schema:
             type: string
             maxLength: 100
           description: >
-            Find offerings whose name contains specific text (case-insensitive). For example, pass
+            Find offerings whose display name contains specific text (case-insensitive). For example, pass
             "summer" to find all summer-related offerings.
         - name: status_in
           in: query
@@ -150,7 +150,7 @@ paths:
             type: string
           description: >
             Request only the fields you need.
-            Example: fields=id,name,status returns only those three fields per item.
+            Example: fields=id,display_name,status returns only those three fields per item.
         - name: cursor
           in: query
           required: false
@@ -223,13 +223,13 @@ paths:
                 type: offer
                 data:
                   - id: offer_6a4f69ee490f66322f968b87
-                    name: Summer_Sale_Promo_2026
+                    display_name: Summer_Sale_Promo_2026
                     status: active
                     tags: [tag_<object-id>]
                     created_at: "2026-06-23T12:29:41.225270281Z"
                     created_by: marketing-team@example.com
                   - id: offer_6a4f69ee490f66322f968b87
-                    name: Homepage_Banner_AB_Test
+                    display_name: Homepage_Banner_AB_Test
                     status: scheduled
                     created_at: "2026-06-23T12:29:41.225270281Z"
                     created_by: growth-team@example.com
@@ -303,13 +303,13 @@ paths:
               A past value returns 400 INVALID_SCHEDULING. Offset strings like "+05:30" are not accepted.
             - tags must be pre-existing tag IDs — unknown IDs return 400 INVALID_TAG_ID.
             - variation_meta CAN be updated via PATCH with status-based rules. See update_offering.
-            - name must be alphanumeric + underscores only (no spaces or hyphens). 5–100 chars.
+            - display_name must be alphanumeric + underscores only (no spaces or hyphens). 5–100 chars.
 
           Always supply a unique Idempotency-Key (UUID v4) header to prevent duplicate offerings
           on retries. The same key within 24 hours returns the original 201 response.
 
           For a simple single-variant offering with no A/B test:
-            - Set variation_meta.type = SMV, variantsPerLocale = [variation_1], split = {variation_1: 100}
+            - Set variation_meta.type = SMV, split = {variation_1: 100}
             - Put content in offer_content.locales["0"].variations.variation_1
             - Locale key must be "0" for single-locale offerings (not "default" or "en")
             - Variation keys must follow the variation_N format (e.g. variation_1, variation_2). Other formats are rejected.
@@ -317,7 +317,7 @@ paths:
           variation_meta:
             description: |
               A/B test configuration. For a simple offering (no A/B test), use:
-                type: SMV, variantsPerLocale: [variation_1], split: {variation_1: 100}
+                type: SMV, split: {variation_1: 100}
               Variation keys must follow the variation_N format (e.g. variation_1, variation_2). Other formats are rejected.
               Maximum 5 variations per offering.
               For A/B test (SMV): split values must sum to exactly 100 inclusive of control group allocation(INVALID_SPLIT if not).
@@ -375,10 +375,9 @@ paths:
               jsonSingleVariantNoCapping:
                 summary: "JSON: 1 variant, no control group, no capping"
                 value:
-                  name: Summer_Sale
+                  display_name: Summer_Sale
                   description: Summer sale discount offers
                   priority: 50
-                  delivery: scheduled
                   created_by: john.doe@example.com
                   scheduling:
                     start_datetime: "2026-07-16T00:00:00Z"
@@ -398,7 +397,6 @@ paths:
                       value: '{"discount":"10%"}'
                   variation_meta:
                     type: SMV
-                    variantsPerLocale: [variation_1]
                     control_group:
                       is_enabled: false
                       percentage: 0
@@ -411,10 +409,9 @@ paths:
               jsonMultiVariantWithCapping:
                 summary: "JSON: 2 variants, control group enabled, overall + user-level capping (scheduled delivery)"
                 value:
-                  name: Summer_Sale
+                  display_name: Summer_Sale
                   description: Summer sale discount offers
                   priority: 50
-                  delivery: scheduled
                   created_by: john.doe@example.com
                   scheduling:
                     start_datetime: "2026-07-16T00:00:00Z"
@@ -442,7 +439,6 @@ paths:
                               value: '{"discount":"20%"}'
                   variation_meta:
                     type: SMV
-                    variantsPerLocale: [variation_1, variation_2]
                     control_group:
                       is_enabled: true
                       percentage: 10
@@ -464,10 +460,9 @@ paths:
               templateDmvWithCapping:
                 summary: "Template: 2 variants (DMV), control group enabled, user_attributes segment, capping (scheduled delivery)"
                 value:
-                  name: Summer_Sale
+                  display_name: Summer_Sale
                   description: Summer sale discount offers
                   priority: 50
-                  delivery: scheduled
                   created_by: john.doe@example.com
                   scheduling:
                     start_datetime: "2026-07-16T11:00:00Z"
@@ -536,7 +531,6 @@ paths:
                                 templateId: feature_hero_slide
                   variation_meta:
                     type: DMV
-                    variantsPerLocale: [variation_1, variation_2]
                     control_group:
                       is_enabled: true
                       percentage: 5
@@ -584,16 +578,16 @@ paths:
             - `INVALID_TYPE` — a field has the wrong type or format (e.g. `content_1.value` is not a JSON object when `type` is `template`; or `scheduling.start_datetime` is not a valid ISO 8601 datetime with UTC "Z" suffix).
             - `OUT_OF_RANGE` — numeric field outside its allowed range (e.g. `priority` outside 1–100, `control_group.percentage` outside 1–99).
             - `INVALID_ENUM_VALUE` — enum field has an unrecognised value.
-            - `INVALID_OFFER_NAME` — `name` contains characters other than alphanumeric characters and underscores. Spaces and hyphens are not allowed.
+            - `INVALID_OFFER_NAME` — `display_name` contains characters other than alphanumeric characters and underscores. Spaces and hyphens are not allowed.
             - `INVALID_SCHEDULING` — `expiry_datetime` is not after `start_datetime`; `start_datetime` is in the past; or `expiry_datetime` is less than 10 minutes in the future.
             - `INVALID_TIMEZONE` — `scheduling.timezone` is present but not a valid IANA timezone name (e.g. `Asia/Kolkata`, `America/New_York`, `UTC`).
-            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match `variantsPerLocale`.
+            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match the variation keys used in `offer_content`.
             - `INVALID_SPLIT` — values in `smv_distribution.split` do not sum to exactly 100. Adjust the percentages so the total equals 100.
-            - `VARIANT_COUNT_MISMATCH` — count of variants in `offer_content` does not match `variantsPerLocale`.
+            - `VARIANT_COUNT_MISMATCH` — count of variants in `offer_content` does not match the keys in `smv_distribution.split`.
             - `INVALID_TEMPLATE_ID` — `meta.templateId` refers to a template ID not registered in the workspace.
             - `MISSING_TEMPLATE_FIELD` — a required field (per the template's config) is missing or blank in the `value` map.
               The `target` field will be `offer_content.locales.<locale>.variations.<variant>.content_1.value.<fieldKey>`.
-            - `DUPLICATE_OFFER_NAME` — `name` matches an existing non-archived offering in this workspace. Offering names must be unique. Choose a different name.
+            - `DUPLICATE_OFFER_NAME` — `display_name` matches an existing non-archived offering in this workspace. Offering names must be unique. Choose a different name.
             - `INVALID_TAG_ID` — one or more tag IDs in `tags` do not exist in this workspace. Create the tags first via the dashboard before referencing them here.
             - `REVENUE_FIELDS_INCOMPLETE` — `conversion.primary.revenue_amount` or `conversion.primary.revenue_currency` is missing when `is_revenue_tracking` is true.
             - `INVALID_CURRENCY_CODE` — `conversion.primary.revenue_currency` is not a valid ISO 4217 code (e.g. use "USD", "EUR", "INR").
@@ -696,7 +690,7 @@ paths:
 
           Common update patterns:
             - Extend expiry: include only scheduling.expiry_datetime with a later date (Z suffix required)
-            - Rename: include only name (alphanumeric + underscores only; returns DUPLICATE_OFFER_NAME if taken)
+            - Rename: include only display_name (alphanumeric + underscores only; returns DUPLICATE_OFFER_NAME if taken)
             - Update content: include only offer_content
             - Replace tags: include tags as a full list of tag IDs (full replacement, not additive).
               Tag IDs from list_offerings are returned with "tag_" prefix (e.g. "tag_<object-id>")
@@ -706,7 +700,7 @@ paths:
             - scheduling.start_datetime: locked once status becomes 'active'
             - conversion: locked once status becomes 'active'
             - variation_meta.type: locked once status is 'active'
-            - Adding/removing variants in variantsPerLocale: locked once 'active'
+            - Adding/removing variant keys in smv_distribution.split: locked once 'active'
             - ACTIVE + SMV: only split percentages editable
             - ACTIVE + DMV: only control_group.percentage editable
             - SCHEDULED: all variation_meta fields freely editable
@@ -772,7 +766,7 @@ paths:
                 summary: Rename offering and replace tags
                 value:
                   updated_by: marketing-team@example.com
-                  name: Summer_Sale_Promo_2026_V2
+                  display_name: Summer_Sale_Promo_2026_V2
                   tags: [summer-sale, vip-users]
               updateContent:
                 summary: Update offer content (single variant, locale "0")
@@ -818,20 +812,20 @@ paths:
             - `INVALID_TYPE` — wrong type or format (e.g. `scheduling.start_datetime` is not a valid ISO 8601 datetime with UTC "Z" suffix).
             - `OUT_OF_RANGE` — numeric field outside its allowed range (e.g. `priority` outside 1–100, `control_group.percentage` outside 1–99).
             - `INVALID_ENUM_VALUE` — enum field has an unrecognised value (e.g. unrecognised `variation_meta.type`).
-            - `INVALID_OFFER_NAME` — `name` contains characters other than alphanumeric characters and underscores.
+            - `INVALID_OFFER_NAME` — `display_name` contains characters other than alphanumeric characters and underscores.
             - `INVALID_SCHEDULING` — `expiry_datetime` is not after `start_datetime`; `start_datetime` is in the past; or `expiry_datetime` is less than 10 minutes in the future.
             - `INVALID_TIMEZONE` — `scheduling.timezone` is present but not a valid IANA timezone name.
             - `IMMUTABLE_FIELD` — attempt to change a status-locked field:
               • `scheduling.start_datetime` when offering is ACTIVE or EXPIRED.
               • `conversion` when offering is not in `scheduled` status.
               • `variation_meta.type` when offering is ACTIVE.
-              • Adding or removing keys in `variation_meta.variantsPerLocale` when offering is ACTIVE — only split percentages (SMV) or `control_group.percentage` (DMV) can change on an ACTIVE offering.
-            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match `variantsPerLocale`.
+              • Adding or removing variation keys in `smv_distribution.split` when offering is ACTIVE — only split percentages (SMV) or `control_group.percentage` (DMV) can change on an ACTIVE offering.
+            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match the variation keys used in `offer_content`.
             - `INVALID_SPLIT` — values in `smv_distribution.split` do not sum to exactly 100.
             - `INVALID_TEMPLATE_ID` — `meta.templateId` refers to a template ID not registered in the workspace.
             - `MISSING_TEMPLATE_FIELD` — a required field (per the template's config) is missing or blank in the `value` map.
               The `target` field will be `offer_content.locales.<locale>.variations.<variant>.content_1.value.<fieldKey>`.
-            - `DUPLICATE_OFFER_NAME` — `name` matches an existing non-archived offering in this workspace.
+            - `DUPLICATE_OFFER_NAME` — `display_name` matches an existing non-archived offering in this workspace.
             - `INVALID_TAG_ID` — one or more tag IDs in `tags` do not exist in this workspace.
             - `REVENUE_FIELDS_INCOMPLETE` — `conversion.primary.revenue_amount` or `conversion.primary.revenue_currency` is missing when `is_revenue_tracking` is true.
             - `INVALID_CURRENCY_CODE` — `conversion.primary.revenue_currency` is not a valid ISO 4217 code.
@@ -1229,7 +1223,7 @@ components:
       description: >
         Summary representation of an offering returned in GET /v5/offers list responses.
         Only these six fields are returned. Use the `fields` query parameter to request a
-        sparse subset of them (e.g. `fields=id,name,status`).
+        sparse subset of them (e.g. `fields=id,display_name,status`).
       type: object
       properties:
         id:
@@ -1239,7 +1233,7 @@ components:
             Format: the literal prefix "offer_" followed by the hex MongoDB ObjectId.
             Use this value as the {offer_id} path parameter in PATCH /v5/offers/{offer_id}.
           example: offer_6a4f69ee490f66322f968b87
-        name:
+        display_name:
           type: string
           description: Unique display name of the offering within the workspace.
           example: Summer_Sale_Promo_2026
@@ -1275,7 +1269,7 @@ components:
           example: marketing-team@example.com
       example:
         id: offer_6a4f69ee490f66322f968b87
-        name: Summer_Sale_Promo_2026
+        display_name: Summer_Sale_Promo_2026
         status: active
         tags: [summer-sale, returning-users]
         created_at: "2026-01-15T09:00:00Z"
@@ -1285,12 +1279,12 @@ components:
       description: |
         Request body for creating an Offering via `POST /v5/offers`.
 
-        Required fields: `name`, `priority`, `delivery`, `created_by`, `scheduling`,
+        Required fields: `display_name`, `priority`, `created_by`, `scheduling`,
         `segment_info`, `offer_content`, `variation_meta`.
       type: object
-      required: [name, priority, delivery, created_by, scheduling, segment_info, offer_content, variation_meta]
+      required: [display_name, priority, created_by, scheduling, segment_info, offer_content, variation_meta]
       properties:
-        name:
+        display_name:
           type: string
           description: >
             Unique display name for this offering within the workspace. Names are
@@ -1314,12 +1308,6 @@ components:
             Policy ranking strategy is set to Offering Priority.
           minimum: 1
           maximum: 100
-        delivery:
-          type: string
-          description: >
-            Controls when the offering is eligible for delivery.
-            `scheduled` — the offering is served within its scheduling window.
-          enum: [scheduled]
         created_by:
           type: string
           format: email
@@ -1387,7 +1375,7 @@ components:
           description: >
             Email address of the team member making this update.
           example: marketing-team@example.com
-        name:
+        display_name:
           type: string
           description: >
             Updated display name for the offering. Must remain unique within the workspace.
@@ -1527,8 +1515,8 @@ components:
         filters:
           type: object
           description: >
-            Container for inclusion and exclusion filter blocks. To target all users,
-            use the built-in `moe_all_users` segment.
+            Container for inclusion and exclusion filter blocks. Pass an empty object
+            to target all users with no segmentation restriction.
           properties:
             included_filters:
               type: object
@@ -1581,7 +1569,7 @@ components:
 
         * **Payload Structure:** Send a structured `locales` map object.
         * **Single-Locale Targeting:** For single-locale offerings, you **must** use `"0"` as the literal locale key string.
-        * **Variations Mapping:** Inside each locale, the nested `variations` map keys must exactly match the variation IDs defined in `variation_meta.variantsPerLocale` and `smv_distribution.split`.
+        * **Variations Mapping:** Inside each locale, the nested `variations` map keys must exactly match the variation IDs defined in `smv_distribution.split`. Variation keys must follow the `variation_N` format (e.g. `variation_1`, `variation_2`).
       type: object
       properties:
         content_1:
@@ -1656,12 +1644,23 @@ components:
 
         meta:
           type: object
-          description: >
+          description: |
             Key-value metadata attached to this content block.
 
-            **Required for template type**: when `type` is `template`, you **must** include
+            **Required for `template` type:** When `type` is `template`, you **must** include
             `templateId` in this object, set to the template's `id` value returned by
-            GET /v1/offers/templates.
+            `GET /v5/offers/templates`.
+
+            **Using `metaConfigObject`:** When creating a `template`-type offering, call the
+            `GET /v5/offers/templates/{templateId}` endpoint first. The response returns a
+            `metaConfigObject` — a map of all template fields with their configuration (data type,
+            validations, options, etc.). Include this `metaConfigObject` in `meta` exactly as
+            received.
+
+            **Key matching requirement:** The keys in the `value` object **must exactly match**
+            the keys in `metaConfigObject`. A key present in `value` but absent from
+            `metaConfigObject`, or a required key in `metaConfigObject` missing from `value`,
+            will result in a validation error.
           additionalProperties: true
           example:
             templateId: app_small
@@ -1680,9 +1679,9 @@ components:
 
         | Offering Status | Variation Type | Editable Fields | Locked Fields |
         | :--- | :--- | :--- | :--- |
-        | **`scheduled`** | Any | Entire object (`type`, `variantsPerLocale`, `smv_distribution`, `control_group`) | None |
+        | **`scheduled`** | Any | Entire object (`type`, `smv_distribution`, `control_group`) | None |
         | **`active`** | **SMV** | `smv_distribution.split` percentages, `control_group.percentage` | `type`, Variant key names |
-        | **`active`** | **DMV** | `control_group.percentage` | `type`, `variantsPerLocale`, `smv_distribution` |
+        | **`active`** | **DMV** | `control_group.percentage` | `type`, `smv_distribution` |
         | **`expired`** | Any | None | All fields are locked |
       type: object
       required: [type]
@@ -1694,20 +1693,6 @@ components:
             `SMV` — fixed percentage split.
             `DMV` - adaptive traffic allocation.
           enum: [SMV, DMV]
-        variantsPerLocale:
-          type: array
-          description: >
-            Ordered list of variation keys for this offering. This list **must** contain exactly the same keys defined in
-            `smv_distribution.split` and **must** match the variation keys used in `offer_content.locales[0].variations`.
-
-            **Naming convention:** Variation keys must follow the `variation_N` format (e.g. `variation_1`, `variation_2`).
-            Keys in any other format (e.g. `var_1`, `Variant_A`, `1`, `2`) are rejected with a validation error.
-
-            **Maximum:** A maximum of 5 variations can be defined per offering.
-          items:
-            type: string
-          maxItems: 5
-          example: [variation_1, variation_2]
         smv_distribution:
           type: object
           description: >
@@ -1743,7 +1728,6 @@ components:
               example: 10
       example:
         type: SMV
-        variantsPerLocale: [variation_1, variation_2]
         smv_distribution:
           split:
             variation_1: 70
