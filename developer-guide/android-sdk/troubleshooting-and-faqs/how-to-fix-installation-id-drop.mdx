@@ -1,0 +1,42 @@
+---
+title: "How to Fix Installation ID Drop?"
+description: "Learn why MoEngage does not hold a Firebase Installation ID for all users of your Android app and how to fix it."
+keywords: ["installation id drop", "Firebase Installation ID missing", "Android push not delivered", "passInstallationId", "registerForInstallationId", "firebase_messaging_installation_id_enabled"]
+---
+
+<Warning>
+  This page applies to MoEngage Android BOM 4.4.0 and above, where the SDK registers devices for push using the Firebase Installation ID. For earlier BOM versions, refer to [How to fix Token Drop? (Legacy)](/developer-guide/android-sdk/troubleshooting-and-faqs/how-to-fix-token-drop).
+</Warning>
+
+## What Is an Installation ID Drop?
+
+From MoEngage Android BOM 4.4.0, the SDK registers devices for push using the Firebase Installation ID, which is the identifier that Firebase assigns to each installation of an application on a device.
+
+An Installation ID drop is a situation where the MoEngage platform does not have the Installation ID for all the users of your application. For example, if your application is installed by 100 new users every day but the MoEngage platform holds identifiers for only 60 of them, this is an Installation ID drop.
+
+## Why Is It Important to Fix It?
+
+The identifier is required to send a push notification to your end users. Without it, push cannot be sent, so fixing the drop is required to keep your users engaged.
+
+## Why Does an Installation ID Drop Occur?
+
+An Installation ID drop can happen for several reasons:
+
+- Poor or no internet connectivity, which results in the Firebase SDK not generating the Installation ID.
+- `com.google.firebase:firebase-messaging` is below 25.1.2, which is the minimum version required for the Firebase Installation ID.
+- The `firebase_messaging_installation_id_enabled` metadata is missing from the application manifest file or is set to `false`.
+- Google Play services version mismatch, where the Play services version on the device is not compatible with the Firebase version used in the application.
+- Firebase auto-initialization is disabled, or MoEngage SDK initialization is delayed, and the application does not call `registerForInstallationId()`.
+- The application has an internal check or flag that decides whether the Installation ID is passed to the MoEngage SDK, and that flag is disabled when the identifier is generated.
+- Integration error, where the application generates the Installation ID but does not pass it to the MoEngage SDK.
+
+## How to Fix It
+
+- Confirm that the Firebase Installation ID integration is complete. Refer to [Push Token Registration and Display](/developer-guide/android-sdk/push/basic/push-token-registration-and-display) for the current integration, and to [Migrating to Firebase Installation ID](/developer-guide/android-sdk/migration/migrating-to-firebase-installation-id) if you upgraded from an earlier BOM version.
+- Verify that `com.google.firebase:firebase-messaging` is 25.1.2 or higher and that the `firebase_messaging_installation_id_enabled` metadata is set to `true` in the application manifest file.
+- If Firebase auto-initialization is disabled in your application, or MoEngage SDK initialization is delayed, call `registerForInstallationId()` after MoEngage SDK initialization completes.
+- If your application passes the identifier to the SDK, remove any check before the `passInstallationId` call, or keep the flag enabled by default, so that the identifier is passed on the first application open.
+
+<Info>
+  MoEngage recommends letting the MoEngage SDK generate the Installation ID and display the notification. Refer to [Flow 1: MoEngage Handles Installation ID Generation](/developer-guide/android-sdk/push/basic/push-token-registration-and-display#flow-1-moengage-handles-installation-id-generation).
+</Info>

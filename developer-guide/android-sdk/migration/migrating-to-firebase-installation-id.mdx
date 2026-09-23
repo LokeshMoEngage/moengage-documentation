@@ -1,0 +1,207 @@
+---
+title: "Migrating to Firebase Installation ID"
+description: "Update your Android integration to the Firebase Installation ID when you upgrade to MoEngage Android BOM 4.4.0."
+keywords: ["Firebase Installation ID migration", "Android BOM 4.4.0 migration", "passInstallationId", "onRegistered callback", "firebase_messaging_installation_id_enabled", "MoEngage Android breaking change"]
+---
+
+From MoEngage Android BOM 4.4.0, the SDK registers devices for push using the Firebase Installation ID, which is the identifier that Firebase assigns to each installation of an application on a device.
+
+The changes this migration requires depend on which component registers the push token in your application. Identify your case below, then complete the steps for that case.
+
+## Which Case Applies to Your Application
+
+| Your integration | Case | Required |
+| --- | --- | --- |
+| The MoEngage SDK registers the token. Your application declares `com.moengage.firebase.MoEFireBaseMessagingService` in the manifest file and does not opt out of token registration. | [Case 1](#case-1-the-moengage-sdk-registers-the-token) | Mandatory. This is a breaking change. |
+| Your application registers the token through its own messaging service and passes it to the MoEngage SDK. | [Case 2](#case-2-your-application-registers-the-token) | Recommended. The previous APIs are deprecated. |
+
+## Case 1: The MoEngage SDK Registers the Token
+
+This case is a breaking change. Complete all three steps, in order.
+
+### Step 1: Update the Firebase Messaging Library
+
+Update `com.google.firebase:firebase-messaging` to 25.1.2 or higher. Refer to the [Firebase Android release notes](https://firebase.google.com/support/release-notes/android#messaging_v25-1-2) for this version.
+
+### Step 2: Enable the Firebase Installation ID
+
+Add the following metadata to your application manifest file.
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<meta-data
+    android:name="firebase_messaging_installation_id_enabled"
+    android:value="true" />
+```
+
+</CodeGroup>
+
+Refer to the [Firebase documentation on accessing the Firebase Installation ID](https://firebase.google.com/docs/cloud-messaging/android/get-started#access-firebase-installation-id) for details.
+
+### Step 3: Upgrade the MoEngage SDK
+
+Upgrade to MoEngage Android BOM 4.4.0 or above. Refer to the [Android SDK release notes](/release-notes/sdks/android#23rd-september-2026) for the module versions included in this release.
+
+### Impact
+
+This migration is mandatory. Complete all three steps correctly, because an incomplete migration affects reachability and causes a push token drop.
+
+## Case 2: Your Application Registers the Token
+
+Complete Step 1, Step 2, and Step 3 from [Case 1](#case-1-the-moengage-sdk-registers-the-token) first, then apply the API changes below. The replacement APIs are available only from MoEngage Android BOM 4.4.0, so applying these changes before you upgrade results in compilation errors.
+
+The following table summarizes the replacements. The first two apply to every integration in this case. The remainder apply only if your application currently calls the API listed. The code blocks in the steps below show the replacement API only, so that the code you copy is the code you keep.
+
+| Previous API | Replacement | Class | Applies when |
+| --- | --- | --- | --- |
+| `onNewToken` | `onRegistered` | Your messaging service class, which extends `FirebaseMessagingService` | Always |
+| `passPushToken` | `passInstallationId` | `MoEFireBaseHelper` | Always |
+| `registerForToken` | `registerForInstallationId` | `MoEFireBaseHelper` | Your application calls `registerForToken` |
+| `getPushToken` | `getInstallationId` | `MoEFireBaseHelper` | Your application calls `getPushToken` |
+| `addTokenListener` and `removeTokenListener` | `addInstallationIdListener` and `removeInstallationIdListener` | `MoEFireBaseHelper` | Your application registers a token listener |
+
+<Info>
+  API reference links for `passInstallationId`, `registerForInstallationId`, `getInstallationId`, and `InstallationIdAvailableListener` are added to this page once the reference for this release is published.
+</Info>
+
+### Step 4: Migrate onNewToken to onRegistered
+
+In your messaging service class, which extends `FirebaseMessagingService`, replace the `onNewToken` callback with `onRegistered`. The callback receives the Installation ID instead of the push token.
+
+| Previous | Current |
+| --- | --- |
+| `onNewToken(token: String)` | `onRegistered(installationId: String)` |
+
+The code block below is the replacement. Copy it as it is.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+override fun onRegistered(installationId: String) {
+}
+```
+
+
+```Java Java
+@Override
+public void onRegistered(@NonNull String installationId) {
+}
+```
+
+</CodeGroup>
+
+Refer to the [Firebase documentation on the onRegistered callback](https://firebase.google.com/docs/cloud-messaging/android/get-started#implement-the-onregistered-callback) for details.
+
+### Step 5: Migrate passPushToken to passInstallationId
+
+Call `passInstallationId` in place of `passPushToken` to pass the Installation ID to the MoEngage SDK. This call is on `MoEFireBaseHelper`.
+
+| Previous | Current |
+| --- | --- |
+| `passPushToken(context, token)` | `passInstallationId(context, installationId)` |
+
+The code block below is the replacement. Copy it as it is.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEFireBaseHelper.getInstance().passInstallationId(applicationContext, installationId)
+```
+
+
+```Java Java
+MoEFireBaseHelper.getInstance().passInstallationId(getApplicationContext(), installationId);
+```
+
+</CodeGroup>
+
+### Step 6: Migrate registerForToken to registerForInstallationId
+
+Apply this step only if your application calls `registerForToken`. Call `registerForInstallationId` in place of `registerForToken`. This call is on `MoEFireBaseHelper`.
+
+<Info>
+  This call is required only in the following cases:
+
+  - Firebase auto-initialization is disabled in your application. Refer to the [Firebase documentation on preventing auto initialization](https://firebase.google.com/docs/cloud-messaging/android/get-started#prevent-auto-initialization).
+  - MoEngage SDK initialization is delayed, for example when your application initializes the SDK on a worker thread instead of in the `onCreate()` method of the Application class.
+</Info>
+
+| Previous | Current |
+| --- | --- |
+| `registerForToken(context)` | `registerForInstallationId(context)` |
+
+The code block below is the replacement. Copy it as it is.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEFireBaseHelper.getInstance().registerForInstallationId(applicationContext)
+```
+
+
+```Java Java
+MoEFireBaseHelper.getInstance().registerForInstallationId(getApplicationContext());
+```
+
+</CodeGroup>
+
+### Step 7: Migrate getPushToken to getInstallationId
+
+Apply this step only if your application calls `getPushToken`. Call `getInstallationId` in place of `getPushToken` to read the identifier that the SDK holds. This call is on `MoEFireBaseHelper`.
+
+| Previous | Current |
+| --- | --- |
+| `getPushToken(context)` | `getInstallationId(context)` |
+
+The code block below is the replacement. Copy it as it is.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEFireBaseHelper.getInstance().getInstallationId(applicationContext)
+```
+
+
+```Java Java
+MoEFireBaseHelper.getInstance().getInstallationId(getApplicationContext());
+```
+
+</CodeGroup>
+
+### Step 8: Migrate the Token Listener Callback
+
+Apply this step only if your application registers a token listener. Call `addInstallationIdListener` and `removeInstallationIdListener` in place of `addTokenListener` and `removeTokenListener`, and replace `TokenAvailableListener` with `InstallationIdAvailableListener`, which receives an Installation ID result instead of a token. These calls are on `MoEFireBaseHelper`.
+
+| Previous | Current |
+| --- | --- |
+| `TokenAvailableListener` | `InstallationIdAvailableListener` |
+| `addTokenListener(listener)` | `addInstallationIdListener(listener)` |
+| `removeTokenListener(listener)` | `removeInstallationIdListener(listener)` |
+
+The code block below is the replacement. Copy it as it is.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+val installationIdListener: InstallationIdAvailableListener = { installationIdResult ->
+}
+MoEFireBaseHelper.getInstance().addInstallationIdListener(installationIdListener)
+MoEFireBaseHelper.getInstance().removeInstallationIdListener(installationIdListener)
+```
+
+
+```Java Java
+InstallationIdAvailableListener installationIdListener = installationIdResult -> {
+};
+MoEFireBaseHelper.getInstance().addInstallationIdListener(installationIdListener);
+MoEFireBaseHelper.getInstance().removeInstallationIdListener(installationIdListener);
+```
+
+</CodeGroup>
+
+### Impact
+
+Case 2 is not a breaking change. Your application keeps registering for push on BOM 4.4.0 without these API changes, because it supplies the identifier itself. Only [Case 1](#case-1-the-moengage-sdk-registers-the-token) is mandatory.
+
+MoEngage still recommends the migration. The Installation ID remains available when Firebase refreshes or drops the push token, which keeps reachability consistent, and it replaces the token APIs, which are deprecated.

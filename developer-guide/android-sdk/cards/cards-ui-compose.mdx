@@ -1,0 +1,274 @@
+---
+title: "Cards in Jetpack Compose"
+description: "Embed the MoEngage Cards feed in a Jetpack Compose user interface using the cards-ui-compose module."
+keywords: ["Jetpack Compose Cards", "cards-ui-compose", "MoECardsScreen", "MoECardsComposeUiHelper", "Android Compose App Inbox", "MoECardComposeActivity"]
+---
+
+import AndroidCardsCountApis from '/snippets/android-cards-count-apis.mdx';
+
+The `cards-ui-compose` module provides the MoEngage Cards feed as a Jetpack Compose user interface. The module renders the card list, the category tabs, pull to refresh, and the empty state, and it handles click tracking and card actions.
+
+The module is written in Kotlin and exposes composable functions. It is available from MoEngage Android BOM 4.4.0.
+
+For the Cards feature and campaign setup, refer to [Cards Overview](/user-guide/campaigns-and-channels/cards/getting-started-with-cards/cards-overview).
+
+## SDK Installation
+
+### Install Using BOM
+
+MoEngage recommends the BOM for dependency management, because it resolves a compatible version for every MoEngage module. Refer to the [Install Using BOM](/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) document.
+
+Add the module to the application dependencies. Replace `[BOM_VERSION]` with the BOM version for the SDK release you integrate, which the [Android SDK release notes](/release-notes/sdks/android#23rd-september-2026) list for each release.
+
+<CodeGroup>
+
+```kotlin build.gradle.kts wrap
+dependencies {
+    implementation(platform("com.moengage:android-bom:[BOM_VERSION]"))
+
+    implementation("com.moengage:cards-ui-compose")
+}
+```
+
+</CodeGroup>
+
+### Enable Jetpack Compose
+
+Enable Jetpack Compose in your application module before you add the dependency. Refer to the [Jetpack Compose setup guide](https://developer.android.com/develop/ui/compose/setup) for the required build configuration.
+
+## Adding the UI Component
+
+Integrate the card feed either by launching the activity that the SDK provides or by placing the composable inside an existing screen.
+
+Each API accepts the workspace identifier. Pass it if your application is configured with more than one MoEngage workspace, and omit it if your application uses a single workspace.
+
+### Using the Activity Provided by the SDK
+
+`MoECardComposeActivity` is a complete screen with a toolbar and back navigation. The module manifest already declares it, so launch it directly.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardComposeActivity
+import com.moengage.core.MOENGAGE_ACCOUNT_IDENTIFIER
+
+val intent = Intent(this, MoECardComposeActivity::class.java)
+// Pass the extra only if your application is configured with more than one workspace.
+intent.putExtra(MOENGAGE_ACCOUNT_IDENTIFIER, "YOUR_WORKSPACE_ID")
+startActivity(intent)
+```
+
+</CodeGroup>
+
+If the `MOENGAGE_ACCOUNT_IDENTIFIER` extra is absent, the activity uses the default instance.
+
+### Using the Composable
+
+To render the feed inside an existing screen, use `MoECardsScreen()`. It renders the complete feed, including the category tabs.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardsScreen
+
+setContent {
+    ApplicationTheme {
+        Scaffold(topBar = { ApplicationToolbar() }) { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                MoECardsScreen(appId = "YOUR_WORKSPACE_ID")
+            }
+        }
+    }
+}
+```
+
+</CodeGroup>
+
+### Rendering a Single Category
+
+To render the cards of one category without the tab bar, use `MoECardsList()`.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardsList
+
+MoECardsList(category = "Offers", appId = "YOUR_WORKSPACE_ID")
+```
+
+</CodeGroup>
+
+## UI Customizations
+
+### Colors and Text Styles
+
+The feed ships with a set of colors and text styles. Override the colors, the text styles, or both through `MoECardsComposeUiHelper.setTheme()`.
+
+`MoECardColorsLight` and `MoECardDefaultTextStyles` hold the default values. Copy from them and change only the properties you require, so that the remaining properties keep their defaults.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.theme.MoECardColorsLight
+import com.moengage.cards.ui.compose.theme.MoECardDefaultTextStyles
+import com.moengage.cards.ui.compose.theme.MoECardsThemeSpec
+import com.moengage.cards.ui.compose.MoECardsComposeUiHelper
+
+val colors = MoECardColorsLight.copy(
+    background = Color(0xFFFFF3E0),
+    header = Color(0xFFBF360C),
+    cta = Color(0xFF00695C)
+)
+
+val textStyles = MoECardDefaultTextStyles.copy(
+    header = MoECardDefaultTextStyles.header.copy(fontSize = 20.sp)
+)
+
+MoECardsComposeUiHelper.setTheme(
+    MoECardsThemeSpec(colors = colors, textStyles = textStyles),
+    "YOUR_WORKSPACE_ID"
+)
+```
+
+</CodeGroup>
+
+Set the theme before the feed is rendered, usually in `onCreate()`. The theme applies everywhere the feed is shown, including `MoECardComposeActivity`.
+
+Pass `null` to restore the default theme. If the override applies to a single screen, clear it in `onDestroy()` of that screen, because the theme otherwise remains in effect wherever the feed is shown next.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardsComposeUiHelper
+
+MoECardsComposeUiHelper.setTheme(null, "YOUR_WORKSPACE_ID")
+```
+
+</CodeGroup>
+
+The following color properties are available:
+
+`background`, `header`, `message`, `timestamp`, `cta`, `unclickedIndicator`, `separator`, `tabBackground`, `tabSelectedText`, `tabUnselectedText`, `newUpdatesText`, `newUpdatesBackground`, `toolbarContent`, `refreshIndicatorBackground`, `refreshIndicatorContent`, and `dialogBackground`.
+
+The following text style properties are available:
+
+`header`, `message`, `cta`, `timestamp`, and `tab`.
+
+### Text Strings
+
+To override any of the text in the feed, declare the same resource name in your application's `strings.xml` file.
+
+| Resource name | Where it appears | Default |
+| --- | --- | --- |
+| `moe_card_feed_title` | The toolbar title in `MoECardComposeActivity`, and the activity label. | Inbox |
+| `moe_card_new_updates` | The button shown when new cards arrive while the feed is open. | New Updates |
+| `moe_card_no_message_available` | The empty state. | No notifications to show, check again later. |
+| `moe_card_delete_title` | The delete option on long press. | Delete |
+
+<CodeGroup>
+
+```xml strings.xml wrap
+<resources>
+    <!-- Toolbar title in MoECardComposeActivity, and the activity label. Default: Inbox -->
+    <string name="moe_card_feed_title">Notifications</string>
+
+    <!-- Button shown when new cards arrive while the feed is open. Default: New Updates -->
+    <string name="moe_card_new_updates">New messages</string>
+
+    <!-- Empty state. Default: No notifications to show, check again later. -->
+    <string name="moe_card_no_message_available">You are all caught up.</string>
+
+    <!-- Delete option on long press. Default: Delete -->
+    <string name="moe_card_delete_title">Remove</string>
+</resources>
+```
+
+</CodeGroup>
+
+### Custom Card Layout
+
+Replace the card layout entirely while the SDK continues to handle the list, the tabs, pull to refresh, and tracking.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardsComposeUiHelper
+
+MoECardsComposeUiHelper.setCardContent({ card, onClick ->
+    Column(modifier = Modifier.clickable { onClick() }) {
+        Text(card.headerText)
+        card.messageText?.let { Text(it) }
+    }
+}, "YOUR_WORKSPACE_ID")
+```
+
+</CodeGroup>
+
+The `card` parameter exposes the header, message, CTA text, image URL, timestamp, pinned state, clicked state, and the configured actions.
+
+Pass `null` to restore the default card layout.
+
+## Callbacks
+
+### Click Listener
+
+Tapping a card executes the action configured on the MoEngage dashboard by default. To handle the navigation within your application instead, register a click listener.
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardsComposeUiHelper
+
+MoECardsComposeUiHelper.setClickListener({ clickData ->
+    // clickData.card holds the card that was tapped.
+    // clickData.navigationAction holds the configured action.
+    false
+}, "YOUR_WORKSPACE_ID")
+```
+
+</CodeGroup>
+
+Return `true` if your application handles the redirection for the card, in which case the SDK does not execute the configured action. Return `false` to let the SDK execute the configured action. The SDK tracks the click in both cases.
+
+<Warning>
+  Invoke `onClick()` when the user taps the card, so that the SDK tracks the click and executes the configured action.
+</Warning>
+
+### Sync Callback
+
+To get a callback when cards are synced on application launch or foreground, implement the [_SyncCompleteListener_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core.listener/-sync-complete-listener/index.html) interface and register it using [_MoECardHelper.setSyncCompleteListener()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/set-sync-complete-listener.html).
+
+## Images and GIFs
+
+The module renders static card images without additional setup. On Android 9 and above, it also renders animated GIFs without additional setup.
+
+To render animated GIFs on earlier Android versions, or to use an image loading library that your application already includes, add either Coil or Glide. The SDK is compiled against Coil 3.5.0 and Glide 5.0.7. Use these versions or higher.
+
+<CodeGroup>
+
+```kotlin Coil wrap
+dependencies {
+    implementation("io.coil-kt.coil3:coil-compose:3.5.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.5.0")
+    implementation("io.coil-kt.coil3:coil-gif:3.5.0") // Required for animated GIFs.
+}
+```
+
+
+```kotlin Glide wrap
+dependencies {
+    implementation("com.github.bumptech.glide:glide:5.0.7")
+}
+```
+
+</CodeGroup>
+
+`coil-network-okhttp` is required alongside `coil-compose`, because Coil 3 does not load images over the network without it.
+
+No further configuration is required. The SDK detects the available library at runtime and uses it.
+
+## Card Count APIs
+
+Use these APIs to read the number of cards the user has not clicked and the number of new cards on the device.
+
+<AndroidCardsCountApis />
