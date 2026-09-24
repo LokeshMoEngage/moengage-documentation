@@ -33,7 +33,7 @@ After you configure the NSE, the SDK tracks impressions for **both text-only and
 
 <Warning>
 - Verify that the Notification Service Extension is configured and the MoEngageRichNotification framework is integrated in your iOS project. If a device receives a rich push notification payload with a service extension configured and the MoEngageRichNotification framework is not added, the SDK throws a fatal error in `DEBUG` builds. In release builds, the rich content fails to render and the notification falls back to the standard payload.
-- If you are upgrading an existing app and these strict `DEBUG` validations cause disruptive crashes while you refactor your tracking code, you can temporarily opt out by calling `disableIntegrationValidator()` during SDK initialization. Use this strictly as a stopgap for phased upgrades, and aim to remove the opt-out once your attribute call sites are properly validated.
+- If these `DEBUG` validations crash your app while you upgrade, call `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` before initializing the SDK to opt out temporarily. Remove the call once the issues are fixed.
 </Warning>
 
 <Steps>
@@ -233,33 +233,36 @@ For more information, refer to [iOS Push Permission and Reachability](https://ww
     @main
     class AppDelegate: UIResponder, UIApplicationDelegate {
         func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-     
-    // method to use provisional push           
-    MoEngageSDKMessaging.sharedInstance.registerForRemoteProvisionalNotification()
-    return true
+            // method to use provisional push
+            MoEngageSDKMessaging.sharedInstance.registerForRemoteProvisionalNotification()
+            return true
+        }
+
+        // To display standard notifications later in the user's journey, call this method after the app starts.
+        func requestStandardPushPermission() {
+            MoEngageSDKMessaging.sharedInstance.registerForRemoteNotification()
         }
     }
-     
-    // To display standard notifications later in the user's journey, call the following method after the app starts.
-    MoEngageSDKMessaging.sharedInstance.registerForRemoteNotification()
     ```
 
     ```objective-c Objective C wrap
     #import "AppDelegate.h"
     #import <UIKit/UIKit.h>
-    #import MoEngageSDK/MoEngageSDKMessaging.h
+    #import <MoEngageSDK/MoEngageSDKMessaging.h>
     @implementation AppDelegate
     - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-     
+
     // method to use provisional push
     [[MoEngageSDKMessaging sharedInstance] registerForRemoteProvisionalNotificationWithCategories:nil andUserNotificationCenterDelegate:nil];
-     
+
     return YES;
     }
-    @end
-     
-    // To display standard notifications later in the user's journey, call the following method after the app starts.
+
+    // To display standard notifications later in the user's journey, call this method after the app starts.
+    - (void)requestStandardPushPermission {
     [[MoEngageSDKMessaging sharedInstance] registerForRemoteNotificationWithCategories:nil andUserNotificationCenterDelegate:nil];
+    }
+    @end
     ```
 
     </CodeGroup>
@@ -285,7 +288,7 @@ For more information, refer to [iOS Push Permission and Reachability](https://ww
     ```objective-c Objective C wrap
     #import "AppDelegate.h"
     #import <UIKit/UIKit.h>
-    #import MoEngageSDK/MoEngageSDKMessaging.h
+    #import <MoEngageSDK/MoEngageSDKMessaging.h>
     @implementation AppDelegate
     - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
         
@@ -315,7 +318,7 @@ This manual approach requires you to forward the push payload directly to our SD
      <CodeGroup>
      ```xml Info.plist wrap
      <key>MoEngageAppDelegateProxyEnabled</key>
-     false
+     <false/>
      ```
      </CodeGroup>
   2. **Manual forwarding in AppDelegate**: After disabling swizzling, implement the following code within your `AppDelegate.swift` file to manually pass notification events to the MoEngage SDK:
@@ -367,7 +370,8 @@ This manual approach requires you to forward the push payload directly to our SD
            
             // Forward the registration failure to the MoEngage SDK. This helps in tracking and diagnosing push delivery issues.
             MoEngageSDKMessaging.sharedInstance.didFailToRegisterForPush()
-       }
+         }
+     }
      ```
      ```objective-c Objective C wrap
      #import <UIKit/UIKit.h>
@@ -463,24 +467,18 @@ Embed buttons within a notification to allow users to perform tasks directly fro
 
 ### Configure Push Notification Badge Behavior
 
-With `disableBadgeReset(true)` enabled, the SDK won't reset the badge to 0 on app launch. Instead, clicking a notification decrements the badge by 1, maintaining accurate counts when multiple notifications are present. Add the code snippet below post SDK initialization in `AppDelegate.swift` file:
+By default, the SDK sets the app icon badge to the number of MoEngage notifications in Notification Center.
 
-<CodeGroup>
+To manage the badge yourself, add the `MoEngageBadgeUpdateEnabled` key to your app's `Info.plist` and set it to `false`. This key is supported from iOS SDK [10.13.0](/release-notes/sdks/ios#25th-may-2026).
 
-```swift Swift wrap
-func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    
-    MoEngageSDKMessaging.sharedInstance.disableBadgeReset(true)
-
-    return true
-}
+```xml Info.plist
+<key>MoEngageBadgeUpdateEnabled</key>
+<false/>
 ```
 
-```objective-c Objective C wrap
-[[MoEngageSDKMessaging sharedInstance] disableBadgeReset:YES];
-```
-
-</CodeGroup>
+<Warning>
+  `MoEngageSDKMessaging.disableBadgeReset(_:)` is deprecated from iOS SDK [10.13.0](/release-notes/sdks/ios#25th-may-2026) and has no effect. Remove any calls to it and use the `Info.plist` key instead. For more information, refer to [Custom Notification Handling](/developer-guide/ios-sdk/push/advanced/custom-notification-handling#disable-badge-reset).
+</Warning>
 
 ## Best Practices
 

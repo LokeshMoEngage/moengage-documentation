@@ -209,7 +209,11 @@ Automate the extension configuration by adding a custom script to your build pro
 <Tabs>
   <Tab title="Swift Package Manager (SPM)">
     ```bash Swift Package Manager (SPM) lines wrap
-    ${OBJROOT}/../../SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration $OPTIONS
+    case "$ACTION" in
+      install) SPM_ROOT="$OBJROOT/../../../../.." ;;   # xcodebuild archive
+      *)       SPM_ROOT="$OBJROOT/../.." ;;            # build / run from Xcode
+    esac
+    "$SPM_ROOT/SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration" $OPTIONS
     ```
   </Tab>
   <Tab title="CocoaPods">
@@ -234,7 +238,11 @@ Replace `$OPTIONS` with one or more of the following:
 For integrating a service extension named `NotificationService` and a content extension named `NotificationContent`, the complete command for SPM would be:
 
 ```bash Swift Package Manager (SPM) lines wrap
-${OBJROOT}/../../SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration --enable-push-notification-templates --notification-service-extension-name NotificationService --notification-content-extension-name NotificationContent
+case "$ACTION" in
+  install) SPM_ROOT="$OBJROOT/../../../../.." ;;   # xcodebuild archive
+  *)       SPM_ROOT="$OBJROOT/../.." ;;            # build / run from Xcode
+esac
+"$SPM_ROOT/SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration" --enable-push-notification-templates --notification-service-extension-name NotificationService --notification-content-extension-name NotificationContent
 ```
 
 4. **Disable sandboxing:** In your application target **Build Settings**, set **USER\_SCRIPT\_SANDBOXING** to **No**.
@@ -308,6 +316,8 @@ To migrate from an existing manual implementation to the integrator tool, refer 
   </Accordion>
 
   <Accordion title="Does this tool work with custom Derived Data paths or CI/CD?">
-    Yes, but be careful with the SPM path in Step 5. The path `${OBJROOT}/../../SourcePackages/...` assumes a standard Xcode structure. If your CI environment (like Jenkins or Bitrise) uses a custom build directory, you may need to provide the absolute path to the `moengage-extensions-integration` binary.
+    Yes. The `case "$ACTION"` block in the Step 5 snippet covers every build action, so use it as written.
+
+    If your CI environment uses a custom Derived Data or build directory that breaks path resolution, provide the absolute path to the `moengage-extensions-integration` binary instead.
   </Accordion>
 </AccordionGroup>
