@@ -40,6 +40,170 @@ The Data API is a collection of the following API endpoints:
   - Data APIs support [IP whitelisting](/user-guide/settings/account/security/ip-whitelisting-in-moengage). Contact the [MoEngage support team](/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard) to whitelist your IP addresses. After configuration, MoEngage exclusively ingests API payloads originating from these whitelisted IPs.
 </Note>
 
+## Data Authentication
+
+MoEngage Data APIs support two authentication methods: Basic Auth and OAuth 2.0. You can use either method for your Data API requests.
+
+<Tabs>
+  <Tab title="Basic Auth" id="basic-auth">
+    Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format 'username:password'.
+
+    - **Username**: Use your MoEngage workspace ID (also known as the App ID). You can find it in the MoEngage dashboard at **Settings** > **Account** > **APIs** > **Workspace ID (earlier app id)**.
+    - **Password**: Use your API Key, which you can find within the **Data** tile.
+
+    <Warning>
+    After you generate and save the Data API Key, don't generate a new key unless there is a security breach. When you generate and save a different Data API Key, authentication with the old key starts failing, and you must update your existing data tracking to use the new key.
+    </Warning>
+
+    For more information on authentication and getting your credentials, refer to [Getting Your Credentials](/api/introduction#getting-your-credentials).
+  </Tab>
+
+  <Tab title="OAuth 2.0" id="oauth-2">
+    OAuth 2.0 uses short-lived access tokens instead of sending your Data API Key with every request. You generate an access token and pass it in the `Authorization` header of your Data API requests.
+
+    <Note>
+    The `{dc}` in the endpoint URLs refers to your MoEngage Data Center (DC). Your DC can be 01, 02, 03, 04, 05, 06, or 101. For the DC and API endpoint mapping, refer to [Data Centers](/api/introduction#data-centers).
+    </Note>
+
+    {/* TODO (DOC-2541): Ticket uses {OX} as the placeholder. Confirm with PM that it maps to the standard DC values above. */}
+
+    <Steps>
+      <Step title="Enable OAuth 2.0 for your Data APIs">
+        Enable OAuth 2.0 on the API Keys dashboard. For more information, refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard).
+
+        After you enable OAuth 2.0, use the API key generated on the dashboard in the next step.
+      </Step>
+
+      <Step title="Generate an access token">
+        Request an access token from the MoEngage OAuth service.
+
+        **Endpoint:**
+
+        ```http
+        POST https://oauth2-{dc}.moengage.com/v1/oauth/token
+        ```
+
+        **Request headers:**
+
+        ```http
+        Content-Type: application/x-www-form-urlencoded
+        Authorization: Basic <base64(Workspace_ID:API_Key)>
+        ```
+
+        **Request body:**
+
+        | Parameter | Required | Description |
+        |---|---|---|
+        | `grant_type` | Yes | The OAuth 2.0 grant type. The supported value is `client_credentials`. |
+        | `client_id` | Yes | The client ID for your workspace. |
+        | `client_secret` | Yes | The client secret for your workspace. |
+
+        {/* TODO (DOC-2541): Confirm with PM: (1) Are both the Basic header and client_id/client_secret in the body required? (2) Where does the user find client_id and client_secret — do they map to Workspace ID and API Key? */}
+
+        **Example cURL:**
+
+        ```bash
+        curl -L -X POST 'https://oauth2-{dc}.moengage.com/v1/oauth/token' \
+          -H 'Content-Type: application/x-www-form-urlencoded' \
+          -H 'Authorization: Basic <base64(Workspace_ID:API_Key)>' \
+          -d 'grant_type=client_credentials' \
+          -d 'client_id=<client_id>' \
+          -d 'client_secret=<client_secret>'
+        ```
+
+        **Response:**
+
+        ```json
+        {
+          "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "token_type": "Bearer",
+          "expires_in": 3600
+        }
+        ```
+
+        | Field | Description |
+        |---|---|
+        | `access_token` | The access token to use in your Data API requests. |
+        | `token_type` | The token type. The value is always `Bearer`. |
+        | `expires_in` | The validity of the access token, in seconds. |
+      </Step>
+
+      <Step title="Validate the access token (optional)">
+        MoEngage recommends that you validate the access token before you use it in your Data API requests.
+
+        {/* TODO (DOC-2541): Ticket cURL uses internal host iam-auth-service.moeinternal.com. Confirm the public endpoint below with PM, and confirm this step is customer-facing. Also get the success and failure responses. */}
+
+        **Endpoint:**
+
+        ```http
+        POST https://oauth2-{dc}.moengage.com/v1/iam/auth/validate
+        ```
+
+        **Request headers:**
+
+        ```http
+        Content-Type: application/json
+        ```
+
+        **Request body:**
+
+        | Parameter | Required | Description |
+        |---|---|---|
+        | `uri` | Yes | The path of the Data API you want to call with the token. For example, `/v1/customer/{Workspace_ID}`. |
+        | `method` | Yes | The HTTP method of the Data API you want to call. For example, `POST`. |
+        | `auth` | Yes | The access token in the format `Bearer <access_token>`. |
+
+        **Example cURL:**
+
+        ```bash
+        curl -L -X POST 'https://oauth2-{dc}.moengage.com/v1/iam/auth/validate' \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "uri": "/v1/customer/{Workspace_ID}",
+            "method": "POST",
+            "auth": "Bearer <access_token>"
+          }'
+        ```
+      </Step>
+
+      <Step title="Use the access token in your Data API request">
+        Pass the access token in the `Authorization` header of your Data API request.
+
+        **Request headers:**
+
+        ```http
+        Authorization: Bearer <access_token>
+        Content-Type: application/json
+        ```
+
+        **Example cURL:**
+
+        ```bash
+        curl -X POST 'https://api-{dc}.moengage.com/v1/customer/{Workspace_ID}' \
+          -H 'Authorization: Bearer <access_token>' \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "type": "customer",
+            "customer_id": "john@example.com",
+            "attributes": {
+              "name": "John Doe",
+              "first_name": "John"
+            }
+          }'
+        ```
+      </Step>
+    </Steps>
+
+    ### Token Expiration
+
+    - An access token expires after the duration specified in the `expires_in` field.
+    - When your access token expires, generate a new one.
+    - For optimal performance, implement token caching and refresh logic in your integration instead of generating a new token for every request.
+
+    {/* TODO (DOC-2541): Ticket says expiry is set "while setting up the API keys". Confirm whether token validity is configurable on the dashboard or fixed at 3600 seconds. */}
+  </Tab>
+</Tabs>
+
 ## Request Body
 
 The request body contains the mandatory field called `customer_id`. It is the unique identifier set and passed on from the MoEngage SDK as `USER_ATTRIBUTE_UNIQUE_ID` and is visible on the dashboard as `ID`.
@@ -165,7 +329,7 @@ The following status codes and associated error messages are returned when the r
 | 413        | Payload too large             | The payload can not exceed 128KB                                                   | Request payload size is too large.                                                                                                                           |
 | 415        | Unsupported Media Type        | Unsupported Media Type                                                             | Unsupported media type.                                                                                                                                      |
 | 429        | Rate Limit Exceeded           | Rate Limits for User / Event exceeded                                              | You have exceeded the rate limits (number of users or events per minute) defined for your MoEngage account.                                                  |
-| 5xx        | Server Error                  | Any other exception                                                                | This response is returned when the system runs into an unexpected error. We recommend that you retry every 2 seconds for a maximum of 5 times in such cases. |
+| 5xx        | Server Error                  | Any other exception                                                                | This response is returned when the system runs into an unexpected error. MoEngage recommends that you retry every 2 seconds for a maximum of 5 times in such cases. |
 
 ## Monitor Your Usage
 
