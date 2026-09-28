@@ -1,0 +1,104 @@
+---
+title: "Personalize エクスペリエンスイベントのトラッキング"
+description: "Android で MoEngage Personalize API からのパーソナライズされたエクスペリエンスのインプレッションイベントとクリックイベントをトラッキングします。"
+---
+
+このドキュメントでは、[MoEngage Personalize REST API](https://www.moengage.com/docs/api/experiences/fetch-experience) を通じてパーソナライズされたエクスペリエンスを取得する際に、インプレッションとクリックをレポートするためのヘルパー API について説明します。アプリがサーバーから Personalize API を直接呼び出す場合は、このページを使用してください。
+
+<Info>
+  Android アプリから MoEngage Personalize をネイティブに統合する場合は、代わりに [Personalize SDK](/ja/developer-guide/android-sdk/personalize/personalize-sdk) を使用してください。Personalize SDK は単一のヘルパーを通じてエクスペリエンスを取得し、インプレッションとクリックをトラッキングするため、このページの API は必要ありません。
+</Info>
+
+# 前提条件
+
+## SDK バージョン
+
+> Native Android SDK のカタログバージョンを **5.2.0** 以上にアップデートする必要があります。
+
+## MoEngage アカウントの設定
+
+MoEngage ワークスペースで Personalize API を利用できるようになっていることを確認してください。Personalize API エクスペリエンスの設定の詳細については、[こちらの記事](https://www.moengage.com/docs/user-guide/personalize/server-side-personalization/create-server-side-personalization-experience)を参照してください。
+
+# Experience Shown イベントのレポート
+
+SDK は表示イベントをトラッキングするためのヘルパー API を提供しています。詳細については、[API ドキュメント](https://moengage.github.io/android-api-reference/personalization-core/com.moengage.campaigns.personalize/-mo-e-personalize-helper/experience-shown.html)を参照してください。
+
+インプレッションは、エクスペリエンスがユーザーに視覚的に表示されたときにレポートする必要があります。
+
+## 単一のエクスペリエンス
+
+単一のエクスペリエンスのインプレッションをレポートするには、エクスペリエンスの **experience_context** をマップとして渡します。
+
+**experience_context** は、[Personalize API リクエストのレスポンス](https://www.moengage.com/docs/api/experiences/fetch-experience)の一部として返される JSON オブジェクトです。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+ MoEPersonalizeHelper.experienceShown(context, experienceContextMap)
+```
+
+
+```Java Java wrap
+ MoEPersonalizeHelper.INSTANCE.experienceShown(context, experienceContextMap);
+```
+
+</CodeGroup>
+
+## 複数のエクスペリエンス
+
+複数のエクスペリエンスの Experience Shown イベントをトラッキングするには、各エクスペリエンスの **experience_context** の**リスト**をマップとして渡します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+ MoEPersonalizeHelper.experienceShown(context, experienceContextMapList)
+```
+
+
+```Java Java wrap
+ MoEPersonalizeHelper.INSTANCE.experienceShown(context, experienceContextMapList);
+```
+
+</CodeGroup>
+
+# Experience Clicked イベントのレポート
+
+SDK はクリックイベントをトラッキングするためのヘルパー API を提供しています。詳細については、[API ドキュメント](https://moengage.github.io/android-api-reference/personalization-core/com.moengage.campaigns.personalize/-mo-e-personalize-helper/experience-clicked.html)を参照してください。
+
+クリックイベントは、Personalize API のレスポンスを使用してパーソナライズされた要素をユーザーがクリックしたときにレポートする必要があります。
+
+## 単一のエクスペリエンス
+
+単一のエクスペリエンスのクリックイベントをレポートするには、エクスペリエンスの **experience_context** をマップとして渡します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+ MoEPersonalizeHelper.experienceClicked(context, experienceContextMap)
+```
+
+
+```Java Java wrap
+ MoEPersonalizeHelper.INSTANCE.experienceClicked(context, experienceContextMap);
+```
+
+</CodeGroup>
+
+## 複数のエクスペリエンス
+
+複数のエクスペリエンスの Experience Shown イベントをトラッキングするには、各エクスペリエンスの **experience_context** の**リスト**をマップとして渡します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+ MoEPersonalizeHelper.experienceClicked(context, experienceContextMapList)
+```
+
+
+```Java Java wrap
+ MoEPersonalizeHelper.INSTANCE.experienceClicked(context, experienceContextMapList);
+```
+
+</CodeGroup>
+
+オプションで、**experience_context** オブジェクトに **b_id** キーを含めて、クリックに関する追加のコンテキストを提供できます。その値には、クリックされたエクスペリエンス内の特定のコンポーネントまたはインタラクションを記述する必要があります。これは、複数のインタラクティブ要素で構成されるエクスペリエンスで特に有用であり、同じエクスペリエンス全体の異なる部分でのクリックを区別するのに役立ちます。

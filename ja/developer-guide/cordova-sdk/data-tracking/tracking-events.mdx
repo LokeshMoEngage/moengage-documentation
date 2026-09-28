@@ -1,0 +1,114 @@
+---
+title: "イベントのトラッキング"
+description: "セグメンテーションやキャンペーンのために、MoEngage Cordova SDK を使用してユーザーのアクションとイベント属性をトラッキングします。"
+---
+
+<Info>
+  SDK は MoEngage の FUP ポリシーに準拠しています。詳細については、[フェアユースポリシー](https://www.moengage.com/docs/user-guide/data/key-concepts/fair-usage-policy-fup)を参照してください。
+</Info>
+
+イベントのトラッキングとは、ユーザーが実行したあらゆるアクションを、そのアクションを説明するプロパティとともに記録することです。
+
+<CodeGroup>
+
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.trackEvent(eventName, generalAttributes, locationAttributes, dateTimeAttributes, isNonInteractive);
+```
+
+</CodeGroup>
+
+trackEvent() は、eventName とイベント属性からなる 5 つのパラメータを受け取ります。
+
+- eventName：String
+- generalAttributes：一般属性の JSON オブジェクト。使用可能なデータ型は string、number、boolean です
+
+<CodeGroup>
+
+```json JSON
+{
+  "<attribute_name>": "<attribute_value>",
+  "<attribute_name>": "<attribute_value>",
+  "<attribute_name>": "<attribute_value>",
+  ...  
+}
+```
+
+</CodeGroup>
+
+- locationAttributes：位置情報属性の JSON オブジェクト。属性名と緯度・経度を受け取ります
+
+<CodeGroup>
+
+```json JSON
+{
+  "<attribute_name>": {
+    "latitude": <latitude>,
+    "longitude": <longitude>
+  },
+  "<attribute_name>": {
+    "latitude": <latitude>,
+    "longitude": <longitude>
+  },
+  "<attribute_name>": {
+    "latitude": <latitude>,
+    "longitude": <longitude>
+  },
+  ...
+}
+```
+
+</CodeGroup>
+
+- dateTimeAttributes：日時属性の JSON オブジェクト。ISO-8601 形式の日付のみを受け付けます
+
+<CodeGroup>
+
+```json JSON
+{
+  "<attribute_name>": "yyyy-MM-dd'T'HH:mm:ss.fff'Z'",
+  "<attribute_name>": "yyyy-MM-dd'T'HH:mm:ss.fff'Z'",
+  "<attribute_name>": "yyyy-MM-dd'T'HH:mm:ss.fff'Z'",
+  ...
+}
+```
+
+</CodeGroup>
+
+- isNonInteractive：イベントを非インタラクティブにする場合は true、それ以外の場合は false。
+
+**eventName** パラメータ以外のパラメータは必須ではなく、**null** または **undefined** を渡すことができます。\
+パラメータを渡す順序を維持することが重要です。つまり、位置情報属性のみを渡したい場合は、一般属性として **null** または **undefined** を渡す必要があります。
+
+例
+
+<CodeGroup>
+
+```json JSON
+   moe.trackEvent("testEvent", {"attr1": "string", "attr2": 123, "attr3": false},{"loc1": { "latitude": 14.90123,"longitude": 13.1627} },
+    {"date1" : "2017-08-02T06:05:30.000Z"}, true);
+```
+
+</CodeGroup>
+
+<Info>
+  イベント、イベント属性、ユーザー属性の命名時に "moe\_" をプレフィックスとして使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なく定期的にブラックリストに登録される可能性があります。
+</Info>
+
+# 分析
+
+MoEngage SDK は、ユーザーセッションとアプリケーションのトラフィックソースのトラッキングを開始しました。ユーザーセッションとアプリケーションのトラフィックソースのトラッキングの仕組みの詳細については、以下のドキュメントを参照してください。
+
+-  [セッションとソースの分析](https://www.moengage.com/docs/user-guide/analyze/analytics/session-and-source/session-and-source-analysis) 
+-  [高度なセッションとソースの分析](https://www.moengage.com/docs/user-guide/analyze/analytics/session-and-source/advanced-session-and-source-analysis)
+
+
+ユーザーセッションのトラッキングに伴い、イベントを選択的に非インタラクティブとしてマークできる柔軟性を導入しました。
+
+## 非インタラクティブイベントとは
+
+セッションの計算に一切影響を与えないイベントを、非インタラクティブイベントと呼びます。非インタラクティブイベントには以下の特性があります。
+
+- 新しいセッションを開始しません。
+- セッションを延長しません。
+- ユーザーセッションに関連する情報を持ちません。

@@ -1,0 +1,118 @@
+---
+title: "SendGrid メール設定の構成"
+description: "MoEngage で SendGrid をメールコネクタとして設定するための手順を、ドメイン認証と DNS レコードの設定を含めて説明します。"
+---
+
+この記事では、SendGrid でメール設定を構成するための手順を説明します。
+
+# はじめに
+
+SendGrid はクラウドベースの SMTP プロバイダーで、メールサーバーを管理することなくメールを送信できます。SendGrid は、インフラのスケーリングから ISP への働きかけ、レピュテーション監視、ホワイトリストサービス、リアルタイム分析に至るまで、すべての技術的な詳細を管理します。
+
+<Tip>
+SendGrid アカウントの管理者権限があることを確認してください。
+</Tip>
+
+# SendGrid アカウントの設定
+
+[SendGrid](https://sendgrid.com/pricing) に登録し、料金プランを選択できます。
+
+## SendGrid でのドメインの追加
+
+SendGrid を使用して自社ドメインからメールを送信するには、ドメイン認証を設定する必要があります。これには、ドメインと専用 IP の DNS レコードを生成し、それらのレコードを DNS サーバーに追加してから、SendGrid で検証する作業が含まれます。
+
+ 詳しくは、次の記事を参照してください。
+
+- ドメインを設定するには、[How to Set Up Domain Authentication](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/how-to-set-up-domain-authentication) を参照してください。
+- リンクブランディングを設定するには、[How to set up link branding](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/how-to-set-up-link-branding) を参照してください。
+- 専用 IP の逆引き DNS を設定するには、[How to set up reverse DNS](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/how-to-set-up-reverse-dns) を参照してください。
+- クリックトラッキングドメインの SSL を設定するには、[Setup SSL for Click Tracking](https://www.twilio.com/docs/sendgrid/ui/analytics-and-reporting/click-tracking-ssl) を参照してください。
+- Sign in with Apple を設定するには、[Configuring Sign in with Apple](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/configuring-sign-in-with-apple) を参照してください。
+
+## SendGrid での API キーの作成
+
+フルアクセス権限を持つ API キーを作成します。詳しくは、[API Keys](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/api-keys) を参照してください。
+
+<Info>
+API キーは必ず安全な場所に記録してください。作成後に再度表示することはできません。
+</Info>
+
+# MoEngage UI での SendGrid 設定の構成
+
+1. MoEngage ダッシュボードにログインします。
+2. **Settings** \> **Channels** の下の **Email** \> **Sender Configuration** タブ\> に移動し、**Add Sender** をクリックします。  
+    <img alt="sendgrid 1.png" src="/images/moengage_302609.png" />
+3. 表示される **Add Sender** 画面で、以下のように SMTP の詳細を追加します。  
+    <img alt="Screenshot 2024-07-12 at 11.30.47 AM.png" src="/images/moengage_473a0c.png" />   
+   <Info>
+   以下の詳細はすべて大文字と小文字が区別されます。
+   </Info>
+
+   | フィールド | 説明 |
+   | --- | --- |
+   | Sender Name | 送信者名を入力します。 |
+   | SMTP Host Name | **smtp.sendgrid.net** と入力します。 |
+   | SMTP Port | **587** と入力します。一部の企業が設定しているレート制限を回避するため、ポート 587 を推奨します。 |
+   | SMTP Protocol | **TLS** を選択します。 |
+   | SMTP Password | パスワードを入力します。これは[上記で作成した API キー](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-sendgrid-email-settings#create-api-keys-in-sendgrid)です。 |
+   | WebApi Key | キーを入力します。これは[上記で作成した API キー](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-sendgrid-email-settings#create-api-keys-in-sendgrid)です。 |
+4. 要件に応じて **Unsubscribe Settings** を設定します。詳しくは、[メールの配信停止の追跡](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/handle-unsubscribes-in-emails)を参照してください。
+5. 要件に応じて **List unsubscribe email** 設定を構成します。詳しくは、[List Unsubscribe Email](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/list-unsubscribe-email) を参照してください。
+6. **Save** をクリックします。追加したコネクタが **Sender configuration** タブの下に一覧表示されます。
+7. **General Settings** タブに移動します。
+8. **Set a default sender** ドロップダウンから、追加した送信者を選択します。
+9. **User Attribute that stores the user's email address** ドロップダウンから、**Email (Standard)** を選択します。
+10. "**From" email address(s)** フィールドに送信元アドレスを追加します。ドメイン(@ 以降の部分)は、[SendGrid で検証済み](#add-domains-in-sendgrid)である必要があります。  
+      
+     <img alt="Screenshot 2024-07-12 at 1.01.05 PM.png" src="/images/moengage_ac35fd.png" />
+11. 設定を **Save** します。上記で追加した"送信元アドレス"のメールボックスに確認メールが届きます。
+12. 確認リンクをクリックして検証します。
+
+<Info>
+送信元アドレス:  
+プロモーション - info@, emails@, fashion@, offers@, deals@  
+トリガー - updates@, news@, alerts@
+</Info>
+
+## SendGrid のバウンスおよび苦情設定の構成
+
+1. メール設定の **Bounce & Complaint Tracking** にある URL をコピーします。  
+    <img alt="Screenshot 2024-07-12 at 1.20.13 PM.png"  src="/images/moengage_fb5469.png"  />
+2. 以下の API を使用してイベント Webhook を設定します。  
+
+   ``` curl cURL wrap
+   curl --location 'https://api.sendgrid.com/v3/user/webhooks/event/settings' \
+   --header 'Content-Type: application/json' \
+   --header 'Authorization: Bearer API_KEY_GENERATE_ABOVE' \
+   --data '{
+        "url": "Bounce and Complaint tracking URL from Step 1",
+        "enabled": true,
+        "group_resubscribe": true,
+        "delivered": true,
+        "group_unsubscribe": true,
+        "spam_report": true,
+        "bounce": true,
+        "deferred": true,
+        "unsubscribe": true,
+        "processed": false,
+        "open": true,
+        "click": true,
+        "dropped": true,
+        "friendly_name": "MOE App name"
+   }'
+   ```
+
+   イベント Webhook を正しく設定するには、API に次の入力を追加してください。
+
+   1. 上記の [SendGrid での API キーの作成](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-sendgrid-email-settings#create-api-keys-in-sendgrid)セクションで取得した API キーを、API 内の `API_KEY_GENERATE_ABOVE` と置き換えて入力します。
+   2. ステップ 1 で取得した URL を、上記の API 内の `"Bounce and Complaint tracking URL from Step 1"` と置き換えて貼り付けます。
+   3. 上記の API 内の `"MOE App name"` を置き換えて、ダッシュボード名を入力します。
+
+## メール設定のテスト
+
+詳しくは、[メール設定のテスト](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation)を参照してください。
+
+# 次のステップ
+
+SendGrid 送信者の設定が完了したら、MoEngage でメールキャンペーンの作成と送信に進むことができます。詳しくは、[メールキャンペーンの作成](/ja/user-guide/campaigns-and-channels/email/create/create-an-email-campaign)を参照してください。
+

@@ -1,0 +1,115 @@
+---
+title: "React-Native、Swift、MoEngage-iOS-SDK（バージョン 7.x.x、8.x.x、9.x.x）を使用する iOS デバイスでよくあるプッシュ通知の問題を回避するには"
+description: "React-Native、Swift、MoEngage iOS SDK バージョン 7.x.x〜9.x.x を使用する iOS での、プッシュ通知の配信、画面遷移、ディープリンクの問題を修正します。"
+keywords: ["React Native iOS push issues", "Swift", "push navigation not working", "deep linking not working", "Notification Service Extension", "iOS SDK 7.x.x 8.x.x 9.x.x"]
+---
+
+## 問題
+
+React-Native、Swift、MoEngage-iOS-SDK（バージョン 7.xx、8.x.x、9.x.x）を使用する iOS デバイスで、配信の失敗、画面遷移、ディープリンク、リッチランディングなど、プッシュ通知に関するよくある問題が発生しています。
+
+## 手順
+
+次の手順を実行します。
+
+1. **Firebase プロキシ**：
+   - Firebase のプッシュ通知を使用していない場合は、info.plist に FirebaseAppDelegateProxyEnabled キーを値 Boolean = False/NO で追加して、Firebase プロキシを無効にします。
+   - プッシュ通知をテストします。成功した場合、それ以上の対応は不要です。成功しない場合は、以下の手順に従ってください。
+   - Firebase のプッシュ通知を使用している場合は、この手順をスキップして次の手順に進みます。
+2. **UNUserNotificationCenterDelegate を設定する**：
+   - AppDelegate.swift の didFinishLaunch メソッドで UNUserNotificationCenterDelegate を設定します。
+   - didFinishLaunch で Firebase を初期化している場合は、MoEngage SDK を初期化する前に行います。
+   - UNUserNotificationCenterDelegate がこのメソッドの冒頭で設定されていることを確認します。
+     ```swift React-Native
+     //7.xx
+     import MoEngage
+     //8.xx
+     import MoEngageSDK
+     import ReactNativeMoEngage
+     //9.xx
+     import MoEngageSDK
+     import ReactNativeMoEngage
+     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) - Bool {
+       
+       UNUserNotificationCenter.current().delegate = self
+       
+       FIRApp.configure() //Firebase configuration - syntax could differ according to versions
+       //MoEngage Initializatoin - use specific version code only
+       
+       //7.xx version //Set MoEngage Properties in Info.plist
+       MoEngage.setDataCenter(DATA_CENTER_0X)
+       MoEngage.enableSDKLogs(true)
+       MoEngage.setAppGroupID("group.com.XXXXXXXXXXXXXXXX")
+       MOReactInitializer.sharedInstance().intializeSDK(withLaunchOptions: launchOptions)
+       
+       //7.xx version with sdkConfig
+       var sdkConfig = MOSDKConfig.init(appID: "XXXXXXXXXXXXXXXX")
+       sdkConfig.moeDataCenter = DATA_CENTER_0X
+       sdkConfig.appGroupID = "group.com.XXXXXXXXXXXXXXXX"
+       MOReactInitializer.sharedInstance().intializeSDK(withConfig: sdkConfig, andLaunchOptions: launchOptions)
+       //8.xx version //Set MoEngage Properties in Info.plist
+       MoEngageInitializer.sharedInstance().initializeDefaultInstance(launchOptions)
+       
+       //8.xx version with sdkConfig
+       var sdkConfig = MOSDKConfig.init(withAppID: "XXXXXXXXXXXXXXXX")
+       sdkConfig.enableLogs = true
+       sdkConfig.moeDataCenter = .data_center_0X 
+       sdkConfig.appGroupID = "group.com.XXXXXXXXXXXXXXXX"
+       MoEngageInitializer.sharedInstance().initializeDefaultSDKConfig(sdkConfig, andLaunchOptions: launchOptions)
+       
+       //9.xx version //Set MoEngage Properties in Info.plist
+       MoEngageInitializer.sharedInstance().initializeDefaultInstance(launchOptions)
+       
+       //9.xx version with sdkConfig
+       var sdkConfig = MoEngageSDKConfig.init(appId: "XXXXXXXXXXXXXXXX", dataCenter: .data_center_0X)
+       sdkConfig.enableLogs = true
+       sdkConfig.appGroupID = "group.com.XXXXXXXXXXXXXXXX"
+       MoEngageInitializer.sharedInstance().initializeDefaultSDKConfig(sdkConfig, andLaunchOptions: launchOptions)
+       
+       // Rest of the implementation related to developer's app
+       return true
+     }
+     ```
+3. **AppDelegate.swift を拡張する**：
+   - AppDelegate.swift を拡張して UNUserNotificationCenterDelegate に準拠させます。AppDelegate.swift は次のコードスニペットのようになっている必要があります。
+     ```swift Swift wrap
+     class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+     }
+     ```
+4. **MoEngage プロキシを無効にする**：
+   - info.plist に MoEngageAppDelegateProxyEnabled キーを値 Boolean = False/NO で追加します
+      <img alt="boolean.png" src="/images/moengage_80ebe5.png" />
+5. **プッシュ通知トークンを手動で渡す**：
+   - AppDelegate.swift の didRegisterForRemoteNotificationsWithDeviceToken 関数を使用して、プッシュ通知トークンを手動で渡します。
+     ```swift Swift wrap
+     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+       //7.xx version
+       MoEngage.sharedInstance().setPushToken(deviceToken)
+       //8.xx version
+       MOMessaging.sharedInstance.setPushToken(deviceToken)
+       //9.xx version
+       MoEngageSDKMessaging.sharedInstance.setPushToken(deviceToken)
+     }
+     ```
+6. **UNUserNotificatoinCenter Delegate 関数を実装する**：
+   - AppDelegate.swift に UNUserNotificatoinCenter Delegate 関数が実装されていることを確認します。
+     ```swift Swift
+     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) - Void) {
+       //This is to only to display Alert and enable notification sound
+       if #available(iOS 14.0, *) {
+         completionHandler([.sound,.alert, .banner, .list])
+       } else {
+         completionHandler([.sound,.alert])
+       }
+     }
+     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () - Void) {
+       //7.xx version
+       MoEngage.sharedInstance().userNotificationCenter(center, didReceive: response)
+       
+       //8.xx version
+       MOMessaging.sharedInstance.userNotificationCenter(center, didReceive: response)
+       
+       //9.xx version
+       MoEngageSDKMessaging.sharedInstance.userNotificationCenter(center, didReceive: response)
+     }
+     ```

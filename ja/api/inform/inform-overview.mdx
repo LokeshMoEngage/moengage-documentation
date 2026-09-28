@@ -1,0 +1,161 @@
+---
+title: "Inform の概要"
+description: "1 つ以上のチャネルでユーザーにトランザクションアラートを送信します。"
+icon: "file-magnifying-glass"
+---
+MoEngage Inform API を使用すると、事前に設定された Alert ID または Alert Reference Name を使用して、1 つ以上のチャネルでユーザーにトランザクションアラートを送信できます。
+
+## サポートされるシナリオ
+
+トランザクションアラートは、次のような重要なユーザーコミュニケーション向けに設計されています。
+
+- 注文/予約/購入の確認
+- 発送/配達の確認と更新
+- セキュリティおよびアカウントに関するアラート
+- パスワードのリセット
+- OTP（ワンタイムパスワード）
+- ユーザーの招待と共有
+- 以前のトランザクションに関連するユーザーの未実施アクション
+- 不正防止/セキュリティアラート
+
+この API は、指定された Live Alert について、すべてのチャネルに同時に通知を送信します。この API を使用して、次のことができます。
+
+- SMS、Email、Push などの単一チャネルでトランザクションメッセージを送信する。
+- 複数のチャネルでトランザクションメッセージを送信する。
+
+## エンドポイント
+
+Inform API は、次のエンドポイントで構成されています。
+
+- [Inform API](/ja/api/transactional-alerts/send-transactional-alert)
+
+## 用語集
+
+以下は、Inform API を使用する際に出てくる用語の一覧です。
+
+| 用語                          | 定義                                                                                                                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Alert ID**                  | アラートの一意の識別子です。このフィールドは、ユーザーに送信する通知のテンプレートを含む、MoEngage ダッシュボードで設定されたアラートを識別するために使用されます。 |
+| **Alert Reference Name**      | このフィールドは、独自の参照名を使用してアラートを識別するために使用され、Alert ID の代わりにアラートを識別するために使用できます。                                                                 |
+| **Test Alert ID**             | アラートを作成する際、外部コンソールでテストすることができ、MoEngage はそのための Test Alert ID という一意の識別子を提供します。                                                         |
+| **Test Alert Reference Name** | Test Alert Reference Name は、このテストアラートリクエストを外部コンソールに送信するために、ダッシュボードでアラートを追加する際に設定されます。                                                                 |
+
+## Live 環境と Test 環境
+
+<Note>
+  環境に応じた正しい ID とエンドポイントを使用していることを確認してください。
+</Note>
+
+| 機能               | Live Alerts                                       | Test Alerts                                               |
+| :----------------- | :------------------------------------------------ | :-------------------------------------------------------- |
+| **識別子**         | 公開済みのアラートには **Alert ID** を使用します。 | テストには **Test Alert ID** を使用します。               |
+| **ログ**           | ログは **Alert Info** セクションで確認できます。  | ログはアラート作成の **3 番目のステップ**で確認できます。 |
+| **エンドポイント** | `https://api-0{dc}.moengage.com`                  | `https://sandbox-api-0{dc}.moengage.com`                  |
+
+## Inform API の動作とレスポンス
+
+Inform API は、次の 2 つのステップで動作します。
+
+1. Inform に対して受信した API リクエストが有効かどうかを確認するチェックが行われます。
+2. 有効な場合、2 番目のプロセスとしてコンテンツを解決し、パートナーを使用してメッセージを送信します。
+
+### レスポンスコード
+
+レスポンスコードは、次に説明する **wxyzab** 形式で返されます。
+
+- **w** - ステータス（失敗は 1、成功は 2 で示されます）。
+- **x** - エラーのカテゴリ。
+- **y** - リクエストが並列リクエストとして扱われるかどうか（並列リクエストは 0、フォールバックリクエストは 1 で示されます）。
+- **z** - このリクエストを再試行できるかどうか（0 は同じ詳細情報では再試行できないことを示します）。
+- **ab** - エラーの理由の詳細。
+
+カテゴリの詳細は次のとおりです。
+
+| カテゴリコード | 詳細                              |
+| :------------- | :-------------------------------- |
+| 1              | Unauthorized                      |
+| 2              | Bad Request                       |
+| 4              | Internal Server Error / Ratelimit |
+
+理由の詳細は次のとおりです。各理由コードには特定の意味があります。
+
+| 理由コード | 詳細                        |
+| :--------- | :-------------------------- |
+| 1          | Invalid Credentials         |
+| 2          | Invalid Alert ID            |
+| 3          | Missing Transaction ID      |
+| 4          | Duplicate Transaction ID    |
+| 5          | Long Transaction ID         |
+| 6          | Invalid Payload             |
+| 7          | Personalisation Attribute   |
+| 9          | Internal Server Error       |
+| 10         | Rate Limit                  |
+| 11         | Personalisation Failed      |
+| 12         | Invalid Recipient details   |
+| 13         | Vendor configuration errors |
+| 14         | Vendor not available        |
+| 15         | Vendor Payload Rejection    |
+| 16         | Unexpected Error Occurred   |
+| 17         | Invalid Origin Source       |
+
+## API リクエスト受け付け前のペイロードエラー
+
+API リクエストの受け付け前に発生する可能性があるペイロードエラーと、各機能のさまざまなシナリオで HTTP ステータスコード **4xx** とともに返される対応するレスポンスコードの一覧は次のとおりです。
+
+| ペイロードエラー                         | 説明                                                                                                         | シナリオ                                                                                                                                                                                   | レスポンスコード                                                                                                  | 解決方法                                                                                                       |
+| :--------------------------------------- | :----------------------------------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------- |
+| **Authorization Failure**                | App Key（Workspace ID）やパスワードなど、無効な認証情報が渡された場合に発生するエラーです。                  | 認証値が渡されていない。<br />誤った認証値が渡された<br />誤ったパスワードが渡された。<br />認証情報もキーも渡されていない<br />App Key が渡されていない / App Key が空<br />誤った App Key が渡された | `{"message": "Authorization Failed", "err_code": "UNAUTHORIZED"}`                                                 | Settings に記載されている認証情報を再確認してください / Live エンドポイントで Test Alert ID を渡していないか確認してください。 |
+| **Invalid Alert ID**                     | 無効な Alert ID または外部参照名が渡された場合に発生するエラーです。                                         | Alert ID がない<br />Alert ID が 24 文字未満<br />Alert ID が 24 文字超<br />無効な Alert ID                                                                                              | `{"message": "Invalid Alert ID", "err_code": "BAD_REQUEST", "status_code": 120002}`                               | Info ページに記載されている Alert ID または外部参照名を再確認してください。                                    |
+| **Invalid Transaction ID**               | Transaction ID が渡されていない場合に発生するエラーです。                                                    | Transaction ID がない                                                                                                                                                                      | `{"message": "Invalid Transaction ID", "err_code": "BAD_REQUEST", "status_code": 120003}`                         | API 呼び出しの一部として、キー名 `transaction_id` を使用してトランザクション ID を渡してください。             |
+| **Long Transaction ID**                  | Transaction ID が無効な場合に発生するエラーです。                                                            | Transaction ID が長すぎる                                                                                                                                                                  | `{"message": "Long Transaction ID", "err_code": "BAD_REQUEST", "status_code": 120004}`                            | Transaction ID の長さを 50 文字に減らしてください。                                                            |
+| **Duplicate Transaction ID**             | 今回渡された Transaction ID が、過去 5 分以内の以前のものと一致する場合に発生するエラーです。               | Transaction ID の重複                                                                                                                                                                      | `{"message": "Duplicate Transaction ID", "err_code": "DUPLICATE_REQUEST_RECEIVED", "status_code": 120105}`        | 一意の Transaction ID を追加してください。                                                                     |
+| **Invalid Payload**                      | ペイロードの JSON 形式が正しくない場合、または誤ったチャネル詳細が渡された場合に発生するエラーです。         | 無効な JSON / 無効なクラス<br />チャネル属性が正しくない / チャネル詳細がない                                                                                                             | `{"message": "Invalid Payload", "err_code": "BAD_REQUEST", "status_code": 120006}`                                | JSON 形式とチャネル詳細を再確認してください。<br />サンプルペイロードは Info ページで確認できます。            |
+| **Personalisation Attribute Max length** | パーソナライズ属性の長さが 1500 文字を超える場合に発生するエラーです。                                       | -                                                                                                                                                                                          | `{"message": "Personalisation attribute limit exceeded - {x}", "err_code": "BAD_REQUEST", "status_code": 120007}` | パーソナライズ属性の長さを 1500 文字に / ペイロードサイズを 100 KB 未満に減らしてください                      |
+| **Invalid Recipient**                    | 携帯電話番号やメールアドレスなどの受信者の詳細情報が無効な場合に発生するエラーです。                         | -                                                                                                                                                                                          | `{"message": "Invalid Recipient", "err_code": "BAD_REQUEST", "status_code": 120012}`                              | API 呼び出しまたは User Profile の受信者の詳細情報を再確認してください。                                       |
+| **Internal Server Error**                | MoEngage が API リクエストを解決できない場合に発生するエラーです。                                           | -                                                                                                                                                                                          | `{"message": "Unexpected error occurred", "err_code": "Internal Server Error", "status_code": 140109}`            | 別の Transaction ID を使用して、同じ API 呼び出しを再試行してください。                                        |
+| **Rate Limit**                           | レート制限を超えた場合に発生するエラーです。                                                                 | -                                                                                                                                                                                          | `{"message": "Too many requests", "err_code": "Rate Limit", "status_code": 140110}`                               | レート制限の範囲内で API を呼び出してください。                                                                |
+
+## API リクエスト受け付け後のペイロードエラー
+
+アラートは、次のように並列/順次フォールバック用に設定できます。
+
+- **並列**: 並列リクエストの場合、成功/失敗したリクエストのペイロード情報は各チャネルレベルで追加されます。
+- **順次**: フォールバックリクエストの場合、成功/失敗したリクエストのペイロード情報は最初のチャネルについて追加され、その他のチャネルの情報は Streams を通じて共有されます。
+
+API リクエストの受け付け後に発生する可能性があるペイロードの詳細と、各機能のさまざまなシナリオで HTTP ステータスコード \*\*200/429 \*\*とともに返される対応するレスポンスコードの一覧は次のとおりです。
+
+| ペイロードエラー              | 説明                                                                                                                                     | レスポンスコード                                                                                                                                                                                        | 解決方法                                                                                                               |
+| :---------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------------------------------------- |
+| **Personalisation Failed**    | 必要なパーソナライズ属性が API 呼び出しで渡されていない場合、または User Profile にこれらの値がない場合に発生するエラーです。             | `{"message": "Successfully Received", "Request_ID": 122323, "SMS": {"message": "Personalisation Failure - {{attribute name}}", "err_code": "BAD_REQUEST", "status_code": "120011 / 121011"}}`           | API 呼び出しで有効なパーソナライズ属性を渡すか、User Profile を必要な値で更新してください。                            |
+| **Invalid Recipient details** | 携帯電話番号やメールアドレスなどの受信者の詳細情報が無効な場合に発生するエラーです。                                                     | `{"message": "Successfully Received", "Request_ID": 122323, "SMS": {"message": "Invalid Recipient", "err_code": "BAD_REQUEST", "status_code": "120012 / 121012"}}`                                      | API 呼び出しまたは User Profile の受信者の詳細情報を再確認してください。                                               |
+| **Internal Errors**           | MoEngage が API リクエストまたはチャネルレベルの詳細を解決できない場合に発生するエラーです。                                             | `{"message": "Successfully Received", "Request_ID": 122323, "SMS": {"message": "Unexpected error occurred", "err_code": "Internal Server Error", "status_code": "140109 / 141109"}}`                    | 別の Transaction ID を使用して、同じ API 呼び出しを再試行してください。                                                |
+| **Vendor Errors**             | ベンダーの設定が無効な場合に発生するエラーです。                                                                                         | `{"message": "Successfully Received", "Request_ID": 122323, "SMS": {"message": "Invalid Vendor Configuration", "err_code": "Vendor Error", "status_code": "150013 / 151013"}}`                          | MoEngage の SMS、Push、Email のベンダー設定を再確認してください。                                                      |
+| **Vendor Unavailable**        | ベンダーが利用できない場合に発生するエラーです。                                                                                         | `{"message": "Successfully Received", "Request_ID": 122323, "SMS": {"message": "Vendor not available", "err_code": "Vendor Error", "status_code": "150014 / 151014"}}`                                  | 該当なし / MoEngage はベンダーへのメッセージ送信を最大 5 回再試行します。                                              |
+| **Vendor Rejected**           | ベンダーがペイロードを拒否した場合に発生するエラーです。                                                                                 | `{"message": "Successfully Received", "Request_ID": 122323, "SMS": {"message": "Rejected by Vendor with error - {{error from vendor}}", "err_code": "Vendor Error", "status_code": "150015 / 151015"}}` | ベンダーから送信されたエラーを解決してから API を呼び出してください。                                                  |
+| **Vendor Accepted**           | ベンダーがリクエストを受け付けた場合にレスポンスとして送信されます。                                                                     | `{"message": "Successfully Received", "Request_ID": 122323, "SMS": {"message": "Successfully sent", "err_code": "NA", "status_code": 200000}}`                                                          | -                                                                                                                      |
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="重複したリクエストはどのように処理されますか？" icon="sparkles">
+    次の場合、リクエストは重複とみなされます。
+
+    - 同じ transaction_id を含む以前の成功したリクエストから 5 分以内に受信された場合
+    - 同じ transaction_id を含み、"In Progress"（処理中）の以前のリクエストから 5 分以内に受信された場合
+
+    重複したリクエストは破棄され、再処理されません。
+  </Accordion>
+  <Accordion title="ベンダーが MoEngage からのリクエストを受け付けない場合はどうなりますか？" icon="sparkles" iconType="regular">
+    ベンダーが MoEngage からのリクエストを受け付けない場合、MoEngage は 200ms の指数バックオフで各リクエストを最大 5 回再試行します。
+  </Accordion>
+  <Accordion title="アラートログは MoEngage に保存されますか？" icon="sparkles">
+    MoEngage では、すべてのアラートについてアラートログが最大 30 日間保存されます。
+  </Accordion>
+  <Accordion title='"Live Alert Request received on Sandbox API endpoint" というエラーが発生するのはなぜですか？' icon="sparkles">
+    このエラーは、Live のアラート ID を Sandbox エンドポイントに送信した場合に発生します。各アラートには 2 つの ID（Live 用と Test 用）があり、MoEngage ダッシュボードのテスト環境で作成されたアラートでも同じ動作になります。Test Alert ID は、アラートを編集して 3 ページ目に移動すると確認できます。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+Postman コレクションをインポートして、これらのエンドポイントをすばやくテストできます: [Postman で表示](https://www.postman.com/moengage-dev/api-docs/collection/n3e0uj9/moengage-inform-api)。

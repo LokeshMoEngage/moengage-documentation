@@ -1,0 +1,144 @@
+---
+title: "Reddit Ads Audience"
+description: "MoEngage のユーザーセグメントをカスタムオーディエンスとして Reddit Ads に同期し、ファーストパーティデータを使用したリターゲティングおよび抑制キャンペーンを実施します。"
+---
+
+# はじめに
+
+[Reddit Ads](https://www.business.reddit.com/) は、精密なターゲティングによってエンゲージメントの高いコミュニティにリーチすることに特化したデジタル広告プラットフォームです。Reddit Ads Audience 統合により、MoEngage はユーザーセグメントをカスタムオーディエンスとして Reddit に直接同期でき、ファーストパーティデータを使用したリターゲティングおよび抑制キャンペーンを実施できます。
+
+MoEngage は、Reddit Ads 向けに次の個別のコネクタをサポートしています。
+
+- **Reddit Ads Create Custom Audience**: キャンペーンフローから Reddit Ads に新しい顧客リストオーディエンスを直接作成し、追跡します。
+- **Reddit Ads Update Users to Audience**: 既存の Reddit カスタムオーディエンスにユーザーをリアルタイムで追加または削除して、オーディエンスリストを追跡および更新します。
+
+## ユースケース
+
+Reddit Ads を MoEngage と統合すると、オーディエンスデータを同期して次のユースケースを実現できます。
+
+- **ウォームオーディエンスのリターゲティング:** 購入意欲の高いセグメント(カート放棄者など)を Reddit に送信し、精密なリターゲティングを行います。
+- **コンバージョン抑制:** 最近コンバージョンしたユーザーを自動的に除外し、広告費を最適化します。
+- **類似オーディエンスのシード作成:** パフォーマンスの高い顧客コホートをアップロードし、Reddit の類似オーディエンス拡張のシードとして使用します。
+- **ライフサイクルの更新:** ユーザーが MoEngage の特定のライフサイクルステージの条件を満たした、または満たさなくなった時点で、オーディエンスリストを継続的に更新します。
+
+<Info>
+  **前提条件**
+
+  いずれかのコネクタを設定する前に、Reddit Ads Manager から次の情報を用意してください。
+
+  - **Reddit Ad Account ID:** 広告キャンペーンに関連付けられた Reddit Ads アカウントを識別する一意のアカウント ID です。
+
+  **注意**: Reddit Ads Audience は Connected Segments アドオンの一部です。アカウントで有効にするには、担当の MoEngage カスタマーサクセスマネージャー(CSM)にお問い合わせください。
+</Info>
+
+# Reddit Ads との統合
+
+## ステップ 1: Reddit から Ad Account ID を取得する
+
+安定した接続を確保するために、Reddit Ads Manager で Ad Account ID を取得します。
+
+### ステップ 1.1: アカウント情報を確認する
+
+1. [Reddit Ads Manager](https://ads.reddit.com) ページで、認証情報を使用してサインインします。
+2. **Reddit Ads Manager** 画面の左上セクションで、プロフィール設定を見つけます。
+3. **Account Information** ブロックで、表示されている **Ad Account ID**(例: `a2_iwaehssz1bo5`)をコピーします。
+
+### ステップ 1.2: アプリを作成する
+
+MoEngage が Reddit Ads API とやり取りすることを承認するには、Reddit Business Manager ダッシュボード内でデベロッパーアプリケーションを設定する必要があります。次の手順を実行します。
+
+1. [Reddit Business Manager](https://www.business.reddit.com/) にログインします。
+2. 左側のナビゲーションサイドバーで、**Developer Applications** をクリックします。
+3. 右上セクションで **Add Apps** をクリックします(または、新しいアプリケーションを登録するためのアクティブなボタンをクリックします)。
+4. **Edit application**(または **Create application**)モーダルで、次の詳細を設定します。
+   - **App name**: アプリケーションの名前を入力します(例: `MoEngage`)。
+   - **Description**: 統合が MoEngage にどのように接続するかの簡単な概要を入力します。
+   - **About url**: 組織のビジネス URL を入力します(例: `https://www.moengage.com`)。
+   - **Primary contact**: 組織の主要管理者のメールアドレスを入力します。
+5. **Redirect uri** ボックスで、ダッシュボードがホストされている MoEngage データセンターに応じた OAuth コールバック URL を指定します。
+   | データセンター | Redirect URI |
+   | --- | --- |
+   | DC-01 | `https://dashboard-01.moengage.com/v3/partner/oauth/callback` |
+   | DC-02 | `https://dashboard-02.moengage.com/v3/partner/oauth/callback` |
+   | DC-03 | `https://dashboard-03.moengage.com/v3/partner/oauth/callback` |
+   | DC-04 | `https://dashboard-04.moengage.com/v3/partner/oauth/callback` |
+6. **Save Changes** をクリックして設定を保存します。
+   ![Reddit デベロッパーアプリケーションの Save Changes](/images/reddit-ads-save-app.png)
+7. 更新された **Developer Applications** ホームダッシュボードで、新しいアプリケーションの詳細から次の認証情報をコピーします。
+   - **App ID**(MoEngage では **Client ID** として機能します)
+   - **Secret**(MoEngage では **Client Secret** として機能します)
+   ![Reddit デベロッパーアプリケーションの App ID と Secret](/images/reddit-ads-app-credentials.png)
+
+<Info>
+  - MoEngage プラットフォームで API 認証ハンドシェイクを完了するには、両方の認証情報が必要です。
+  - アプリケーションの Secret は公開しないでください。組織内で安全に管理してください。
+</Info>
+
+## ステップ 2: App Marketplace で Reddit Ads を接続する
+
+App Marketplace で接続を設定するには、次の手順を実行します。
+
+1. **MoEngage** ダッシュボードの左側のナビゲーションペインで、**App Marketplace** をクリックします。
+2. **App Marketplace** ページの検索ボックスに **Reddit Ads** と入力します。
+3. 検索結果リストで **Reddit Ads** タイルをクリックします。
+4. **Reddit Ads** 統合ページで **Integrate** タブをクリックします。
+5. ページの接続設定パネルで、次の詳細を設定します。
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | Connection name | はい | 一意の内部名です(例: `Reddit Ads - Retargeting`)。 |
+   | Client ID | はい | Reddit デベロッパーアプリケーションから取得した一意の **App ID** です。 |
+   | Client Secret | はい | Reddit デベロッパーアプリケーションから取得した一意の Secret キーです。 |
+   | Ad Account ID | はい | ステップ 1.1 でコピーした Reddit の **Ad Account ID** です(例: `a2_iwaehssz1bo5`)。 |
+6. **Connect** をクリックして OAuth ハンドシェイクを完了します。接続の変更がワークスペースに反映されるまで最大 15 分かかります。
+   ![App Marketplace での Reddit Ads 接続](/images/reddit-ads-connect.png)
+
+# キャンペーンの設定
+
+設定する統合タイプを選択します。どちらのコネクタも同じ認証接続を必要としますが、オーディエンス管理のロジックが異なります。
+
+<Tabs>
+  <Tab title="Create Custom Audience">
+    ## ステップ 3: カスタムオーディエンスキャンペーンを作成する
+
+    キャンペーンフローから新しいオーディエンスリストを直接作成するには、次の手順を実行します。
+
+    1. **MoEngage** ダッシュボードの左側のナビゲーションペインで、**Engage** \> **Campaigns** をクリックします。
+    2. **All campaigns** ページで **\+ Create campaign** をクリックします。
+    3. **Create campaign** ダイアログボックスの **Connected Apps** で **Reddit Ads** をクリックし、希望する配信タイプを選択します。
+    4. ページのステップ 1(**Target Users**)でターゲットオーディエンスを選択し、**Next** をクリックします。
+    5. ページのステップ 2(**Content**)で、Connector として **Create Custom Audience** を選択し、リストから作成した接続を選択します。
+    6. キャンペーンエディターの **Audience Setup** で、次の設定を行います。
+       | フィールド | 必須 | 説明 |
+       | --- | --- | --- |
+       | Audience Name | はい | 3~500 文字の一意の名前です。「@」修飾子を使用したパーソナライゼーションをサポートしています。 |
+       | External Audience ID | はい | システム間で参照するための内部識別子です。パーソナライゼーションをサポートしています。 |
+       ![Reddit Ads の Create Custom Audience 設定](/images/reddit-ads-create-audience.png)
+    7. **Publish** をクリックしてカスタムオーディエンスをデプロイします。接続の変更がワークスペースに反映されるまで最大 15 分かかります。
+  </Tab>
+  <Tab title="Update Users to Audience">
+    ## ステップ 3: Update Users to Audience キャンペーンを作成する
+
+    継続的なメンバーシップ同期(ユーザーの追加または削除)を設定するには、次の手順を実行します。
+
+    1. **MoEngage** ダッシュボードの左側のナビゲーションペインで、**Engage** \> **Campaigns** をクリックします。
+    2. **All campaigns** ページで **\+ Create campaign** をクリックします。
+    3. **Create campaign** ダイアログボックスの **Connected Apps** で **Reddit Ads** をクリックし、希望する配信タイプを選択します。
+    4. ページのステップ 1(**Target Users**)でターゲットオーディエンスを選択し、**Next** をクリックします。
+    5. ページのステップ 2(**Content**)で、Connector として **Update Users to Audience** を選択し、リストから作成した接続を選択します。
+    6. キャンペーンエディターの **Audience Configuration** で、次の設定を行います。
+       | フィールド | 必須 | 説明 |
+       | --- | --- | --- |
+       | Audience ID | はい | 更新する既存の Reddit オーディエンスの ID です。パーソナライゼーションをサポートしています。 |
+       | Operation Type | はい | **Add Users** または **Remove Users** を選択します。 |
+       | User Identifier Type | はい | **Email**(推奨)または **Mobile Ad ID (MAID)** を選択します。 |
+       | User Identifier Value | はい | @ パーソナライゼーション(例: `@email`)を使用して、MoEngage の属性を識別子にマッピングします。 |
+       ![Reddit Ads の Update Users to Audience 設定](/images/reddit-ads-update-audience.png)
+    7. **Publish** をクリックしてキャンペーンを開始します。接続の変更がワークスペースに反映されるまで最大 15 分かかります。
+  </Tab>
+</Tabs>
+
+<Warning>
+  **データプライバシー: ハッシュ化と PII ガードレール**
+
+  MoEngage は、すべてのユーザー識別子(メールアドレス/MAID)を Reddit Ads に送信する前に自動的に SHA-256 でハッシュ化します。一貫性を確保するため、MoEngage はハッシュ化の前にメールアドレスを小文字に標準化し、生の PII を送信することはありません。
+</Warning>

@@ -1,0 +1,104 @@
+---
+title: "HMS Push Kit の設定"
+description: "MoEngage のプッシュ通知配信のために、Android アプリで Huawei HMS Push Kit を設定します。"
+---
+
+<Check>
+  - アプリケーションで Push Kit を設定済みであることを確認してください。\
+    詳細については、[HMS Push Kit のドキュメント](https://developer.huawei.com/consumer/en/doc/development/HMSCore-Guides/service-introduction-0000001050040060)を参照してください。
+  - プッシュ通知を受信するように MoEngage SDK を設定済みであることを確認してください。
+</Check>
+
+# SDK のインストール
+
+## BOM を使用したインストール
+
+BOM を使用した統合が推奨される統合方法です。まだ BOM を設定していない場合は、[Install Using BOM](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) ドキュメントを参照して設定してください。BOM を設定したら、以下のように **_app/build.gradle_** ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```Groovy build.gradle wrap
+dependencies {
+      ...
+      implementation("com.moengage:hms-pushkit")
+}
+```
+
+</CodeGroup>
+
+または、[Installation using Artifact ID](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/advanced-or-optional/installing-sdk-using-artifact-id) で説明されているように、Artifact ID を使用して依存関係を追加することもできます。ただし、Artifact ID を使用したインストールでは、マッピングが正しくない場合にバージョンの不一致が発生する可能性があるため、BOM を使用したインストールを推奨します。
+
+# プッシュトークンの管理
+
+MoEngage SDK を使用する場合、トークンを登録して MoEngage SDK に渡すか、MoEngage SDK にプッシュトークンの登録を任せることができます。
+
+## アプリケーションによるトークン登録
+
+アプリケーションがプッシュ通知の登録を行っている場合は、以下の API を使用してプッシュトークンを MoEngage SDK に渡します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEPushKitHelper.getInstance().passPushToken(context, token)
+```
+
+
+```java Java
+MoEPushKitHelper.getInstance().passPushToken(context, token);
+```
+
+</CodeGroup>
+
+## MoEngage によるトークン登録
+
+デフォルトでは、MoEngage SDK はプッシュトークンを登録しません。SDK の初期化時に、[MoEngage.Builder](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) の [configurePushKit()](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-push-kit.html) API を使用してトークン登録を有効にできます。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+val moEngage = MoEngage.Builder(
+        application = this,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configurePushKit(PushKitConfig(isRegistrationEnabled = true))
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```java Java
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+     .configurePushKit(new PushKitConfig(true))
+     .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+アプリケーションのマニフェストファイルに以下の Service を追加します。
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<service
+    android:name="com.moengage.hms.pushkit.MoEPushKitMessageService"
+    android:exported="false">
+  <intent-filter>
+    <action android:name="com.huawei.push.action.MESSAGING_EVENT" />
+  </intent-filter>
+</service>>
+```
+
+</CodeGroup>
+
+MoEngage SDK がプッシュ登録を処理する場合、新しいトークンが登録されたとき、またはトークンが更新されたときに、オプションでアプリケーションにコールバックを提供します。\
+アプリケーションは、[TokenAvailableListener](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.listener/-token-available-listener/index.html) インターフェースを実装し、[MoEPushKitHelper.getInstance().addTokenListener()](https://moengage.github.io/android-api-reference/hms-pushkit/com.moengage.hms.pushkit/-mo-e-push-kit-helper/add-token-listener.html) API を使用してリスナーを登録することで、このコールバックを受け取ることができます。
+
+<Info>
+  Push Kit を使用するには、_moe-android-sdk_ を 10.3.00 以降に更新する必要があります。
+</Info>
+
+# MoEngage でアカウントを設定する
+
+これで MoEngage SDK での Huawei Push の設定が完了しました。[MoEngage ダッシュボードでの Huawei Push の設定](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/push-amp-plus/configuring-huawei-push-on-mo-engage)に進んでください。

@@ -1,0 +1,53 @@
+---
+title: "In-App のトラブルシューティング"
+description: "Android で MoEngage のアプリ内メッセージがレンダリングされない、または正しく表示されない問題をトラブルシューティングします。"
+---
+
+この記事では、In-App の使用中に最も頻繁に発生する問題とその解決方法を見ていきます。
+
+<iframe src="https://www.youtube.com/embed/b9SPaPWzW-c" title="YouTube 動画プレーヤー" frameborder="0" className="w-full aspect-video rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen />
+
+## In-App が期待どおりにレンダリングされない
+
+InApp がレンダリングされない理由は複数考えられます。 
+
+1. MoEngage SDK は、プッシュ通知のようにデフォルトで In-App を表示しません。In-App を表示したい場合は、アプリ起動時および画面ベースの In-App を表示するために次のコード行を呼び出す必要があります。唯一の例外はカスタムイベント In-App で、カスタムイベント In-App については次のメソッドを呼び出す必要はありません。\
+   [_MoEInAppHelper.getInstance().showInApp(context)_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/show-in-app.html)
+2. 配信コントロールの条件を満たしていない場合、または MoEngage SDK の初期化時に一部のアクティビティが In-App のオプトアウト設定でオプトアウトされている場合、InApp は表示されません。SDK ログを有効にしている場合は、ログで理由を確認できます。
+3. ライフサイクルライブラリの統合に問題があるため、In-App がデバイスに同期**されない**。[こちら](/ja/developer-guide/android-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs)に記載されている手順を使用してトラブルシューティングしてください。
+4. MoEngage の他のライブラリ機能で例外が発生したため、InApp をデバイスに同期できなかった。エラーログに何か記録されていないか確認してください。
+
+## アプリ起動時に In-App が期待どおりにレンダリングされない
+
+トリガー条件を **on App open** として In-App キャンペーンを作成する場合は、アプリの最初の画面が開かれたときに次のコードが呼び出されることも確認する必要があります。このコードは、フラグメントの onResume() またはアクティビティの onStart() で呼び出す必要があります。
+
+[_MoEInAppHelper.getInstance().showInApp(context)_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/show-in-app.html)
+
+## 選択した画面名で In-App がレンダリングされない
+
+トリガー条件を **on specific screen** として In-App キャンペーンを作成する場合は、選択した画面名で次のコードが呼び出されることも確認する必要があります。このコードは、アクティビティの onStart() またはフラグメントの onResume() で呼び出す必要があります。
+
+[_MoEInAppHelper.getInstance().showInApp(context)_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/show-in-app.html)
+
+## テスト In-App で "Something went wrong" エラーが表示される
+
+このエラーには複数の原因が考えられます。
+
+- Glide の依存関係が不足している
+
+このエラーを修正するには、Glide ライブラリを追加し、MoEngage InApp バージョン \>= 7.1.4 を使用してください。
+
+### **InApp で画像と GIF を表示するための要件**
+
+InApp バージョン **7.0.0** 以降、SDK で In-App に画像や GIF を表示するには [Glide](https://bumptech.github.io/glide/) が必要です。**build.gradle** ファイルに以下の依存関係を追加する必要があります。
+
+<CodeGroup>
+
+```Groovy Groovy wrap
+dependencies {
+ ...
+ implementation("com.github.bumptech.glide:glide:4.16.0")
+}
+```
+
+</CodeGroup>

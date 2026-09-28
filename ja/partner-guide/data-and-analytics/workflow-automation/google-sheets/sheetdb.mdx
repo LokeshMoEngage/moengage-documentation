@@ -1,0 +1,109 @@
+---
+title: "Sheetdb"
+---
+
+## はじめに
+
+[Sheetdb](https://sheetsu.com/) は、Google スプレッドシートを JSON API に変換します。シートを CRM、API、Web サイト、その他あらゆるアプリケーションやツールに接続できます。
+
+## MoEngage と Sheetdb
+
+MoEngage と Sheetdb の連携により、Google スプレッドシートのデータを読み書きできます。
+
+## ユースケース
+
+1. ユーザーごとに少しずつ異なるキャンペーンメッセージを記載したスプレッドシートがあり、（このスプレッドシートの）メッセージをそのままユーザーに送信したい場合。この連携を使用すると、MoEngage のキャンペーンからスプレッドシートを参照して、ユーザーに適切なメッセージを送信できます。
+2. 送信するキャンペーンに非常に固有な属性がある場合。これは 1 回限りのキャンペーンであるため、これらの詳細を MoEngage に保存したくありません。このような場合は、これらの属性を Google スプレッドシートに追加し、MoEngage Content APIs を使用してシートを参照するだけです。
+3. MoEngage で特定のアクションを実行したユーザーを追跡するために、スプレッドシートを（ほぼリアルタイムで）更新し続けたい場合。この連携を使用すると、MoEngage Connector Campaign で Sheetdb スプレッドシートのエンドポイントを設定できます。
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - Sheetdb アカウントにアクセスできることを確認してください。
+</Info>
+
+この連携では、次のことができます。
+
+1. 実行時にスプレッドシートから詳細を取得し、Content APIs を使用して MoEngage キャンペーンで利用する。
+2. 特定のユーザーセグメントの詳細を使用して、またはユーザーが特定のイベントを実行した直後に、スプレッドシートをほぼリアルタイムで更新する。
+
+### A) MoEngage キャンペーンでスプレッドシートのデータを使用する
+
+ファイルに、ユーザー向けのメッセージタイトル、メッセージ、ボタン名の詳細が含まれているとします。
+
+![メッセージタイトル、メッセージ、ボタン名の列を含むサンプルスプレッドシート](/images/partner_21979659923732.png)
+
+この例では、ID を使用してユーザーを検索しています。メール ID や携帯電話番号など、他の属性を使用してユーザーを識別することもできます。
+
+#### ステップ 1: Sheetdb にシートをアップロードする
+
+Sheetdb ダッシュボードのホームページで次の操作を行います。
+
+1. 右上の _Create new_ をクリックします。
+   ![Sheetdb ダッシュボードの Create new ボタン](/images/partner_7401327382036.png)
+2. スプレッドシートの URL を追加します。
+   ![Sheetdb でスプレッドシートの URL を追加する](/images/partner_7401381763220.png)
+3. _Create API_ をクリックします。
+4. _Go to API URL_ をクリックして、API が正常に動作するかテストできます。
+   ![Go to API URL をクリックして Sheetdb API をテストする](/images/partner_7401397437204.png)
+5. シートの API URL をコピーします。次のような形式になります。
+   ```text
+   https://sheetdb.io/api/v1/2ru3wpxjfdc2s
+   ```
+
+#### ステップ 2: MoEngage で Sheetdb を Content API として追加する
+
+次の手順を実行します。
+
+1. **Settings** \> **Advanced settings** \> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。
+   ![Advanced settings ページから Content API を追加する](/images/partner_21979659930388.png)
+2. Sheetdb の名前と API URL を追加します。
+   ![Sheetdb の名前と API URL を Content API として設定する](/images/partner_7401438488980.png)
+   **API URL**
+   次の URL を入力します。_your Sheetdb API URL_ は、前のステップでコピーしたものと同じである必要があります。
+   ```text wrap
+   https://sheetdb.io/apis/v1/<your sheetdb API url>/search?ID={{UserAttribute['ID']}}
+   ```
+3. Save をクリックします。MoEngage に Sheetdb API が追加されたことを確認できます。
+   ![MoEngage の Content APIs に表示された Sheetdb API](/images/partner_7401480179732.png)
+
+API をテストすることもできます。サンプル ID を入力して Test をクリックします。API レスポンスを確認して検証できます。
+
+![サンプル ID を使用して Sheetdb Content API をテストする](/images/partner_7401479515924.png)
+
+#### ステップ 3: MoEngage キャンペーンで Content API のデータを使用する
+
+これで、キャンペーンでこれらの Content API を使用できます。Content APIs の詳細については、[こちら](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis)をご覧ください。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 2 で設定した Sheetdb Content API を選択できます。
+   ![キャンペーン作成時に Sheetdb Content API を選択する](/images/partner_7401483557652.png)
+3. done をクリックして、レスポンスをキャンペーンに含めます。
+4. MoEngage のテンプレート言語を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。
+
+### B) MoEngage Connectors を使用してスプレッドシートにデータを書き込む
+
+#### ステップ 1: Sheetdb にシートをアップロードする
+
+シートを Sheetdb API で利用できるようにします。前の例の A. ステップ 1 と同じ手順に従ってください。
+
+#### ステップ 2: MoEngage Connector Campaigns に Sheetdb エンドポイントを追加する
+
+MoEngage でコネクターキャンペーンを作成するには、次の操作を行います。
+
+1. Create Campaign \> Connectors \> Custom に移動し、ニーズに最も適した配信タイプを選択します。
+   ![MoEngage で Custom コネクターと配信タイプを選択する](/images/partner_21979659934356.png)
+2. キャンペーンのステップ 2 で次の操作を行います。
+   - メソッドとして `POST` を選択します。
+   - Webhook URL として次を追加します。
+     ```text
+     https://sheetdb.io/apis/v1/<your sheetdb API URL>
+     ```
+     ![Sheetdb 用のコネクターキャンペーンの Webhook 設定](/images/partner_7401499731732.png)
+   - Body で、スプレッドシートのキーと送信する値を定義します。
+3. これで、キャンペーンのテストと送信の準備が整いました。Create Connector Campaign のステップ 2 にある Test 機能を使用して、コネクターの設定をテストすることもできます。
+   ![公開前にコネクターキャンペーンの設定をテストする](/images/partner_21979691834388.png)
+
+スプレッドシートのデータが正常に更新されれば、設定は完了です。キャンペーンを公開してください。

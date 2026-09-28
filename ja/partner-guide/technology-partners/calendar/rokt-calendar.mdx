@@ -1,0 +1,112 @@
+---
+title: "Rokt Calendar"
+---
+
+# はじめに
+
+[Rokt Calendar](https://www.rokt.com/) は、ブランドがカレンダーイベントや通知の形で 1:1 のイベントやプロモーションのコミュニケーションをプッシュできる、ダイナミックなカレンダーマーケティングテクノロジーです。
+
+# MoEngage × Rokt Calendar
+
+MoEngage と Rokt Calendar の統合により、ユーザーイベントをトリガーとして使用し、Rokt Calendar の購読者を更新できます。
+
+<Info>
+  - Rokt Calendar アカウントにアクセスできることを確認してください。アカウントマネージャーと相談するには、[sales-calendar@rokt.com](mailto:sales-calendar@rokt.com) にお問い合わせください。
+  - Rokt Calendar の OAuth 認証情報があることを確認してください。
+  - External subscriber ID があることを確認してください。これは、Rokt Calendar の購読プロセスでカレンダー購読者と MoEngage ユーザーを照合するために使用される識別子です。これは Rokt Calendar に渡す値です。
+</Info>
+
+## 購読の統合ポイントを提供する
+
+カレンダー購読者のオーディエンスを構築するには、ユーザーがアクセスして購読できる宛先を提供する必要があります。購読の統合ポイントの例を次に示します。
+
+- ウェブサイトにカレンダーボタンを追加する
+- メールまたは SMS にカレンダーリンクを追加する
+- アプリにカレンダーボタンを追加する
+- ソーシャルメディアにカレンダーリンクを追加する
+
+## カレンダーをプロモーションする
+
+購読者のオーディエンスを構築するには、オーディエンスが購読方法を把握できるようにカレンダーをプロモーションする必要があります。カレンダーのプロモーションの例を次に示します。
+
+- ソーシャルメディアへの投稿
+- メールニュースレターと最新情報
+- ブログ投稿
+- アプリ内通知
+
+## MoEngage で Rokt Calendar コネクターを作成する
+
+MoEngage では、コネクターキャンペーンまたは Flows 内のコネクターを設定して、次のいずれかを実行できます。
+
+- 新しいパーソナライズされたイベントを送信する: 購読者のセグメントのカレンダーに新しいイベントを追加できます。
+- パーソナライズされたイベントを更新する: 購読者のカレンダーにある既存のイベントを更新できます。
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最も適した配信タイプを選択します<img src="/images/partner_27035039543316.png" alt="Screenshot_2022-02-21_at_10.48.46_PM.png" />
+2. キャンペーンのステップ 2 で、次の操作を行います
+
+### 新しいイベントを送信する
+
+[Rokt Calendar Event API はこちら](https://roktcalendar-api.readme.io/reference/create-new-subscription-event)を参照してください。
+
+- メソッドとして POST を選択します
+- Webhook URL として次を追加します: `https://api.roktcalendar.com/v1/subscriptionevent/{{accountCode}}`
+
+![Screenshot\_2023-04-18\_at\_10.10.52\_PM.png](/images/partner_14964486253204.png)
+
+- Headers に次を追加します
+  - Authorisation Basic base64encode(app\_id:app\_secret)
+  - Content-Type: application/json
+- Body では、セグメントの詳細を定義する必要があります。次の例を参考にペイロードを構成し、必要なフィールドを入力してください。
+  <CodeGroup>
+  ```json JSON
+  {
+  "event": {
+  "eventId": "{{EventAttribute['ID']}}",
+  "title": "{{EventAttribute['title']}}",
+  "description": "{{EventAttribute['description']}}",
+  "location": "{{EventAttribute['location']}}",
+  "start": "{{EventAttribute['start_time']}}",
+  "end": "{{EventAttribute['end_time']}}",
+  "timezone": "{{EventAttribute['timezone']}}",
+  "notifyBefore": "{{EventAttribute['notify_before']}}"
+  },
+  "subscriptionIds": ["{{UserAttribute['rokt:subscription_id']}}"]
+  }
+  ```
+  </CodeGroup>
+
+### 既存のイベントを更新する
+
+[Rokt Calendar Event API はこちら](https://roktcalendar-api.readme.io/reference/update-subscription-event)を参照してください。
+
+- メソッドとして POST を選択します
+- Webhook URL として次を追加します: `https://api.roktcalendar.com/v1/subscriptionevent/{{accountCode}}/update`
+- Headers に次を追加します
+  - Authorisation Basic base64encode(app\_id:app\_secret)
+  - Content-Type: application/json
+- Body では、セグメントの詳細を定義する必要があります。次の例を参考にペイロードを構成し、必要なフィールドを入力してください。
+  <CodeGroup>
+  ```json JSON
+  {
+  "event": {
+  "eventId": "{{EventAttribute['ID']}}",
+  "title": "{{EventAttribute['title']}}",
+  "description": "{{EventAttribute['description']}}",
+  "location": "{{EventAttribute['location']}}",
+  "start": "{{EventAttribute['start_time']}}",
+  "end": "{{EventAttribute['end_time']}}",
+  "timezone": "{{EventAttribute['timezone']}}",
+  "notifyBefore": "{{EventAttribute['notify_before']}}"
+  },
+  "subscriptionIds": ["{{UserAttribute['rokt:subscription_id']}}"]
+  }
+  ```
+  </CodeGroup>
+
+## リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整っています。Create Connector Campaign のステップ 2 で利用できる Test 機能を使用して、コネクターの設定をテストすることもできます。<img src="/images/partner_27035039553044.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+
+その後、キャンペーンを Publish できます。

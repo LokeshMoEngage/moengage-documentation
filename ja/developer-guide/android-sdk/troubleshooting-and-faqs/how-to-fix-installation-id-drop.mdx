@@ -1,0 +1,42 @@
+---
+title: "Installation ID のドロップを修正するには?"
+description: "MoEngage が Android アプリの一部のユーザーの Firebase Installation ID を保持していない理由と、その修正方法について説明します。"
+keywords: ["installation id drop", "Firebase Installation ID missing", "Android push not delivered", "passInstallationId", "registerForInstallationId", "firebase_messaging_installation_id_enabled"]
+---
+
+<Warning>
+  このページは、SDK が Firebase Installation ID を使用してデバイスをプッシュ用に登録する MoEngage Android BOM 4.4.0 以降に適用されます。それ以前の BOM バージョンについては、[トークンのドロップを修正するには? (レガシー)](/ja/developer-guide/android-sdk/troubleshooting-and-faqs/how-to-fix-token-drop)を参照してください。
+</Warning>
+
+## Installation ID のドロップとは?
+
+MoEngage Android BOM 4.4.0 以降、SDK は Firebase Installation ID を使用してデバイスをプッシュ用に登録します。Firebase Installation ID は、デバイス上のアプリケーションの各インストールに Firebase が割り当てる識別子です。
+
+Installation ID のドロップとは、MoEngage プラットフォームがアプリケーションのすべてのユーザーの Installation ID を保持していない状況を指します。たとえば、アプリケーションが毎日 100 人の新規ユーザーにインストールされているにもかかわらず、MoEngage プラットフォームが保持している識別子が 60 人分しかない場合、これは Installation ID のドロップです。
+
+## 修正が重要な理由
+
+エンドユーザーにプッシュ通知を送信するには、この識別子が必要です。識別子がないとプッシュを送信できないため、ユーザーのエンゲージメントを維持するにはドロップを修正する必要があります。
+
+## Installation ID のドロップが発生する理由
+
+Installation ID のドロップは、さまざまな理由で発生する可能性があります。
+
+- インターネット接続が不安定または接続がないため、Firebase SDK が Installation ID を生成しない。
+- `com.google.firebase:firebase-messaging` が、Firebase Installation ID に必要な最小バージョンである 25.1.2 より古い。
+- アプリケーションのマニフェストファイルに `firebase_messaging_installation_id_enabled` メタデータがない、または `false` に設定されている。
+- Google Play 開発者サービスのバージョンの不一致により、デバイス上の Play 開発者サービスのバージョンがアプリケーションで使用されている Firebase のバージョンと互換性がない。
+- Firebase の自動初期化が無効になっている、または MoEngage SDK の初期化が遅延しており、アプリケーションが `registerForInstallationId()` を呼び出していない。
+- アプリケーションに Installation ID を MoEngage SDK に渡すかどうかを決定する内部チェックまたはフラグがあり、識別子の生成時にそのフラグが無効になっている。
+- 統合エラーにより、アプリケーションが Installation ID を生成しているが、MoEngage SDK に渡していない。
+
+## 修正方法
+
+- Firebase Installation ID の統合が完了していることを確認します。現在の統合については[プッシュトークンの登録と表示](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display)を、以前の BOM バージョンからアップグレードした場合は [Firebase Installation ID への移行](/ja/developer-guide/android-sdk/migration/migrating-to-firebase-installation-id)を参照してください。
+- `com.google.firebase:firebase-messaging` が 25.1.2 以上であること、およびアプリケーションのマニフェストファイルで `firebase_messaging_installation_id_enabled` メタデータが `true` に設定されていることを確認します。
+- アプリケーションで Firebase の自動初期化が無効になっている場合、または MoEngage SDK の初期化が遅延している場合は、MoEngage SDK の初期化が完了した後に `registerForInstallationId()` を呼び出します。
+- アプリケーションが識別子を SDK に渡している場合は、アプリケーションの初回起動時に識別子が渡されるように、`passInstallationId` 呼び出し前のチェックを削除するか、フラグをデフォルトで有効にしておきます。
+
+<Info>
+  MoEngage では、MoEngage SDK に Installation ID の生成と通知の表示を任せることを推奨しています。[フロー 1: MoEngage が Installation ID の生成を処理する](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#flow-1-moengage-handles-installation-id-generation)を参照してください。
+</Info>

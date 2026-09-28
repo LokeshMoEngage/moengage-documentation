@@ -1,0 +1,535 @@
+---
+title: "Experience Fragments をメールテンプレートとして同期する"
+description: "Adobe Experience Manager の Experience Fragments とそのロケールバリエーションを、グループ化された多言語対応のメールテンプレートとして MoEngage に同期します。"
+---
+
+## はじめに
+
+[Adobe Experience Manager (AEM)](https://business.adobe.com/products/experience-manager/adobe-experience-manager.html) は、組織が複数のチャネルにわたってパーソナライズされたデジタル体験を作成、管理、配信できるエンタープライズコンテンツ管理プラットフォームです。
+
+Experience Fragments とそのバリエーションを、MoEngage の **Email Templates** として直接同期します。マーケティングチームは AEM でロケール別のメールバリエーションを作成し、それらを MoEngage でグループ化された多言語対応のメールテンプレートとして自動的に表示させることができます。
+
+## ユースケース
+
+- **ロケールベースのメールキャンペーン**: 複数のロケールバリエーション（例: 英語、ドイツ語、イタリア語）を持つ 1 つの Experience Fragment を作成します。各バリエーションは、MoEngage で単一の親の下にグループ化された子テンプレートとして同期されるため、MoEngage は各ユーザーに適切なロケールを自動的に配信できます。
+- **メール作成の一元化**: すべてのメール HTML を信頼できる唯一の情報源として AEM で管理します。公開操作を行うたびに、手動でのエクスポートやコピー＆ペーストなしで、最新のコンテンツが MoEngage のメールテンプレートに自動的にプッシュされます。
+- **複数バリエーションのテスト**: メールの A/B バリアントや地域別バリアントを単一の AEM Experience Fragment 内で管理し、それぞれを MoEngage のテンプレートグループ内の番号付きバリエーションとして同期します。
+
+## 仕組み
+
+同期は、MoEngage の Email Template のグループ化構造に直接対応する **Parent \+ Child テンプレートモデル**に従います。
+
+| AEM の構造 | マッピング先 | 備考 |
+| --- | --- | --- |
+| XF ルートページ | Template Group | MoEngage ですべてのロケールバリエーションをまとめてグループ化します |
+| 最初の XF バリエーション（子ページ） | Parent Template（ロケール: `EN`） | 常に最初に同期されます。その `external_template_id` がすべての子テンプレートの `group_id` になります |
+| 以降の XF バリエーション | Child Templates | ロケールはバリエーションのタイトルまたはノード名から自動的に検出されます（例: `-de_de` → `DE_DE`） |
+
+### ロケール検出ロジック
+
+ワークフローは、バリエーションの**ページタイトル**または**ノード名**の末尾にある `[-_][language][-_][country]` サフィックスを照合して、各 XF バリエーションのロケールを自動的に検出します（例: `promo-email-de_de` → `DE_DE`）。次のロケールが標準でサポートされています。
+
+| ロケールコード | 言語 / 地域 |
+| --- | --- |
+| `EN` | 英語（デフォルトのフォールバック） |
+| `DE_DE` | ドイツ語（ドイツ） |
+| `IT_IT` | イタリア語（イタリア） |
+| `ES_ES` | スペイン語（スペイン） |
+| `NL_NL` | オランダ語（オランダ） |
+| `ID_ID` | インドネシア語（インドネシア） |
+
+<Info>
+  **ロケールのフォールバック**
+
+  バリエーションのタイトルまたはノード名から有効なロケールが検出されない場合、または検出されたロケールが上記のサポート対象リストにない場合、ワークフローはロケールをデフォルトの `EN` に設定し、警告をログに記録します。必要に応じて、実装内の `VALID_LOCALES` セットを拡張して、追加のロケールをサポートできます。
+</Info>
+
+## ステップ 1: Email Sync ワークフローステップを追加する
+
+AEM プロジェクトの次のパスに新しいファイルを作成します。
+
+```plaintext wrap
+core/src/main/java/com/[your-company]/integration/workflow/MoEngageEmailSyncStep.java
+```
+
+<Warning>
+  **実装サンプル**
+
+  以下のコードは、出発点として使用することを目的とした**参考用の実装サンプル**です。コアとなる同期フローをカバーしていますが、AEM プロジェクトの構造、ロケールリスト、送信者の詳細、テンプレートの命名規則に合わせて調整が必要になる場合があります。インラインコメントをよく確認し、デプロイする前に非本番環境で十分にテストしてください。実装のサポートやカスタム要件については、**MoEngage Support** またはカスタマーサクセスマネージャーにお問い合わせください。
+</Warning>
+
+```java MoEngageEmailSyncStep.java wrap
+package com.moengage.integration.workflow;
+
+import com.adobe.granite.workflow.WorkflowException;
+import com.adobe.granite.workflow.WorkflowSession;
+import com.adobe.granite.workflow.exec.WorkItem;
+import com.adobe.granite.workflow.exec.WorkflowProcess;
+import com.adobe.granite.workflow.metadata.MetaDataMap;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.engine.SlingRequestProcessor;
+import com.day.cq.contentsync.handler.util.RequestResponseFactory;
+import com.day.cq.wcm.api.Page;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Iterator;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.json.JSONObject;
+
+@Component(
+    service = WorkflowProcess.class,
+    property = { "process.label=MoEngage Email Sync (Parent + Child - Stable)" }
+)
+public class MoEngageEmailSyncStep implements WorkflowProcess {
+    private static final Logger log = LoggerFactory.getLogger(MoEngageEmailSyncStep.class);
+    private static final String EMAIL_API_URL = "https://api-%s.moengage.com/v1.0/custom-templates/email";
+
+    // Extend this set to support additional locales required by your markets
+    private static final java.util.Set<String> VALID_LOCALES = new java.util.HashSet<>(java.util.Arrays.asList(
+        "IT_IT", "DE_DE", "ES_ES", "NL_NL", "ID_ID", "EN"
+    ));
+
+    @Reference
+    private RequestResponseFactory requestResponseFactory;
+
+    @Reference
+    private SlingRequestProcessor requestProcessor;
+
+    @Override
+    public void execute(WorkItem workItem, WorkflowSession workflowSession, MetaDataMap args)
+            throws WorkflowException {
+        ResourceResolver resolver = null;
+        try {
+            String processArgs = args.get("PROCESS_ARGS", "");
+            Map<String, String> config = parseArgs(processArgs);
+
+            String apiKey     = config.get("moengage.api.key");
+            String apiSecret  = config.get("moengage.api.secret");
+            String dataCenter = config.getOrDefault("moengage.datacenter", "02");
+
+            String publishUrl = config.getOrDefault("aem.publish.url", "").trim();
+            if (publishUrl.endsWith("/")) publishUrl = publishUrl.substring(0, publishUrl.length() - 1);
+            boolean debugMode = Boolean.parseBoolean(config.get("moengage.debug"));
+            String debugUrl   = config.getOrDefault("moengage.debug.url", "");
+
+            String payloadPath = getCleanPath(workItem.getWorkflowData().getPayload().toString());
+            resolver = workflowSession.adaptTo(ResourceResolver.class);
+
+            if (resolver == null) {
+                log.error("Could not obtain ResourceResolver");
+                return;
+            }
+
+            Page xfRoot = getXfRootPage(payloadPath, resolver);
+            if (xfRoot == null) return;
+
+            List<EmailTemplate> templates = discoverAllVariations(xfRoot, resolver, publishUrl);
+            if (templates.isEmpty()) return;
+
+            // Sync the first variation as the parent (locale: EN)
+            EmailTemplate parentTemplate = templates.get(0);
+            String parentExternalId = syncParentTemplate(
+                parentTemplate, resolver, dataCenter, apiKey, apiSecret,
+                workItem.getWorkflow().getInitiator(), debugMode, debugUrl
+            );
+
+            if (parentExternalId == null || parentExternalId.isEmpty()) {
+                log.error("Failed to create parent template, aborting child sync");
+                return;
+            }
+
+            // Sync remaining variations as children, linked via group_id
+            for (int i = 1; i < templates.size(); i++) {
+                EmailTemplate childTemplate = templates.get(i);
+                try {
+                    syncChildTemplate(childTemplate, parentExternalId, i + 1, dataCenter,
+                        apiKey, apiSecret, workItem.getWorkflow().getInitiator(),
+                        debugMode, debugUrl);
+                } catch (Exception e) {
+                    log.error("Failed to sync child template: {}. Skipping.", childTemplate.subject, e);
+                }
+            }
+
+        } catch (Exception e) {
+            log.error("Email Sync Failed. Caught exception to prevent AEM retry loop.", e);
+        }
+    }
+
+    // Resolves the XF root page from the workflow payload path
+    private Page getXfRootPage(String payloadPath, ResourceResolver resolver) {
+        String cleanPath = payloadPath.replaceAll("\\.html$", "").replaceAll("/jcr:content.*$", "");
+        Resource resource = resolver.getResource(cleanPath);
+        if (resource == null) return null;
+        Page page = resource.adaptTo(Page.class);
+        if (page == null) return null;
+        Page parent = page.getParent();
+        // If this is a variation page (no children), walk up to the XF root
+        if (parent != null && parent.getPath().contains("/experience-fragments/")
+                && !page.listChildren().hasNext()) {
+            return parent;
+        }
+        return page;
+    }
+
+    // Iterates XF children and builds an EmailTemplate list.
+    // First child = parent (EN); remaining children = locale variants.
+    private List<EmailTemplate> discoverAllVariations(Page xfRoot, ResourceResolver resolver, String publishUrl) {
+        List<EmailTemplate> templates = new ArrayList<>();
+        try {
+            Iterator<Page> children = xfRoot.listChildren();
+            boolean isParent = true;
+
+            while (children.hasNext()) {
+                Page child = children.next();
+                String title = child.getTitle() != null ? child.getTitle() : child.getName();
+                String html  = renderHtml(child.getPath(), resolver);
+
+                if (html.isEmpty()) {
+                    log.warn("HTML is empty for {}, skipping.", title);
+                    continue;
+                }
+
+                html = processHtmlForEmail(html, publishUrl);
+
+                if (isParent) {
+                    // Parent template always uses EN as the default locale
+                    templates.add(new EmailTemplate("master", title, html, title, "EN"));
+                    isParent = false;
+                } else {
+                    // Detect locale from title or node name suffix, e.g. "-de_de" or "_it_it"
+                    String localeCode = null;
+                    Matcher m = Pattern.compile("[-_]([a-zA-Z]{2}[-_][a-zA-Z]{2})$").matcher(title);
+                    if (m.find()) {
+                        localeCode = m.group(1).toUpperCase().replace("-", "_");
+                    } else {
+                        Matcher mNode = Pattern.compile("[-_]([a-zA-Z]{2}[-_][a-zA-Z]{2})$")
+                            .matcher(child.getName());
+                        if (mNode.find()) {
+                            localeCode = mNode.group(1).toUpperCase().replace("-", "_");
+                        }
+                    }
+                    // Fall back to EN if locale is unrecognised
+                    if (localeCode == null || !VALID_LOCALES.contains(localeCode)) {
+                        log.warn("Locale '{}' not valid for '{}', defaulting to EN", localeCode, title);
+                        localeCode = "EN";
+                    }
+                    templates.add(new EmailTemplate(localeCode, title, html, title, localeCode));
+                }
+            }
+        } catch (Exception e) {
+            log.error("Error discovering variations", e);
+        }
+        return templates;
+    }
+
+    private String processHtmlForEmail(String html, String publishUrl) {
+        String cleanHtml = cleanContentAsIs(html);
+        if (publishUrl != null && !publishUrl.isEmpty()) {
+            cleanHtml = externalizeLinks(cleanHtml, publishUrl);
+        }
+        return cleanHtml;
+    }
+
+    // Creates the parent email template; returns external_template_id
+    private String syncParentTemplate(EmailTemplate template, ResourceResolver resolver,
+            String dataCenter, String apiKey, String apiSecret, String initiator,
+            boolean dbg, String dbgUrl) throws Exception {
+
+        String templateId = "email_" + template.templateName + "_" + System.currentTimeMillis();
+        String endpointUrl = String.format(EMAIL_API_URL, dataCenter);
+        JSONObject payload = new JSONObject();
+
+        JSONObject basicDetails = new JSONObject();
+        basicDetails.put("subject", template.subject);
+        basicDetails.put("email_content", template.htmlContent);
+        basicDetails.put("sender_name", "Brand Communications"); // TODO: customise as needed
+
+        JSONObject metaInfo = new JSONObject();
+        metaInfo.put("template_id", templateId);
+        metaInfo.put("template_name", template.templateName);
+        metaInfo.put("template_version", "1.0");
+        metaInfo.put("created_by", initiator);
+        metaInfo.put("variation", 1);
+        metaInfo.put("locale", template.locale); // Always "EN" for parent
+
+        payload.put("basic_details", basicDetails);
+        payload.put("meta_info", metaInfo);
+
+        String response = sendToMoEngageAndGetResponse(endpointUrl, apiKey, apiSecret,
+            payload.toString(), dbg, dbgUrl);
+
+        try {
+            JSONObject responseJson = new JSONObject(response);
+            String externalId = responseJson.optString("external_template_id", null);
+            if (externalId != null && !externalId.isEmpty()) {
+                return externalId;
+            }
+            return null;
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // Creates a child template linked to the parent via group_id
+    private void syncChildTemplate(EmailTemplate template, String parentGroupId, int variationNumber,
+            String dataCenter, String apiKey, String apiSecret, String initiator,
+            boolean dbg, String dbgUrl) throws Exception {
+
+        String templateId = "email_" + template.templateName + "_" + template.locale
+            + "_" + System.currentTimeMillis();
+        String endpointUrl = String.format(EMAIL_API_URL, dataCenter);
+        JSONObject payload = new JSONObject();
+
+        JSONObject basicDetails = new JSONObject();
+        basicDetails.put("subject", template.subject);
+        basicDetails.put("email_content", template.htmlContent);
+        basicDetails.put("sender_name", "Brand Communications"); // TODO: customise as needed
+
+        JSONObject metaInfo = new JSONObject();
+        metaInfo.put("template_id", templateId);
+        metaInfo.put("template_name", template.templateName);
+        metaInfo.put("template_version", "1.0");
+        metaInfo.put("created_by", initiator);
+        metaInfo.put("variation", variationNumber);
+        metaInfo.put("locale", template.locale);
+        metaInfo.put("group_id", parentGroupId); // Links child to parent group
+
+        payload.put("basic_details", basicDetails);
+        payload.put("meta_info", metaInfo);
+
+        sendToMoEngageAndGetResponse(endpointUrl, apiKey, apiSecret,
+            payload.toString(), dbg, dbgUrl);
+    }
+
+    // HTML cleaning: extracts <style> blocks + <body> content,
+    // strips AEM-specific script tags and data attributes
+    private String cleanContentAsIs(String html) {
+        if (html == null || html.isEmpty()) return "";
+        StringBuilder result = new StringBuilder();
+
+        Matcher headMatcher = Pattern.compile("<head[^>]*>(.*?)</head>",
+            Pattern.DOTALL | Pattern.CASE_INSENSITIVE).matcher(html);
+        if (headMatcher.find()) {
+            String headContent = headMatcher.group(1);
+            Matcher styleMatcher = Pattern.compile("<style[^>]*>.*?</style>",
+                Pattern.DOTALL | Pattern.CASE_INSENSITIVE).matcher(headContent);
+            while (styleMatcher.find()) result.append(styleMatcher.group()).append("\n");
+        }
+
+        String bodyContent = html;
+        Matcher bodyMatcher = Pattern.compile("<body[^>]*>(.*?)</body>",
+            Pattern.DOTALL | Pattern.CASE_INSENSITIVE).matcher(html);
+        if (bodyMatcher.find()) {
+            bodyContent = bodyMatcher.group(1);
+        } else {
+            bodyContent = html
+                .replaceAll("(?is)<!DOCTYPE[^>]*>", "")
+                .replaceAll("(?is)<html[^>]*>", "")
+                .replaceAll("(?is)</html>", "")
+                .replaceAll("(?is)<head[^>]*>.*?</head>", "");
+        }
+
+        bodyContent = bodyContent
+            .replaceAll("(?is)<script[^>]*>\\s*\\(function\\(\\)\\s*\\{\\s*var imageDiv[^}]+\\}\\s*\\)\\(\\);\\s*</script>", "")
+            .replaceAll("(?is)<script[^>]*>.*?CQ_Analytics.*?</script>", "")
+            .replaceAll("(?is)<script[^>]*src=\"/etc\\.clientlibs/[^\"]*\"[^>]*></script>", "")
+            .replaceAll("\\s*data-cmp-[^=]*=\"[^\"]*\"", "")
+            .replaceAll("\\s*data-sly-[^=]*=\"[^\"]*\"", "");
+
+        result.append(bodyContent);
+        return result.toString().trim();
+    }
+
+    private String externalizeLinks(String content, String domain) {
+        if (content == null || domain == null || domain.isEmpty()) return content;
+        return content
+            .replaceAll("(src|href)=\"(/content/[^\"]+)\"", "$1=\"" + domain + "$2\"")
+            .replaceAll("(src|href)=\"(/etc\\.clientlibs/[^\"]+)\"", "$1=\"" + domain + "$2\"")
+            .replaceAll("(src|href)=\"(/libs/[^\"]+)\"", "$1=\"" + domain + "$2\"");
+    }
+
+    private String renderHtml(String path, ResourceResolver resolver) throws Exception {
+        HttpServletRequest req = requestResponseFactory.createRequest("GET", path + ".html");
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        HttpServletResponse resp = requestResponseFactory.createResponse(out);
+        requestProcessor.processRequest(req, resp, resolver);
+        return out.toString(StandardCharsets.UTF_8.name());
+    }
+
+    private String sendToMoEngageAndGetResponse(String endpointUrl, String key, String secret,
+            String json, boolean dbg, String dbgUrl) throws Exception {
+        if (dbg && dbgUrl != null && !dbgUrl.isEmpty()) {
+            sendDebug(json, "POST", dbgUrl);
+        }
+        URL url = new URL(endpointUrl);
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod("POST");
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("MOE-APPKEY", key);
+        String auth = Base64.getEncoder().encodeToString((key + ":" + secret)
+            .getBytes(StandardCharsets.UTF_8));
+        conn.setRequestProperty("Authorization", "Basic " + auth);
+        conn.setConnectTimeout(30000);
+        conn.setReadTimeout(30000);
+        conn.setDoOutput(true);
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(json.getBytes(StandardCharsets.UTF_8));
+        }
+        int code = conn.getResponseCode();
+        if (code >= 400) throw new Exception("MoEngage Error Code: " + code);
+        try (BufferedReader reader = new BufferedReader(
+                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+            return reader.lines().collect(Collectors.joining("\n"));
+        }
+    }
+
+    private void sendDebug(String payload, String method, String debugUrl) {
+        try {
+            URL url = new URL(debugUrl + "?method=" + method);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            conn.setDoOutput(true);
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(payload.getBytes(StandardCharsets.UTF_8));
+            }
+            conn.getResponseCode();
+        } catch (Exception e) { /* Non-critical */ }
+    }
+
+    private String getCleanPath(String path) {
+        if (path == null) return "";
+        if (path.endsWith("/jcr:content")) return path.substring(0, path.indexOf("/jcr:content"));
+        if (path.endsWith("/jcr:content/metadata")) return path.substring(0, path.indexOf("/jcr:content/metadata"));
+        return path;
+    }
+
+    private Map<String, String> parseArgs(String args) {
+        Map<String, String> map = new HashMap<>();
+        if (args == null || args.isEmpty()) return map;
+        for (String pair : args.split(",")) {
+            String[] kv = pair.split("=", 2);
+            if (kv.length == 2) map.put(kv[0].trim(), kv[1].trim());
+        }
+        return map;
+    }
+
+    private static class EmailTemplate {
+        String type;
+        String subject;
+        String htmlContent;
+        String templateName;
+        String locale;
+
+        EmailTemplate(String type, String subject, String htmlContent,
+                      String templateName, String locale) {
+            this.type = type;
+            this.subject = subject;
+            this.htmlContent = htmlContent;
+            this.templateName = templateName;
+            this.locale = locale;
+        }
+    }
+}
+```
+
+## ステップ 2: Email Sync ワークフローモデルを作成する
+
+1. AEM Author で **Tools** \> **Workflow** \> **Models** に移動します。
+2. **Create** \> **Create Model** をクリックし、次の詳細を入力します。
+   1. **Title:** MoEngage Email Sync
+   2. **Name:** moengage-email-sync
+3. ワークフローを編集用に開き、デフォルトのステップを削除します。
+4. サイドバーから **Process Step** をキャンバスにドラッグします。
+5. Process Step をダブルクリックして設定します。
+6. **Process** ドロップダウンで、**MoEngage Email Sync (Parent \+ Child - Stable)** を選択します。
+7. **Arguments** フィールドに次のように入力します。
+   ```text wrap
+   moengage.api.key=YOUR_WORKSPACE_ID,moengage.api.secret=YOUR_API_SECRET,moengage.datacenter=YOUR_DATACENTRE_VALUE,aem.publish.url=https://your-publish-domain.com
+   ```
+8. **OK** をクリックして保存し、**Sync** をクリックしてワークフローモデルを有効にします。
+
+### 設定パラメーター
+
+| パラメーター | 説明 | 必須 |
+| --- | --- | --- |
+| `moengage.api.key` | MoEngage の Workspace ID | はい |
+| `moengage.api.secret` | MoEngage の Campaign API Secret（Basic 認証に使用） | はい |
+| `moengage.datacenter` | MoEngage のデータセンターコード（例: `02`、`03`、`04`） | はい |
+| `aem.publish.url` | AEM Publish インスタンスのベース URL。相対アセットリンクの外部化に使用されます | はい |
+| `moengage.debug` | デバッグモードを有効にします。MoEngage API を呼び出す前に、ペイロードをデバッグ用 Webhook に送信します（`true`/`false`） | いいえ |
+| `moengage.debug.url` | ペイロード確認用の Webhook URL（例: [webhook.site](https://webhook.site)） | いいえ |
+
+## ステップ 3: ワークフローランチャーを設定する
+
+**Tools → Workflow → Launchers** に移動し、Experience Fragments 用のランチャーを作成します。
+
+| ランチャー名 | イベントタイプ | ノードタイプ | パス | 条件 | ワークフロー |
+| --- | --- | --- | --- | --- | --- |
+| moengage-xf-email-sync | Modified | cq:PageContent | /content/experience-fragments/\[your-site\] | cq:lastReplicationAction==Activate | moengage-email-sync |
+
+<Warning>
+  **重要**
+
+  - **Run Modes:** author に設定します
+  - **Enabled:** true に設定します
+  - `[your-site]` を実際のサイトパスに置き換えます
+  - 同じ XF パスで **MoEngage Content Sync** ランチャーをすでに使用している場合は、二重処理を避けるために両方のランチャーのスコープが正しく設定されていることを確認してください。パス条件を使用するか、XF のサブフォルダーを分けることで、Content Block 用の XF とメールテンプレート用の XF を区別できます。
+</Warning>
+
+## ステップ 4: メールテンプレートの同期をテストする
+
+##### デバッグモードを有効にする（初回実行時に推奨）
+
+初回のテストでは、ワークフローの引数にデバッグパラメーターを追加します。
+
+```text wrap
+moengage.debug=true,moengage.debug.url=https://webhook.site/your-unique-id
+```
+
+[webhook.site](https://webhook.site) から無料の Webhook URL を取得します。
+
+1. AEM Author で、メールテンプレートとして同期する Experience Fragment に移動します。少なくとも 1 つのバリエーション（子ページ）があることを確認してください。ロケールベースでグループ化する場合は、各バリエーションのタイトルまたはノード名がロケールサフィックスで終わっていることを確認してください（例: `promo-email-de_de`）。
+2. ページ情報アイコンを選択し、**Start Workflow** をクリックします。
+3. ドロップダウンから **MoEngage Email Sync** を選択し、**Start** をクリックします。
+4. `crx-quickstart/logs/error.log` で `MoEngageEmailSyncStep` というプレフィックスが付いたログエントリを監視し、親テンプレートと子テンプレートの同期を確認します。
+5. MoEngage で **Content** \> **Email Templates** に移動し、正しいロケールでテンプレートグループが作成されたことを確認します。
+
+## Content Sync と Email Template Sync の主な違い
+
+|  | Content Sync (MoEngageContentSyncStep) | Email Sync (MoEngageEmailSyncStep) |
+| --- | --- | --- |
+| **MoEngage の同期先** | Content Blocks | Email Templates |
+| **API エンドポイント** | `/v1/external/campaigns/content-blocks` | `/v1.0/custom-templates/email` |
+| **サポートされているコンテンツタイプ** | Experience Fragments、Content Fragments、DAM Assets | Experience Fragments のみ |
+| **ロケール / グループ化** | 該当なし — 各 XF バリエーションは独立したブロックとして同期されます | バリエーションはロケールコード付きの親 \+ 子としてグループ化されます |
+| **更新時の動作** | 名前で検索 → 存在する場合は PUT、新規の場合は POST | 常に POST — 同期のたびに新しいテンプレートバージョンを作成します |
+
+<Info>
+  **サポートとカスタマイズ**
+
+  サンプルコードはコアとなる同期フローをカバーしています。一般的なカスタマイズには、`VALID_LOCALES` へのロケールの追加、ブランドごとの `sender_name` フィールドのカスタマイズ、AEM の命名規則に合わせたロケール検出用正規表現の調整などがあります。実装のサポートについては、**MoEngage Support** またはカスタマーサクセスマネージャーにお問い合わせください。
+</Info>

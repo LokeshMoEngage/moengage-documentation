@@ -1,0 +1,107 @@
+---
+title: "カスタムプロキシドメイン - Web"
+description: "MoEngage Web SDK のトラフィックを独自のサブドメイン経由でルーティングし、広告ブロッカーを回避してデータの精度を向上させます。"
+---
+
+## はじめに
+
+今日のデジタル環境では、オンラインユーザーのかなりの割合が、[uBlock Origin](https://chromewebstore.google.com/detail/ublock-origin/cjpalhdlnbpafiamejdnhcphjbkeiagm/related?hl=en)、[AdGuard](https://adguard.com/en/welcome.html)、[Total Adblock](https://www.totaladblock.com/) などの広告ブロッカーを使用しています。これらの広告ブロッカーは、煩わしい広告への対策、閲覧速度の向上、オンラインプライバシーの保護を目的として導入されています。
+
+しかし、広告ブロッカーの普及は、正確なユーザーデータに依存する B2C ブランドにとって大きな障害となっています。広告ブロッカーは、トラッキングで知られるドメインとの通信を検出してブロックするために、ドメインのブラックリストを使用することがよくあります。その結果、不完全または信頼性の低いデータが収集されることになります。
+
+これらの制限を克服するために、MoEngage では**カスタムプロキシドメイン**の使用を推奨しています。この技術ドキュメントでは、SDK のトラフィックを独自のサブドメイン経由でルーティングし、ブラックリストフィルターを回避しながらデータの忠実度を最大化する統合方法について詳しく説明します。
+
+## 実装ガイド
+
+<Info>
+  **前提条件: DNS 委任**
+
+  SDK のコードを更新する前に、サブドメインを MoEngage に委任する必要があります。ドメインの選択と NS レコードの設定に関する手順については、[DNS 委任のヘルプドキュメント](https://www.moengage.com/docs/user-guide/getting-started/integration/custom-proxy-sub-domains)を参照してください。
+</Info>
+
+### 実装プロセス
+
+MoEngage Web SDK は、内部インターセプターとホスト名の置換を使用して、送信リクエストを動的に書き換えます。SDK は、標準の MoEngage エンドポイントにアクセスする代わりに、API データ、スクリプト、キャンペーンアセット（画像）を含むすべてのネットワーク呼び出しに、カスタムサブドメインをプレフィックスとして付加します。
+
+このプロセスには次の作業が含まれます。
+
+- Web サイト上の SDK 初期化スクリプトを更新する。
+- Service Worker（`serviceworker.js`）ファイルを更新する。
+- **オプション:** Web Personalization スニペットを実装する。
+
+## SDK 初期化の更新
+
+初期化コードを実装する際は、標準のスクリプトを以下のスニペットに置き換えます。`moeDataCenter`、`moeAppID`、`customProxyDomain` を定義する必要があります。このスクリプトは、SDK 自体がプロキシされた CDN から読み込まれるように、`scriptHost` を動的に構築します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+var moeDataCenter = "{DC}"; // Replace "DC" with the actual Data center value (e.g., dc_1)
+var moeAppID = "{WorkspaceID}"; // Replace with YOUR_WORKSPACE_ID
+var sdkVersion = "2"; // Use format x (major version)
+var customProxyDomain = "yoursubdomain.yourdomain.com"; // Your configured subdomain hostname
+var scriptHost = "https://cdn." + customProxyDomain; 
+
+!function(e,n,i,t,a,r,o,d){if(!moeDataCenter||!moeDataCenter.match(/^dc_[0-9]+$/gm))return console.error("Data center has not been passed correctly. Please follow the SDK installation instruction carefully.");var s=e[a]=e[a]||[];if(s.invoked=0,s.initialised>0||s.invoked>0)return console.error("MoEngage Web SDK initialised multiple times. Please integrate the Web SDK only once!"),!1;e.moengage_object=a;var l={},g=function n(i){return function(){for(var n=arguments.length,t=Array(n),a=0;a<n;a++)t[a]=arguments[a];(e.moengage_q=e.moengage_q||[]).push({f:i,a:t})}},u=["track_event","add_user_attribute","add_first_name","add_last_name","add_email","add_mobile","add_user_name","add_gender","add_birthday","destroy_session","add_unique_user_id","update_unique_user_id","moe_events","call_web_push","track","location_type_attribute","setLogLevel","setDebugLevel","handle_page_change","identifyUser","getUserIdentities","trackEvent","trackPageView","track_page_view","setUserAttribute","setFirstName","setLastName","setEmailId","setMobileNumber","setUserName","setGender","setBirthDate","logoutUser","callWebPush","handlePageChange","enableSdk","disableSdk","enableDataTracking","disableDataTracking"],m={onsite:["getData","registerCallback","getSelfHandledOSM"]};for(var c in u)l[u[c]]=g(u[c]);for(var v in m)for(var f in m[v])null==l[v]&&(l[v]={}),l[v][m[v][f]]=g(v+"."+m[v][f]);r=n.createElement(i),o=n.getElementsByTagName("head")[0],r.async=1,r.src=t,o.appendChild(r),e.moe=e.moe||function(){return(s.invoked=s.invoked+1,s.invoked>1)?(console.error("MoEngage Web SDK initialised multiple times. Please integrate the Web SDK only once!"),!1):(d=arguments.length<=0?void 0:arguments[0],l)},r.addEventListener("load",function(){if(d)return e[a]=e.moe(d),e[a].initialised=e[a].initialised+1||1,!0}),r.addEventListener("error",function(){return console.error("Moengage Web SDK loading failed."),!1})}(window,document,"script",scriptHost + "/release/"+moeDataCenter+"/versions/"+sdkVersion+"/moe_webSdk.min.latest.js","Moengage");
+
+Moengage = moe({
+  appId: moeAppID,
+  env: 'LIVE',
+  logLevel: 0,
+  customProxyDomain: customProxyDomain
+});
+</script>
+```
+
+</CodeGroup>
+
+## Service Worker（SW）の更新
+
+プッシュ通知やその他のバックグラウンド機能を使用している場合は、`serviceworker.js`（またはカスタムの Service Worker ファイル）もプロキシドメインを含むように更新する必要があります。
+
+<CodeGroup>
+
+```javascript Service Worker lines wrap
+// In your serviceworker.js file
+// Replace yoursubdomain.yourdomain.com with your customProxyDomain
+// Replace your_data_center with your actual data center (e.g., dc_1)
+importScripts("[https://cdn.yoursubdomain.yourdomain.com/release/your_data_center/versions/2/serviceworker_cdn.min.latest.js](https://cdn.yoursubdomain.yourdomain.com/release/your_data_center/versions/2/serviceworker_cdn.min.latest.js)");
+```
+
+</CodeGroup>
+
+## Web Personalization の統合
+
+アカウントで Web Personalization を使用している場合は、HTML ファイルの `<head>` セクションの先頭に次のタグを追加する必要があります。これにより、パーソナライゼーションスクリプトとキャンペーンアセットが、カスタムプロキシドメイン経由でプリフェッチされ、読み込まれるようになります。
+
+<CodeGroup>
+
+```html HTML Header lines wrap
+<link rel="preconnect" href="[https://cdn.yoursubdomain.yourdomain.com/](https://cdn.yoursubdomain.yourdomain.com/)" crossorigin />
+<link rel="dns-prefetch" href="[https://cdn.yoursubdomain.yourdomain.com/](https://cdn.yoursubdomain.yourdomain.com/)" />
+<link rel="preconnect" href="[https://sdk-0x.yoursubdomain.yourdomain.com/](https://sdk-0x.yoursubdomain.yourdomain.com/)" crossorigin />
+<link rel="dns-prefetch" href="[https://sdk-0x.yoursubdomain.yourdomain.com/](https://sdk-0x.yoursubdomain.yourdomain.com/)" />
+<script src="[https://cdn.yoursubdomain.yourdomain.com/release/your_data_center/versions/2/moe_webSdk_webp.min.latest.js?app_id=YOUR_WORKSPACE_ID&customProxyDomain=yoursubdomain.yourdomain.com](https://cdn.yoursubdomain.yourdomain.com/release/your_data_center/versions/2/moe_webSdk_webp.min.latest.js?app_id=YOUR_WORKSPACE_ID&customProxyDomain=yoursubdomain.yourdomain.com)"></script>
+```
+
+</CodeGroup>
+
+## インターセプターの検証
+
+統合が完了すると、SDK の内部インターセプターは次のようにリクエストを自動的にマッピングします。
+
+| 元のエンドポイント | プロキシされたエンドポイント |
+| :-- | :-- |
+| `sdk-0x.moengage.com` | `sdk-0x.yoursubdomain.yourdomain.com` |
+| `cdn.moengage.com` | `cdn.yoursubdomain.yourdomain.com` |
+| `image.moengage.com` | `image.yoursubdomain.yourdomain.com` |
+| `app-cdn.moengage.com` | `app-cdn.yoursubdomain.yourdomain.com` |
+
+<Tip>
+  **検証のヒント**
+
+  ブラウザのデベロッパーツール（Network タブ）を開き、カスタムドメイン（例: "example.com"）でフィルタリングします。MoEngage 関連のすべてのトラフィックが、サブドメイン経由で正常にルーティングされていることを確認してください。
+</Tip>
+
+Web SDK の統合に関するサポートについては、MoEngage サポートチームにお問い合わせください。

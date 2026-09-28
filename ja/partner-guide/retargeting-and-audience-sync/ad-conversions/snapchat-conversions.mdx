@@ -1,0 +1,207 @@
+---
+title: "Snapchat Conversions"
+description: "MoEngageからSnapchatのConversions APIにWebおよびオフラインのコンバージョンイベントを送信し、コンバージョンをアトリビューションして広告費を最適化します。"
+---
+
+# はじめに
+
+Snapchat Conversions連携は、MoEngageとSnapchatの間に安全なサーバー間（S2S）接続を確立します。Cookieの制限や広告ブロッカーなどのブラウザ側の障害を回避することで、この連携は正確なアトリビューションのための一貫性のある高品質なデータストリームを確保します。
+
+MoEngageは、Snapchatに対して以下の個別のコネクタをサポートしています。
+
+- [**Snapchat Web Conversions**](#integration-with-snapchat-web-conversions): Webサイトで発生する購入、チェックアウト、その他のサイト上のコンバージョンイベントを追跡します。
+- [**Snapchat Offline Conversions**](#integration-with-snapchat-offline-conversions): 実店舗、電話、メール、その他のオフラインチャネルなど、Webサイト外で発生するコンバージョンを追跡します。
+
+## ユースケース
+
+Snapchat ConversionsをMoEngageと連携すると、イベントデータを同期して以下のユースケースに対応できます。
+
+- **シグナルの回復力**: 通常はブラウザのプライバシー設定や広告ブロックソフトウェアによってブロックされる「失われた」コンバージョンを回復します。
+- **オフラインからオンラインへのアトリビューション**: 実店舗での取引とデジタル広告への接触の間のギャップを埋め、総ROIを測定します。
+- **広告費用対効果（ROAS）の最適化**: SnapchatとMetaの機械学習アルゴリズムに高品質なリアルタイムデータを提供し、顧客獲得単価（CPA）を下げて広告配信を改善します。
+
+<Info>
+  **前提条件**
+
+  いずれかのコネクタを設定する前に、[Snapchat Ads Manager](https://businesshelp.snapchat.com/s/article/set-up-snapchat?language=en_US#:~:text=in%20to%20Ads-,Manager,-using%20your%20preferred)から以下を用意してください。
+
+  - **Snapchat Pixel ID**: 広告アカウントに関連付けられたSnapchat Pixelを識別する一意のPixel ID。
+  - **Access Token**: Snapchat Conversions APIへのMoEngageのリクエストを認証するために使用されるBearerトークン。
+  - **有効なMoEngageアカウント**: Connected Appsが有効になっていない場合は、MoEngage CSMにお問い合わせください。
+
+  Snapchat Conversionsは**Connected Channels**アドオンの一部です。アカウントで有効にするには、担当のMoEngage CSM（カスタマーサクセスマネージャー）にお問い合わせください。
+</Info>
+
+# Snapchat Web Conversionsとの連携
+
+## ステップ1: Snapchatで認証情報を生成する
+
+安定した接続を確保するには、Snapchat Ads ManagerでPixel IDを取得し、Access Tokenを生成する必要があります。
+
+### ステップ1.1: Snapchat Pixel IDを取得する
+
+1. [Snapchat Ads Manager](https://businesshelp.snapchat.com/s/article/set-up-snapchat?language=en_US#:~:text=in%20to%20Ads-,Manager,-using%20your%20preferred)にログインします。
+2. 左側のナビゲーションメニューで、**Events Manager**をクリックします。
+3. Pixelを選択します。Pixelの詳細ページの上部に**Pixel ID**が表示されます。
+4. [ステップ2](#step-2-connect-snapchat-web-conversions-in-the-app-marketplace)で使用するためにPixel IDをコピーします。 
+   ![ステップ2で使用するためにPixel IDをコピーします](/images/partner_47099233966740.png)
+
+### ステップ1.2: 永続的なアクセストークンを生成する
+
+**Long Lived Token**: この認証方法は3-legged OAuthフローを必要とせず、有効期限もありません。
+
+1. Conversions API Tokenを確認するには、Snapダッシュボードの**Business Details**ビューに移動します。Conversions API Tokensというセクションが表示されます。ページのこのセクションを表示するには、Organization Adminである必要があることに注意してください。
+2. 新しいアクセストークンを生成するか、既存のトークンをコピーします。
+   **注意**: このトークンはすぐに保存してください（セキュリティのため、トークンはパスワードとして扱ってください）。再度表示されることはありません。
+   ![注意: このトークンはすぐに保存してください（セキュリティのため、トークンはパスワードとして扱ってください）。再度表示されることはありません](/images/partner_47099422788500.png)
+
+   ![注意: このトークンはすぐに保存してください（セキュリティのため、トークンはパスワードとして扱ってください）。再度表示されることはありません](/images/partner_47099415436692.png)
+
+## ステップ2: App MarketplaceでSnapchat Web Conversionsを接続する
+
+App MarketplaceでSnapchat Web Conversionsを接続するには、以下の手順を実行します。
+
+1. MoEngage UIの左側のナビゲーションメニューで、**App marketplace**をクリックします。
+2. **App marketplace**ページで、**Snapchat Conversions**を検索します。
+3. **Snapchat Conversions**タイルをクリックします。
+4. **Snapchat Conversions**ページで、**Integrate**タブをクリックします。
+5. 下矢印キーをクリックし、**Snapchat Conversions API - Web Events**をクリックします。
+6. 以下の詳細を入力します。
+
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | Connection name | はい | 一意の内部名（例: Snapchat_Web_Conversions）。 |
+   | Access Token | はい | Snapchat Ads Managerで生成した永続的なアクセストークン（[ステップ1.2](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/snapchat-conversions#step-1-2-generate-a-permanent-access-token)で取得）。 |
+   | Pixel ID | はい | 一意のSnapchat Pixel ID（[ステップ1.1](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/snapchat-conversions#step-1-1-retrieve-the-snapchat-pixel-id)で取得）。 |
+
+   ![Pixel ID はい 一意のSnapchat Pixel ID（ステップ1.1で取得）](/images/partner_47099679703700.png)
+
+7. **Connect**をクリックします。これで連携が承認されます。
+
+## ステップ3: Snapchat Web Conversionsキャンペーンを作成する
+
+Snapchat Web Conversionsキャンペーンを作成するには、以下の手順を実行します。
+
+1. MoEngage UIの左側のナビゲーションメニューで、**Engage**をクリックし、**Campaigns**をクリックします。
+2. **All campaigns**ページで、**+ Create campaign**をクリックします。
+3. **Create campaign**ダイアログボックスの**Connected Apps**で、**Snapchat Conversions**をクリックし、最も適切な配信タイプをクリックします。
+4. **Step 1**（Target Users）で、オーディエンスを選択します。
+5. **Step 2**（Content）で、コネクタ（**Snapchat Conversions API - Web Events**）と作成した接続を選択します。
+6. **Conversion Goals**で、以下のフィールドを入力します。
+
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | Event Name | はい | 標準のSnapchatコンバージョンイベント（例: Purchase、Add to Cart）。 |
+   | Transaction ID | いいえ | 重複排除に使用される一意のID（例: `{{Event['order_id']}}`）。 |
+   | Snapchat Click ID | いいえ | イベントと広告クリックの照合に使用されるパラメーター。 |
+   | Conversion Value | いいえ | 取引の数値。 |
+   | Currency Code | いいえ | ISO 4217通貨コード（例: USD）。 |
+   | Event Source URL | いいえ | コンバージョンが発生したページのURL。 |
+
+   ![Event Source URL いいえ コンバージョンが発生したページのURL](/images/partner_47100009667604.png)
+
+   <Info>
+     **アトリビューション**
+
+     MoEngageは、特定の顧客PIIフィールドを使用して、コンバージョンイベントをSnapchatユーザーにアトリビューションします。これらのフィールドはMoEngageのユーザープロファイルから自動的に入力され、送信前にSHA-256ハッシュ化で保護されるため、生の値が共有されることはありません。
+
+     | フィールド | 説明 |
+     | --- | --- |
+     | Email | MoEngageのユーザーの*Email (Standard)*属性から自動的に入力されます。アトリビューションのためにSnapchatに送信される前に、SHA-256でハッシュ化されます。 |
+     | Phone | MoEngageのユーザーの*Mobile Number (Standard)*属性から自動的に入力されます。値はE.164形式に正規化され、送信前にSHA-256でハッシュ化されます。 |
+
+     少なくとも1つのアトリビューションシグナル（EmailまたはPhone）を提供すると、照合率と全体的なアトリビューションの精度が大幅に向上します。最も正確な結果を得るには、両方を提供することをお勧めします。
+   </Info>
+
+7. これでキャンペーンをテストして送信する準備が整いました。*Test*機能を使用して、コネクタの設定をテストすることもできます。
+   ![テストユーザーがメッセージを正常に受信すれば、設定は完了です](/images/partner_47100009667860.png)テストユーザーがメッセージを正常に受信すれば、設定は完了です。
+8. キャンペーンを公開します。
+
+# Snapchat Offline Conversionsとの連携
+
+## ステップ1: Snapchatで認証情報を生成する
+
+Web Conversionsの設定と同じ手順に従って、Pixel ID（[ステップ1.1](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/snapchat-conversions#step-1-1-retrieve-the-snapchat-pixel-id)）とAccess Token（[ステップ1.2](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/snapchat-conversions#step-1-2-generate-a-permanent-access-token)）を取得します。
+
+## ステップ2: App MarketplaceでSnapchat Offline Conversionsを接続する
+
+1. MoEngage UIの左側のナビゲーションメニューで、**App marketplace**をクリックします。
+2. **App marketplace**ページで、**Snapchat Conversions**を検索します。
+3. **Snapchat Conversions**タイルをクリックします。
+4. **Snapchat Conversions**ページで、**Integrate**タブをクリックします。
+5. 下矢印キーをクリックし、**Snapchat Conversions API - Offline Events**をクリックします。
+6. 以下の詳細を入力します。
+
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | Connection name | はい | 一意の内部名（例: Snapchat_Web_Conversions）。 |
+   | Access Token | はい | Snapchat Ads Managerで生成した永続的なアクセストークン（[ステップ1.2](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/snapchat-conversions#step-1-2-generate-a-permanent-access-token)で取得）。  |
+   | Pixel ID | はい | 一意のSnapchat Pixel ID（[ステップ1.1](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/snapchat-conversions#step-1-1-retrieve-the-snapchat-pixel-id)で取得）。 |
+
+   ![Pixel ID はい 一意のSnapchat Pixel ID（ステップ1.1で取得）](/images/partner_47099679703700.png)
+
+7. **Connect**をクリックします。これで連携が承認されます。
+
+## ステップ3: Snapchat Offline Conversionsキャンペーンを作成する
+
+1. MoEngage UIの左側のナビゲーションメニューで、**Engage**をクリックし、**Campaigns**をクリックします。
+2. **All campaigns**ページで、**+ Create campaign**をクリックします。
+3. **Create campaign**ダイアログボックスの**Connected Apps**で、**Snapchat Conversions**をクリックし、最も適切な配信タイプをクリックします。
+4. **Step 1**（Target Users）で、オーディエンスを選択します。
+5. **Step 2**（Content）で、コネクタ（**Snapchat Conversions API - Offline Events**）と作成した接続を選択します。
+6. **Conversion Goals**で、以下のフィールドを入力します。
+
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | Event Name | はい | 標準のSnapchatコンバージョンイベント（例: Purchase、Add to Cart）。 |
+   | Action Source | はい | コンバージョンが発生したオフラインチャネル（例: Physical Store、Phone Call、Chat）。 |
+   | Event ID | いいえ | 重複排除に使用される一意のID（例: `{{Event['order_id']}}`）。 |
+   | Conversion Value | いいえ | 取引の数値。 |
+   | Currency Code | いいえ | ISO 4217通貨コード（例: USD）。 |
+   | Event Tag | いいえ | オフラインイベントをサブカテゴリに分類するためのカスタムラベル（例: 'flagship-store'）。 |
+
+   ![Event Tag いいえ オフラインイベントをサブカテゴリに分類するためのカスタムラベル（例: 'flagship-store'）](/images/partner_47100626240404.png)
+
+   <Info>
+     **アトリビューション**
+
+     オフラインコンバージョンイベントでは、EmailまたはPhoneの少なくとも1つを提供する必要があります。Snapchatでは、オフラインコンバージョンを広告への接触にアトリビューションするために、顧客IDシグナルが必要です。どちらのフィールドもMoEngageのユーザープロファイルから自動的に入力され、送信前にSHA-256ハッシュ化で保護されます。
+
+     | フィールド | 説明 |
+     | --- | --- |
+     | Email | MoEngageのユーザーの*Email (Standard)*属性から自動的に入力されます。電話番号が提供されていない場合は必須です。アトリビューションのためにSnapchatに送信される前に、SHA-256でハッシュ化されます。 |
+     | Phone | MoEngageのユーザーの*Mobile Number (Standard)*属性から自動的に入力されます。メールアドレスが提供されていない場合は必須です。アトリビューションのためにSnapchatに送信される前に、E.164形式に正規化され、SHA-256でハッシュ化されます。 |
+
+     オフラインイベントの場合、Snapchatでは少なくとも1つのアトリビューションシグナルが必要です。ユーザープロファイルにEmailもPhoneもないキャンペーンでは、アトリビューションが成功せず、アトリビューションされないコンバージョンになります。
+   </Info>
+
+7. これでキャンペーンをテストして送信する準備が整いました。*Test*機能を使用して、コネクタの設定をテストすることもできます。
+   ![テストユーザーがメッセージを正常に受信すれば、設定は完了です](/images/partner_47100009667860.png)テストユーザーがメッセージを正常に受信すれば、設定は完了です。
+8. キャンペーンを公開します。
+
+## サポートされるコンバージョンイベント
+
+WebコネクタとOfflineコネクタはどちらも、以下の標準Snapchatコンバージョンイベントをサポートしています。
+
+| イベント名（MoEngage） | Snapchatイベントキー |
+| --- | --- |
+| Purchase | Purchase (PURCHASE) |
+| Add to Cart | ADD_TO_CART |
+| View Content | VIEW_CONTENT |
+| Initiate Checkout | (INITIATE_CHECKOUT) |
+| Add to Wishlist | (ADD_TO_WISHLIST) |
+| Sign Up | (SIGN_UP) |
+| Subscribe | (SUBSCRIBE) |
+| Start Trial | (START_TRIAL) |
+| Download | (DOWNLOAD) |
+| List | (LIST) |
+| Other | (OTHER) |
+
+<Info>
+  **情報**
+
+  - **データプライバシー**: MoEngageは、Snapchatへの送信前に顧客PII（EmailとPhone）をSHA-256で自動的にハッシュ化します。生の値が送信されることはありません。
+  - **イベントのタイムスタンプ**: イベント時間は送信時点の現在のタイムスタンプに自動的に設定され、過去の日付にさかのぼることはできません。
+  - **マッチングシグナル**: ユーザープロファイルに少なくとも1つのマッチングシグナルが存在する必要があります。マッチングシグナルのないイベントは、レポートで照合率がゼロになる場合があります。
+  - **デフォルトのイベント名**: Purchaseは両方のコネクタのデフォルトのイベントタイプです。キャンペーンの目標が購入以外のコンバージョン（例: Sign UpやDownload）の場合は、WebとOfflineの両方のコンバージョンについて、キャンペーン作成プロセスのステップ3で**Event Name**フィールドを必ず更新してください。
+</Info>

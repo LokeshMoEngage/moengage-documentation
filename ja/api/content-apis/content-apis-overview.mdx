@@ -1,0 +1,95 @@
+---
+title: "Content APIs の概要"
+description: "ワークスペースで設定されているコンテンツ API を一覧表示し、保存済みの設定をアップストリームエンドポイントに対してテストします。"
+keywords: "コンテンツ API, 動的コンテンツ, パーソナライズトークン, 外部 API, アップストリームエンドポイント"
+icon: "file-magnifying-glass"
+---
+
+import ApiAuthentication from '/ja/snippets/api-authentication.mdx';
+
+コンテンツ API とは、送信時に動的データをキャンペーンに取り込むために MoEngage が呼び出す外部エンドポイントです。たとえば、ユーザーの都市の現在の天気、カート内のアイテムの最新価格、フライトのステータスなどを取得するために使用できます。
+
+MoEngage Content APIs を使用すると、ワークスペースで設定されているコンテンツ API を一覧表示し、保存済みの設定をアップストリームエンドポイントに対してテストできます。コンテンツ API を作成または編集するには、MoEngage ダッシュボードを使用します。詳細については、[Content API の追加](/ja/user-guide/settings/advanced-settings/add-a-content-api)を参照してください。
+
+## エンドポイント
+
+Content APIs は、次のエンドポイントで構成されています。
+
+- [List Content APIs](/ja/api/content-apis/list-content-apis): ワークスペース内のすべてのコンテンツ API、または名前や ID で指定した単一のコンテンツ API を返します。
+- [Test Content API](/ja/api/content-apis/test-content-api): 保存済みのコンテンツ API のアップストリームエンドポイントを呼び出し、レスポンスを返します。
+
+## 認証
+
+<ApiAuthentication />
+
+## パーソナライズトークン
+
+コンテンツ API の設定では、URL、パラメーター、ヘッダー、または本文に Jinja トークンを含めることができます。トークンは名前空間ごとにグループ化されます (例: `{{UserAttribute['city']}}` や `{{EventAttribute['name']}}`)。
+
+設定をテストする際は、リクエスト本文の `dynamic_values` オブジェクトで、名前空間をキーとしてこれらのトークンのサンプル値を指定します。`{{UserAttribute['city']}}` のようなトークンは、`dynamic_values.UserAttribute.city` から解決されます。MoEngage は、アップストリームエンドポイントを呼び出す前にすべてのトークンを解決します。
+
+設定にトークンが含まれていない場合は、リクエスト本文を省略してください。
+
+## ページネーション
+
+[List Content APIs](/ja/api/content-apis/list-content-apis) は、1 ページあたり最大 20 件のアイテムを返します。カーソルは不透明な値として扱い、デコードや変更は行わないでください。
+
+ワークスペース内のすべてのコンテンツ API をページングするには、次の手順に従います。
+
+1. `limit` のみを指定して最初のページをリクエストします。
+
+   ```bash First Page
+   curl --request GET \
+     --url 'https://api-01.moengage.com/v5/content-apis?limit=20' \
+     --header 'Authorization: Basic <base64(workspaceId:apiKey)>'
+   ```
+
+2. レスポンスの `pagination.has_more` を確認します。`true` の場合は、`limit` を変更せずに、`pagination.next_cursor` を `cursor` パラメーターとして渡して同じリクエストを再度送信します。
+
+   ```bash Next Page
+   curl --request GET \
+     --url 'https://api-01.moengage.com/v5/content-apis?limit=20&cursor=eyJsYXN0X2lkIjoiNjZiM2QxZTBmMmE0YzU4ZTlkN2IzYzIxIn0=' \
+     --header 'Authorization: Basic <base64(workspaceId:apiKey)>'
+   ```
+
+3. `pagination.has_more` が `false` になるまで、手順 2 を繰り返します。
+
+## よくある質問
+
+### コンテンツ API の管理
+
+<AccordionGroup>
+  <Accordion title="これらのエンドポイントでコンテンツ API を作成または編集できますか?">
+    いいえ。テスト呼び出しを除き、これらのエンドポイントは読み取り専用です。コンテンツ API の作成と編集は MoEngage ダッシュボードから行ってください。詳細については、[Content API の追加](/ja/user-guide/settings/advanced-settings/add-a-content-api)を参照してください。
+  </Accordion>
+  <Accordion title="単一のコンテンツ API を取得するにはどうすればよいですか?">
+    [List Content APIs](/ja/api/content-apis/list-content-apis) に `name` または `id` のいずれかを渡します。両方を指定すると `400` エラーが返されます。両方を省略すると、ワークスペース内のすべてのコンテンツ API が一覧表示されます。
+  </Accordion>
+  <Accordion title="コンテンツ API の request_body フィールドが空なのはなぜですか?">
+    リクエスト本文は、`POST` および `PUT` のコンテンツ API にのみ適用されます。`GET` の設定では、`request_body` は空であり、`request_body_type` は呼び出しに影響しません。
+  </Accordion>
+  <Accordion title="verified フィールドは何を意味しますか?">
+    コンテンツ API がテストで成功レスポンスを返すと、`verified` は `true` になります。`last_tested_at` には、そのテストが実行された日時が記録されます。
+  </Accordion>
+</AccordionGroup>
+
+### コンテンツ API のテスト
+
+<AccordionGroup>
+  <Accordion title="テスト時には常にリクエスト本文を送信する必要がありますか?">
+    いいえ。リクエスト本文は任意です。保存済みの設定にサンプル値が必要な Jinja トークンが含まれている場合にのみ送信してください。それ以外の場合は完全に省略してください。
+  </Accordion>
+  <Accordion title="テストで 200 が返されましたが、データが正しくないようです。何を確認すればよいですか?">
+    `200` は MoEngage がアップストリームエンドポイントに到達したことを意味し、アップストリームの呼び出しが成功したことを意味するものではありません。アップストリームエンドポイントが返したステータスコードについては `data.api_response_code` を、そのレスポンスについては `data.api_response_body` を確認してください。
+  </Accordion>
+  <Accordion title="テストで 400 エラーが返されたのはなぜですか?">
+    リクエスト本文の検証に失敗したか、保存済みの設定の URL が内部またはプライベートの IP 範囲に解決されています。MoEngage はサーバーサイドリクエストフォージェリ (SSRF) に対して URL を検証し、そのようなアドレスを拒否します。
+  </Accordion>
+  <Accordion title="機密性の高いフィールドがレスポンスに表示されないようにするにはどうすればよいですか?">
+    それらのフィールドをコンテンツ API の `pii_fields_in_response` 設定に列挙します。このように指定されたフィールドは、個人を特定できる情報 (PII) として扱われます。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+事前設定済みの Postman コレクションを使用して、これらのエンドポイントをテストできます: [MoEngage Content APIs コレクションを表示](https://www.postman.com/moengage-dev/api-docs/collection/wssclnq/moengage-content-api-v5?action=share&source=copy-link&creator=3486165)。

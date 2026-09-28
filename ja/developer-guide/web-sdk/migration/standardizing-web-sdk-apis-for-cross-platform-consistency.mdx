@@ -1,0 +1,92 @@
+---
+title: "クロスプラットフォームの一貫性のための Web SDK API の標準化"
+description: "MoEngage Web SDK の API を snake_case から camelCase に移行する方法について説明します。この移行ガイドに従って、クロスプラットフォームの一貫性を確保し、非推奨の警告を回避しましょう。"
+---
+
+<Note> 
+現在、SDK の内部ロジックは、下位互換性を確保するために従来の名前を新しい名前にマッピングしています。今後のリリースとの互換性を維持するため、MoEngage は新しい構文に更新することを推奨します。
+</Note>
+
+## グローバル API のマッピング
+
+新しい実装にはすべて、標準化された `camelCase` の命名規則を使用してください。 
+
+### InitData の設定
+
+<Note> 
+従来の snake_case の `InitData` プロパティは非推奨になりました。これらを使用すると、コンソールに警告メッセージが記録されます。
+</Note>
+
+| 従来のプロパティ (非推奨) | 標準化されたプロパティ (新規) |
+| :--- | :--- |
+| `project_id` | `projectId` |
+| `app_id` | `appId` |
+| `bots_list` | `botsList` |
+| `disable_onsite` | `disableOnsite` |
+| `disable_web_push` | `disableWebPush` |
+
+### API メソッド
+
+統合スクリプトと内部の呼び出しを更新して、以下の標準化されたメソッドを使用してください。
+
+| 従来のメソッド (非推奨) | 標準化されたメソッド (新規) |
+| :--- | :--- |
+| `track_event` | `trackEvent` |
+| `track_page_view` | `trackPageView` |
+| `handle_page_change` | `handlePageChange` |
+| `call_web_push` | `callWebPush` |
+| `on_cards_loaded` | `onCardsLoaded` |
+| `add_user_attribute` | `setUserAttribute()` |
+| `add_first_name` | `setFirstName()` |
+| `add_last_name` | `setLastName()` |
+| `add_email` | `setEmailId()` |
+| `add_mobile` | `setMobileNumber()` |
+| `add_user_name` | `setUserName()` |
+| `add_gender` | `setGender()` |
+| `add_birthday` | `setBirthDate()` |
+| `update_unique_user_id` | `updateUniqueUserId` |
+| `destroy_session` | `logoutUser` |
+| `moe_events` | `moeEvents` |
+
+<Note>
+注意: `track`、`identifyUser`、`getUserIdentities` など、既存の camelCase のメソッドや単一の単語のメソッドは変更されません。
+</Note>
+## 影響を受けるプラットフォーム
+
+この移行は、以下のプラットフォームやパッケージマネージャーを含め、MoEngage Web SDK を利用するすべての統合に影響します。
+
+* Google Tag Manager (GTM)
+* Shopify
+* VTEX
+* NPM/CDN
+* Flutter Web
+
+## 統合のシナリオ
+
+移行方法は、MoEngage SDK の統合タイプによって異なります。以下から該当するシナリオを特定し、必要な対応を確認してください。
+
+### 固定バージョン
+**重要:** 新しい `camelCase` メソッドは、従来の SDK バージョンでは使用できません。ソースコード内の SDK バージョンを **2.71.00 以降** に更新するまで、コードをリファクタリングしないでください。
+
+### 新規の統合
+`camelCase` メソッドを使用して SDK を実装してください。これにより、統合がモダンな JavaScript 標準とネイティブに互換性を持ち、コンソールの警告を防ぐことができます。
+
+### CDN/NPM
+script タグが最新バージョンを取得する場合、SDK は従来の呼び出しを新しいロジックに自動的にマッピングします。
+
+<Note> 
+**推奨事項:** クリーンな開発環境を維持し、ブラウザコンソールでの非推奨の警告を回避するため、これらの呼び出しを `camelCase` にリファクタリングしてください。
+</Note> 
+
+## トラブルシューティング
+
+SDK メソッドを検証したり、残っている従来のコードを特定したりするには、デバッグログを有効にして、ブラウザのコンソールで非推奨の警告を直接確認できます。
+
+1. **SDK のログを有効にする:** まず、次のメソッドを呼び出して MoEngage SDK の詳細ログを有効にする必要があります。ログを確認するには、このメソッドを事前に実行しておく必要があります。
+
+   ```javascript
+   Moengage.setDebugLevel(2)
+   ```
+2. コンソールログを確認する: ブラウザの開発者ツールを開き、Console タブに移動します。非推奨のメソッドがまだ使用されている場合、SDK はエラーまたは警告メッセージを出力します。
+
+例: _["destroy_session" is deprecated. Please use "logoutUser" instead.]_

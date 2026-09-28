@@ -1,0 +1,140 @@
+---
+title: "イベントのトラッキング"
+description: "MoEngage SDK を使用して、Android アプリでカスタムユーザーイベントとその属性をトラッキングします。"
+---
+
+<Info>
+  SDK は MoEngage の FUP ポリシーに準拠しています。詳細については、[公正利用ポリシー](https://www.moengage.com/docs/user-guide/data/key-concepts/fair-usage-policy-fup#fair-usage-policy-fup)を参照してください。
+</Info>
+
+イベントのトラッキングとは、ユーザーが実行したあらゆるアクションを、そのアクションを説明するプロパティとともに記録することです。trackEvent を 1 回呼び出すごとに、1 つのユーザーアクションが記録されます。チームの誰もがすぐに意味を理解できるよう、イベント名は人が読んで理解できる名前にすることを推奨します。
+
+イベント名とその特性 (属性/プロパティ) を指定して trackEvent を使用すると、イベントをトラッキングできます。
+
+すべてのイベントには 2 つの属性、つまりアクション名と、アクションに関する追加情報を表すキーと値のペアがあります。キャンペーンを作成する際のセグメンテーションに役立つと思われる追加情報をすべて追加してください。たとえば、以下のコードは商品の購入イベントをトラッキングします。トラッキングするイベントを説明する金額、数量、カテゴリなどの属性を含めています。
+
+たとえば、以下のコードは `Purchase` イベントをトラッキングします。トラッキングするイベントを説明する `quantity` や `product name` などの属性を含めています。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+val properties = Properties()
+    properties
+        // tracking integer
+        .addAttribute("quantity", 2)
+        // tracking string
+        .addAttribute("product", "iPhone")
+        // tracking date
+        .addAttribute("purchaseDate", Date())
+        // tracking double
+        .addAttribute("price", 5999.99)
+        // tracking location
+        .addAttribute("userLocation", GeoLocation(40.77, 73.98))
+        // tracking JSONArray 
+        .addAttribute("jsonArrayAttr", JSONArray(listOf(1, 2, 3)))
+        // tracking JSONObject
+        .addAttribute("jsonObjectAttr", JSONObject().put("name", "value"))
+MoEAnalyticsHelper.trackEvent(context, "Purchase", properties)
+```
+
+```Java Java wrap
+Properties properties = new Properties();
+    properties
+         // tracking integer
+        .addAttribute("quantity", 2)
+        // tracking string
+        .addAttribute("product", "iPhone")
+        // tracking Date
+        .addAttribute("purchaseDate", new Date())
+        // tracking double
+        .addAttribute("price", 5999.99)
+        // tracking location
+        .addAttribute("userLocation", new GeoLocation(40.77, 73.98))
+        // tracking JSONObject
+        .addAttribute("jsonObjectAttr", new JSONObject())
+        // tracking JSONArray
+        .addAttribute("jsonArrayAttr", new JSONArray());
+MoEAnalyticsHelper.INSTANCE.trackEvent(context, "Purchase", properties);
+```
+
+</CodeGroup>
+
+context - context インスタンスです。名前は適宜変更してください。
+
+# 分析
+
+MoEngage SDK バージョン 9.7.01 以降では、ユーザーセッションとアプリケーションのトラフィックソースをトラッキングします。
+
+ユーザーセッションのトラッキングにより、イベントを選択的に非インタラクティブとしてマークできる柔軟性が得られます。
+
+## 非インタラクティブイベント
+
+MoEngage Analytics のセッション時間の計算に影響しないイベントは、非インタラクティブイベントとしてマークされます。
+
+非インタラクティブイベントは以下のように扱われます。
+
+- アプリがフォアグラウンドにある場合でも、新しいセッションを開始しない
+- セッションを延長しない
+- ソースとセッションに関する情報を持たない
+
+イベントを非インタラクティブとしてマークするには、イベント属性を構築するために SDK が提供する PayloadBuilder の setNonInteractive() を使用します。
+
+例:
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+val properties = Properties()
+properties.addAttribute("quantity", 2)
+    .addAttribute("product", "iPhone")
+    .addAttribute("purchaseDate", Date())
+    .addAttribute("price", 5999.99)
+    .addAttribute("currency", "dollar")
+    .addAttribute("jsonObjectAttr", JSONObject().put("name", "value"))
+    .addAttribute("jsonArrayAttr", JSONArray(listOf(1, 2, 3)))
+    .setNonInteractive()
+MoEAnalyticsHelper.trackEvent(context, "Purchase", properties)
+```
+
+```Java Java wrap
+Properties properties = new Properties();
+properties.addAttribute("quantity", 2)
+    .addAttribute("product", "iPhone")
+    .addAttribute("purchaseDate", new Date())
+    .addAttribute("price", 5999.99)
+    .addAttribute("currency", "dollar")
+    .addAttribute("jsonObjectAttr", new JSONObject())
+    .addAttribute("jsonArrayAttr", new JSONArray())
+    .setNonInteractive();
+MoEAnalyticsHelper.INSTANCE.trackEvent(context, "Purchase", properties);
+```
+
+</CodeGroup>
+
+詳細については、[MoEAnalyticsHelper#trackEvent](https://moengage.github.io/android-api-reference/core/com.moengage.core.analytics/-mo-e-analytics-helper/track-event.html) および [Properties](https://moengage.github.io/android-api-reference/core/com.moengage.core/-properties/index.html) を参照してください。
+
+## 検証と制限
+
+イベント属性には、デバッグビルドとリリースビルドの両方に適用される 2 段階の検証があります。
+
+- **命名と形式のルール** — ビルド構成に関係なく、常に適用されます。
+- **型の検証** — 無効な属性値は、デバッグビルドでは致命的な例外を引き起こし、リリースビルドではペイロードから通知なしに削除されます。イベントの残りの部分はトラッキングされます。
+
+### 命名と形式のルール
+
+- **予約済みのプレフィックス。** イベント、イベント属性、またはユーザー属性の名前に、プレフィックスとして `moe_` を使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なしに定期的にブロックリストに登録される可能性があります。
+
+### サポートされる属性値の型
+
+MoEngage は、`String`、`Integer`、`Long`、`Double`、`Float`、`Boolean`、`Date`、`GeoLocation`、`JSONObject`、`JSONArray` のデータ型をサポートしています。サポートされていない値が渡された場合:
+
+- SDK バージョン **13.6.00** 以降、デバッグビルドでは、開発の早い段階でデータの問題を明らかにするために、SDK が例外をスローしてアプリをクラッシュさせます。
+- リリースビルドでは、SDK は該当する無効な属性を通知なしに削除し、問題をログに記録します。イベントペイロードの残りの部分は引き続きトラッキングされます。
+
+# 離脱意図のカスタムイベントのトラッキング
+
+MoEngage SDK は、アプリがバックグラウンドに移行するたびに、オプションでアプリケーションに通知します。アプリケーションは、このコールバック内で離脱意図のカスタムイベントをトラッキングできます。通知を受け取るには、[AppBackgroundListener](https://moengage.github.io/android-api-reference/core/com.moengage.core.listeners/-app-background-listener/index.html) を実装します。Application クラスの _onCreate()_ で、_MoECallbacks.getInstance().addAppBackgroundListener()_ を使用してリスナーを登録します。
+
+<Info>
+  イベント、イベント属性、またはユーザー属性の名前に、プレフィックスとして "moe\_" を使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なしに定期的にブラックリストに登録される可能性があります。
+</Info>

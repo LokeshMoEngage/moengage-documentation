@@ -1,0 +1,82 @@
+---
+title: "Mi SDK の依存関係を削除する手順"
+description: "MoEngage Android 統合から、提供終了となった Xiaomi Mi Push SDK の依存関係を削除します。"
+---
+
+運用上の懸念から、Xiaomi Corporation は最近、中国本土以外での Mi Push サービスの提供終了をユーザーに通知しました。この件に関する連絡をすでに受け取っている場合もあるでしょう。
+
+これに関連して、お客様にはアプリから Mi Push SDK を削除することをお勧めします。その手順をこの記事で説明します。
+
+## ステップ 1: Mi aar を削除する
+
+1. app --\> libs に移動します。
+2. MiPush_SDK_Client\*.aar を削除します。
+
+## ステップ 2: マニフェストファイルから Mi レシーバーを削除する
+
+マニフェストファイルから以下のコードを削除します。
+
+<CodeGroup>
+
+```xml Remove Mi receiver from the manifest file wrap
+<receiver
+    android:name="com.moengage.push.amp.plus.MiPushReceiver"
+    android:exported="true">
+    <intent-filter>
+      <action android:name="com.xiaomi.mipush.RECEIVE_MESSAGE" />
+    </intent-filter>
+    <intent-filter>
+      <action android:name="com.xiaomi.mipush.MESSAGE_ARRIVED" />
+    </intent-filter>
+    <intent-filter>
+      <action android:name="com.xiaomi.mipush.ERROR" />
+    </intent-filter>
+</receiver>
+```
+
+</CodeGroup>
+
+## ステップ 3: 初期化コードを削除する
+
+アプリケーションから以下の初期化コードを削除します。
+
+<CodeGroup>
+
+```kotlin Code to be removed from the application wrap
+MiPushHelper.initialiseMiPush([context], [appKey], [appId], [region])
+```
+
+</CodeGroup>
+
+## ステップ 4: ヘルパーファイルを削除する
+
+以下のヘルパーファイルを削除します。
+
+1. MiPushHelper.kt
+2. MiPushReceiver.kt
+
+## ステップ 5: MoEngage の依存関係を削除する
+
+以下の説明に従って、build.gradle の dependencies ブロックから MoEngage の依存関係を削除します。
+
+1. MoEngage Catalog - MoEngage カタログを使用している場合は、以下の依存関係を削除します。
+
+<CodeGroup>
+
+```kotlin MoEngage Catalog wrap
+implementation(moengage.pushAmpPlus)
+```
+
+</CodeGroup>
+
+2. Artifact ID - Artifact ID を追加している場合は、Mi 固有の Push Amp の依存関係を削除します。
+
+<CodeGroup>
+
+```kotlin Artifact ID wrap
+implementation("com.moengage:moe-push-amp-plus:<version>")
+```
+
+</CodeGroup>
+
+Mi Push Amplification モジュールは `moe-push-amp-plus` として公開されていました。以前 `build.gradle` で固定していたバージョンと一致する行を見つけ、その行を削除してください。Push Amplification を引き続き使用する場合は、コアの `com.moengage:push-amp` の依存関係はそのまま残してください。

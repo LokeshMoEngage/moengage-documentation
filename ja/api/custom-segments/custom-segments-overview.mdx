@@ -1,0 +1,133 @@
+---
+title: "Segments の概要"
+description: "ファイルベース、フィルターベース、コホート同期のセグメントを作成、更新、管理します。"
+icon: "file-magnifying-glass"
+---
+
+MoEngage Segments API を使用すると、オーディエンスセグメントを管理できます。このスイートには、大量のファイルベースのセグメントとセグメントのライフサイクルを処理する **v2 API**、動的なフィルターベースのセグメント用の **v3 API**、外部のオーディエンスを MoEngage と直接同期する **Cohort Sync API** が含まれています。
+
+## エンドポイント
+
+Segments API は、次のエンドポイントで構成されています。
+
+### File Segments (v2)
+
+File Segments API を使用すると、URL でホストされている CSV ファイルからユーザーをインポートして、セグメントを作成および管理できます。
+
+- [Create File Segment](/ja/api/file-segments/create-file-segment): CSV ファイルの URL から新しいファイルセグメントを作成します。
+- [Add Users to File Segment](/ja/api/file-segments/add-users-to-file-segment): CSV ファイルのユーザーリストを既存のファイルセグメントに追加します。
+- [Remove Users from File Segment](/ja/api/file-segments/remove-users-from-file-segment): CSV ファイルのユーザーリストを既存のファイルセグメントから削除します。
+- [Replace Users in File Segment](/ja/api/file-segments/replace-users-from-file-segment): 既存のファイルセグメント内のすべてのユーザーを、CSV ファイルの新しいユーザーリストに置き換えます。
+
+<Note>
+  ファイルセグメントに含める前に、すべてのユーザーが MoEngage にインポートされていることを確認してください。正常にマッピングできるのは既存のプロファイルのみです。
+
+  30 日を超えてアーカイブされているファイルセグメントでは、ユーザーが完全に削除されます。削除されたデータは復元できません。
+</Note>
+
+### Manage Segments (v2)
+
+Manage Segments API を使用すると、セグメントをアーカイブまたはアーカイブ解除して、セグメントのライフサイクルを制御できます。
+
+- [Archive Segment](/ja/api/manage-segments/archive-segment): 既存のセグメント (File または Filter) をアーカイブします。
+- [Unarchive Segment](/ja/api/manage-segments/unarchive-segment): 既存のセグメントのアーカイブを解除し、再びアクティブにします。
+
+### Filter Segments (v3)
+
+Filter Segments API を使用すると、ユーザー属性と行動フィルター条件に基づいて動的なセグメントを作成および管理できます。
+
+- [List Segments](/ja/api/filter-segments/list-segments): すべてのフィルターセグメントを一覧表示します。
+- [Create Filter Segment](/ja/api/filter-segments/create-filter-segment): 一連のフィルター条件に基づいて新しいフィルターセグメントを作成します。
+- [Get Segment by ID](/ja/api/filter-segments/get-segment-by-id): ID で特定のセグメント (File または Filter) を取得します。
+- [Update Filter Segment](/ja/api/filter-segments/update-filter-segment): ID で既存のフィルターセグメントを更新します。
+
+### Cohort Sync
+
+Cohort Sync API を使用すると、独自のエコシステムで作成したコホートやオーディエンスを MoEngage と直接同期できます。このサーバー間連携により、カスタムセグメントにユーザーを動的に追加または削除でき、マーケティングキャンペーンが常に最も関連性の高いオーディエンスをターゲットにできるようになります。
+
+- **セグメントの自動作成:** カスタムセグメントがまだ存在しない場合は、MoEngage に自動的に作成します。
+- **動的なメンバーシップ:** セグメントがリアルタイムで更新されるため、スケジュール済みキャンペーンで最新のユーザーセットにエンゲージできます。
+- **ミドルウェア不要:** サーバー間で直接呼び出すため、CSV の手動アップロードや外部 URL のホスティングが不要です。
+- **効率性の向上:** 少数のユーザーを対象とするセグメント操作に最適です。
+
+**エンドポイント:**
+
+- [Sync Cohort Members](/ja/api/cohort-sync/sync-cohort-members): カスタムセグメントにユーザーを追加または削除します。
+
+<Note>
+  これらの API エンドポイントは、現在チームレベルのスコープをサポートしていません。これらの呼び出しで生成されたすべてのセグメントは、自動的に Default Team に割り当てられます。
+</Note>
+
+## よくある質問
+
+### フィルターベースのセグメント
+
+<AccordionGroup>
+  <Accordion title="セグメント作成用のペイロードはどのように生成できますか?">
+    ペイロードは MoEngage ダッシュボードから直接生成できます。**Test & Debug** -\> **Segment Payload** に移動し、フィルターを選択して **Generate Payload** をクリックします。
+  </Accordion>
+
+  <Accordion title="以前に作成したものの保存しなかったセグメントの ID はどのように取得できますか?">
+    `name` クエリパラメーターを指定して **List Segment API** を使用し、目的のセグメントの一意の ID をフィルタリングして取得します。
+  </Accordion>
+
+  <Accordion title="別の名前を使用しても 409 Conflict エラーが発生するのはなぜですか?">
+    セグメントの名前と定義 (フィルター) の両方が一意である必要があります。定義が既存のセグメントと一致する場合、API は 409 Conflict を返します。
+  </Accordion>
+
+  <Accordion title="どの既存セグメントと競合しているかを知るにはどうすればよいですか?">
+    409 エラーの場合、レスポンスペイロードに競合しているセグメントの `existing_cs_name` と `existing_cs_id` が含まれます。
+  </Accordion>
+
+  <Accordion title="レート制限を引き上げるにはどうすればよいですか?">
+    アカウントマネージャーにお問い合わせください。
+  </Accordion>
+</AccordionGroup>
+
+### ファイルベースのセグメント
+
+<AccordionGroup>
+  <Accordion title="新しいセグメントの作成直後にユーザー数が 0 と表示されるのはなぜですか?">
+    セグメントの処理は非同期で行われます。MoEngage はまずセグメントのコンテナーを作成し (ユーザー数は 0 と表示されます)、その後ファイルを処理します。処理が完了すると、ユーザー数が更新されます。
+  </Accordion>
+
+  <Accordion title="ファイル処理にタイムアウトはありますか?">
+    いいえ。固定の処理タイムアウトはありません。MoEngage は、処理が正常に完了するかエラーが発生するまでファイルを処理し、その後結果を `callback_url` に送信します。
+  </Accordion>
+
+  <Accordion title="ファイルのダウンロードに失敗した場合はどうなりますか?">
+    最初のファイルのダウンロードに失敗した場合、MoEngage はコールバックで失敗を報告する前に自動的に再試行します。コールバックのペイロードには、失敗の内容を説明する `error_message` フィールドが含まれます。
+  </Accordion>
+
+  <Accordion title="フィルター条件を使用してファイルセグメントを更新できますか?">
+    いいえ。ファイルセグメントは、CSV インポートを使用した File Segment API によってのみ更新 (追加/削除/置換) できます。属性ベースの更新には、Filter Segments を使用してください。
+  </Accordion>
+</AccordionGroup>
+
+### セグメントの管理
+
+<AccordionGroup>
+  <Accordion title="セグメントを削除する代わりにアーカイブするメリットは何ですか?">
+    アーカイブすると、アクティブなセグメントリストを 1000 セグメントの上限内に保ちながら、セグメントを一から作り直すことなく A/B テストや履歴分析に再利用できます。
+  </Accordion>
+</AccordionGroup>
+
+### Cohort Sync
+
+<AccordionGroup>
+  <Accordion title="Cohort Sync API と File Segment API の違いは何ですか?">
+    Cohort Sync API では、個別のファイルや CSV を必要とせずにセグメントを作成できるため、File Segment API のように個別のパスや URL を用意する必要がありません。サーバー間で直接呼び出すことでセグメントの作成を開始できるため、ユーザーファイルの生成に必要な追加の手順が不要になります。
+  </Accordion>
+
+  <Accordion title="Cohort Sync API の使用が推奨されるのはどのような場合ですか?">
+    Cohort Sync API は、少数のユーザーを対象とするセグメントやセグメント操作に最適です。
+  </Accordion>
+
+  <Accordion title="Cohort Sync API は新しいユーザーを作成しますか?">
+    Cohort Sync API は MoEngage に新しいユーザーを作成しません。代わりに、事前に定義されたユーザー識別子に基づいて MoEngage 内の既存のユーザーを解決し、Cohort Sync で作成された対応するカスタムセグメントに割り当てます。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+Postman で次の Postman コレクションをインポートして、これらのエンドポイントをすばやくテストできます: [File Segments](https://www.postman.com/moengage-dev/api-docs/collection/z8f27qa/moengage-custom-segment-api)、[Filter Segments](https://www.postman.com/moengage-dev/api-docs/collection/s16aovr/moengage-custom-segment-filter-based-crud-api-s)、[Cohort Sync](https://www.postman.com/moengage-dev/api-docs/collection/2siizsq/moengage-cohort-audience-sync-revamp?action=share&creator=3182294)。

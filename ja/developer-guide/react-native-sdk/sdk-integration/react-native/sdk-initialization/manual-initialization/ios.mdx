@@ -1,0 +1,70 @@
+---
+title: "iOS"
+description: "React Native 統合のために、iOS の AppDelegate で MoEngage SDK を初期化します。"
+---
+
+プロジェクトを初期化するには、MoEngage アプリの Workspace ID を指定する必要があります。
+
+<Info>
+  MoEngage アカウントにログインし、ダッシュボードの左パネルにある Settings に移動します。App Settings の下に Workspace ID が表示されます。
+</Info>
+
+## コードによる初期化
+
+**_application:didfinishlaunchingwithoptions_** から MoEngageSDK を初期化するには、MoEngageSDKConfig をパラメータとして渡して、以下のいずれかの初期化メソッドを呼び出します。**_MoEngageSDKConfig_** を使用して設定できるすべてのプロパティの詳細については、[ドキュメント](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)を参照してください。
+
+Objective-C
+
+<CodeGroup>
+
+```objectivec Objective-C
+/// @param sdkConfig MoEngageSDKConfig instance for SDK configuration
+/// @param launchOptions Launch Options dictionary
+- (void)initializeDefaultSDKConfig:(MoEngageSDKConfig*)sdkConfig andLaunchOptions:(NSDictionary*)launchOptions;
+/// @param sdkConfig MoEngageSDKConfig instance for SDK configuration
+/// @param isSdkEnabled Bool indicating if SDK is Enabled/Disabled
+/// @param launchOptions Launch Options dictionary
+- (void)initializeDefaultSDKConfigWithState:(MoEngageSDKConfig*)sdkConfig withSDKState:(MoEngageSDKState)sdkState andLaunchOptions:(NSDictionary*)launchOptions;
+```
+
+</CodeGroup>
+
+**_application:didFinishLaunchingWithOptions:_** メソッドから初期化するサンプルコード:
+
+<CodeGroup>
+
+```swift Swift
+import MoEngageSDK  
+func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+      //Add your MoEngage Workspace ID and Data center.
+       let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: MoEngageDataCenter.data_center_0x)       sdkConfig.consoleLogConfig = MoEngageConsoleLogConfig(isLoggingEnabled: true, loglevel: .verbose)
+       MoEngageInitializer.sharedInstance().initializeDefaultSDKConfig(sdkConfig, andLaunchOptions: launchOptions)
+      //Rest of the implementation of method
+      //-------
+      return true
+}
+```
+
+
+```objectivec Objective-C
+#import <ReactNativeMoEngage/MoEngageInitializer.h>
+#import <MoEngageSDK/MoEngageSDK.h>@implementation AppDelegate
+- (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions
+{    
+    MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter: MoEngageDataCenterData_center_0x];
+    sdkConfig.consoleLogConfig = [[MoEngageConsoleLogConfig alloc] initWithIsLoggingEnabled:true loglevel:MoEngageLoggerTypeVerbose];
+    [[MoEngageInitializer sharedInstance] initializeDefaultSDKConfig:sdkConfig andLaunchOptions:launchOptions];
+    return YES;
+}
+```
+
+</CodeGroup>
+
+# データセンター
+
+データ規制ポリシーなどの理由で、アプリのデータを特定のゾーンにリダイレクトしたい場合は、MOSDKConfig オブジェクトでゾーンを設定してください。
+
+詳細については、データセンターのドキュメントを参照してください。
+
+- [Android](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/data-center)
+- [iOS](/ja/developer-guide/ios-sdk/sdk-integration/basic/data-center)

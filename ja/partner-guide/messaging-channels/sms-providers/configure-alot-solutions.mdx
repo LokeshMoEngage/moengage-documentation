@@ -1,0 +1,59 @@
+---
+title: "Alot Solutions の設定"
+---
+
+# はじめに
+
+Alot Solutions は、SMS、WhatsApp、Voice、Email、RCS、Chatbot を通じて企業が顧客とエンゲージできるようにする、大手コミュニケーションプラットフォームです。キャンペーンを最適化してカスタマーサービスを強化する、安全でスケーラブルかつパーソナライズされたエンゲージメント戦略を提供しており、あらゆる規模の企業から信頼されています。
+
+<Info>
+  **前提条件**
+
+  Alot Solutions のダッシュボードにアクセスでき、Alot Solutions アカウントの API キーを用意していることを確認してください。
+</Info>
+
+# Alot Solutions をカスタム SMS コネクター (サービスプロバイダー) として設定する
+
+このセクションでは、MoEngage ダッシュボードで Alot Solutions をカスタムコネクターとして設定する方法について説明します。
+
+MoEngage ダッシュボードにログインし、次の手順に従います。
+
+1. **Settings** -\> **Channel** -\> **SMS** -\> **Sender Configuration** に移動します。
+2. 右上隅にある **\+ Add custom service provider** をクリックします。
+3. **Sender Details** 画面で次の詳細を追加します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **Mark as default** | このトグルをオンにすると、設定中のサービスプロバイダーのデフォルト送信者としてこの送信者がマークされます。デフォルトとしてマークすると、キャンペーン作成時に別の送信者を選択しない限り、MoEngage からのすべての SMS キャンペーンの送信にこの送信者が使用されます。 |
+| **Service provider name** | このフィールドは MoEngage ダッシュボードで設定するサービスプロバイダーを識別するもので、一意である必要があります。ここにサービスプロバイダーの名前を入力します。 |
+| **Sender name** | このフィールドは、キャンペーンやアラートの作成時に使用できる、読みやすい送信者名を識別します。 |
+| **Sender type** | 送信者タイプは **Promotional** または **Transactional** のいずれかです。<ul><li>ブランドに関する情報の送信、お得な情報のプロモーション、またはユーザーとのエンゲージメントに送信者を使用する場合は、Sender type として **Promotional** を選択します。</li><li>取引に関するアラート、OTP、セキュリティ情報、またはトランザクションとして分類できる情報の送信に送信者を使用する場合は、Sender type として **Transactional** を選択します。</li></ul> |
+
+4. 次の詳細を追加して Webhook を設定します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **API URL** | このフィールドには、送信者に API リクエストを送信する際に使用する URL の情報が含まれます。この情報は送信者の API ドキュメントから取得できます。ここに送信者の API エンドポイントを入力します。Alot Solutions の API URL は次のとおりです。<br />[https://alots.co.in/api/bulkmt/SendSms](https://alots.co.in/api/bulkmt/SendSms) |
+| Method | HTTP メソッドとして **POST** を選択します。 |
+| URL Parameters | このオプションを使用して、API に渡す URL パラメーターをキーと値のペアとして追加します。この情報は送信者の API ドキュメントから取得できます。たとえば、API URL の呼び出しで GET メソッドを使用する場合、API Key や Authorization などのすべてのパラメーターが URL パラメーターとして渡されます。 |
+| Headers | 次のリクエストヘッダーを含めます。<ul><li>キーに Content-Type</li><li>値に application/json</li></ul> |
+| Body Type | Body Type として **JSON** を選択し、次の詳細を追加します。<br />`{`<br />"Account": `{`<br />"APIKey": "Your\_API\_Key\_Here",<br />"SenderId": "Your\_Sender\_ID\_Here",<br />"Channel": "Your\_Route\_Name\_Here",<br />"DCS": 0,<br />"FlashSms": 0,<br />"PEID": "Your\_Entity\_ID\_Here"<br />`}`,<br />"Messages": \[<br />`{`<br />"Number": "Moesms\_destination",<br />"Text": "Moesms\_message",<br />"DLTTemplateId": "Moesms\_dltTemplateId"<br />`}`<br />\]<br />`}` |
+
+<Info>
+  - **APIKey** : Alot Solutions アカウントの API キーを入力します。
+  - **SenderId** : キャンペーン用に承認された送信者 ID に置き換えます。
+  - **Channel** : 正しいルート名 ("TRANS" や "PROMO" など) を使用します。
+  - **PEID** : Alot Solutions から提供された一意の Entity ID に置き換えます。
+</Info>
+
+5. **テスト SMS を送信** して、設定を確認します。
+6. **Save** をクリックして、送信者設定を保存します。
+7. MoEngage ダッシュボードで送信者を作成した後、配信トラッキングを設定できます。配信トラッキングの詳細については、[カスタムコネクターの配信トラッキング](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-custom-connector-for-sms) を参照してください。
+8. 配信トラッキングのレスポンスの属性は、手動または自動でマッピングできます。\\ <img src="/images/partner_34997226011028.png" alt="Screenshot 2025-02-21 at 9.16.08 AM.png" />
+
+# 次のステップ
+
+- [SMS キャンペーン作成のスタートガイド](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/create-an-sms-campaign) を使用して SMS キャンペーンを作成します。
+- [SMS のフリークエンシーキャップ](/ja/user-guide/settings/channels/delivery-controls/frequency-capping) を設定します。
+- [現在のサービスプロバイダー](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-an-sms-sender) を設定します。
+- [キャンペーン分析の詳細はこちら。](/ja/user-guide/campaigns-and-channels/connectors/analyze/connector-campaign-analytics)

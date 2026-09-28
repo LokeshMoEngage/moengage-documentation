@@ -1,0 +1,162 @@
+---
+title: "フライトステータスの最新情報を送信する"
+---
+
+# はじめに
+
+フライトステータスの最新情報を送信することは、遅延、欠航、ゲート変更など、フライトスケジュールの変更について乗客が常に把握できるようにするために非常に重要です。タイムリーな最新情報を提供することで、航空会社は乗客の期待を管理し、運用効率を維持することもできます。これにより、顧客体験、ブランドの評判、信頼性が向上します。
+
+#### フライトステータスの最新情報を送信するメリット
+
+- **乗客にとってのメリット:**
+  - **旅行計画の改善**: フライトのステータスを知ることで、乗客は計画を調整し、不要なストレスや不便を回避できます。乗り継ぎ便やその他の手配がある場合は特に有用です。
+  - **リアルタイムの最新情報**: フライトステータスの最新情報により、乗客はフライトスケジュールの変更についてタイムリーな情報を得られ、十分な情報に基づいて判断し、適切な行動をとることができます。
+  - **不安の軽減**: 常に情報を把握していることで、乗客はフライトの混乱の可能性に伴う不安や不確実性を軽減できます。
+- **航空会社と旅行会社にとってのメリット:**
+  - **カスタマーサービスの向上**: タイムリーで正確なフライトステータスの最新情報を提供することは、カスタマーサービスへの取り組みを示すものであり、信頼とロイヤルティの構築に役立ちます。
+  - **運用効率**: 航空会社は、フライトステータスの最新情報を活用して、人員配置の調整や地上スタッフとの連携など、業務をより効率的に管理できます。
+  - **トラブルの削減**: 変更を乗客に積極的に伝えることで、航空会社はトラブルや苦情の可能性を減らすことができます。
+
+このユースケースは、次の 3 つのステップで実現します。
+
+1. [ビジネスイベントを作成する](/ja/use-cases/push/send-flight-status-updates#step-1-create-the-business-event)
+2. [Push キャンペーンを作成する](/ja/use-cases/push/send-flight-status-updates#step-2-create-a-push-campaign)
+3. [ビジネスイベントをトリガーしてキャンペーンをトリガーする](/ja/use-cases/push/send-flight-status-updates#step-3-trigger-the-campaign-by-triggering-the-business-event)
+
+<Tip>
+  - アカウントで _Business Events_ 機能を含むエンタープライズプランが有効になっている必要があります。
+  - ユーザーがフライトを予約するアクションと、プラットフォーム、フライト名、出発日、価格、出発都市、目的地都市などのその他の関連情報を追跡するイベントが MoEngage で使用可能である必要があります。この例では、イベント _Booking Flight Successful_ を使用します。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - [Push チャネル](/ja/user-guide/campaigns-and-channels/mobile-push/getting-started-with-mobile-push)が設定されている必要があります。
+</Tip>
+
+# 期待される結果
+
+ユーザーは、フライトステータスの最新情報を含むプッシュ通知をスマートフォンで受け取ります。
+
+<img
+  src="/images/moengage_2eae18.png"
+  alt="flight.png"
+  style={{ width:"58%" }}
+/>
+
+# ステップ 1: ビジネスイベントの作成
+
+このセクションでは、アカウントの [Business Event](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/overview-business-events) を作成します。MoEngage Business Event パブリック API を使用できます。この例では、次の情報が Business Event の一部となります。
+
+- イベント名: _Flight\_Status\_Updates_
+- イベントの属性とそのデータ型:
+  - **Flight Name**: string
+  - **Departure Time**: date
+  - **Gate Number**: string
+  - **Departure City**: string
+  - **Destination City**: string
+
+次の手順を実行します。
+
+1. 上記の情報を JSON 形式で記述し、Postman を使用して MoEngage に送信します。
+   <CodeGroup>
+   ```json JSON
+       {
+       "event_name": "Flight_Status_Updates",
+       "event_attributes": [
+       {
+       "attribute_name": "Flight Name",
+       "attribute_data_type": "string"
+       },
+       {
+       "attribute_name": "Departure Time",
+       "attribute_data_type": "date"
+       },
+       {
+       "attribute_name": "Gate Number",
+       "attribute_data_type": "string"
+       },
+       {
+       "attribute_name": "Departure City",
+       "attribute_data_type": "string"
+       },
+       {
+       "attribute_name": "Destination City",
+       "attribute_data_type": "string"
+       }
+       ],
+       "created_by": "example@moengage.com"
+       }
+   ```
+   </CodeGroup>
+2. 上記の JSON 形式の情報を使用し、ワークスペースが属する適切なデータセンターの認証情報を指定して API 呼び出しを行います。詳細については、[Create Business Event API](/ja/api/business-events/create-business-event) を参照してください。\
+   API 呼び出しが行われ、イベントが正常に作成されると、MoEngage は次のレスポンスを送信します。
+   <CodeGroup>
+   ```json JSON
+        {
+         "message": "The business event has been created",
+         "_id": "{{Business Event ID}}"
+         }
+   ```
+   </CodeGroup>
+3. イベントが正常に追加されたかどうかを確認するには、次の手順に従います。
+   1. MoEngage ダッシュボードで、任意の Business Event Triggered キャンペーンに移動します。
+   2. **Select business event** リストで、イベントを確認できます。_Flight\_Status\_Updates_ イベントが表示されます。<img src="/images/moengage_6b8c9a.png" alt="2.png" />
+
+# ステップ 2: Push キャンペーンの作成
+
+このセクションでは、本日旅行するユーザーにゲート番号を知らせ、予定出発時刻の 2 時間前に到着するようリマインドする、ビジネスイベントトリガーの Push キャンペーンを作成します。
+
+## ステップ 2.1: ユーザーのターゲティング
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. All campaigns ページで **\+ Create campaign** をクリックします。
+3. **Outbound** の下で **Push** \> **Business Event Triggered** をクリックします。<img src="/images/moengage_4b6e65.png" alt="BUSINESSPUSH.png" /> キャンペーンを定義する最初のステップ **Target users** に移動します。
+4. キャンペーンの名前とタグを定義します。次の詳細を入力します。
+   1. **Team**: 組織のアカウントで Teams が有効になっている場合は、チームを選択します。詳細については、[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。
+   2. **Campaign name**: キャンペーンの名前を入力します。たとえば、_Flight Updates_ です。
+   3. **Campaign tags**: 必要なキャンペーンタグを選択します。
+5. **Select business event** ドロップダウンリストで、_Flight\_Status\_Updates_ イベントを選択します。<img src="/images/moengage_d5654b.png" alt="9usecase1.png" />
+6. **Target audience** セクションで、生成される Business Event のみに関連するユーザーを定義します。そのため、この例ではターゲットオーディエンスを次のように設定できます。<img src="/images/moengage_3ffc1e.png" alt="9usecase2.png" /> ここでは、過去 60 日間にフライトを予約し、Travel Date が (Business Event から取得される) Departure Time と等しく、Booked Flight name が (Business Event から取得される) Flight Name と等しいユーザーのリストをクエリしようとしています。
+7. **Target Platforms** セクションで **Android** を選択します。<img src="/images/moengage_ed47f0.png" alt="9usecase3.png" />
+8. **Next** をクリックして 2 番目のステップ **Content** に移動し、Push キャンペーンのコンテンツを定義します。
+
+## ステップ 2.2: コンテンツ
+
+1. 使用するテンプレートを選択します。たとえば、**Basic notification** を選択します。<img src="/images/moengage_86c5b7.png" alt="9usecase4.png" />
+2. キャンペーンに必要なコンテンツを入力します。タイトル、メッセージ、サマリーは手動で入力することも、Merlin AI を使用して生成することもできます。詳細については、[Generate Push Messages with Merlin AI](/ja/user-guide/ai-and-intelligence/merlin-ai/merlin-ai-copywriter/generate-push-messages-with-merlin-ai) を参照してください。<img src="/images/moengage_20f33a.png" alt="9usecase5.png" />
+3. ユーザーの名前などの情報を使用して、メッセージにパーソナライゼーションを追加します。このようなパーソナライゼーションにより、メッセージがより状況に即したものになり、ユーザーはつながりを感じられます。これを行うには、次の手順に従います。
+   1. _@_ と入力します。
+   2. **Push Personalization** ダイアログボックスで、ユーザーのビジネスイベントまたはユーザープロパティから関連する属性を見つけます。<img src="/images/moengage_00d5ed.png" alt="9.png" />
+4. ディープリンクオプションを使用して、ユーザーがチケットの詳細を確認できるアプリまたは Web サイトのページにユーザーを誘導します。
+   1. **Default click action** リストで _Deeplinking_ を選択します。
+   2. **URL** フィールドに、関連する URL を指定します。
+5. **Next** をクリックして 3 番目のステップ **Schedule and goals** に移動し、キャンペーンのスケジュールと目標を定義します。
+
+## ステップ 2.3: スケジュールと目標
+
+1. 要件に基づいて、このキャンペーンの開始日時と終了日時、およびコンバージョン目標を定義します。
+2. 要件に基づいて配信設定を変更します。詳細については、[Create Push Campaigns](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns) を参照してください。<img src="/images/moengage_b0911e.png" alt="10.png" />
+3. **Publish** をクリックします。
+
+# ステップ 3: ビジネスイベントをトリガーしてキャンペーンをトリガーする
+
+これで、コミュニケーションのトリガーを開始する準備が整いました。フライトステータスの更新が検出されると、Trigger Business Event トリガーを使用してキャンペーンをトリガーできます。このイベントをいつ MoEngage に渡すかのロジックは、ビジネス要件に基づいてお客様側で決定します。
+
+ペイロードの例を次に示します。
+
+<CodeGroup>
+
+```json JSON
+{
+"event_name": "Flight_Status_Updates",
+"event_attributes": {
+"Flight Name": "XYZ",
+"Departure Time": "{{Departure Time}}","Gate Number": "{{Gate Number}}",
+"Departure City": {{Departure City Name}},"Destination City":{{Destination City Name}},
+"triggered_by": "john.doe@example.com"
+}
+```
+
+</CodeGroup>
+
+# まとめ
+
+このユースケースでは、本日旅行の予定があるユーザーにゲート番号を知らせ、予定出発時刻の 2 時間前に来るようリマインドする、Business Event Triggered の Push キャンペーンを作成しました。
+
+キャンペーンを公開したので、MoEngage API を使用してテストできます。詳細については、[Business Event Triggered Campaigns](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/business-event-triggered-campaigns) を参照してください。

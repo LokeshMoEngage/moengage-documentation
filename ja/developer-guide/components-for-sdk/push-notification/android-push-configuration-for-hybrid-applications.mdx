@@ -1,0 +1,67 @@
+---
+title: "ハイブリッドアプリケーション向け Android プッシュ設定"
+description: "ハイブリッド MoEngage アプリの Android プッシュ通知メタデータと FCM 認証を設定します。"
+---
+
+# MoEngage アカウントの設定
+
+- アプリケーションで [Firebase](https://firebase.google.com/docs/android/setup) がセットアップされていることを確認してください。
+- MoEngage ダッシュボードで FCM 認証を設定します。詳細については、[FCM 認証](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)を参照してください。
+- Test 環境と Live 環境の両方にキーを追加してください。
+
+## プッシュ通知のメタデータの追加
+
+プッシュ通知を表示するには通知に関するメタデータが必要であり、スモールアイコンとラージアイコンの drawable は必須です。
+
+利用可能なすべてのオプションの API リファレンスの詳細については、[NotificationConfig](https://moengage.github.io/android-api-reference/core/com.moengage.core.config/-notification-config/index.html) を参照してください。
+
+設定を SDK に渡すには、[_configureNotificationMetaData()_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) を使用します。
+
+<CodeGroup>
+
+```Kotlin Kotlin
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+
+    
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", [YOUR_DATA_CENTER])
+    .configureNotificationMetaData(NotificationConfig(R.drawable.small_icon, R.drawable.large_icon))
+MoEInitializer.initializeDefaultInstance(applicationContext, moEngage)
+```
+
+
+```Java Java
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+
+    
+MoEngage.Builder moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", [YOUR_DATA_CENTER])
+    .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon));
+ MoEInitializer.INSTANCE.initializeDefaultInstance(getApplicationContext(), moEngage);
+```
+
+</CodeGroup>
+
+プッシュ通知が機能するように、Application クラスの onCreate() で SDK がメタデータとともに初期化されていることを確認してください。
+
+<Info>
+  **通知スモールアイコンのガイドライン**
+
+  通知のスモールアイコンはフラットで正面向きのデザインにし、透明な背景に白色である必要があります。
+</Info>
+
+## 通知スモールアイコンの密度とサイズ
+
+| 密度（dp） | サイズ（px） |
+| ------------ | --------- |
+| MDPI         | 24x24     |
+| HDPI         | 36x36     |
+| XHDPI        | 48x48     |
+| XXHDPI       | 72x72     |
+| XXXHDPI      | 96x96     |
+
+<Warning>
+  **重要**
+
+  スモールアイコンが設定されていることを確認してください。スモールアイコンが設定されていない場合、通知は表示されません。
+</Warning>

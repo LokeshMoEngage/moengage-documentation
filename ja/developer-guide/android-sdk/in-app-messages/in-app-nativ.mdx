@@ -1,0 +1,534 @@
+---
+title: "In-App NATIV"
+description: "MoEngage In-App NATIV SDK を使用して、Android アプリのユーザーにコンテキストに応じたアプリ内メッセージを表示します。"
+---
+
+In-App NATIV キャンペーンは、ユーザーがアプリを使用している間にメッセージを表示することでユーザーをターゲティングします。コンテキストに応じた情報を提供するのに非常に効果的であり、アプリの特定の画面や、ユーザーがアプリ内で実行した特定のアクションに応じて、クロスセルやアップセルを促進するのに役立ちます。
+
+<img
+  src="/images/Latest_Popupimage.png"
+  alt="最新のポップアップ画像"
+  title="最新のポップアップ画像"
+  style={{ width:"45%" }}
+/>
+
+# 前提条件
+
+アプリ内メッセージを統合する前に、`app/build.gradle` に以下の依存関係を追加します。
+
+- **MoEngage In-App モジュール** — BOM を使用した統合を推奨します。[BOM を使用したインストール](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)を参照してください。BOM を構成すると、バージョン番号は自動的に管理されます。
+- **Glide** — In-App バージョン **7.0.0** 以降、SDK はアプリ内メッセージで画像と GIF を描画するために [Glide](https://bumptech.github.io/glide/) を必要とします。実行時に Glide がない場合、画像や GIF を含むアプリ内メッセージはクラッシュします。
+
+<CodeGroup>
+
+```groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:inapp")
+    implementation("com.github.bumptech.glide:glide:4.16.0")
+}
+```
+
+</CodeGroup>
+
+BOM を構成したら、アプリケーションに必要な特定の MoEngage モジュールを含めます。 \
+注: これらの依存関係にはバージョン番号は不要です。BOM がバージョンを自動的に管理します。
+
+# アプリ内メッセージの表示
+
+<Note>
+  MoEngage は、meta API 呼び出しを介して対象となるアプリ内キャンペーンのリストを更新します。アクティブなセッション中は、アプリがバックグラウンドからフォアグラウンドに戻ったときにリストが更新され (最大で 15 分に 1 回)、新しいセッションが開始されたとき、またはアプリが強制終了されて再起動されたときには即座に更新されます。
+</Note>
+
+MoEngage はデフォルトではアプリ内メッセージを表示できないため、アプリはユーザーにアプリ内メッセージを表示する必要がある箇所で以下のメソッドを呼び出す必要があります。このメソッドは、Activity の onStart() または Fragment の onResume() に追加することを推奨します。[MoEInAppHelper.getInstance().showInApp(context)](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/show-in-app.html) 
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInAppHelper.getInstance().showInApp(context)
+```
+
+```java Java
+MoEInAppHelper.getInstance().showInApp(context);
+```
+
+</CodeGroup>
+
+# Nudge の表示
+
+バージョン \*\*7.0.0\*\* 以降、MoEngage InApp SDK は邪魔にならない (Non-Intrusive) Nudge の表示をサポートしています。 
+
+MoEngage はデフォルトでは Nudge を表示できないため、アプリはユーザーに Nudge を表示する必要がある箇所で以下のメソッドを呼び出す必要があります。このメソッドは、Activity の onStart() または Fragment の onResume() に追加することを推奨します。[MoEInAppHelper.getInstance().showNudge(context)](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/show-nudge.html)
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInAppHelper.getInstance().showNudge(context)
+```
+
+```java Java
+MoEInAppHelper.getInstance().showNudge(context);
+```
+
+</CodeGroup>
+
+# 構成変更の処理
+
+SDK バージョン **11.4.00** 以降、アプリ内メッセージは縦向きモードと横向きモードの両方でサポートされています。Activity の再起動がシステムによって処理される場合、SDK は画面の向きの変更時のアプリ内メッセージの表示を内部で処理します。
+
+Activity が構成変更を独自に処理している場合は、Activity がフレームワークから _onConfigurationChanged()_ コールバックを受け取ったときに、[_MoEInAppHelper.getInstance().onConfigurationChanged()_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/on-configuration-changed.html) API を呼び出して SDK に通知し、SDK がアプリ内メッセージを再描画できるようにする必要があります。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+override fun onConfigurationChanged(newConfig: Configuration) {
+    super.onConfigurationChanged(newConfig)
+    MoEInAppHelper.getInstance().onConfigurationChanged()
+}
+```
+
+
+```java Java
+@Override public void onConfigurationChanged(@NonNull Configuration newConfig) {   
+    super.onConfigurationChanged(newConfig);
+    MoEInAppHelper.getInstance().onConfigurationChanged();
+}
+```
+
+</CodeGroup>
+
+# コンテキストに応じたアプリ内メッセージ
+
+アプリ内キャンペーンを特定の画面/Activity に制限するだけでなく、アプリケーション内のユーザーのコンテキストに基づいてアプリ内メッセージを制限することもできます。アプリケーション内のユーザーのコンテキストを設定するには、以下のように [_setInAppContext()_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/set-in-app-context.html) API を使用します。
+
+## コンテキストの設定
+
+_showInApp()_ を呼び出す前に、_Activity_ または _Fragment_ の _onStart()_ で以下のメソッドを呼び出します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInAppHelper.getInstance().setInAppContext(setOf("context1", "context2", "context3"))
+```
+
+
+```java Java
+Set<String> inAppContext = new HashSet<>();
+inAppContext.add("context1");
+inAppContext.add("context2");
+inAppContext.add("context3");
+MoEInAppHelper.getInstance().setInAppContext(inAppContext);
+```
+
+</CodeGroup>
+
+このコンテキストは、[Android Context](https://developer.android.com/reference/android/content/Context?hl=en) とは異なります。アプリケーションのフローにおけるユーザーのコンテキストです。
+
+## コンテキストのリセット
+
+ユーザーがそのコンテキストから離れたら、[_restInAppContext()_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/reset-in-app-context.html) API を使用して既存のコンテキストをリセット/クリアします。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInAppHelper.getInstance().resetInAppContext()
+```
+
+
+```java Java
+MoEInAppHelper.getInstance().resetInAppContext();
+```
+
+</CodeGroup>
+
+以下はコード例です。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+ 
+      // Activity
+      class MyCustomActivity: Activity() {
+        override fun onStart() {
+           super.onStart()
+           MoEInAppHelper.getInstance().setInAppContext(setOf("context1", "context2"))
+           MoEInAppHelper.getInstance().showInApp(this)
+       }
+        override fun onStop() {
+           super.onStop()
+           MoEInAppHelper.getInstance().resetInAppContext()
+       }
+      }
+      
+      
+      
+      // Fragment
+      class MyCustomFragment: Fragment() {
+
+      override fun onStart() {
+          super.onStart()
+          // Fragment's onStart code
+        
+          // context1 and context2 can be changes as per screen/requirement
+          MoEInAppHelper.getInstance().setInAppContext(setOf("context1", "context2"))
+          MoEInAppHelper.getInstance().showInApp(this)
+      }
+
+      override fun onStop() {
+          super.onStop()
+          // Fragment's onStop code
+        
+          MoEInAppHelper.getInstance().resetInAppContext()
+      }
+    }
+```
+
+
+```java Java
+
+      // Activity
+      public class MyCustomActivity extends Activity {
+      @Override
+    protected void onStart() {
+        super.onStart();
+        // Activity's custom onStart logic here
+        Set inAppContext = new HashSet<>();
+        inAppContext.add("context1"); // Change the string name as per your requirement
+        inAppContext.add("context2"); // Change the string name as per your requirement
+        MoEInAppHelper.getInstance().setInAppContext(inAppContext);
+        MoEInAppHelper.getInstance().showInApp(this)
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        // Activity's custom onStop logic here
+        MoEInAppHelper.getInstance().resetInAppContext();
+        
+    }
+      }
+      
+      
+      
+          // Fragment
+public class MyCustomFragment extends Fragment {
+
+    // Other Fragment code
+    
+    @Override
+    public void onStart() {
+        super.onStart();
+        // Fragment's onStart code here
+        Set inAppContext = new HashSet<>();
+        inAppContext.add("context1");
+        inAppContext.add("context2");
+        MoEInAppHelper.getInstance().setInAppContext(inAppContext);
+        MoEInAppHelper.getInstance().showInApp(this)
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        MoEInAppHelper.getInstance().resetInAppContext();
+    }
+}
+```
+
+</CodeGroup>
+
+# WebView のカスタマイズ
+
+In-App SDK バージョン **9.6.0** 以降、SDK は HTML アプリ内メッセージの描画に使用される基盤の WebView のカスタマイズをサポートしています。これにより、HTML アプリ内メッセージの描画に使用される WebView に対して、WebView の設定の変更、カスタム JavaScript インターフェースの追加、その他の構成の実装が可能になります。
+
+WebView をカスタマイズするには、`MoEInAppHelper.getInstance().setInAppWebViewCustomizer()` API を呼び出す必要があります。この API を使用して定義したカスタム設定は、MoEngage In-App のデフォルトの WebView 設定をオーバーライドします。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInAppHelper.getInstance().setInAppWebViewCustomizer {
+    addJavascriptInterface(MyBridge(), "bridge")
+    settings.mediaPlaybackRequiresUserGesture = false
+}
+```
+
+
+```java Java
+MoEInAppHelper.getInstance().setInAppWebViewCustomizer(
+    new kotlin.jvm.functions.Function1<inappwebview,>() {
+        @Override
+        public kotlin.Unit invoke(InAppWebView webView) {
+            WebSettings settings = webView.getSettings();
+            settings.setMediaPlaybackRequiresUserGesture(false);
+            webView.addJavascriptInterface(new CustomJavaScriptBridge(), "myBridge");
+            return kotlin.Unit.INSTANCE;
+        }
+    }
+);</inappwebview,>
+```
+
+</CodeGroup>
+
+# セルフハンドルのアプリ内メッセージ
+
+セルフハンドルのアプリ内メッセージとは、SDK がアプリケーションに配信するメッセージであり、アプリケーションは SDK が配信したペイロードを使用して UI を構築します。
+
+## 単一のセルフハンドルのアプリ内メッセージ
+
+セルフハンドルのアプリ内メッセージを取得するには、以下の API を使用します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInAppHelper.getInstance().getSelfHandledInApp(context, listener)
+```
+
+
+```java Java
+MoEInAppHelper.getInstance().getSelfHandledInApp(context, listener);
+```
+
+</CodeGroup>
+
+**listener** は [_SelfHandledAvailableListener_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.listeners/-self-handled-available-listener/index.html) のインスタンスです。
+
+このメソッドは、Fragment の _onResume()_ または Activity の _onStart()_ で呼び出す必要があります。\
+上記のメソッドは非同期であり、ペイロードをすぐには返しません。ペイロードが利用可能になると、リスナーのコールバックである [_onSelfHandledAvailable()_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.listeners/-self-handled-available-listener/on-self-handled-available.html) がペイロードとともに呼び出されます。
+
+### イベントトリガー型のセルフハンドルのアプリ内メッセージ
+
+イベントトリガー型のコールバックを受け取るには、_SelfHandledAvailableListener_ を実装し、[_MoEInAppHelper.getInstance().setSelfHandledListener()_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/set-self-handled-listener.html) を使用してリスナーを登録します。キャンペーンが利用可能になると、SDK は登録されたリスナーに通知します。
+
+トリガーイベントが複数の画面で発生する可能性がある場合は、このリスナーを _Application_ クラスの _onCreate()_ で登録することを推奨します。
+
+## 複数のセルフハンドルのアプリ内メッセージ
+
+<Info>
+  - この機能には、カタログバージョン **4.5.0** 以上が必要です
+  - イベントトリガー型の複数のセルフハンドルのアプリ内メッセージはサポートされていません。
+</Info>
+
+[_getSelfHandledInApps()_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/get-self-handled-in-app.html) を使用して、複数のセルフハンドルキャンペーンを取得します。MoEngage SDK は、キャンペーン利用可能時のコールバックメソッド [_onCampaignsAvailable()_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.listeners/-self-handled-campaigns-available-listener/on-campaigns-available.html) で、最大 5 つのキャンペーン (キャンペーン作成時に設定されたキャンペーンの優先度順) を返します**。**
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInAppHelper.getInstance().getSelfHandledInApps(context, listener)
+```
+
+
+```java Java
+MoEInAppHelper.getInstance().getSelfHandledInApps(context, listener);
+```
+
+</CodeGroup>
+
+_listener_ は [_SelfHandledCampaignsAvailableListener_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.listeners/-self-handled-campaigns-available-listener/index.html) のインスタンスです[。](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.listeners/-self-handled-available-listener/index.html)
+
+このメソッドは、Fragment の _onResume()_ または Activity の _onStart()_ で呼び出す必要があります。\
+上記のメソッドは非同期であり、ペイロードをすぐには返しません。ペイロードが利用可能になると、リスナーの [_onCampaignsAvailable() コールバック_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.listeners/-self-handled-campaigns-available-listener/on-campaigns-available.html)がペイロードとともに呼び出されます。
+
+### 複数のセルフハンドルのアプリ内メッセージの統計情報のトラッキング
+
+_onCampaignsAvailable()_ コールバックメソッドは、[_SelfHandledCampaignData_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.model/-self-handled-campaign-data/index.html) オブジェクトのリストを含む [_SelfHandledCampaignsData_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.model/-self-handled-campaigns-data/index.html) を返します。各 _SelfHandledCampaignData_ オブジェクトの統計情報は、以下の API を使用して個別にトラッキングする必要があります。
+
+### コンテキストに応じた複数のセルフハンドルのアプリ内メッセージの取得
+
+コンテキストに応じた複数のセルフハンドルのアプリ内メッセージを取得するには、\*[getSelfHandledInApps()](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/get-self-handled-in-app.html)\* を呼び出す前に、[_setInAppContext()_](https://www.moengage.com/docs/developer-guide/android-sdk/in-app-messages/in-app-nativ#set-context) を使用してアプリ内メッセージのコンテキストを設定します。これにより、コンテキストありとコンテキストなしのアプリ内メッセージのリスト (キャンペーン作成時に設定されたキャンペーンの優先度順) が返されます。
+
+### キャンペーンの選択ロジック
+
+- **デフォルトの上限**: デフォルトでは、5 つのキャンペーンのみが取得されます。
+- **優先度に基づく選択**: キャンペーンは、優先度と最終更新日時に基づいて配信されます。まず優先度を確認し、優先度が競合する場合は最終更新日時を確認します。
+- **除外基準**: キャンペーンは、フリークエンシーキャップ、適格性の基準、キャンペーンのステータス、優先度の上限などの特定のルールに基づいてのみ除外されます。
+
+**シナリオ例:** 優先度、公開日時、コンテキストがそれぞれ異なる 6 つのキャンペーンがある場合:
+
+- コンテキスト 1: キャンペーン 1 (P0, T2)、キャンペーン 2 (P1, T3)、キャンペーン 3 (P2, T6)
+- コンテキスト 2: キャンペーン 4 (P0, T1)、キャンペーン 5 (P1, T5)
+- コンテキスト 3: キャンペーン 6 (P0, T4)
+
+以下のキャンペーンがこの順序で配信されます: [キャンペーン 4、キャンペーン 1、キャンペーン 6、キャンペーン 2、キャンペーン 5]
+
+**選択アルゴリズム:**
+
+1. ユーザーの適格性とターゲティング基準でキャンペーンをフィルタリングする
+2. キャンペーンの優先度 (P0、P1、P2 など) で並べ替える
+3. 優先度が同じキャンペーンは、最新の更新タイムスタンプで並べ替える
+4. 上位 5 つのキャンペーンを返す
+
+#### **複数のセルフハンドルキャンペーンにおけるキャンペーン構成のベストプラクティス**
+
+1 つのページで複数のコンテキストにわたって最適なパフォーマンスを得るには、以下のようにキャンペーンを構成します。
+
+- コンテキスト 1 (ホームページ): キャンペーン A (P0)、キャンペーン B (P1)
+- コンテキスト 2 (商品): キャンペーン C (P0)、キャンペーン D (P1)
+- コンテキスト 3 (チェックアウト): キャンペーン E (P0)
+
+これにより、5 キャンペーンの上限に達することなく、各コンテキストに関連するキャンペーンを確保できます。 
+
+また、このメソッドはコンテキストベースかどうかに関係なくすべてのセルフハンドルキャンペーンを取得するため、取得したいキャンペーンの優先度を適切に設定してください。
+
+## セルフハンドルのアプリ内メッセージの統計情報のトラッキング
+
+アプリ内メッセージの表示、クリック、閉じる操作はアプリケーションが制御するため、これらが発生するたびにアプリケーションは MoEngage SDK に通知する必要があります。SDK に通知するには、以下のメソッドを呼び出します。セルフハンドルのアプリ内メッセージのコールバックでアプリケーションに提供されるデータオブジェクト [_SelfHandledCampaignData_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.model/-self-handled-campaign-data/index.html) を、以下の API のパラメーターとして渡す必要があります。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+// call whenever in-app is shown
+MoEInAppHelper.getInstance().selfHandledShown(context, data)
+// call whenever in-app is clicked
+MoEInAppHelper.getInstance().selfHandledClicked(context, data)
+// call whenever in-app is dismissed
+MoEInAppHelper.getInstance().selfHandledDismissed(context, data)
+```
+
+
+```java Java
+// call whenever in-app is shown
+MoEInAppHelper.getInstance().selfHandledShown(context, data);
+// call whenever in-app is clicked
+MoEInAppHelper.getInstance().selfHandledClicked(context, data);
+// call whenever in-app is dismissed
+MoEInAppHelper.getInstance().selfHandledDismissed(context, data);
+```
+
+</CodeGroup>
+
+詳細については、[API ドキュメント](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/index.html#-59857046%2FFunctions%2F434681417)を参照してください。
+
+# アプリ内メッセージのコールバック
+
+## ライフサイクルコールバック
+
+アプリ内キャンペーンが表示または閉じられるたびにコールバックを受け取るには、[_InAppLifeCycleListener_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.listeners/-in-app-life-cycle-listener/index.html) を実装し、[_MoEInAppHelper.getInstance().addInAppLifeCycleListener()_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/add-in-app-life-cycle-listener.html) を使用してコールバックを登録します。
+
+## クリックコールバック
+
+ユーザーのナビゲーションやカスタムアクションを処理するために、SDK は、ナビゲーションアクションまたはカスタムアクションが設定されたアプリ内ウィジェットがクリックされるたびにコールバックを提供します。コールバックを受け取るには、[_OnClickActionListener_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.listeners/-on-click-action-listener/index.html) インターフェースを実装し、[_MoEInAppHelper.getInstance().setClickActionListener()_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp/-mo-e-in-app-helper/set-click-action-listener.html) を使用してコールバックを登録します。
+
+# 画面でのアプリ内メッセージのブロック
+
+さらに、[InAppConfig](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.config/index.html) オブジェクトを使用して、特定の画面でアプリ内メッセージをブロックしたり、ステータスバーの表示を制御したりでき、そのオブジェクトを [MoEngage.Builder](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) オブジェクトを使用して SDK に渡します。[configureInApps()](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-in-apps.html) API を使用して、構成を SDK に渡します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+// List of activity classes on which in-app should not be shown
+val inAppOptOut = mutableListOf<String>()
+inAppOptOut.add(SplashActivity::class.java.name)
+val moengage = MoEngage.Builder(
+        application = application,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureInApps(InAppConfig(inAppOptOut, true))
+    .build()
+MoEngage.initialiseDefaultInstance(moengage)
+```
+
+
+```java Java
+ArrayList<String> inAppOptOut = new ArrayList<>();
+inAppOptOut.add(SplashActivity.class.getName());
+MoEngage.Builder builder = new MoEngage.Builder(application, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureInApps(new InAppConfig(inAppOptOut, true));
+MoEngage.initialiseDefaultInstance(builder.build());
+```
+
+</CodeGroup>
+
+# アプリ内メッセージのテスト
+
+アプリ内メッセージの作成方法とテスト方法の詳細については、こちらの[リンク](https://www.moengage.com/docs/user-guide/campaigns-and-channels/in-app-message/create/test-your-in-app-campaign)を参照してください。
+
+# 埋め込み Nudge の実装 (非推奨)
+
+<Info>
+  InApp バージョン **7.0.0** 以降、埋め込み Nudge はサポートされなくなりました。
+</Info>
+
+Nudge は、Activity 内の任意の場所に配置できる、邪魔にならないメッセージです。
+
+<img
+  src="/images/LatestNudgeimage.png"
+  alt="最新の Nudge 画像"
+  title="最新の Nudge 画像"
+  style={{ width:"42%" }}
+/>
+
+Activity/Fragment のレイアウトファイルに以下のコードを追加します。
+
+<CodeGroup>
+
+```XML XML wrap
+<com.moengage.widgets.NudgeView
+    android:id="@+id/nudge"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content" >
+</com.moengage.widgets.NudgeView>
+```
+
+</CodeGroup>
+
+## Activity での使用
+
+Activity の **onCreate()** で Nudge ビューのインスタンスを取得し、**onStart()** で Nudge ビューを初期化します。
+
+## Fragment での使用
+
+Fragment の **onCreateView()** で Nudge ビューのインスタンスを取得し、**onResume()** で Nudge ビューを初期化します。
+
+以下のコードを使用して **_NudgeView_** のインスタンスを取得し、初期化します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+// get instance of the view
+val nudge = findViewById(R.id.nudge)
+// initialize
+nudge.initialiseNudgeView(activity)
+```
+
+
+```java Java
+// get instance of the view
+NudgeView nv = (NudgeView)findViewById(R.id.nudge);
+// initialize
+nv.initialiseNudgeView(getActivity());
+```
+
+</CodeGroup>
+
+# よくある質問
+
+<Accordion title="Android の HTML アプリ内メッセージで <input type='file'> やカメラ/ギャラリーからのアップロードが機能しないのはなぜですか?">
+  - In-App SDK バージョン 9.6.0 以上の場合は、[WebView のカスタマイズ](https://www.moengage.com/docs/developer-guide/android-sdk/in-app-messages/in-app-nativ#webview-customization)を参照してください。
+  - In-App SDK バージョン 9.6.0 未満を使用している場合は、以下の手順を実行します。
+    - Android のデフォルトの WebView はファイル入力をサポートしていません。この機能を有効にするには、HTML からカスタムアクションをトリガーし、_OnClickActionListener_ を使用してネイティブで処理します。\
+      リスナー内で、ネイティブのファイルピッカーまたはカメラのロジックを起動します。アプリが CAMERA や READ_EXTERNAL_STORAGE などの必要なランタイム権限をリクエストしていることを確認してください。
+
+  <Frame>
+    ![HTMLGUYS](/images/HTMLGUYS.png)
+  </Frame>
+  例:
+
+  <CodeGroup>
+
+  ```kotlin Kotlin wrap
+  val listener = OnClickActionListener { clickData ->
+    if (clickData.action.actionType == ActionType.CUSTOM_ACTION &&
+    (clickData.action as CustomAction).keyValuePairs["action"] == "uploadPhoto")
+    {
+    openImageChooser() // Your native camera/gallery function
+    true // Indicates the action was handled
+    } else {
+    false
+    }
+    }
+  ```
+
+  </CodeGroup>
+
+  - iOS では、ファイル入力はデフォルトで機能します。ただし、クロスプラットフォームで一貫した実装にするため、同じカスタムアクションのアプローチを使用することを推奨します。
+</Accordion>

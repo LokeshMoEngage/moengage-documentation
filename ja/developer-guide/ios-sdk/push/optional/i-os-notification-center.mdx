@@ -1,0 +1,425 @@
+---
+title: "iOS通知センター"
+description: "iOSアプリにInboxビューコントローラーを追加して、既読および未読のプッシュ通知を表示します。"
+---
+
+Inboxは、既読および未読のプッシュ通知を含むドロップインのビューコントローラーです。ユーザーが通知をクリックしていない場合でも、通知はInboxに表示され、未読状態であることを示すためにハイライトされます。ビューのタイトルやルックアンドフィールもカスタマイズできます。
+
+Inboxビューコントローラーは、独自のコントローラーに子ビューコントローラーとして追加されます。これにより、同じコントローラーでデリゲートのコールバックを受け取ることができ、それをさらに別の画面へのナビゲーションに利用できます。
+
+# SDKのインストール
+
+## Swift Package Managerを使用したインストール
+
+MoEngageInboxは、SDKバージョン1.2.0からSPMでサポートされています。統合するには、SDKバージョン9.23.0以上の場合はGitHubのURL https://github.com/moengage/apple-sdk.git を、その他のSDKバージョンの場合は https://github.com/moengage/MoEngage-iOS-SDK.git を使用し、ブランチをmasterまたは必要なバージョンに設定します。
+
+## CocoaPodを使用したインストール
+
+<Info>
+  **情報**
+
+  CocoaPodsは非推奨になりつつあります。MoEngageでは、すべての新規統合にSwift Package Managerを使用することを推奨しています。CocoaPodsの詳細については、[CocoaPods統合ガイド](/ja/developer-guide/ios-sdk/sdk-integration/basic/integration-through-cocoa-pods)を参照してください。
+</Info>
+
+MoEngage-iOS-SDKバージョン8.2.0から、InboxモジュールはSDKから分離され、MoEngageInboxという別のモジュールになりました。そのため、個別に追加する必要があります。
+
+以下に示すように、Podfileに依存関係を追加してMoEngageInboxフレームワークを統合します。
+
+<CodeGroup>
+
+```ruby Ruby wrap
+pod 'MoEngage-iOS-SDK/Inbox',
+```
+
+</CodeGroup>
+
+次に、`pod install` を実行してフレームワークをインストールします。
+
+# Inboxセットアップのチェックリスト
+
+Inboxモジュールを使用する前に、以下の項目が実装されていることを確認してください。
+
+1. MoEngage-iOS-SDKをバージョン \>= 9.0.0 に更新します。
+2. バージョン \>= 2.0.0 のMoEngageInboxモジュールを統合します。
+3. [Notification Service Extensionを実装](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#tracking-and-analytics-verification)し、[MoEngageRichNotifcation](https://cocoapods.org/pods/MORichNotification)(\>= 7.0.0)を統合します。
+4. **App Target** の[Capabilities](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse)でAppGroupIDが設定され、[同じIDがSDKに渡されている](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse)こと。
+5. **Notification Service Extension Target** の[Capabilities](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse)でAppGroupIDが設定され、[同じIDがMoEngageRichNotification SDKに渡されている](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse)こと。
+
+<Warning>
+  **App Group ID**
+
+  **App Target** と **Notification Service Extension Target** の両方に設定されたApp Group IDが **同じ** であることを確認してください。
+</Warning>
+
+# Inboxの使用方法
+
+1. View Controllerで `MoEngageInbox` をインポートします。
+2. プロパティを作成します - @property(nonatomic, strong) MoEngageInboxViewController \*inboxController.
+3. viewDidLoadに以下のコードを追加して、MoEngageInboxViewControllerを取得します。
+
+   <CodeGroup>
+
+   ```swift Swift wrap
+   MoEngageSDKInbox.sharedInstance.getInboxViewController(withUIConfiguration: nil, withInboxWithControllerDelegate: nil, forAppID: "YOUR_WORKSPACE_ID") { inboxController in
+        self.inboxController = inboxController
+   }
+   ```
+
+   
+   ```objective-c Objective C wrap
+   [[MoEngageSDKInbox sharedInstance] getInboxViewControllerWithUIConfiguration:nil withInboxWithControllerDelegate:nil forAppID:@"YOUR_WORKSPACE_ID" withCompletionBlock:^(MoEngageInboxViewController * _Nullable) {
+               self.inboxController = inboxController;
+   }];
+   ```
+
+   </CodeGroup>
+
+# MoEngageInboxViewControllerのPush/Present
+
+SDKに画面遷移を処理させるには、次のいずれかのメソッドを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKInbox.sharedInstance.pushInboxViewController(toNavigationController: self.navigationController!, withUIConfiguration: nil)
+    
+// Present 
+MoEngageSDKInbox.sharedInstance.presentInboxViewController(withUIConfiguration: nil)
+```
+
+
+```objective-c Objective C wrap
+
+[[MoEngageSDKInbox sharedInstance] pushInboxViewControllerToNavigationController:navigationController withUIConfiguration:nil withInboxWithControllerDelegate:nil forAppID:@"YOUR_WORKSPACE_ID"];
+
+// Present
+[[MoEngageSDKInbox sharedInstance] presentInboxViewControllerWithUIConfiguration:nil withInboxWithControllerDelegate:nil forAppID:@"YOUR_WORKSPACE_ID"];
+```
+
+</CodeGroup>
+
+# MoEngageInboxViewControllerDelegateのメソッド
+
+Inboxモジュールからコールバックを受け取るには、[_MoEngageInboxViewControllerDelegate_](https://moengage.github.io/ios-api-reference/Protocols/MoEngageInboxViewControllerDelegate.html)プロトコルを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+extension NotificationsViewController: MoEngageInboxViewControllerDelegate {
+//Called when inbox cell is selected
+func inboxEntryClicked(_ inboxItem: MoEngageInboxEntry) {
+     print("Inbox Clicked")
+}
+    
+//Called when inbox item is deleted
+func inboxEntryDeleted(_ inboxItem: MoEngageInboxEntry) {
+     print("Inbox item deleted")
+}
+
+// Called when MoEngageInboxViewController is dismissed after being presented
+func inboxViewControllerDismissed() {
+     print("Dismissed")
+}
+}
+```
+
+
+```objective-c Objective-C wrap
+//Called when inbox cell is selected
+- (void)inboxEntryClicked:(MoEngageInboxEntry *)inboxItem {
+    NSLog(@"Inbox item Clicked");
+}
+
+//Called when inbox item is deleted
+- (void)inboxEntryDeleted:(MoEngageInboxEntry *)inboxItem {
+    NSLog(@"Inbox item Deleted");
+}
+
+// Called when MoEngageInboxViewController is dismissed after being presented
+- (void)inboxViewControllerDismissed {
+    NSLog(@"Inbox Dismissed");
+}
+```
+
+</CodeGroup>
+
+以下の関数でデリゲートをパラメーターとして渡して、[_MoEngageInboxViewControllerDelegate_](https://moengage.github.io/ios-api-reference/Protocols/MoEngageInboxViewControllerDelegate.html)を設定します。
+
+<CodeGroup>
+
+```swift Swift wrap
+//Push
+MoEngageSDKInbox.sharedInstance.pushInboxViewController(toNavigationController: self.navigationController!, withUIConfiguration: nil, withInboxWithControllerDelegate: self)
+
+//Present
+MoEngageSDKInbox.sharedInstance.presentInboxViewController(withUIConfiguration: nil, withInboxWithControllerDelegate: self)
+        
+//Fetch MoEngageInboxViewController
+MoEngageSDKInbox.sharedInstance.getInboxViewController(withUIConfiguration: nil, withInboxWithControllerDelegate: self, forAppID: "YOUR_WORKSPACE_ID") { inboxController in
+     self.inboxController = inboxController
+ }
+```
+
+
+```objective-c Objective C wrap
+//Push
+[[MoEngageSDKInbox sharedInstance] pushInboxViewControllerToNavigationController:navigationController withUIConfiguration:nil withInboxWithControllerDelegate:self forAppID:@"YOUR_WORKSPACE_ID"];
+
+//Present
+[[MoEngageSDKInbox sharedInstance] presentInboxViewControllerWithUIConfiguration:nil withInboxWithControllerDelegate:self forAppID:@"YOUR_WORKSPACE_ID"];
+
+//Fetch MoEngageInboxViewController
+[[MoEngageSDKInbox sharedInstance] getInboxViewControllerWithUIConfiguration:nil withInboxWithControllerDelegate:self forAppID:@"YOUR_WORKSPACE_ID" withCompletionBlock:^(MoEngageInboxViewController * _Nullable inboxController) {
+          self.inboxController = inboxController;
+    }];
+}
+```
+
+</CodeGroup>
+
+# 外観のカスタマイズ
+
+1. コントローラーをpush/presentできます。コントローラーをpushする場合は、View Controllerを閉じるために「Done」または「Cancel」ボタンをUIBarButtonItemとして追加してください。
+2. Inboxのセルに対するクリックアクションのデリゲートコールバックを受け取ることができます。
+3. このデータは、イベントのトラッキングや別の画面へのナビゲーションに使用できます。
+4. 次のメソッドを使用して、Inboxビューコントローラーのルックアンドフィールをカスタマイズできます。
+
+   <CodeGroup>
+
+   ```swift Swift wrap
+   let configuration = MoEngageInboxUIConfiguration()
+   configuration.cellDefaultBackgroundColor = .red
+   configuration.cellHeaderLabelFont = UIFont.systemFont(ofSize: 15)
+   configuration.cellMessageLabelFont = UIFont.systemFont(ofSize: 13)
+   configuration.cellSelectionTintColor = .red
+   configuration.cellHeaderLabelTextColor = .white
+   configuration.cellMessageLabelTextColor = .white
+   configuration.cellUnreadBackgroundColor = .blue
+               
+   let navigationBarStyle = MoEngageInboxNavigationBarStyle()
+   navigationBarStyle.navigationBarColor = .black
+   navigationBarStyle.navigationBarTintColor = .blue
+   navigationBarStyle.navigationBarTitleColor = .blue
+   navigationBarStyle.navigationBarTransluscent = false
+   configuration.navigationBarStyle = navigationBarStyle
+   
+   //Present
+   MoEngageSDKInbox.sharedInstance.presentInboxViewController(withUIConfiguration: configuration, forAppID: "YOUR_WORKSPACE_ID")
+   
+   //Push
+   MoEngageSDKInbox.sharedInstance.pushInboxViewController(toNavigationController: self.navigationController!, withUIConfiguration: configuration, forAppID: "YOUR_WORKSPACE_ID")
+   
+   //Fetch MoEngageInboxViewController
+   MoEngageSDKInbox.sharedInstance.getInboxViewController(withUIConfiguration: configuration, forAppID: "YOUR_WORKSPACE_ID") { controller in
+   }
+   ```
+
+   
+   ```objective-c Objective C wrap
+   MoEngageInboxUIConfiguration* configuration = [[MoEngageInboxUIConfiguration alloc] init];
+   configuration.cellDefaultBackgroundColor = [UIColor redColor];
+   configuration.cellHeaderLabelFont =[UIFont fontWithName:@"AvenirNext-Bold" size:18];
+   configuration.cellMessageLabelFont = [UIFont fontWithName:@"AvenirNext-Bold" size:15];
+   configuration.cellHeaderLabelTextColor = [UIColor whiteColor];
+   configuration.cellMessageLabelTextColor =[UIColor whiteColor];
+   configuration.cellUnreadBackgroundColor = [UIColor blueColor];
+       
+   MoEngageInboxNavigationBarStyle* navigationBarStyle = [[MoEngageInboxNavigationBarStyle alloc] init];
+   navigationBarStyle.navigationBarColor = [UIColor blackColor];
+   navigationBarStyle.navigationBarTintColor = [UIColor blueColor];
+   navigationBarStyle.navigationBarTitleColor = [UIColor blueColor];
+   navigationBarStyle.navigationBarTransluscent = true;
+   configuration.navigationBarStyle = navigationBarStyle;
+       
+    //Present
+   [[MoEngageSDKInbox sharedInstance] presentInboxViewControllerWithUIConfiguration:configuration withInboxWithControllerDelegate:self forAppID:@"YOUR_WORKSPACE_ID"];
+       
+   //Push
+   [[MoEngageSDKInbox sharedInstance] pushInboxViewControllerToNavigationController:navigationController withUIConfiguration:configuration withInboxWithControllerDelegate:nil forAppID:@"YOUR_WORKSPACE_ID"];
+       
+   //Fetch MoEngageInboxViewController
+   [[MoEngageSDKInbox sharedInstance] getInboxViewControllerWithUIConfiguration:configuration withInboxWithControllerDelegate:nil forAppID:@"YOUR_WORKSPACE_ID" withCompletionBlock:^(MoEngageInboxViewController * _Nullable inboxController) {
+   }];
+   ```
+
+   </CodeGroup>
+
+# 自己処理型Inbox
+
+## Inboxメッセージの取得:
+
+Inboxを完全にカスタマイズできるようになりました。Inboxメッセージを取得するには、[_getInboxMessages(forAppID:withCompletionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInbox.html#/c:@M@MoEngageInbox@objc\(cs\)MoEngageSDKInbox\(im\)getInboxMessagesForAppID:withCompletionBlock:)を使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKInbox.sharedInstance.getInboxMessages(forAppID: "YOUR_WORKSPACE_ID") { inboxMessages, account in
+     print("Received Inbox messages")
+ }
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKInbox sharedInstance] getInboxMessagesForAppID:@"YOUR_WORKSPACE_ID" withCompletionBlock:^(NSArray * _Nonnull inboxEntry, MoEngageAccountMeta * _Nullable accountMeta) {
+            NSLog(@"Received Inbox messages");
+}];
+```
+
+</CodeGroup>
+
+## 通知を既読にする:
+
+メソッドの呼び出し時に通知のキャンペーンIDを指定することで、[_markInboxNotificationClicked(withCampaignID:forAppID:completionHandler)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInbox.html#/c:@M@MoEngageInbox@objc\(cs\)MoEngageSDKInbox\(im\)markInboxNotificationClickedWithCampaignID:forAppID:completionHandler:)メソッドを使用してInbox通知を既読にできます。このメソッドは、`isRead` キーがtrueに設定された更新済みの通知ペイロードを返します。
+
+<CodeGroup>
+
+```swift Swift wrap
+//Get the MoEngageInboxEntry instance
+let pushModel = inboxMessages[]
+
+if !pushModel.isRead {
+    MoEngageSDKInbox.sharedInstance.markInboxNotificationClicked(withCampaignID: pushModel.campaignID)
+}
+```
+
+
+```objective-c Objective C wrap
+//An example of marking the inbox message as read
+MoEngageInboxEntry *pushDataObj = [self.inboxMessagesArray objectAtIndex:<get the index>];
+
+if (!pushDataObj.isRead){
+    [[MoEngageSDKInbox sharedInstance] markInboxNotificationClickedWithCampaignID:pushDataObj.campaignID forAppID:nil completionHandler:nil];
+  //Rest of the implementation
+}
+```
+
+</CodeGroup>
+
+## Inbox通知のクリックのトラッキング:
+
+メソッドの呼び出し時に通知のキャンペーンIDを指定することで、[_trackInboxClick(withCampaignID:forAppID:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInbox.html#/c:@M@MoEngageInbox@objc\(cs\)MoEngageSDKInbox\(im\)trackInboxClickWithCampaignID:forAppID:)メソッドを使用してInbox通知のクリックをトラッキングできます。
+
+<CodeGroup>
+
+```swift Swift wrap
+//Get the MoEngageInboxEntry instance
+ let pushModel = inboxMessages[]
+ MoEngageSDKInbox.sharedInstance.trackInboxClick(withCampaignID: pushModel.campaignID)
+```
+
+
+```objective-c Objective C wrap
+//An example of marking the inbox message as read
+MoEngageInboxEntry *pushDataObj = [self.inboxMessagesArray objectAtIndex:<get the index>];
+[[MoEngageSDKInbox sharedInstance] trackInboxClickWithCampaignID:pushDataObj.campaignID forAppID:nil];
+```
+
+</CodeGroup>
+
+## Inboxのクリックの処理:
+
+Inboxのエントリーをクリックしたときに、通知に関連付けられたSDKがサポートするアクション(リッチランディング、ディープリンク、クーポンコードなど)を実行する場合は、以下に示すように[_processInboxNotification(withCampaignID:forAppID:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInbox.html#/c:@M@MoEngageInbox@objc\(cs\)MoEngageSDKInbox\(im\)processInboxNotificationWithCampaignID:forAppID:)メソッドを呼び出します。
+
+<CodeGroup>
+
+```swift Swift wrap
+//Get the MoEngageInboxEntry instance
+ let pushModel = inboxMessages[]
+ MoEngageSDKInbox.sharedInstance.processInboxNotification(withCampaignID: pushModel.campaignID)
+```
+
+
+```objective-c Objective C wrap
+ //An example of process the notification actions
+MoEngageInboxEntry *pushDataObj = [self.inboxMessagesArray objectAtIndex:<get the index>];
+[[MoEngageSDKInbox sharedInstance] processInboxNotificationWithCampaignID:pushDataObj.campaignID forAppID:@"YOUR_WORKSPACE_ID"];
+```
+
+</CodeGroup>
+
+## 未読通知数の取得:
+
+以下に示すように、[_getUnreadNotificationCount(forAppID:withCompletionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInbox.html#/c:@M@MoEngageInbox@objc\(cs\)MoEngageSDKInbox\(im\)getUnreadNotificationCountForAppID:withCompletionBlock:)メソッドを使用して、Inboxから未読通知数を取得できます。
+
+<CodeGroup>
+
+```swift Swift wrap
+//Get Unread Notifications count 
+MoEngageSDKInbox.sharedInstance.getUnreadNotificationCount() { count, accountMeta in
+    print("Unread message count is \(count)")
+}
+```
+
+
+```objective-c Objective C wrap
+//Get Unread Notifications count 
+[[MoEngageSDKInbox sharedInstance] getUnreadNotificationCountForAppID:@"YOUR_WORKSPACE_ID" withCompletionBlock:^(NSInteger count, MoEngageAccountMeta * _Nullable accountMeta) {
+        NSLog(@"Fetched unread message Count");
+}];
+```
+
+</CodeGroup>
+
+## メッセージの削除
+
+Inboxに現在保存されているすべてのメッセージを削除するには、[_removeInboxMessages(forAppID:completionHandler:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInbox.html#/c:@M@MoEngageInbox@objc\(cs\)MoEngageSDKInbox\(im\)removeInboxMessagesForAppID:completionHandler:)メソッドを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKInbox.sharedInstance.removeInboxMessages { success in
+                    print("Removed all inbox messages \(success)")
+                }
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKInbox sharedInstance] removeInboxMessagesForAppID:@"YOUR_WORKSPACE_ID" completionHandler:^(BOOL) {
+        // Add your code
+    }];
+```
+
+</CodeGroup>
+
+キャンペーンIDを渡してInboxに保存されている単一のメッセージを削除するには、[_removeInboxMessage(withCampaignID:forAppID:completionHandler:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInbox.html#/c:@M@MoEngageInbox@objc\(cs\)MoEngageSDKInbox\(im\)removeInboxMessageWithCampaignID:forAppID:completionHandler:)メソッドを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKInbox.sharedInstance.removeInboxMessage(withCampaignID: "YOUR CAMPAIGN ID")
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKInbox sharedInstance] removeInboxMessageWithCampaignID:@"CAMPAIGN ID" forAppID:@"YOUR_WORKSPACE_ID"];
+```
+
+</CodeGroup>
+
+# SDKバージョン4.4.0で非推奨になったメソッド
+
+SDKバージョン4.4.0でInboxモジュールを刷新しました。これに伴い、`MOInboxPushDataModel` クラスを非推奨とし、通知のモデルオブジェクトとして `MOInboxModel` クラスのインスタンスを使用するようにしました。また、以下に示すように、`MOInbox` の既存のメソッドの一部も非推奨になりました。
+
+<CodeGroup>
+
+```objective-c Objective C wrap
++(NSArray *)getInboxMessages __deprecated_msg("This method is deprecated as the payload structure has changed, this method will be removed in SDK Version 5.0.0. Use getInboxMessagesWithCompletionBlock: instead");
+
++(void)trackInboxNotificationClickForCampaign:(MOInboxPushDataModel*)campaignObj andIsFirstClick:(BOOL)isFirstClick __deprecated_msg("This method is deprecated as MOInboxPushDataModel Class is depreacted, this method will be removed in SDK Version 5.0.0. Use trackInboxNotificationClickWithCampaignID: instead");
+
++(void)processInboxNotificationOnClickForCampaign:(MOInboxPushDataModel*)campaignObj __deprecated_msg("This method is deprecated as MOInboxPushDataModel Class is depreacted, this method will be removed in SDK Version 5.0.0. Use processInboxNotificationWithCampaignID: instead");
+
++(NSMutableDictionary*)markNotificationReadWithCampaignID:(NSString*)cid __deprecated_msg("This method is deprecated as MOInboxPushDataModel Class is depreacted, this method will be removed in SDK Version 5.0.0. Use markInboxNotificationClickedWithCampaignID: instead");
+
++(void)writeArrayToFile:(NSMutableArray *)anArray __deprecated_msg("Method Deprecated. From SDK Version 5.0.0 you will not be able to change the inbox file content.");
+```
+
+</CodeGroup>
+
+これらのメソッドはSDKバージョン5.0.0で削除されるため、すべてのInbox機能が新しいAPIを使用するように更新されていることを確認してください。
+
+<Info>
+  **情報**
+
+  MoEngage SDKは、アプリが初めて起動されたとき、またはバックグラウンドからフォアグラウンドに戻ったときにのみ、プッシュデータを通知センターと同期します。
+</Info>

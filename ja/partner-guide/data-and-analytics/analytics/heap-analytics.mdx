@@ -1,0 +1,180 @@
+---
+title: "Heap Analytics"
+description: "Heap Analytics と MoEngage の間で行動イベントとユーザープロパティをストリーミングし、プロファイルを充実させてコンテキストに応じたキャンペーンをトリガーします。"
+keywords: ["Heap", "Heap Analytics", "product analytics", "behavioral events", "MoEngage integration", "webhook"]
+---
+
+## はじめに
+
+[Heap Analytics](https://www.heap.io/) は、クリック、タップ、ページビューなど、すべてのユーザーアクションの完全かつ遡及可能なデータセットを自動的に取得するプロダクト分析プラットフォームです。Heap を使用すると、チームは手動でのトラッキングを不要にし、分析とインサイトに完全に集中できます。
+
+## MoEngage × Heap
+
+MoEngage と Heap Analytics の連携により、双方向のデータフローが可能になります。Heap から MoEngage に行動イベントをストリーミングしてユーザープロファイルを充実させたり、MoEngage のイベントを Heap に転送して詳細な分析を行ったりできます。
+
+この同期により、正確なセグメンテーションと、タイムリーでコンテキストに沿ったエンゲージメントキャンペーンのために、最も豊富で最新のユーザー行動データを確保できます。
+
+この連携により、次のことが可能になります。
+
+- Heap から MoEngage に行動データとカスタムイベントを自動的にストリーミングする。
+- Heap の詳細なユーザープロパティとセグメンテーションデータで MoEngage のユーザープロファイルを充実させる。
+- Heap によって特定された、アプリ内またはサイト内の重要なアクションに基づいて、リアルタイムのパーソナライズされたキャンペーンをトリガーする。
+- Heap の遡及データを使用して、キャンペーンの設定前に行われたアクションに基づいても MoEngage でユーザーをセグメント化する。
+
+### ユースケース
+
+Heap を MoEngage と連携すると、次のユースケースに対応できます。
+
+- **摩擦の大きい離脱ポイントでの再エンゲージメント**: ユーザーが重要なプロダクトフローを完了したものの、摩擦の大きいポイント（Heap Illuminate によって特定）で離脱した場合に、役立つヒントやサポートの提案を含む MoEngage キャンペーンを即座にトリガーします。
+- **機能の定着の促進**: ユーザーがプロダクトで主要なアクションを初めて実行したときを追跡します。そのイベントを MoEngage にストリーミングし、機能のさらなる活用を促したり高度な機能を紹介したりする複数ステップのキャンペーンを開始します。
+- **サブスクリプショントライアルのコンバージョン**: Heap でユーザーの _Trial Ended_ イベントが取得されたら、そのイベントを MoEngage にストリーミングし、過去の利用度（セッション数や完了した主要イベントの数など）に基づいて、高度にパーソナライズされた割引や延長のオファーをトリガーします。
+
+## MoEngage へのデータの同期
+
+このセクションでは、ユーザーデータとイベントデータを MoEngage ワークスペースにストリーミングするために、Heap Analytics で Webhook を設定する方法について説明します。
+
+<Info>
+  次のものがあることを確認してください。
+
+  - Heap アカウントへの管理者アクセス権。
+  - Webhooks へのアクセスを含む Heap プラン。
+</Info>
+
+### 同期モジュール
+
+次の表は、各モジュールのデフォルトの同期タイプを示しています。
+
+| モジュール | MoEngage の同期タイプ |
+| --- | --- |
+| Users | Users |
+| Events | Events |
+| Sessions Data | Events |
+| Custom Properties | Events |
+
+### ステップ 1: MoEngage エンドポイントを取得する
+
+連携専用のエンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストでは、MoEngage とパートナープラットフォーム間でユーザープロファイルを紐付けるために使用する共通識別子を指定する必要があります。
+
+たとえば、共通識別子には通常、ユーザーのメールアドレスまたは電話番号を使用します。
+
+### ステップ 2: Heap で Webhook を作成する
+
+Heap で Webhook を作成するには、次の手順を実行します。
+
+1. Heap アカウントにログインします。
+2. 左側のナビゲーションメニューで **Integrations** リストをクリックし、**Directory** をクリックします。
+3. **Search all** ボックスに「**Webhooks**」と入力します。
+4. 結果一覧で **Webhooks** をクリックします。 <img src="/images/partner_42220060614932.png" alt="Heap Directory の Webhooks 連携" />
+5. 画面中央の **New Webhook** をクリックします。 <img src="/images/partner_42220060617492.png" alt="Heap の New Webhook ボタン" />
+
+### ステップ 3: Webhook、認証、送信するデータを設定する
+
+Webhook、認証、送信するデータを設定するには、次の詳細を指定します。
+
+1. **Basic Configuration** の **Heap Webhook** セクションで、次の詳細を指定します。
+   | Heap Webhook セクション | 説明 |
+   | --- | --- |
+   | **URL** | MoEngage チームから提供された専用の Webhook URL を入力します。形式は `https://api-0X.moengage.com/v1/partner/heap-analytics/{events/user}/?configName={config_name}` です。 |
+2. **HTTP Headers** で **Add Header** をクリックします。
+3. 次のキーと値のペアを指定します。
+   | キー | 値 |
+   | --- | --- |
+   | **Authorization** | オンラインの [Basic Auth Header Generator ツール](https://www.debugbear.com/basic-auth-header-generator)を使用して Basic 認証トークンを生成します。**Workspace ID** をユーザー名、**Data API Key** をパスワードとして入力する必要があります。認証情報を確認するには、次の手順を実行します: <ol><li>MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。</li><li>**Workspace ID (earlier app id)** の下にある ID をコピーします。</li><li>**API keys** の下にある **Data** をコピーします。</li></ol> Basic 認証トークンは **Workspace ID** と **Data** の組み合わせです。たとえば、Basic 認証トークンとして次の値を貼り付けます: `Basic {base64_encoded_credentials}`。**注**: 余分なスペースを含めずにトークンを完全にコピーしてください。 |
+   | **Content-Type** | `application/json` |
+4. **Data to Send** セクションで、同期に必要なフィールドをマッピングします。
+5. **\+ Add Field** をクリックします。
+6. フィールド名を入力します。
+7. タイプ（例: **property**）を選択します。
+8. 同期タイプに基づいて、対応する値を選択します。
+9. ユーザーの同期を設定します。ユーザープロファイルを同期するためのマッピングは次のとおりです。
+   | キー（MoEngage ペイロード） | タイプ | Heap プロパティの選択 |
+   | --- | --- | --- |
+   | `customer_id` | property | Unique User Identifier |
+   | `first_name` | property | First Name |
+   | `last_name` | property | Last Name |
+   | `email` | property | Email |
+   | `phone` | property | Phone |
+   | `updated_at` | property | Timestamp |
+10. ユーザーの追加の詳細を送信するには、もう一度 **\+ Add Field** をクリックします。`user_attributes` という名前のフィールドを作成し、タイプを **Nested** に設定します。
+11. イベントの同期を設定します。
+12. 必要な詳細をマッピングするには、ステップ 4 から 8 を繰り返します。
+13. イベントの詳細を送信するには、もう一度 **\+ Add Field** をクリックします。`event_attributes` という名前のフィールドを作成し、タイプを **Nested** に設定します。
+14. この `event_attributes` のネスト構造内に、次のキーを追加します。
+    - イベントを識別するための `event_name` キー。
+    - その他のイベント固有のプロパティ（例: `order_id` や `product_category`）。
+15. 下にスクロールして **Triggering Events** セクションに移動し、Webhook をトリガーするイベントを選択します。
+16. 右上にある **Save Webhook** をクリックして設定を保存します。 <img src="/images/partner_42220060618644.png" alt="Heap の Save Webhook ボタン" />
+
+<Info>
+  必要に応じて、ユーザープロファイルの表にあるキーを使用して、イベントとともに顧客情報を同期できます。
+
+  ![イベントデータとともに顧客情報を同期する](/images/partner_42220055346580.png)
+</Info>
+
+### データマッピングのガイドライン
+
+- **一意の識別子（Customer ID）**: Heap の設定で、一貫性があり変更されない一意の識別子（external\_id、メールアドレス、電話番号など）を使用します。この値を MoEngage ペイロードの `customer_id` フィールドにマッピングします。これは、データのマージと重複したユーザープロファイルの防止に不可欠です。
+- **必須フィールド**: データを適切に処理するため、すべてのペイロードに `customer_id`、`updated_at`、および標準のユーザーフィールド（名、姓、メールアドレス、電話番号のフィールド）を含める必要があります。
+- **イベント名**: 分析とセグメンテーションのために MoEngage でアクションを正確に識別および分類できるよう、すべてのイベントの `event_attributes` 内に `event_name` を含めてください。
+
+## MoEngage からのデータの送信
+
+このセクションでは、MoEngage のコネクターキャンペーンを使用して、詳細な分析のためにイベントを Heap に転送する方法について説明します。
+
+<Info>
+  **前提条件**
+
+  Heap のデータ API の制限を把握していることを確認してください。
+</Info>
+
+### ステップ 1: MoEngage でコネクターキャンペーンを作成する
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードに移動します。
+2. 左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+3. All campaigns ページの右上にある **\+ Create campaign** をクリックします。 <img src="/images/partner_42220060620052.png" alt="All campaigns ページの Create campaign ボタン" /> Create campaign ページが表示されます。**Create New** \> **Campaign** をクリックすることもできます。Campaign ページが表示されます。 <img src="/images/partner_42220055347348.png" alt="Create New メニューの Campaign オプション" />
+4. **Connectors** で **Custom** をクリックし、次のいずれかのキャンペーン配信タイプを選択します。
+   - One Time
+   - Periodic
+   - Event Triggered
+   - Business Event Triggered 詳細については、[配信タイプ](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/introduction/delivery-types-moengage-channels)を参照してください。コネクターの作成ページが表示されます。 <img src="/images/partner_42220060620564.png" alt="MoEngage のコネクター作成ページ" /> **注:** たとえば、**Event Triggered** をクリックし、イベントとして _Purchased_ を選択します。
+5. キャンペーンのステップ 2 で、次の情報を指定します。
+   1. **Method** で **POST** を選択します。
+   2. **Webhook URL** ボックスに、[https://heapanalytics.com/api/track](https://heapanalytics.com/api/track) を貼り付けます。
+   3. **Headers** セクションで、次のキーと値のペアを追加します。
+      1. **Content-Type**: Application/json。
+   4. Body セクションでは、**@** を使用して、ユーザー属性とイベント属性でペイロードをパーソナライズできます。
+      <CodeGroup>
+      ```json JSON
+      {
+        "app_id": "<your_workspace_id>",
+        "identity": "{{UserAttribute['Email (Standard)']}}",
+        "event": "Purchase",
+        "properties": {
+          "item_names": "{{EventAttribute['Item Names']}}",
+          "value": "{{EventAttribute['Value']}}"
+        }
+      }
+      ```
+      </CodeGroup>
+
+詳細については、[Heap API ドキュメント](https://developers.heap.io/reference/track-1)を参照してください。
+
+![MoEngage のコネクターキャンペーンの Body 設定](/images/partner_42220055348500.png)
+
+### ステップ 2: リクエストをプレビューする
+
+これで、キャンペーンをテストして送信する準備が整いました。キャンペーン作成の 2 番目のステップにある **Test** 機能を使用して、コネクターの設定をテストできます。
+
+接続を確認するには、Heap アカウントを確認します。チケットが正常に作成されていれば設定は正しく、キャンペーンを公開できます。
+
+![コネクターキャンペーンのリクエストのプレビュー](/images/partner_20170037707924.png)
+
+## レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Heap データの取り込みを、ワークスペースごとに 1 秒あたり最大 500 リクエスト（RPS）に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+Heap は、デフォルトの再試行ポリシーによってこうしたレート制限のほとんどを自動的に処理しますが、次の動作に注意してください。
+
+**再試行の上限到達:** Heap がデータのバッチに対するすべての再試行を使い切った場合、失敗したリクエストを再実行するには Heap サポートチームに連絡する必要があります。

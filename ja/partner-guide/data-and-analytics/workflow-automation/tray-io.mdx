@@ -1,0 +1,115 @@
+---
+title: "Tray.io"
+description: "MoEngage と Tray.io を連携して、複雑なワークフローを自動化し、Webhook を使用してアクションをトリガーし、クラウドスタック全体でデータをシームレスに同期する方法を説明します。"
+---
+
+# はじめに
+
+[Tray.io](https://tray.io/) は、強力で柔軟なプラットフォームを通じて組織が複雑なプロセスを簡単に自動化し、API によってクラウドスタック全体を接続できる統合プラットフォームです。
+
+# MoEngage × Tray.io
+
+MoEngage と Tray.io の連携により、カスタムロジックやコード関数を使用して、MoEngage と他のアプリの間で簡単にデータを送信できます。この連携では、次のことができます。
+
+  1. Connector campaigns を介して、MoEngage を Tray.io のトリガーとして使用する
+  2. Data APIs を使用して、Tray.io から MoEngage にデータを送信する
+
+
+
+## ユースケース
+
+  1. MoEngage でイベントが発生したときに、Google Sheets に新しい行を追加する。
+  2. HubSpot のリードから MoEngage にユーザーをインポートする。
+  3. ユーザーがイベントを実行したときに Slack メッセージを送信する。
+  4. Tray.io で設定した WebHook から MoEngage にイベントをインポートする。
+
+
+
+# 連携の前提条件
+
+  * Tray.io アカウントにアクセスできることを確認してください。
+  * MoEngage Dashboard で Data API キーにアクセスできることを確認してください。
+  * Data API ID と Data API Key は、**Settings** -> **Account** -> **APIs** で確認できます。Data API ID は **Workspace ID** と同じです。Data API Key は、同じ画面の **API Keys** -> **Data** セクションで確認できます。
+
+
+
+## MoEngage をトリガーとして使用する
+
+MoEngage の Connector Campaigns を利用して、MoEngage をトリガーとして使用できます。
+
+### ステップ 1: Tray.io で Webhook をトリガーとして追加する
+
+  1. Tray.io Dashboard で、「+ Add workflow」>>「From scratch」をクリックして新しいワークフローを作成します。
+  2. ワークフローに名前を付け、その他の詳細を入力します。
+  3. ステップ 2 で、「Through an internal trigger」セクションの「Webhook」を選択します。
+
+
+
+![Step-1-Webhook-Trigger.png](/images/partner_15169876373396.png)
+
+  4. 「Create workflow」をクリックして開始します。
+  5. Workflow Editor で、トリガーの横にある三点メニュー >>「Copy public URL」をクリックします。
+
+
+
+![Step1-Trigger-Dashboard.png](/images/partner_15169978407700.png)
+
+  6. この Public URL が、MoEngage Connector Campaign で設定するエンドポイントになります。
+  7. 下部にある「Enable workflow」をクリックして、この URL を有効にします。
+
+
+
+### ステップ 2: MoEngage Dashboard で Connector Campaign を設定する
+
+  1. MoEngage Dashboard に移動します。
+  2. 次のいずれかの方法を使用します。
+     1. **All Campaigns** ページで、**Create Campaign** をクリックします。  
+Create Campaign ページが表示されます。
+![CreateCampaign_RightNav.png](/images/partner_22018437263764.png)
+     2. **Create New** > **Campaign** をクリックします。  
+Create Campaign ページが表示されます。
+![CreateCampaignLeftNav.png](/images/partner_22018437265684.png)
+  3. Connectors の下にある **Custom** をクリックします。
+  4. キャンペーンの配信タイプとして「Event-Triggered」を選択します。
+     * 配信タイプの詳細については、[Delivery Types](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/introduction/delivery-types-moengage-channels) を参照してください。
+  5. 次の画面でキャンペーンに名前を付け、Criteria として「Device Uninstall」を選択します。
+  6. トリガーには「immediately」を選択します。
+
+
+
+![UseCase2-Step3.png](/images/partner_22018437268756.png)
+
+  7. このユースケースでは、オーディエンスとして「All users」を選択します。問題がなければ「Next」をクリックします。
+  8. コンテンツ画面で、ペイロードと前のステップで取得した Webhook URL を定義します。
+  9. メソッドとして「POST」を選択します（Tray.io の [Webhook Trigger](https://tray.io/documentation/connectors/triggers/webhook-trigger/) の詳細をご覧ください）。
+  10. 先ほどコピーした Webhook URL（Public URL）を入力します。
+  11. 要件に応じてヘッダーとパラメーターを定義します。このユースケースでは、ペイロードの Body のみを定義します（@ を入力してパーソナライズされた値を挿入することもできます）。
+
+
+
+![Step-2-ConnectorCampaign.png](/images/partner_15170107931156.png)
+
+  12. 次に、この Webhook をテストする必要があります。下にスクロールしてテストユーザーのデータを入力し、「test」をクリックします。
+  13. テストが成功したことを示す新しいモーダルが表示されます。
+
+
+
+![UseCase2-Step5.png](/images/partner_22018397365652.png)
+
+### ステップ 3: Tray.io でトリガーをテストする
+
+  1. Tray.io の Workflow editor に戻ります。上部から「logs」タブを開きます。
+  2. 左側のサイドバーに、先ほど実行したテストによる新しい実行エントリが表示されます。
+  3. 実行エントリを選択し、「Webhook」を選択します。データが正常に Tray.io に届いているか確認します。
+
+
+
+![Step-2-Verify.png](/images/partner_15170220514836.png)
+
+  4. データを確認したら、output タブの上にある「Use output」ボタンをクリックします。これにより、ペイロード内のすべてのフィールドが他のステップでアクセスできるようになります。
+
+
+
+![Step-2-Output.png](/images/partner_15170228366740.png)
+
+  5. 次のステップで `{$` を入力すると、補間用のドロップダウンが開きます。トリガーステップからマッピングするフィールドを選択します。[データの操作](https://tray.io/documentation/platform/working-with-data/basic-data-guide/#working-with-data-and-jsonpaths)の詳細をご覧ください。

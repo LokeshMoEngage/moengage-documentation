@@ -1,0 +1,60 @@
+---
+title: "Android SDKの初期化"
+description: "Workspace IDを使用して、AndroidのApplicationクラスでMoEngage Flutter SDKを初期化します。"
+---
+
+MoEngageダッシュボードの設定ページ _Dashboard --\> Settings --\> App --\> General Settings からAPP IDを取得し、**_Application_** クラスの **_onCreate()_** でMoEngage SDKを初期化します。
+
+<Info>
+  SDKはonCreate()内のメインスレッドで初期化してください。ワーカースレッドを作成してそのスレッドでSDKを初期化しないでください。
+</Info>
+
+<CodeGroup>
+
+```kotlin Kotlin
+import com.moengage.flutter.MoEInitializer
+import com.moengage.core.MoEngage
+import com.moengage.core.DataCenter
+...
+// `this` is the instance of the application class and "YOUR_WORKSPACE_ID" is the Workspace ID from the dashboard.
+val moEngage: MoEngage.Builder = MoEngage.Builder(this,"YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X) 
+MoEInitializer.initialiseDefaultInstance(context = this, builder = moEngage)
+```
+
+
+```java Java
+import com.moengage.flutter.MoEInitializer;
+import com.moengage.core.MoEngage;
+import com.moengage.core.DataCenter;
+...
+// `this` is the instance of the application class and "YOUR_WORKSPACE_ID" is the Workspace ID from the dashboard.
+MoEngage.Builder moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", YOUR_DATA_CENTER);
+MoEInitializer.initialiseDefaultInstance(this, moEngage);
+```
+
+</CodeGroup>
+
+ダッシュボードホストに基づいて設定する必要がある各データセンターの詳細は次のとおりです。
+
+| データセンター              | ダッシュボードホスト            |
+| ------------------------ | ------------------------- |
+| DataCenter.DATA_CENTER_1 | dashboard-01.moengage.com |
+| DataCenter.DATA_CENTER_2 | dashboard-02.moengage.com |
+| DataCenter.DATA_CENTER_3 | dashboard-03.moengage.com |
+| DataCenter.DATA_CENTER_4 | dashboard-04.moengage.com |
+| DataCenter.DATA_CENTER_5 | dashboard-05.moengage.com |
+| DataCenter.DATA_CENTER_6 | dashboard-06.moengage.com |
+
+設定可能な項目の詳細な一覧については、[APIリファレンス](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html)を参照してください。
+
+<Warning>
+  **重要**
+
+  すべての設定は初期化前にビルダーに追加されます。複数の場所でinitializeを呼び出している場合は、動作の一貫性を保つため、初期化のたびに必要なすべてのフラグと設定が指定されていることを確認してください。
+</Warning>
+
+# MoEngageストレージファイルを自動バックアップから除外する
+
+これは必須の統合手順であり、データの破損を防ぐために非常に重要です。Androidの自動バックアップサービスは、Shared Preferenceファイルやデータベースファイルなどを定期的にバックアップします。詳細は[こちら](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup)を参照してください。このバックアップにより、MoEngage SDKの識別子がバックアップされ、再インストール後に復元されます。この識別子の復元により、データが破損し、プッシュ通知でユーザーにリーチできなくなります。
+
+バックアップの復元後にデータが破損しないように、MoEngage SDKのストレージファイルをバックアップ対象から除外してください。除外するファイルの詳細については、ドキュメントの[MoEngageストレージファイルを自動バックアップから除外する](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup)セクションを参照してください。

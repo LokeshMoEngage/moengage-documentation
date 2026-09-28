@@ -1,0 +1,81 @@
+---
+title: "古いプラットフォームバージョンのサポート終了"
+description: "2025 年 4 月以降の MoEngage SDK リリースでサポートが終了する Android API レベルと iOS バージョンを確認します。"
+---
+
+MoEngage は、2025 年 4 月 26 日以降、Android では最低 API レベル 23、iOS では iOS 13 をサポートし、2025 年 5 月 27 日以降、iOS では最低 iOS 13 をサポートします。現在、MoEngage SDK は Android では [Android API レベル](https://source.android.com/docs/setup/reference/build-numbers) [Placeholder_Link] 21 および 22（Android 5、Lollipop）、iOS デバイスでは iOS 12 をサポートしています。Android では 2025 年 4 月 26 日以降、iOS では 2025 年 5 月 27 日以降のリリースで、サポートされる最小バージョンが次のように引き上げられます。
+
+- Android: API レベル 21 から 23（Android 6、Marshmallow）へ
+- iOS: iOS 12 から iOS 13 へ
+
+# MoEngage SDK で API レベル 21 と 22 および iOS 12 のサポートを終了する理由
+
+## Android の場合
+
+Lollipop プラットフォームと iOS 12 は、それぞれリリースから約 8 年と 6 年が経過しています。これらのバージョン以下を使用している Android デバイスは、全体のごくわずかな割合です。Android デバイスの現在の分布について詳しく知ることができます。これらの古いデバイスの多くは、現在積極的には使用されていないと考えられます。
+
+多くの開発者は、すでにアプリでこれらのバージョンのサポートを終了しています。これにより、プラットフォームの新しい機能を活用した、より優れたアプリを構築できます。MoEngage にとっても状況は同じです。この変更により、MoEngage は開発者向けに、より堅牢なツール群をより迅速に提供できるようになります。
+
+# MoEngage SDK を使用するアプリへの影響
+
+2025 年 4 月 26 日（Android）および 2025 年 5 月 27 日（iOS）より前にリリースされた MoEngage SDK のバージョンは、現在と同様に引き続き使用できます。これらのバージョンは、これまでと同様に Lollipop および iOS 12 のデバイスで引き続き動作します。
+
+2025 年 4 月 26 日（Android）および 2025 年 5 月 27 日（iOS）以降にリリースされる将来のバージョンにアップグレードする場合、アプリが次の条件を満たしていれば、バージョンに関する問題は発生しません。
+
+- Android API レベル 23 以上（通常は build.gradle の「minSdkVersion」で指定）
+- iOS 13
+
+ただし、アプリが API レベル 21 または 22 未満、あるいは iOS 12 をサポートしている場合は、ビルド時にエラーが発生します。つまり、古いデバイスでアプリを正常に実行できなくなります。2025 年 4 月 26 日（Android）および 2025 年 5 月 27 日（iOS）以降にリリースされた MoEngage SDK のバージョンを使用するには、次のいずれかのオプションを選択できます。
+
+## iOS の場合
+
+iOS 12 のサポートを終了するには、ターゲットの Xcode プロジェクトの **General** タブで次の変更を行います。
+
+1. **Deployment Target** ドロップダウンリストで、サポートする最小 iOS バージョンを選択します。
+2. アプリが複数のデバイスに対応している場合は、同じ **Deployment Info** セクションで、デバイスの種類（iPhone、iPad など）ごとに最小 iOS バージョンを設定してください。
+
+## Android の場合
+
+- サポートする最小 API レベルとして API レベル 23 をターゲットにする（推奨）
+
+MoEngage SDK でサポートされなくなった API レベルのサポートを終了するには、アプリの build.gradle の minSdkVersion の値を 23 以上に引き上げます。このようにアプリを更新して Play ストアで公開すると、そのレベルに満たないデバイスのユーザーは更新を表示したりダウンロードしたりできなくなります。ただし、それらのユーザーは、自分のデバイスを対象とした最新の公開バージョンのアプリを引き続きダウンロードして使用できます。
+
+Android デバイスで、古いデバイスを使用しているユーザーがまだ多い場合は、Google Play の複数 APK サポートを利用して、古いバージョンの MoEngage SDK を使用する APK を配信できます。この方法については以下で説明します。
+
+- API レベル 23 未満のデバイスをサポートするために複数の APK をビルドする（非推奨）
+
+いくつかの設定とコード管理を行うことで、異なるバージョンの MoEngage SDK を使用して、異なる最小 API レベルをサポートする[複数の APK をビルド](https://developer.android.com/training/multiple-apks/api.html) [Placeholder_Link]できます。これは Gradle の[ビルドバリアント](https://developer.android.com/studio/build/build-variants.html) [Placeholder_Link]で実現できます。まず、アプリのレガシーバージョンと新しいバージョンのビルドフレーバーを定義します。例えば、build.gradle で 2 つの異なるプロダクトフレーバーを定義し、使用している Play Services のコンポーネントに対して 2 つの異なるコンパイル依存関係を指定します。
+
+<CodeGroup>
+
+```Kotlin Kotlin
+productFlavors {
+    legacy {
+        minSdkVersion 9??
+        versionCode 901 // Min API level 9, v01??
+}
+    current {
+        minSdkVersion 14??
+        versionCode 1401 // Min API level 14, v01??
+}
+}
+dependencies {
+    legacyCompile 'com.google.android.gms:play-services:10.0.0'??
+    currentCompile 'com.google.android.gms:play-services:10.2.0'??
+}
+```
+
+</CodeGroup>
+
+上記の例では、Google Play services クライアントライブラリの 2 つの異なるバージョンに対して、2 つのプロダクトフレーバーがビルドされています。これは、古い MoEngage SDK バージョンで利用可能な API のみを呼び出す場合には問題なく動作します。2025 年 4 月 26 日以降にリリースされたバージョンで利用可能になった新しい API を呼び出す必要がある場合は、新しい API 呼び出し用の互換性ライブラリを作成し、それらを使用できるバージョンのアプリケーションにのみ組み込まれるようにする必要があります。
+
+- Play services の現在のバージョンでのみ利用可能な、実行したい上位レベルの機能を公開する Java インターフェースを宣言します。
+- そのインターフェースを実装する 2 つの Android ライブラリをビルドします。_current_ の実装では、必要に応じて新しい API を呼び出す必要があります。_legacy_ の実装では、何も実行しないか、古いバージョンの MoEngage SDK で必要な動作をするようにします。インターフェースは両方のライブラリに追加する必要があります。
+- _legacyCompile_ と _currentCompile_ の依存関係を使用して、各ライブラリを条件付きでアプリにコンパイルします。
+- アプリのコードでは、新しい MoEngage SDK の API が必要な場合は常に互換性ライブラリを経由して呼び出します。
+
+各フレーバーのリリース APK をビルドしたら、両方を Play ストアで公開します。デバイスは、そのデバイスに最も適したバージョンに更新されます。詳細については、[Play ストアでの複数 APK サポート](https://developer.android.com/google/play/publishing/multiple-apks)をご覧ください。[Placeholder_Link]
+
+<Info>
+  ご不明な点がある場合は、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+</Info>

@@ -1,0 +1,182 @@
+---
+title: "プッシュコールバック"
+description: "MoEngage React Native SDK で、プッシュトークンとプッシュクリックのコールバックリスナーを設定します。"
+---
+
+# プッシュトークンのコールバック
+
+MoEngage プラグインは、デバイストークンが生成されるたびに `pushTokenGenerated` イベントをトリガーします。このイベントは iOS と Android の両プラットフォームに共通のトリガーで、プラグインバージョン `6.0.0` から利用できます。リスナーを設定するには、以下のコードを参照してください。
+
+<CodeGroup>
+
+```typescript TypeScript
+import ReactMoE from 'react-native-moengage' 
+ReactMoE.setEventListener("pushTokenGenerated", (payload) => { 
+  console.log("pushTokenGenerated", payload); 
+});
+```
+
+</CodeGroup>
+
+コールバックで受け取るペイロードは、次の定義を持つ `MoEPushToken` インスタンスです。
+
+<CodeGroup>
+
+```typescript TypeScript
+class MoEPushToken {
+ /// Native platform from which the callback was triggered.(ios/android)
+ platform: MoEPlatform;
+ /// push type associated with platform
+ pushService: MoEPushService;
+ /// push token value
+ token: String;
+}
+```
+
+</CodeGroup>
+
+# プッシュクリックのコールバック
+
+MoEngage プラグインは、通知がクリックされるたびに `pushClicked` イベントをトリガーします。このイベントは iOS と Android の両プラットフォームに共通のトリガーで、プラグインバージョン `6.0.0` から利用できます。リスナーを設定するには、以下のコードを参照してください。
+
+<Warning>
+  これらのコールバックを設定した後に、MoEngage プラグインの `initialize()` メソッドを呼び出すようにしてください。詳細については、[React-Native コンポーネントの初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization)を参照してください。
+</Warning>
+
+<CodeGroup>
+
+```typescript TypeScript
+import ReactMoE from 'react-native-moengage' 
+ReactMoE.setEventListener("pushClicked", (notificationPayload) => { 
+  console.log("pushClicked", notificationPayload); 
+});
+```
+
+</CodeGroup>
+
+このコールバックは、アプリケーションが初期化されたらすぐに設定してください。`App.js` のコンストラクタ内で設定することを推奨します。
+
+コールバックで受け取る NotificationPayload は、次の定義を持つ `MoEPushPayload` インスタンスです。
+
+<CodeGroup>
+
+```typescript TypeScript
+class MoEPushPayload {
+  /// account payload for which callback is received
+  accountMeta: MoEAccountMeta;
+  /// Push click payload
+  data: MoEPushCampaign;
+  /// Native platform from which the callback was triggered.(ios/android)
+  platform: MoEPlatform;
+}
+class MoEPushCampaign {
+  /// notification payload
+  payload: Map<String, Object>
+  ///boolean value indicating if the user clicked on the default content or not.
+  isDefaultAction: Boolean;
+  ///Action to be performed on notification click.
+  clickAction: Map<String, Object>;
+}
+```
+
+</CodeGroup>
+
+`clickedAction` Map のペイロード構造
+
+<CodeGroup>
+
+```json JSON
+{
+  "clickedAction": {
+    "type": "navigation/customAction",
+    "payload": {
+      "type": "screenName/deepLink/richLanding",
+      "value": "",
+      "kvPair": {
+        "key1": "value1",
+        "key2": "value2",
+        ...
+      }
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+- `platform` - コールバックがトリガーされたネイティブプラットフォームです。取り得る値は `android`、`ios` です。
+- `isDefaultAction` - このキーは Android プラットフォームでのみ存在します。ユーザーがデフォルトのコンテンツをクリックしたかどうかを示すブール値です。ユーザーがデフォルトのコンテンツをクリックした場合は true、それ以外の場合は false です。
+- `clickedAction` - 通知のクリック時に実行されるアクションです。
+- `clickedAction.type` - クリックアクションのタイプです。取り得る値は `navigation` と `customAction` です。現在、`customAction` は Android でのみサポートされています。
+- `clickAction.payload` - クリックされたアクションのアクションペイロードです。
+- `clickedAction.payload.type` - 定義されたナビゲーションアクションのタイプです。取り得る値は `screenName`、`deepLink`、`richLanding` です。現在、iOS の場合、richlanding とディープリンク URL は SDK によって内部で処理され、このコールバックには渡されないため、iOS で取り得る値は `screenName` のみです。
+- `clickAction.value` - ナビゲーションアクションまたはカスタムペイロードに入力された値です。
+- `clickAction.kvPair` - MoEngage プラットフォームで入力されたカスタムのキーと値のペアです。
+- `payload` - キャンペーンの完全なペイロードです。
+
+## Android のペイロード
+
+ユーザーが通知のデフォルトのコンテンツをクリックした場合、キーと値のペアおよびキャンペーンのペイロードは `payload` キー内にあります。ユーザーがアクションボタンまたはプッシュテンプレートのアクションをクリックした場合、アクションのペイロードは `clickedAction` 内にあります。\
+`isDefaultAction` キーを使用して、ユーザーがデフォルトのコンテンツをクリックしたかどうかを確認し、それに応じてペイロードを解析できます。
+
+## iOS のペイロード
+
+iOS の場合、クリックされたアクションに関するキーと値のペアは常に `clickedAction` プロパティで受け取ります。iOS の通知ペイロードの構造については、こちらの[通知ペイロード](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse)を参照してください。
+
+# Android でのセルフハンドルのプッシュクリック（オプション）
+
+デフォルトでは、ユーザーが通知をクリックすると、SDK はユーザーを定義済みの Activity にリダイレクトし、特定の react-native コンポーネントを読み込むためにアプリケーションにコールバックを渡します。
+
+アプリケーションがフォアグラウンドにある場合、アプリケーションが再読み込みされているように見え、あまり良いユーザー体験ではない可能性があります。ユーザーを特定の react-native コンポーネントに移動させるだけにしたい場合は、以下の手順に従ってください。
+
+React-Native プラグインを初期化する際に、**_MoEPushConfig_** オブジェクトでフォアグラウンドクリックのコールバックを有効にします。
+
+<CodeGroup>
+
+```typescript TypeScript
+import { MoEPushConfig, MoEInitConfig } from "react-native-moengage";
+ReactMoE.initialize(
+    "YOUR_WORKSPACE_ID",
+    new MoEInitConfig(new MoEPushConfig(true))
+);
+```
+
+</CodeGroup>
+
+React コンポーネントがマウントされたときと、アプリケーションがフォアグラウンドに移ったときに、**_initialize()_** を呼び出す必要があります。
+
+以下に示すように、Application クラスでの SDK 初期化時にセルフハンドルのコールバックを有効にします。
+
+<CodeGroup>
+
+```kotlin Kotlin
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+MoEInitializer.initializeDefaultInstance(applicationContext, moEngage, true)
+```
+
+
+```java Java
+MoEngage.Builder moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID");
+MoEInitializer.INSTANCE.initializeDefaultInstance(getApplicationContext(), moEngage, true);
+```
+
+</CodeGroup>
+
+以下の Activity を AndroidManifest.xml に追加します。
+
+<CodeGroup>
+
+```xml XML
+<manifest ...>
+    <application ...>
+        <activity
+            android:name="com.moengage.pushbase.activities.PushTracker"
+            android:launchMode="singleInstance"
+            tools:replace="android:launchMode" />
+    </application>
+<manifest/>
+```
+
+</CodeGroup>
+
+アプリケーションがフォアグラウンドにあるとき（かつ上記のフローが有効になっている場合）にトリガーされる通知クリックのコールバックには、追加のキー **_selfHandledPushRedirection_** が値 **_true_** で含まれます。

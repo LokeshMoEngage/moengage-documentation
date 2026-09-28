@@ -1,0 +1,97 @@
+---
+title: "Google Analytics へのデータ送信"
+description: "コネクターと GA Measurement Protocol を使用して、MoEngage から Google Analytics にユーザーインタラクションデータを送信します。GA4 と Universal の両方に対応しています。"
+---
+
+開発者は、GA Measurement Protocol を介して **Connectors を使用して MoEngage から Google Analytics ツールにデータを送信** できるようになりました。
+
+Google Analytics Measurement Protocol を使用すると、開発者は HTTP リクエストを送信して、未加工のユーザーインタラクションデータを Google Analytics サーバーに直接送信できます。これにより、開発者はほぼあらゆる環境から、ユーザーがビジネスとどのようにやり取りしているかを測定できます。開発者は Measurement Protocol を使用して次のことができます。
+
+- 新しい環境でのユーザーアクティビティを測定する。
+- オンラインとオフラインの行動を結び付ける。
+- クライアントとサーバーの両方からデータを送信する。
+
+# Measurement Protocol (Google Analytics 4)
+
+Google Analytics 4 は POST 呼び出しのみをサポートしています。イベントを送信するには、次のエンドポイントに `HTTP POST` リクエストを送信します。
+
+```text
+POST /mp/collect HTTP/1.1
+HOST: www.google-analytics.com
+Content-Type: application/json
+<payload_data>
+```
+
+データは Measurement Protocol を使用して、次の 2 つの部分で Google Analytics に送信されます。
+
+1. クエリパラメーター
+2. `JSON` の `POST` ボディ
+
+### クエリパラメーター
+
+| パラメーター名 | 説明 |
+| --- | --- |
+| `api_secret` | **必須。**<br />Google Analytics UI で生成される `API Secret` です。Google Analytics UI で生成される API Secret です。  <br />新しいシークレットを作成するには、Google Analytics UI で次の場所に移動します。  <br />Admin \> Data Streams \> ストリームを選択 \> Measurement Protocol \> Create |
+| `measurement_id` | 任意。  <br />Measurement ID。データストリームの識別子です。Google Analytics UI の次の場所で確認できます。  Admin \> Data Streams \> ストリームを選択 \> Measurement ID |
+| `firebase_app_id` | **Firebase アプリを使用する場合のみ必須。**<br />Firebase App ID。Firebase アプリの識別子です。Firebase コンソールの次の場所で確認できます。  Project Settings \> General \> Your Apps \> App ID |
+
+Measurement Protocol の必須クエリパラメーターの詳細については、[こちら](https://developers.google.com/analytics/devguides/collection/protocol/ga4/reference?client_type=gtag#payload)を参照してください。
+
+### JSON POST ボディ
+
+リクエストのペイロードは、トラッキングしたいイベントと属性によって異なります。必須フィールドは次のとおりです。
+
+| パラメーター名 | 説明 |
+| --- | --- |
+| `client_id` | **gtag.js を使用する場合のみ必須。**<br />Web クライアントのユーザーインスタンスを一意に識別します。[Measurement Protocol へのイベント送信](https://developers.google.com/gtagjs/reference/api#get_mp_example)を参照してください。 |
+| `app_instance_id` | **Firebase アプリを使用する場合のみ必須。**<br />Firebase アプリの特定のインストールを一意に識別します。この値は Firebase SDK を通じて取得する必要があります。 |
+| `events` | **必須。**<br />イベントアイテムの配列です。 |
+
+Measurement Protocol の必須 JSON POST ボディパラメーターの詳細については、[こちら](https://developers.google.com/analytics/devguides/collection/protocol/ga4/reference?client_type=firebase#payload_post_body)を参照してください。
+
+# コネクターキャンペーンの設定
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. MoEngage のサイドバーメニューで、**Engage** アイコン <img alt="Screenshot 2025-06-04 at 4.32.53 PM.png" src="/images/moengage_a7dd26.png" style={{ display: 'inline-block'}} /> にカーソルを合わせます。**Engage** メニューが表示されます。
+2. **\+ New Campaign** をクリックします。 <img src="/images/moengage_f74486.png" alt="1.png" /> **Engage** メニューの **All Campaigns** をクリックし、**All campaigns** ページで **\+ Create campaign** をクリックすることもできます。
+3. **New Campaign** ダイアログボックスの **Connectors** で、**Event Triggered** をクリックします。 <img src="/images/moengage_6377c7.png" alt="custom.png" />
+4. キャンペーンに名前と関連するタグを付けます。
+5. トリガー条件を設定します。必要に応じて遅延を追加することもできます。 <img src="/images/moengage_9e50d3.png" />
+6. ターゲットオーディエンスを選択します。オーディエンスの数を確認することもできます。 <img src="/images/moengage_4e3e64.png" />
+7. Next をクリックして次のステップに進みます。
+8. キャンペーンのステップ 2 で、次の操作を行います。
+   - メソッドとして POST を選択します。
+   - Webhook URL として次を追加します: `https://www.google-analytics.com//mp/collect?api_secret=<api_secret>&measurement_id=<measurement_id>`
+   - URL パラメーターのリストが自動入力されます。`<api_secret>` を API Secret Key に置き換えます。Firebase アプリを使用している場合は、このパラメーターを `firebase_app_id` に置き換えることができます。`<measurement_id>` をデータストリームの ID に置き換えます。
+   - Headers で、`Content-Type` を `application/json` として追加します。
+   - Body で Raw を選択し、Google Analytics に送信したいイベントに応じたコンテンツを使用します。以下は例です。\\
+     ```text wrap
+     {
+         "client_id": "<client_id>",
+         "user_id": "{{UserAttribute['ID']}}",
+         "timestamp_micros": "{{EventAttribute['Event Time (UTC)']}}",
+         "user_properties": {
+             "email": {
+                 "value": "{{UserAttribute['Email (Standard)']}}"
+             }
+         },
+         "events": [
+             {
+                 "name": "cart_checkout",
+                 "params": {
+                     "checkout_value": 1000
+                 }
+             }
+         ]
+     }
+     ```
+     - `<client_id>` をクライアント ID(`gtag.js` を使用している場合)に置き換えてください。Firebase アプリを使用している場合は、このキーを `app_instance_id` に置き換えることもできます。
+
+![](/images/moengage_9cf6b7.png)
+
+7. これで、キャンペーンをテストして送信する準備が整いました。Create Connector Campaign のステップ 2 にある Test 機能を使用して、コネクター設定をテストすることもできます。
+
+![Screen\_Shot\_2022-02-22\_at\_11.12.42\_AM.png](/images/moengage_1492ae.png)
+
+Google Analytics アカウントがイベントを正常に受信した場合、設定は完了です。キャンペーンを公開(Publish)できます。

@@ -1,0 +1,161 @@
+---
+title: "Android プッシュ設定"
+description: "FCM のセットアップやプッシュ登録など、Capacitor アプリで Android プッシュ通知を設定します。"
+---
+
+# 基本セットアップ
+
+MoEngage を使用して Android デバイスでプッシュ通知を有効にするには、このセクションで説明する基本セットアップに従ってください。
+
+- **MoEngage ダッシュボードでの FCM セットアップ -** FCM 認証は、Android デバイスにインストールされたアプリにプッシュ通知を送信できるようにするための方法です。[こちらの記事](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)に記載されている方法を使用して、MoEngage が Firebase サービスにアクセスできるよう認証します。
+- **プッシュ通知のメタデータの追加 -** [こちらの記事](/ja/developer-guide/components-for-sdk/push-notification/android-push-configuration-for-hybrid-applications#adding-metadata-for-push-notification)で説明されている方法を使用して、スモールアイコンとラージアイコンの drawable、およびプッシュ通知を処理するためのその他のオプションを設定します。
+- **Android 通知のランタイム権限** - アプリケーションが Android 13 で実行されている場合、ユーザーに通知を表示するには、ユーザーに通知権限をリクエストする必要があります。権限リクエストを処理するには、[こちらの記事](/ja/developer-guide/react-native-sdk/push/basic/android-notification-runtime-permissions)で説明されている方法を参照してください。
+- **プッシュの登録と受信** - React Native アプリケーションでプッシュ通知を使用するには、Firebase を設定する必要があります。Firebase の設定手順は、統合方法によって異なります。ベストプラクティスが適切に統合されているため、MoEngage はプッシュの処理を MoEngage SDK に任せることをお勧めします。アプリレベルでプッシュを処理することもできます。いずれの場合も、該当する次のセクションを確認し、統合手順を完了してください。
+
+<Tabs>
+  <Tab title="MoEngage にプッシュを処理させる（推奨）">
+    **メッセージングサービスの追加**\
+    MoEngage SDK が通知を表示するには、マニフェストファイルにメッセージングサービスを追加する必要があります。[こちら](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#push-token-registration-and-display-by-moengage-sdk)のドキュメントを参照してください。
+
+    **トークン登録時のコールバック（任意）**\
+    新しいトークンが登録または更新されるたびにコールバックを受け取るには、[こちら](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#push-token-registration-and-display-by-moengage-sdk)の方法を参照してください。
+
+    **通知クリックコールバック**
+
+    プッシュがクリックされるたびにコールバックを受け取り、リダイレクトをカスタム処理するには、[こちらの記事](/ja/developer-guide/android-sdk/push/advanced/callbacks-and-customisation#notification-received-callback)の方法を使用します。
+  </Tab>
+  <Tab title="Android ネイティブでプッシュを処理する">
+    **MoEngage の登録をオプトアウトするには？**\
+    MoEngage SDK はプッシュトークンの登録を試みます。アプリケーションがプッシュを処理するため、[こちらの記事](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#pass-the-push-token-to-moengage-sdk)の方法を使用して SDK のトークン登録をオプトアウトする必要があります。
+
+    **プッシュトークンを MoEngage SDK に渡す** - FCM からプッシュトークンを受信したら、[こちらの記事](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display)の方法を使用してプッシュトークンを MoEngage SDK に渡し、MoEngage プラットフォームに設定します。
+
+    **プッシュペイロードを MoEngage SDK に渡す** - アプリでプッシュペイロードを受信したら、[こちらの記事](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#passing-the-push-payload-to-the-moengage-sdk)の方法を使用してデバイスにプッシュ通知を送信します。
+  </Tab>
+  <Tab title="Capacitor でプッシュを処理する（非推奨）">
+    <Warning>
+      MoEngage では、React-Native/JavaScript API ではなく Android ネイティブ API を使用してプッシュペイロードを MoEngage SDK に渡すことをお勧めします。アプリケーションが強制終了されている場合や、通知が高い優先度で送信されていない場合、React-Native エンジンが初期化されない可能性があります。
+    </Warning>
+    - [プッシュトークンを MoEngage SDK に渡す](/ja/developer-guide/capacitor-sdk/push/basic/android-push-configuration#passing-push-token)
+    - [プッシュペイロードを MoEngage SDK に渡す](/ja/developer-guide/capacitor-sdk/push/basic/android-push-configuration#passing-push-payload)
+    - [コールバックとカスタマイズ](/ja/developer-guide/react-native-sdk/push/basic/android-push-configuration#customizing-push-notification)
+  </Tab>
+</Tabs>
+
+ 
+
+# Capacitor API
+
+ 
+
+<Warning>
+  プッシュペイロードを MoEngage SDK に渡す際は、Capacitor API ではなく Android ネイティブ API を使用することを強くお勧めします。アプリケーションが強制終了されている場合や、通知が高い優先度で送信されていない場合、Capacitor エンジンが初期化されない可能性があります。
+</Warning>
+
+## プッシュトークンの受け渡し
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+// pass the push token as a string
+passFcmPushToken({ token: "TOKEN", appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+## プッシュペイロードの受け渡し
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+// pass the push payload object
+passFcmPushPayload(payload: object, appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+<Warning>
+  プッシュペイロードを MoEngage SDK に渡す際は、Capacitor API ではなく Android ネイティブ API を使用することを強くお勧めします。アプリケーションが強制終了されている場合や、通知が高い優先度で送信されていない場合、Capacitor エンジンが初期化されない可能性があります。
+</Warning>
+
+# 通知のランタイム権限
+
+Android 13（API レベル 33）以降では、アプリから[対象外ではない](https://developer.android.com/develop/ui/views/notifications/notification-permission#exemptions)（フォアグラウンドサービス（FGS）を含む）通知を送信するための[ランタイム権限](https://developer.android.com/guide/topics/permissions/overview#runtime) `POST_NOTIFICATIONS` がサポートされています。この変更により、ユーザーは自分にとって最も重要な通知に集中できるようになります。
+
+詳細については、[公式ドキュメント](https://developer.android.com/develop/ui/views/notifications/notification-permission)を参照してください。
+
+以下の API は、プラグインバージョン **2.0.0** からサポートされています。
+
+アプリケーションが Android 13 で実行されている場合、ユーザーに通知を表示するには、ユーザーに通知権限をリクエストする必要があります。
+
+MoEngage SDK を統合するアプリケーションでは、次の対応が必要です。 
+
+- ユーザーからの権限リクエストに対する応答を SDK に通知する。
+- アプリケーションが（MoEngage の統合前に）すでにプッシュ権限をリクエストしている場合は、通知を表示するための通知チャネルを MoEngage がセットアップできるようにする。
+
+## 権限の結果を SDK に通知する
+
+アプリケーションがユーザーに通知権限をリクエストしたら、以下の API を使用してユーザーの応答を SDK に通知します。
+
+<CodeGroup>
+
+```typescript Typescript
+import { MoECapacitorCore} from 'capacitor-moengage-core'
+MoECapacitorCore.pushPermissionResponseAndroid({ isGranted: true/false });
+```
+
+</CodeGroup>
+
+## 通知チャネルのセットアップ
+
+アプリケーションがすでにユーザーから通知権限を取得している場合は、以下の API を呼び出して、プッシュ通知を表示するための通知チャネルをセットアップします。
+
+<CodeGroup>
+
+```typescript Typescript
+import { MoECapacitorCore} from 'capacitor-moengage-core'
+MoECapacitorCore.setupNotificationChannelsAndroid();
+```
+
+</CodeGroup>
+
+MoEngage SDK は、エンドユーザーに権限リクエストを表示したり、通知を有効にするための設定画面にユーザーを移動させたりするためのヘルパー API を提供しています。
+
+ユーザーに権限リクエストダイアログを表示するには、以下の API を使用します。
+
+以下の API を使用すると、SDK は上記の応答のトラッキングや必要な通知チャネルのセットアップなどを自動的に行います。
+
+<CodeGroup>
+
+```typescript Typescript
+import { MoECapacitorCore} from 'capacitor-moengage-core'
+MoECapacitorCore.requestPushPermissionAndroid();
+```
+
+</CodeGroup>
+
+デバイス上のアプリケーションの通知設定にユーザーを移動させるには、以下の API を使用します。
+
+_注_: Android 8（API レベル 26）未満では、ユーザーはアプリケーションのアプリ情報画面に移動します。
+
+<CodeGroup>
+
+```typescript Typescript
+import { MoECapacitorCore} from 'capacitor-moengage-core'
+MoECapacitorCore.navigateToSettingsAndroid();
+```
+
+</CodeGroup>
+
+## プッシュ通知のカスタマイズ
+
+必要に応じて、アプリケーションはネイティブ Android コード（Java/Kotlin）を使用して通知の動作をカスタマイズできます。カスタマイズの詳細については、[高度なプッシュ設定](/ja/developer-guide/android-sdk/push/advanced/callbacks-and-customisation)のドキュメントを参照してください。上記のドキュメントに記載されているように **_PushMessageListener_** を継承する代わりに、**_PluginPushCallback._** を継承してください。
+
+Push Amp+、プッシュテンプレート、ジオフェンスについては、以下のドキュメントを参照してください。
+
+- [Push Amplification](/ja/developer-guide/android-sdk/push/optional/push-amplification)
+- [Push Amp Plus](/ja/developer-guide/android-sdk/push/optional/push-amp-plus/push-amp-plus-integration)
+- [プッシュテンプレート](/ja/developer-guide/android-sdk/push/optional/push-templates)
+- [ジオフェンスプッシュ](/ja/developer-guide/android-sdk/push/optional/location-triggered)

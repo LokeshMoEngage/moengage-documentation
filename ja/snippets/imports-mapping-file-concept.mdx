@@ -1,0 +1,107 @@
+{/* Mapping-file concept, shared across Overview, DW Setup, and File Import Setup.
+Manual Uploads and Auxiliary Data do NOT use mapping files, do not reference this
+snippet from those pages. */}
+
+マッピングファイルには、各ソース列と MoEngage 属性の間のマッピングと、列のデータ型が含まれます。ファイルは JSON 形式である必要があります。ダッシュボードで列を 1 つずつマッピングする代わりに、マッピングファイルをアップロードしてマッピングを自動化できます。
+
+<Tabs>
+  <Tab title="CSV ファイル">
+    ```json
+    {
+      "mapping": [
+        { "column": "ID", "moe_attr": "uid", "type": "string", "is_skipped": false },
+        { "column": "First Name", "moe_attr": "u_fn", "type": "string", "is_skipped": false },
+        { "column": "First Seen", "moe_attr": "cr_t", "type": "datetime", "datetime_format": "YYYY-MM-DD hh:mm:ss", "is_skipped": false },
+        { "column": "LTV", "moe_attr": "t_rev", "type": "double", "is_skipped": false },
+        { "column": "Install Status", "moe_attr": "installed", "type": "bool", "is_skipped": false }
+      ]
+    }
+    ```
+  </Tab>
+  <Tab title="JSON ファイル">
+    ```json
+    {
+      "mapping": [
+        { "column": "customer_id", "moe_attr": "uid", "type": "string", "is_skipped": false },
+        { "column": "user.first_name", "moe_attr": "u_fn", "type": "string", "is_skipped": false },
+        { "column": "user.first_seen", "moe_attr": "cr_t", "type": "datetime", "datetime_format": "YYYY-MM-DD hh:mm:ss", "is_skipped": false },
+        { "column": "attribution.lifetime_value", "moe_attr": "t_rev", "type": "double", "is_skipped": false },
+        { "column": "attribution.device_installed", "moe_attr": "installed", "type": "bool", "is_skipped": false }
+      ]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+各列について、次のフィールドを指定します。
+
+1. **`column`** _（必須）_: ソースファイルの列名。JSON ファイルのレベル 2 のキーには、ドット表記（`key1.key2`）を使用します。
+2. **`moe_attr`** _（必須）_: 列のマッピング先となる MoEngage 属性。各列が一意の `moe_attr` にマッピングされるようにしてください。
+3. **`type`** _（任意）_: 列のデータ型。サポートされている型については以下を参照してください。
+4. **`datetime_format`** _（任意）_: 日時形式。DateTime フィールドの場合のみ必須です。
+5. **`is_skipped`** _（任意）_: ブール型のフィールド。`true` とマークされた列はインポート時にスキップされます。
+
+### 参考: 標準ユーザー属性
+
+以下のキーを使用して、ソース列を MoEngage の標準ユーザー属性にマッピングします。完全な一覧については、[Data Management](/ja/user-guide/settings/data-management/overview-data-management) ダッシュボードを参照してください。
+
+| キー | ダッシュボード上の属性名 | データ型 | 説明 |
+| :-- | :-- | :-- | :-- |
+| `uid` | ID | String | アプリがユーザーに設定した一意の ID。 |
+| `u_n` | Name | String | ユーザーのフルネーム。 |
+| `u_fn` | First Name | String | ユーザーの名。 |
+| `u_ln` | Last Name | String | ユーザーの姓。 |
+| `u_em` | Email (Standard) | String | ユーザーのメールアドレス。例: `john@example.com`。 |
+| `u_gd` | Gender | String | ユーザーの性別。 |
+| `u_bd` | Birthday | DateTime | ユーザーの生年月日。年齢の代わりにこの標準属性を使用してください。年齢として送信されたデータはカスタム属性として追跡されます。 |
+| `u_mb` | Mobile Number (Standard) | String | ユーザーの携帯電話番号。例: `918888444411`。 |
+| `moe_geo_location` | Location | Array of `[lat,lng]` | ユーザーの位置情報。形式は `{"lat": 12.11, "lon": 123.122}` です。 |
+| `source` | Publisher Name | String | インストールのパブリッシャー名。例: `Google Ads`。 |
+| `revenue` | LTV | Numeric | ユーザーのライフタイムバリュー。 |
+| `moe_unsubscribe` | Unsubscribe | Boolean | メールの配信停止属性。`true` に設定されている場合、ユーザーにメールは送信されません。 |
+| `moe_hard_bounce` | Hard Bounce | Boolean | メールのハードバウンス属性。`true` に設定されている場合、ユーザーにメールは送信されません。 |
+| `moe_spam` | Spam | Boolean | メールのスパム属性。`true` に設定されている場合、ユーザーにメールは送信されません。 |
+
+<Warning>
+  標準の文字列属性は正しいデータ型で追跡してください。たとえば、**First Name**（`u_fn`）が文字列ではなく数値や配列として取り込まれると、[Create segment](/ja/user-guide/segment/create-segments/rule-based-filter-segments) ページのサンプルユーザーが 500 エラー（"There seems to be an error"）で読み込めなくなります。これを修正するには、[Data Management](/ja/user-guide/settings/data-management/overview-data-management) ダッシュボードで属性のデータ型を String に固定し、影響を受けたユーザーの修正済みデータを再送信してください。
+</Warning>
+
+### サポートされている属性タイプ
+
+| **タイプ** | **説明** | **マッピングファイルでの値** |
+| --- | --- | --- |
+| String | 任意の文字列値。例: `ABC`、`ABC XYZ`、`ABC123`。 | `"type": "string"` |
+| Double | 任意の小数値。例: `3.14159`、`241.23`、`-123.1`。 | `"type": "double"` |
+| Boolean | 例: `true`、`false`。 | `"type": "bool"` |
+| Date Time | 任意の日時値。例: `2019/02/22 17:54:14.933`。 | `"type": "datetime"` |
+
+<Info>
+  MoEngage は、配列型以外の列で `|`（パイプ）文字をサポートしていません。String、Numeric、Boolean の列にこの文字が含まれていないことを確認してください。
+</Info>
+
+### ユーザー属性の予約キーワード
+
+MoEngage は次のキーを予約しています。ユーザー属性をマッピングまたは追跡する際には、これらを使用しないでください。
+
+- `USER_ATTRIBUTE_UNIQUE_ID`
+- `USER_ATTRIBUTE_USER_EMAIL`
+- `USER_ATTRIBUTE_USER_MOBILE`
+- `USER_ATTRIBUTE_USER_NAME`
+- `USER_ATTRIBUTE_USER_GENDER`
+- `USER_ATTRIBUTE_USER_FIRST_NAME`
+- `USER_ATTRIBUTE_USER_LAST_NAME`
+- `USER_ATTRIBUTE_USER_BDAY`
+- `USER_ATTRIBUTE_NOTIFICATION_PREF`
+- `USER_ATTRIBUTE_OLD_ID`
+- `MOE_TIME_FORMAT`
+- `MOE_TIME_TIMEZONE`
+- `USER_ATTRIBUTE_DND_START_TIME`
+- `USER_ATTRIBUTE_DND_END_TIME`
+- `MOE_GAID`
+- `INSTALL`
+- `UPDATE`
+- `MOE_ISLAT`
+- `status`
+- `user_id`
+- `source`
+

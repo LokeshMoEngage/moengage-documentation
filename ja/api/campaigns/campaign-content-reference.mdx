@@ -1,0 +1,1407 @@
+---
+title: "キャンペーンコンテンツのリファレンス"
+description: "チャネル、プラットフォーム、テンプレートタイプごとの basic_details と campaign_content のリファレンスです。Create Campaign および Update Campaign エンドポイントで使用されます。"
+keywords: ["campaign content", "basic_details", "Android push template", "iOS push template", "web push template", "email content", "html_content", "custom_template_id", "A/B variation", "locale"]
+icon: "layout-template"
+---
+
+このリファレンスを使用して、Push および Email キャンペーンのキャンペーンコンテンツを定義するリクエストボディのコンポーネントを設定します。識別用メタデータ、プラットフォームのターゲティング、プラットフォーム固有の配信フラグを含む `basic_details` と、多言語(マルチロケール)および A/B バリエーションのサポートを含め、チャネル、プラットフォーム、テンプレートタイプごとにメッセージペイロードを定義する `campaign_content` について説明します。どちらのコンポーネントも、[Create Campaign](/ja/api/create-campaigns/create-campaign-draft-v5) および [Update Campaign](/ja/api/update-campaigns/update-campaign-v5) で使用されます。
+
+オーディエンスのターゲティング、スケジュール、配信制御については、[オーディエンスと配信のリファレンス](/ja/api/campaigns/audience-scheduling-delivery-reference) を参照してください。
+
+<Note>
+フィールドの型、列挙値、必須マーカーについては、`/api/campaigns/campaign-draft.yaml` にある OpenAPI 仕様が正式な情報源です。このページでは、インラインのスキーマ説明では表現できない、実行可能なバリエーションと条件付きルールを補足します。
+</Note>
+
+## クイックスタート
+
+最小限のコンテンツペイロードは、`campaign_content.content.push`(Push)配下の単一のチャネル・プラットフォーム・テンプレートの組み合わせ、または `campaign_content.content.email`(Email)配下の `html_content` もしくは `custom_template_id` の値です。
+
+<CodeGroup>
+
+```json Push (Android BASIC)
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "BASIC",
+          "basic_details": {
+            "notification_channel": "general",
+            "title": "Your order has shipped",
+            "message": "Tap to track it.",
+            "default_click_action": "DEEPLINKING",
+            "default_click_action_value": "https://example.com/orders"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```json Email (html_content)
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Your order has shipped",
+        "sender_name": "Example Team",
+        "from_address": "noreply@example.com",
+        "html_content": "<p>Hello {{UserAttribute['First Name']}}</p>"
+      }
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+このセクション以降は、サポートされているすべてのチャネル、プラットフォーム、テンプレートタイプ、バリエーションの形式を網羅したリファレンス資料です。
+
+## ページの内容
+
+| セクション | リクエストボディ内の位置 |
+| :--- | :--- |
+| [Push キャンペーンのメタデータ](#push-campaign-metadata) | Push リクエストの `basic_details` |
+| [Email キャンペーンのメタデータ](#email-campaign-metadata) | Email リクエストの `basic_details` |
+| [コンテンツペイロードの構造](#content-payload-structure) | `campaign_content.content` |
+| [Android プッシュのコンテンツ](#android-push-content) | `campaign_content.content.push.android` |
+| [iOS プッシュのコンテンツ](#ios-push-content) | `campaign_content.content.push.ios` |
+| [Web プッシュのコンテンツ](#web-push-content) | `campaign_content.content.push.web` |
+| [Email のコンテンツ](#email-content) | `campaign_content.content.email` |
+| [A/B テストのバリエーション](#a%2Fb-test-variations) | `campaign_content.variation_details` |
+| [Email 配信コネクタ](#email-delivery-connector) | `connector`(Email リクエストのみ) |
+| [検証ルール](#validation-rules) | 検証時または公開時に適用される横断的なルール |
+| [既存のキャンペーンの更新](#updating-an-existing-campaign) | `PATCH /v5/campaigns/{campaign_id}` の状態ごとの制限 |
+
+## Push キャンペーンのメタデータ
+
+Push キャンペーンの `basic_details` オブジェクトには、識別用メタデータ、プラットフォームのターゲティング、プラットフォーム固有の配信フラグが含まれます。作成時にはすべてのフィールドが任意です。`campaign_delivery_type` に応じて、一部のフィールドが必須になります。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `name` | string | ダッシュボードに表示されるキャンペーン名です。 |
+| `business_event` | string | キャンペーンに紐付けられたビジネスイベントです。`campaign_delivery_type` が `BUSINESS_EVENT_TRIGGERED` の場合は **必須** です。 |
+| `tags` | array of string | 自由形式のコンテキストタグです。 |
+| `team` | string | キャンペーンで共同作業するチームです。[Teams in MoEngage](https://help.moengage.com/hc/en-us/articles/360028586211-Teams-in-MoEngage) を参照してください。 |
+| `platforms` | array of string | ターゲットプラットフォームです。列挙値: `ANDROID`、`IOS`、`WEB`。 |
+| `broadcast_live_activity_id` | string | iOS Live Activities 用のブロードキャスト Live Activity ID です。`BROADCAST_LIVE_ACTIVITY` はドラフト作成ではサポートされていません。[検証ルール](#validation-rules) を参照してください。 |
+| `geofences` | object | `campaign_delivery_type` が `LOCATION_TRIGGERED` の場合は **必須** です。完全なスキーマは [ジオフェンスのターゲティング](/ja/api/campaigns/audience-scheduling-delivery-reference#geofence-targeting) にあります。 |
+| `send_to_triggered_platform_only` | boolean | イベントトリガー型キャンペーンに適用されます。`true` の場合、キャンペーンはトリガーを発火したプラットフォームにのみ送信されます。 |
+| `platform_specific_details` | object | プラットフォームレベルの配信フラグです。[プラットフォーム固有の配信フラグ](#platform-specific-delivery-flags) を参照してください。 |
+
+### プラットフォーム固有の配信フラグ
+
+`platform_specific_details` オブジェクトには、Push キャンペーンのプラットフォームごとの配信フラグが含まれます。
+
+<Tabs>
+<Tab title="Android">
+
+Android には、Push Amp+ フラグが 1 つ定義されています。
+
+| フィールド | 型 | デフォルト | 備考 |
+| :--- | :--- | :--- | :--- |
+| `push_amp_plus_enabled` | boolean | `false` | キャンペーンで Push Amp+ を有効にするかどうか。 |
+
+```json
+{
+  "basic_details": {
+    "platforms": ["ANDROID"],
+    "platform_specific_details": {
+      "android": {
+        "push_amp_plus_enabled": false
+      }
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="iOS">
+
+<Warning>
+iOS では、3 つのオーディエンスフラグのうち、ちょうど 1 つを `true` にする必要があります。1 つも指定しない場合や複数指定した場合は、検証エラーになります。
+</Warning>
+
+3 つのオーディエンスフラグは相互に排他的です。以下のタブで各設定を確認してください。
+
+<CodeGroup>
+
+```json All eligible devices
+{
+  "basic_details": {
+    "platforms": ["IOS"],
+    "platform_specific_details": {
+      "ios": {
+        "send_to_all_eligible_device": true,
+        "exclude_provisional_push_devices": false,
+        "send_to_only_provisional_push_enabled_devices": false
+      }
+    }
+  }
+}
+```
+
+```json Exclude provisional
+{
+  "basic_details": {
+    "platforms": ["IOS"],
+    "platform_specific_details": {
+      "ios": {
+        "send_to_all_eligible_device": false,
+        "exclude_provisional_push_devices": true,
+        "send_to_only_provisional_push_enabled_devices": false
+      }
+    }
+  }
+}
+```
+
+```json Provisional only
+{
+  "basic_details": {
+    "platforms": ["IOS"],
+    "platform_specific_details": {
+      "ios": {
+        "send_to_all_eligible_device": false,
+        "exclude_provisional_push_devices": false,
+        "send_to_only_provisional_push_enabled_devices": true
+      }
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+</Tab>
+</Tabs>
+
+## Email キャンペーンのメタデータ
+
+Email キャンペーンの `basic_details` オブジェクトには、識別用メタデータ、購読カテゴリ、受信者のメールアドレス属性が含まれます。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `name` | string | キャンペーン名です。 |
+| `business_event` | string | キャンペーンに紐付けられたビジネスイベントです。`campaign_delivery_type` が `BUSINESS_EVENT_TRIGGERED` の場合は **必須** です。 |
+| `content_type` | string | コンテンツの種類です。列挙値: `PROMOTIONAL`、`TRANSACTIONAL`。 |
+| `subscription_category` | string | プロモーションメールの購読カテゴリです。`content_type` が `PROMOTIONAL` の場合は **必須** です。 |
+| `tags` | array of string | 自由形式のコンテキストタグです。 |
+| `team` | string | キャンペーンで共同作業するチームです。 |
+| `user_attribute_identifier` | string | 受信者のメールアドレスを格納するユーザー属性です。デフォルト: `Email (Standard)`。内部識別子 `MOE_EMAIL_ID` も使用できます。 |
+
+```json
+{
+  "basic_details": {
+    "name": "Summer Sale Email",
+    "content_type": "PROMOTIONAL",
+    "subscription_category": "music",
+    "tags": ["activation", "summer_sale"],
+    "team": "marketing_team",
+    "user_attribute_identifier": "Email (Standard)"
+  }
+}
+```
+
+## コンテンツペイロードの構造
+
+`campaign_content.content` オブジェクトは 2 つの形式を受け付けます。形式は、キャンペーンにロケールまたは A/B テストのバリエーションが設定されているかどうかによって異なります。
+
+### フラット形式(ロケールなし、バリエーションなし)
+
+`content` の直下に配置するフラットなオブジェクトです。Push キャンペーンでは `push`、Email キャンペーンでは `email` を使用します。
+
+<CodeGroup>
+
+```json Push
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "BASIC",
+          "basic_details": {
+            "title": "Your order has shipped",
+            "message": "Tap to track it.",
+            "notification_channel": "general",
+            "default_click_action": "DEEPLINKING",
+            "default_click_action_value": "https://example.com"
+          }
+        },
+        "ios": {
+          "template_type": "BASIC",
+          "basic_details": {
+            "title": "Your order has shipped",
+            "message": "Tap to track it.",
+            "default_click_action": "DEEPLINKING",
+            "default_click_action_value": "https://example.com"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```json Email
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Your order has shipped",
+        "sender_name": "Example Team",
+        "preview_text": "Track your delivery",
+        "from_address": "noreply@example.com",
+        "reply_to_address": "support@example.com",
+        "html_content": "<p>Hello {{UserAttribute['First Name']}}</p>"
+      }
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+### ロケールとバリエーションをキーとする形式
+
+ロケールまたは A/B テストのバリエーションが設定されている場合、`content` はまずロケール名、次にバリエーション名をキーとします。形式は、Push では `content[locale_name][variation_name] = { push: { ... } }`、Email では `content[locale_name][variation_name] = { email: { ... } }` です。
+
+- `"default"` ロケールキーは常に必須です。名前付きのロケールに一致しないユーザー向けのフォールバックとして機能します。
+- 追加のロケールキーは、それぞれ `campaign_content.locales` に列挙された値(例: `"en-US"`、`"es-ES"`)と一致する必要があります。`"default"` ロケールは暗黙的に存在するため、`campaign_content.locales` に列挙しないでください。
+- バリエーションキー(例: `"variation_1"`)は、`variation_details.no_of_variations` の数に対応します。A/B テストが設定されていない場合は、`"variation_1"` が唯一のキーとして使用されます。
+
+<CodeGroup>
+
+```json Component only
+{
+  "campaign_content": {
+    "locales": ["es-ES"],
+    "variation_details": {
+      "distribution_type": "MANUAL",
+      "no_of_variations": 2,
+      "manual_distribution_percentage": {
+        "variation_1": 50,
+        "variation_2": 50
+      }
+    },
+    "content": {
+      "default": {
+        "variation_1": { "push": { "android": { "template_type": "BASIC", "basic_details": { "title": "Summer Sale", "message": "Shop now" } } } },
+        "variation_2": { "push": { "android": { "template_type": "BASIC", "basic_details": { "title": "Big Discounts", "message": "Save more" } } } }
+      },
+      "es-ES": {
+        "variation_1": { "push": { "android": { "template_type": "BASIC", "basic_details": { "title": "Oferta de Verano", "message": "Compra ahora" } } } },
+        "variation_2": { "push": { "android": { "template_type": "BASIC", "basic_details": { "title": "Grandes Descuentos", "message": "Ahorra más" } } } }
+      }
+    }
+  }
+}
+```
+
+```json Create request body (ONE_TIME, multi-locale A/B)
+{
+  "channel": "PUSH",
+  "campaign_delivery_type": "ONE_TIME",
+  "created_by": "{{user_email}}",
+  "basic_details": {
+    "name": "{{campaign_name}}",
+    "platforms": ["ANDROID"]
+  },
+  "campaign_content": {
+    "locales": ["es-ES"],
+    "variation_details": {
+      "distribution_type": "MANUAL",
+      "no_of_variations": 2,
+      "manual_distribution_percentage": {
+        "variation_1": 50,
+        "variation_2": 50
+      }
+    },
+    "content": {
+      "default": {
+        "variation_1": {
+          "push": {
+            "android": {
+              "template_type": "BASIC",
+              "basic_details": {
+                "title": "{{title_default_v1}}",
+                "message": "{{message_default_v1}}",
+                "default_click_action": "DEEPLINKING",
+                "default_click_action_value": "{{url}}"
+              }
+            }
+          }
+        },
+        "variation_2": {
+          "push": {
+            "android": {
+              "template_type": "BASIC",
+              "basic_details": {
+                "title": "{{title_default_v2}}",
+                "message": "{{message_default_v2}}",
+                "default_click_action": "DEEPLINKING",
+                "default_click_action_value": "{{url}}"
+              }
+            }
+          }
+        }
+      },
+      "es-ES": {
+        "variation_1": {
+          "push": {
+            "android": {
+              "template_type": "BASIC",
+              "basic_details": {
+                "title": "{{title_es_v1}}",
+                "message": "{{message_es_v1}}",
+                "default_click_action": "DEEPLINKING",
+                "default_click_action_value": "{{url}}"
+              }
+            }
+          }
+        },
+        "variation_2": {
+          "push": {
+            "android": {
+              "template_type": "BASIC",
+              "basic_details": {
+                "title": "{{title_es_v2}}",
+                "message": "{{message_es_v2}}",
+                "default_click_action": "DEEPLINKING",
+                "default_click_action_value": "{{url}}"
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "scheduling_details": { "delivery_type": "ASAP" }
+}
+```
+
+</CodeGroup>
+
+## Android プッシュのコンテンツ
+
+`campaign_content.content.push.android`(フラット形式)または `content[locale][variation].push.android`(ロケール/バリエーション形式)です。Android で使用できる `template_type` の値は次のとおりです。
+
+`BASIC`, `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`, `IMAGE_BANNER_WITH_TEXT`, `TIMER`, `TIMER_WITH_PROGRESS_BAR`, `Custom`.
+
+<Warning>
+`Custom` は大文字と小文字が混在しています(`CUSTOM` ではありません)。`CUSTOM` を送信すると検証エラーになります。
+</Warning>
+
+| サブオブジェクト | スキーマ | 使用される場合 |
+| :--- | :--- | :--- |
+| `basic_details` | [Android の basic details フィールド](#android-basic-details-fields) | 常に使用します。タイトル、メッセージ、画像、クリックアクション、テンプレート固有のフィールドです。 |
+| `timer` | [Android の timer フィールド](#android-timer-fields) | `TIMER` と `TIMER_WITH_PROGRESS_BAR` では **必須** です。 |
+| `buttons` | array of [Android の button フィールド](#android-button-fields) | 任意。アクションボタンです。 |
+| `advanced` | [Android の advanced フィールド](#android-advanced-fields) | 任意。TTL、固定表示/消去の動作、グループキーです。 |
+| `template_backup` | [Android の template backup フィールド](#android-template-backup-fields) | `STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`、`IMAGE_BANNER_WITH_TEXT`、`TIMER`、`TIMER_WITH_PROGRESS_BAR` では **必須** です。 |
+| `custom_template_id` | string | `template_type` が `Custom` の場合は **必須** です。 |
+| `custom_template_version` | integer | 任意。カスタムテンプレートのバージョンです。 |
+
+### Android テンプレートのバリエーション
+
+<Tabs>
+<Tab title="BASIC">
+
+デフォルトのテンプレートです。タイトル、メッセージ、および任意で画像または GIF を含みます。
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "BASIC",
+          "basic_details": {
+            "notification_channel": "general",
+            "title": "Limited Time Offer!",
+            "message": "Get 50% off on all items. Shop now!",
+            "default_click_action": "DEEPLINKING",
+            "default_click_action_value": "https://example.com/sale"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+`BASIC` では、静止画像の代わりに GIF を表示するための `input_gif_url` がサポートされています。
+
+</Tab>
+<Tab title="STYLIZED_BASIC">
+
+`BASIC` と同じ形式に、背景色、アプリ名の色、通知コントロールの色が追加されています。
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "STYLIZED_BASIC",
+          "basic_details": {
+            "title": "Limited Time Offer!",
+            "message": "Get 50% off on all items.",
+            "background_color_code": "#FFFFFF",
+            "app_name_color_code": "#dea1a1",
+            "notification_control_color": "LIGHT",
+            "image_url": "https://example.com/images/promo.jpg"
+          },
+          "template_backup": {
+            "title": "Limited Time Offer!",
+            "message": "Get 50% off on all items."
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+このテンプレート固有のサポートされている `basic_details` フィールド: `background_color_code`、`app_name_color_code`、`notification_control_color`(`LIGHT` または `DARK`)、`apply_background_color_in_text_editor`。`template_backup` は必須です。
+
+</Tab>
+<Tab title="SIMPLE_IMAGE_CAROUSEL">
+
+スクロール可能な画像カルーセルです。スライドのリストは `carousel_content` に含めます。
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "SIMPLE_IMAGE_CAROUSEL",
+          "basic_details": {
+            "title": "New Collection",
+            "message": "Tap to browse.",
+            "image_scaling": "FIT_INSIDE_IMAGE_CONTAINER",
+            "carousel_content": {
+              "slider_transition": "manual",
+              "slide_data": [
+                {
+                  "image_url": "https://example.com/slide1.jpg",
+                  "image_click_action": "DEEPLINKING",
+                  "image_click_action_value": "https://example.com/product/1"
+                },
+                {
+                  "image_url": "https://example.com/slide2.jpg",
+                  "image_click_action": "DEEPLINKING",
+                  "image_click_action_value": "https://example.com/product/2"
+                }
+              ]
+            }
+          },
+          "template_backup": {
+            "title": "New Collection",
+            "message": "Tap to browse."
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Android では、`carousel_content.slider_transition` は小文字(`manual` または `automatic`)です。iOS では、同じフィールドが大文字(`MANUAL` または `AUTOMATIC`)です。[iOS プッシュのコンテンツ](#ios-push-content) を参照してください。`image_scaling` では `FIT_INSIDE_IMAGE_CONTAINER` または `FILL_IMAGE_CONTAINER` を指定できます。`template_backup` は必須です。
+
+</Tab>
+<Tab title="IMAGE_BANNER_WITH_TEXT">
+
+タイトルとメッセージが上に表示されるバナー画像です。
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "IMAGE_BANNER_WITH_TEXT",
+          "basic_details": {
+            "title": "Flash Sale",
+            "message": "Today only — up to 70% off.",
+            "banner_image_url": "https://example.com/banner.jpg",
+            "include_title_and_message": true,
+            "include_app_name_and_time": false,
+            "collapsed_push_notification": "SAME_AS_TEMPLATE_BACKUP"
+          },
+          "template_backup": {
+            "title": "Flash Sale",
+            "message": "Today only — up to 70% off."
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+`banner_image_url` は必須です。`include_title_and_message` は、タイトルとメッセージのテキストをバナーに重ねて表示するかどうかを制御します。`template_backup` は必須です。
+
+</Tab>
+<Tab title="TIMER">
+
+ライブカウントダウン通知です。`timer` は必須です。
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "TIMER",
+          "basic_details": {
+            "title": "Offer ends soon",
+            "message": "Hurry — limited time left."
+          },
+          "timer": {
+            "timer_ends_at": "DURATION",
+            "personalized_value": false,
+            "duration_hour": "2",
+            "duration_minute": "0"
+          },
+          "template_backup": {
+            "title": "Offer ends soon",
+            "message": "Limited time only."
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+完全な `timer` スキーマは [Android の timer フィールド](#android-timer-fields) にあります。`template_backup` は必須です。
+
+</Tab>
+<Tab title="TIMER_WITH_PROGRESS_BAR">
+
+`TIMER` と同じですが、時間の経過とともに視覚的に減っていくプログレスバーが追加されています。
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "TIMER_WITH_PROGRESS_BAR",
+          "basic_details": {
+            "title": "Order arriving",
+            "message": "Your delivery is on the way."
+          },
+          "timer": {
+            "timer_ends_at": "DURATION",
+            "personalized_value": false,
+            "duration_hour": "1",
+            "duration_minute": "30"
+          },
+          "template_backup": {
+            "title": "Order arriving",
+            "message": "Your delivery is on the way."
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+`timer` は必須です。`template_backup` は必須です。
+
+</Tab>
+<Tab title="Custom">
+
+MoEngage ダッシュボードの Custom Template ライブラリで作成された Push テンプレートを参照します。
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "Custom",
+          "custom_template_id": "tmpl_abc123",
+          "custom_template_version": 1
+        }
+      }
+    }
+  }
+}
+```
+
+`custom_template_id` は必須です。`custom_template_version` は任意です。省略した場合は、最新の公開バージョンが使用されます。
+
+</Tab>
+</Tabs>
+
+### Android の basic details フィールド
+
+`AndroidBasicDetails` には、テンプレート固有のスタイル設定とクリックアクションのフィールドがまとめられています。一部のフィールドは特定のテンプレートにのみ適用されます。
+
+| フィールド | 型 | サポートされているテンプレート |
+| :--- | :--- | :--- |
+| `notification_channel` | string | すべて。プッシュが配信される Android の通知チャネルです。 |
+| `title` | string | すべて。通知のタイトルです。 |
+| `message` | string | すべて。本文です。HTML 書式を使用できます。 |
+| `summary` | string | すべて。本文の下に表示される要約テキストです。 |
+| `image_url` | URI | すべて(テンプレートでサポートされている場合)。 |
+| `input_gif_url` | URI | `BASIC`。通知本文に表示される GIF です。 |
+| `default_click_action` | enum | すべて。`DEEPLINKING`、`NAVIGATE_TO_A_SCREEN`、または `RICH_LANDING`。 |
+| `default_click_action_value` | string | すべて。クリックアクションの URL またはディープリンクの遷移先です。 |
+| `key_value_pairs` | array of `{ key, value }` | すべて。SDK に転送されるカスタムペイロードのキーです。 |
+| `background_color_code` | hex string | `STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`、`IMAGE_BANNER_WITH_TEXT`。 |
+| `app_name_color_code` | hex string | `STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`、`IMAGE_BANNER_WITH_TEXT`。 |
+| `notification_control_color` | enum | `STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`、`IMAGE_BANNER_WITH_TEXT`。`LIGHT` または `DARK`。 |
+| `apply_background_color_in_text_editor` | boolean | `STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`、`IMAGE_BANNER_WITH_TEXT`。 |
+| `include_app_name_and_time` | boolean | `IMAGE_BANNER_WITH_TEXT`。バナーにアプリ名とタイムスタンプを表示します。 |
+| `include_title_and_message` | boolean | `IMAGE_BANNER_WITH_TEXT`。バナーにタイトルとメッセージを重ねて表示します。 |
+| `banner_image_url` | URI | `IMAGE_BANNER_WITH_TEXT` では **必須** です。 |
+| `collapsed_push_notification` | string | `IMAGE_BANNER_WITH_TEXT`。折りたたみ表示の設定です。 |
+| `image_scaling` | enum | `SIMPLE_IMAGE_CAROUSEL`、`IMAGE_BANNER_WITH_TEXT`。`FIT_INSIDE_IMAGE_CONTAINER` または `FILL_IMAGE_CONTAINER`。 |
+| `carousel_content` | object | `SIMPLE_IMAGE_CAROUSEL` では **必須** です。[Android のカルーセルコンテンツ](#android-carousel-content) を参照してください。 |
+
+#### Android のカルーセルコンテンツ
+
+Android の `SIMPLE_IMAGE_CAROUSEL` で使用される画像カルーセルの設定です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `slider_transition` | enum | `manual` または `automatic`(小文字)。 |
+| `slide_data[].image_url` | URI | スライドの画像です。 |
+| `slide_data[].image_click_action` | enum | `DEEPLINKING`、`RICH_LANDING`、または `NAVIGATE_TO_A_SCREEN`。 |
+| `slide_data[].image_click_action_value` | string | `image_click_action` を指定した場合は **必須** です。 |
+| `slide_data[].key_value_pairs` | array of `{ key, value }` | スライドごとの任意のカスタムペイロードキーです。 |
+
+### Android の timer フィールド
+
+`AndroidTimer` は、`TIMER` と `TIMER_WITH_PROGRESS_BAR` で必須です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `timer_ends_at` | enum | `DURATION`、`SPECIFIC_TIME_USER_TIMEZONE`、または `SPECIFIC_TIME_CAMPAIGN_TIMEZONE`。 |
+| `specific_time` | date-time | `personalized_value` が `true` の場合は **必須** です。 |
+| `time_period` | string | `timer_ends_at` が `SPECIFIC_TIME_USER_TIMEZONE` または `SPECIFIC_TIME_CAMPAIGN_TIMEZONE` の場合は **必須** です。 |
+| `personalized_value` | boolean | `false` の場合、すべてのユーザーに同じ期間が適用されます。 |
+| `duration_hour` | string | タイマーが動作する時間数です。`personalized_value` が `false` の場合は **必須** です。 |
+| `duration_minute` | string | タイマーが動作する追加の分数です。`personalized_value` が `false` の場合は **必須** です。 |
+
+### Android の button フィールド
+
+`buttons` の各エントリは `AndroidButton` です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `btn_name` | string | 表示されるボタンのラベルです。 |
+| `click_action_type` | enum | `DEEPLINKING`、`NAVIGATE_TO_A_SCREEN`、`RICH_LANDING`、`CALL`、`SHARE`、`COPY`、`SET_USER_ATTRIBUTE`、`TRACK_EVENT`、`CUSTOM_ACTION` のいずれか。 |
+| `click_action_name` | string | `SET_USER_ATTRIBUTE`、`TRACK_EVENT`、または `CUSTOM_ACTION` の名前付きアクションです。 |
+| `click_action_value` | string | URL、ディープリンク、属性値、またはイベント名(`click_action_type` によって異なります)。 |
+| `key_value_pairs` | array of `{ key, value }` | ボタンごとのカスタムペイロードキーです。 |
+
+### Android の advanced フィールド
+
+`AndroidAdvanced` には、プラットフォームレベルの配信フラグがまとめられています。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `coupon_code` | string | ペイロードに含まれるクーポンコードです。 |
+| `icon_type_in_notification` | string | アイコンタイプのラベルです。 |
+| `use_large_icon` | boolean | 大きいアイコンを使用するかどうか。 |
+| `make_notification_sticky` | boolean | `true` の場合、ユーザーは通知をスワイプして消すことができません。 |
+| `dismiss_button_text` | string | `make_notification_sticky` が `true` の場合、または `auto_dismiss_notification` が `true` の場合は **必須** です。 |
+| `auto_dismiss_notification` | boolean | 通知を自動的に消去できるかどうか。 |
+| `auto_dismiss_notification_time_value` | integer | `auto_dismiss_notification` が `true` の場合は **必須** です。 |
+| `auto_dismiss_notification_time_granularity` | enum | `DAYS`、`HOURS`、または `MINUTES`。`auto_dismiss_notification` が `true` の場合は **必須** です。 |
+| `group_key` | string | 関連する通知のグループキーです。MoEngage は 45 文字に切り詰め、ラテン文字以外の文字、特殊文字、スペースを除去します。 |
+| `collapse_replace_key` | string | 互いに置き換わる通知の更新キーです。 |
+
+### Android の template backup フィールド
+
+`AndroidTemplateBackup` は、テンプレートを表示できない場合(例: 古い Android バージョン)に表示されるフォールバック通知を定義します。`STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`、`IMAGE_BANNER_WITH_TEXT`、`TIMER`、`TIMER_WITH_PROGRESS_BAR` で必須です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `title` | string | フォールバックのタイトルです。 |
+| `message` | string | フォールバックの本文です。 |
+| `summary` | string | フォールバックの要約です。 |
+| `image_url` | URI | フォールバックの画像です。 |
+| `default_click_action` | enum | `DEEPLINKING`、`NAVIGATE_TO_A_SCREEN`、または `RICH_LANDING`。 |
+| `default_click_action_value` | string | フォールバックのクリックアクションの遷移先です。 |
+| `key_value_pairs` | array of `{ key, value }` | フォールバックごとのカスタムペイロードキーです。 |
+
+## iOS プッシュのコンテンツ
+
+`campaign_content.content.push.ios` です。iOS で使用できる `template_type` の値は次のとおりです。
+
+`BASIC`, `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`, `Custom`.
+
+<Warning>
+iOS は `IMAGE_BANNER_WITH_TEXT`、`TIMER`、`TIMER_WITH_PROGRESS_BAR` を **サポートしていません**。iOS でこれらのいずれかを送信すると、検証エラーになります。
+</Warning>
+
+| サブオブジェクト | スキーマ | 使用される場合 |
+| :--- | :--- | :--- |
+| `basic_details` | [iOS の basic details フィールド](#ios-basic-details-fields) | 常に使用します。 |
+| `buttons` | array of [iOS の button フィールド](#ios-button-fields) | 任意。iOS のボタンカテゴリです。 |
+| `advanced` | [iOS の advanced フィールド](#ios-advanced-fields) | 任意。カスタムサウンド、バッジ、グループキーです。 |
+| `template_backup` | [iOS の template backup フィールド](#ios-template-backup-fields) | `STYLIZED_BASIC` と `SIMPLE_IMAGE_CAROUSEL` では **必須** です。 |
+| `custom_template_id` | string | `template_type` が `Custom` の場合は **必須** です。 |
+| `custom_template_version` | integer | 任意。 |
+
+### iOS テンプレートのバリエーション
+
+<Tabs>
+<Tab title="BASIC">
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "ios": {
+          "template_type": "BASIC",
+          "basic_details": {
+            "title": "New Message",
+            "message": "You have a new message waiting for you",
+            "subtitle": "Inbox update",
+            "default_click_action": "DEEPLINKING",
+            "default_click_action_value": "https://example.com/inbox"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+任意のリッチメディア: `rich_media_type`(`Image`、`Video`、または `GIF`。先頭のみ大文字)と `rich_media_value`(URL)を指定します。`input_gif_url` は `BASIC` と `STYLIZED_BASIC` でサポートされています。
+
+</Tab>
+<Tab title="STYLIZED_BASIC">
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "ios": {
+          "template_type": "STYLIZED_BASIC",
+          "basic_details": {
+            "title": "Welcome back",
+            "message": "Pick up where you left off.",
+            "background_color_code": "#a0a0a0",
+            "image_url": "https://example.com/welcome.jpg"
+          },
+          "template_backup": {
+            "title": "Welcome back",
+            "message": "Pick up where you left off."
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+このテンプレートでは、`background_color_code` と `apply_background_color_in_text_editor` がサポートされています。`template_backup` は必須です。
+
+</Tab>
+<Tab title="SIMPLE_IMAGE_CAROUSEL">
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "ios": {
+          "template_type": "SIMPLE_IMAGE_CAROUSEL",
+          "basic_details": {
+            "title": "New Arrivals",
+            "message": "Tap to swipe through.",
+            "image_url": "https://example.com/cover.jpg",
+            "carousel_content": {
+              "slider_transition": "AUTOMATIC",
+              "slide_data": [
+                { "image_url": "https://example.com/slide1.jpg", "image_click_action": "DEEPLINKING", "image_click_action_value": "https://example.com/p/1" },
+                { "image_url": "https://example.com/slide2.jpg", "image_click_action": "DEEPLINKING", "image_click_action_value": "https://example.com/p/2" }
+              ]
+            }
+          },
+          "template_backup": {
+            "title": "New Arrivals",
+            "message": "Tap to swipe through."
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+iOS の `SIMPLE_IMAGE_CAROUSEL` では `image_url` が必須です(カルーセルが読み込まれる前のカバー画像として使用されます)。iOS の `carousel_content.slider_transition` は大文字(`MANUAL` または `AUTOMATIC`)です。`template_backup` は必須です。
+
+</Tab>
+<Tab title="Custom">
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "ios": {
+          "template_type": "Custom",
+          "custom_template_id": "tmpl_xyz789",
+          "custom_template_version": 1
+        }
+      }
+    }
+  }
+}
+```
+
+`custom_template_id` は必須です。
+
+</Tab>
+</Tabs>
+
+### iOS の basic details フィールド
+
+| フィールド | 型 | サポートされているテンプレート |
+| :--- | :--- | :--- |
+| `title` | string | すべて。 |
+| `message` | string | すべて。 |
+| `subtitle` | string | すべて。タイトルの下に表示されます。 |
+| `default_click_action` | enum | すべて。`DEEPLINKING`、`NAVIGATE_TO_A_SCREEN`、または `RICH_LANDING`。 |
+| `default_click_action_value` | string | すべて。 |
+| `key_value_pairs` | array of `{ key, value }` | すべて。 |
+| `allow_bg_refresh` | boolean | すべて。コンテンツを更新するためにアプリをバックグラウンドで起動できるかどうか。 |
+| `rich_media_type` | enum | `BASIC`。`Image`、`Video`、または `GIF`(先頭のみ大文字)。 |
+| `rich_media_value` | URI | `BASIC`。メディアアセットの URL です。 |
+| `input_gif_url` | URI | `BASIC`、`STYLIZED_BASIC`。GIF の URL です。 |
+| `image_url` | URI | すべて。`template_type` が `SIMPLE_IMAGE_CAROUSEL` の場合は **必須** です。 |
+| `background_color_code` | hex string | `STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`。 |
+| `apply_background_color_in_text_editor` | boolean | `STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`。 |
+| `carousel_content` | object | `SIMPLE_IMAGE_CAROUSEL` では **必須** です。[iOS のカルーセルコンテンツ](#ios-carousel-content) を参照してください。 |
+
+#### iOS のカルーセルコンテンツ
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `slider_transition` | enum | `MANUAL` または `AUTOMATIC`(大文字であり、Android とは異なります)。 |
+| `slide_data[].image_url` | URI | スライドの画像です。 |
+| `slide_data[].image_click_action` | enum | `DEEPLINKING`、`RICH_LANDING`、または `NAVIGATE_TO_A_SCREEN`。 |
+| `slide_data[].image_click_action_value` | string | スライドをクリックしたときの遷移先です。 |
+| `slide_data[].key_value_pairs` | array of `{ key, value }` | スライドごとのカスタムペイロードキーです。 |
+
+### iOS の button フィールド
+
+iOS のボタンはカテゴリベースのモデルを使用します。ボタンはアプリ内で事前に定義されており、キャンペーンはカテゴリを名前で参照します。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `button_category` | string | アプリで設定された事前定義のカテゴリ名(例: `MOE_PUSH_TEMPLATE`)。 |
+
+### iOS の advanced フィールド
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `coupon_code` | string | ペイロードに含まれるクーポンコードです。 |
+| `sound_file` | string | アプリバンドル内のカスタムサウンドファイルの名前です。 |
+| `enable_ios_badge` | boolean | キャンペーンによってアプリのバッジ数を増やすかどうか。 |
+| `group_key` | string | 関連する通知のグループキーです。45 文字に切り詰められ、ラテン文字以外の文字、特殊文字、スペースは除去されます。 |
+| `collapse_replace_key` | string | 互いに置き換わる通知の更新キーです。 |
+
+### iOS の template backup フィールド
+
+`STYLIZED_BASIC` と `SIMPLE_IMAGE_CAROUSEL` で必須です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `title` | string | フォールバックのタイトルです。 |
+| `message` | string | フォールバックの本文です。 |
+| `subtitle` | string | フォールバックのサブタイトルです。 |
+| `allow_bg_refresh` | boolean | フォールバックでバックグラウンドのアプリ更新を有効にするかどうか。 |
+| `rich_media_type` | enum | `Image`、`Video`、または `GIF`。 |
+| `rich_media_value` | URI | メディアの URL です。 |
+| `default_click_action` | enum | `DEEPLINKING`、`NAVIGATE_TO_A_SCREEN`、または `RICH_LANDING`。 |
+| `default_click_action_value` | string | クリック時の遷移先です。 |
+| `key_value_pairs` | array of `{ key, value }` | フォールバックごとのカスタムペイロードキーです。 |
+
+## Web プッシュのコンテンツ
+
+`campaign_content.content.push.web` です。Web プッシュは現在、`template_type: BASIC` のみをサポートしています。
+
+<CodeGroup>
+
+```json Component only
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "web": {
+          "template_type": "BASIC",
+          "basic_details": {
+            "title": "Special Offer",
+            "message": "Check out our latest deals!",
+            "redirect_url": "https://example.com/offers",
+            "image_url": "https://example.com/hero.jpg",
+            "auto_dismiss_notification": false
+          },
+          "buttons": [
+            { "title": "View Offer", "url": "https://example.com/offers", "icon_url": "https://example.com/icons/offer.png" }
+          ],
+          "advanced": {
+            "icon_image_type": "ICON_URL",
+            "icon_url": "https://example.com/icon.png"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```json Create request body (ONE_TIME)
+{
+  "channel": "PUSH",
+  "campaign_delivery_type": "ONE_TIME",
+  "created_by": "{{user_email}}",
+  "basic_details": {
+    "name": "{{campaign_name}}",
+    "platforms": ["WEB"]
+  },
+  "campaign_content": {
+    "content": {
+      "push": {
+        "web": {
+          "template_type": "BASIC",
+          "basic_details": {
+            "title": "{{title}}",
+            "message": "{{message}}",
+            "redirect_url": "{{redirect_url}}",
+            "image_url": "{{image_url}}"
+          },
+          "buttons": [
+            { "title": "{{button_label}}", "url": "{{button_url}}" }
+          ]
+        }
+      }
+    }
+  },
+  "scheduling_details": { "delivery_type": "ASAP" }
+}
+```
+
+</CodeGroup>
+
+### Web の basic details フィールド
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `title` | string | 通知のタイトルです。 |
+| `message` | string | 通知の本文です。 |
+| `redirect_url` | URI | 通知本文をクリックしたときに開かれる URL です。 |
+| `image_url` | URI | 任意の大きい画像です。 |
+| `auto_dismiss_notification` | boolean | 通知を自動的に消去するかどうか。 |
+
+### Web の button フィールド
+
+`buttons` の各エントリは `WebButton` です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `title` | string | ボタンのラベルです。 |
+| `icon_url` | URI | ラベルの横に表示される任意のアイコンです。 |
+| `url` | URI | ボタンをクリックしたときに開かれる遷移先です。 |
+
+### Web の advanced フィールド
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `icon_image_type` | enum | `DEFAULT` または `ICON_URL`。 |
+| `icon_url` | URI | カスタムアイコンの URL です。`icon_image_type` が `ICON_URL` の場合は必須です。 |
+
+## Email のコンテンツ
+
+`campaign_content.content.email` にはメールメッセージを含めます。互いに併用可能な 2 つのコンテンツソースがサポートされています: `html_content` の生の HTML、または `custom_template_id` で参照される保存済みテンプレートです。少なくともいずれか一方が必要です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `subject` | string | 件名です。 |
+| `preview_text` | string | 受信トレイの一覧に表示されるプレビューテキストです。 |
+| `sender_name` | string | 送信者の表示名です。 |
+| `from_address` | email | 送信者のメールアドレスです。 |
+| `reply_to_address` | email | 返信先アドレスです。 |
+| `cc_ids` | array of email | CC の受信者です。 |
+| `bcc_ids` | array of email | BCC の受信者です。 |
+| `html_content` | string | 生の HTML 本文です。`custom_template_id` を指定した場合は任意です。 |
+| `link_branding_domain` | string | Create Campaign のみ。標準の MoEngage ドメインの代わりに、メール本文内のリンクをブランディングするために使用するカスタムドメインです。ダッシュボードでは **Link branding** として表示されます。デフォルトはワークスペースの設定です。 |
+| `deep_link_domain` | string | Create Campaign のみ。メール本文内のディープリンクをラップするために使用するディープリンクドメインです。 |
+| `email_editor` | enum | `Froala Editor` または `Ace Editor`。キャンペーンで `Ace Editor` を使用する場合は必須です。 |
+| `custom_template_id` | string | 保存済みのメールテンプレート ID です。指定した場合、`subject`、`preview_text`、`sender_name` は不要です。 |
+| `custom_template_version` | integer | 任意のテンプレートバージョンです。 |
+| `attachments` | array of `{ file_type, url }` | [メールの添付ファイル](#email-attachments) を参照してください。 |
+
+### Email コンテンツのバリエーション
+
+<Tabs>
+<Tab title="HTML コンテンツ">
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Welcome to our store",
+        "sender_name": "Example Team",
+        "preview_text": "Get started in seconds",
+        "from_address": "hello@example.com",
+        "reply_to_address": "support@example.com",
+        "html_content": "<!DOCTYPE html><html><body><p>Hello {{UserAttribute['First Name']}}</p></body></html>"
+      }
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="保存済みテンプレート">
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "custom_template_id": "email_tmpl_42",
+        "custom_template_version": 3
+      }
+    }
+  }
+}
+```
+
+`custom_template_id` を指定した場合、`subject`、`preview_text`、`sender_name` を繰り返し指定する必要はありません。これらの値は保存済みテンプレートから取得されます。
+
+</Tab>
+<Tab title="Ace Editor">
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Release notes",
+        "from_address": "notify@example.com",
+        "html_content": "<html>...</html>",
+        "email_editor": "Ace Editor"
+      }
+    }
+  }
+}
+```
+
+キャンペーンを `Ace Editor` で作成する場合は、`email_editor: Ace Editor` が必須です。デフォルトの `Froala Editor` では、このフィールドは不要です。
+
+</Tab>
+<Tab title="CC と BCC">
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Order confirmation",
+        "from_address": "orders@example.com",
+        "html_content": "<p>Your order is confirmed.</p>",
+        "cc_ids": ["records@example.com"],
+        "bcc_ids": ["audit@example.com"]
+      }
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+### メールの添付ファイル
+
+`attachments` の各エントリは `{ file_type, url }` です。
+
+| `file_type` | 動作 |
+| :--- | :--- |
+| `URL` | 固定の URL でホストされている静的ファイルです。すべての受信者が同じファイルを受け取ります。 |
+| `PERSONALIZED_ATTACHMENT` | パーソナライズ式を含む URL を介して、受信者ごとに生成されるパーソナライズされたファイルです。 |
+
+<CodeGroup>
+
+```json URL attachment
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Latest brochure",
+        "from_address": "marketing@example.com",
+        "html_content": "<p>See the attached brochure.</p>",
+        "attachments": [
+          { "file_type": "URL", "url": "https://example.com/brochure.pdf" }
+        ]
+      }
+    }
+  }
+}
+```
+
+```json Personalized attachment
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Your invoice",
+        "from_address": "billing@example.com",
+        "html_content": "<p>Your invoice is attached.</p>",
+        "attachments": [
+          { "file_type": "PERSONALIZED_ATTACHMENT", "url": "https://example.com/invoices/{{UserAttribute['User ID']}}.pdf" }
+        ]
+      }
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+## A/B テストのバリエーション
+
+`campaign_content.variation_details` で A/B テストを設定します。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `distribution_type` | enum | `MANUAL` または `SHERPA`。 |
+| `no_of_variations` | integer (≥ 1) | バリエーションの数です。 |
+| `manual_distribution_percentage` | object | バリエーション名と整数の割合を対応付けるマップです。値は合計が 100 になる正の整数である必要があります。`distribution_type` が `MANUAL` の場合は **必須** です。 |
+| `sherpa_campaign_duration` | integer (hours) | 勝者のバリエーションを決定する前に、Sherpa がパフォーマンスデータを収集する期間です。`distribution_type` が `SHERPA` の場合は **必須** です。 |
+| `sherpa_distribution_metric` | enum | `OPEN RATE`、`CLICK RATE`、または `BOTH`。`distribution_type` が `SHERPA` の場合は **必須** です。 |
+
+`variation_details` を設定した場合、`campaign_content.content` ではロケールとバリエーションをキーとする形式を使用する必要があります。[コンテンツペイロードの構造](#content-payload-structure) を参照してください。
+
+<Tabs>
+<Tab title="MANUAL (50/50)">
+
+```json
+{
+  "campaign_content": {
+    "variation_details": {
+      "distribution_type": "MANUAL",
+      "no_of_variations": 2,
+      "manual_distribution_percentage": {
+        "variation_1": 50,
+        "variation_2": 50
+      }
+    },
+    "content": {
+      "default": {
+        "variation_1": { "push": { "android": { "template_type": "BASIC", "basic_details": { "title": "Variant A", "message": "Try us today" } } } },
+        "variation_2": { "push": { "android": { "template_type": "BASIC", "basic_details": { "title": "Variant B", "message": "Save 20% today" } } } }
+      }
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="SHERPA(自動最適化)">
+
+```json
+{
+  "campaign_content": {
+    "variation_details": {
+      "distribution_type": "SHERPA",
+      "no_of_variations": 2,
+      "sherpa_campaign_duration": 24,
+      "sherpa_distribution_metric": "OPEN RATE"
+    },
+    "content": {
+      "default": {
+        "variation_1": { "email": { "subject": "Variant A", "html_content": "<p>Try us today</p>" } },
+        "variation_2": { "email": { "subject": "Variant B", "html_content": "<p>Save 20% today</p>" } }
+      }
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+## Email 配信コネクタ
+
+`connector` オブジェクトは Email のリクエストボディの一部(Email の `campaign_content` ではありません)であり、ワークスペースで設定された配信プロバイダーを識別します。
+
+<Note>
+`connector` は、Email の Create リクエストと Email のインラインテストリクエストで **必須** です。Push のリクエストボディには含まれません。
+</Note>
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `connector_type` | string | コネクタのサービス(例: `SENDGRID`、`AWS SES`)。 |
+| `connector_name` | string | MoEngage ワークスペースにおけるコネクタ設定の名前です。 |
+
+```json
+{
+  "connector": {
+    "connector_type": "SENDGRID",
+    "connector_name": "Sendgrid1"
+  }
+}
+```
+
+## 検証ルール
+
+以下のルールは、このページの複数のサブオブジェクトにまたがって適用されます。各ルールは検証時または公開時に適用されます。
+
+| ルール | 出典 |
+| :--- | :--- |
+| Push の `template_type: Custom` では、`custom_template_id` が必須です(Android、iOS)。 | `AndroidPushContent.custom_template_id`、`IOSPushContent.custom_template_id` |
+| iOS は `BASIC`、`STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`、`Custom` のみをサポートしています。iOS で `IMAGE_BANNER_WITH_TEXT`、`TIMER`、または `TIMER_WITH_PROGRESS_BAR` を送信するとエラーになります。 | `IOSPushContent.template_type` の列挙値 |
+| Web プッシュは `BASIC` のみをサポートしています。 | `WebPushContent.template_type` の列挙値 |
+| Android の `STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`、`IMAGE_BANNER_WITH_TEXT`、`TIMER`、`TIMER_WITH_PROGRESS_BAR` では、`template_backup` が必須です。 | `AndroidTemplateBackup` の説明 |
+| iOS の `STYLIZED_BASIC` と `SIMPLE_IMAGE_CAROUSEL` では、`template_backup` が必須です。 | `IOSTemplateBackup` の説明 |
+| Android の `IMAGE_BANNER_WITH_TEXT` では、`banner_image_url` が必須です。 | `AndroidBasicDetails.banner_image_url` |
+| iOS の `SIMPLE_IMAGE_CAROUSEL` では、`image_url` が必須です(カルーセルが読み込まれる前のカバー画像として使用されます)。 | `IOSBasicDetails.image_url` |
+| Android の `TIMER` と `TIMER_WITH_PROGRESS_BAR` では、`timer` が必須です。`personalized_value` が `false` の場合は、`duration_hour` と `duration_minute` の両方が必須です。`personalized_value` が `true` の場合は、`specific_time` が必須です。 | `AndroidTimer.duration_hour`、`AndroidTimer.duration_minute`、`AndroidTimer.specific_time` |
+| Android の `STYLIZED_BASIC` と `SIMPLE_IMAGE_CAROUSEL` では、スライダーの切り替えは **小文字**(`manual` または `automatic`)です。iOS の `SIMPLE_IMAGE_CAROUSEL` では、スライダーの切り替えは **大文字**(`MANUAL` または `AUTOMATIC`)です。大文字と小文字が一致しない場合は検証エラーになります。 | `CarouselContent.slider_transition`、`IOSCarouselContent.slider_transition` |
+| Android では、`make_notification_sticky` が `true` の場合、または `auto_dismiss_notification` が `true` の場合、`dismiss_button_text` が必須です。`auto_dismiss_notification` が `true` の場合は、`auto_dismiss_notification_time_value` と `auto_dismiss_notification_time_granularity` も必須です。 | `AndroidAdvanced.dismiss_button_text` |
+| iOS では、`basic_details.platform_specific_details.ios` 内の `send_to_all_eligible_device`、`exclude_provisional_push_devices`、`send_to_only_provisional_push_enabled_devices` のうち、ちょうど 1 つを `true` にする必要があります。 | `PlatformSpecificDetails.ios` の説明 |
+| Email の `content_type: PROMOTIONAL` では、`subscription_category` が必須です。 | `EmailBasicDetailsV5.subscription_category` |
+| Email では、`custom_template_id` を指定した場合、`html_content` は任意です。`custom_template_id` を指定した場合、`subject`、`preview_text`、`sender_name` は不要です。 | `EmailContent.html_content`、`EmailContent.custom_template_id` |
+| `distribution_type: MANUAL` の A/B テストでは、`manual_distribution_percentage` の値の合計が 100 である必要があります。`SHERPA` では、`sherpa_campaign_duration` と `sherpa_distribution_metric` の両方が必須です。 | `VariationDetails` の説明 |
+| 複数ロケールまたは複数バリエーションのキャンペーンでは、`"default"` ロケールキーが常に必須で、フォールバックとして機能します。追加のロケールキーは、`campaign_content.locales` に列挙された値と一致する必要があります。 | `PushCampaignContent.content`、`EmailCampaignContent.content` |
+| `connector` は、Email の Create リクエストと Email のインラインテストリクエストで必須です。 | `Connector` の説明 |
+| `BROADCAST_LIVE_ACTIVITY` はドラフト作成では **サポートされていません**。Live Activity のブロードキャストを送信するには、V1 Campaigns API を使用します。 | `PushCampaignCreateV5Request.campaign_delivery_type` の説明 |
+| `campaign_delivery_type` が `BUSINESS_EVENT_TRIGGERED` の場合、`business_event`(`basic_details` 内)が必須です。 | `PushBasicDetailsV5.business_event`、`EmailBasicDetailsV5.business_event` |
+| `campaign_delivery_type` が `LOCATION_TRIGGERED` の場合、`geofences`(`basic_details` 内)が必須です。完全なスキーマは [ジオフェンスのターゲティング](/ja/api/campaigns/audience-scheduling-delivery-reference#geofence-targeting) にあります。 | `Geofences` の説明 |
+
+## 既存のキャンペーンの更新
+
+`PATCH /v5/campaigns/{campaign_id}` は、このページのすべてのスキーマを再利用します。更新には追加のルールが適用されます。
+
+- ネストされたオブジェクト内のフィールドを更新する場合、リクエストには **親オブジェクト全体** を含める必要があります。たとえば、Android プッシュのタイトルのみを変更する場合は、`campaign_content.content.push.android` ブロック全体を含めます。
+- Update のリクエストボディには `updated_by`(監査目的で使用される、編集ユーザーのメールアドレス)が含まれます。省略した場合、更新は認証された API 認証情報によるものとして記録されます。
+- `ACTIVE` 状態のキャンペーンでは、以下のフィールドを **編集できません**: `trigger_condition`、`segmentation_details`、`conversion_goal_details`、スケジュールのタイプ、スケジュールの開始日。`campaign_content` と `basic_details.platforms` は **編集できます**。状態ごとの完全な一覧は [Update Campaign](/ja/api/update-campaigns/update-campaign-v5) にあります。
+- イベントトリガー型キャンペーンで `campaign_content` を更新した場合、コンテンツのキャッシュにより、反映されるまで最大 30 分かかることがあります。
+- Update Push スキーマは `campaign_delivery_type` の値として `BROADCAST_LIVE_ACTIVITY` を受け付けますが、ドラフト作成では受け付けません。V5 を通じてドラフトを Live Activity キャンペーンに移行することはできません。
+
+<Tabs>
+<Tab title="campaign_content (Push)">
+
+```json
+{
+  "channel": "PUSH",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "BASIC",
+          "basic_details": {
+            "title": "{{notification_title}}",
+            "message": "{{notification_message}}"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="campaign_content (Email)">
+
+```json
+{
+  "channel": "EMAIL",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "{{email_subject}}",
+        "sender_name": "{{sender_name}}",
+        "from_address": "{{from_email}}",
+        "html_content": "{{html_body}}"
+      }
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="platform_specific_details">
+
+```json
+{
+  "channel": "PUSH",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "basic_details": {
+    "platform_specific_details": {
+      "android": {
+        "push_amp_plus_enabled": true
+      },
+      "ios": {
+        "send_to_all_eligible_device": true
+      }
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="control_group_details (Push)">
+
+```json
+{
+  "channel": "PUSH",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "control_group_details": {
+    "is_campaign_control_group_enabled": true,
+    "campaign_control_group_percentage": 10
+  }
+}
+```
+
+</Tab>
+<Tab title="control_group_details (Email)">
+
+```json
+{
+  "channel": "EMAIL",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "control_group_details": {
+    "is_campaign_control_group_enabled": true,
+    "campaign_control_group_percentage": 10
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+## 関連情報
+
+- [オーディエンスと配信のリファレンス](/ja/api/campaigns/audience-scheduling-delivery-reference) — `trigger_condition`、`segmentation_details`、`scheduling_details`、`delivery_controls`、`conversion_goal_details`、`control_group_details`、`utm_params`、`campaign_audience_limit`、`advanced`、`geofences`。
+- [Create Campaign](/ja/api/create-campaigns/create-campaign-draft-v5) — 必須フィールド、正常系の cURL、エラーレスポンス。
+- [Update Campaign](/ja/api/update-campaigns/update-campaign-v5) — 状態ごとの編集制限、公開アクション。
+- [Update Campaign Status](/ja/api/update-campaigns/update-campaign-status-v5) — `STOP`、`PAUSE`、`RESUME` の遷移。
+- [Validate Campaign](/ja/api/create-campaigns/validate-campaign-v5) — 公開前の検証チェック。
+- [キャンペーンドラフトの概要](/ja/api/campaigns/campaign-draft-overview) — ライフサイクル、チャネル、サポートされている配信タイプ。

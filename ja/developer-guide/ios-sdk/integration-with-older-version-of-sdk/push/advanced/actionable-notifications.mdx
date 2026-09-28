@@ -1,0 +1,142 @@
+---
+title: "アクション可能な通知"
+description: "旧バージョンの MoEngage SDK を使用して、iOS のプッシュ通知にカスタムアクションボタンを追加します。"
+---
+
+アクション可能な通知を使用すると、標準の iOS プッシュ通知にカスタムアクションボタンを追加できます。アクション可能な通知により、ユーザーは通知に応じて関連するタスクをすばやく簡単に実行できます。これらのアクション可能な通知は、**iOS 8** 以降で利用できます。
+
+<Warning>
+アクション可能な通知は、MoEngage SDK バージョン 2.2 から利用できます。また、iOS 10 以降で UserNotifications フレームワークの使用をサポートするには、MoEngage SDK 3.0 以上を使用してください。
+</Warning>
+
+# アクション可能な通知を実装する方法
+
+MoEngage SDK でアクション可能な通知を使用するには、例に示すように、アクションを定義してカテゴリーにグループ化する必要があります。この例では、2 つの異なるカテゴリーのセットを取得しています。1 つは iOS 10 以上用（UNNotificationCategory インスタンスのセット）で、もう 1 つは iOS 10 未満の iOS バージョン用（MONotificationCategory インスタンスのセット）です。プッシュの登録時には、以下に示すように両方のセットをパラメーターに指定します。
+
+<CodeGroup>
+```swift Swift
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate{
+
+    var window: UIWindow?
+    
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+
+        //--- Rest of Implementation
+      
+        //For registering for remote notification
+        let categoriesForiOS10 = self.getCategories()
+        MoEngage.sharedInstance().registerForRemoteNotification(withCategories: categoriesForiOS10, withUserNotificationCenterDelegate: self)
+        
+        //--- Rest of Implementation
+        
+        return true
+    }
+    
+    //Example to define categories
+    //This method gives categories for iOS version 10.0 and above
+    @available(iOS 10.0, *)
+    func getCategories() -> Set<UNNotificationCategory>{
+        
+        let acceptAction = UNNotificationAction.init(identifier: "ACCEPT_IDENTIFIER", title: "Accept", options: .authenticationRequired)
+        let declineAction = UNNotificationAction.init(identifier: "DECLINE_IDENTIFIER", title: "Decline", options: .destructive)
+        let maybeAction = UNNotificationAction.init(identifier: "MAYBE_IDENTIFIER", title: "May Be", options: .foreground)
+        
+        let inviteCategory = UNNotificationCategory.init(identifier: "INVITE_CATEGORY", actions: [acceptAction,declineAction,maybeAction], intentIdentifiers: [], options: .customDismissAction)
+        let categoriesSet = Set.init([inviteCategory])
+        
+        return categoriesSet;
+    }
+}
+```
+
+```objectivec Objective-C
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOption
+{
+ ---------
+    
+    NSSet* categorySetForiOS10 = [self getNotificationCategories];
+  	[[MoEngage sharedInstance] registerForRemoteNotificationWithCategories:categorySetForiOS10 withUserNotificationCenterDelegate:self];
+    }
+  
+ ---------
+    return YES;
+}
+
+//Example to define categories
+//This method gives categories for iOS version 10.0 and above
+-(NSSet*)getNotificationCategories{
+
+    UNNotificationAction *acceptAction = [UNNotificationAction actionWithIdentifier:@"ACCEPT_IDENTIFIER" title:@"Accept" options:UNNotificationActionOptionAuthenticationRequired];
+    UNNotificationAction *declineAction = [UNNotificationAction actionWithIdentifier:@"DECLINE_IDENTIFIER" title:@"Decline" options:(UNNotificationActionOptionDestructive)];
+    UNNotificationAction *maybeAction = [UNNotificationAction actionWithIdentifier:@"MAYBE_IDENTIFIER" title:@"May Be" options:UNNotificationActionOptionNone];
+    
+    UNNotificationCategory* inviteCategory = [UNNotificationCategory categoryWithIdentifier:@"INVITE_CATEGORY"actions:@[acceptAction,maybeAction, declineAction,opt4Action] intentIdentifiers:@[] options:UNNotificationCategoryOptionNone];
+    
+    NSSet *categories = [NSSet setWithObjects:inviteCategory,nil];
+    
+    return categories;
+}
+```
+
+</CodeGroup>
+
+例に示すように、Accept、Decline、May Be の各アクションは、1 つのカテゴリー（"INVITE\_CATEGORY"）にグループ化されています。iOS 8 および iOS 9 用のカテゴリーを宣言するには、SDK の **MONotificationCategory** を使用してください。
+
+<Info>
+**通知カテゴリー**
+
+MoEngage では、アプリのバージョン間でカテゴリーにグループ化されたアクションを変更しないことを推奨しています。変更すると、異なるアプリのバージョン間で同じカテゴリーに対してユーザーに異なるアクションが表示されることになります。
+</Info>
+
+# ユーザーアクションのトラッキング
+
+## iOS 10 以上の場合：
+
+前述のとおり、**UNUserNotificationCenter** のデリゲートメソッドを使用して通知のアクションを処理し、さらに SDK の ***userNotificationCenter:didReceiveNotificationResponse:*** を呼び出して、通知に対して実行されたアクションをトラッキングします。
+
+<CodeGroup>
+```swift Swift
+func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+	MoEngage.sharedInstance().userNotificationCenter(center, didReceive: response)
+  //---
+	completionHandler()
+}
+```
+
+```objectivec Objective-C
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+didReceiveNotificationResponse:(UNNotificationResponse *)response
+         withCompletionHandler:(void (^)())completionHandler{  
+	[[MoEngage sharedInstance] userNotificationCenter:center didReceiveNotificationResponse:response];
+	//---   
+	completionHandler();  
+}
+```
+
+</CodeGroup>
+
+## iOS 8 および iOS 9 の場合
+
+アクション可能な通知に対してユーザーが実行したアクションをトラッキングするには、以下に示すように *application:handleActionWithIdentifier:forRemoteNotification:completionHandler:* 内で *handleActionWithIdentifier:forRemoteNotification:* を呼び出します。
+
+<CodeGroup>
+```swift Swift
+func application(_ application: UIApplication, handleActionWithIdentifier identifier: String?, forRemoteNotification userInfo: [AnyHashable : Any], completionHandler: @escaping () -> Void) {
+//---
+	if let identifier = identifier {
+		MoEngage.sharedInstance().handleAction(withIdentifier: identifier, forRemoteNotification: userInfo)
+	}
+}
+```
+
+```objectivec Objective-C
+- (void)application:(UIApplication *)application handleActionWithIdentifier:(NSString *)identifier forRemoteNotification:(NSDictionary *)notification completionHandler:(void (^)()) completionHandler {
+    ----
+    [[MoEngage sharedInstance] handleActionWithIdentifier:identifier forRemoteNotification:notification]
+    completionHandler();
+}
+```
+
+</CodeGroup>

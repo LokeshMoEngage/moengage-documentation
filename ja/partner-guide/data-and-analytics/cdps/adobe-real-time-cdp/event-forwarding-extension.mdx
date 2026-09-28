@@ -1,0 +1,94 @@
+---
+title: "イベント転送拡張機能"
+---
+
+# はじめに
+
+<Info>
+  現在、Adobe の MoEngage Event Forwarding Extension では [Unified Identity (Identity Resolution)](https://moengage-user-guide.mintlify.app/user-guide/data/user-data/unified-identity-identity-resolution) はサポートされていません。
+</Info>
+
+[Adobe のイベント転送拡張機能](https://experienceleague.adobe.com/docs/experience-platform/tags/extensions/overview.html?lang=en)を使用すると、マーケターは収集したイベントをサードパーティの宛先に送信できます。これは S2S (サーバー間) 方式であり、データはクライアントアプリケーションから収集されて Adobe のサーバーに送信され、その後宛先に送信されます。
+
+# 対象範囲
+
+MoEngage と Adobe RT CDP の連携により、Adobe のデータ (ユーザー属性、セグメント、イベント) をリアルタイムで MoEngage に接続してマッピングできます。お客様はこのデータに基づいてアクションを実行し、パーソナライズされたターゲット体験を提供できます。
+
+Adobe との連携は非常にシンプルで直感的です。任意の Adobe の[イベント](https://experienceleague.adobe.com/docs/experience-platform/identity/namespaces.html?lang=en)を MoEngage のユーザーイベントにマッピングするだけです。
+
+# 連携の前提条件
+
+- MoEngage と Adobe Experience Platform へのアクセス権。
+- Data API ID と Data API Key は、**Settings** -\> **Account** -\> **APIs** で確認できます。Data API ID は **Workspace ID** と同じです。Data API Key は、同じ画面の **API Keys** -\> **Data** セクションで確認できます。
+- MoEngage のデータクラスター。
+
+# ステップ 1: MoEngage 拡張機能を設定する
+
+1. Adobe プラットフォームで Event forwarding に移動し、_Extensions_ をクリックします。
+2. MoEngage を検索し、Configure をクリックします。 <img src="/images/partner_16740458545172.png" alt="Screenshot_2023-01-16_at_10.58.59_AM.png" />
+3. MoEngage プラットフォームに関する以下の詳細を入力します。
+
+![Screenshot\_2023-01-16\_at\_10.59.19\_AM.png](/images/partner_16740433464724.png)
+
+| フィールド | 操作 |
+| --- | --- |
+| App ID | Workspace ID をコピーして貼り付けます。MoEngage アカウントの Workspace ID は、**Settings - \> Account -\> APIs -\>Workspace ID** で確認できます。MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+| API key | Data API Key をコピーして貼り付けます。MoEngage アカウントの Data API キーは、**Settings - \> App Settings -\> APIs -\> API Keys -\> Data** で確認できます。 |
+| Data cluster | MoEngage のデータセンターです。詳細については、[MoEngage のデータセンター](https://moengage-user-guide.mintlify.app/user-guide/data/key-concepts/data-centers-in-moengage)をご覧ください。 |
+
+4. _Save_ をクリックします_。_
+
+## Portfolio のサポート
+
+<Info>
+  この機能を使用すると、属性マッピングを使用して、単一の Adobe RTCDP ソースから MoEngage ワークスペース内の特定のプロジェクトにイベントをルーティングできます。
+</Info>
+
+### 設定要件
+
+イベントを特定のプロジェクトにルーティングするには、Adobe ワークスペースで以下を設定する必要があります。
+
+- **プロジェクト識別子をマッピングする**: MoEngage にイベントを転送する際、イベント転送ルールのアクションで、ソースプロパティ (例: `brand_name` や `app_id`) を MoEngage のイベント属性 `moe_project_name` にマッピングします。
+- **完全一致を確保する**: ソースフィールドの値は、MoEngage の Portfolio で設定されているプロジェクト名と完全に一致する必要があります。照合では大文字と小文字が区別されます。
+
+### イベント取り込みルール
+
+MoEngage は、以下のロジックに基づいてイベントを取り込みます。
+
+- **ルーティング成功**: `moe_project_name` の値が設定済みのプロジェクト名と一致する場合、MoEngage はそのプロジェクトレベルでイベントを取り込みます。
+- **フォールバック動作**: `moe_project_name` 属性が存在しない、空白である、または設定済みのプロジェクト名と完全に一致しない場合、MoEngage はグローバルな Portfolio レベルでイベントを取り込みます。\
+  **注**: Portfolio レベルで取り込まれたデータは、特定のプロジェクトに関連付けられません。このデータは、プロジェクト固有の分析、セグメンテーション、キャンペーンのターゲティングには使用できません。
+
+詳細については、[Portfolio](/ja/user-guide/settings/account/portfolio/portfolio) および [Portfolio: Data Ingestion and Management](https://www.moengage.com/docs/user-guide/data/key-concepts/portfolio-data-ingestion-and-management#event-attributes-project-level) を参照してください。
+
+<Warning>
+  **制限事項**
+
+  Adobe のプロジェクトレベルのルーティングは、イベントに対してのみ利用できます。以下の機能はグローバルな Portfolio レベルで管理されます。
+
+  - **ユーザー同期**: プロジェクトレベルではサポートされていません。アウトバウンドのユーザー同期中、ユーザーはデフォルトでグローバルな Portfolio レベルでトラッキングされます。
+  - **コホート同期**: プロジェクトレベルではサポートされていません。
+</Warning>
+
+# ステップ 2: 拡張機能のルールを設定する
+
+1. サイドバーから _Rules_ に移動します。<img src="/images/partner_16740410129556.png" alt="Screenshot_2023-01-16_at_11.21.09_AM.png" />
+2. 右上の _Add Rule_ をクリックします。これで、ルールを定義し、条件とアクションを設定できます。 <img src="/images/partner_16740426839316.png" alt="Screenshot_2023-01-16_at_11.25.39_AM.png" />
+3. アクションで、_Extension_ として MoEngage event forwarding を、_Action type_ として Send events を選択し、アクションに任意の名前を付けます。 <img src="/images/partner_16740443211284.png" alt="Screenshot_2023-01-16_at_11.26.27_AM.png" />
+4. Adobe Experience Platform から MoEngage にイベントデータを正しく送信するには、フィールドマッピングのステップを完了する必要があります。マッピングにより、Adobe Experience データモデルのフィールドと、対応する MoEngage のイベントフィールドがリンクされます。\
+   **注**: カスタムデータの下にカスタムイベント属性を追加できます。データアイコン (カスタムデータフィールドの右側) を使用して、Adobe データモデルから特定のフィールドを選択します。 <img src="/images/partner_16740418918420.png" alt="Screenshot_2023-01-16_at_11.37.30_AM.png" />
+5. _Save_ をクリックします_。_
+
+これで、イベントが MoEngage プラットフォームに流れ始めます。
+
+# ステップ 3: MoEngage でイベントを確認する
+
+MoEngage ダッシュボードで _Test & Debug_ \>\> _Recent events_ に移動すると、Adobe RT CDP から MoEngage プラットフォームに流れているイベントの一覧を確認できます。
+
+# レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Adobe データの取り込みをワークスペースあたり最大 500 リクエスト/秒 (RPS) に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+Adobe はデフォルトの再試行ポリシーによってこれらのレート制限のほとんどを自動的に処理しますが、以下の動作に注意してください。
+
+**再試行の上限到達:** Adobe がデータのバッチに対するすべての再試行を使い切った場合は、Adobe サポートチームに連絡して、失敗したリクエストを再送してもらう必要があります。

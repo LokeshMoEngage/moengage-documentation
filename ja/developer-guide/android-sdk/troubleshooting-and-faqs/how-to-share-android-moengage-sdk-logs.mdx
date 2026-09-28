@@ -1,0 +1,159 @@
+---
+title: "Android MoEngage SDK のログを共有する方法"
+description: "詳細な MoEngage Android SDK ログを有効にしてサポートチームと共有し、問題をより迅速に解決します。"
+---
+
+問題をより迅速に解決するための最初のステップとして、サポートチームがログを求める場合があります。ログは、私たち (場合によってはお客様自身) が問題をすばやく特定し、問題に対する正確な解決策を共有するのに役立ちます。
+
+このドキュメントでは、MoEngage SDK のログを MoEngage サポートチームと共有するために実行できるいくつかの手順を示します。
+
+<iframe src="https://www.youtube.com/embed/kQjcdzQkOq4" title="YouTube 動画プレーヤー" frameborder="0" className="w-full aspect-video rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen />
+
+## Android のデバッグログを有効にする
+
+以下のスニペットを使用して、MoEngage SDK 関連のすべてのログを有効にします。
+
+<CodeGroup>
+
+```kotlin Kotlin
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.LogConfig
+import com.moengage.core.LogLevel
+import com.moengage.core.enableAllLogs
+
+enableAllLogs()
+
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureLogs(LogConfig(logLevel = LogLevel.VERBOSE, isEnabledForReleaseBuild = true))
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+```java Java
+import com.moengage.core.MoEngage;
+import com.moengage.core.config.LogConfig;
+import com.moengage.core.LogLevel;
+import com.moengage.core.MoESdkStateHelper;
+
+MoESdkStateHelper.enableAllLogs();
+
+// replace X with the correct data center
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.getDataCenterX())
+    .configureLogs(new LogConfig(LogLevel.VERBOSE, true))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+<Warning>
+  `enableAllLogs()` は、呼び出された後に生成されたログのみをキャプチャし、それ以前のログは再生しません。すべてのログをオフにするには、`disableAllLogs()` を呼び出します。アプリを本番環境にリリースする前に、`isEnabledForReleaseBuild` を `false` に設定し、これらの呼び出しを削除してください。
+</Warning>
+
+## React Native のデバッグログを有効にする
+
+上記の [Android セクション](#enable-debug-logs-for-android)と同じ手順に従います。さらに、React Native では TypeScript レベルでログを制御できます。`App.tsx` (またはアプリのエントリーファイル) の MoEngage 初期化コードを更新して、ログ設定を渡します。
+
+```typescript TypeScript
+import { MoEInitConfig, MoEPushConfig, MoEngageLogConfig, MoEngageLogLevel } from "react-native-moengage";
+import ReactMoE from "react-native-moengage";
+
+const moEInitConfig = new MoEInitConfig(
+  MoEPushConfig.defaultConfig(),
+  new MoEngageLogConfig(MoEngageLogLevel.VERBOSE, true)
+);
+
+ReactMoE.initialize("YOUR_WORKSPACE_ID", moEInitConfig);
+```
+
+<Warning>
+  アプリケーションを本番環境にリリースする前に、上記の行を必ず削除してください。
+</Warning>
+
+## Android Studio
+
+ここでは Android Studio でログを共有する手順を示しますが、他の IDE でも同様の手順が適用されます。
+
+1. まず、デバイスをノート PC/PC に接続します。
+2. Android Studio を開き、Logcat をクリックします。
+
+   <Frame>
+     ![Image1](/images/image1.png)
+   </Frame>
+3. 検索フィールドに MoE と入力して、MoEngage のログのみをフィルタリングします (デバイスの詳細にデバイスが表示され、正しいデバイスが表示されていることを確認してください)。
+
+   <Frame>
+     ![Image3 1](/images/image3-1.png)
+   </Frame>
+   <Frame>
+     ![Image5](/images/image5.png)
+   </Frame>
+4. MoEngage SDK 関連のログは、以下の画像のように表示されます。
+
+   <Frame>
+     ![Image4](/images/image4.png)
+   </Frame>
+5. Logcat で必要な行またはすべての行をコピーしてテキストファイルに貼り付け、そのファイルを MoEngage サポートチームと共有します。
+
+## 重要なログ
+
+ログを参照する際に、いくつかのキーワードを検索することで、MoEngage が提供するさまざまなサービスで何が起きているかを把握できます。キーワードを表示するには、MoEngage SDK の詳細ログを有効にする必要があることに注意してください。
+
+### データトラッキング
+
+ 
+
+![Datatracking](/images/datatracking.png)
+
+ 
+
+**検索文字列** - sdk/report
+
+**出現タイミング** - この文字列は複数回表示されることがあり、このログはアプリがバックグラウンドに移行したときや強制終了状態になったときに出力されます。このログが出力される他のケースもありますが、バックグラウンドへの移行や強制終了の操作は簡単に実行できるため、ここではこの 2 つの条件に絞って説明します。この行は、アプリがバックグラウンドまたは強制終了状態になってから 3 秒後に表示されます。
+
+**説明**
+
+このログ行は、MoEngage サーバーへの API 呼び出しが行われ、成功したことを示します。この API 呼び出しは、lifecycle process が適切に統合されていることに依存します。ライフサイクルオブザーバーが適切に登録されていない場合、アプリがバックグラウンドまたは強制終了状態になってもこの行が表示されないことがあります。トラブルシューティング記事 - [ライフサイクルの問題をデバッグする方法](/ja/developer-guide/android-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs#why-is-lifecycle-process-library-important)。
+
+### プッシュトークン
+
+![Pushtoken](/images/pushtoken.png)
+
+**検索文字列** - push_id
+
+**出現タイミング** - この文字列 **push_id** は、sdk/report API 呼び出しのパラメーターの一部として確認できます。push_id が MoEngage サーバーに送信される他のケースもありますが、アプリは簡単にバックグラウンド状態にできるため、ここではこのケースのみを記載しています。
+
+**説明**
+
+このパラメーターが存在し、空でない場合は、MoEngage SDK がプッシュトークンを適切に取得し、MoEngage のバックエンドサーバーと同期したことを示します。FCM プロジェクトの設定に問題がある場合、push_id が表示されないか、値が空になることがあります。[プッシュ統合](/ja/developer-guide/android-sdk/push/basic/push-configuration)の手順を適切に実行してください。
+
+### InApps - 同期
+
+![Sync](/images/sync.png)
+
+**検索文字列** - inapp/live で検索し、getResponse() を含む行を見つけます
+
+**出現タイミング** - アプリが強制終了状態から開かれたとき。この API 呼び出しが行われる他のケースもありますが、アプリを強制終了して開くことで簡単にこの呼び出しを確認できるため、ここではこのケースのみを記載しています。
+
+**説明**
+
+このログ行は、MoEngage SDK がユーザーに対して有効な InApps または Nudges を取得するために、バックエンドサーバーへの API 呼び出しを行ったことを示します。この API 呼び出しは InApps や Nudges が期待どおりに動作するために不可欠であり、lifecycle process が適切に登録されていることに依存します。強制終了状態からアプリを開いてもこの呼び出しが表示されない場合は、こちらのトラブルシューティング記事を参照してください - [ライフサイクルの問題をデバッグする方法](/ja/developer-guide/android-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs#why-is-lifecycle-process-library-important)
+
+### InApps - 表示されない
+
+![Display](/images/display.png)
+
+**検索文字列** - Cannot show
+
+**出現タイミング** - この文字列は、MoEngage SDK が InApp を表示できない場合に表示されます。
+
+**説明**
+
+このログ行は、InApps がユーザーに表示されていないことを示し、InApp が表示されない理由もログ行の末尾に記載されています。
+
+### 例外
+
+![Exceptions](/images/exceptions.png)
+
+MoEngage SDK のログを参照していると、上の画像のようなエラーや例外のログが表示される場合があります。MoEngage SDK をスムーズに統合するには、このようなログが出ないようにすることが重要です。これらの問題の修正方法を特定するには、サポートチケットを通じて私たちのチームにお問い合わせください。一般的な例外とその修正方法の一部を[こちら](/ja/developer-guide/android-sdk/troubleshooting-and-faqs/troubleshooting-exceptions)に記載しています。

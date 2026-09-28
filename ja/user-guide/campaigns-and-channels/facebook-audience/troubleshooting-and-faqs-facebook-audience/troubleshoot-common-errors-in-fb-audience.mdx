@@ -1,0 +1,56 @@
+---
+title: "FB Audience の一般的なエラーのトラブルシューティング"
+description: "MoEngage で Facebook Audience キャンペーンを実行する際に発生する、権限の問題やカスタムオーディエンスの作成失敗などの一般的なエラーを解決します。"
+---
+
+Marketing API を使用して Facebook Audience キャンペーンを設定する際に、特定のエラーが発生する場合があります。以下に、一般的なエラーとその解決方法を示します。
+
+|  |  |  |
+| --- | --- | --- |
+| **MoEngage UI のエラーメッセージ** | **意味** | **解決方法** |
+| Requires business\_management permission | Facebook Business Manager API で読み取りと書き込みを行うには、アプリに **business\_management** 権限が必要です。この権限は、広告アカウントなどのビジネスアセットを管理するために必要です。また、この権限を使用して、集計され匿名化または非識別化された情報 (そのデータが再識別できない場合に限る) を利用し、アプリの改善やマーケティング・広告の目的で分析インサイトをリクエストすることもできます。 | **business\_management** 権限を含む新しいアクセストークンを生成し、MoEngage で Facebook Audience を再接続します。以下の **business_management 権限エラーを解決する** セクションの手順に従ってください。エラーが解決しない場合は、アプリで [Facebook App Review プロセス](https://developers.facebook.com/docs/app-review) を受ける必要があります。 |
+| Failed to create the new Facebook audience. Please try again. | このエラーは、Facebook Audience キャンペーン作成のステップ 2 で新しいカスタムオーディエンスを作成できない場合に表示されます。 | 一般的な原因の 1 つは、広告アカウントで Facebook Custom Audience の利用規約に同意していないことです。以下の [権限の問題を特定して解決する](#identify-permission-issues) セクションを参照してください。 |
+
+## business_management 権限エラーを解決する
+
+アクセストークンに **business_management** 権限がないために Facebook Audience の同期が失敗する場合は、Graph API Explorer を使用してこの権限を含む新しいトークンを生成し、長期間有効なトークンに延長します。
+
+1. [Graph API Explorer](https://developers.facebook.com/tools/explorer) を開きます。
+2. **Meta App** ドロップダウンからアプリを選択します。
+3. **Permissions** ドロップダウンで、**ads_read**、**ads_management**、**business_management** がすべて選択されていることを確認します。このエラーの原因として一般的に欠けている権限は `business_management` です。
+4. **Generate Access Token** をクリックします。<img alt="business_management 権限が選択され、Generate Access Token ボタンが表示された Graph API Explorer" src="/images/facebook-graph-api-explorer.png" />
+5. 生成されたトークンは短期間のみ有効です。延長するには、[Access Token Debugger](https://developers.facebook.com/tools/debug/accesstoken) を開きます。
+6. トークンを貼り付け、**Extend Access Token** をクリックして、60 日間有効な長期トークンを生成します。<img alt="短期トークンと Extend Access Token ボタンが表示された Access Token Debugger" src="/images/facebook-access-debugger.png" />
+7. 延長されたトークンをコピーし、そのトークンを使用して [MoEngage で Facebook Audience を接続](/ja/user-guide/campaigns-and-channels/facebook-audience/getting-started-with-facebook-audience/facebook-audience-settings-on-moengage-dashboard) します。
+
+## 必要な権限を確認する
+
+利用規約に同意していない場合、Facebook の API ではカスタムオーディエンスを作成または変更できません。契約が締結されていない場合、カスタムオーディエンスを作成または編集しようとすると、Facebook がエラーを発生させます。
+
+## 権限の問題を特定する
+
+オーディエンスの作成失敗の原因が権限の問題であることを確認するには、次の手順に従います。
+
+1. ブラウザーで **Developer Tools** に移動します。
+2. **Network** タブを選択します。
+3. MoEngage で、**Create new audience** セクションの **Create Audience** をクリックします。
+4. 以下に示すように、Network タブに表示されるエラーメッセージを確認します。  
+    <img alt="Screenshot_2021-07-09_at_4.50.23_PM.png" src="/images/moengage_677474.png"  />
+
+### 権限の問題を解決する
+
+この問題を解決するには、次の手順に従います。
+
+1. Facebook の [Manage Custom Audiences](https://www.facebook.com/login/?next=https%3A%2F%2Fwww.facebook.com%2Fads%2Fmanage%2Fcustomaudiences%2Ftos.php) ページに移動します。ログインしていない場合は、ログインを求められることがあります。
+2. URL 内の広告アカウント ID を正しいものに更新します。
+3. 広告アカウントの利用規約に同意します。
+4. [Facebook App ダッシュボード](https://developers.facebook.com/apps) から新しいアクセストークンを取得します。
+5. MoEngage ダッシュボードに移動します。MoEngage の **Settings** ページで Facebook からログアウトし、新しいアクセストークンで再度ログインします。
+6. 新しいオーディエンスを作成するか、既存のオーディエンスに新しいユーザーを追加してみてください。
+
+問題が解決しない場合は、次の追加手順を試してください。
+
+1. [Facebook App ダッシュボード](https://developers.facebook.com/apps) に移動し、**Add Product** をクリックします。
+2. **Facebook Login** を検索して選択します。
+3. 関連する詳細を入力します。これにより、左側のパネルの **Products** の下に **Facebook Login** が追加されます。
+4. MoEngage ダッシュボードに戻り、新しいオーディエンスを作成するか、既存のオーディエンスに新しいユーザーを追加してみてください。

@@ -1,0 +1,82 @@
+---
+title: "eKYC の放棄を減らす方法"
+---
+
+# はじめに
+
+電子本人確認 (eKYC) は、FinTech 企業が顧客を確認するための最も好まれる方法であり、多くの場合、規制当局によって義務付けられています。しかし、eKYC プロセスは長くなることが多く、ユーザーがすぐには用意できない詳細情報の提出が必要になる場合があります。特にデジタルユーザーの集中力が持続しにくい現在において、これはマーケターにとって最も一般的でありながら対処が難しい状況の 1 つです。顧客をアプリに呼び戻し、KYC を完了するよう促すことを目的とした Flows を設定できます。これによりコンバージョン率を高め、新規ユーザーや収益の損失を防ぐことができます。
+
+一般的に、eKYC の申請には、個人情報の入力と関連書類のアップロードという 2 つの段階があります。この記事では、ユーザーが離脱した段階に応じて、eKYC プロセスを完了するよう促す Flow キャンペーンを作成します。
+
+# 期待される結果
+
+ユーザーは、KYC の完了を促すプッシュ通知をスマートフォンで受信します。
+
+<img
+  alt="1.png"
+  src="/images/moengage_2439e8.png"
+  style={{ width:"68%" }}
+/>
+
+<Tip>
+  - ユーザーが eKYC 承認プロセスを開始するアクションと、プラットフォーム、購入した商品の ID、名前、価格などの関連情報を追跡するイベント。この例では、「eKYC Started」というイベント名にします。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - ユーザーが個人情報の入力や書類のアップロードなど、eKYC プロセスのさまざまな部分を完了するアクションと、プラットフォーム、ユーザー ID、リード ID、アプリバージョンなどの関連情報を追跡するイベント。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。この例では、イベント名を次のようにします。
+    - eKYC\_PersonalDetailsFilled
+    - eKYC\_DocumentsUploaded
+  - ユーザーが eKYC の申請を送信するアクションと、プラットフォーム、リード ID、顧客 ID、アプリバージョンなどの関連情報を追跡するイベント。この例では、「eKYC Submitted」というイベント名にします。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - Push、Email、SMS、WhatsApp などの 1 つ以上のチャネルの設定。
+</Tip>
+
+# Flow を作成する
+
+このセクションでは、eKYC プロセスを完了するよう顧客に促す Flow を作成します。
+
+## Flow の詳細を追加する
+
+1. **Engage** \> **Flows** に移動して **\+ Create Flow** をクリックするか、サイドバーに移動して **\+ Create new** をクリックしてから **Flow** をクリックします。
+2. **\+ Start with a blank canvas** をクリックして、このユースケース用の Flow の作成を開始します。最初のステップ「Details and goals」に移動します。
+3. 次の詳細を入力します。
+   - **Flow name**: Flow 名を入力します。たとえば、「eKYC Abandonment Journey」と入力します。
+   - **Flow tags**: 必要な Flow タグを選択します。
+4. **Conversion goal** セクションで、**Exit on conversion** トグルをオンにして、「eKYC Submitted」イベントを実行してコンバージョンしたユーザーを Flow から退出させます。これは主要なコンバージョン目標であり、ユーザーが eKYC を送信したときにトリガーされます。
+   ![2.png](/images/moengage_5b8210.png)
+5. **Next** をクリックして 2 番目のステップ「When will users enter the flow」に進みます。このステップでは、トリガー条件を指定して、ユーザーをいつ Flow に参加させるかを定義します。この例では、イベントは「eKYC Started」とします。
+6. **Users enter the flow** セクションで **On event trigger** を選択します。
+7. **IF user** セクションで、ユーザーが eKYC プロセスを開始したときにトリガーされるイベント「eKYC Started」を選択します。
+8. **THEN enter the user** セクションで、**Immediately** オプションを選択します。
+   ![3.png](/images/moengage_5f1996.png)
+9. **Flow schedule** セクションで、必要に応じて Flow の開始時刻と終了時刻を定義します。デフォルトでは、Flow は「As soon as possible」に開始され、終了しません。
+10. **Limit user entry into this flow** トグルをオンにせず、ユーザーが Flow に参加できる最大回数は定義しません。\
+    ユーザーは eKYC 申請放棄 Flow の参加ルールに頻繁に一致する可能性が高く、Flow に何度も参加してしまうことがある点に注意してください。このような制限を定義すると、ユーザーが繰り返し Flow に再参加するのを制御でき、過剰なメッセージ送信を避けられるため、より良いユーザーエクスペリエンスを提供できます。
+    ![4.png](/images/moengage_9052e0.png)
+11. **Next** をクリックして 3 番目のステップ「Who will enter the flow」に進みます。ここでは、Flow のターゲットオーディエンスを選択します。
+12. **Audience** セクションで **All users** を選択します。イベントトリガー型の Flow に参加する資格を得るには、ユーザーが必要なイベントを実行する前にターゲットオーディエンスに含まれている必要があります。
+    ![5.png](/images/moengage_193c2b.png)
+13. **Next** をクリックしてキャンバスセクションに移動します。ここでは、ユーザーが進む Flow の構造を定義できます。
+
+## Flow の構造を定義する
+
+1. **\+** アイコンをクリックします。ドロワーが表示されます。
+2. **Conditions** で、エントリー条件として「Conditional Split」を追加します。
+3. eKYC 承認プロセスのステップにおけるユーザーの進行状況を、次のように定義します。
+   - ブランチ 1 で「eKYC submitted」イベントを確認
+   - ブランチ 2 で「eKYC\_DocumentsUploaded」イベントを確認
+   - ブランチ 3 で「eKYC\_PersonalDetailsFilled」イベントを確認\
+     チェックを逆の順序で配置する理由は、Conditional Split の各ブランチに優先順位があるためです。詳細については、[Branching of Users via Condition Stages](/ja/user-guide/flows-cross-channel-messaging/create/conditions-and-controls-in-flows/branching-of-users-in-flows) を参照してください。
+4. **Keep evaluating for the next** トグルをオンにして、ユーザーがイベントを実行するのを待つ最大時間を定義します。このユースケースでは、30 分と入力します。
+   ![6.png](/images/moengage_d3095b.png)
+5. Conditional Split の各ブランチに対応するコミュニケーションを追加し、eKYC の申請が正常に完了したことを伝えて次のアクションを提案するか、現在の段階に基づいてプロセスの次のステップに進むよう促します。\
+   たとえば、ブランチ 3 に進んだユーザーは個人情報の入力を完了していますが、承認のための書類を提出していません。そのため、ブランチ 3 のコミュニケーションではその点に焦点を当てる必要があります。デフォルトブランチに進んだユーザーが最初のステップである個人情報の提供すら完了していない場合は、デフォルトブランチにそれを促すコミュニケーションを配置する必要があります。
+6. ドリップキャンペーンを作成することが戦略であるため、各コミュニケーションステージの後に **Has done event** ステージを配置し、次のステップとしてトリガーされるイベントを確認できます。ステージの「Yes」パスには、前のブランチの最初のコミュニケーションに接続する「Goto」ステージを配置し、「No」パスには別のコミュニケーションを配置できます。\
+   たとえば、デフォルトブランチには「eKYC\_PersonalDetailsFilled」イベントを確認する **Has done event** を配置し、Yes パスにはブランチ 3 の最初のコミュニケーションにユーザーを接続する「Goto」ステージを配置します。No パスには、個人情報の入力を促すために別のコミュニケーションを配置します。
+   ![7.png](/images/moengage_f43bb2.png)
+7. フィードバックの取得とメッセージの送信の両方について、ユーザーに働きかけるためのアクションキャンペーンを必要なだけ追加します。特に「Has done events」の Yes パスでは、Wait ステージを使用して各コミュニケーションの間に間隔を空け、ユーザーへの過剰なメッセージ送信を避けてください。詳細については、[Add Controls to Flow](/ja/user-guide/flows-cross-channel-messaging/create/conditions-and-controls-in-flows/force-move-or-delay-users-in-flows) を参照してください。
+8. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、ユーザーが離脱した段階に応じて、eKYC プロセスを完了するよう促す Flow キャンペーンを作成しました。
+
+- Flow を公開したので、Flow のパフォーマンスを[分析](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/analyze-a-flow)できます。
+- キャンペーンによって Flow に参加したユーザー数を把握できます。「Flow ID」を指定して「User Entered Flow」イベントでセグメンテーションを作成します。詳細については、[Users who have entered/exited the Flow](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/tracking-users-in-flows) を参照してください。
+- キャンペーンによって実際に eKYC を完了したユーザー数も把握できます。「Flow ID」を指定して「Flow Trip Conversion」イベントでセグメンテーションを作成します。詳細については、[Conversion Tracking and Attribution in Flows](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/conversion-attribution-in-flows) を参照してください。

@@ -1,0 +1,87 @@
+---
+title: "位置情報トリガー"
+description: "MoEngage プラグインを使用して、Flutter アプリに位置情報トリガー型のジオフェンスプッシュ通知を追加します。"
+---
+
+![ダウンロード](https://img.shields.io/pub/v/moengage_geofence.svg)
+
+# インストール
+
+MoEngage Geofence SDK をアプリケーションに追加するには、アプリケーションの **pubspec.yaml** ファイルを編集し、以下の依存関係を追加します。
+
+<CodeGroup>
+
+```pubspec.yaml pubspec.yaml
+dependencies:
+ moengage_geofence: $latestVersion
+```
+
+</CodeGroup>
+
+**_\$latestVersion_** は、プラグインの最新バージョンを指します。
+
+依存関係を追加した後、ターミナルで **_flutter pub get_** コマンドを実行して依存関係をインストールします。
+
+プラグインをインストールした後、次のプラットフォーム固有の設定を行います。
+
+<Info>
+  このプラグインは **moengage_flutter** プラグインに依存しています。**moengage_flutter** プラグインもインストールされていることを確認してください。詳細については、[ドキュメント](/ja/developer-guide/flutter-sdk/sdk-integration/sdk-installation/framework-dependency)を参照してください。
+
+  位置情報トリガー型のプッシュが機能するには、アプリケーションに以下が必要です。
+
+  - 位置情報の権限
+  - Play Services Location Library
+  - デバイスの位置情報が有効になっていること
+</Info>
+
+## Android でのインストール
+
+****_moengage_geofence5.0.0_**** 以降、プラグインにはネイティブの依存関係が含まれているため、追加のネイティブ依存関係を含める必要はありません。
+
+## iOS でのインストール
+
+iOS の場合、ネイティブの依存関係は Geofence Flutter SDK 自体に含まれているため、Geofence をサポートするために追加の依存関係を含める必要はありません。
+
+## 設定
+
+### ジオフェンスモニタリングの開始
+
+Geofence パッケージを統合した後、**startGeofenceMonitoring()** メソッドを呼び出してジオフェンスモジュールを開始します。これにより、ユーザーの現在地周辺のジオフェンスが取得されます。ジオフェンスの詳細については、[iOS のドキュメント](/ja/developer-guide/ios-sdk/push/optional/location-triggered)と [Android のドキュメント](/ja/developer-guide/android-sdk/push/optional/location-triggered)を参照してください。デフォルトでは、ジオフェンス機能は有効になっていません。位置情報トリガー型のプッシュメッセージを受信するには、**startGeofenceMonitoring()** を呼び出す必要があります。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_geofence/moengage_geofence.dart';
+
+final MoEngageGeofence _moEngageGeofence = MoEngageGeofence('YOUR_WORKSPACE_ID');
+
+@override
+void initState() {
+  super.initState();
+  // Starts geofence monitoring
+  _moEngageGeofence.startGeofenceMonitoring();
+}
+```
+
+</CodeGroup>
+
+<Note>
+  `startGeofenceMonitoring()` は、SDK が初期化され、位置情報の権限が付与された後にのみ呼び出してください。SDK が初期化されていない場合、この呼び出しは通知なしに無視されます。
+</Note>
+
+### ジオフェンスモニタリングの停止
+
+ジオフェンスモニタリングまたは機能を停止したい場合は、**stopGeofenceMonitoring()** API を使用します。この API は既存のジオフェンスを削除します。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_geofence/moengage_geofence.dart';
+
+final MoEngageGeofence _moEngageGeofence = MoEngageGeofence('YOUR_WORKSPACE_ID');
+
+// Stops geofence monitoring and removes the existing geofences
+_moEngageGeofence.stopGeofenceMonitoring();
+```
+
+</CodeGroup>

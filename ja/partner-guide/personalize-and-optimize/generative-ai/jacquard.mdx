@@ -1,0 +1,80 @@
+---
+title: "Jacquard"
+---
+
+# はじめに
+
+[Jacquard](https://www.jacquard.com/) は生成 AI を使用して、デジタルカスタマージャーニー全体で数十億もの最適なマーケティングメッセージを生成します。
+
+# MoEngage × Jacquard
+
+Jacquard はオーディエンスのペルソナ、製品ライン、ブランドガイドラインを分析し、AI を使用してブランドとオーディエンスに固有のコピーを生成・最適化します。MoEngage と Jacquard の連携により、以下のことができます。
+
+- Jacquard が動的に生成したコンテンツを MoEngage キャンペーンに埋め込む
+- MoEngage のイベントを Jacquard に転送して、Jacquard キャンペーンのパフォーマンスを微調整する
+
+# 連携
+
+<Info>
+  - Jacquard の API を使用するには、Jacquard の API トークンが必要です。
+  - Jacquard ダッシュボードでテンプレートを作成する必要があります。
+  - Jacquard にイベントを転送するには、MoEngage のアカウントで [S3 Exports](/ja/user-guide/data/exports/events/data-warehouse/s3-exports) を有効にする必要があります。
+</Info>
+
+## MoEngage キャンペーンに Jacquard のコンテンツを埋め込む
+
+MoEngage の Content API を使用すると、Jacquard で作成したコンテンツを MoEngage キャンペーン内に動的に追加し、よりパーソナライズされた体験を提供できます。以下は、メールキャンペーン向けに生成 AI を使用してパーソナライズされた件名を生成する例です。
+
+### ステップ 1: MoEngage Content API を設定する
+
+1. **Settings** -\> **Advanced settings** -\> **Content API** に移動します。Content API 画面の右上隅にある **\+ Add content API** をクリックします。
+
+![ContentAPI\_Navogation.png](/images/partner_21979727112212.png)
+
+2. エンドポイント URL に Jacquard を追加します。ユースケースに応じてエンドポイントは変わります。
+
+![](/images/partner_20460202553748.png)
+
+3. AI が生成したパーソナライズされた件名を表示するには、[Jacquard の Single Variant Realtime API](https://docs.realtime.phrasee.co/#851bb23c-a362-43a7-bdf3-50495f9478f2) を使用します。Content API を設定する際に、メソッドとして GET を選択し、以下の URL を挿入します。
+
+```text wrap
+https://realtime.phrasee.co/single_variant?campaign_id=<my_campaign_id>&delivery_id={{CampaignAttribute['_id']}}&recipient_id={{UserAttribute['Mobile Number (Standard)']}}
+```
+
+4. 上記の URL を貼り付けると、URL Parameters が自動的に入力されます。Headers で Authorization を追加し、Jacquard から提供された API トークンを入力します。
+5. 「Save」をクリックし、成功レスポンスが表示されたら「Done」をクリックします。
+6. 注 - API をテストすることもできます。API をテストするには、Content API のアクションメニューから「Test」をクリックします。API レスポンスを確認して検証できます。
+
+### ステップ 2: MoEngage キャンペーン内にコンテンツを表示する
+
+MoEngage キャンペーンでこの API を使用するには、以下を行います。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 1 で設定した Jacquard Content API を選択できます。
+3. [MoEngage Templating Language](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。<img src="/images/partner_20460227378068.png" /> Jacquard が生成した件名を表示するには、以下のコードを使用できます。
+   <CodeGroup>
+   ```jinja JINJA wrap
+   {% set response = ContentApi.JacquardIntegration({({"params":{"campaign_id":"12345","delivery_id":"{{CampaignAttribute['_id']}}","recipient_id":"{{UserAttribute['Mobile Number (Standard)']}}"},"static_params":{},"dynamic_params":{},"request_body":{}})}) %}{{ response.variant_text }}
+   ```
+   </CodeGroup>
+4. Preview タブをクリックすると、リアルタイムのパーソナライゼーションでキャンペーンを確認できます。<img src="/images/partner_20460227380116.png" />
+5. そのままキャンペーンを公開できます。
+
+## MoEngage のイベントを Jacquard に転送する
+
+MoEngage S3 Exports を使用して Email Open などのイベントを Jacquard に転送することで、どのキャンペーンのパフォーマンスが優れていたかを把握できます。
+
+### ステップ 1: Jacquard の Amazon S3 認証情報をリクエストする
+
+まず、MoEngage からトラッキングイベントを受信するための専用の Amazon S3 バケットを Jacquard に設定してもらう必要があります。
+
+このプロセスを開始するには、Jacquard の Customer Success Manager に連絡してください。バケットが作成されると、Customer Success Manager から連携の設定に使用する固有の認証情報が提供されます。
+
+### ステップ 2: MoEngage で S3 Exports を設定する
+
+1. [ヘルプドキュメント](https://www.moengage.com/docs/user-guide/data/exports/events/data-warehouse/bigquery-exports)に記載された手順に従って S3 Exports を設定します。
+2. イベントでは、少なくとも **Email Clicked** を選択します。他のチャネルを使用している場合は、他の指標も選択する必要がある場合があります。プッシュの場合は、**Notification Clicked Android** と **Notification Clicked iOS** も必要です。
+3. ユーザープロパティでは、**ID** を検索し、下にスクロールして **Tracked Standard Attribute** を選択します。<img src="https://downloads.intercomcdn.com/i/o/890699928/7ed1d295f693beaf6fe236ab/image.png" />
+4. 完了したら Test Connect をクリックし、エラーがなければ Connect を押して設定を完了します。
+
+これにより、選択した頻度に従って Jacquard アカウントへのイベントの送信が開始されます。

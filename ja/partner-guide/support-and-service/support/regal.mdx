@@ -1,0 +1,108 @@
+---
+title: "Regal"
+---
+
+# はじめに
+
+[Regal](https://www.regal.io/) は、ブランドの営業チームがブランド化された通話や SMS を通じて顧客とコミュニケーションできる、イベント駆動型の顧客エンゲージメントプラットフォームを構築しています。
+
+# MoEngage × Regal
+
+MoEngage と Regal の統合は、インサイト主導の顧客エンゲージメントと、アウトバウンドの電話および SMS 営業プラットフォームを組み合わせた強力なソリューションを提供します。この統合は、次のユースケースを実現するように設計されています。
+
+- MoEngage でイベントが取得されたときに、Regal で連絡先を作成する
+- MoEngage がオプトイン情報などのユーザープロパティを取得したときに、Regal 上でその情報を更新する
+- MoEngage で取得したイベントをカスタムイベントとして Regal に転送する
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  - 開始するには、Regal の [API Key](https://developer.regal.io/reference/overview#authentication) が必要です。
+</Info>
+
+Regal Voice API は単一の Custom Events エンドポイントとして設計されており、連絡先の作成、連絡先の更新、または連絡先のプロフィールへのカスタムイベントの追加を行うことができます。
+
+## ステップ 1: MoEngage でコネクタキャンペーンを設定する
+
+MoEngage でコネクタキャンペーンを作成するには、
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最適な配信タイプを選択します
+
+![Screenshot\_2022-02-21\_at\_10.48.46\_PM.png](/images/partner_23080439134996.png)
+
+2. キャンペーンのステップ 2 で
+
+### Regal Custom Events API を呼び出す
+
+Regal で新しい連絡先を作成するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして POST を選択します
+- Headers:
+  - `Authorization`: `<your_regel_api_key>`
+  - `Content-Type`: `application/json`
+- Webhook URL としてエンドポイントを追加します: `https://events.regalvoice.com/events`
+- Body:
+
+<Tabs>
+  <Tab title="連絡先を作成">
+    ```json
+    {
+          "userId": "{{UserAttribute['ID']}}",
+          "traits": {
+                "phones": {
+                      "{{UserAttribute['Mobile Number (Standard)']}}": {}
+                },
+                "firstName": "{{UserAttribute['First Name']}}",
+                "lastName": "{{UserAttribute['Last Name']}}"
+          },
+          "eventSource": "MoEngage"
+    }
+    ```
+  </Tab>
+  <Tab title="ユーザーを更新">
+    ```json
+    {
+          "userId": "{{UserAttribute['ID']}}",
+          "traits": {
+                "phones": {
+                      "{{UserAttribute['Mobile Number (Standard)']}}": {
+                            "isPrimary": true,
+                            "voiceOptIn": {
+                                  "subscribed": true
+                            },
+                            "smsOptIn": {
+                                  "subscribed": true
+                            }
+                      }
+                }
+          }
+    }
+    ```
+  </Tab>
+  <Tab title="カスタムイベントを作成">
+    ```json
+    {
+          "userId": "{{UserAttribute['ID']}}",
+          "name": "Course Purchased",
+          "properties": {
+                "course_title": "{{EventAttribute['Title']}}",
+                "course_amount": "{{EventAttribute['Amount']}}",
+                "course_start": "{{EventAttribute['Start date']}}"
+          },
+          "eventSource": "MoEngage"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+![](/images/partner_23080756563732.png)
+
+- 詳細については、[Regal のドキュメント](https://developer.regal.io/reference/overview)を参照してください。
+
+## リクエストをプレビューする
+
+これで、キャンペーンをテストして送信する準備が整いました。Create Connector Campaign のステップ 2 にある Test 機能を使用して、コネクタの設定をテストすることもできます。<img src="/images/partner_23080439161236.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+
+キャンペーンを公開してください。

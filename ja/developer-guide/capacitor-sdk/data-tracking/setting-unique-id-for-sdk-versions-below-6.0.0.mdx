@@ -1,0 +1,93 @@
+---
+title: "SDK バージョン 6.0.0 未満での Unique ID の設定"
+description: "Capacitor SDK バージョン 6.0.0 未満で、従来の setUniqueId() API を使用してユーザー属性の Unique ID を設定し、ログインとログアウトの状態を管理します。"
+---
+
+## ログイン/ログアウトの実装
+
+- ユーザーがアプリにログインしたときに、ユーザー属性 Unique ID を設定することが重要です。
+- これにより、新しいユーザーが既存のユーザー（存在する場合）とマージされ、不要なユーザーや古いユーザーの作成を防ぐことができます。
+- Unique ID の設定は、デバイス間、インストール/アンインストール間、およびすべてのプラットフォーム（iOS、Android、Windows、Web）間でユーザーを紐付けるための重要な要素です。ユーザーが**ログイン**したらすぐに **USER\_ATTRIBUTE\_UNIQUE\_ID** 属性を設定してください。Unique ID には、メール ID、（一意の）ユーザー名、データベース ID、またはバックエンドで生成された任意の ID などを使用できます。
+- ログインしていないユーザーにはこれを設定しないでください。
+
+### ログイン
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+MoECapacitorCore.setUniqueId({ uniqueId: "abc@xyz.com", appId: "YOUR_WORKSPACE_ID"});
+```
+
+</CodeGroup>
+
+**注:** UniqueID フィールドでは次の値は使用できません: "unknown", "guest", "null", "0", "1", "true", "false", "user\_attribute\_unique\_id", "(empty)", "na", "n/a", "", "dummy\_seller\_code", "user\_id", "id", "customer\_id", "uid", "userid", "none", "-2", "-1", "2"
+
+### ログアウト
+
+ユーザーがアプリケーションからログアウトするたびに、アプリケーションは MoEngage SDK に通知する必要があります。SDK に通知するには、ユーザーがアプリケーションからログアウトするたびに API を呼び出します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+MoECapacitorCore.logoutUser({ appId: "YOUR_WORKSPACE_ID"});
+```
+
+</CodeGroup>
+
+アプリケーションがプッシュトークンを登録している場合は、ユーザーのログアウト後に新しいプッシュトークンを MoEngage SDK に渡す必要があります。プッシュトークンの受け渡しの詳細については、[Android SDK のプッシュ設定](/ja/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+
+### ユーザー属性 Unique ID の更新
+
+ユーザー属性 Unique ID を更新するには、異なる値で _setUniqueId()_ を使用するのではなく、_setAlias()_ メソッドを使用します。新しい値で _setUniqueId()_ メソッドを使用すると、MoEngage で意図しないユーザーが作成されます。 
+
+<Info>
+  イベント、イベント属性、またはユーザー属性の名前に "moe\_" をプレフィックスとして使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なく定期的にブラックリストに登録される可能性があります。
+</Info>
+
+名前、メール、携帯電話番号、性別などのユーザー属性を設定するには、次のヘルパーメソッドを使用します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore, MoEProperties, MoEUserGender, MoEAppStatus } from 'capacitor-moengage-core'
+      
+MoECapacitorCore.setUserName({ userName: "John Doe", appId: "YOUR_WORKSPACE_ID" });
+      
+MoECapacitorCore.setFirstName({ firstName: "John", appId: "YOUR_WORKSPACE_ID" });
+      
+MoECapacitorCore.setLastName({ lastName: "Doe", appId: "YOUR_WORKSPACE_ID" });
+      
+MoECapacitorCore.setEmailId({ emailId: "johndoef@xyz.com", appId: "YOUR_WORKSPACE_ID" });
+      
+MoECapacitorCore.setMobileNumber({ mobileNumber: "1234567890", appId: "YOUR_WORKSPACE_ID" });
+      
+MoECapacitorCore.setGender({ gender: MoEUserGender.FEMALE, appId: "YOUR_WORKSPACE_ID" });
+      
+MoECapacitorCore.setBirthDate({ birthdate: "1970-01-01T12:00:00Z", appId: "YOUR_WORKSPACE_ID" });
+      
+MoECapacitorCore.setUserLocation({ location: { latitude: 25.2311, longitude: 73.1023 }, appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+その他のユーザー属性を設定するには、汎用メソッド **setUserAttribute(key, value)** を使用できます。
+
+カスタムユーザー属性を設定するには、以下に示すように属性名を指定する必要があります。
+
+ 
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+// For generic user attributes
+MoECapacitorCore.setUserAttribute({ name: "Attribute Name", value: "AttributeValue", appId: "YOUR_WORKSPACE_ID" });
+// For Time attribute use ISO-8601 format
+MoECapacitorCore.setUserAttributeDate({ name: "Date Attribute Name", value: "1970-01-01T12:00:00Z", appId: "YOUR_WORKSPACE_ID" });
+// For Location, use MoEGeoLocation instance
+MoECapacitorCore.setUserAttributeLocation({ name: "Location Attribute Name", location: { latitude: 25.23, longitude: 73.23 }, appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>

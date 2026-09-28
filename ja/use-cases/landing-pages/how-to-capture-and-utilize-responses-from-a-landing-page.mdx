@@ -1,0 +1,127 @@
+---
+title: "ランディングページからのレスポンスを収集して活用する方法"
+description: "MoEngage のランディングページフォームでリードを獲得し、レスポンスをキャンペーンやサードパーティツールと同期して、ナーチャリングやコンバージョンにつなげます。"
+---
+
+# はじめに
+
+リードの獲得は、ビジネス成長に欠かせない要素です。MoEngage の _Landing Pages_ 機能を使用すると、ユーザー情報を収集するためのパーソナライズされた Web ページを作成できます。収集したレスポンスは MoEngage のチャネルやその他のサードパーティプラットフォームで活用でき、リードデータを自動的に同期してさらなるナーチャリングやコンバージョンにつなげることができます。この連携は、リード管理を効率化し、顧客エンゲージメントを高めたい企業にとって価値のあるものです。
+
+このユースケースは、次の 3 つのステップで実現します。
+
+- [ステップ 1: ランディングページを作成する](#step-1-create-a-landing-page)
+- [ステップ 2: フォームを設定する](#step-2-configure-the-form)
+- [ステップ 3: レスポンスを確認する](#step-3-view-responses)
+- [ステップ 4: レスポンスを活用する](#step-4-utilize-responses)
+
+# 期待される結果
+
+ランディングページにアクセスしたユーザーには、メールアドレス、名、姓、電話番号などの重要な連絡先情報を収集するためのパーソナライズされたフォームが表示されます。ユーザーがフォームを送信すると、データが取得されて _Response Submitted_ イベントで利用可能になり、自動的にお使いのプラットフォームに送信されて新しいコンタクトレコードが作成されます。また、MoEngage で SMS やその他のチャネルの送信に活用することもできます。これにより、メールキャンペーンや営業アプローチなどのフォローアップアクションに、リード情報をすぐに利用できるようになります。
+
+<Tip>
+  - MoEngage の _Landing Pages_ 機能へのアクセス権が必要です。アクセス権がない場合は、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームに連絡して、アカウントで有効化してください。
+  - レスポンスデータの送信先となるサードパーティプラットフォームへの適切なアクセス権が必要です。たとえば、API 認証情報 (具体的には認証用の API キー) を持つ HubSpot アカウントなどです。API キーは、プラットフォームの開発者ドキュメントを参照して取得できます。
+</Tip>
+
+# ステップ 1: ランディングページを作成する
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Content** をクリックし、**Landing pages** をクリックします。
+2. **Landing pages** ページで **Create a landing page** をクリックします。 <img src="/images/moengage_abfa4e.png" alt="create.png" />
+3. 識別と管理がしやすいようにランディングページの名前を入力し、ページを分類するための適切なタグを選択します。
+4. **Content** セクションで、あらかじめデザインされたテンプレートの中から **Lead Capture** テンプレートを選択します。このテンプレートは連絡先情報の収集に最適です。 <img src="/images/moengage_2b6ce6.png" alt="2025-03-21_13-05-36 (1).gif" />
+
+# ステップ 2: フォームを設定する
+
+1. ランディングページエディター内でフォーム要素を見つけます。テンプレートには、Name や Email などのデフォルトのフィールドが含まれています。必要に応じてフォーム要素を追加できます。テンプレート要素の詳細については、[Landing Page Editor](/ja/user-guide/content/landing-pages/create/landing-page-editor) を参照してください。 <img src="/images/moengage_5574e0.png" alt="Screenshot 2025-04-23 at 11.43.41 AM.png" />
+2. フォームの各入力フィールドを、MoEngage の対応するユーザー属性にマッピングします。たとえば、_Email Address_ フィールドを _Email_ ユーザー属性に、_First Name_ フィールドを _FirstName_ ユーザー属性にマッピングします。これにより、レスポンスがこれらの属性に保存され、読み取り可能になります。手順は次のとおりです。
+   1. フィールド要素をクリックし、<img alt="Screenshot 2025-03-21 at 1.37.57 PM.png" src="/images/moengage_f4d650.png" style={{ display: 'inline-block'}} /> アイコンをクリックします。
+   2. **Advanced** の **UserAttribute** リストから適切なユーザー属性を選択します。ユーザー属性を選択しない場合、レスポンスはデフォルトの一意の ID (32 桁の属性) にマッピングされます。 <img src="/images/moengage_829e68.png" alt="2025-03-21_13-40-34 (1).gif" />
+      <Info>
+        フォームデータで既存ユーザーの属性を更新する (またはパーソナライズされたコンテンツを表示する) には、ランディングページの URL を別の MoEngage キャンペーン (Email、SMS、On-Site Messaging など) 内で使用する**必要があります**。キャンペーン経由で送信すると、MoEngage はクエリパラメーター (`moe_aid={{UserAttribute['aid']}}`) を自動的に解決します。このパラメーターにはユーザーの暗号化された ID が含まれており、MoEngage はこれを使ってユーザーを識別し、既存のプロファイルを更新します。ユーザーがランディングページの URL に直接アクセスした場合 (たとえば、ブラウザーから、または MoEngage 経由で送信されていないリンクから)、この ID パラメーターは含まれません。その結果、MoEngage は _aid_ を解決できず、フォーム送信時に新しい匿名ユーザープロファイルが作成されます。
+      </Info>
+3. 必要なユーザー属性が存在しない場合は、[Import User Data Using CSV](/ja/user-guide/data/imports/manual-uploads) に記載されている手順に従って新しい属性を作成します。
+   <Info>
+     既存の MoEngage 属性を使ってフォームを事前入力することはサポートされていません。
+   </Info>
+4. ランディングページの URL と設定を構成します。詳細については、[こちら](/ja/user-guide/content/landing-pages/create/create-a-landing-page)を参照してください。
+5. **Publish** をクリックしてランディングページを公開します。
+
+ユーザーがページにアクセスし、入力済みのフォームを送信すると、レスポンスは _Response Submitted_ イベントに保存されます。
+
+# ステップ 3: レスポンスを確認する
+
+レスポンスを確認してダウンロードするには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**Segment** \> **Create segment** をクリックします。
+2. **Filter users by** オプションを選択し、**User behavior** タブをクリックします。
+3. 以下のように、属性を _Landing Page ID_ として、フィルターを _Has_ _executed response submitted at least one time in the last 30 days_ に設定します。 <img src="/images/moengage_4e1ade.png" alt="Screenshot 2025-03-21 at 2.05.01 PM.png" />
+4. **Show count** をクリックし、クエリの横にある省略記号メニューから **Export users** をクリックします。
+5. **File name** フィールドに、エクスポートの名前を入力します。
+6. **User attribute** リストで、ランディングページに追加した属性を選択します。
+7. **Export** をクリックします。
+8. メールの受信トレイを確認し、エクスポートされた CSV ファイルをダウンロードします。 <img src="/images/moengage_7059b6.png" alt="2025-03-21_14-25-11 (1).gif" />
+
+次のステップでは、レスポンスをさらなるエンゲージメントに活用します。
+
+# ステップ 4: レスポンスを活用する
+
+## ステップ 4.1: MoEngage 内での活用
+
+収集したレスポンスを使用して、イベントトリガー型キャンペーンでユーザーに確認メッセージを送信できます。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. All campaigns ページで **Create a campaign** をクリックします。
+3. **Outbound** で **SMS** をクリックし、配信タイプとして **Event Triggered** を選択します。 <img src="/images/moengage_4d43c1.png" alt="Screenshot 2025-04-16 at 12.25.27 PM.png" />
+4. キャンペーンの名前を入力し、タグを追加します。
+5. **Trigger criteria** セクションで、属性を _Landing Page ID_ として _Response Submitted_ イベントを選択します。[ステップ 2](#step-2-configure-the-form) で設定したフォームに基づいて、追加の属性フィルターを選択することもできます。 <img src="/images/moengage_19951a.png" alt="Screenshot 2025-04-14 at 11.57.33 AM.png" />
+6. **Select audience** セクションで **All users** を選択します。
+7. **Next** をクリックして **Content** セクションに移動します。
+8. **Message** セクションに SMS メッセージを入力し、ユーザー名などのフォームデータでパーソナライズします。 <img src="/images/moengage_1d9fe2.png" alt="Screenshot 2025-04-14 at 3.22.46 PM.png" />
+9. **Next** をクリックし、**Schedule and Goals** セクションで目的のゴールを設定します。
+10. **Publish** をクリックして有効化します。
+
+詳細については、[Create an SMS Campaign](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/create-an-sms-campaign) を参照してください。
+
+## ステップ 4.2: サードパーティプラットフォームでの活用
+
+収集したレスポンスをサードパーティプラットフォームに送信できます。この例では HubSpot を使用します。次の手順を実行して、レスポンスデータを HubSpot に送信するコネクタキャンペーンを作成します。
+
+1. MoEngage ダッシュボードで **Engage** \> **Campaigns** に移動し、新しいコネクタキャンペーンを作成します。詳細については、[Create a Connector Campaign](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign) を参照してください。
+2. All campaigns ページで **\+ Create campaign** をクリックします。
+3. **Connectors** で **Custom** をクリックし、**Event Triggered** を選択します。 <img src="/images/moengage_b26036.png" alt="Screenshot 2025-03-21 at 2.38.25 PM.png" />
+4. キャンペーンの名前とタグを定義します。
+5. **Trigger criteria** セクションで、条件を _Has executed_ に設定して _Response submitted_ イベントを選択し、属性を _Landing Page ID_ に設定して、この特定のページからのフォーム送信でトリガーされるようにします。 <img src="/images/moengage_68e474.png" alt="Screenshot 2025-03-21 at 2.46.05 PM.png" />
+6. **Select audience** セクションで **All users** を選択し、**Next** をクリックします。
+7. **Content** セクションで、次の手順を実行します。 <img src="/images/moengage_ee4594.png" alt="Screenshot 2025-03-21 at 3.27.13 PM.png" />
+   1. HubSpot に新しいコンタクトを作成するため、**Method** で **POST** を選択します。
+   2. **Webhook URL** フィールドに、サードパーティプラットフォームのリクエスト URL を入力します。HubSpot の場合は [_https://api.hubapi.com/crm/v3/objects/contacts/_](https://api.hubapi.com/crm/v3/objects/contacts/) を使用します。詳細については、[HubSpot API ドキュメント](https://developers.hubspot.com/docs/reference/api/overview)を参照してください。
+   3. サードパーティプラットフォームの開発者ドキュメントを参照して、**URL Parameters** と **Headers** を入力します。
+   4. **Body type** で **Raw** を選択し、HubSpot でコンタクトを作成するための JSON ペイロードを指定します。
+      <CodeGroup>
+      ```json JSON
+      {
+      "properties": {
+      "email": "{{EventAttribute['Email']}}",
+      "firstname": "{{EventAttribute['FirstName']}}",
+      "phone": "{{EventAttribute['Phone']}}"
+      }
+      }
+      ```
+      </CodeGroup>
+      これはイベント属性のパーソナライズを使用して、取得したデータを HubSpot のプロパティにマッピングし、コンタクト作成用にデータが正しくフォーマットされるようにします。
+   5. **Next** をクリックします。
+8. 必要に応じて、キャンペーンの **Schedule and Goals** を定義します。詳細については、[こちら](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign)を参照してください。 <img src="/images/moengage_4ebe6b.png" alt="Screenshot 2025-03-21 at 3.31.28 PM.png" />
+9. **Publish** をクリックしてキャンペーンを公開します。これによりコネクタが有効化され、ランディングページでフォームが送信されるたびにサードパーティプラットフォームにデータが送信されます。
+
+# 検証
+
+連携が機能していることを確認するには、次の手順を実行します。
+
+1. 公開したランディングページにアクセスし、一意のメールアドレスなどのテストデータを使用してフォームを送信します。
+2. HubSpot アカウントの **Contacts** セクションを確認し、送信した情報で新しいコンタクトが作成されていることを確かめて、データ同期を確認します。
+
+# まとめ
+
+このユースケースでは、Lead Capture テンプレートを使用してランディングページを作成し、重要なユーザー情報を収集しました。次に、これらのレスポンスを MoEngage の SMS チャネルで活用しました。また、Event Triggered コネクタキャンペーンを設定してこれらのレスポンスを HubSpot に自動送信し、リードデータを CRM システムに統合するプロセスを効率化しました。ランディングページとコネクタの両方を公開することで、企業はリアルタイムのデータ同期を実現し、手作業を削減してリードナーチャリングのワークフローを改善できます。
+
+この設定の効果を評価するには、MoEngage で送信率とコンバージョン指標を追跡するとともに、HubSpot で新しいコンタクトが作成されていることを確認します。

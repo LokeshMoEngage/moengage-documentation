@@ -1,0 +1,133 @@
+---
+title: "プッシュデバイス分析"
+description: "OS バージョン、OEM、アプリバージョンなどのデバイス属性別にプッシュ通知のパフォーマンスを分析し、配信とエンゲージメントのばらつきを特定します。"
+keywords: ["push device analytics", "OS version performance", "OEM performance", "app version performance", "heatmap analysis", "export push data", "device level delivery"]
+---
+
+# 概要
+
+_Push_ _Device Analytics_ 機能は、プッシュ通知の配信とエンゲージメントを詳細に分析します。キャンペーンファネル全体に焦点を当てる標準の分析とは異なり、_Push_ _Device Analytics_ は、ゲートウェイ(FCM または APNS)が通知を受け付けた _後_ に、特定のデバイス属性セグメント間でパフォーマンス指標がどのように変化するかを調査します。
+
+_Push Device Analytics_ を使用すると、配信の問題を診断し、現実的なキャンペーンの期待値を設定し、オーディエンスのデバイス環境に関する詳細なインサイトを得ることができます。
+
+<Tip>
+  - キャンペーンのパフォーマンスを分析する前に、トラッキング設定(OEM とアプリバージョン)が正しく構成されていることを確認してください。詳細については、[Device Analytics の構成](/ja/user-guide/campaigns-and-channels/mobile-push/getting-started-with-mobile-push/device-analytics-configuration)を参照してください。
+  - **MoEngage Go** モバイルアプリでプッシュの分析と情報を確認できます。パフォーマンス統計の監視、コンバージョンの追跡、キャンペーン詳細の確認をスマートフォンから直接行えます。詳細については、[MoEngage Go](/ja/user-guide/moengage-go/moengage-go-overview) を参照してください。
+</Tip>
+
+# ユースケース
+
+- **パフォーマンスのばらつきの診断:** 配信低下の原因となる特定のハードウェアベンダー(OEM)や OS バージョンを特定します。たとえば、特定の Android OEM の積極的なバッテリー最適化設定が通知の表示を妨げているかどうかを特定できます。
+- **現実的な期待値の設定:** ユーザーアクティビティ(Device Recency)を分析し、ユーザーベースの実際の到達可能性に基づいて配信率を解釈します。
+- **アプリの問題の把握**: 特定のアプリバージョングループのパフォーマンスを監視し、リグレッションや安定性の問題を特定・診断します。
+- **ブラウザー固有の問題の診断:** 特定のブラウザー(例: Mozilla Firefox や Apple Safari)で他のブラウザーと比べて配信率やクリック率が低くなっていないかを特定します。これはレンダリングの問題やブラウザー固有の制限を示している可能性があります。
+
+# デバイスデータの分析
+
+## ステップ 1: アクセスとフィルタリング
+
+1. MoEngage ダッシュボードの左側のナビゲーションで、**Engage** \> **Campaigns** を選択します。
+2. **All Campaigns** ページで、分析情報を確認したいキャンペーンの情報が表示されている行をクリックします。
+3. **Campaign Analytics and Info** ページで、**Device analytics** タブを選択します。
+
+![Navigationbhagwan.png](/images/moengage_704abb.png)
+
+4. **Device Analytics** タブで、次の値を設定します。
+   - **Date Range:** 分析する期間を選択します。
+   - **Attribution Type:** コンバージョン目標のアトリビューションモデル(例: Click-through attribution)を選択します。
+   - **Platform:** ドロップダウンリストから目的のプラットフォームを選択します。
+
+![dghhwegdhwqe.png](/images/moengage_d0fe94.png)
+
+<Info>
+  - プラットフォームごとに追跡する要素が異なるため、プラットフォームは個別に分析する必要があります。たとえば、Android は OEM を追跡し、iOS は Opt-in Status を追跡します。
+  - Web Analytics は、_Device Recency_ と _Browser_ の 2 つの要素を追跡します。
+  - _OEMs_、_App Versions_、_Opt-in Status_ などの要素は Web Push には適用されません。
+</Info>
+
+## ステップ 2: 要素別のパフォーマンスを分析する
+
+ダッシュボードには、パフォーマンスを可視化するウィジェットが表示されます。
+
+- 円グラフは _Sent_ の件数を表し、横棒グラフは _Delivery Rate、Click-through Rate (CTR)、_ および _Conversion Rate (CVR)_ を表します。
+- 任意のチャートをクリックすると、選択した要素の _Sent、Impressions、Clicks、_ および _Conversions_ の内訳を示す詳細なチャート/テーブルビューが開きます。たとえば、_OEM_ 要素の場合、詳細なチャートビューは以下の画像のように表示されます。
+
+![Detailed view Split by OEM.png](/images/moengage_bc2652.png)
+
+MoEngage は、選択したプラットフォームに基づいて次の要素を追跡します。
+
+| 要素 | プラットフォーム | 説明 | 画像 |
+| --- | --- | --- | --- |
+| **Device Recency** | すべて | デバイスが最後にバックグラウンド状態にアクセスして MoEngage にデータを送信した時期に基づいて、ユーザーを分類します。  <br />**注:** _Active 29\+ days_ バケットは休眠ユーザーを表し、このセグメントでは配信率が低くなることが予想されます。_Active 0–14 days_ バケットは非常にアクティブなユーザーを表し、通常は高いパフォーマンスを示します。 | <img alt="Device Recenecy.png" src="/images/moengage_88a527.png" style={{ display: 'inline-block'}} /> |
+| **OEM** | Android のみ | デバイスメーカー(例: Samsung、Xiaomi、Vivo)別にパフォーマンスを分類します。  <br />**注:** <ul><li>このデフォルトの OEM リストは、設定ページで上書きできます。詳細については、[Device Analytics の設定と構成](/ja/user-guide/campaigns-and-channels/mobile-push/getting-started-with-mobile-push/device-analytics-configuration)を参照してください。</li><li>OEM を分析することで、特定のメーカーがバックグラウンドプロセスを積極的に終了させ、配信率の低下につながっているかどうかを特定できます。</li><li>OEM によって通知の表示方法が異なるため、CTR に影響する場合があります。詳細については、[プッシュテンプレートの FAQ](/ja/user-guide/campaigns-and-channels/mobile-push/create/push-templates) を参照してください。</li></ul> | <img alt="OEM.png" src="/images/moengage_63271f.png" style={{ display: 'inline-block'}} /> |
+| **App Versions** | Android および iOS | アプリケーションの特定のリリース(Major version 1、Major version 2 などのバケットにグループ化)ごとのパフォーマンスを追跡します。  <br />**注:** これを使用して、CTR や配信率の低下を特定のアプリアップデートと関連付けることができます。 | <img alt="App version.png" src="/images/moengage_4beef8.png" style={{ display: 'inline-block'}} /> |
+| **OS Versions** | Android および iOS | 異なるオペレーティングシステムのバージョン(例: Android 13 と Android 15)間でキャンペーン指標がどのように変化するかを表示します。  <br />**注**: iOS 18 で導入された通知の AI 要約や、iOS 26 で導入された高度な集中モードのコントロールや Liquid Glass UI などの機能は、ユーザーがプッシュ通知を操作する方法に影響を与える可能性があります。 | <img alt="OS versions.png" src="/images/moengage_508255.png" style={{ display: 'inline-block'}} /> |
+| **Opt-in Status** | iOS のみ | 通知の許可レベルに基づいてパフォーマンスを分類します: <ul><li>**Authorized:** 通知の受信に明示的に同意しています。</li><li>**Provisional:** 仮許可(通知は目立たない形で配信されます)。 <br />**注**: 仮許可の通知は目立たない形で配信され、アクションが表示されないため、CTR が低くなる傾向があります。</li><li>**Others:** ステータスが不明です。</li></ul> | <img alt="Opt- in status.png" src="/images/moengage_604749.png" style={{ display: 'inline-block'}} /> |
+| **Browser** | Web のみ | 通知の受信に使用された Web ブラウザー別にパフォーマンスを分類します。値: Google Chrome、Apple Safari、Mozilla Firefox、Microsoft Edge、Opera、Others。  <br />**注**: これを使用して、ブラウザー固有の配信失敗を特定します。追跡するブラウザーは [Device Analytics の構成](/ja/user-guide/campaigns-and-channels/mobile-push/getting-started-with-mobile-push/device-analytics-configuration)で設定できます。 | <img alt="Browser.png" src="/images/moengage_beb61e.png" style={{ display: 'inline-block'}} /> |
+
+### データのエクスポート
+
+オフライン分析用にデータをエクスポートするには、次のいずれかのオプションを使用します。
+
+- **Download Chart:** 現在表示されている特定のグラフをダウンロードします。
+- **Download CSV:** 現在表示されているウィジェットのデータをダウンロードします。
+- **Download All Metrics:** すべての組み合わせの詳細なエクスポートを提供します。これにより、特定のコホート(例: _Recency 0-14 days_ で _App Version Bucket 1_ の _Xiaomi ユーザー_)のフルファネル分析が可能になります。
+
+<img
+  src="/images/moengage_18adfc.png"
+  alt="export all.png"
+  style={{ width:"46%" }}
+/>
+
+## ステップ 3: ヒートマップ分析
+
+**Heatmap** ウィジェットは、2 つの要素を 1 つの指標に対して同時に可視化することで、要素横断的な分析を容易にします(例: _Delivery Rate_ に対する _Device Recency_ と _OEM_)。\
+デフォルトでは、分析要素は _Delivery Rate_ 指標に対する _Device Recency_ と _OEM_ です。
+
+テーブルには色分けされたグラデーションが生成されます。
+
+- **緑:** 最もパフォーマンスの高いコホートを示します。
+- **赤:** 最もパフォーマンスの低いコホートを示します。これを使用して、高いパフォーマンスが期待されるグループでの失敗を見つけます。
+
+![iOS Heatmap finalllll.gif](/images/moengage_4548cc.png)
+
+                                                \[Android のヒートマップ分析\]
+
+![android heatmap.gif](/images/moengage_d0fa80.png)
+
+                                             \[iOS のヒートマップ分析\]
+
+![web heatmap.gif](/images/moengage_c7557d.png)
+
+                                         \[Web のヒートマップ分析\]
+
+# FAQ
+
+<Accordion title="Device Analytics の Sent の数値が Campaign Report とわずかに異なるのはなぜですか?">
+  Campaign Report は、ゲートウェイに送信されたリクエストの総数を追跡します。Device Analytics は、これらのリクエストを特定の属性別に分類します。システムがキャンペーンを送信した時点でデバイス属性(OS バージョンなど)が欠落していたり不明だったりした場合、MoEngage はそのデータポイントを除外するか、Others バケットに分類することがあります。
+</Accordion>
+
+<Accordion title="Device Recency の Active 29+ days とはどういう意味ですか?">
+  これは、デバイスが 29 日を超えて MoEngage と正常に同期していないユーザーを指します。これらのユーザーは実質的に休眠状態です。このコホートの配信率が低いのは想定どおりの動作です。
+</Accordion>
+
+<Accordion title="Device Analytics を Debugger と併用できますか?">
+  はい。Device Analytics を Debugger と併用して、分析全体の内訳を検証できます。
+</Accordion>
+
+<Accordion title="配信率が 100% を超える場合があるのはなぜですか?">
+  - アプリのアップグレード中は、Sent 指標が古いアプリバージョンを含むバケットにアトリビュートされ、Received 指標が新しいアプリバージョンのバケットにアトリビュートされることがあります。この不一致により、古いバージョンのバケットでは報告される配信率が下がり、新しいバージョンのバケットでは上がるため、配信率が 100% を超えることがあります。
+  - また、コホートのサイズが統計的に有意でない場合(例: Android 13 より前のバージョンの Vivo ユーザー)、データトラッキングの欠落によって大きなばらつきが生じることがあります。これらの観測値は分析から除外してください。
+</Accordion>
+
+<Accordion title="Device Analytics 機能は Device-Triggered プッシュキャンペーンをサポートしていますか?">
+  いいえ。現在、Device Analytics は Device Triggered プッシュキャンペーンをサポートしていません。
+</Accordion>
+
+<Accordion title="カスタムブラウザーを追跡できますか?">
+  管理者は、[Device Analytics の構成](/ja/user-guide/campaigns-and-channels/mobile-push/getting-started-with-mobile-push/device-analytics-configuration)で追跡するブラウザーを設定できます。MoEngage が認識しないカスタムブラウザー名を追加することはできませんが、サポートされているブラウザーのうち、どれを分析に表示し、どれを _Others_ にグループ化するかを選択できます。
+</Accordion>
+
+<Accordion title="Active 29+ days で配信率が低いのはなぜですか?">
+  このバケットは、29 日を超えて Web サイトにアクセスしていない、またはデータが受信されていないユーザーを表します。これらのユーザーは実質的に休眠状態であるか、正式に購読解除することなく Cookie やトークンを削除している可能性があり、その結果として配信率が低くなります。
+</Accordion>

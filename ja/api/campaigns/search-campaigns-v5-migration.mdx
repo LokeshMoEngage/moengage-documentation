@@ -1,0 +1,54 @@
+---
+title: "V1 と V5 の Search Campaigns: 動作の違い"
+description: "V1 と V5 の Search Campaigns API の動作、構造、フィールドレベルの違いを比較し、変更点を理解するのに役立ちます。"
+---
+
+V5 Search Campaigns API では、キャンペーンの取得方法とフィルタリング方法が大幅に改善されています。このページでは、V1 と V5 の動作の違いについて説明し、何がなぜ変更されたのかを理解できるようにします。
+
+V5 Search Campaigns API の完全なリファレンスについては、[POST /v5/campaigns/search](/ja/api/get-campaign-details/search-campaigns-v5) を参照してください。
+
+## エンドポイントの構造
+
+V1 では、単一のエンドポイント `POST /v1/campaigns/search` で、ID による単一キャンペーンの取得と複数キャンペーンのフィルタリングの両方を処理していました。V5 では、各操作を明確にするために、これらを 2 つの異なるエンドポイントに分離しています。
+
+| ユースケース | V1 エンドポイント | V5 エンドポイント |
+| :--- | :--- | :--- |
+| ID による単一キャンペーンの取得 | `POST /v1/campaigns/search` (`campaign_fields.id` を指定) | `GET /v5/campaigns/{campaign_id}` |
+| 複数キャンペーンの検索とフィルタリング | `POST /v1/campaigns/search` | `POST /v5/campaigns/search` |
+
+## リクエストフィールドの変更
+
+V1 と V5 の間で、`campaign_fields` の下にある 2 つのフィルターキーの名前が変更されました。その他の V1 フィルターフィールド (`channels`、`created_by`、`created_date`、`name`、`status`、`tags`) は変更されていません。
+
+| V1 フィールド | V5 フィールド | 変更内容 |
+| :--- | :--- | :--- |
+| `campaign_fields.id` (string) | `campaign_fields.ids` (array of strings) | 名前が変更され、型が文字列から配列に変更されました。V1 の単一 ID の動作を再現するには、要素が 1 つの配列を渡します: `"ids": ["<campaign_id>"]`。 |
+| `campaign_fields.delivery_type` | `campaign_fields.campaign_delivery_type` | 名前が変更されました。V1 のキー名を送信すると、エラーは発生せずに結果が 0 件で返されます。 |
+
+## `request_id` が任意になりました
+
+V1 では、すべての検索リクエストで `request_id` が必須でした。V5 では任意です。ただし、トレーサビリティのために引き続き指定することをお勧めします。MoEngage サポートは、トラブルシューティングの際にこれを使用してサーバーログ内の特定のリクエストを特定できます。
+
+## レスポンスフィールドの変更
+
+キャンペーン識別子のフィールド名が変更されました。V1 では `campaign_id` として返されていましたが、V5 では `id` として返されます。
+
+## ドラフトの表示
+
+V5 では、ドラフトキャンペーンはデフォルトで検索結果から除外されます。ドラフトは、`campaign_fields.status` に `DRAFT` が明示的に含まれている場合にのみ表示されます。V1 ではこの動作が同じようには適用されていなかったため、連携でステータスフィルターに `DRAFT` を含めていない場合、V5 では結果が少なくなることがあります。
+
+## キャンペーンのバージョン管理
+
+V5 でキャンペーンのバージョン管理が有効になっている場合、レスポンスには `version_number` フィールドが含まれ、このフィールドでフィルタリングできます。公開された各リビジョンは、同じ正規の `campaign_id` によってリンクされた個別のドキュメントです。V1 ではバージョン管理はサポートされていませんでした。
+
+## ページネーションの動作
+
+V5 の検索結果は、1 ページあたり最大 15 件のキャンペーンでページ分割されます。V1 とは異なり、V5 のレスポンスには `total_count` フィールドは含まれません。総ページ数を判断するには、`limit` で指定した値よりも少ない結果が返されるページに到達するまでページングを続けてください。
+
+## SMS キャンペーンのサポート
+
+`channels` 配列で `"SMS"` を渡すと、SMS キャンペーンが V5 の検索結果に含まれます。一致した各結果の `channel` フィールドは `SMS` を返します。V5 では、SMS キャンペーンの完全な作成および更新操作はサポートされていません。
+
+## 子キャンペーンの実行
+
+Periodic および Business Event-triggered キャンペーンの実行履歴 (子キャンペーン ID、送信時刻、ステータス、インスタンスの総数を含む) を取得するには、`POST /v5/campaigns/{parent_campaign_id}/executions` を使用します。これは、`POST /v1/campaigns/{parent_id}/executions` に相当する V5 のエンドポイントです。

@@ -1,0 +1,44 @@
+---
+title: "テストアラートログ"
+description: "MoEngage Inform のテストログを使用して、テストアラートのリクエストをデバッグします。リクエストのステータス、エラーの詳細、チャネルレベルの配信情報を確認できます。"
+---
+
+テストログは、Test Request Details を使用してこのアラートに対してトリガーされたすべてのリクエストについて記録されます。これにより、リクエストの失敗をより迅速にデバッグし、プロセスのボトルネックを特定できます。アラートをテストすると、テストログが生成され、Test Request Logs セクションで確認できます。
+
+# リクエストの詳細
+
+ログセクションの各行には、テストアラートで受信したリクエストに関する情報が含まれています。ログでは、各リクエストについて次の情報を確認できます。
+
+![test alert logs.png](/images/moengage_7de4bb.png)
+
+| リクエストの詳細 | 説明 |
+| --- | --- |
+| **Received Time** | MoEngage がこのリクエストを受信した日時を示すタイムスタンプです。リクエストを受信した正確な時刻が秒単位で表示されます。 |
+| **Request ID** | すべてのリクエストに割り当てられる一意の識別子です。この値は MoEngage によって生成および保存されます。 |
+| **Channel** | リクエストが送信されたチャネルを示します。リクエストは単一または複数のチャネルで送信される場合があります。 <br />チャネルの横にある送信者アイコンは、[dynamic sender routing](/ja/user-guide/inform/advanced-concepts/dynamic-sender-routing) のロジックによって、アラートの送信にどの送信者が自動的に選択されたかを示します。 <br />**Push** チャネルで、**Message type for iOS** が **Live Activity Only** または **Live Activity with Push Fallback** の場合、ログページには Start、Update、End など、Live Activity 固有のステータスが表示されます。これらのインジケーターは、プッシュ通知の詳細を表示したときにログエントリ内に表示されます。 <br />Live Activity は、次の 3 つの段階で構成されます。 <br /> <ul><li>**Start**: 通知を初めて開始します。</li><li>**Update**: アクティビティ中に送信される中間ステップまたはデータの更新を表します。</li><li>**End**: トランザクションの完了を示す最後の呼び出しです。  <img alt="Screenshot 2026-01-09 at 12.59.05 PM.png" src="/images/moengage_5181fd.png" /></li></ul> 詳細については、[Transactional Live Activites](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/transactional-live-activities) を参照してください。 |
+| **Status** | リクエストのステータスを示し、リクエストやメッセージが失敗する可能性のあるさまざまなマイルストーンを表します。考えられるステータスは次のとおりです。 <ul><li>**Request Failed** - 重複したリクエストである場合、または非アクティブなアラート(一時停止または削除済み)がターゲットになった場合</li><li>**Request Processing** - MoEngage がリクエストを処理してベンダーに送信するのに通常より長い時間がかかっている場合。</li><li>**Request Dropped** - リクエストのレートがアラートに設定されたレート制限を超えた場合。MoEngage では、1 分あたり 10K リクエストのレート制限を適用しています。API のレート制限を引き上げたい場合は、アカウントマネージャーにお問い合わせください。</li><li>**Delivery Pending** - MoEngage が特定のチャネルのベンダーからの配信コールバックをまだ待っている場合。一部のベンダーでは、メッセージが配信されたかどうかの更新に最大 15 分かかります。</li><li>**Delivery Successful** - ベンダーが受信者にメッセージを配信できた場合。このメッセージがどれだけ早く配信されたかは、Time to Deliver 列でも確認できます。</li><li>**Delivery Failed** - ベンダーがメッセージを配信できなかった場合。メールのハードバウンスやソフトバウンス、SMS の端末の問題、誤った携帯電話番号、受信トレイの容量超過などのエラーなど、さまざまな理由で発生する可能性があります。</li><li>**Delivery info NA** - MoEngage がベンダーから所定の形式のコールバックを受信していない場合。これは、SMS のカスタムコネクタ(サービスプロバイダー)およびメールの SMTP の場合にそれぞれ該当します。</li></ul> |
+| **Recipient ID** | メッセージのターゲットとなった受信者の情報を示します。このフィールドには、プッシュ通知の場合はプッシュトークン、メールチャネルの場合はメールアドレス、SMS の場合は携帯電話番号が含まれます。 |
+| **Transaction ID** | アラートの送信対象となるすべてのトランザクションに付与される一意の識別子です。この値は、MoEngage で冪等性をサポートするために使用されます。詳細については、[冪等なリクエスト](/ja/api/transactional-alerts/send-transactional-alert)を参照してください。 |
+| **Time to send** | MoEngage がリクエストを受信してから、ベンダーにメッセージを送信するまでにかかった時間を示します。 |
+
+行をクリックすると、リクエストに関する詳細情報を確認できます。各リクエストについて、次の情報を確認できます。
+
+- **Delivery info** - Delivery Info セクションには、リクエストを受信した日時、指定したチャネルのベンダーにメッセージが送信された日時、配信時刻に関する詳細が含まれます。アラートが複数のチャネルで順次送信されるように設定されている場合は、次の情報を確認できます。
+  - _Attempted via First Backup - `<channelname>`_
+  - Request received from Primary Channel - `<channel name>`
+  - Attempted via _Second Backup - `<channelname>`_
+  - _Request received from First Backup_ - `<channel name>` 
+    たとえば、プライマリ(デフォルト)チャネルが Push、第 1 フォールバックが SMS、第 2 フォールバックが Email で、Push と SMS の両方でリクエストが失敗し、Email チャネルで送信された場合、これらのリクエストの Delivery Info は下の画像のように表示されます。 <img src="/images/moengage_377594.png" alt="test alert logs -old.png" />
+- **Request** - Request セクションには、テストログが表示されている特定のチャネルのリクエストペイロードが含まれます。
+- **Response** - Response セクションには、MoEngage によって生成されたリクエストへのレスポンスが含まれます。
+
+# テストアラートログの検索
+
+次のフィルター条件を使用して、テストログを検索および絞り込むことができます。
+
+- Request ID または Transaction ID で検索
+- Channel で検索
+- Request Status で検索
+- 指定した日付範囲内で検索
+- Recipient ID で検索
+- Time to send で検索

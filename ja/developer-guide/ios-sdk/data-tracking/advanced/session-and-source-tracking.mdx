@@ -1,0 +1,106 @@
+---
+title: "セッションとソースのトラッキング"
+description: "MoEngage SDKを使用して、iOSアプリでユーザーセッションとディープリンクのソース情報をトラッキングします。"
+---
+
+[SDKバージョン5.2.2](/ja/release-notes/sdks/ios)から、セッションとソースのトラッキングをサポートしており、SDKではデフォルトで有効になっています。
+
+<Info>
+  **注**
+
+  - トラッキングされたセッションとソースの情報をダッシュボードで表示するには、MoEngageサポートチームに連絡して有効にしてもらってください。
+  - ソース情報を正確にトラッキングするには、ディープリンクとプッシュ通知ペイロードでUTMパラメーターを使用してください。
+</Info>
+
+# ディープリンクのソースを取得する
+
+<Info>
+  **AppDelegate Swizzling**
+
+  SDKでAppDelegate Swizzlingが有効になっている場合、[_processURL(\_:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)processURL:) メソッドを呼び出す必要はありません。AppDelegate Swizzlingの詳細については、この[リンク](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#app-delegate-method-swizzling)を参照してください。
+</Info>
+
+ディープリンク経由でソース情報を取得するには、リンクが開かれたときに受け取るすべてのAppDelegateコールバックで [_processURL(\_:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)processURL:) メソッドを呼び出します。以下のコードブロックを参照してください。
+
+<CodeGroup>
+
+```swift Swift wrap
+//MARK:- Deeplinks Processing
+func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+    MoEngageSDKAnalytics.sharedInstance.processURL(url)
+    //rest of the implementation
+    return true
+}
+
+func application(_ application: UIApplication,
+                 continue userActivity: NSUserActivity,
+                 restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool
+{
+    if userActivity.activityType == NSUserActivityTypeBrowsingWeb ,
+        let incomingURL = userActivity.webpageURL{
+        MoEngageSDKAnalytics.sharedInstance.processURL(incomingURL)
+    }
+    //rest of the implementation
+    return true;
+}
+
+//MARK:- Methods Deprecated from iOS9
+
+func application(_ application: UIApplication, handleOpen url: URL) -> Bool {
+    MoEngageSDKAnalytics.sharedInstance.processURL(url)
+    //rest of the implementation
+    return true
+}
+
+func application(_ application: UIApplication, open url: URL, sourceApplication: String?, annotation: Any) -> Bool {
+    MoEngageSDKAnalytics.sharedInstance.processURL(url)
+    //rest of the implementation
+    return true
+}
+```
+
+</CodeGroup>
+
+# 非インタラクティブイベント
+
+MoEngage Analyticsのセッション時間の計算に一切影響を与えるべきでないイベントは、非インタラクティブイベントとしてマークする必要があります。
+
+これらのイベントは次のように動作します。
+
+- アプリがフォアグラウンドにある場合でも、新しいセッションを開始しません
+- セッションを延長しません
+- ソースとセッションの情報を持ちません
+
+たとえば、アプリのコンテンツを更新するためにアプリがバックグラウンドにあるときにトラッキングされるイベントは、ユーザーによって開始されたものではないため、非インタラクティブとしてマークできます。イベントを非インタラクティブとしてマークするには、以下のようにイベントのトラッキング時に [_setNonInteractive()_](https://moengage.github.io/ios-api-reference/Classes/MoEngageProperties.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageProperties\(im\)setNonInteractive)（[_MoEngageProperties_](https://moengage.github.io/ios-api-reference/Classes/MoEngageProperties.html) のメソッド）を使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+//Set Attributes 
+let dict = ["NewsCategory":"Politics"]
+let properties = MoEngageProperties(withAttributes: dict)
+properties.addDateAttribute(Date(), withName:"refreshTime")
+
+//Set the Event as Non-Interactive
+properties.setNonInteractive()
+
+//Track event
+MoEngageSDKAnalytics.sharedInstance.trackEvent("App Content Refreshed", withProperties: properties)
+```
+
+
+```objective-c Objective C wrap
+//Set Attributes
+NSMutableDictionary *eventDict = [NSMutableDictionary dictionary];
+eventDict[@"NewsCategory"] = @"Politics";
+MoEngageProperties* properties = [[MoEngageProperties alloc] initWithAttributes:eventDict];
+[properties addDateAttribute:[NSDate date] withName:@"refreshTime"];
+
+//Set the Event as Non-Interactive
+[properties setNonInteractive];
+
+//Track event
+[[MoEngageSDKAnalytics sharedInstance] trackEvent:@"App Content Refreshed" withProperties:properties];
+```
+
+</CodeGroup>

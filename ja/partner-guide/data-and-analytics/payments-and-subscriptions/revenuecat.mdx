@@ -1,0 +1,81 @@
+---
+title: "RevenueCat"
+description: "Webhook を介して RevenueCat から MoEngage にサブスクリプションイベントをストリーミングし、購入および更新データに基づくライフサイクルキャンペーンに活用します。"
+keywords: ["RevenueCat", "subscriptions", "in-app purchase", "webhooks", "MoEngage integration"]
+---
+
+# はじめに
+
+[RevenueCat](https://www.revenuecat.com/) を使用すると、アプリユーザーがサブスクリプションを購入できるようにしたり、特定のページへのアクセスに支払いが必要になるようにしたりできます。
+
+# MoEngage × RevenueCat
+
+RevenueCat と MoEngage の連携により、さまざまなプラットフォームにわたる顧客の購入およびサブスクリプションのライフサイクルイベントをシームレスに同期できます。この連携により、サブスクリプションの有効期限が近づいている顧客へのプッシュ通知や、取引が繰り返し失敗している顧客への対応など、顧客のサブスクリプションライフサイクルの段階に応じたキャンペーンを構築できます。この連携により、次のことが可能になります。
+
+- RevenueCat イベントを MoEngage に送信する
+
+# 連携
+
+## ステップ 1: MoEngage の Customer ID を設定する
+
+MoEngage でユーザーのマッピングが正しく行われるように、ユーザーの `app_user_id` が MoEngage での ID と同じであることを確認する必要があります。
+
+## ステップ 2: MoEngage のエンドポイントを取得する
+
+連携用の専用エンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストでは、MoEngage とパートナープラットフォームの間でユーザープロファイルをリンクするために使用する共通識別子を指定する必要があります。
+
+## ステップ 3: RevenueCat で Webhook を設定する
+
+![](/images/partner_32361009000340.png)
+
+1. RevenueCat で Webhook を登録します。RevenueCat ダッシュボードでプロジェクトに移動し、左側のメニューで Integrations カードを見つけます。**+ New** を選択します
+2. Integrations メニューから 'Webhooks' を選択します。
+3. Webhook に名前を付けます。
+4. 提供された MoEngage エンドポイントを入力します。
+5. Authorization ヘッダーの値について:
+
+オンラインの [Basic Auth Header Generator](https://www.debugbear.com/basic-auth-header-generator) ツールを使用して Basic トークンを取得します。Workspace ID をユーザー名、Data API Key をパスワードとして入力します (MoEngage Dashboard >> Settings >> APIs)。最終的なトークンは次のようになります。
+
+`Basic Qk5CR1NNNUR4eHh4eHhWQ1hSRFJEWTdSOlFsWHVoTHVaeHh4eHh4QWQrQnBYUEotNw==`
+
+これをヘッダーの値として貼り付けます。
+
+6. 本番環境の購入、サンドボックスの購入、またはその両方のイベントを送信するかどうかを選択します。
+7. Webhook イベントを1つのアプリのみに送信するか、プロジェクトのすべてのアプリに送信するかを選択します。
+8. (任意) Webhook URL に送信するイベントの種類をフィルタリングします。
+9. "Send test Webhook" をクリックして Webhook をテストできます。
+
+## ステップ 4: MoEngage でターゲットを絞ったキャンペーンを送信する
+
+ユーザーとイベントが MoEngage に表示され始めます。
+
+![](/images/partner_32361006508436.png)
+
+これで、ユーザーに対してイベントトリガー型キャンペーンを実施できます。
+
+## サポートされているイベント
+
+| イベント名 | 説明 |
+| --- | --- |
+| INITIAL_PURCHASE | 新しいサブスクリプションが購入されました。 |
+| RENEWAL | 既存のサブスクリプションが更新されたか、期限切れのユーザーが再登録しました。 |
+| CANCELLATION | サブスクリプションまたは非更新型の購入がキャンセルまたは返金されました。 |
+| UNCANCELLATION | 期限切れになっていないキャンセル済みのサブスクリプションが再度有効になりました。 |
+| NON_RENEWING_PURCHASE | 顧客が自動更新されない購入を行いました。 |
+| SUBSCRIPTION_PAUSED | サブスクリプションが期間終了時に一時停止されるよう設定されました。 |
+| EXPIRATION | サブスクリプションの有効期限が切れたため、アクセスを削除する必要があります。 |
+| BILLING_ISSUE | サブスクライバーへの請求を試みる際に問題が発生しました。 |
+| PRODUCT_CHANGE | サブスクライバーがサブスクリプションの製品を変更しました。 |
+| TRANSFER | ある App User ID から別の App User ID への取引と権利の移行が開始されました。 |
+| SUBSCRIPTION_EXTENDED | 既存のサブスクリプションが延長されました (現在のサブスクリプション期間の有効期限が将来に延期されました)。 |
+| TEMPORARY_ENTITLEMENT_GRANT | RevenueCat が一時的に各ストアで購入を検証できなかったため、顧客に短期間の権利を付与しました。 |
+
+RevenueCat から MoEngage に送信されるイベントの最新リストについては、[こちらをクリック](https://www.revenuecat.com/docs/integrations/webhooks/event-types-and-fields#event-types)してください。
+
+# レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は RevenueCat データの取り込みをワークスペースあたり最大 500 リクエスト/秒 (RPS) に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、RevenueCat のデフォルトの再試行ポリシーを参照してください。
+
+ペイロードサイズやその他の取り込み制限の詳細については、[Partner Data Ingestion Rate Limits](/ja/partner-guide/data-and-analytics/ingestion-rate-limits) を参照してください。

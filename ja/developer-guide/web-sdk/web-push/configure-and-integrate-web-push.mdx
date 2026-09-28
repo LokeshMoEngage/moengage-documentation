@@ -1,0 +1,229 @@
+---
+title: "Web Push の設定と統合"
+description: "MoEngage で Web プッシュ通知を送信するために、Service Worker と SDK の初期化を設定します。"
+---
+
+Web Push を設定して統合するには、Web サイト上の MoEngage Web SDK 初期化スクリプトを更新します。
+
+詳細については、[Web SDK Integration](https://www.moengage.com/docs/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration) を参照してください。
+
+Web Push モジュールの有効化は必須の前提条件であるため、必ず [Web プッシュ通知の設定を構成](https://www.moengage.com/docs/user-guide/campaigns-and-channels/web-push/getting-started-with-web-push/configure-web-push-settings)してください。
+
+serviceworker.js ファイルを読み込むことで、Web SDK の統合を設定できます。
+
+## ServiceWorker.js ファイルの制限事項
+
+- serviceworker.js ファイルはルートディレクトリに配置されている必要があります。そうでない場合、Web Push はすべてのページで機能しません。
+- Service Worker ファイルの名前が正確に serviceworker.js であることを確認してください。そうでない場合は、[serviceworker](#rename-the-service-worker-custom-filename) の名前変更セクションを参照してください。
+
+## オプション 1: serviceworker.js ファイルを作成する
+
+serviceworker.js という名前のファイルを作成し、ルートディレクトリに配置します。ダッシュボードのホストに応じて CDN リンクをコピーします。
+
+| ダッシュボードホスト | serviceworker の内容 |
+| --- | --- |
+| dashboard-01.moengage.com | [リンクをコピー](https://cdn.moengage.com/release/dc_1/versions/2/serviceworker_cdn.min.latest.js) |
+| dashboard-02.moengage.com | [リンクをコピー](https://cdn.moengage.com/release/dc_2/versions/2/serviceworker_cdn.min.latest.js) |
+| dashboard-03.moengage.com | [リンクをコピー](https://cdn.moengage.com/release/dc_3/versions/2/serviceworker_cdn.min.latest.js) |
+| dashboard-04.moengage.com | [リンクをコピー](https://cdn.moengage.com/release/dc_4/versions/2/serviceworker_cdn.min.latest.js) |
+| dashboard-06.moengage.com | [リンクをコピー](https://cdn.moengage.com/release/dc_6/versions/2/serviceworker_cdn.min.latest.js) |
+
+次に、serviceworker.js ファイルに以下の内容を追加します。二重引用符内の文字列を、コピーしたリンクに置き換えてください。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+// in your serviceworker.js file
+// importScripts("<link-that-you-copied>");
+// for eg, your dashboard host is dashboard-03.moengage.com
+importScripts("https://cdn.moengage.com/release/dc_3/versions/2/serviceworker_cdn.min.latest.js");
+```
+
+</CodeGroup>
+
+<Warning>
+  Web SDK のバージョンを変更するたびに、serviceworker の CDN リンク内のバージョンも必ず更新してください。Web Push が正しく機能するためには、serviceworker と Web SDK が常にまったく同じバージョンである必要があります。
+
+  たとえば、将来 Web SDK をバージョン 2.55.0 に更新し、ダッシュボードホストが dashboard-03.moengage.com の場合は、serviceworker ファイルの内容を次のように更新します- `importScripts("https://cdn.moengage.com/release/dc_3/versions/2.55.0/serviceworker_cdn.min.latest.js");`
+</Warning>
+
+<Info>
+  NPM を使用している場合は、package.json ファイルにある @moengage/web-sdk 依存関係のバージョン番号を使用してください。例: @moengage/web-sdk のバージョン番号が 2.55.2 で、ダッシュボードホストが dashboard-03.moengage.com の場合、serviceworker ファイルの内容は次のようになります-\
+  `importScripts("https://cdn.moengage.com/release/dc_3/versions/2.55.2/serviceworker_cdn.min.latest.js");`
+</Info>
+
+## オプション 2: GTM（Google Tag Manager）統合の場合のみ
+
+右クリックしてダウンロードし、ファイルをルートディレクトリに保存します。ルートディレクトリに配置しない場合は、それに応じて Serviceworker のカスタムパスや Serviceworker のスコープを指定してください。
+
+| **ダッシュボードホスト** | **Service Worker ファイル** |
+| --- | --- |
+| dashboard-01.moengage.com | [serviceworker.js](https://cdn.moengage.com/release/dc_1/serviceworker.js) |
+| dashboard-02.moengage.com | [serviceworker.js](https://cdn.moengage.com/release/dc_2/serviceworker.js) |
+| dashboard-03.moengage.com | [serviceworker.js](https://cdn.moengage.com/release/dc_3/serviceworker.js) |
+| dashboard-04.moengage.com | [serviceworker.js](https://cdn.moengage.com/release/dc_4/serviceworker.js) |
+| dashboard-06.moengage.com | [serviceworker.js](https://cdn.moengage.com/release/dc_6/serviceworker.js) |
+
+## オプション 3: NPM の初期化設定で useLatest: true フラグを渡している場合
+
+右クリックしてダウンロードし、ファイルをルートディレクトリに保存します。ルートディレクトリに配置しない場合は、それに応じて swPath や swScope を指定してください。
+
+| **ダッシュボードホスト** | **Service Worker ファイル** |
+| --- | --- |
+| dashboard-01.moengage.com | [serviceworker.js](https://cdn.moengage.com/release/dc_1/serviceworker.js) |
+| dashboard-02.moengage.com | [serviceworker.js](https://cdn.moengage.com/release/dc_2/serviceworker.js) |
+| dashboard-03.moengage.com | [serviceworker.js](https://cdn.moengage.com/release/dc_3/serviceworker.js) |
+| dashboard-04.moengage.com | [serviceworker.js](https://cdn.moengage.com/release/dc_4/serviceworker.js) |
+| dashboard-06.moengage.com | [serviceworker.js](https://cdn.moengage.com/release/dc_6/serviceworker.js) |
+
+## Service Worker のカスタムファイル名の変更
+
+ブラウザや環境に応じて serviceworker.js のファイル名を変更したい場合は、次の[初期化](https://www.moengage.com/docs/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)ブロックを使用します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage = moe({
+  appId: moeAppID,
+  env: 'LIVE',
+  logLevel: 0,
+  swPath: "/your-custom-sw.js"
+});
+```
+
+</CodeGroup>
+
+<Warning>
+  追加の属性 **swPath: "/your-custom-sw.js** が serviceworker.js ファイルに含まれていることを確認しないと、プッシュ通知や serviceworker.js は機能しません。このパスにより、使用したいカスタム serviceworker のファイル名が SDK に通知されます。
+</Warning>
+
+詳細については、[サンプルコード](https://github.com/moengage/webSDK-sample/blob/master/custom-serviceworker.html)を参照してください。
+
+## Service Worker のスコープ
+
+Service Worker のスコープは、Service Worker が制御するファイル、つまり Service Worker がどのパスからのリクエストをインターセプトするかを決定します。デフォルトのスコープは Service Worker ファイルの場所であり、その配下のすべてのディレクトリに及びます。そのため、serviceworker.js がルートディレクトリにある場合、Service Worker はこのドメイン内のすべてのファイルからのリクエストを制御します。
+
+[初期化](https://www.moengage.com/docs/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)時に追加のパラメーター `swScope` を渡すことで、任意のスコープを設定することもできます。
+
+例:
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage = moe({
+  appId: moeAppID,
+  env: 'LIVE',
+  logLevel: 0,
+  swPath: "/a/your-custom-sw.js",
+  swScope: '/a/'
+});
+```
+
+</CodeGroup>
+
+この例では、Service Worker のスコープを `/a/` に設定しています。つまり、Service Worker は `/a/`、`/a/lower/`、`/a/lower/lower` などのページからのリクエストを制御しますが、それより上位の `/a` や `/` などのページからのリクエストは制御しません。
+
+## serviceworker スコープの回避
+
+serviceworker.js ファイルをアプリのルートに配置できないものの、アプリ全体で利用できるようにしたい場合は、[初期化](https://www.moengage.com/docs/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)時に次のスニペットのように `*swScope*` を渡す必要があります。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage = moe({
+  appId: moeAppID,
+  env: 'LIVE',
+  logLevel: 0,
+  swPath: "/a/your-custom-sw.js",
+  swScope: '/'
+});
+```
+
+</CodeGroup>
+
+## WebPush の無効化
+
+デフォルトでは、Web Push モジュールはすべてのユーザーに対して有効になっています。使用しない場合は、明示的に無効にする必要があります。
+
+Web プッシュ通知モジュールを無効にするには、[初期化](https://www.moengage.com/docs/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)設定に `disable_web_push: true` を渡します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage = moe({
+  appId: moeAppID,
+  env: 'LIVE',
+  logLevel: 0,
+  disable_web_push: true,
+});
+```
+
+</CodeGroup>
+
+## トラブルシューティング
+
+### 登録エラー
+
+**_Error in Subscription: DOMException: Registration failed - storage error_** というエラーが表示される場合は、コードのどこかで serviceworker.js の登録を解除しています。コードベースで `unregister()` を検索し、削除してください。
+
+### プッシュ通知または serviceworker.js が機能しない
+
+次の手順に従ってください。
+
+1. MoEngage の serviceworker コードを serviceworker.js ファイルに追加してください。
+2. MoEngage スクリプトの初期化時に、serviceworker.js ファイルのパスを指定した `swPath` を追加してください。
+
+### Mac で Chrome のプッシュ通知を受信できません。
+
+Mac OS で Chrome がフルスクリーン表示になっている場合、Chrome のプッシュ通知は表示されません。これは Mac OS での Chrome のフルスクリーン表示に関する既知の問題であり、Chrome/Apple によって修正され次第お知らせします。
+
+### ユーザーが Web プッシュ通知を確認できません。
+
+Web プッシュ通知を正しく受信して表示するには、OS の設定でブラウザの通知が有効になっている必要があります。OS レベルでブロックされている可能性があります。有効になっていることを確認してください。この場合、ブラウザは通知を表示しようとするため、イベントとインプレッションはトラッキングされます。しかし、OS によってブロックされます。次の画像を参照してください。
+
+![Webpushusers](/images/webpushusers.png)
+
+MoEngage は、これらのユーザーも Web プッシュの購読済みかつ到達可能なユーザーとしてカウントします。詳細については、[ブラウザの権限と OS レベルの通知設定](/ja/user-guide/campaigns-and-channels/web-push/getting-started-with-web-push/web-push-permission-and-reachability#browser-permission-versus-os-level-notification-settings)を参照してください。
+
+### Web プッシュ通知をテストするにはどうすればよいですか？
+
+Web Push キャンペーンを作成する前に、プッシュメッセージがどのように表示されるかを確認したい場合がよくあります。テストを行うには、キャンペーン作成 -\> Scheduling & Goals タブ -\> Test Campaign セクションで Device Push Token を使用します。Chrome ブラウザで Web サイトの Device Push Token を確認するには、次の手順に従います。
+
+1. プッシュ権限を付与した Web サイトにアクセスします。
+2. 右クリック --\> 検証
+3. Application タブをクリックします。
+4. 左ペインの Storage で、Local Storage をクリックします。
+5. Local Storage で、HTTPS Web サイトの URL、または HTTP Web サイトの場合は HTTPS サブドメイン（[https://yourwebsite.moengage.com](https://yourwebsite.moengage.com)）をクリックします。
+6. MOE\_DATA というキーがあります。`PUSH_TOKEN` フィールドを探します。対応する値をコピーし、Test Campaign セクション -\> Device Push Token に貼り付けます。
+
+または、MoEngage Chrome 拡張機能をインストールすると簡単に確認できます。詳細については、[MoEngage Chrome 拡張機能](/ja/developer-guide/web-sdk/integration-validation/moengage-assist-chrome-extension)を参照してください。
+
+### Web プッシュ通知のバッジアイコンが表示されず、白い四角形としてのみ表示されます。
+
+Android のドキュメントには、「色を含むアセットを更新または削除してください。システムは、アクションアイコンとメインの通知アイコンのアルファ以外のチャネルをすべて無視します。これらのアイコンはアルファのみであると想定してください。システムは通知アイコンを白で、アクションアイコンを濃いグレーで描画します。」と記載されています。\
+アイコンを Android 互換の形式に変換するには-
+
+1. 任意の画像エディターで通知アイコンを開きます。
+2. 表示したくない画像の部分をすべて透明なピクセルに変換します。すべての色と透明でないピクセルは白で表示されます。そのため、アルファチャネル（白黒）の画像のみがサポートされ、RGB 画像はサポートされません。
+3. 画像の解像度は 72x72 以上である必要があります。
+4. 画像は次のいずれかのファイル形式でのみ保存してください- png、gif、webp、ico、cur、bmp
+
+![Webpush Badge Icon Info](/images/webpush_badge_icon_info.svg)
+
+### Firefox Android でプッシュ通知をクリックしても、Firefox ブラウザにリダイレクトされませんでした。
+
+これは Firefox for Android で確認されている異常な動作です。通知によって [http://example.com](http://example.com) にリダイレクトされるはずだった場合:
+
+ケース 1:
+
+通知をクリックしたときに Firefox が開いている場合は、通常どおりリダイレクトされます。
+
+ケース 2:
+
+通知をクリックしたときに Firefox がバックグラウンドにある場合（ホーム画面や他のアプリケーションを表示している場合）:
+
+通知をクリックしても何も起こらないように見えます。しかし、実際にはバックグラウンドでリダイレクトされています。そのため、次に Firefox を開くと [http://example.com](http://example.com) が表示されます。
+
+この問題は Firefox サポートに報告済みで、回答を待っている状況です。
+
+さらにサポートが必要な場合は、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。

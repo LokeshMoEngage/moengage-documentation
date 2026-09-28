@@ -1,0 +1,112 @@
+---
+title: "購入確認メールを設定する方法"
+---
+
+# はじめに
+
+購入確認メールは、顧客が購入を完了したときに送信される最も一般的なメールの 1 つです。マーケターとして、顧客のジャーニーにおいて重要な役割を果たす購入確認メールを効果的に設定する必要があります。
+
+この記事では、購入データを取得して、顧客にシームレスで使いやすいエクスペリエンスを提供する方法について説明します。ユーザーに購入確認の通知を送信する Email キャンペーンを作成します。
+
+# 期待される結果
+
+ユーザーが購入を完了するたびに、購入確認メールが届きます。これは完全に自動化されているため、手動で対応する必要はありません。
+
+<Tip>
+  顧客が購入した商品の詳細を含むイベントは、個別のイベントとしてではなく、配列形式で取得する必要があります。
+
+  たとえば、「Order Placed」というイベントを考えてみましょう。次のスクリーンショットに示すように、顧客は 4 つの商品を購入しています。商品のデータは、Variation Title、Product Title、Image URL、Product Price、Vendor name などのフィールドで取得されます。
+
+  イベント属性名は次の例とは異なるため、正確なスペルを確認しておいてください。
+
+  ![7.png](/images/moengage_5e882c.png)
+</Tip>
+
+# Email キャンペーンを作成する
+
+このセクションでは、トランザクションメールを設定します。
+
+## ステップ 1: ターゲットユーザー
+
+1. 左側のサイドバーに移動し、**Engage** \> **Campaigns** をクリックして **\+ Create campaign** をクリックするか、**\+ Create new** \> **Campaign** をクリックします。
+2. **Outbound** で、**Email** \> **Event Triggered** を選択します。 <img src="/images/moengage_9c01f2.png" alt="13.png" /> キャンペーン定義の最初のステップ「Target users」に移動します。
+3. 次の詳細を入力します。
+   - **Team**: 組織のアカウントでチームが有効になっている場合は、チームを選択します。たとえば、「Demo Account - E-commerce」を選択します。詳細については、[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。
+   - **Campaign Name**: キャンペーンの名前を入力します。たとえば、「Purchase Confirmation」と入力します。
+   - **Campaign Content Type**: **Transactional** を選択します。
+   - **User attribute with email address**: 「Email (Standard)」を選択します。 <img src="/images/moengage_8e29a7.png" alt="5.png" />
+4. **Select condition** セクションで、購入の詳細を含むイベントをトリガーとして選択します。
+5. **Target Audience** セクションで、**All users** を選択します。
+6. **Next** をクリックして 2 番目のステップ「Content」に進みます。ここでは、Email キャンペーンに含めるコンテンツを定義できます。
+
+## ステップ 2: コンテンツ
+
+1. 使用するテンプレートを選択します。この例では、**Drag and drop editor** タブで **Blank Template** を選択します。
+2. 次の詳細を追加します。
+   - Subject
+   - Preview Text
+   - Sender Name
+   - From email address
+   - Reply-to email address
+3. **Template editor** セクションで、メールメッセージのコンテンツを入力します。
+4. ユーザー名などの情報を含めてメッセージをパーソナライズします。これにより、メッセージがより状況に即したものになり、ユーザーとのつながりが強まります。これを行うには、「@」を入力します。Push Personalization ポップアップが表示され、イベントまたはユーザーのプロパティから情報を選択できます。 <img src="/images/moengage_7f84b9.png" alt="weather 8.png" />
+5. 次の詳細を設定します。
+   ### テンプレートを設定する
+   次の画像のようにレイアウトを作成したら、商品の詳細を表示する行を選択し、**Add condition** をクリックします。 <img src="/images/moengage_6884d0.png" alt="8.png" />
+   ### ロジックを定義する
+   条件ブロックで、配列を反復処理して必要な詳細を表示するロジックを定義します。このロジックにより、配列内のすべての商品が表示されます。このロジックでは、まず各配列に変数を割り当て、次に各配列をループ処理して、各ループの値を別の変数に割り当てます。
+   #### サンプルコード（前）
+   Code
+   ```ruby wrap
+   {# Assigning a variable to the array #}
+   {% set imageURLlist = EventAttribute['Product Image Url'] %}
+   {% set titlelist = EventAttribute['Product Title'] %}
+   {% set vendorlist = EventAttribute['Product Vendor'] %}
+   {% set produrllist = EventAttribute['Product Url'] %}
+   {% set pricelist = EventAttribute['Product Price'] %}
+   {% set varidlist = EventAttribute['Variant ID'] %}
+   {# Looping through the array and assigning a variable to each value in the array #}
+   {% for i in titlelist %}
+   {% set imageURL = imageURLlist[loop.index-1] %}
+   {% set title = titlelist[loop.index-1] %}
+   {% set vendor = vendorlist[loop.index-1] %}
+   {% set produrl = produrllist[loop.index-1] %}
+   {% set price = pricelist[loop.index-1] %}
+   {% set varid = varidlist[loop.index-1] %}
+   ```
+   #### サンプルコード（後）
+   Code
+   ```ruby
+   {% endfor %}
+   ```
+   コードは次の画像のようになります。 <img src="/images/moengage_63230f.png" alt="9.png" /> 上記のコードでは、6 つの異なるイベント属性を使用しています。表示する属性の数は、クライアントの要件に基づきます。
+   - 最初のセクション _Assigning a variable to the array_ では、新しい属性を使用するために、必要なイベント属性の配列に新しい変数を割り当てます。
+   - _Looping through the array and assigning a variable to each value in the array_ のセクションでは、前のセクションで使用した変数を利用して、配列の値に変数を割り当てます。
+   - これらの変数を使用して、メール本文で値を呼び出すことができます。 <img src="/images/moengage_4cac93.png" alt="10.png" /> この例では、title、vendor、price、varied 属性を使用しています。
+   <Info>
+     数値の配列については、前の画像の price 属性で行っているように、フィールドが反復可能かどうかのチェックを適用する必要があります。これは、パーソナライゼーションが、要素が 1 つだけの数値配列を文字列ではなく数値として返すためです。このチェックがないと、ユーザーが商品を 1 つだけ購入した場合にパーソナライゼーションエラーが発生します。
+   </Info>
+   ### 画像を設定する
+   1. 画像コンテンツブロックをクリックします。
+   2. **Dynamic image** トグルをオンにします。
+   3. **Dynamic Url** フィールドに JINJA 属性を入力します。 <img src="/images/moengage_859a38.png" alt="11.png" />
+   ### リダイレクト URL を設定する
+   1. テキストを選択します。
+   2. ポップアップ表示されるテキスト書式設定オプションボックスから **Link** オプションをクリックします。
+   3. JINJA 属性を入力します。 <img src="/images/moengage_176b60.png" alt="12.png" />
+      <Warning>
+        MoEngage にデータを送信する際は、各商品の配列内のインデックスが維持されていることを確認してください。つまり、商品 1 の詳細はすべての配列でインデックス 0 に、商品 2 の詳細はすべての配列でインデックス 1 に渡す必要があります。不一致がある場合、商品に誤った情報がマッピングされる可能性があります。
+      </Warning>
+6. **Next** をクリックして 3 番目のステップ「Schedule and goals」に進みます。ここでは、キャンペーンのスケジュールと目標を定義できます。
+
+## ステップ 3: スケジュールと目標
+
+1. 要件に基づいて、このキャンペーンの開始時期と終了時期、およびコンバージョン目標を定義します。
+2. 要件に基づいて配信設定を変更します。詳細については、[Create Email Campaigns](/ja/user-guide/campaigns-and-channels/email/create/create-an-email-campaign) を参照してください。
+3. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、購入データを取得して、顧客にシームレスで使いやすいエクスペリエンスを提供する方法について説明しました。ユーザーに購入確認の通知を送信する Email キャンペーンを作成しました。
+
+キャンペーンが公開されたら、[キャンペーン分析と情報ページ](/ja/user-guide/campaigns-and-channels/email/analyze/email-analytics-and-info)からパフォーマンスを追跡できます。

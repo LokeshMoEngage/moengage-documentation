@@ -1,0 +1,172 @@
+---
+title: "Web SDK イベントのトラッキング"
+description: "MoEngage Web SDK を使用して、Web サイト上のユーザーアクションとイベント属性をトラッキングします。"
+---
+
+<Info>
+  - MoEngage Web SDK の統合では、オプションの手順を実施することを強く推奨します。
+  - SDK は MoEngage の FUP ポリシーに準拠しています。詳細については、[フェアユースポリシー](https://www.moengage.com/docs/user-guide/data/key-concepts/fair-usage-policy-fup)を参照してください。
+</Info>
+
+## イベントのトラッキング
+
+イベントのトラッキングでは、ユーザーのアクションとそのアクションのプロパティを記録します。track_event を呼び出すたびに、1 つのユーザーアクションが記録されます。チームの誰もがすぐに意味を理解できるよう、イベント名は人間が読める名前にすることを推奨します。
+
+track_event を使用して、イベント名と、属性やプロパティなどのイベントの特性を指定してイベントをトラッキングできます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.trackEvent("EVENT_NAME_1"); // This event has no attributes
+// Track events with additional attributes
+Moengage.trackEvent("EVENT_NAME_2", {
+"attribute_1": "value_1", // string value
+"attribute_2": 2, // numeric value
+"attribute_3": 3.4, // numeric value
+"attribute_4": new Date(2017, 0, 31), // datetime value. Example value represents 31 January, 2017.
+});
+```
+
+</CodeGroup>
+
+キャンペーン作成時のセグメンテーションに役立つと思われる追加情報をすべて追加してください。たとえば、次のコードは商品の購入イベントをトラッキングします。トラッキング対象のイベントを説明する金額、数量、カテゴリなどの属性を含めています。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.trackEvent("Purchase", {
+"quantity":2,
+"product_name":"Ipad mini",
+"price": 599.99,
+"currency": "USD"
+});
+```
+
+</CodeGroup>
+
+<Warning>
+  **重要**
+
+  - イベント属性とユーザー属性は、データ型を変更せずにトラッキングしてください。たとえば、上記の購入イベントでは、金額と数量は数値形式でトラッキングされています。明示的に文字列として指定しない限り、MoEngage はデータ型を自動的に検出します。
+  - 正確で信頼性の高いデータを維持するには、イベントのタイムスタンプが一意であることが重要です。イベントのタイムスタンプがミリ秒単位で重複しないようにしてください。
+</Warning>
+
+### Google Tag Manager (GTM) を使用したイベントのトラッキング
+
+GTM 内の `Custom HTML Tag` で、以下のコードを使用してください。このタグは、イベントごとに 1 回配信され、Web サイトのイベントをトラッキングしたい要素でトリガーされる必要があります。イベント属性は GTM のデータレイヤーから取得できます。
+
+<CodeGroup>
+
+```JavaScript JavaScript lines wrap
+<script>
+Moengage.trackEvent("Purchase", {"quantity":2, "product_name":"Ipad mini", "price": 599.99, "currency": "USD" });
+</script>
+```
+
+</CodeGroup>
+
+## 非インタラクティブイベント
+
+MoEngage Analytics のセッション時間の計算に影響しないイベントは、非インタラクティブイベントとしてマークされます。
+
+以下のものは非インタラクティブイベントと見なされます。
+
+- Web サイトがフォアグラウンドにある場合でも、新しいセッションを開始しない
+- セッションを延長しない
+- ソースとセッションの情報を持たない
+
+たとえば、Web サイトがバックグラウンドにあるときにトラッキングされるイベントは、ユーザーによって開始されたものではないため、非インタラクティブとしてマークされます。
+
+イベントを非インタラクティブとしてマークするには、次のようにイベントのトラッキング時に `moe_non_interactive: 1` を送信します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.trackEvent("Content Refreshed", {"NewsCategory": "Politics", "moe_non_interactive": 1})
+```
+
+</CodeGroup>
+
+## SDK によってトラッキングされるイベントのコールバック
+
+SDK によって自動的にトラッキングされるイベントがいくつかあります。これらを取得したい場合は、次のようにイベントをリッスンできます。
+
+<CodeGroup>
+
+```JavaScript JavaScript lines wrap
+	window.addEventListener('MOE_AUTOMATED_EVENTS', function (event) {
+	    switch (event.detail.name) {
+	        case 'MOE_WEB_UNSUBSCRIBED':
+	            console.log(event.detail.data); // it contains all the attributes of the event
+	            break;
+	 
+	        case 'EVENT_ACTION_WEB_SESSION_START':
+	            console.log(event.detail.data); // it contains all the attributes of the event
+	            break;
+	    }
+	});
+```
+
+</CodeGroup>
+
+### イベントの一覧
+
+ 1. MOE_WEB_UNSUBSCRIBED
+ 2. EVENT_ACTION_WEB_SESSION_START
+ 3. MOE_PAGE_VIEWED
+ 4. MOE_WEB_OPTIN_BANNER_LOAD
+ 5. MOE_WEB_OPTIN_CLOSED
+ 6. MOE_WEB_OPTIN_ACCEPTED
+ 7. MOE_USER_SUBSCRIBED
+ 8. MOE_OPT_IN_SHOWN
+ 9. MOE_OPT_IN_ALLOWED
+10. MOE_OPT_IN_DISMISSED
+11. MOE_OPT_IN_BLOCKED
+12. MOE_LOGOUT
+13. MOE_ONSITE_MESSAGE_CLICKED
+14. MOE_ONSITE_MESSAGE_SHOWN
+15. MOE_ONSITE_MESSAGE_DISMISSED
+16. MOE_ONSITE_MESSAGE_AUTO_DISMISS
+
+## トラブルシューティング
+
+### window.open(..) を使用するとリダイレクト時にイベントがトラッキングされない
+
+`window.open` メソッドを使用して別のページにリダイレクトし、リダイレクト時にイベントもトラッキングしている場合は、`window.open` を `setTimeout` でラップする必要があります。例:
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+setTimeout(() => window.open(<redirection_link>), 0);
+```
+
+</CodeGroup>
+
+### ページの URL が非常に長い場合にイベントがトラッキングされない
+
+URL は、デフォルトですべてのイベントで属性としてトラッキングされます。ただし、サポートされる URL の最大長は 512 文字です。URL の長さがこれを超えると、イベント全体が破棄されます。
+
+そのため、URL の長さが 512 文字を超えないようにしてください。
+
+### 戻る/進むナビゲーションで Page Viewed イベントがトラッキングされない
+
+Web サイトが bfcache の対象となっている可能性があります。Back/forward cache (bfcache) は、戻る/進むナビゲーションを瞬時に行えるようにするブラウザの最適化機能です。bfcache はメモリ内キャッシュで、ユーザーがページから移動する際に、ページの完全なスナップショット (JavaScript ヒープを含む) を保存します。bfcache の詳細については、[こちら](https://web.dev/articles/bfcache)を参照してください。
+
+このため、MoEngage SDK は再初期化されず、Page Viewed イベントがトラッキングされません。
+
+bfcache からの復元をページビュー数に含めるには、`pageshow` イベントのリスナーを設定し、`persisted` プロパティを確認します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+window.addEventListener('pageshow', (event) = {
+  // Send another pageview if the page is restored from bfcache.
+  if (event.persisted) {
+    Moengage.trackPageView();
+  }
+});
+```
+
+</CodeGroup>
+
+さらにサポートが必要な場合は、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームにお問い合わせください。

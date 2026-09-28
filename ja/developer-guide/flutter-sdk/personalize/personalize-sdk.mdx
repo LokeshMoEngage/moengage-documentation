@@ -1,0 +1,275 @@
+---
+title: "Personalize SDK"
+description: "Flutter 向け MoEngage Personalize SDK を統合して、パーソナライズされたコンテンツの取得、オファリングキャンペーンの処理、パフォーマンスのトラッキングを行う方法を説明します。"
+---
+
+# 概要
+
+MoEngage Personalize SDK は、パーソナライズされたキャンペーンを配信するための安全なフレームワークを提供します。ユーザー ID と認証を内部で処理することで統合を簡素化し、API シークレットの管理や手動での HTTPS 呼び出しを不要にします。
+
+<Info>
+  **前提条件**
+
+  パーソナライズされたエクスペリエンスを取得する前に、アプリケーションでコアの MoEngage SDK が初期化されていることを確認してください。詳細については、Flutter SDK の初期化を参照してください。
+</Info>
+
+# 全体の仕組み
+
+コードを書く前に、パーソナライゼーションのワークフローを構成する 3 つの要素を理解しておくと役立ちます。
+
+1. **ダッシュボードの設定:** マーケターが MoEngage ダッシュボードでエクスペリエンスキャンペーンを作成し、一意の `experienceKey`（例: `home_banner`）を割り当てます。また、ユーザーセグメントごとに返される特定の JSON ペイロードを設定します。
+2. **メタ呼び出し:** アプリケーションは `fetchExperiencesMeta` を呼び出して、現在のユーザーに対してアクティブかつ利用可能なエクスペリエンスキーを確認します。
+3. **取得呼び出し:** アプリケーションは特定のキーを指定して `fetchExperience` または `fetchExperiences` を呼び出し、実際のペイロードを取得します。SDK はステップ 2 で収集したメタデータを使用して、このリクエストを正確に解決して返します。
+
+<Info>
+  SDK は **生の** JSON のみを返します。開発者は、このペイロードを解析し、アプリケーション内で対応する UI を構築する必要があります。
+</Info>
+# MoEngage Personalization の統合
+
+MoEngage の Personalize SDK をプロジェクトに追加するには、アプリケーションの **pubspec.yaml** ファイルを編集し、以下のコマンドを使用します。
+
+<CodeGroup>
+
+```yaml pubspec.yaml wrap
+dependencies:
+	moengage_personalize: $latestVersion
+```
+
+</CodeGroup>
+
+**_\$latestVersion_** は、プラグインの最新バージョンを指します。
+
+依存関係を追加した後、ターミナルで **_flutter pub get_** コマンドを実行して依存関係をインストールします。
+
+<Info>
+  このプラグインは **moengage\_flutter** プラグインに依存しています。**moengage\_flutter** プラグインもインストールされていることを確認してください。詳細については、[ドキュメント](/ja/developer-guide/flutter-sdk/sdk-integration/sdk-installation/framework-dependency)を参照してください。
+</Info>
+
+## Personalize の初期化
+
+プラグインをインストールした後、次の設定を使用して MoEngage Personalize モジュールを初期化します。
+
+<CodeGroup>
+
+```dart Dart
+import 'package:moengage_personalize/moengage_personalize.dart';
+
+final personalize = MoEngagePersonalize('YOUR_WORKSPACE_ID');
+```
+
+</CodeGroup>
+
+# 実装ワークフロー
+
+Flutter 向けの Personalize ヘルパーは、動的でパーソナライズされたコンテンツの取得と操作を簡素化するように設計されています。以下に、ワークフローとコードのプレースホルダーの詳細を示します。
+
+## 1. メタエクスペリエンスの取得
+
+特定のペイロードやエクスペリエンスを取得する前に、メタデータの呼び出しを行う必要があります。メタデータを事前に取得しておくことで、エクスペリエンスの取得を最適化できます。アプリ側では、メタデータを使用して現在の UI の状態に適したパーソナライズされたコンテンツを特定し、アプリケーション内のすべてのコンテンツではなく関連するコンテンツのみを取得できます。
+
+<CodeGroup>
+
+```dart Dart
+import 'package:moengage_personalize/moengage_personalize.dart';
+
+final personalize = MoEngagePersonalize('YOUR_WORKSPACE_ID');
+
+// Create a list with the desired experience statuses
+final statuses = [ExperienceStatus.active];
+
+personalize.fetchExperiencesMeta(statuses)
+    .then((metadata) => print(metadata)) // add logic here to process the metadata
+    .catchError((e) => print(e)); // add logic for fallback/error handling
+```
+
+</CodeGroup>
+
+返される `Future` は、キャンペーンの実行に必要なすべてのメタデータを含む [`ExperienceCampaignsMetadata`](/ja/developer-guide/flutter-sdk/personalize/personalize-data-payload) オブジェクトで解決されます。`catchError` ハンドラーは、失敗の理由を示す `code` と `message` を含む [`PersonalizeError`](/ja/developer-guide/flutter-sdk/personalize/personalize-data-payload) を受け取ります。
+
+## 2. パーソナライズされたコンテンツの取得
+
+メタデータを取得したら、実際のパーソナライズされたペイロードを取得できます。単一のエクスペリエンスまたは複数のエクスペリエンスを同時に取得でき、コンテキストに応じたターゲティングも完全にサポートされています。
+
+<Info>
+  EXPERIENCE\_KEY は、MoEngage ダッシュボードでキャンペーンを作成する際にエクスペリエンスキャンペーンで使用される一意のキーです。このキーは、メタデータの取得に成功したときに返される `ExperienceCampaignsMetadata` の `ExperienceCampaignMeta` オブジェクトで確認できます。
+</Info>
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_personalize/moengage_personalize.dart';
+
+final personalize = MoEngagePersonalize('YOUR_WORKSPACE_ID');
+
+// additional attributes you want to pass for the experience.
+final attributes = <String, String>{};
+```
+
+</CodeGroup>
+
+### 単一のエクスペリエンスの取得
+
+- **単一のエクスペリエンス**: 単一のエクスペリエンスキーを使用して、単一のエクスペリエンスを取得します。
+
+<CodeGroup>
+
+```dart Dart wrap
+personalize.fetchExperience('<experience_key>', attributes: attributes)
+    .then((result) => print('Single Experience: $result'))
+    .catchError((e) => print(e));
+```
+
+</CodeGroup>
+
+### 複数のエクスペリエンスの取得
+
+- **一括エクスペリエンス**: エクスペリエンスキーの配列を渡して、複数のエクスペリエンスを取得します。
+
+<CodeGroup>
+
+```dart Dart wrap
+personalize.fetchExperiences(experienceKeys, attributes: attributes)
+    .then((result) => print('Multiple Experiences: $result'))
+    .catchError((e) => print(e));
+```
+
+</CodeGroup>
+
+返される `Future` は `ExperienceCampaignsResult` オブジェクトで解決されます。成功した場合、結果には次の 2 つのフィールドが含まれます。
+
+- `experiences` — 正常に解決された ExperienceCampaign オブジェクト
+- `failures` — 解決できなかったキーに対する [`ExperienceCampaignFailure`](/ja/developer-guide/flutter-sdk/personalize/personalize-data-payload) オブジェクト。それぞれに理由と `experienceKeys` が含まれます。
+
+ネットワークエラーや SDK の未初期化などのシステムレベルの障害の場合は、[`PersonalizeError`](/ja/developer-guide/flutter-sdk/personalize/personalize-data-payload)（code と message を含む）がスローされます。"
+
+ユースケース:
+
+**コンテキストに応じたターゲティング**: 取得時に属性のオブジェクト（例: `{"current_page": "home", "cart_value": "500"}`）を渡します。これにより、状態に応じたコンテンツをリアルタイムで配信できます（例: カートの金額がしきい値を満たした場合に「送料無料」バナーを表示する）。
+
+キャンペーンのパフォーマンスを正確に測定するには、パーソナライズされたコンテンツを UI にレンダリングした後に、ユーザーのインプレッションをトラッキングする必要があります。
+
+## 3. エクスペリエンスの表示を SDK に通知する（インプレッションのトラッキング）
+
+_インプレッション_ とは、パーソナライズされたキャンペーンのペイロードが UI に正常にレンダリングされ、ユーザーに表示されていることを MoEngage SDK に通知するテレメトリイベントです。
+
+キャンペーンのパフォーマンスを正確にトラッキングするには、アプリケーションがパーソナライズされたコンテンツを画面に表示した時点で、次のメソッドを呼び出す必要があります。
+
+### 3a. エクスペリエンスキャンペーンを SDK に通知する
+
+エクスペリエンスを含む UI 要素がレンダリングされたときに、`experiencesShown()` メソッドを呼び出します。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_personalize/moengage_personalize.dart';
+
+final personalize = MoEngagePersonalize('YOUR_WORKSPACE_ID');
+
+// campaigns is a list of ExperienceCampaign objects received from fetchExperiences
+// Pass the exact objects or payloads previously received from the fetchExperiences() method.
+final List<ExperienceCampaign> campaigns = [/* campaign objects */];
+
+personalize.experiencesShown(campaigns);
+```
+
+</CodeGroup>
+
+### 3b. オファリングキャンペーンのインプレッションのトラッキング
+
+[オファリング](/ja/user-guide/decisioning/offer-decisioning/create-offerings)は、マーケターが MoEngage ダッシュボードで設定するパーソナライズされたコンテンツの独自のサブタイプです（動的な商品レコメンデーション、カタログ、ユニーククーポンコードなど）。トラッキングを行う前に、アプリケーション内でオファリングのペイロードを処理する方法を理解しておくことが重要です。
+
+- オファリングの取得: `fetchExperience()` または `fetchExperiences()` メソッドを呼び出して、オファリングのペイロードを取得します。SDK はメタデータを処理し、`ExperienceCampaignsResult` オブジェクト内でペイロードを返します。
+- オファリングの識別: 返された JSON の構造を調べることで、オファリングを識別できます。オファリングのペイロードは、特定のカスタムオファリングキーの下にネストされた構造化データで構成されています。
+- オファリング UI の構築: SDK はこのオファリングデータを生の JSON としてのみ返します。開発者は、この JSON ペイロードを解析し、画面上に対応する視覚的な UI コンポーネントを構築するロジックを記述する必要があります。
+
+オファリング UI が構築され、ユーザーに正常にレンダリングされたら、SDK が提供するオファリング固有の属性を受け取る専用のトラッキング関数を使用します。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_personalize/moengage_personalize.dart';
+
+final personalize = MoEngagePersonalize('YOUR_WORKSPACE_ID');
+
+// List of offering payload dicts for a specific offering campaign
+final List<Map<String, dynamic>> offeringPayloads = [/* offering payload dicts */];
+
+personalize.offeringsShown(offeringPayloads);
+```
+
+</CodeGroup>
+
+## 4. クリックのトラッキング
+
+### 4a. エクスペリエンスキャンペーンのクリックのトラッキング
+
+ユーザーが UI 要素を操作したときに「クリック」を記録するには、これらのメソッドを使用します。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_personalize/moengage_personalize.dart';
+
+final personalize = MoEngagePersonalize('YOUR_WORKSPACE_ID');
+
+// campaign is an array of ExperienceCampaign objects
+// Pass the exact objects or payloads previously received from the fetchExperiences() method.
+final ExperienceCampaign campaign = /* campaign object */;
+
+personalize.experienceClicked(campaign);
+```
+
+</CodeGroup>
+
+### 4b. オファリングキャンペーンのクリックのトラッキング
+
+[オファリング](/ja/user-guide/decisioning/offer-decisioning/create-offerings)は、マーケターが MoEngage ダッシュボードで設定するパーソナライズされたコンテンツの独自のサブタイプです（動的な商品レコメンデーション、カタログ、ユニーククーポンコードなど）。トラッキングを行う前に、アプリケーション内でオファリングのペイロードを処理する方法を理解しておくことが重要です。
+
+- オファリングの取得: `fetchExperience()` または `fetchExperiences()` メソッドを呼び出して、オファリングのペイロードを取得します。SDK はメタデータを処理し、`ExperienceCampaignsResult` オブジェクト内でペイロードを返します。
+- オファリングの識別: 返された JSON の構造を調べることで、オファリングを識別できます。オファリングのペイロードは、特定のカスタムオファリングキーの下にネストされた構造化データで構成されています。
+- オファリング UI の構築: SDK はこのオファリングデータを生の JSON としてのみ返します。開発者は、この JSON ペイロードを解析し、画面上に対応する視覚的な UI コンポーネントを構築するロジックを記述する必要があります。
+
+オファリングキャンペーンに含まれる特定のアイテム（商品レコメンデーションやクーポンなど）に対する操作の場合:
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_personalize/moengage_personalize.dart';
+
+final personalize = MoEngagePersonalize('YOUR_WORKSPACE_ID');
+
+// campaign is a single ExperienceCampaign object
+// Pass the exact objects or payloads previously received from the fetchExperiences() method.
+final ExperienceCampaign campaign = /* campaign object */;
+
+// Map containing offering details for a specific offering campaign
+final Map<String, dynamic> offeringPayload = {/* offering payload */};
+
+personalize.offeringClicked(campaign, offeringPayload);
+```
+
+</CodeGroup>
+
+#### 例
+
+```dart Sample Payload
+{
+  "custom_offering_key": {
+    // Expected offering payload in the function call.
+  }
+}
+```
+
+<Info>
+  これらのオファリング固有の関数は、データがオファリングのペイロードの一部である場合にのみ使用できます。その他のすべてのエクスペリエンスデータには、標準のエクスペリエンス表示/クリック関数を使用してください。
+</Info>
+
+# FAQ
+
+<Accordion title="取得できるエクスペリエンスの数はいくつですか？">
+  1 回の呼び出しで最大 25 件のエクスペリエンスを取得できます。これを超えた場合、SDK は最近更新された 25 件のエクスペリエンスを返し、処理されなかったキーを通知します。
+</Accordion>
+
+<Accordion title="デバイスがオフラインで有効なキャッシュがない状態で取得リクエストが行われた場合はどうなりますか？">
+  SDK は空のペイロードと標準化されたエラーコード（例: NETWORK\_ERROR）を返します。
+</Accordion>

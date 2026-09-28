@@ -1,0 +1,437 @@
+---
+title: "通知センター"
+description: "MoEngage SDK を使用して Android アプリに通知センターを追加し、プッシュ通知の履歴を表示します。"
+---
+
+# 概要
+
+通知センターはプッシュ通知の履歴を表示し、エンドユーザーがスクロールして見逃した通知を確認できるオプションを提供します。MoEngage は、完全にカスタマイズ可能なデフォルト UI を備えたすぐに使える Inbox サポートを提供するほか、独自の通知センターを構築するオプションも提供しています。
+
+# MoEngage のデフォルト通知センターを使用する
+
+## SDK のインストール
+
+## BOM を使用したインストール
+
+BOM を使用した統合が推奨される統合方法です。[Install Using BOM](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) ドキュメントを参照してください。BOM を設定したら、以下のように _app/build.gradle_ ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```Groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:inbox-ui")
+}
+```
+
+</CodeGroup>
+
+BOM を設定したら、アプリケーションに必要な特定の MoEngage モジュールを含めます。\
+注: これらの依存関係にバージョン番号は不要です。BOM が自動的に管理します。
+
+## デフォルトの通知センターをアプリに追加する
+
+デフォルトの通知センター UI を使用するには、SDK が提供する [Activity](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.view/-inbox-activity/index.html) を起動するか、SDK が提供する [Fragment](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.view/-inbox-fragment/index.html) を追加します。
+
+### Activity を使用する
+
+Activity は SDK のマニフェストファイルですでに宣言されており、以下のコードを使用して起動できます。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+//launching the default InboxActivity
+val intent = Intent(this, InboxActivity::class.java)
+startActivity(intent)
+```
+
+
+```java Java
+Intent intent = new Intent(this, InboxActivity.class);
+startActivity(intent);
+```
+
+</CodeGroup>
+
+### Fragment を使用する
+
+SDK が提供する [_InboxFragment_](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.view/-inbox-fragment/index.html) をアプリの Activity に埋め込むことができます。Activity に Fragment を追加する方法については、[Fragment に関する Google のドキュメント](https://developer.android.com/guide/fragments)を参照してください。
+
+# Inbox に親 Activity を追加する
+
+必要に応じて、Inbox の親 Activity を定義する場合は、以下のコードを使用します。**_[PARENT_ACTIVITY_NAME]_** を親 Activity の名前に置き換えてください。
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<activity
+    android:name="com.moengage.inbox.ui.view.InboxActivity"
+    android:parentActivityName="[PARENT_ACTIVITY_NAME]" />
+```
+
+</CodeGroup>
+
+# デフォルト通知センターのカスタマイズ
+
+SDK は一定の UI カスタマイズオプションを提供しています。[InboxActivity](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.view/-inbox-activity/index.html) はすでに SDK のマニフェストファイルに含まれています。デフォルト Activity のラベルやテーマを変更する必要がある場合は、アプリのマニフェストファイルで Activity を再度宣言し、属性を上書きしてください。
+
+## Activity ラベルのカスタマイズ
+
+Inbox Activity のデフォルトラベルは **_Notification Inbox_** です。アプリケーションの **_strings.xml_** で **_moe_inbox_notification_title_** を宣言することで上書きできます。
+
+<CodeGroup>
+
+```xml strings.xml wrap
+<resources>
+  <string name="moe_inbox_notification_title">[LABEL]</string>
+</resources>
+```
+
+</CodeGroup>
+
+### Activity のテーマ
+
+テーマをカスタマイズするには、アプリのマニフェストで Activity を再宣言して目的のテーマを指定するか、以下で説明するように SDK のデフォルトを上書きします。
+
+**_InboxActivity_** に適用されるデフォルトのテーマは **_MoEInboxTheme.NoActionBar_** です。アプリケーションの **_style.xml_**、**_themes.xml_**、または同等のファイルで同じ名前のテーマを宣言できます。
+
+以下はデフォルトテーマの定義です。
+
+<CodeGroup>
+
+```xml styles.xml wrap
+ <style name="MoEInboxTheme.NoActionBar">
+    <item name="colorPrimary">@color/moe_inbox_color_primary</item>
+    <item name="colorPrimaryDark">@color/moe_inbox_color_primary_dark</item>
+    <item name="colorControlNormal">@color/moe_inbox_control_color</item>
+    <item name="android:background">@color/moe_inbox_background_color</item>
+  </style>
+
+  <style name="MoETheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+  <style name="MoETheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light"/>
+</style>
+```
+
+</CodeGroup>
+
+テーマをカスタマイズするには、アプリケーションの **colors.xml** ファイルで同じ名前のカラー属性を定義して、任意のカラー属性を上書きします。
+
+<CodeGroup>
+
+```xml color.xml wrap
+{/*   Theme customisation   */}
+    <color name="moe_inbox_color_accent">#1C64D0</color>
+    <color name="moe_inbox_color_primary_dark">@color/moe_black</color>
+    <color name="moe_inbox_color_primary">@color/moe_white</color>
+    <color name="moe_inbox_control_color">@color/moe_black</color>
+```
+
+</CodeGroup>
+
+たとえば、プライマリダークカラーをカスタマイズする場合は、以下のようにアプリの **colors.xml** で **_moe_inbox_color_primary_dark_** を定義します。
+
+<CodeGroup>
+
+```xml XML wrap
+<color name="moe_inbox_color_primary_dark">[YOUR_COLOR]</color>
+```
+
+</CodeGroup>
+
+同様に、以下をカスタマイズできます。
+
+- ツールバーのスタイル
+- メッセージテキストの外観
+  - ヘッダー
+  - メッセージ
+  - タイムスタンプ
+- スクロールバーのスタイル
+- 空の通知センターのスタイル
+
+以下の SDK のデフォルト属性を上書きしてテーマをカスタマイズできます。
+
+<CodeGroup>
+
+```xml XML wrap
+{/*   Toolbar Text Style */}
+<style name="MoEInboxToolbarTextStyle" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
+  <item name="android:textColor">@color/moe_inbox_toolbar_text_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+  <item name="android:textSize">@dimen/moe_inbox_tab_font_size</item>
+  <item name="android:textStyle">bold</item>
+</style>
+
+{/*  Header style  */}
+<style name="MoEInboxHeaderTextStyle">
+  <item name="android:background">@color/moe_inbox_transparent_color</item>
+  <item name="android:textSize">@dimen/moe_inbox_header_font_size</item>
+  <item name="android:singleLine">true</item>
+  <item name="android:ellipsize">marquee</item>
+  <item name="android:textColor">@color/moe_inbox_header_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+  <item name="android:textStyle">bold</item>
+</style>
+
+{/*  Message style  */}
+<style name="MoEInboxMessageTextStyle">
+  <item name="android:background">@color/moe_inbox_transparent_color</item>
+  <item name="android:textSize">@dimen/moe_inbox_content_font_size</item>
+  <item name="android:maxLines">3</item>
+  <item name="android:ellipsize">end</item>
+  <item name="android:textColor">@color/moe_inbox_message_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+</style>
+
+{/*  List Item Separator style  */}
+<style name="MoEInboxSeparatorStyle">
+  <item name="android:background">@drawable/moe_inbox_item_divider</item>
+</style>
+    
+{/*  Timestamp Style  */}
+<style name="MoEInboxTimeTextStyle">
+  <item name="android:background">@color/moe_inbox_transparent_color</item>
+  <item name="android:textSize">@dimen/moe_inbox_time_font_size</item>
+  <item name="android:singleLine">true</item>
+  <item name="android:ellipsize">marquee</item>
+  <item name="android:textColor">@color/moe_inbox_timestamp_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+</style>
+
+{/*   Empty List Style */}
+<style name="MoEInboxEmptyBoxTextStyle">
+  <item name="android:background">@color/moe_inbox_transparent_color</item>
+  <item name="android:textSize">@dimen/moe_inbox_empty_box_text_size</item>
+  <item name="android:textColor">@color/moe_inbox_message_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+</style>
+
+{/*   Scrollbar style */}
+<style name="MoEInboxScrollbarStyle">
+  <item name="android:scrollbarAlwaysDrawVerticalTrack">true</item>
+  <item name="android:scrollbarStyle">outsideOverlay</item>
+  <item name="android:scrollbars">vertical</item>
+  <item name="android:fadeScrollbars">true</item>
+  <item name="android:scrollbarThumbVertical">@drawable/moe_inbox_vertical_scroller_thumb</item>
+  <item name="android:scrollbarSize">30dp</item>
+</style>
+```
+
+</CodeGroup>
+
+## InboxAdapter のカスタマイズ
+
+[_InboxAdapter_](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.adapter/-inbox-adapter/index.html) を上書きして、通知アイテムのルックアンドフィールをカスタマイズできます。
+
+<Info>
+  カスタムの [_InboxAdapter_](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.adapter/-inbox-adapter/index.html) を使用する場合、SDK が通知のクリックアクションを処理できるように、アプリはメッセージアイテムのクリック時に必ず [_InboxListAdapater.onItemClicked()_](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.adapter/-inbox-list-adapter/on-item-clicked.html) を呼び出す必要があります。呼び出さない場合、クリックイベントはトラッキングされず、クリック時のアクションも実行されません。
+</Info>
+
+カスタム InboxAdapter の準備ができたら、[InboxActivity](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.view/-inbox-activity/index.html) を起動する前に [MoEInboxUiHelper](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui/-mo-e-inbox-ui-helper/index.html) でカスタム Adapter を設定します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInboxUiHelper.getInstance().setInboxAdapter(InboxCustomAdapter())
+```
+
+</CodeGroup>
+
+## 高度なカスタマイズオプション
+
+1. 通知センターから通知を削除する\
+   [deleteItem(](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.adapter/-inbox-list-adapter/delete-item.html)**)** を呼び出すことで、通知センターから特定の通知を削除できます。
+
+   <CodeGroup>
+
+   ```kotlin Kotlin wrap
+   public fun onBind(position: Int, inboxMessage: InboxMessage, inboxListAdapter: InboxListAdapter) {
+     deleteButton.setOnClickListener{
+       //Call `deleteItem` method to remove Notification 
+       //with item's position and the `InboxMessage` object.
+       inboxListAdapter.deleteItem(position, inboxMessage)
+       }
+   }
+   ```
+
+   
+   ```java Java
+   public void onBind(int position, InboxMessage inboxMessage, InboxListAdapter inboxListAdapter) {
+     deleteButton.setOnClickListener(v -> {
+       //Call `deleteItem` method to remove Notification 
+       //with item's position and the `InboxMessage` object.
+       inboxListAdapter.deleteItem(position, inboxMessage);
+     });
+   }
+   ```
+
+   </CodeGroup>
+
+これで、通知が通知センターから削除され、通知センターが更新されます。
+
+2. 通知アイテムのクリックのカスタム処理
+
+デフォルトの通知センターを使用している場合、または [_InboxAdapter_](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.adapter/-inbox-adapter/index.html) を上書きせずにアプリで [_InboxFragment_](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.view/-inbox-fragment/index.html) を使用している場合、デフォルトでは SDK が通知のクリックアクションを処理しますが、[OnMessageClickListener](https://moengage.github.io/android-api-reference/inbox-ui/com.moengage.inbox.ui.listener/-on-message-click-listener/index.html) を設定することで、アプリでクリックアクションを処理することもできます。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+//set the Message click listener
+MoEInboxUiHelper.getInstance().setOnMessageClickListener(listener)
+//Remove the Message click listener
+MoEInboxUiHelper.getInstance().setOnMessageClickListener(null)
+```
+
+
+```java Java
+//set the Message click listener
+MoEInboxUiHelper.getInstance().setOnMessageClickListener(listener);
+//Remove the Message click listener
+MoEInboxUiHelper.getInstance().setOnMessageClickListener(null);
+```
+
+</CodeGroup>
+
+# セルフハンドリングの通知センター
+
+MoEngage SDK は、表示する Inbox データの取得、イベントのトラッキング、メッセージの削除などを行うヘルパー API を提供しており、これらを使用して独自の通知センターを構築できます。
+
+![MavenBadge](https://img.shields.io/maven-central/v/com.moengage/inbox-core)
+
+## SDK のインストール
+
+BOM を使用した統合が推奨される方法です。[Install Using BOM](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) を参照してください。BOM を設定したら、`app/build.gradle` に以下の依存関係を追加します。
+
+<CodeGroup>
+
+```groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:inbox-core")
+}
+```
+
+</CodeGroup>
+
+この依存関係にバージョン番号は不要です。BOM が管理します。
+
+# 独自の通知センターを構築する
+
+以下のヘルパー API を使用して、独自の通知センターを構築できます。利用可能なヘルパー API の詳細については、[こちら](https://moengage.github.io/android-api-reference/inbox-core/com.moengage.inbox.core/-mo-e-inbox-helper/index.html)を参照してください。
+
+## すべてのメッセージを取得する
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+// synchronous API should not be called on the main thread
+MoEInboxHelper.getInstance().fetchAllMessages(context)
+// asynchronous API, where listener is an instance of `OnMessagesAvailableListener`
+MoEInboxHelper.getInstance().fetchAllMessagesAsync(applicationContext, listener)
+```
+
+
+```java Java
+// synchronous API should not be called on the main thread
+MoEInboxHelper.getInstance().fetchAllMessages(context);
+// asynchronous API, where listener is an instance of `OnMessagesAvailableListener`
+MoEInboxHelper.getInstance().fetchAllMessagesAsync(applicationContext, listener);
+```
+
+</CodeGroup>
+
+## 未クリックの通知数を取得する
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInboxHelper.getInstance().getUnClickedMessagesCount(applicationContext)
+```
+
+
+```java Java
+MoEInboxHelper.getInstance().getUnClickedMessagesCount(applicationContext)
+```
+
+</CodeGroup>
+
+## Inbox 通知のクリックをトラッキングする
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInboxHelper.getInstance().trackMessageClicked(context, inboxMessage)
+```
+
+
+```java Java
+MoEInboxHelper.getInstance().trackMessageClicked(context, inboxMessage);
+```
+
+</CodeGroup>
+
+## Inbox メッセージを削除する
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInboxHelper.getInstance().deleteMessage(context, inboxMessage)
+```
+
+
+```java Java
+MoEInboxHelper.getInstance().deleteMessage(context, inboxMessage);
+```
+
+</CodeGroup>
+
+## すべての Inbox メッセージを削除する
+
+<Info>
+  この機能には、最小カタログバージョン **4.5.0** が必要です。
+</Info>
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInboxHelper.getInstance().deleteAllMessages(context)
+```
+
+
+```java Java
+MoEInboxHelper.getInstance().deleteAllMessages(context);
+```
+
+</CodeGroup>
+
+## 通知にクーポンコードが含まれているかを確認する
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInboxHelper.getInstance().hasCouponCode(inboxMessage)
+```
+
+
+```java Java
+MoEInboxHelper.getInstance().hasCouponCode(inboxMessage);
+```
+
+</CodeGroup>
+
+## クーポンコードを取得する
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEInboxHelper.getInstance().getCouponCode(inboxMessage);
+```
+
+
+```java Java
+MoEInboxHelper.getInstance().getCouponCode(inboxMessage);
+```
+
+</CodeGroup>
+
+詳細については、[API リファレンス](https://moengage.github.io/android-api-reference/inbox-core/com.moengage.inbox.core/-mo-e-inbox-helper/index.html)を参照してください。

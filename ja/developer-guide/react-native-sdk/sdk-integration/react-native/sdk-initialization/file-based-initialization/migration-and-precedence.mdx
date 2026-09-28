@@ -1,0 +1,53 @@
+---
+title: '移行と優先順位'
+description: "MoEngage React Native SDK を手動初期化からファイルベースの設定に移行します。"
+---
+
+### Android の移行手順
+
+1. **設定ファイルの追加:** `moengage.xml` ファイルを `src/main/res/values/moengage.xml` に配置します。
+2. **Application クラスの更新:** 手動の `MoEngage.Builder` のロジックを削除し、`initializeDefaultInstance` に置き換えます。
+
+<Tabs>
+  <Tab title="Java">
+    ```java
+    import com.moengage.react.MoEInitializer;
+    MoEInitializer.INSTANCE.initializeDefaultInstance(this);
+    ```
+  </Tab>
+  <Tab title="Kotlin">
+    ```kotlin
+    import com.moengage.react.MoEInitializer
+    MoEInitializer.initializeDefaultInstance(application)
+    ```
+  </Tab>
+</Tabs>
+
+### iOS の移行手順
+
+1. **Info.plist の更新**: WorkspaceId、DataCenter などを `Info.plist` ファイルに直接追加します。
+2. **AppDelegate の更新**: 手動の `MoEngageSDKConfig` のロジックを削除し、`initializeDefaultInstance` を呼び出します。
+
+<Tabs>
+  <Tab title="Objective-C">
+    ```objectivec
+    #import <MoEngageSDK/MoEngageSDK.h>
+    [[MoEngageInitializer sharedInstance] initializeDefaultInstanceWithAdditionalReactConfig:[[MoEngageReactSDKDefaultInitializationConfig alloc] init]];
+    ```
+  </Tab>
+  <Tab title="Swift">
+    ```swift
+    import MoEngageSDK
+    MoEngage.sharedInstance.initializeDefaultInstance()
+    ```
+  </Tab>
+</Tabs>
+
+### 優先順位のルール
+
+設定のソースは、ネイティブコードで呼び出される初期化関数によって決まります。
+
+- **Android**:
+  - **ファイルベースの初期化:** `initializeDefaultInstance(context)` は `moengage.xml` を読み込みます。
+  - **コードベースの初期化:** `initialize(context, moEngage.Builder)` は設定オブジェクトを使用し、XML を無視します。
+- **iOS:** `Info.plist` による自動初期化が最初に行われます。その後、設定オブジェクトを指定して手動の `initialize` メソッドを呼び出すと、現在のインスタンスが更新されます。

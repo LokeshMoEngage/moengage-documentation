@@ -1,0 +1,167 @@
+---
+title: "Skycore"
+---
+
+# はじめに
+
+[Skycore](https://www.skycore.com/) は、SMS、MMS、Web、QR コード、またはメールを通じて、パーソナライズされたモバイルウォレットパスを顧客に発行するのに役立ちます。クーポン、ギフトカード、ロイヤルティカード、イベントチケット、搭乗券など、複数の種類のパスを送信できます。
+
+# MoEngage × Skycore
+
+MoEngage と Skycore の連携により、Skycore で生成されたパスを MoEngage キャンペーンを通じてオーディエンスに送信し、ロイヤルティプログラムやクーポンプログラムを次のレベルに引き上げることができます。
+
+この連携により、次のことが可能になります。
+
+1. [Pass Issuance Links](https://www.skycore.com/help/pass-issuance-links-2/) を使用してパスを作成する
+2. ユーザーのアクション (イベント) に基づいてパスをその場で更新する
+
+# 連携
+
+<Info>
+  - Skycore アカウントにアクセスできることを確認してください。
+  - Skycore の API キーを用意してください。API キーは、Skycore ダッシュボードで Settings \>\> API Settings に移動して確認できます。
+  - Pass Template が準備されていることを確認してください。
+</Info>
+
+## Pass Issuance Links を使用してパスを作成する
+
+MoEngage キャンペーン内で Pass Issuance Link を設定すると、顧客が Android または iOS のウォレットにパスをインストールするための一意の URL を生成できます。これらはメールで送信したり、Web サイトに埋め込んだりできます。
+
+### ステップ 1: Skycore で新しい Pass Issuance Link を作成する
+
+1. こちらの手順に従って [新しい Pass Issuance Link を作成](https://www.skycore.com/help/pass-issuance-links-2/) してください。
+2. 作成すると、リンクが _Pass Issuance Links_ タブに表示されます。_注: MoEngage は SHA256 (ソルトありおよびソルトなし) 暗号化のみをサポートしています。_ <img src="/images/partner_6842607624468.png" alt="Skycore ダッシュボードの Pass Issuance Links タブ" />
+3. _Get Link_ をクリックします。リンクは次のようになります。
+   ```text wrap
+   https://d2c.skycore.com/wallet/gc/{Unique-Link-ID}?{Paramater-1}={Value-1}&{Paramater-2}={Value-2} ... &checksum={Hashed-Value}
+   ```
+
+### ステップ 2: ペイロード変数を作成してエンコードする
+
+1. キャンペーン作成のステップ 2 に移動します。 <img src="/images/partner_6844420416020.png" alt="MoEngage のキャンペーンコンテンツエディター" />
+2. テンプレート内の HTML Block で、(ステップ 1 でコピーしたリンクを使用して) passlink を作成します。
+   <CodeGroup>
+   ```html HTML wrap
+   {% set passLink = "https://d2c.skycore.com/wallet/gc/7c59b26bcxxxxxxxxxxxxa5043bf033?user-email=" + {{UserAttribute['Email (Standard)']|default('MOE_NOT_SEND')}} + "&user-phone=" + {{UserAttribute['Mobile Number (Standard)']|default('MOE_NOT_SEND')}} + "&pass-id=MOED" + {{UserAttribute['First Name']|default('MOE_NOT_SEND')}} + "2022&barcode-value=MOED" + {{UserAttribute['First Name']|default('MOE_NOT_SEND')}} + "2022&message4=Enter this coupon code while checking out." %}
+   ```
+   </CodeGroup>
+
+SHA256 (ソルトなし) を使用して passlink をハッシュ化します。
+
+```django
+{% set hash = passLink|convertToSHA256NoSalt() %}
+```
+
+このハッシュを **checksum** パラメーターとして **passLink** 変数に追加します。
+
+```django
+{% set finalPassLink = passLink + "&checksum=" + hash %}
+```
+
+### ステップ 3: URL をプレビューする
+
+テンプレート内で変数を出力するか、[Personalized Previews](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalized-preview) を使用してプレビューおよび検証できます。
+
+![テンプレート内のパスリンクのパーソナライズプレビュー](/images/partner_6844480370452.png)
+
+### ステップ 4: MoEngage キャンペーンに Save Pass オプションを追加する
+
+[Google](https://developers.google.com/pay/passes/guides/get-started/api-guidelines/button-guidelines) (Android) および [Apple](https://developer.apple.com/wallet/Add-to-Apple-Wallet-Guidelines.pdf) (iOS) のそれぞれのデザイン仕様に従って、Save Pass ボタンを追加します。
+
+1. テンプレート内に新しい画像を挿入します。
+2. File Manager で **Import** をクリックし、**URL** を選択します。 <img src="/images/partner_6844860412948.png" alt="Skycore の File Manager で URL から画像をインポートする" /> 参考として、URL は次のとおりです。Android の場合:
+   ```text
+   https://messagecontent-public.s3.amazonaws.com/wallet/add-to-wallet-buttons/Save_to_Google_Pay.svg
+   ```
+   Apple の場合:
+   ```text
+   https://messagecontent-public.s3.amazonaws.com/wallet/add-to-wallet-buttons/Add_to_Apple_Wallet.svg
+   ```
+3. 表示する適切な画像を選択します。
+4. URL セクションに次のように入力します。
+   ```text
+   {{finalPassLink}}
+   ```
+   ![テンプレート内の Save Pass ボタンのプレビュー](/images/partner_6844964322196.png)
+
+これで設定は完了です。キャンペーンをテストして確認できます。
+
+## ユーザーのアクション (イベント) に基づいてパスを動的に更新する
+
+MoEngage 内で _Event Triggered Connector Campaign_ を設定すると、ユーザーの行動に基づいて既存のパスを更新できます。便利な Skycore エンドポイントについては、次のリンクを参照してください。
+
+1. [Gift Card API](https://www.skycore.com/help/gift-card/)
+2. [Coupon API](https://www.skycore.com/help/coupon/)
+3. [Loyalty Card API](https://www.skycore.com/help/loyalty-card-api/)
+4. [Event Ticket API](https://www.skycore.com/help/loyalty-card-api/)
+5. [Boarding Pass API](https://www.skycore.com/help/boarding-pass/)
+
+### ステップ 1: 適切なペイロードを定義する
+
+ペイロードは、更新するパスとテンプレートの種類によって異なります。上記のリンクを使用して、該当するペイロードを取得してください。
+
+次のユースケースを考えてみましょう: _マーケターは、ユーザーがアプリをアンインストールした場合にパスを無効としてマークしたいと考えています。_ この場合は _Coupon APIs_ を使用し、先ほどキャンペーンで生成されたパスを更新する必要があります。
+
+#### API エンドポイント
+
+```text
+POST https://api.skycore.com/API/http/v3/
+```
+
+#### ペイロード
+
+<CodeGroup>
+
+```json JSON
+{
+  "action": "updatepassdata",
+  "pass-id": "MOED{{UserAttribute['First Name']|default('MOE_NOT_SEND')}}2022",
+  "pass-template-id": "d5144e25f17*************************beaa",
+  "pass-data": {
+    "pass-status": "voided",
+    "pass-update-notification": "Your pass has expired."
+  }
+}
+```
+
+</CodeGroup>
+
+### ステップ 2: MoEngage でコネクターキャンペーンを作成する
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順に従います。
+
+1. **Create Campaign** \> **Connectors** \> **Custom** \> **Event triggered** に移動します。 <img src="/images/partner_45965949042452.png" alt="カスタムのイベントトリガー型コネクターキャンペーンを作成する" />
+2. キャンペーンのステップ 2 で、次の操作を行います。
+   - メソッドとして **POST** を選択します。
+   - Webhook URL として `https://api.skycore.com/API/http/v3/` を追加します。
+   - Headers に次を追加します。
+     - `X-Api-Key`: Skycore の Settings ページからコピーした API キー。
+     - `Content-Type`: `application/json`。
+   - Body で **Raw** を選択し、カスタマイズしたペイロードを入力します。「@」を入力すると、パーソナライズされたコンテンツを追加できます。上記の例では、ペイロードは次のようになります。
+     <CodeGroup>
+     ```json JSON
+     {
+       "action": "updatepassdata",
+       "pass-id": "MOED{{UserAttribute['First Name']|default('MOE_NOT_SEND')}}2022",
+       "pass-template-id": "d5144e25f17*************************beaa",
+       "pass-data": {
+         "pass-status": "voided",
+         "pass-update-notification": "Your pass has expired."
+       }
+     }
+     ```
+     </CodeGroup>
+   ```json
+   {kkk}
+   ```
+   ![コネクターキャンペーンの Body 設定](/images/partner_6878528076308.png)
+3. これで、キャンペーンをテストして送信する準備が整いました。Create Connector Campaign のステップ 2 で利用できる Test 機能を使用して、コネクターの設定をテストすることもできます。 <img src="/images/partner_45965930473620.png" alt="コネクターキャンペーンの設定をテストする" />
+
+テストパスが正常に更新されれば、設定は完了です。キャンペーンを Publish してください。
+
+### ステップ 3: Skycore でパスをプレビューする
+
+テストメール内のボタンをクリックすると、新しいパスが生成されます。インストールすることもできます。Skycore がこれを正常に取得しているかどうかを確認するには、次の手順に従います。
+
+1. Skycore のダッシュボード \>\> Mobile Wallet \>\> Pass Data Manager に移動します。
+2. 表示するパスをクリックします。

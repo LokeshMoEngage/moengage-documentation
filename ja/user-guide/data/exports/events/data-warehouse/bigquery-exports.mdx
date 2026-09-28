@@ -1,0 +1,138 @@
+---
+title: "BigQuery エクスポート"
+description: "MoEngage から Google BigQuery にキャンペーンインタラクションイベントをエクスポートします。ステップバイステップのガイドに従って、権限と設定を行います。"
+---
+
+# はじめに
+
+[BigQuery](https://cloud.google.com/bigquery) は、Google Cloud Platform (GCP) で利用できるフルマネージドのサーバーレスデータウェアハウスです。インフラストラクチャを管理することなく、テラバイト規模のデータに対してリアルタイムで複雑な分析を実行できます。
+
+# MoEngage `<>` BigQuery
+
+MoEngage と BigQuery の連携により、ユーザーデータとイベントデータを Google BigQuery に直接転送し、高度な分析を行うことができます。
+
+**注**: これは直接連携であり、データのエクスポートに Google Cloud Storage (GCS) は必要ありません。
+
+# 連携
+
+<Tip>
+  - BigQuery インスタンス、ロール、ポリシーを作成/編集するために必要な権限を持つ BigQuery アカウントがあることを確認してください。
+  - 新しいユーザーの作成は任意です。ただし、BigQuery データベースで新しいユーザーを作成する権限が必要です。
+  - システムで IP ホワイトリストが必要な場合は、MoEngage の IP を許可リストに追加する必要があります。詳細については、[こちら](/ja/user-guide/settings/account/security/ip-whitelisting-in-moengage)を参照してください。
+  - App Marketplace に [BigQuery Connection](/ja/user-guide/data/exports/events/data-warehouse/bigquery-exports#introduction) があることを確認してください。\
+    BigQuery へのエクスポートは Streams アドオンの一部です。アカウントでこの機能を有効にするには、MoEngage のカスタマーサクセスマネージャー (CSM) にお問い合わせください。
+  - まだ行っていない場合は、アカウントで MoEngage \<\> BigQuery 連携を設定する必要があります。詳細については、[BigQuery Integration](/ja/user-guide/data/exports/events/data-warehouse/bigquery-exports#introduction) のヘルプドキュメントを参照してください。
+</Tip>
+
+## MoEngage から BigQuery へのイベントのエクスポート
+
+### ステップ 1: ユーザーに割り当てられたロールに必要な権限があることを確認する
+
+BigQuery エクスポートを正常に設定して実行するには、実行するアクションに応じて、サービスアカウントまたはユーザーに次の権限が必要です。
+
+- **接続を作成する場合**: MoEngage App Marketplace 内で新しい BigQuery 接続を確立するには、ユーザーに _BigQuery Data Viewer_ ロールと _BigQuery Job User_ ロールが必要です。これにより、MoEngage はプロジェクトとデータセットの詳細を検証できます。詳細については、[こちら](/ja/user-guide/data/imports/setting-up-a-data-warehouse-import)を参照してください。
+- **エクスポートを実行する場合**: 実際のデータ転送を実行するには、サービスアカウントに _BigQuery Data Editor_ ロールを割り当てる必要があります。これにより、MoEngage は特定の BigQuery テーブルに対してデータの読み取りと書き込みを行うために必要な権限を得られます。
+
+### ステップ 2: MoEngage App Marketplace で新しい BigQuery エクスポートを追加する
+
+<Info>
+  - イベントと属性の完全なリストについては、[Data Exports Glossary](/ja/user-guide/data/exports/events/data-export-glossary) を参照してください。
+  - エクスポートされたイベントの `event_time` は常に UTC です。
+  - MoEngage は現在、履歴データのエクスポートをサポートしていません。
+</Info>
+
+新しい BigQuery エクスポートを追加するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、**App marketplace** をクリックします。
+2. App Marketplace ページで、**BigQuery** を検索します。 <img src="/images/moengage_ef1a2d.png" />
+3. **Google BigQuery** タイルをクリックします。
+4. Google BigQuery ページで、**Integrate** タブに移動し、**\+Add Export** をクリックします。
+5. 次の詳細を入力します。
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | **Export name** | はい | BigQuery エクスポートの名前を入力します。エクスポート名は 3 文字以上にしてください。 |
+   | **BigQuery connection** | はい | BigQuery 接続を選択します。 |
+   | **Dataset ID** | はい | データのエクスポート先となる BigQuery の特定のデータセットを選択します。 |
+   | **Table name** | 任意 | エクスポートテーブルの名前を入力します。空白のままにすると、MoEngage が接頭辞 _moe\_events_ を付けた名前を作成します。 <br />**注:** エラーを避けるため、このテーブルは MoEngage に自動作成させてください。 |
+   | **User Properties** | 任意 | エクスポートに含める特定のユーザープロパティを選択します。 |
+   | **Select events** | はい | BigQuery にエクスポートするイベントを選択します。既存のイベントと MoEngage に新たに取り込まれるイベントを含むすべてのイベントをエクスポートするか、エクスポートする特定のイベントを手動で選択するかを選べます。 |
+   | <img src="/images/moengage_3e3a7b.png" /> |  |  |
+6. **Save export** をクリックします。
+
+これで、MoEngage は新しく作成されたテーブルに 1 時間ごとにイベントを入力します。
+
+### エクスポートのプロセスと頻度
+
+エクスポートを保存すると、MoEngage はデータセット内に宛先テーブルを作成します。その後、新しいイベントデータが 1 時間間隔でこの同じテーブルに追加されます。
+
+**初回のアクション**: MoEngage は、最初のエクスポートがトリガーされたときにテーブルを作成します。
+
+**定期的なアクション**: MoEngage は 1 時間ごとに同じテーブルにデータを追加 (追記) します。
+
+### テーブル構造のサンプル
+
+エクスポート設定でテーブル名を指定しない場合、MoEngage は次の形式を使用してデータセット内に単一のテーブルを作成します。\
+`moe_events_<table_creation_timestamp>`
+
+**注**: このテーブルは接続ごとに 1 回作成されます。この接続で設定されたすべての 1 時間ごとのエクスポートと異なるイベントタイプは統合され、この特定のテーブルに追加されます。
+
+テーブルの全体的な構造は、すべてのイベントタイプで固定されています。エクスポートされる新しいユーザープロパティまたはイベント属性は、それぞれ user\_attributes 列または event\_attributes 列に含まれます。すべてのイベントは、分析しやすいように、イベント名やイベント時刻などの必要な情報を含む単一のテーブルに統合されます。
+
+| フィールド | 型 | NULL |
+| --- | --- | --- |
+| app\_name | VARCHAR | NOT NULL |
+| event\_name | VARCHAR | NOT NULL |
+| event\_code | VARCHAR | NOT NULL |
+| event\_uuid | VARCHAR | NOT NULL |
+| event\_time | TIMESTAMP | NOT NULL |
+| event\_type | VARCHAR | NOT NULL |
+| event\_source | VARCHAR | NOT NULL |
+| uid | VARCHAR | NULL |
+| user\_attributes\_moengage\_user\_id | VARCHAR | NULL |
+| device\_attributes\_moengage\_device\_id | VARCHAR | NULL |
+| push\_id | VARCHAR | NULL |
+| email\_address | VARCHAR | NULL |
+| mobile\_number | VARCHAR | NULL |
+| event\_attributes\_app\_version | VARCHAR | NULL |
+| event\_attributes\_sdk\_version | VARCHAR | NULL |
+| event\_attributes\_platform | VARCHAR | NULL |
+| event\_attributes\_campaign\_id | VARCHAR | NULL |
+| event\_attributes\_campaign\_name | VARCHAR | NULL |
+| event\_attributes\_campaign\_type | VARCHAR | NULL |
+| event\_attributes\_campaign\_channel | VARCHAR | NULL |
+| event\_attributes\_readable\_campaign\_id | VARCHAR | NULL |
+| event\_attributes\_parent\_campaign\_id | VARCHAR | NULL |
+| event\_attributes\_parent\_flow\_id | VARCHAR | NULL |
+| event\_attributes\_parent\_flow\_name | VARCHAR | NULL |
+| event\_attributes\_variation\_id | VARCHAR | NULL |
+| event\_attributes\_locale\_id | VARCHAR | NULL |
+| event\_attributes\_locale\_name | VARCHAR | NULL |
+| event\_attributes\_url | VARCHAR | NULL |
+| event\_attributes\_timestamp | TIMESTAMP | NULL |
+| event\_attributes\_first\_session | BOOLEAN | NULL |
+| event\_attributes\_logged\_in\_status | STRING | NULL |
+| event\_attributes | JSON | NULL |
+| user\_attributes | JSON | NULL |
+| device\_attributes | JSON | NULL |
+
+# よくある質問
+
+<Accordion title="データの受信はいつから始まりますか?">
+  通常、アカウントで自動データエクスポートが設定され、データが表示され始めるまでに最大 30 分かかります。
+</Accordion>
+
+<Accordion title="後から追加のイベントをエクスポートできますか?">
+  はい。後から新しいイベントをエクスポートする必要がある場合は、いつでも App Marketplace で設定を編集し、新しいイベントをエクスポートに追加できます。
+</Accordion>
+
+<Accordion title="Automated Data Exports を使用して履歴データをエクスポートできますか?">
+  現時点では、Automated Data Exports を使用して履歴データをエクスポートすることはできません。設定後、エクスポートを有効にした時点から各イベントのデータが表示され始めます。
+</Accordion>
+
+<Accordion title="Automated Data Exports に料金はかかりますか?">
+  ご利用の料金プランにまだ含まれておらず、後からこの機能を有効にする必要がある場合は、カスタマーサクセスマネージャーと協力して料金プランに含める必要があります。MoEngage が毎月データウェアハウス/パートナー/API に送信するデータ量によっては、追加料金が発生する場合があります。
+</Accordion>
+
+<Accordion title="Data Exports は最新のユーザー属性を保証しますか?">
+  いいえ。Data Exports は主にイベントをほぼリアルタイムでエクスポートするために構築されており、MoEngage のユーザー属性は非同期で更新されるため、現在のところエクスポートでユーザー属性の最新値を保証することはできません。
+</Accordion>

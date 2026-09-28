@@ -1,0 +1,259 @@
+---
+title: "トランザクショナル Live Activities"
+description: "MoEngage Inform キャンペーンを使用して、注文追跡、配車ステータス、予約などのパーソナライズされたリアルタイム更新を iOS Live Activities で配信します。"
+keywords: ["transactional Live Activities", "Live Activity", "order tracking notification", "ride status updates", "Inform campaign Live Activity", "PTS token", "Live Activity lifecycle", "Dynamic Island"]
+---
+
+# 概要
+
+MoEngage のトランザクショナル Live Activities は、iPhone のロック画面と [Dynamic Island](https://support.apple.com/en-in/guide/iphone/iph28f50d10d/ios) 上で、リアルタイムの 1:1 更新を提供します。多数のユーザーに同じ更新を送信する [Broadcast Live Activities](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/broadcast-live-activities-for-ios-push-campaigns) とは異なり、トランザクショナル Live Activities は時間的制約のあるユーザージャーニー向けにパーソナライズされた更新を配信します。この機能により、ユーザーはスマートフォンのロックを解除したりアプリを開いたりすることなく、フードデリバリーの追跡、配車ステータス、サービス予約などの情報を確認できます。
+
+この記事では、MoEngage Inform を使用して、トランザクショナルなユースケース向けにこれらのリアルタイム体験を作成、管理、分析する方法について説明します。
+
+<img
+  alt="TransactionalLA11.png"
+  src="/images/moengage_a8fb15.png"
+  style={{ width:"27%",display: 'inline-block' , marginRight: '4%'}}
+/>
+
+<img
+  alt="TransactionalLA22.png"
+  src="/images/moengage_b06214.png"
+  style={{ width:"27%",display: 'inline-block',marginRight: '4%' }}
+/>
+
+<img
+  alt="TransactionalLA33.png"
+  src="/images/moengage_20c601.png"
+  style={{ width:"27%",display: 'inline-block' }}
+/>
+
+MoEngage は、以下のデバイスで Live Activities をサポートしています。
+
+- iOS
+- iPad OS
+- Watch OS
+
+<Tip>
+  - アプリが iOS 18 以降をサポートしていることを確認してください。Live Activities は iOS 18 より前のバージョンを実行しているデバイスでは動作しません。
+  - **SDK バージョン:** MoEngage SDK バージョン 10.02.1 以降を統合してください。トランザクショナル Live Activities をサポートするには、このバージョンが必要です。
+  - 送信を有効にするには、MoEngage アカウントで APNs（Apple Push Notification Service）認証キー（.p8 ファイル）を設定してください。
+  - **Inform へのアクセス:** この機能は Inform キャンペーン専用のため、MoEngage アカウントが Inform 製品にアクセスできることを確認してください。
+  - **ダッシュボードの権限:** キャンペーンを作成するマーケターまたはユーザーは、**Inform** と **Push** の両方のモジュールに対するロールアクセス/権限が有効になっている必要があります。
+  - アプリ開発者は、以下のクライアント側ロジックを実装する必要があります。
+    - Push-to-Start トークン（PTS トークン）のトラッキングを有効にします。Inform はこれらのトークンを使用して、API 経由で Live Activity を開始します。\
+      PTS トークンは、プッシュ通知システムで使用される一意の識別子で、アプリサーバーがデバイスに通知を送信して Live Activity を開始できるようにします。
+    - アプリ内で Live Activity ウィジェットの UI と一意の _Attribute Type_ を定義します。MoEngage はこの識別子を使用して、更新対象の正しいウィジェットをターゲットにします。
+</Tip>
+
+# ユースケース
+
+トランザクショナル Live Activities により、さまざまなリアルタイムのサービスおよびエンゲージメントのシナリオが可能になります。
+
+- **配送とロジスティクス**: フードや荷物の配達について、リアルタイムの注文ステータス、ドライバーの位置、到着予定時刻（ETA）を表示します。
+- **サービス予約**: 技術者やサービス提供者（配管工、電気技師など）の到着を追跡します。
+- **配車**: ドライバーの詳細、車のメーカー/モデル、到着までのカウントダウンを表示します。
+- **金融**: 時間的制約のある送金、ローン処理のステップ、または認証リクエストのステータスを可視化します。
+
+# トランザクショナル Live Activities の仕組み
+
+トランザクショナル Live Activities は、進行中のイベントからの動的な更新を表示します。システムはイベントベースの通知を配信し、ユーザーはロック画面または通知センターから直接進捗を追跡できます。
+
+### ユーザーインタラクションと UI
+
+- **オプトイン**: ユーザーがイベントを明示的にフォローする Broadcast アクティビティとは異なり、トランザクショナルアクティビティは通常、アプリ内（注文やタクシーの予約など）またはアプリ外（オフライン KYC の開始など）でのユーザーのアクションによって開始されます。
+- **表示**: アクティビティはロック画面と [Dynamic Island](https://support.apple.com/en-in/guide/iphone/iph28f50d10d/ios) に表示されます。Dynamic Island を長押しすると、表示が展開されます。
+- **UI**: 開発チームがインターフェイスをカスタマイズします。インターフェイスは、MoEngage 経由で送信されるデータに基づき、テキスト、画像、進捗インジケーターでリアルタイムに更新されます。
+
+### 権限
+
+Live Activities は、プッシュ通知とは別の権限を使用します。この権限は、ユーザーがアプリをインストールした時点でデフォルトでオンになっています。
+
+iOS は、Live Activities が引き続き有用かどうかを定期的に監視します。ユーザーがほとんど操作しない場合、オフにするオプションが表示されることがあります。
+
+エンドユーザーは、この設定を管理するために以下の手順を実行する必要があります。
+
+1. デバイスで **Settings** を開きます。
+2. 下にスクロールして \[アプリ名\] を選択します。
+3. **Live Activities** をタップします。
+4. 設定のオン/オフを切り替えます。
+
+<img
+  src="/images/moengage_7687c7.png"
+  alt="image.png"
+  style={{ width:"24%" }}
+/>
+
+この設定を変更しても、他の通知設定には影響しません。
+
+<Info>
+  - MoEngage は、Live Activity の PTS トークンと権限ステータスをデバイス属性としてトラッキングします。
+  - MoEngage SDK は、Live Activity の権限ステータスをデバイス属性として自動的に監視・更新します。このチェックは、アプリがフォアグラウンドで開かれるたびに行われます。
+  - この権限ステータスが変更されると、_Unsubscribed to Live activity_ や _Subscribed to Live activity_ などのイベントがトリガーされます（初回の権限付与はデフォルトの状態であるため、_Subscribed to Live activity_ はトリガーされません）。
+  - この機能はプッシュ通知の権限とは連動しておらず、デフォルトで付与されます。iOS システムは Live Activities の使用状況を定期的に確認し、ユーザーはいつでも無効にできます。
+</Info>
+
+## トランザクショナル Live Activity のライフサイクル
+
+Live Activity のライフサイクルを管理することで、画面を煩雑にすることなく、ユーザーにタイムリーな情報を届けることができます。各ステージの実際の動作は以下のとおりです。
+
+- **開始（Initiation）**\
+  Live Activity は次の 2 つの方法で開始できます。
+  - お客様または開発者が、**Inform API 経由でリモートから**（サーバー側）Live Activity を開始できます。
+  - エンドユーザーが、**デバイスからローカルで**（ボタンのタップ直後など）開始できます。この場合、バックエンドで App SDK が使用されます。
+
+_例:_ ユーザーがコーヒーを注文します。アプリがデバイス上で即座に Live Activity を開始するか、サーバーが Inform API をトリガーして Live Activity を開始します。ロック画面にウィジェットが表示され、「Order Placed - Preparing」と表示されます。
+
+- **更新（リアルタイムステータス）**\
+  イベントの進行に合わせて更新を送信し、画面上のデータを更新します。**更新は Inform API 経由でのみ実行する必要があります。**
+
+<Info>
+  エンドユーザーがアプリからローカルでアクティビティを開始した場合でも、トークンが同期された後は、お客様または開発者のみが API 経由で更新できます。
+</Info>
+
+_例:_ バリスタがドリンクを作り終えます。バックエンドが Inform API 経由で **Update** をトリガーします。ウィジェットが即座に更新され、「Ready for Pickup」と表示されます。
+
+- **終了（完了）**\
+  トランザクションが完了したら、アクティビティを終了してユーザーの画面から削除する必要があります。お客様または開発者は、**Inform API 経由でのみアクティビティを終了する必要があります。** 終了しない場合、設定された `dismissal_date` に達した時点で自動的に終了します。\
+  _例:_ ユーザーがコーヒーを受け取ります。バックエンドが **End** API 呼び出しをトリガーします。ウィジェットに「Enjoy your coffee!」と表示され、その後、非表示時間のロジックに基づいて画面から消えます。
+
+<Info>
+  「Transaction ID」は、Live Activity のライフサイクル全体を通じたキー属性です。コーヒー注文の例で注文 ID が 123 の場合、同じ Live Activity を管理するために、開始、更新、終了の各リクエストで同じトランザクション ID（123）を使用する必要があります。
+</Info>
+
+## トランザクショナル Live Activities の種類
+
+MoEngage Inform は、配信とユーザーへのリーチを処理するために、2 つのメッセージタイプ（iOS のみサポート）をサポートしています。
+
+<Tabs>
+  <Tab title="Live Activity のみ">
+    このモードでは、システムは Live Activity の開始を試みます。ユーザーが対象外の場合（PTS トークンがないなど）、リクエストは失敗し、通知は表示されません。
+
+    **シナリオ例:** ユーザーがフードデリバリーアプリで食事を注文し、有効なトークンを持っています。
+
+    | 時刻 | 注文ステータス | システムアクション（Inform API） | ウィジェットの状態 |
+    | --- | --- | --- | --- |
+    | 7:00 PM | 注文完了 | `transaction_id: "order_123"` で **Start** API をトリガー | ロック画面にウィジェットが表示され、「Preparing your food.」と表示されます。 |
+    | 7:20 PM | 集荷済み | `transaction_id: "order_123"` で **Update** API をトリガー | ウィジェットが更新され、「Driver is on the way.」と表示されます。 |
+    | 7:40 PM | 配達済み | `transaction_id: "order_123"` で **End** API をトリガー | ウィジェットに「Enjoy your meal!」と表示され、自動的に非表示になります。 |
+  </Tab>
+  <Tab title="プッシュフォールバック付き Live Activity">
+    このモードでは、システムは Live Activity の開始を試みます。Start リクエスト時にユーザーが対象外の場合（PTS トークンがないなど）、システムは代わりに設定済みの標準プッシュ通知を自動的に配信します。
+
+    **シナリオ例:** ユーザーが食事を注文しましたが、古い iOS バージョンを使用しているか、PTS トークンが同期されていません。
+
+    | 時刻 | 注文ステータス | システムアクション（Inform API） | ユーザー体験 |
+    | --- | --- | --- | --- |
+    | 7:00 PM | 注文完了 | **Start** API をトリガー。_結果: PTS トークンが見つかりません。_ | **フォールバックがトリガー:** ユーザーは標準プッシュ通知「Your order #123 has been placed.」を受信します。 |
+    | 7:20 PM | 集荷済み | **Update** API をトリガー。_結果: アクティブな Live Activity セッションが見つかりません。_ | **フォールバックがトリガー:** ユーザーは標準プッシュ通知「Your driver is on the way.」を受信します。 |
+    | 7:40 PM | 配達済み | **End** API をトリガー。_結果: アクティブな Live Activity セッションが見つかりません。_ | **フォールバックがトリガー:** ユーザーは標準プッシュ通知「Your order has been delivered. Enjoy your meal!」を受信します。 |
+  </Tab>
+</Tabs>
+
+# MoEngage Live Activities を使用するための手順
+
+このセクションでは、MoEngage トランザクショナル Live Activities の設定と活用方法について詳しく説明します。実装時に開発チームと効果的に連携するために、これらの手順を理解しておく必要があります。
+
+## ステップ 1: Live Activity の登録と PTS トークンの管理（iOS アプリ開発者のタスク）
+
+アプリケーション開発チームが、最初に Live Activities を設定する必要があります。詳細については、[Transactional Live Activity](/ja/developer-guide/ios-sdk/push/optional/transactional-live-activity) を参照してください。
+
+1. **Live Activity トークンのトラッキングを有効にする**:\
+   アプリ開発者は、Push-to-Start（PTS）トークンのトラッキングを有効にする必要があります。Inform は、API 経由で Live Activity を開始するためにこれらのトークンを必要とします。
+2. **トークンの登録方法を選択する**:\
+   開発者は、PTS トークンの登録を管理するために次の 2 つのオプションから選択できます。
+   - MoEngage SDK に PTS トークンの登録と更新を自動的に処理させる。
+   - 独自の PTS トークン登録プロセスを実装し、生成された PTS トークンを MoEngage SDK に渡す。
+3. **ウィジェットの Attribute Type を定義する**:\
+   開発者は、個別の Live Activity ウィジェット（`order_tracking`、`ride_status` など）ごとに一意の Attribute Type を割り当てる必要があります。この識別子を Inform キャンペーンで使用して、目的のウィジェットをターゲットにします。
+
+<Info>
+  - MoEngage は、Live Activity の PTS トークンと権限ステータスをデバイス属性としてトラッキングします。
+  - MoEngage SDK は、Live Activity の権限ステータスをデバイス属性として自動的に監視・更新します。
+</Info>
+
+## ステップ 2: Inform キャンペーンを作成する（マーケターのタスク）
+
+Broadcast キャンペーンとは異なり、トランザクショナル Live Activities では、トリガーする前に Inform ダッシュボードでテンプレートを設定する必要があります。詳細については、[Create Alert](/ja/user-guide/inform/create/create-alert) を参照してください。
+
+## ステップ 3: API 経由で Live Activities を送信する（開発者のタスク）
+
+Inform キャンペーンを設定したら、バックエンド開発チームは Inform API を使用してリアルタイム更新をトリガーできます。詳細については、[Inform API](/ja/api/transactional-alerts/send-transactional-alert) を参照してください。
+
+1. **Live Activity を開始する:**\
+   特定のユーザーの Live Activity を開始するには、`la_type = "start"` を指定した `live_activity_attributes` オブジェクトを含む API リクエストを MoEngage に送信します。一意の `transaction_id` と必要なパーソナライゼーション属性を含めてください。
+2. **進行中の Live Activity を更新する:**\
+   アクティブな Live Activity を更新するには、同じ `transaction_id` を使用し、`live_activity_attributes` 内で `la_type = "update"` を指定した API リクエストを送信します。リクエストには新しい動的コンテンツを含めてください。
+3. **Live Activity を終了する:**\
+   Live Activity を停止するには、同じ `transaction_id` を使用し、`live_activity_attributes` 内で `la_type = "end"` を指定した API リクエストを送信します。Live Activities は、指定された `dismissal_date` に達した時点でも自動的に終了します。
+
+## ステップ 4: MoEngage UI で Live Activity のパフォーマンスを分析する
+
+トランザクショナル Live Activity キャンペーンのパフォーマンスは、MoEngage Inform Analytics ダッシュボードで追跡・分析できます。このビューでは、配信ファネル、エラー、ユーザーエンゲージメント指標の包括的な内訳を確認できます。
+
+詳細については、[Analyze Inform](/ja/user-guide/inform/analyze/alert-analytics) を参照してください。
+
+<Info>
+  - **イベントトラッキング:** システムは、`MOE_LIVE_ACTIVITY_STARTED` SDK イベントを介してデバイス上での開始の成功をトラッキングします。ただし、**Update** および **End** リクエストではデバイスレベルの確認イベントは生成されません。これらの成功は **Sent** 指標（APNs による受理）で測定されます。
+  - **ログ:** システムは個々の update/end API 呼び出しの詳細な配信ステータスをトラッキングしないため、Inform UI ログの Live Activity リクエストには **DELIVERY INFO NA** と表示されます。
+</Info>
+
+# よくある質問
+
+<Accordion title="フォールバックプッシュ通知はいつトリガーされますか？">
+  フォールバックプッシュ通知は、Live Activity の配信に必要なトークンが利用できない場合にトリガーされます。この動作は、以下のシナリオに適用されます。
+
+  - **Start リクエスト:** ユーザーの有効な Push-to-Start（PTS）トークンが利用できない場合（デバイスがサポート対象外の iOS バージョンを実行している場合や、トークンが同期されていない場合など）。
+  - **Update/End リクエスト:** 同じトランザクション ID の Start リクエストで、APNS への Live Activity 開始リクエストが成功しなかった場合。
+
+  **注:** 有効なトークンが存在するものの、APNs から返されたエラー（ペイロードの拒否など）により配信が失敗した場合、フォールバックはトリガー**されません**。
+</Accordion>
+
+<Accordion title="アプリのコードからローカルで Live Activity を更新できますか？">
+  いいえ。MoEngage 統合を介して開始されたトランザクショナル Live Activity は、Inform API 経由でのみ更新または終了できます。
+</Accordion>
+
+<Accordion title="MoEngage は失敗した Live Activity リクエストを再試行しますか？">
+  いいえ。iOS プッシュクライアントが配信の即時再試行を処理するため、MoEngage は Live Activity リクエストの非同期再試行を行いません。
+</Accordion>
+
+<Accordion title="ユーザーが MoEngage Live Activities を表示するには、どの iOS バージョンが必要ですか？">
+  MoEngage 経由で送信された Live Activities を表示するには、エンドユーザーのデバイスに iOS 18 以降がインストールされている必要があります。
+</Accordion>
+
+<Accordion title="MoEngage ダッシュボードで UI ウィジェットを構築する必要がありますか？">
+  いいえ。MoEngage はデータパイプラインとして機能します。ウィジェットのビジュアルデザインは、iOS 開発者がアプリ内で SwiftUI を使用して構築します。MoEngage ダッシュボードでは、**Attribute Type** とキーと値のペアを使用して、そのウィジェットにデータをマッピングします。
+</Accordion>
+
+<Accordion title="MoEngage Live Activities で A/B テストはサポートされていますか？">
+  現在のバージョンでは、Live Activities の A/B テストはサポートされていません。これは、Locales、Global Control Group、Campaign Control Group などの他の高度な機能にも適用されます。
+</Accordion>
+
+<Accordion title="Live Activities の PTS トークンはどのように管理されますか？">
+  アプリ開発者は、MoEngage SDK に PTS トークンの登録と保守を自動的に管理させるか、このプロセスを自分で処理してトークンを SDK に渡すことができます。MoEngage は PTS トークンをデバイス属性としてトラッキングします。
+</Accordion>
+
+<Accordion title="staleDate とは何ですか？">
+  staleDate は、システムがアクティビティのコンテンツを古いものとしてマークする時刻です。この時刻に達すると、UI はグレーアウトしたテキストや「Update needed」のようなメッセージなど、古い状態の表示に変わることがあります。アクティビティは引き続き表示されアクティブなままですが、情報が最新ではない可能性があることを示します。
+</Accordion>
+
+<Accordion title="dismissDate とは何ですか？">
+  dismissDate は、オペレーティングシステムがロック画面と [Dynamic Island](https://support.apple.com/en-in/guide/iphone/iph28f50d10d/ios) から Live Activity を自動的に削除するように設定する時刻です。システムは次の場合に Live Activity を非表示にします。
+
+  - ユーザーがスワイプして消した場合。
+  - dismissDate に達した場合。デフォルトでは、Live Activity の終了から 4 時間後、または開始から 12 時間後に非表示になります。
+</Accordion>
+
+<Accordion title="staleDate と dismissDate の違いは何ですか？">
+  staleDate はコンテンツが古いことを示すために UI の変更をトリガーするのに対し、dismissDate はアクティビティを完全に削除します。staleDate ではアクティビティは異なる外観で表示されたままですが、dismissDate ではアクティビティが終了し、画面から削除されます。
+</Accordion>
+
+<Accordion title="Live Activity の合計有効期間はどのくらいですか？">
+  Live Activity は合計 12 時間実行され、最大 8 時間のアクティブな更新と、終了後に更新なしで最大 4 時間表示されます。その後、システムによって自動的に削除されます。
+</Accordion>
+
+# 次のステップ
+
+- SDK 統合ガイドと Live Activity サポートに関する最新情報については、[Transactional Live Activity](/ja/developer-guide/ios-sdk/push/optional/transactional-live-activity) を参照してください。
+- API ペイロードの仕様については、[Inform API ドキュメント](/ja/api/transactional-alerts/send-transactional-alert) を参照してください。
+- Inform キャンペーンの作成については、[Create Alert](/ja/user-guide/inform/create/create-alert) を参照してください。

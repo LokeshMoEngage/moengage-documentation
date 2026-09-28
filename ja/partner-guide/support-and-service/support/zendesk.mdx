@@ -1,0 +1,315 @@
+---
+title: "Zendesk"
+---
+
+# はじめに
+
+[Zendesk](https://www.zendesk.com/in/service-suite/#channels) は、すべてのチャネルからの会話を単一のビューに統合する、AI を活用したカスタマーサービスプラットフォームです。MoEngage との統合では、Zendesk の Webhooks と Triggers を使用して、ユーザーデータとチケットデータをリアルタイムで MoEngage プラットフォームに直接同期します。これにより、チームはカスタマーサポートのアクティビティに基づいてパーソナライズされたキャンペーンを開始できます。
+
+# MoEngage × Zendesk
+
+MoEngage と Zendesk の統合により、企業はシームレスなデータ同期を通じて、顧客エンゲージメントとサポートの取り組みを強化できます。
+
+この統合により、次のことが可能になります。
+
+- Zendesk から MoEngage にユーザーデータとチケットイベントデータを同期する。
+- MoEngage キャンペーンから Zendesk のサポートチケットの作成を自動化する。
+- チケットの状態更新などのサポートアクティビティを、MoEngage の行動イベントとしてインポートする。
+- サポートでのやり取りやユーザーライフサイクルイベントに基づいて、コンテキストに応じたキャンペーンをトリガーする。
+
+## ユースケース
+
+Zendesk と MoEngage を統合すると、次のユースケースに対応できます。
+
+- **サポート主導のエンゲージメント** : Zendesk で新しいチケットが作成されたときに、リードまたはユーザーのデータを MoEngage にプッシュし、「サポートへのお問い合わせありがとうございます。現在問題に対応しています」といったメッセージなど、コンテキストに応じたサポートのフォローアップキャンペーンをトリガーします。
+- **チケットの状態に基づくキャンペーン** : チケットの状態が更新されたとき (例: 解決済みまたはクローズ) に、このデータを MoEngage にプッシュして、満足度調査 (CSAT)、アップセルキャンペーン、または再エンゲージメントメッセージを自動的に送信します。
+- **リードとユーザーデータのプッシュ** : Outbound Series ワークフローを使用して、Zendesk で新しく作成されたユーザーとリードを MoEngage に自動的に同期し、ターゲットを絞ったマーケティングキャンペーンやプラットフォーム間で統一されたユーザープロファイルに活用します。
+
+# MoEngage へのデータ同期
+
+このセクションでは、Zendesk から MoEngage にユーザーデータとチケットデータをインポートする方法について説明します。この統合では、Zendesk の Webhook とトリガーを使用して、リアルタイムデータを MoEngage プラットフォームに自動的にプッシュします。
+
+<Info>
+  次のものがあることを確認してください。
+
+  - Zendesk アカウントへの管理者アクセス権。
+  - Triggers と Webhooks へのアクセスを含む Zendesk プラン。
+  - Zendesk と MoEngage 間でユーザープロファイルをリンクするための共通識別子 (メールアドレスや外部 ID など)。
+</Info>
+
+### 同期モジュール
+
+次の表は、各モジュールのデフォルトの同期タイプを示しています。
+
+| モジュール | MoEngage の同期タイプ |
+| --- | --- |
+| Users | Users |
+| Companies | Users (Users および Events と同期) |
+| Tickets | Events |
+| Custom Objects | Events (カスタム) |
+
+<Info>
+  Companies モジュールはサポートされており、関連する会社情報はユーザーデータと同期されるため、すべてのプロファイルが最新の状態に保たれます。
+</Info>
+
+## ステップ 1: MoEngage エンドポイントを取得する
+
+統合専用のエンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストでは、MoEngage とパートナープラットフォーム間でユーザープロファイルをリンクするために使用する共通識別子を指定する必要があります。
+
+たとえば、共通識別子には通常、ユーザーのメールアドレスまたは電話番号を使用します。
+
+## ステップ 2: Zendesk で Webhook を作成する
+
+Zendesk で Webhook を作成するには、次の手順を実行します。
+
+1. **Zendesk Admin Center** ダッシュボードにログインします。
+2. 左側のナビゲーションメニューで、**Apps and integrations** リストをクリックします。
+3. 表示されたメニューの **Webhooks** セクションで、**Webhooks** をクリックします。
+4. Webhooks ページで、右上隅の **Create webhook** をクリックします。 <img src="/images/partner_42220201148436.png" />
+5. Create webhook ページの **Select a way to connect** で、**Trigger or automation Connect the webhook using a business rule** タイルをクリックします。
+6. **Next** をクリックします。 <img src="/images/partner_42220212646548.png" />
+
+## ステップ 3: Webhook を設定する
+
+Webhook を設定するには、次の手順を実行します。
+
+1. **Create webhook** ページの **Add details** セクションで、次の詳細を入力します。
+   1. **Name (Required)** ボックスに、宛先の名前を入力します (例: MoEngage\_Ticket\_Events)。
+   2. **Description** ボックス (任意) に、Webhook の目的の簡単な説明を追加します。
+   3. **Endpoint URL**\*(必須) に、MoEngage チームから提供された Webhook URL を入力します。形式は次のとおりです:`https://api-0X.moengage.com/v1/partner/zendesk/{events/user}/?configName={config_name}`
+   4. **Request method**\* リストで、**POST** をクリックします。
+   5. **Request format**\* リストで、**JSON** をクリックします。 <img src="/images/partner_42220212647444.png" />
+2. **Authentication**\* セクションで、次の詳細を入力します。
+   1. **Basic authentication** を選択します。
+   2. **Username** ボックスに、MoEngage の **Workspace ID** を入力します。
+   3. **Password** ボックスに、**Data API Key** を入力します。
+
+<Info>
+  認証情報を確認するには、次の手順を実行します。
+
+  1. MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。
+  2. **Workspace ID** (**旧 app id**) の下にある ID をコピーします。
+  3. **API keys** の下にある **Data** をコピーします。
+</Info>
+
+![](/images/partner_42220201150996.png)
+
+3. **Test webhook** セクションで、次の詳細を入力します。
+   1. **Test webhook** をクリックします。テスト設定のダイアログボックスが表示されます。
+   2. **Choose event to test** リストで、**Custom test** を選択します。
+   3. JSON 本文セクションに、以下の例からサンプルペイロードを貼り付けて MoEngage に送信します。
+   4. **Send test** をクリックします。 <img src="/images/partner_42220212650260.png" />
+
+**Users のサンプルペイロード**
+
+<CodeGroup>
+
+```json JSON
+{
+  "customer_id": "22773741448860",
+  "u_fn": "Zen",
+  "u_ln": "desk",
+  "u_em": "zenvdesk@email.com",
+  "u_mb": "9999999999",
+  "updated_at": "2025-10-06 11:48:26",
+  "user_attributes": {
+    "notes": "Test",
+    "time_zone": "Bangalore",
+    "organization_id": "22773079373468",
+    "organization_name": "MoE",
+    "external_id": "629933",
+    "details": "This is a test data"
+  }
+}
+```
+
+</CodeGroup>
+
+**Events のサンプルペイロード**
+
+<CodeGroup>
+
+```json JSON
+{
+  "customer_id": "22773741448860",
+  "u_fn": "Zen",
+  "u_ln": "desk",
+  "u_em": "zenvdesk@email.com",
+  "u_mb": "9999999999",
+  "updated_at": "2025-10-06 11:48:26",
+  "user_attributes": {
+    "notes": "Test",
+    "time_zone": "Banglore",
+    "organization_id": "22773079373468",
+    "organization_name": "MoE",
+    "external_id": "629933",
+    "details": "This is a test data"
+  },
+  "event_attributes": {
+    "event_name": "ticket_created",
+    "ticket_id": "2",
+    "ticket_subject": "Test",
+    "event_description": "New ticket submitted by customer",
+    "event_state" :"Open"
+  }
+}
+```
+
+</CodeGroup>
+
+## ステップ 4: トリガーを設定する
+
+トリガーを設定するには、次の手順を実行します。
+
+1. **Zendesk Admin Center** ダッシュボードにログインします。
+2. 左側のナビゲーションメニューで、**Objects and rules** リストをクリックします。
+3. 表示されたメニューの **Business rules** セクションで、**Triggers** をクリックします。
+4. Triggers ページで、ページ右側の **Create trigger** をクリックします。\
+   <img src="/images/partner_42220201153940.png" />\
+   **Create ticket trigger** ページが表示されます。
+   1. _Trigger name (required)_\* ボックスに、トリガーの名前を入力します (例: Send Ticket Update to MoEngage)。
+   2. **Description box** (任意) に、このトリガーの動作を簡単に説明します。
+   3. _Trigger category (required)_\* リストで、トリガーのカテゴリーを選択します。\
+      <img src="/images/partner_42220212651540.png" />\
+      次に、このトリガーの Conditions を定義する必要があります。
+5. **Conditions** セクションで、**Actions** セクションまでスクロールし、**Add action** をクリックします。
+6. **Category** リストで、**Notify by** をクリックし \> **Active webhook** をクリックします。
+7. **Value** リストで、ステップ 3 で作成した Webhook をクリックします。 <img src="/images/partner_42220212654868.png" />
+8. リクエスト本文ボックスに、適切な JSON ペイロードを追加します。 <img src="/images/partner_42220201163668.png" />
+
+利用可能なプレースホルダーオプションを使用して、Zendesk から動的なキーと値のペアをコピーできます。\
+**注**: **Create ticket trigger** セクションには JSON の検証機能がありません。設定を保存する前に、JSON が有効であることを確認してください。
+
+9. **Save** をクリックします。
+
+**Users のリクエスト本文**
+
+<CodeGroup>
+
+```json JSON
+{
+  "customer_id": "{{ticket.requester.id}}", // set your desired unique id
+  "u_fn": "{{ticket.requester.first_name}}",
+  "u_ln": "{{ticket.requester.last_name}}",
+  "u_em": "{{ticket.requester.email}}",
+  "u_mb": "{{ticket.requester.phone}}",
+  "updated_at": "{{ticket.created_at | date:'%Y-%m-%d %H:%M:%S'}}",
+  "user_attributes": {
+//create your k-v pairs here
+  }
+}
+```
+
+</CodeGroup>
+
+**Events またはカスタムイベントのリクエスト本文**
+
+<CodeGroup>
+
+```json JSON
+{  
+"customer_id": "{{ticket.requester.id}}", // set your desired unique id  
+"u_fn": "{{ticket.requester.first_name}}",  
+"u_ln": "{{ticket.requester.last_name}}",  
+"u_em": "{{ticket.requester.email}}",  
+"u_mb": "{{ticket.requester.phone}}",  
+"updated_at": "{{ticket.created_at | date:'%Y-%m-%d %H:%M:%S'}}",
+"user_attributes": {
+//create your k-v pairs here (optional when using events type)
+},
+"event_attributes": {
+"event_name": "ticket_created",
+"ticket_id": "{{ticket.id}}",
+"ticket_subject": "{{ticket.title}}",
+"event_description": "New ticket submitted by customer",
+"event_state" :"{{ticket.status}}"
+}
+}
+```
+
+</CodeGroup>
+
+## データマッピングのガイドライン
+
+- **一意の識別子 (Customer ID)** : 一貫性のある一意の識別子 (`external_id` やメールアドレスなど) を使用し、MoEngage ペイロードの `customer_id field` にマッピングします。これは、重複したユーザープロファイルを防ぐために非常に重要です。
+- **必須フィールド** : 適切にデータを処理するために、すべてのペイロードに customer\_id、updated\_at、および標準のユーザーフィールド (u\_\* フィールド) を含める必要があります。
+- **イベント名** : MoEngage でアクションを識別および分類するために、すべてのイベントに `event_name` を含めます。これにより、分析やセグメンテーションのためにすべてのイベントが正確にトラッキングされます。
+
+# Connected Campaigns を使用した MoEngage からのデータ送信
+
+このセクションでは、MoEngage のコネクターキャンペーンを使用して Zendesk でサポートチケットを自動的に作成する方法について説明します。たとえば、ユーザーがアプリ内メッセージで否定的なフィードバックを送信したときに、サポートチケットを作成できます。
+
+<Info>
+  次のものがあることを確認してください。
+
+  - Zendesk アカウントへの管理者アクセス権。
+  - [Zendesk API トークン](https://support.zendesk.com/hc/en-us/articles/4408889192858-Managing-API-token-access-to-the-Zendesk-API)。
+  - Zendesk と MoEngage 間でユーザープロファイルをリンクするための共通識別子 (メールアドレスや外部 ID など)。
+</Info>
+
+## ステップ 1: MoEngage でコネクターキャンペーンを作成する
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードに移動します。
+2. 左側のナビゲーションメニューで、**Engage** をクリックし、**Campaigns** をクリックします。
+3. All campaigns ページの右上隅で、**\+ Create campaign** をクリックします。\
+   <img src="/images/partner_42220212655508.png" alt="1.png" />\
+   Create campaign ページが表示されます。\
+   **Create New** \> **Campaign** をクリックすることもできます。Campaign ページが表示されます。 <img src="/images/partner_42220212656148.png" alt="2.png" />
+4. **Connectors** で **Custom** をクリックし、次のいずれかのキャンペーン配信タイプを選択します。
+   - One Time
+   - Periodic
+   - Event Triggered
+   - Business Event Triggered\
+     詳細については、[配信タイプ](/ja/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels)を参照してください。\
+     Connector の作成ページが表示されます。 <img src="/images/partner_42220201166484.png" />
+5. キャンペーンのステップ 2 で、次の情報を入力します。
+   1. **Method** で、**POST** を選択します。
+   2. **Webhook URL** ボックスに、次を貼り付けます。\
+      `<your-zendesk instance>.zendesk.com/api/v2/tickets.json`
+   3. **Headers** セクションで、次のキーと値のペアを追加します。
+      1. **Authorization** : `Basic {{'<email_address>token:<api_token>' | base64_encode}}`。
+      2. **Content-Type** : Application/json。 <img src="/images/partner_7424845082900.png" alt="Screenshot_2022-06-30_at_7.28.12_AM.png" />
+   4. 本文セクションで、タイプ、件名、ステータスなどのチケットの詳細を定義します。以下はペイロードの例です。[Zendesk Ticket API](https://developer.zendesk.com/rest_api/docs/support/tickets#create-ticket) に基づいてカスタマイズできます。
+      <CodeGroup>
+      ```json JSON
+      {
+          "ticket": {
+          "requester_id": "{{UserAttribute['ID']}}",
+          "requester": {
+          	"name": "{{UserAttribute['Name']}}",
+            "email": "{{UserAttribute['email']}}",
+            "phone": "{{UserAttribute['mobile number]}}"
+          },
+          "type": "<ticket type>",
+          "subject": "<subject line>",
+          "comment": {
+          	"body": "<your message body>"
+          },
+          "priority": "urgent",
+          "status": "<ticket status>"
+         }
+       }
+      ```
+      </CodeGroup>
+
+## ステップ 2: リクエストをプレビューする
+
+これで、キャンペーンをテストして送信する準備が整いました。キャンペーン作成の 2 番目のステップで利用できる **Test** 機能を使用して、コネクターの設定をテストできます。
+
+接続を確認するには、Zendesk アカウントを確認してください。チケットが正常に作成されていれば設定は正しいため、キャンペーンを公開できます。
+
+![Screen\_Shot\_2022-02-22\_at\_11.12.42\_AM.png](/images/partner_42220212657812.png)
+
+## 共通識別子
+
+MoEngage と Zendesk の間に共通識別子がある場合は、それを `requester_id` として使用することをお勧めします。これにより、両方のプラットフォーム間でユーザープロファイルを統合できます。共通識別子がない場合は、名前、メールアドレス、電話番号などの識別用属性のセットを渡すことをお勧めします。
+
+# レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Zendesk データの取り込みをワークスペースごとに最大 1 秒あたり 500 リクエスト (RPS) に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、Zendesk のデフォルトの再試行ポリシーを参照してください。
+
+ペイロードサイズやその他の取り込み制限の詳細については、[パートナーデータ取り込みのレート制限](/ja/partner-guide/data-and-analytics/ingestion-rate-limits)を参照してください。

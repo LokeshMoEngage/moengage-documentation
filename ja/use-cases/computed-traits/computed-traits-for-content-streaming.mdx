@@ -1,0 +1,137 @@
+---
+title: "コンテンツストリーミング向けの Computed Traits"
+description: "音楽、オーディオ、ポッドキャストアプリ向けの Computed Traits のリファレンスです。各トレイトの計算方法、データソース、ビジネスユースケースを紹介します。"
+keywords: "computed traits, content streaming, music, audio, podcast, artist affinity, listening minutes, premium conversion, user attributes"
+---
+
+音楽、オーディオ、ポッドキャストアプリでは、再生された曲、スキップ、シェア、リスニングセッションなど、分単位、気分、瞬間でエンゲージメントを測定します。Computed Traits を使うと、この生のアクティビティを、セグメンテーション、パーソナライズ、Flows の分岐に使用できるリアルタイムのユーザー属性に変換できます。エンジニアのサポートや CSV のアップロードは必要ありません。
+
+このページはメニューとしてご利用ください。各行には、何を作成するか、どの計算方法を選ぶか、必要なイベントデータ、ビジネス上の成果、活用方法が記載されています。
+
+Computed Traits を初めて使用する場合は、[Computed Traits - 概要](/ja/user-guide/data/computed-traits/computed-traits-overview)で Computed Traits の概要と各計算方法の仕組みを、[Computed Trait の作成](/ja/user-guide/data/computed-traits/create-a-computed-trait)で作成手順を確認してください。
+
+## Computed Traits の仕組み
+
+このページのすべてのトレイトは、同じ 4 ステップのモデルに従います。このモデルを理解すれば、以下の表をひと目で読み取れるようになります。
+
+<Steps>
+  <Step title="イベントから始める" icon="database">
+    Song Played や Podcast Episode Played など、すでにトラッキングしているユーザー行動です。
+  </Step>
+  <Step title="計算方法を選ぶ" icon="calculator">
+    [Count、Aggregation、First/Last Value、または SQL](/ja/user-guide/data/computed-traits/computed-traits-overview#methods-of-computations) から選択します。
+  </Step>
+  <Step title="トレイトを取得する" icon="user-check">
+    Top Artist のように、自動的に更新されるリアルタイムの属性です。
+  </Step>
+  <Step title="活用する" icon="rocket">
+    セグメンテーション、分析、Jinja パーソナライズ、Flows で使用します。
+  </Step>
+</Steps>
+
+トレイトが実行されると、MoEngage のあらゆる場所で使用できる標準のユーザー属性になります。トレイトから[セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments)を作成したり、[分析](/ja/user-guide/analyze/moengage-analytics/overview)でグループ化やフィルタリングを行ったり、[Jinja パーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)でメッセージ本文に値を挿入したり、トレイトに基づいて [Flow](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows) を分岐させたりできます。
+
+<Tip>
+  **ここで紹介するトレイトのほとんどはノーコードで作成できます。** <Badge color="green">Count</Badge> <Badge color="green">Aggregation</Badge> および <Badge color="green">First/Last Value</Badge> の方法では SQL は不要です。<Badge color="purple">SQL</Badge> が必要になるのは、複数のイベントを組み合わせる複合スコアや、引き換え率や完了率などの比率を算出する場合のみです。このページのノーコードのトレイトはすべてご自身で作成できます。
+</Tip>
+
+## まずはここから
+
+最初に次の 3 つを作成しましょう。最も早く成果が得られ、キャンペーン間で最も再利用しやすいトレイトです。
+
+<CardGroup cols={3}>
+  <Card title="Top Artist" icon="microphone-lines">
+    **Last Value** · すべてのプッシュとメールを「あなたへのおすすめ」に変えます。
+  </Card>
+  <Card title="Last Play Date" icon="clock">
+    **Last Value** · すべてのウィンバック Flow を支えます。SQL は不要です。
+  </Card>
+  <Card title="Total Listening Minutes" icon="headphones">
+    **Aggregation** · マイルストーンに最適な、決定的なエンゲージメント指標です。
+  </Card>
+</CardGroup>
+
+## 目的別にトレイトを探す
+
+<Info>
+  これらの表に記載されているイベント名とプロパティ名は例です。実際の名前はアプリのデータトラッキング方法によって異なるため、ここに記載されている `Song Played` という名前のイベントが見つからない場合があります。トレイトを作成する前に **Data** でトラッキング済みのイベントとプロパティを確認し、不足しているものがあれば開発チームにトラッキングを依頼してください。トラッキングの仕組みについては、[イベントトラッキングの完全ガイド](/ja/user-guide/data/event-data/a-complete-guide-to-event-tracking)を参照してください。
+</Info>
+
+### アーティストとジャンル
+
+アーティストとジャンルのリアルタイムのトレイトがあれば、すべてのホーム画面とプッシュがパーソナライズされます。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Top Artist | Last Value | **イベント:** `Song Played`、**プロパティ:** `artist_id` | 「よく聴くアーティストの新作」をあらゆる場所で実現する、パーソナライズの基盤となるトレイトです。 | 新作リリースのプッシュやコンサートのアラートを送信し、年間のまとめをパーソナライズします。 |
+| Favorite Genre | Last Value | **イベント:** `Song Played`、**プロパティ:** `genre` | ジャンルに基づくキュレーションとプレイリストのレコメンデーションを行います。 | ジャンルやムードに合わせたプレイリストのニュースレターや、朝や夜のジャンルに合ったプッシュを送信します。 |
+| First Genre Played | First Value | **イベント:** `Song Played`、**プロパティ:** `genre` | リスナーが夢中になったきっかけを示す、入り口となったジャンルです。 | 最初のジャンルに基づいて最初の 1 週間のオンボーディングを行い、そのジャンルを軸にプレイリストをおすすめします。 |
+| Distinct Artists Played | Aggregation (Count Distinct) | **イベント:** `Song Played`、**プロパティ:** `artist_id` | 特定のアーティストを聴き込むリスナーと新しい音楽を探すリスナーを見分けます。 | 聴き込むリスナーには特定アーティストを深掘りするプッシュを、新しい音楽を探すリスナーには新しいアーティストを厳選したニュースレターを送信します。 |
+| Total Songs Played (Artist) | Count | **イベント:** `Song Played`、**プロパティ:** `artist_id` | アーティストごとのリスニングの深さを示す、シンプルなファン指標です。 | リスナーがあるアーティストの曲を 20 回以上再生したら、コンサートやグッズのプッシュを送信します。 |
+| Artist Super Fan | SQL Computation | アーティストの曲の再生回数が 20 回以上、コンサートイベントに登録済み、かつアーティストをフォロー中 | アーティストの熱心なファンを特定するための複合トレイトです。 | コンサートの先行販売へのアクセス権を付与し、アーティストの限定コンテンツを解放します。 |
+
+### リスニング習慣
+
+いつ、どのように聴くかは、何を聴くかよりも多くのことを教えてくれます。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Total Listening Minutes | Aggregation (Sum) | **イベント:** `Song Played`、**プロパティ:** `duration_played` | エンゲージメントの深さでリスナーをランク付けし、プレミアムへのアップセルを促進します。 | 100 時間、500 時間、1000 時間のマイルストーンでお祝いのメッセージを送信し、年間まとめキャンペーンを実施します。 |
+| Total Sessions Last 7 Days | Count | **イベント:** `App Session Started` | 習慣化のシグナルです。頻繁に聴くリスナーほどプレミアムに転換しやすくなります。 | 週あたりのセッション数が 5 を超えたら、プレミアムトライアルのオファーをトリガーします。 |
+| Peak Listening Hour | Last Value | **イベント:** `Song Played`、**プロパティ:** `hour_of_day` | 各リスナーが聴いている正確な時間帯です。 | Best Time Delivery で送信時間帯をパーソナライズし、朝の通勤時間向けのコンテンツを送信します。 |
+| Last Play Date | Last Value | **イベント:** `Song Played`、**プロパティ:** `timestamp` | ストリーミングにおいて最も重要な解約トレイトです。 | 日付演算子を使用してセグメントを作成し、7 日、14 日、30 日の時点で懐かしのプレイリストを使ってウィンバックします。 |
+| Total Play Events Last 30 Days | Count | **イベント:** `Song Played`(過去 30 日間) | 最終再生日を補完するアクティビティシグナルです。 | 最終再生日と組み合わせて、「一時的に休んでいるだけ」のユーザーと「本当に離脱した」ユーザーを見分けます。 |
+
+### 新しい音楽の発見とリピート
+
+新しい音楽を探すタイプか、繰り返し聴くタイプかというリスナーの性格によって、何をいつプロモーションすべきかが決まります。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Distinct New Artists Played (30 Days) | Aggregation (Count Distinct) | **イベント:** `Song Played`、**プロパティ:** `artist_id`(初回再生) | 比率を使わないシンプルな発見指標です。 | 新しい音楽を探すリスナーには New Music Weekly プレイリストのプッシュを、聴き込むリスナーには「この曲を聴いたあなたへ」のプッシュを送信します。 |
+| Playlist Creator Score | Count | **イベント:** `Playlist Created` | プレイリストの作成者は、守るべきパワーユーザーです。 | 作成したプレイリストを特集し、共同プレイリスト機能を解放します。 |
+| Total Songs Skipped (30 Days) | Count | **イベント:** `Song Skipped` | スキップ数が多い場合は、レコメンデーションの品質に問題があることを示します。 | ジャンルの好みに関するアンケートをトリガーし、そのリスナー向けのレコメンデーションを再学習させます。 |
+| Skip Rate | SQL Computation | `Songs Skipped` / `Songs Played` | リスニング量に対してスキップ数を正規化した比率です。 | 精緻化したしきい値を使用して、レコメンデーション品質の改善施策をトリガーします。 |
+
+### 言語と地域
+
+音楽は文化です。グローバルで多様なプラットフォームでは、言語と地域のトレイトが不可欠です。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Preferred Language | Last Value | **イベント:** `Song Played`、**プロパティ:** `language` | すべてのプッシュ、メール、ホーム画面の行をローカライズします。 | 言語別のプレイリストのニュースレターを送信し、プッシュの文言をローカライズします。 |
+| Regional Genre Affinity | Last Value | **イベント:** `Song Played`、**プロパティ:** `sub_genre`(Punjabi、Tamil、Bhojpuri、K-Pop、Reggaeton) | 地域密着型のコンテンツを表示します。地域向けストリーミングの差別化要因になります。 | 地域の新作リリースのアラートを送信し、地域アーティストのコンサートをマーケティングします。 |
+| Distinct Languages Played (30 Days) | Aggregation (Count Distinct) | **イベント:** `Song Played`、**プロパティ:** `language` | リスナーの幅広さを示すシンプルな指標です。 | 3 つ以上の言語で聴いているリスナーをセグメント化し、グローバルカタログのプレミアムメッセージを送信します。 |
+
+### ポッドキャスト
+
+ポッドキャストは、音楽とは異なる収益構造とリテンション曲線を持っています。別々にトラッキングしましょう。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Total Podcast Episodes Played | Count | **イベント:** `Podcast Episode Played` | ポッドキャストのリスナーをコホート化し、専用のトラックを適用します。 | 再生数が 1 以上のユーザーに、週刊のポッドキャストニュースレターとポッドキャストのレコメンデーションプッシュを送信します。 |
+| Favorite Podcast Category | Last Value | **イベント:** `Podcast Episode Played`、**プロパティ:** `category` | ポッドキャストの発見と新エピソードのアラートをパーソナライズします。 | カテゴリ別の週刊ダイジェストを送信し、新エピソードの配信時にカテゴリごとに自動プッシュを送信します。 |
+| Total Podcast Minutes | Aggregation (Sum) | **イベント:** `Podcast Episode Played`、**プロパティ:** `duration_played` | ポッドキャストの視聴の深さです。 | マイルストーンを称えるメッセージを送信し、プレミアムポッドキャストのサブスクリプションをアップセルします。 |
+| Podcast Completion Rate | SQL Computation | `Episodes Completed` / `Episodes Started` | ポッドキャストを一気に聴くリスナーと、少し試して離れるリスナーを見分ける比率です。 | 完了率の高いリスナーにはサブスクリプションをアップセルし、完了率の低いリスナーには短めのエピソードを特集します。 |
+
+### フリーミアムからプレミアムへ
+
+すべてのプレミアム転換は、一律のキャンペーンではなく Computed Trait によって促進すべきです。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Total Ads Shown | Count | **イベント:** `Ad Shown` | 広告による中断の量です。プレミアム転換の強力な推進要因です。 | 表示された広告の数がしきい値(7 日間で 50 回など)を超えたら、プレミアムトライアルのオファーをトリガーします。 |
+| Downloads Blocked | Count | **イベント:** `Download Attempt Blocked` | ブロックされたダウンロードは、すべてプレミアム転換の機会です。 | 「Premium でこの曲をダウンロード」というアプリ内メッセージをリアルタイムで送信します。 |
+| Total Songs Shared | Count | **イベント:** `Song Shared` | よくシェアするユーザーは、あなたのサービスの伝道者です。 | 紹介プログラムへの招待を送信し、プレイリストのギフト機能を解放します。 |
+| Premium Trial Propensity | SQL Computation | セッション頻度、総再生時間、広告への接触、ダウンロードの試行 | 転換の複合トレイトです。 | 最も魅力的なトライアルオファーは転換傾向の高いリスナーに限定し、傾向の低いリスナーには教育的なコンテンツを送信します。 |
+
+## 関連ドキュメント
+
+Computed Traits は MoEngage 全体で使用されます。以下のガイドでは、上記の表で言及されている機能について説明しています。
+
+- [セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments): Computed Trait の値からオーディエンスを作成します。
+- [分析](/ja/user-guide/analyze/moengage-analytics/overview): Computed Trait の値でユーザー行動をグループ化およびフィルタリングします。
+- [キャンペーンとチャネル](/ja/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels): ユーザーにアプローチできるチャネルです。
+- [Flows](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows): トレイトに基づいてユーザーを異なるパスに分岐させます。
+- [メッセージのパーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/overview): Jinja を使用してトレイトの値をコンテンツに挿入します。
+- [Data](/ja/user-guide/data/key-concepts/overview-data): これらのトレイトの基盤となるイベントデータを MoEngage が収集・管理する方法です。

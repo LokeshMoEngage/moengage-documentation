@@ -1,0 +1,118 @@
+---
+title: "Yellow.ai"
+---
+
+# はじめに
+
+[Yellow.ai](https://yellow.ai/) は、動的な AI エージェントを搭載したトータルエクスペリエンス自動化プラットフォームであり、人間のようなインタラクションを提供して顧客満足度を向上させます。
+
+## Yellow.ai を使用するタイミング
+
+_A. 旅行・ホスピタリティ_(情報提供) - ユーザーが旅行パッケージを予約し、次のオプションを含む予約に関する WhatsApp メッセージをユーザーに送信したい場合 -
+
+1. 請求書を取得する
+2. 旅程を表示する
+3. 折り返し電話をリクエストする
+4. 予約をキャンセルする
+
+B. _e コマース_(アダプション) - ユーザーがカートに商品を追加したものの、取引を完了していません。次のオプションを含む、クーポンコード(追加割引用)付きの WhatsApp メッセージをユーザーに送信したい場合 -
+
+1. クーポンを保存する
+2. カートを表示する
+3. 取引を完了する
+4. 折り返し電話をリクエストする
+
+C._銀行_(コンバージョン) - ユーザーのクレジットカードの支払期日が近づいています。延滞料金を避けるために期日までに支払うよう求める WhatsApp リマインダー(請求書添付)を送信したい場合 -
+
+1. 今すぐ支払う
+2. 支払いを延期する
+3. お問い合わせ
+
+これらの各ユースケースでは、ユーザーが WhatsApp メッセージに返信でき、ボットのレシピがユーザーの問題解決をガイドするか、ユーザーをチームにつなぎます。
+
+# MoEngage × Yellow.ai
+
+MoEngage と Yellow.ai の統合により、最初のアプローチから会話型体験への誘導、そしてインテリジェントなリターゲティングによるオムニチャネルのフォローアップまで、エンドツーエンドの顧客ライフサイクルをシームレスにオーケストレーションできます。
+
+![Yellow.Ai\_Integration\_-Integration\_Flow-\_Bordered.jpeg](/images/partner_6626996958228.png)
+
+チャネルは Yellow.ai ダッシュボードで追加する必要があります。その後、MoEngage のコネクタキャンペーンを使用してメッセージがトリガーされます。
+
+# 統合
+
+<Info>
+  - Yellow.ai アカウントを持っていることを確認してください。
+  - Yellow.ai アカウントの API にアクセスできることを確認してください。Yellow.ai ダッシュボードで Overview \>\> Configure \>\> API keys に移動してアクセスできます。
+</Info>
+
+## ステップ 1: Yellow.ai で WhatsApp チャネルを設定する
+
+[How to setup a WhatsApp chatbot on Yellow Messenger? ](https://docs.yellow.ai/docs/platform_concepts/channelConfiguration/whatsapp-configuration)の手順に従って、エンゲージメントチャネルを設定します。
+
+## ステップ 2: Notification API Engine を有効にする
+
+1. ダッシュボード \>\> Engage セクション \>\> Preferences に移動します。
+2. 「Enable notification API engine」をオンにします。
+3. 現在、Postback URL はサポートしていません。オフのままにしておいてかまいません。
+4. 必要に応じて、要件に合わせて Notification API Reports を設定できます。
+
+![mceclip1.png](/images/partner_6627737590676.png)
+
+## ステップ 3: API キーを取得する
+
+Yellow.ai ダッシュボードの Overview セクションに移動します。
+
+![mceclip0.png](/images/partner_6627612422804.png)
+
+1. Configure \>\> API keys \>\> Generate new API Key をクリックします。この API キーは MoEngage でキャンペーンを設定する際に必要になるため、安全に保管してください。
+
+## ステップ 4: MoEngage でコネクタキャンペーンを作成する
+
+MoEngage でコネクタキャンペーンを作成するには、
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最適な配信タイプを選択します <img src="/images/partner_19930813369876.png" alt="Screenshot_2022-02-21_at_10.48.46_PM.png" />
+2. キャンペーンのステップ 2 で、
+   1. メソッドとして POST を選択します
+   2. Webhook URL として次を追加します: [https://app.yellowmessenger.com/api/engagements/notifications/v2/push](https://app.yellowmessenger.com/api/engagements/notifications/v2/push)
+   3. Headers に次を追加します
+      1. "x-api-key" に、Yellow.ai ダッシュボードからコピーした API キーを設定します。
+      2. "Content-Type" に "application/json" を設定します。
+   4. Parameters に次を追加します
+      1. "bot" にボット ID を設定します。ボット ID は Yellow.ai ダッシュボードの URL から取得できます: [https://cloud.yellow.ai/bot/\[YOUR-BOT-ID\]/overview](https://cloud.yellow.ai/bot/[YOUR-BOT-ID]/overview)
+   5. Body で Raw を選択し、次のコードをコピーして貼り付けます:
+      <CodeGroup>
+      ```json JSON wrap
+      {
+              "type": "whatsapp", // channel type - whatsapp,sms,email,voice,fbmessenger
+              "sender": "xxxxxxxxxx", // ten digit number without country code
+              "userDetails": {
+              		"number": "91xxxxxxxxxx" //country code to be added without space // if not, 91 is taken as default
+              },
+              "freeTextContent": "Your content goes here", //if template is not renderable, notification engine will try to send this, subject to channel restrictions
+              "notification": {
+              		"templateId": "12345678", // name of the template in YM portal. if template is created in WABA, name of the template given there.
+                  // mandatory for wa, sms(wherever applicable)
+              "params": { //renderable parameters defined in the template.
+              		"emiValue": "15000",
+                  "balance": "79999",
+                  "media": [ //applicable for whatsapp //
+                  		{
+                      "title": "title",
+                  		"mediaLink": "url"
+               		}],
+               		"quickReplies": {
+               				"ctaUrlParam": "pricing-ai-chatbot" // over here, "pricing-ai-chatbot" represents a part of the URL after the domain (as configured in the template)
+               		}
+           		}
+        	}
+      }
+      ```
+      </CodeGroup>
+
+完全な設定はこちらで確認できます: [NOTIFICATIONS API](https://docs.yellow.ai/docs/platform_concepts/engagement/outbound/notification-engine#23-postman-collections)。
+
+3. これで、キャンペーンをテストして送信する準備が整いました。Create Connector Campaign のステップ 2 にある Test 機能を使用して、コネクタの設定をテストすることもできます。
+
+![Screen\_Shot\_2022-02-22\_at\_11.12.42\_AM.png](/images/partner_19930784755220.png)
+
+テストユーザーがメッセージを正常に受信すれば、設定は完了です。キャンペーンを公開してください。

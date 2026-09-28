@@ -1,0 +1,203 @@
+---
+title: "Firebase Installation ID への移行"
+description: "MoEngage Android BOM 4.4.0 にアップグレードする際に、Android の統合を Firebase Installation ID に対応させます。"
+keywords: ["Firebase Installation ID migration", "Android BOM 4.4.0 migration", "passInstallationId", "onRegistered callback", "firebase_messaging_installation_id_enabled", "MoEngage Android breaking change"]
+---
+
+MoEngage Android BOM 4.4.0 以降、SDK は Firebase Installation ID を使用してプッシュ用にデバイスを登録します。Firebase Installation ID は、デバイス上のアプリケーションの各インストールに Firebase が割り当てる識別子です。
+
+この移行で必要な変更は、アプリケーションでプッシュトークンを登録するコンポーネントによって異なります。以下で該当するケースを特定し、そのケースの手順を完了してください。
+
+## アプリケーションに該当するケース
+
+| 統合の状態 | ケース | 必要性 |
+| --- | --- | --- |
+| MoEngage SDK がトークンを登録します。アプリケーションはマニフェストファイルで `com.moengage.firebase.MoEFireBaseMessagingService` を宣言しており、トークン登録をオプトアウトしていません。 | [ケース 1](#case-1-the-moengage-sdk-registers-the-token) | 必須。これは破壊的変更です。 |
+| アプリケーションが独自のメッセージングサービスを通じてトークンを登録し、MoEngage SDK に渡します。 | [ケース 2](#case-2-your-application-registers-the-token) | 推奨。以前の API は非推奨です。 |
+
+## ケース 1: MoEngage SDK がトークンを登録する場合
+
+このケースは破壊的変更です。3 つの手順をすべて順番に完了してください。
+
+### ステップ 1: Firebase Messaging ライブラリの更新
+
+`com.google.firebase:firebase-messaging` を 25.1.2 以上に更新します。このバージョンについては、[Firebase Android リリースノート](https://firebase.google.com/support/release-notes/android#messaging_v25-1-2)を参照してください。
+
+### ステップ 2: Firebase Installation ID の有効化
+
+アプリケーションのマニフェストファイルに以下のメタデータを追加します。
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<meta-data
+    android:name="firebase_messaging_installation_id_enabled"
+    android:value="true" />
+```
+
+</CodeGroup>
+
+詳細については、[Firebase Installation ID へのアクセスに関する Firebase のドキュメント](https://firebase.google.com/docs/cloud-messaging/android/get-started#access-firebase-installation-id)を参照してください。
+
+### ステップ 3: MoEngage SDK のアップグレード
+
+MoEngage Android BOM 4.4.0 以上にアップグレードします。このリリースに含まれるモジュールのバージョンについては、[Android SDK リリースノート](/ja/release-notes/sdks/android#23rd-september-2026)を参照してください。
+
+### 影響
+
+この移行は必須です。移行が不完全な場合、リーチャビリティに影響し、プッシュトークンの喪失が発生するため、3 つの手順をすべて正しく完了してください。
+
+## ケース 2: アプリケーションがトークンを登録する場合
+
+まず [ケース 1](#case-1-the-moengage-sdk-registers-the-token) のステップ 1、ステップ 2、ステップ 3 を完了してから、以下の API の変更を適用してください。代替 API は MoEngage Android BOM 4.4.0 以降でのみ利用可能なため、アップグレード前にこれらの変更を適用するとコンパイルエラーが発生します。
+
+以下の表は、代替 API をまとめたものです。最初の 2 つは、このケースのすべての統合に適用されます。残りは、アプリケーションが現在記載の API を呼び出している場合にのみ適用されます。以下の手順のコードブロックには代替 API のみを示しているため、コピーしたコードをそのまま使用できます。
+
+| 以前の API | 代替 | クラス | 適用条件 |
+| --- | --- | --- | --- |
+| `onNewToken` | `onRegistered` | `FirebaseMessagingService` を継承したメッセージングサービスクラス | 常に適用 |
+| `passPushToken` | [_passInstallationId()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/pass-installation-id.html) | `MoEFireBaseHelper` | 常に適用 |
+| `registerForToken` | [_registerForInstallationId()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/register-for-installation-id.html) | `MoEFireBaseHelper` | アプリケーションが `registerForToken` を呼び出している場合 |
+| `getPushToken` | [_getInstallationId()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/get-installation-id.html) | `MoEFireBaseHelper` | アプリケーションが `getPushToken` を呼び出している場合 |
+| `addTokenListener` および `removeTokenListener` | [_addInstallationIdListener()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/add-installation-id-listener.html) および [_removeInstallationIdListener()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/remove-installation-id-listener.html) | `MoEFireBaseHelper` | アプリケーションがトークンリスナーを登録している場合 |
+
+### ステップ 4: onNewToken から onRegistered への移行
+
+`FirebaseMessagingService` を継承したメッセージングサービスクラスで、`onNewToken` コールバックを `onRegistered` に置き換えます。このコールバックは、プッシュトークンの代わりに Installation ID を受け取ります。
+
+| 以前 | 現在 |
+| --- | --- |
+| `onNewToken(token: String)` | `onRegistered(installationId: String)` |
+
+以下のコードブロックが代替コードです。そのままコピーしてください。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+override fun onRegistered(installationId: String) {
+}
+```
+
+
+```Java Java
+@Override
+public void onRegistered(@NonNull String installationId) {
+}
+```
+
+</CodeGroup>
+
+詳細については、[onRegistered コールバックに関する Firebase のドキュメント](https://firebase.google.com/docs/cloud-messaging/android/get-started#implement-the-onregistered-callback)を参照してください。
+
+### ステップ 5: passPushToken から passInstallationId への移行
+
+`passPushToken` の代わりに [_passInstallationId()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/pass-installation-id.html) を呼び出して、Installation ID を MoEngage SDK に渡します。この呼び出しは `MoEFireBaseHelper` で行います。
+
+| 以前 | 現在 |
+| --- | --- |
+| `passPushToken(context, token)` | `passInstallationId(context, installationId)` |
+
+以下のコードブロックが代替コードです。そのままコピーしてください。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEFireBaseHelper.getInstance().passInstallationId(applicationContext, installationId)
+```
+
+
+```Java Java
+MoEFireBaseHelper.getInstance().passInstallationId(getApplicationContext(), installationId);
+```
+
+</CodeGroup>
+
+### ステップ 6: registerForToken から registerForInstallationId への移行
+
+この手順は、アプリケーションが `registerForToken` を呼び出している場合にのみ適用してください。`registerForToken` の代わりに [_registerForInstallationId()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/register-for-installation-id.html) を呼び出します。この呼び出しは `MoEFireBaseHelper` で行います。
+
+<Info>
+  この呼び出しは、以下の場合にのみ必要です。
+
+  - アプリケーションで Firebase の自動初期化が無効になっている場合。[自動初期化の防止に関する Firebase のドキュメント](https://firebase.google.com/docs/cloud-messaging/android/get-started#prevent-auto-initialization)を参照してください。
+  - MoEngage SDK の初期化が遅延している場合。たとえば、アプリケーションが Application クラスの `onCreate()` メソッドではなくワーカースレッドで SDK を初期化している場合などです。
+</Info>
+
+| 以前 | 現在 |
+| --- | --- |
+| `registerForToken(context)` | `registerForInstallationId(context)` |
+
+以下のコードブロックが代替コードです。そのままコピーしてください。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEFireBaseHelper.getInstance().registerForInstallationId(applicationContext)
+```
+
+
+```Java Java
+MoEFireBaseHelper.getInstance().registerForInstallationId(getApplicationContext());
+```
+
+</CodeGroup>
+
+### ステップ 7: getPushToken から getInstallationId への移行
+
+この手順は、アプリケーションが `getPushToken` を呼び出している場合にのみ適用してください。SDK が保持している識別子を読み取るには、`getPushToken` の代わりに [_getInstallationId()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/get-installation-id.html) を呼び出します。この呼び出しは `MoEFireBaseHelper` で行います。
+
+| 以前 | 現在 |
+| --- | --- |
+| `getPushToken(context)` | `getInstallationId(context)` |
+
+以下のコードブロックが代替コードです。そのままコピーしてください。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEFireBaseHelper.getInstance().getInstallationId(applicationContext)
+```
+
+
+```Java Java
+MoEFireBaseHelper.getInstance().getInstallationId(getApplicationContext());
+```
+
+</CodeGroup>
+
+### ステップ 8: トークンリスナーコールバックの移行
+
+この手順は、アプリケーションがトークンリスナーを登録している場合にのみ適用してください。`addTokenListener` と `removeTokenListener` の代わりに [_addInstallationIdListener()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/add-installation-id-listener.html) と [_removeInstallationIdListener()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/remove-installation-id-listener.html) を呼び出し、`TokenAvailableListener` を [_InstallationIdAvailableListener_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase.listener/-installation-id-available-listener/index.html) に置き換えます。このリスナーは、トークンの代わりに Installation ID の結果を受け取ります。これらの呼び出しは `MoEFireBaseHelper` で行います。
+
+| 以前 | 現在 |
+| --- | --- |
+| `TokenAvailableListener` | `InstallationIdAvailableListener` |
+| `addTokenListener(listener)` | `addInstallationIdListener(listener)` |
+| `removeTokenListener(listener)` | `removeInstallationIdListener(listener)` |
+
+以下のコードブロックが代替コードです。そのままコピーしてください。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+val installationIdListener: InstallationIdAvailableListener = { installationIdResult ->
+}
+MoEFireBaseHelper.getInstance().addInstallationIdListener(installationIdListener)
+MoEFireBaseHelper.getInstance().removeInstallationIdListener(installationIdListener)
+```
+
+
+```Java Java
+InstallationIdAvailableListener installationIdListener = installationIdResult -> {
+};
+MoEFireBaseHelper.getInstance().addInstallationIdListener(installationIdListener);
+MoEFireBaseHelper.getInstance().removeInstallationIdListener(installationIdListener);
+```
+
+</CodeGroup>
+
+### 影響
+
+ケース 2 は破壊的変更ではありません。アプリケーション自身が識別子を提供するため、これらの API の変更を行わなくても、BOM 4.4.0 でアプリケーションは引き続きプッシュ登録を行えます。必須なのは [ケース 1](#case-1-the-moengage-sdk-registers-the-token) のみです。
+
+それでも MoEngage は移行を推奨します。Installation ID は Firebase がプッシュトークンを更新または破棄した場合でも引き続き利用できるため、リーチャビリティが安定します。また、非推奨となったトークン API を置き換えるものでもあります。

@@ -1,0 +1,89 @@
+---
+title: "iOS Objective C バージョン 9.x.x を使用する iOS デバイスで、プッシュ通知の一般的な問題を回避するにはどうすればよいですか？"
+description: "Objective-C SDK 9.x.x を使用する iOS で、プッシュのインプレッションと画像レンダリングの問題をトラブルシューティングします。MoEngage で appgroupid が正しく設定されていることを確認します。"
+keywords: ["appgroupid", "app group", "push impressions not tracked iOS", "images not rendering in push", "Objective-C", "iOS SDK 9.x.x", "Notification Service Extension"]
+---
+
+## 問題
+
+Objective C バージョン 9.x.x で、プッシュ通知がデバイスに正常に配信されているにもかかわらず、プッシュキャンペーンのインプレッションがトラッキングされない、画像がレンダリングされないなど、プッシュ通知に関する一般的な問題が発生しています。
+
+<Info>
+  プッシュキャンペーンのインプレッションをトラッキングするには、MoEngage ダッシュボードで **Show iOS impressions** トグルがオンになっていることを確認してください。
+
+  ![iOS imp.png](/images/moengage_1d2e81.png)
+</Info>
+
+## 解決策
+
+以下の手順を実行します。
+
+1. **各構成について、プロジェクトのメインターゲットで app\_group\_id を確認する**: 構成間で同じ app\_group\_id を追加することも、異なる app\_group\_id を追加することもできます。
+   <Info>
+     構成で異なる Bundle Identifier を使用しながら同じ app\_group\_id を共有している場合、問題が発生する可能性があります。具体的には、Bundle Identifier が異なり app\_group\_id が同じ 2 つのアプリが同じデバイスにインストールされている場合、Notification Service Extension が失敗する可能性があります。 
+     これを回避するために複数の構成で同じ app\_group\_id を使用できますが、その場合は 1 台のデバイスですべてのアプリを同時にテストできないことに注意してください。
+   </Info>
+   ![app group.png](/images/moengage_83496a.png)
+2. **SDK の初期化時に app\_group\_id を確認する**:
+   - info.plist を使用して SDK を初期化する場合は、info.plist ファイルの MoEngage キー内に APP\_GROUP\_ID キーが存在する必要があります。
+   - sdkConfig を使用して SDK を初期化する場合は、AppDelegate ファイル内の sdkConfig 変数に APP\_GROUP\_ID が含まれている必要があります。\
+     **info.plist 内の app\_group\_id:** 
+     <img src="/images/moengage_98c1bf.png" alt="app id.png" /> 
+     **sdkConfig 変数内の app\_group\_id:**
+   ```objective-c Objective-C wrap
+   MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"XXXXXXXXXXXXXXXX" dataCenter: MoEngageDataCenterData_center_0X];
+   sdkConfig.appGroupID = @"group.com.XXXXXXXXXXXXXXXX";
+   ```
+3. **Notification Service Extension ターゲットを確認する**:
+   - **プッシュ通知を有効にする**: 拡張ターゲットの Signing & Capabilities セクションで、必ず Push Notifications を有効にし、AppGroupId を追加してください。
+     ![enable.png](/images/moengage_d0ceea.png)
+   - **最小デプロイ iOS バージョンを揃える**: Notification Service Extension の最小デプロイ iOS バージョンが、メインアプリの iOS バージョンと一致していることを確認します。 <img alt="support.png" src="/images/moengage_812799.png" />
+4. MORichNotification フレームワークを Notification Service Extension ターゲットに統合します。
+   ```objective-c Objective-C
+   target 'MoEngageDemo' do
+     use_frameworks!
+     pod 'MoEngage-iOS-SDK'
+   end
+   target 'MoEngageNotificationService' do
+     use_frameworks! #use use_frameworks only if included in main target as in above scenario
+     pod 'MoEngageRichNotification'
+   end
+   ```
+5. NotificationService.m ファイルは次のようになります。
+   ```objective-c Objective-C
+   #import "NotificationService.h"
+   @import MoEngageRichNotification;
+    
+   @interface NotificationService ()
+    
+   @property (nonatomic, strong) void (^contentHandler)(UNNotificationContent *contentToDeliver);
+   @property (nonatomic, strong) UNMutableNotificationContent *bestAttemptContent;
+    
+   @end
+    
+   @implementation NotificationService
+    
+   - (void)didReceiveNotificationRequest:(UNNotificationRequest *)request withContentHandler:(void (^)(UNNotificationContent * _Nonnull))contentHandler {
+       @try {
+         	[MoEngageSDKRichNotification setAppGroupID: @"group.com.XXXXXXXXXXXXXXXX"];
+           self.contentHandler = contentHandler;
+           self.bestAttemptContent = [request.content mutableCopy];
+           [MoEngageSDKRichNotification handleWithRichNotificationRequest:request withContentHandler:contentHandler];
+       } @catch (NSException *exception) {
+           NSLog(@"MoEngage : exception : %@",exception);
+       }
+   }
+   /// Save the image to disk
+   - (void)serviceExtensionTimeWillExpire {
+       // Called just before the extension will be terminated by the system.
+       // Use this as an opportunity to deliver your "best attempt" at modified content, otherwise the original push payload will be used.
+       self.contentHandler(self.bestAttemptContent);
+   }
+   @end
+   ```
+6. **メインアプリターゲットの Build Phases を確認する**: メインアプリターゲットの Build Phases セクションで、Embed App Extensions / Embed Foundation Extensions セクションを見つけます。**Copy only when installing** オプションがオフになっていることを確認します。
+   ![copy.png](/images/moengage_fabafa.png)
+7. **構成間で appGroupId を統一する**: プロジェクト内のすべてのスキームと構成（Debug/Release/QA/UAT など）で appGroupId が統一されていることを確認します。
+8. **ビルド構成を揃える**: プロジェクトを実行またはアーカイブする際は、メインターゲットと Notification Service Extension ターゲットの Build Configuration が同じスキーム/構成を指していることを確認します。
+   ![run.png](/images/moengage_11ca3c.png)
+   ![build.png](/images/moengage_9fd89d.png)

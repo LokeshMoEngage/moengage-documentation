@@ -1,0 +1,104 @@
+---
+title: "Ventrata"
+description: "予約更新イベントを MoEngage のエンドポイントに送信する Ventrata の Webhook を作成し、ユーザープロファイルを充実させてパーソナライズされたキャンペーンをトリガーします。"
+---
+
+# 概要
+
+[Ventrata](https://ventrata.com/) は、大量のツアーやアトラクション向けに構築された、実績のある汎用性の高い予約プラットフォームです。非接触型の予約、支払い、チェックインのソリューションにより、あらゆる予約ニーズに最適なソリューションを提供します。
+
+# MoEngage × Ventrata
+
+MoEngage と Ventrata の統合により、ユーザーの予約関連の更新を MoEngage に送信して、より充実したユーザープロファイルを作成し、高度にパーソナライズされたキャンペーンをトリガーできます。この統合により、Ventrata で予約が更新されるとすぐにイベントを作成できます。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  Ventrata の Webhook にアクセスできることを確認してください。
+</Info>
+
+## ステップ 1: MoEngage のエンドポイントを取得する
+
+統合専用のエンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストでは、MoEngage とパートナープラットフォームの間でユーザープロファイルを関連付けるために使用する共通の識別子を指定する必要があります。
+
+たとえば、ユーザーのメール ID や電話番号などです。
+
+## ステップ 2: Ventrata で Webhook を作成する
+
+Ventrata で Webhook を作成するには、API 呼び出しを行う必要があります。詳細については、[Ventrata のドキュメント](https://docs.ventrata.com/capabilities/webhooks#list-webhooks)を参照してください。
+
+- _API エンドポイント:_ [https://api.ventrata.com/octo/webhooks](https://api.ventrata.com/octo/webhooks)
+- _メソッド:_ POST
+- _ヘッダー:_
+  ```json
+  { 
+     "Content-Type": application/json, 
+     "Authorization": "Bearer <Ventrata API key>" 
+  }
+  ```
+
+ここで、`<Ventrata API key>` はサプライヤーから発行された API キーです。詳細については、[Ventrata のドキュメント](https://docs.ventrata.com/getting-started/getting-started)を参照してください。
+
+- _ボディ:_
+  ```json
+  { 
+     "event": "booking_update", 
+     "url": "<MoEngage endpoint>" 
+     "retryOnError": true,
+     "useContactLanguage": true,
+     "headers": {
+        "Authorization": "Basic <API Token>",
+        "Content-Type": application/json
+     },
+     "capabilities": ["octo/pricing"]
+  }
+  ```
+
+各項目の説明は次のとおりです。
+
+| フィールド | 説明 |
+| --- | --- |
+| `<MoEngage endpoint>` | ステップ 1 で受け取ったエンドポイントを入力します。 |
+| `<API Token>` | オンラインの [Basic Auth Header Generator ツール](https://www.debugbear.com/basic-auth-header-generator)などを使用して Basic トークンを取得します。次のように入力します。 <ul><li>username には `<Workspace ID>`</li><li>password には `<Data API Key>`</li></ul> Workspace ID と Data API Key は、_MoEngage Dashboard \>\> Settings \>\> APIs_ から取得できます。 |
+
+完了すると、Webhook から成功のレスポンスが返されます。
+
+## ステップ 3: MoEngage でデータを表示する
+
+設定が完了すると、イベントがトリガーされるとすぐに Webhook が MoEngage のエンドポイントに更新を送信し、データが MoEngage にイベントとして表示され始めます。これはユーザープロファイルで確認できます。
+
+![Screenshot 2024-11-26 at 3.05.47 PM.png](/images/partner_32474067086996.png)
+
+### イベントの詳細
+
+MoEngage で作成されるイベントの詳細:
+
+| フィールド | 説明 |
+| --- | --- |
+| Event Name | `booking_update` |
+| uuid | Ventrata によって生成された予約の uuid |
+| resellerReference | リセラーの参照 ID |
+| supplierReference | サプライヤーの参照 ID |
+| status | 予約のステータス |
+| utcExpiresAt | UTC での有効期限日 |
+| utcConfirmedAt | UTC での確定日 |
+| productId | 商品の ID |
+| optionId | DEFAULT |
+| cancellable | 商品がキャンセル可能かどうか - True/False |
+| cancellation | 予約のキャンセルステータス |
+| freesale | 無料商品 |
+| notes | 予約メモ |
+| availability | 顧客の空き状況の詳細 - MoEngage アカウントで[オブジェクトのサポート](https://moengage-user-guide.mintlify.app/user-guide/data/key-concepts/support-for-object-data-type)が有効な場合のみ利用可能 |
+| deliveryMethods | 適用可能な配信方法のリスト - Voucher、Ticket |
+| voucher | 予約バウチャーの詳細 - MoEngage アカウントで[オブジェクトのサポート](https://moengage-user-guide.mintlify.app/user-guide/data/key-concepts/support-for-object-data-type)が有効な場合のみ利用可能 |
+| unitItems | redemptionMethod や配信オプションなどの詳細 - MoEngage アカウントで[オブジェクトのサポート](https://moengage-user-guide.mintlify.app/user-guide/data/key-concepts/support-for-object-data-type)が有効な場合のみ利用可能 |
+
+# レート制限
+
+プラットフォームの安定性を維持するため、MoEngage では Ventrata データの取り込みをワークスペースごとに最大 500 リクエスト/秒 (RPS) に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、Ventrata のデフォルトの再試行ポリシーを参照してください。
+
+ペイロードサイズやその他の取り込み制限の詳細については、[パートナーデータ取り込みのレート制限](/ja/partner-guide/data-and-analytics/ingestion-rate-limits)を参照してください。

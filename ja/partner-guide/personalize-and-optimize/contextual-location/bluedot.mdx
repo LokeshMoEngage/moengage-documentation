@@ -1,0 +1,100 @@
+---
+title: "Bluedot"
+---
+
+## はじめに
+
+[Bluedot](https://bluedot.io/) は、アプリに正確なジオフェンシングを提供する位置情報プラットフォームです。Bluedot を使用すると、よりスマートなメッセージング、モバイルオーダーのチェックインの自動化、ワークフローの最適化、スムーズな体験の創出が可能になります。
+
+## MoEngage と Bluedot
+
+MoEngage と Bluedot の連携により、Bluedot のジオフェンス位置情報サービスを使用してユーザーイベントを作成できます。これらのイベントを使用して、Flows の構築、キャンペーンの実行、顧客の行動や関心の分析を行えます。ユーザーのデバイスで生成された進入イベントと退出イベントは、関連するすべての情報とともにリアルタイムで MoEngage に送信されます。
+
+## ユースケース
+
+ユーザーが実店舗の近くにいるときに、来店を促すプロモーションキャンペーンでターゲティングします。一般的なユースケースは次のとおりです。
+
+- クイックサービスレストラン（QSR）
+- クリック＆コレクト
+- ドライブスルー
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - この連携を使用するには、Bluedot アカウントが必要です。
+</Info>
+
+![Bluedot から MoEngage へのイベントフローの概要図](/images/partner_34605889504020.png)
+
+### SDK のセットアップ
+
+#### ステップ 1：Bluedot プロジェクトを作成する
+
+Bluedot アカウントを設定し、Bluedot Canvas ダッシュボードにログインします。新しいプロジェクトの作成方法については、[Bluedot のドキュメント](https://docs.bluedot.io/canvas/creating-a-new-project/)を参照してください。
+
+#### ステップ 2：SDK を統合する
+
+Bluedot の進入トリガーまたは退出トリガーが発火したときに、MoEngage にカスタムイベントを送信するようにアプリケーションを設定します。以下のスニペットを使用して、アプリに Bluedot Point SDK と MoEngage SDK を統合します。
+
+**Android**
+
+<CodeGroup>
+
+```kotlin onZoneEntryEvent wrap
+override fun onZoneEntryEvent(geoTriggerEvent: GeoTriggerEvent, context: Context) {
+    val properties = Properties()
+
+    properties.addAttribute("zone_id", geoTriggerEvent.zoneInfo.id)
+        .addAttribute("zone_name", geoTriggerEvent.zoneInfo.name)
+        .addAttribute("latitude", geoTriggerEvent.entryEvent()?.locations?.get(0)?.latitude)
+        .addAttribute("longitude", geoTriggerEvent.entryEvent()?.locations?.get(0)?.longitude)
+        .addAttribute("fence_id", geoTriggerEvent.entryEvent()?.fenceId)
+        .addAttribute("fence_name", geoTriggerEvent.entryEvent()?.fenceName)
+        .setNonInteractive()
+
+    MoEAnalyticsHelper.trackEvent(context, "customEventEntry", properties)
+}
+```
+
+```kotlin onZoneExitEvent wrap
+override fun onZoneExitEvent(geoTriggerEvent: GeoTriggerEvent, context: Context) {
+    val properties = Properties()
+
+    properties.addAttribute("zone_id", geoTriggerEvent.zoneInfo.id)
+        .addAttribute("zone_name", geoTriggerEvent.zoneInfo.name)
+        .addAttribute("latitude", geoTriggerEvent.exitEvent()?.locations?.get(0)?.latitude)
+        .addAttribute("longitude", geoTriggerEvent.exitEvent()?.locations?.get(0)?.longitude)
+        .addAttribute("fence_id", geoTriggerEvent.exitEvent()?.fenceId)
+        .addAttribute("fence_name", geoTriggerEvent.exitEvent()?.fenceName)
+        .setNonInteractive()
+
+    MoEAnalyticsHelper.trackEvent(context, "customEventExit", properties)
+}
+```
+
+</CodeGroup>
+
+**iOS**
+
+```swift didEnterZone callback wrap
+func didEnterZone(_ triggerEvent: GeoTriggerEvent) {
+    var eventAttrDict: Dictionary<String, Any> = Dictionary()
+    let eventProperties = MoEngageProperties(withAttributes: eventAttrDict)
+    eventProperties.addAttribute(triggerEvent.zoneInfo.id, withName: "zone_id")
+    eventProperties.addAttribute(triggerEvent.zoneInfo.name, withName: "zone_name")
+    eventProperties.addAttribute(triggerEvent.entryEvent?.locations[0].coordinate.latitude ?? 0.0, withName: "latitude")
+    eventProperties.addAttribute(triggerEvent.entryEvent?.locations[0].speed ?? 0.0, withName: "speed")
+    eventProperties.addAttribute(triggerEvent.entryEvent?.eventTime.timeIntervalSince1970 ?? 0.0, withName: "timestamp")
+
+    let customData = triggerEvent.zoneInfo.customData
+    if !customData.isEmpty {
+        customData.forEach { data in eventAttrDict["\(data.key)"] = "\(data.value)" }
+    }
+
+    MoEngageSDKAnalytics.sharedInstance.trackEvent("customEventEntry", withProperties: eventProperties)
+}
+```
+
+Bluedot の退出トリガーを取得するには、`didExitZone` コールバックに同様のコードを追加します。

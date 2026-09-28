@@ -1,0 +1,48 @@
+---
+title: "Adjust CDP"
+description: "Adjust CDP でトラッキングしたイベントを MoEngage に直接送信し、キャンペーン、プッシュ通知、アプリ内メッセージ、分析に活用します。"
+keywords: ["Adjust CDP", "event tracking", "mobile measurement", "customer data platform", "MoEngage integration"]
+---
+
+## はじめに
+
+[Adjust](https://www.adjust.com/) は、モバイル計測企業であり、カスタマーデータプラットフォームです。既存の連携の一環として、すでに Adjust にイベントを送信している場合があります。このイベントトラッキングを活用して、これらのイベントを MoEngage に直接送信できます。
+
+以下は、Adjust を使用して MoEngage にイベントを送信する手順です。
+
+## 手順
+
+### Adjust ダッシュボードでの設定
+
+MoEngage へのイベント送信を開始するには、以下の手順に従います。
+
+1. Adjust ダッシュボードに移動し、**App options** キャレット \> **Partner Setup** \> **Add Partner** に移動して、ここで **MoEngage** を選択します。
+2. Adjust ダッシュボードで **Workspace ID**、**PASSWORD**、**REGION** を入力する必要があります。これらの詳細は MoEngage ダッシュボードで確認できます。
+
+   | フィールド | 説明 |
+   | --- | --- |
+   | **App ID** | Workspace ID をコピーして貼り付けます。MoEngage アカウントの Workspace ID は、**Settings** \> **Account** \> **APIs** \> **Workspace ID** で確認できます。MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+   | **PASSWORD** | パスワードをコピーして貼り付けます。パスワードは MoEngage アカウントの Data API キーで、**Settings** \> **Account** \> **APIs** \> **API keys** \> **Data** API 設定で確認できます。 |
+   | **REGION** | EU に所在している場合は、Region ドロップダウンメニューで **EU** を選択してください。その他のすべての地域の場合は、**US** を選択します。 |
+3. MoEngage は、顧客 ID を含む Adjust からのコールバックのみを受け付けます。コールバックで MoEngage の顧客 ID を送信するには、Adjust SDK でパートナーパラメーターとして `moengage_customer_id` を設定します。
+
+   また、[Android](https://www.moengage.com/docs/developer-guide/android-sdk/data-tracking/basic/track-user-attributes) および [iOS](https://www.moengage.com/docs/developer-guide/ios-sdk/data-tracking/basic/tracking-user-attributes) の説明に従って、MoEngage SDK を使用したトラッキングも行っていることを確認してください。
+
+設定の詳細については、[Adjust のドキュメント](https://help.adjust.com/en/integrated-partners/moengage)を参照してください。
+
+### 追加の連携
+
+Adjust 連携は、Adjust から MoEngage へのイベント送信のみを処理します。プッシュ通知やアプリ内メッセージなどの MoEngage の機能を活用するには、以下の表に記載されている追加の連携が必要です。
+
+| 連携 | 詳細 |
+| --- | --- |
+| [Android SDK](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) | Android アプリでプッシュ通知の表示、パフォーマンス統計の取得、アプリ内メッセージの表示、リアルタイムトリガーを行うためのものです。 |
+| [iOS SDK](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration) | iOS アプリでプッシュ通知の表示、パフォーマンス統計の取得、アプリ内メッセージの表示、リアルタイムトリガーを行うためのものです。 |
+| Logout | データが破損する可能性があるため、Android または iOS から MoEngage のログアウトメソッドを**呼び出さない**ようにしてください。Adjust 連携では、インストール後の最初の `app_open` の時点ですぐにユーザーの `unique_id` が必要です。これには GAID や IDFV などのデバイス ID を使用できます。 |
+| User Attributes | MoEngage 経由でメールや SMS を送信するために、メールアドレスや携帯電話番号などの詳細を取得するためのものです。ユーザー属性のトラッキングの詳細については、[Android](https://www.moengage.com/docs/developer-guide/android-sdk/data-tracking/basic/track-user-attributes) または [iOS](https://www.moengage.com/docs/developer-guide/ios-sdk/data-tracking/basic/tracking-user-attributes) を参照してください。 |
+| Smart In-App Messages | ユーザーがアプリでアクションを実行した直後にアプリ内メッセージを表示するためのものです。これを行うには、そのようなトリガーイベントを MoEngage SDK 経由で直接送信する必要があります。イベントの重複につながる可能性があるため、この場合は Adjust と同じイベントを使用しないように注意してください。 |
+| Location Triggered | Location Triggered には個別の連携が必要です。[Android](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/location-triggered) または [iOS](https://www.moengage.com/docs/developer-guide/ios-sdk/push/optional/location-triggered) を参照してください。 |
+
+<Info>
+  Install Source と Campaign Name を含む Install Postback を Adjust から MoEngage に送信する場合は、[こちらのドキュメント](/ja/partner-guide/data-and-analytics/install-attribution/adjust/adjust)を参照してください。
+</Info>

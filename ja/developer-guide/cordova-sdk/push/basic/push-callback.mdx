@@ -1,0 +1,74 @@
+---
+title: "プッシュコールバック"
+description: "MoEngage Cordova SDK で、プッシュ通知のクリックイベントに対する JavaScript コールバックを設定します。"
+---
+
+## 通知クリック時の JavaScript でのコールバック
+
+通知クリック時に JavaScript でコールバックを受け取るには、以下のようにクリックリスナーを登録する必要があります。
+
+必要な最小プラグインバージョン：3.0.0
+
+<CodeGroup>
+
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.on('onPushClick', function(payloadInfo) {
+    //add logic here
+});
+```
+
+</CodeGroup>
+
+## ペイロード
+
+コールバック **onPushClick** で受け取る NotificationPayload の構造は次のとおりです。
+
+<CodeGroup>
+
+```auto JSON
+{
+  "accountMeta": {
+    "appId": ""
+  },
+  "data": {
+    "platform": "android/iOS",
+    "isDefaultAction": false,
+    "clickedAction": {
+      "type": "navigation/customAction",
+      "payload": {
+        "type": "screenName/deepLink/richLanding",
+        "value": "",
+        "kvPair": {
+          "key1": "value1",
+          "key2": "value2"
+          ...
+        }
+      }
+    },
+    "payload": {}
+  }
+}
+```
+
+</CodeGroup>
+
+**accountMeta.appId** - MoEngage のワークスペース ID です。\
+**data.platform** - コールバックがトリガーされたネイティブプラットフォームです。使用可能な値 - **android**、**ios**\
+**data.isDefaultAction** - このキーは Android プラットフォームでのみ存在します。ユーザーがデフォルトのコンテンツをクリックしたかどうかを示すブール値です。ユーザーがデフォルトのコンテンツをクリックした場合は true、それ以外の場合は false です。\
+**data.clickedAction** - 通知クリック時に実行されるアクションです。\
+**data.clickedAction.type** - クリックアクションの種類です。使用可能な値は **navigation** と **customAction** です。現在、**customAction** は Android でのみサポートされています。\
+**data.clickAction.payload** - クリックされたアクションのアクションペイロードです。\
+**data.clickedAction.payload.type** - 定義されたナビゲーションアクションの種類です。使用可能な値は **screenName**、**deepLink**、**richLanding** です。現在、iOS の場合、リッチランディングとディープリンク URL は SDK によって内部で処理され、このコールバックには渡されないため、iOS の場合に使用可能な値は **screenName** のみです。\
+**data.clickAction.payload.value** - ナビゲーションアクションまたはカスタムペイロードに入力された値です。\
+**data.clickAction.payload.kvPair** - MoEngage プラットフォームで入力されたカスタムのキーと値のペアです。\
+**data.payload** - キャンペーンの完全なペイロードです。
+
+### Android のペイロード
+
+ユーザーが通知のデフォルトのコンテンツをクリックした場合、キーと値のペアとキャンペーンのペイロードは **payload** キー内にあります。ユーザーがアクションボタンまたはプッシュテンプレートのアクションをクリックした場合、アクションペイロードは **clickedAction** 内にあります。\
+**isDefaultAction** キーを使用して、ユーザーがデフォルトのコンテンツをクリックしたかどうかを確認し、それに応じてペイロードを解析できます。
+
+### iOS のペイロード
+
+iOS の場合、クリックされたアクションに関するキーと値のペアは常に **clickedAction** キーで受け取ります。iOS の通知ペイロードの構造については、こちらの[リンク](/ja/developer-guide/ios-sdk/push/advanced/custom-notification-handling#notification-actions)を参照してください。

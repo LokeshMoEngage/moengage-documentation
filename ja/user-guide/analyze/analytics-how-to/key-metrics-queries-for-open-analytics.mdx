@@ -1,0 +1,351 @@
+---
+title: "Open Analytics 用の主要指標クエリ"
+description: "MoEngage Open Analytics でダッシュボードのデータを再現するための、DAU、MAU、新規ユーザー、リテンションなどの主要指標向けのすぐに使える SQL クエリを紹介します。"
+---
+
+MoEngage Open Analytics は、MoEngage データウェアハウスのデータに直接アクセスする機能を提供します。SQL クエリを使用して、MoEngage に存在するあらゆるデータにアクセスできます。
+
+このドキュメントでは、MoEngage ダッシュボードで提供される主要指標のすべてのクエリを紹介します。これらのクエリを使用して、Open Analytics ですべてのデータを取得できます。
+
+[ダッシュボードの主要指標についてはこちら](/ja/user-guide/analyze/dashboards/key-metrics)をご覧ください。[MoEngage Open Analytics の詳細についてはこちら](/ja/user-guide/analyze/custom-analysis/open-analytics)をご覧ください。
+
+## デイリーアクティブユーザー
+
+デイリーアクティブユーザーを計算するために必要なテーブルと属性は次のとおりです。
+
+- 使用するイベント - App/Site Opened。このイベントのテーブル名 - moe\_app\_opened\_828
+- App/Site Opened のプラットフォーム属性 - os
+- App/Site Opened の時刻属性 - server\_time
+- 必要な日付を選択するには **day** を変更します。
+
+### *デイリーアクティブユーザー*数を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+DATE(server_time) AS Date,
+COUNT(DISTINCT(user_id)) AS Usercount
+FROM
+account_name.moe_app_opened_828
+WHERE
+day >= "2020-01-01"
+AND day <= "2020-01-31"
+GROUP BY
+1
+ORDER BY
+1
+```
+
+</CodeGroup>
+
+### プラットフォームごとの*デイリーアクティブユーザー*数を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+DATE(server_time) AS Date,
+os AS Platform,
+COUNT(DISTINCT(user_id)) AS Usercount
+FROM
+account_name.moe_app_opened_828
+WHERE
+day >= "2020-01-01"
+AND day <= "2020-01-31"
+GROUP BY
+1, 2
+ORDER BY
+1
+```
+
+</CodeGroup>
+
+## マンスリーアクティブユーザー
+
+マンスリーアクティブユーザーを計算するために必要なテーブルと属性は次のとおりです。
+
+- 使用するイベント - App/Site Opened。このイベントのテーブル名 - moe\_app\_opened\_828
+- App/Site Opened のプラットフォーム属性 -
+- App/Site Opened の時刻属性 - server\_time
+- 必要な日付を選択するには **day** を変更します。
+
+### *マンスリーアクティブユーザー*数を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+FORMAT_DATE("%B, %Y", DATE(server_time)) AS Date,
+COUNT(DISTINCT(user_id)) AS Usercount
+FROM
+account_name.moe_app_opened_828
+WHERE
+day >= "2020-01-01"
+AND day <= "2020-12-31"
+GROUP BY
+1
+ORDER BY
+1
+```
+
+</CodeGroup>
+
+### プラットフォームごとの*マンスリーアクティブユーザー*数を取得するクエリ
+
+<CodeGroup>
+
+```text SQL wrap
+SELECT
+FORMAT_DATE("%B, %Y", DATE(server_time)) AS Date,
+os AS Platform,
+COUNT(DISTINCT(user_id)) AS Usercount
+FROM
+account_name.moe_app_opened_828
+WHERE
+day >= "2020-01-01"
+AND day <= "2020-12-31"
+GROUP BY
+1, 2
+ORDER BY
+1
+```
+
+</CodeGroup>
+
+## 新規ユーザー
+
+日次の新規ユーザーを計算するために必要なテーブルと属性は次のとおりです。
+
+- 最新のすべてのユーザー属性のテーブル（このテーブルは毎日更新されます） - users\_base\_table
+- ユーザーテーブル内のアプリ/サイトユーザーに対して MoEngage が定義した ID - user\_id
+- ユーザーテーブル内のユーザー作成日 - datetime\_cr\_t\_469
+- 必要な日付を選択するには _datetime\_cr\_t\_469_ を変更します
+
+### 日次の*新規ユーザー*数を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+DATE(datetime_cr_t_469) AS Date,
+COUNT(DISTINCT(user_id)) AS Usercount
+FROM
+account_name.users_base_table WHERE
+datetime_cr_t_469
+>= "2020-01-01"
+AND datetime_cr_t_469 <= "2020-01-31"
+GROUP BY
+1
+ORDER BY
+1
+```
+
+</CodeGroup>
+
+## アンインストールしたユーザー
+
+日次のアンインストールユーザーを計算するために必要なテーブルと属性は次のとおりです。
+
+ユーザーテーブルでユーザーの最終的なインストールステータスを確認します。
+
+- 最新のすべてのユーザー属性のテーブル（このテーブルは毎日更新されます） - users\_base\_table
+- ユーザーテーブル内のアプリ/サイトユーザーに対して MoEngage が定義した ID - user\_id
+- インストールステータス - bool\_installed\_178
+
+アンインストールのアクションと日時を取得するための Device Uninstall イベント -
+
+- 使用するイベント - Device Uninstalled - device\_uninstall\_985
+- Device Uninstalled のプラットフォーム属性 - os
+- App/Site Opened の時刻属性 - server\_time
+- 必要な日付を選択するには **day** を変更します。
+
+### 日次の*アンインストールユーザー*数を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+DATE(server_time) AS Date,
+COUNT(DISTINCT(user_id)) AS Usercount
+FROM
+account_name.
+device_uninstall_985
+WHERE
+day >= "2019-09-26 00:00:00"
+AND day <= "2019-09-27 00:00:00"
+AND user_id IN (
+SELECT
+DISTINCT(user_id)
+FROM
+account_name.users_base_table
+WHERE
+bool_installed_178
+= "false" )
+GROUP BY
+1
+ORDER BY
+1
+```
+
+</CodeGroup>
+
+### プラットフォームごとの日次の*アンインストールユーザー*数を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+DATE(server_time) AS Date,
+o
+s
+as Platform,
+COUNT(DISTINCT(user_id)) AS Usercount
+FROM
+account_name.
+device_uninstall_985
+WHERE
+day >= "2019-09-26 00:00:00"
+AND day <= "2019-09-27 00:00:00"
+AND user_id IN (
+SELECT
+DISTINCT(user_id)
+FROM
+account_name.user_base_table
+WHERE
+bool_installed_178
+= "false" )
+GROUP BY
+1, 2
+ORDER BY
+1
+```
+
+</CodeGroup>
+
+## 新規 Web プッシュ購読者
+
+デイリーアクティブユーザーを計算するために必要なテーブルと属性は次のとおりです。
+
+- 使用するイベント - Subscribed to Web Push。テーブル名 - MOE\_USER\_SUBSCRIBED
+- Subscribed to Web Push の時刻属性 - server\_time
+- 必要な日付を選択するには **day** を変更します。
+
+### *新規 Web プッシュ購読者*を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+DATE(server_time) AS Date,
+COUNT(DISTINCT(user_id)) AS Usercount
+FROM
+account_name.
+MOE_USER_SUBSCRIBED
+WHERE
+day >= "2020-01-01"
+AND day <= "2020-01-31"
+GROUP BY
+1
+ORDER BY
+1
+```
+
+</CodeGroup>
+
+## Web プッシュ購読者の累計
+
+Web プッシュ購読者の累計を計算するために必要なテーブルと属性は次のとおりです。
+
+- 最新のすべてのユーザー属性のテーブル（このテーブルは毎日更新されます） - user\_base\_table
+- ユーザーテーブル内のアプリ/サイトユーザーに対して MoEngage が定義した ID - user\_id
+- ユーザーテーブル内の Web 購読ステータス - bool\_moe\_sub\_w\_106
+
+### *Web プッシュ購読者の累計*を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+COUNT(user_id) AS TotalCount
+FROM
+account_name.user_base_table
+WHERE
+bool_moe_sub_w_106
+= "true"
+```
+
+</CodeGroup>
+
+## コンバージョン目標と収益
+
+コンバージョンの総数とユニークなコンバージョンユーザーを計算するために必要なテーブルと属性は次のとおりです。
+
+- 使用するイベント - [App Settings](https://app.moengage.com/v3/#/settings/app/general) で指定された目標イベント
+- 収益の属性 - [App Settings](https://app.moengage.com/v3/#/settings/app/general) で指定された収益属性
+- 目標イベントのプラットフォーム属性 - os
+- 目標イベントの時刻属性 - server\_time
+- 必要な日付を選択するには **day** を変更します。
+
+### 日次の*コンバージョン数*を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+DATE(server_time) AS Date,
+COUNT(server_time) AS Conversioncount
+FROM
+account_name.goal_event
+WHERE
+day >= "2020-01-01"
+AND day <= "2020-01-31"
+GROUP BY
+1
+ORDER BY
+1
+```
+
+</CodeGroup>
+
+### 日次の*ユニークコンバージョンユーザー*を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+DATE(server_time) AS Date,
+COUNT(DISTINCT(user_id)) AS Usercount
+FROM
+account_name.goal_event
+WHERE
+day >= "2020-01-01"
+AND day <= "2020-01-31"
+GROUP BY
+1
+ORDER BY
+1
+```
+
+</CodeGroup>
+
+### 日次の*収益*を取得するクエリ
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+DATE(server_time) AS Date,
+SUM(revenue_attribute) AS Revenue
+FROM
+account_name.goal_event
+WHERE
+day >= "2020-01-01"
+AND day <= "2020-01-31"
+GROUP BY
+1
+ORDER BY
+1
+```
+
+</CodeGroup>

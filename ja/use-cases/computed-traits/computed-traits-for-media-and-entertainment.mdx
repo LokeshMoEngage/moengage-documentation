@@ -1,0 +1,127 @@
+---
+title: "メディア・エンターテインメント向けの Computed Traits"
+description: "メディア・エンターテインメント向けの Computed Traits のリファレンスです。各トレイトの計算方法、データソース、ビジネスユースケースを紹介します。"
+keywords: "computed traits, media and entertainment, OTT, streaming, watch time, genre affinity, subscription, churn, user attributes"
+---
+
+OTT、ニュース、動画ストリーミングアプリでは、コンテンツアフィニティ、視聴時間、エンゲージメントのシグナルをリアルタイムでトラッキングします。Computed Traits を使うと、この生のアクティビティを、セグメンテーション、パーソナライズ、Flows の分岐に使用できるリアルタイムのユーザー属性に変換できます。エンジニアのサポートや CSV のアップロードは必要ありません。
+
+このページはメニューとしてご利用ください。各行には、何を作成するか、どの計算方法を選ぶか、必要なイベントデータ、ビジネス上の成果、活用方法が記載されています。
+
+Computed Traits を初めて使用する場合は、[Computed Traits - 概要](/ja/user-guide/data/computed-traits/computed-traits-overview)で Computed Traits の概要と各計算方法の仕組みを、[Computed Trait の作成](/ja/user-guide/data/computed-traits/create-a-computed-trait)で作成手順を確認してください。
+
+## Computed Traits の仕組み
+
+このページのすべてのトレイトは、同じ 4 ステップのモデルに従います。このモデルを理解すれば、以下の表をひと目で読み取れるようになります。
+
+<Steps>
+  <Step title="イベントから始める" icon="database">
+    Content Played や App Session Started など、すでにトラッキングしているユーザー行動です。
+  </Step>
+  <Step title="計算方法を選ぶ" icon="calculator">
+    [Count、Aggregation、First/Last Value、または SQL](/ja/user-guide/data/computed-traits/computed-traits-overview#methods-of-computations) から選択します。
+  </Step>
+  <Step title="トレイトを取得する" icon="user-check">
+    Favorite Genre のように、自動的に更新されるリアルタイムの属性です。
+  </Step>
+  <Step title="活用する" icon="rocket">
+    セグメンテーション、分析、Jinja パーソナライズ、Flows で使用します。
+  </Step>
+</Steps>
+
+トレイトが実行されると、MoEngage のあらゆる場所で使用できる標準のユーザー属性になります。トレイトから[セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments)を作成したり、[分析](/ja/user-guide/analyze/moengage-analytics/overview)でグループ化やフィルタリングを行ったり、[Jinja パーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)でメッセージ本文に値を挿入したり、トレイトに基づいて [Flow](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows) を分岐させたりできます。
+
+<Tip>
+  **ここで紹介するトレイトのほとんどはノーコードで作成できます。** <Badge color="green">Count</Badge> <Badge color="green">Aggregation</Badge> および <Badge color="green">First/Last Value</Badge> の方法では SQL は不要です。<Badge color="purple">SQL</Badge> が必要になるのは、複数のイベントを組み合わせる複合スコアや、引き換え率や完了率などの比率を算出する場合のみです。このページのノーコードのトレイトはすべてご自身で作成できます。
+</Tip>
+
+## まずはここから
+
+最初に次の 3 つを作成しましょう。最も早く成果が得られ、キャンペーン間で最も再利用しやすいトレイトです。
+
+<CardGroup cols={3}>
+  <Card title="Last Session Date" icon="clock">
+    **Last Value** · 日付演算子ですべてのリテンション Flow を支えます。
+  </Card>
+  <Card title="Favorite Genre" icon="film">
+    **Last Value** · ホーム画面とすべてのレコメンデーションを一新します。
+  </Card>
+  <Card title="Total Watch Time" icon="stopwatch">
+    **Aggregation** · 決定的なエンゲージメント指標です。SQL は不要です。
+  </Card>
+</CardGroup>
+
+## 目的別にトレイトを探す
+
+<Info>
+  これらの表に記載されているイベント名とプロパティ名は例です。実際の名前はアプリのデータトラッキング方法によって異なるため、ここに記載されている `Content Played` という名前のイベントが見つからない場合があります。トレイトを作成する前に **Data** でトラッキング済みのイベントとプロパティを確認し、不足しているものがあれば開発チームにトラッキングを依頼してください。トラッキングの仕組みについては、[イベントトラッキングの完全ガイド](/ja/user-guide/data/event-data/a-complete-guide-to-event-tracking)を参照してください。
+</Info>
+
+### コンテンツアフィニティ
+
+各視聴者のジャンル、言語、フォーマットの好みを常に最新に保ち、すべてのレコメンデーションとプッシュをパーソナライズします。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Favorite Genre | Last Value | **イベント:** `Content Played`、**プロパティ:** `genre` | OTT のパーソナライズの基盤です。 | ジャンルに応じてニュースレターのコンテンツブロックを切り替え、新作リリース時にジャンル別のプッシュを送信します。 |
+| First Genre Watched | First Value | **イベント:** `Content Played`、**プロパティ:** `genre` | 入り口となったジャンルです。オンボーディングやトライアルからの転換に役立ちます。 | 視聴者が最初に見たジャンルに触れたトライアル転換キャンペーンを実施します。 |
+| Favorite Language | Last Value | **イベント:** `Content Played`、**プロパティ:** `language` | 多言語市場では不可欠です。 | プッシュの文言をローカライズし、新作リリースのアラートを言語で絞り込みます。 |
+| Preferred Content Format | Last Value | **イベント:** `Content Played`、**プロパティ:** `format`(Movie、Series、Short、Documentary) | 視聴者が実際に見ているものに合わせて、プロモーションの比重を調整します。 | シリーズを主に見る視聴者にはエピソードの展開を、映画を主に見る視聴者には単発作品の配信を案内します。 |
+| Distinct Genres Watched | Aggregation (Count Distinct) | **イベント:** `Content Played`、**プロパティ:** `genre` | 単一ジャンルのロイヤル視聴者と、幅広いジャンルを見る視聴者を見分けます。 | ロイヤル視聴者にはジャンルを深掘りしたレコメンデーションを、探索型の視聴者にはジャンルを横断した厳選リストを送信します。 |
+| Content Completion Rate | SQL Computation | `Content Completed` / `Content Started` | 高い場合はエンゲージしていることを、低い場合はコンテンツ発見の問題を示す比率です。 | 完了率の低い視聴者にはオンボーディングツアーと厳選したショート動画を、完了率の高い視聴者にはカタログを深掘りしたレコメンデーションを提供します。 |
+
+### エンゲージメントと一気見
+
+視聴時間と一気見のパターンは、最も強力なリテンションの予測因子です。分析だけでなく、トレイトとして活用しましょう。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Total Watch Time (Minutes) | Aggregation (Sum) | **イベント:** `Content Played`、**プロパティ:** `duration_watched` | エンゲージメントの深さで視聴者をランク付けします。 | 10 時間、50 時間、100 時間のマイルストーンでお祝いのメッセージを送信し、VIP バッジのティアを付与します。 |
+| Total Sessions Last 7 Days | Count | **イベント:** `App Session Started` | 習慣化のシグナルです。頻繁に視聴する視聴者ほどプレミアムに転換しやすくなります。 | 視聴者の週あたりのセッション数が 5 を超えたら、プレミアムトライアルのオファーをトリガーします。 |
+| Total Episodes Watched (Series) | Count | **イベント:** `Episode Played`、**プロパティ:** `series_id` | シリーズごとのエンゲージメントで、一気見の検出の基盤です。 | 2 エピソードで次のエピソードのリマインダーを送信し、5 エピソード以上で年間プランをアップセルします。 |
+| Last Session Date | Last Value | **イベント:** `App Session Started`、**プロパティ:** `timestamp` | 離脱の兆候を検出するための、最も重要な最新性トレイトです。 | 日付演算子を使用してセグメントを作成し、7 日、14 日、30 日の時点で段階的にウィンバックを強化します。 |
+| Binge Watcher | SQL Computation | 24 時間以内に同じシリーズを 3 エピソード以上視聴 | 複合トレイトです。一気見する視聴者は短期的にはほとんど解約しません。 | 次のシリーズのレコメンデーションを添えたお祝いのプッシュを送信し、年間プランをアップセルします。 |
+
+### サブスクリプション
+
+トライアルから更新、ウィンバックまで、サブスクリプションのジャーニー全体を専用のトレイトで管理します。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Subscription Start Date | First Value | **イベント:** `Subscription Purchased`、**プロパティ:** `timestamp` | 利用期間に基づくジャーニーや記念日キャンペーンの起点です。 | 日付演算子を使用してセグメントを作成し、30 日、90 日、365 日の時点で記念日メールを送信します。 |
+| Total Subscription Renewals | Count | **イベント:** `Subscription Renewed` | 繰り返し更新する顧客と初めて更新する顧客を区別するロイヤルティのマイルストーンです。 | 2 回、5 回、10 回の更新でマイルストーン特典を送信し、初めて更新する顧客には追加のリテンションプッシュを送信します。 |
+| Free Trial to Paid Propensity | SQL Computation | 視聴時間が 60 分超、セッションが 3 回以上、完了率が 40% 超のトライアルユーザー | 転換の複合スコアです。 | プレミアムオファーは転換傾向の高いトライアルユーザーに限定し、傾向の低いユーザーには教育的なコンテンツを送信します。 |
+| Renewal Confidence Score | SQL Computation | 過去 30 日間の視聴時間、セッション数、通知へのエンゲージメント | 更新のアプローチに優先順位を付けるための複合スコアです。 | 信頼度の低い更新対象者にのみ、14 日前、7 日前、3 日前のリマインダーシーケンスを実行します。 |
+
+### マルチデバイス
+
+現代の家庭は、複数のプロファイルと複数のデバイスを使用しています。これらのトレイトにより、家庭を 1 人の視聴者として扱うことを防げます。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Distinct Profiles Used | Aggregation (Count Distinct) | **イベント:** `Profile Switched`、**プロパティ:** `profile_id` | ニーズの異なるファミリーアカウントを特定します。 | ファミリー向けコンテンツのニュースレターを送信し、週末には子ども向けコンテンツのプッシュを送信します。 |
+| Preferred Viewing Device | Last Value | **イベント:** `Session Started`、**プロパティ:** `device_type`(TV、Mobile、Web、Tablet) | TV を主に使う視聴者は大型キャンペーンに、モバイルを主に使う視聴者はエピソードの配信に反応します。 | デバイスに適したコンテンツをプロモーションし、モバイルのみの視聴者には「大画面で視聴」のメッセージを送信しません。 |
+| Distinct Devices Registered | Aggregation (Count Distinct) | `App Opened` イベントの **プロパティ:** `device_id` | 複数のデバイスを使用する視聴者は解約する可能性が低くなります。 | マルチデバイスのオンボーディング施策を実施し、これらの視聴者をデバイス起点のウィンバックから除外します。 |
+| Last Device Used | Last Value | **イベント:** `App Session Started`、**プロパティ:** `device_type` | デバイスに適したコンテンツと機能を届けます。 | デバイス別のアプリ内メッセージを送信します。 |
+
+### スポーツ、ニュース、キッズ
+
+ドメイン固有の熱心なファンのトレイトを使うと、ユーザーベース全体をセグメント化することなくニッチな分野を開拓できます。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Matches Watched (Team) | Count | **イベント:** `Match Watched`、**プロパティ:** `team_id` | 複合スコアを使わずにチームのファンを特定します。 | チーム別の試合リマインダーを送信し、ユニフォームやグッズをクロスセルします。 |
+| Total Kids-Profile Sessions | Count | **イベント:** `Session Started`(キッズプロファイル) | 子ども向けコンテンツのマーケティングのために、ファミリーアカウントをコホート化します。 | 土曜日の朝に子ども向けコンテンツのプッシュを、平日に教育コンテンツを送信します。 |
+| Favorite News Category | Last Value | **イベント:** `Article Read`、**プロパティ:** `category`(Politics、Business、Sports、Tech) | ニュースレターと速報ニュースのアラートをパーソナライズします。 | プッシュアラートをカテゴリで絞り込み、カテゴリ別のニュースレタートラックを実施します。 |
+| Sports Super Fan | SQL Computation | 5 試合以上を視聴し、チームをお気に入りに登録し、試合のアラートを有効化 | 熱心なファンを特定するための複合トレイトです。 | シーズンパスをアップセルし、選手別のコンテンツ通知を送信します。 |
+
+## 関連ドキュメント
+
+Computed Traits は MoEngage 全体で使用されます。以下のガイドでは、上記の表で言及されている機能について説明しています。
+
+- [セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments): Computed Trait の値からオーディエンスを作成します。
+- [分析](/ja/user-guide/analyze/moengage-analytics/overview): Computed Trait の値でユーザー行動をグループ化およびフィルタリングします。
+- [キャンペーンとチャネル](/ja/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels): ユーザーにアプローチできるチャネルです。
+- [Flows](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows): トレイトに基づいてユーザーを異なるパスに分岐させます。
+- [メッセージのパーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/overview): Jinja を使用してトレイトの値をコンテンツに挿入します。
+- [Data](/ja/user-guide/data/key-concepts/overview-data): これらのトレイトの基盤となるイベントデータを MoEngage が収集・管理する方法です。

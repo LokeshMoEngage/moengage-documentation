@@ -1,0 +1,205 @@
+---
+title: "ネイティブブラウザ API サポート"
+description: "ネイティブブラウザ API をパッチまたはオーバーライドするアプリケーションで、MoEngage Web SDK のネイティブブラウザ API サポートを統合します。"
+---
+
+## 概要
+
+<Note>
+  ネイティブブラウザ API サポートには、MoEngage Web SDK バージョン `2.77.03` 以降が必要です。アプリケーションに統合されている MoEngage Web SDK のバージョンと互換性のあるネイティブブラウザ API サポートスクリプトのバージョンを使用してください。
+</Note>
+
+## 統合
+
+ネイティブブラウザ API サポートを有効にするには、次の手順を実行します。
+
+### ステップ 1: ネイティブブラウザ API サポートスクリプトを追加する
+
+次のスクリプトをアプリケーションに追加します。
+
+MoEngage では、このスクリプトをできるだけ早い段階で読み込むことを推奨しています。ブラウザ API をパッチする可能性のあるアプリケーションスクリプトやサードパーティライブラリよりも前に、ページの `<head>` セクションで読み込むのが理想的です。
+
+```html HTML
+<script src="https://cdn.moengage.com/release/{DATA_CENTER}/versions/latest/moe_webSdk_native_methods.min.latest.js"></script>
+```
+
+`{DATA_CENTER}` を MoEngage のデータセンターに置き換えます。
+
+スクリプトを特定の SDK バージョンに固定するには、URL 内の `latest` を最新のバージョン番号に置き換えます。
+
+<Warning>
+  ネイティブブラウザ API サポートスクリプトは、ネイティブブラウザ API をパッチするコードよりも前に読み込む必要があります。API がパッチされた後にスクリプトが読み込まれると、元のブラウザ実装ではなく、パッチ済みの実装を取得してしまう可能性があります。
+</Warning>
+
+### ステップ 2: ネイティブブラウザ API サポートを有効にする
+
+MoEngage Web SDK の初期化時に `nativeMethodsUsed` を `true` に設定します。
+
+```javascript JavaScript
+Moengage = moe({
+  appId: moeAppID,
+  projectId: "your_projectId",
+  nativeMethodsUsed: true
+});
+```
+
+<Note>
+  初期化時に `nativeMethodsUsed` を `true` に設定せずにネイティブブラウザ API サポートスクリプトを読み込んだ場合、Web SDK は保持されたネイティブブラウザ API を使用できません。
+</Note>
+
+## Angular アプリケーションのセットアップ
+
+Angular は、ネイティブブラウザ API が一般的にパッチされるフレームワークの一例です。Zone.js を使用する Angular アプリケーションは、非同期処理を追跡して変更検知をトリガーするために、`Promise`、`setTimeout`、`setInterval`、`MutationObserver` などのブラウザ API をパッチします。
+
+このようなアプリケーションでは、次の読み込み順序でネイティブブラウザ API サポートを有効にすることを推奨しています。
+
+1. ネイティブブラウザ API サポートスクリプト
+2. Zone.js
+3. Angular アプリケーションスクリプト
+4. `nativeMethodsUsed: true` を指定した MoEngage Web SDK の初期化
+
+ネイティブブラウザ API サポートスクリプトは、Zone.js および Angular よりも前に `<head>` セクションで読み込みます。
+
+```html HTML
+<head>
+  <script src="https://cdn.moengage.com/release/{DATA_CENTER}/versions/latest/moe_webSdk_native_methods.min.latest.js"></script>
+
+  <!-- Zone.js, Angular, and other application scripts should be loaded after this script -->
+</head>
+```
+
+`nativeMethodsUsed` を `true` に設定して MoEngage Web SDK を初期化します。
+
+```javascript JavaScript
+Moengage = moe({
+  appId: moeAppID,
+  projectId: "your_projectId",
+  nativeMethodsUsed: true
+});
+```
+
+## 読み込み順序の要件
+
+ネイティブブラウザ API サポートを期待どおりに動作させるには、次の順序でスクリプトを読み込みます。
+
+1. ネイティブブラウザ API サポートスクリプト
+2. ブラウザ API をパッチする可能性のあるフレームワークまたはサードパーティスクリプト
+3. `nativeMethodsUsed: true` を指定した MoEngage Web SDK の初期化
+
+ネイティブブラウザ API サポートスクリプトがパッチを行うライブラリの後に読み込まれた場合、元のブラウザ実装を取得できない可能性があります。
+
+## ネイティブブラウザ API サポートを使用しない場合の動作
+
+アプリケーションがネイティブブラウザ API をパッチしていない場合、影響はありません。ただし、アプリケーションまたはサードパーティライブラリがネイティブブラウザ API をパッチしており、ネイティブブラウザ API サポートが有効になっていない場合、MoEngage Web SDK はそれらの API のパッチ済み実装を使用する可能性があります。
+
+その結果、SDK の動作が不安定になったり、タイミングに関連する問題が発生したりする場合があります。
+
+**考えられる症状:**
+
+- SDK の初期化に想定以上の時間がかかる
+- SDK のコールバックが遅延する、または想定どおりに呼び出されない
+- アプリ内メッセージが確実に表示またはトリガーされない
+- プッシュのオプトインまたはサブスクリプションのフローが不安定に動作する
+- イベントが想定どおりにキューに入れられない、処理されない、または送信されない
+- 特定のフレームワークや環境でのみ発生する動作がある
+- プレーンな JavaScript 環境と実際のアプリケーション環境とで SDK の動作が異なる
+
+<Note>
+  この問題は、ブラウザコンソールに特定の MoEngage エラーを必ずしも出力するとは限りません。多くの場合、開発者は明確な JavaScript エラーではなく、SDK の不安定な動作を観察することになります。
+</Note>
+
+## ネイティブブラウザ API サポートを使用するケース
+
+ネイティブブラウザ API サポートは、次のような場合に推奨されます。
+
+- アプリケーションが非同期ブラウザ API をパッチするフレームワークまたはライブラリを使用している場合 (例: Zone.js を使用する Angular アプリケーション)。[Angular アプリケーションのセットアップ](#angular-application-setup)を参照してください。
+- アプリケーションのフレームワーク内でのみ SDK の動作が不安定な場合。[ネイティブブラウザ API サポートを使用しない場合の動作](#behavior-without-native-browser-api-support)を参照してください。
+- シンプルなテストページでは SDK が期待どおりに動作するものの、本番アプリケーションでは異なる動作をする場合。
+- ブラウザのコンソールログやスタックトレースに、タイマー、Promise、または DOM オブザーバーのラッパーへの参照が表示される場合。
+
+
+## 仕組み
+
+ネイティブブラウザ API サポートスクリプトは、次の処理を行います。
+
+1. サポート対象 API の元のブラウザ実装を取得します。
+2. アプリケーションまたはサードパーティのコードが変更する前に、これらの実装を保存します。
+3. `nativeMethodsUsed` が有効な場合に、MoEngage Web SDK が保存された実装を内部で使用できるようにします。
+
+これにより、フレームワークレベルまたはサードパーティによるパッチが MoEngage Web SDK の機能に与える影響を軽減します。
+
+## トラブルシューティング
+
+### ネイティブブラウザ API サポートを有効にした後も SDK の動作が不安定な場合
+
+次の点を確認してください。
+
+- ネイティブブラウザ API サポートスクリプトが、ブラウザ API をパッチするライブラリよりも前に読み込まれていること。[ステップ 1](#step-1-add-the-native-browser-api-support-script) を参照してください。
+- SDK の初期化時に `nativeMethodsUsed` が `true` に設定されていること。[ステップ 2](#step-2-enable-native-browser-api-support) を参照してください。
+- スクリプトのバージョンが Web SDK のバージョンと互換性があること。
+- スクリプトが Content Security Policy、広告ブロッカー、またはネットワーク制限によってブロックされていないこと。
+- スクリプトの URL で正しい MoEngage データセンターと SDK バージョンが使用されていること。
+
+### スクリプトは読み込まれているが SDK がネイティブブラウザ API を使用していない場合
+
+[ステップ 2](#step-2-enable-native-browser-api-support) の説明に従い、SDK が `nativeMethodsUsed: true` で初期化されていることを確認してください。
+
+サポートスクリプトだけではこの機能は有効になりません。Web SDK は、この設定が有効な場合にのみ、保持されたネイティブブラウザ API を使用します。
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="すべての Web サイトでネイティブブラウザ API サポートが必要か">
+    いいえ。ネイティブブラウザ API サポートはすべての Web サイトで必要なわけではありません。ネイティブブラウザ API がパッチまたはオーバーライドされているアプリケーションを対象としています。この機能を有効にすべきかどうかについては、[ネイティブブラウザ API サポートを使用するケース](#when-to-use-native-browser-api-support)を参照してください。
+  </Accordion>
+
+  <Accordion title="アプリケーションの動作への影響">
+    いいえ。この機能は、MoEngage Web SDK が保持されたブラウザ API を内部で使用できるようにするものです。アプリケーションのロジックを変更することはありません。
+  </Accordion>
+
+  <Accordion title="機能が有効になっていない場合のブラウザコンソールエラー">
+    いいえ。特定のブラウザコンソールエラーが表示されない場合があります。代わりに、開発者は SDK の不安定な動作を観察することがあります。詳細については、[ネイティブブラウザ API サポートを使用しない場合の動作](#behavior-without-native-browser-api-support)を参照してください。
+  </Accordion>
+
+  <Accordion title="パッチを行うライブラリの後にサポートスクリプトを読み込む場合">
+    いいえ。サポートスクリプトは、ネイティブブラウザ API をパッチするスクリプトよりも前に読み込む必要があります。そのようなスクリプトの後に読み込まれた場合、元のブラウザ実装ではなく、すでにパッチされた実装を取得してしまう可能性があります。正しい読み込み順序の例については、[Angular アプリケーションのセットアップ](#angular-application-setup)を参照してください。
+  </Accordion>
+
+  <Accordion title="サポートスクリプトなしで nativeMethodsUsed を有効にする場合">
+    いいえ。`nativeMethodsUsed` は、ネイティブブラウザ API サポートスクリプトが正しく読み込まれている場合にのみ有効にしてください。[ステップ 1](#step-1-add-the-native-browser-api-support-script) および[ステップ 2](#step-2-enable-native-browser-api-support) を参照してください。
+  </Accordion>
+
+  <Accordion title="この機能で保持される API">
+    この機能は、MoEngage Web SDK が使用する次のようなサポート対象のネイティブブラウザ API を保持します。
+
+    - `Promise`
+    - `setTimeout`
+    - `clearTimeout`
+    - `setInterval`
+    - `clearInterval`
+    - `MutationObserver`
+  </Accordion>
+</AccordionGroup>
+
+## 実装例
+
+```html HTML
+<!DOCTYPE html>
+<html>
+  <head>
+    <script src="https://cdn.moengage.com/release/{DATA_CENTER}/versions/latest/moe_webSdk_native_methods.min.latest.js"></script>
+
+    <!-- Load framework and application scripts after this script -->
+  </head>
+
+  <body>
+    <script>
+      Moengage = moe({
+        appId: moeAppID,
+        projectId: "your_projectId",
+        nativeMethodsUsed: true
+      });
+    </script>
+  </body>
+</html>
+```

@@ -1,0 +1,362 @@
+---
+title: "ファイルインポートを設定する"
+description: "Amazon S3 または SFTP サーバー上のファイルから、ユーザー、イベント、補助データを MoEngage に自動でインポートします。ファイルを準備し、列をマッピングし、同期をスケジュールします。"
+keywords: "file import, Amazon S3, SFTP, CSV, JSON, NDJSON, mapping file, manifest, naming conventions, file size limit, rate limit, PGP"
+---
+
+import MappingFileConcept from '/ja/snippets/imports-mapping-file-concept.mdx';
+import DatetimeFormats from '/ja/snippets/imports-datetime-formats.mdx';
+import UniversalImportFaqs from '/ja/snippets/imports-faq-universal.mdx';
+import FileImportFaqs from '/ja/snippets/imports-faq-file.mdx';
+import PortfolioRouting from '/ja/snippets/imports-portfolio-routing.mdx';
+import ArraySupport from '/ja/snippets/imports-array-support.mdx';
+import ReachabilityNote from '/ja/snippets/imports-reachability-note.mdx';
+import PgpEncryption from '/ja/snippets/imports-pgp-encryption.mdx';
+import DataArchival from '/ja/snippets/imports-data-archival.mdx';
+
+MoEngage は、Amazon S3 バケットまたは SFTP サーバーに配置したファイルから、ユーザー、イベント、補助データのインポートを自動化します。ファイルを準備し、接続と列マッピングを一度設定するだけで、MoEngage が 1 回限りまたは定期的なスケジュールで新しいファイルを取得します。
+
+以下のタブ付きセクションのいずれかでソースを選択すると、ページ全体でそのソースが選択された状態が維持されます。
+
+# インポートの種類
+
+MoEngage は、ファイルから以下をインポートできます。
+
+- **登録済みユーザー**：MoEngage にすでに登録されているユーザー。
+- **匿名ユーザー**：MoEngage にまだ登録されていないユーザー。
+- **イベント**（標準およびユーザー定義）：Campaign Interaction Events などの標準イベントと、独自のユーザー定義イベント。
+- **補助データ**：一時的に取り込まれる補足的なユーザーデータ。補助データには独自の設定があります。[補助データ](/ja/user-guide/data/imports/auxiliary-data)を参照してください。
+
+# ファイルを準備する
+
+## サポートされるファイル形式
+
+MoEngage は、UTF-8 エンコーディングの **CSV** および **NDJSON** ファイルをサポートしています。
+
+| ファイル形式 | ユーザー | イベント | 補助データ |
+| --- | :---: | :---: | :---: |
+| CSV | ✅ | ✅ | ✅ |
+| JSON (NDJSON) | ✅ | ✅ | ❌ |
+
+## 命名規則
+
+MoEngage がインポートの種類と実行日を識別できるように、ファイルに名前を付けます。
+
+<Info>
+  すべてのファイルに一意の名前を付けてください。MoEngage は、以前のインポートが成功、部分的に成功、または失敗したかにかかわらず、すでに処理したファイル名をスキップします。
+</Info>
+
+ファイル名は `<import type>_<date time format>.<file extension>` の 2 つの部分で構成されます。
+
+- **登録済みユーザー**：プレフィックス `registered_user_data_`。例：`registered_user_data_01311997.csv`。
+- **匿名ユーザー**：プレフィックス `anonymous_user_data_`。例：`anonymous_user_data_jan_2022.csv`。
+- **イベント**：プレフィックス `<event name>_`。例：イベント "Purchase Summary" の場合、`Purchase_Summary_31011997.csv`。
+
+MoEngage は、`<custom name>_<date time format>.<file extension>` に従うカスタムファイル名もサポートしています。カスタム名には、英字、数字、スペース、アンダースコアを使用できます。
+
+`<date time format>` サフィックスは、インポートが実行される日を表します。たとえば、インポートが 2022 年 1 月 7 日に実行され、選択された形式が `ddmmyyyy` の場合、MoEngage は `07012022.csv` または `07012022.json` で終わるファイルを探します。形式は設定時にダッシュボードで構成します。サポートされる形式は以下のとおりです。
+
+| 形式 | 説明 | 例 |
+| --- | --- | --- |
+| `{mm}_{yyyy}` | `mm`：月 01～12、`yyyy`：4 桁の年 | `01_2022` |
+| `{ddmmyyyy}` | `dd`：日 01～31、`mm`：月 01～12、`yyyy`：4 桁の年 | `31012022` |
+| `{yyyymmdd}` | `yyyy`：4 桁の年、`mm`：月 01～12、`dd`：日 01～31 | `20220112` |
+| `{mon_yyyy}` | `mon`：小文字 3 文字の月（`jan`～`dec`）、`yyyy`：4 桁の年 | `jan_2022` |
+| `{yyyymmdd}_{hhmm}` | 日付は上記と同じ、`hh`：時 00～23、`mm`：分 00～59 | `20220131_1259` |
+
+<Info>
+  イベント、イベント属性、ユーザー属性のプレフィックスとして `moe_` を使用しないでください。これは予約済みのシステムプレフィックスです。
+</Info>
+
+**ファイル拡張子：**
+
+- 暗号化なし：`.csv`、`.json`
+- PGP 暗号化あり：`.csv.asc`、`.json.asc`、`.csv.pgp`、`.json.pgp`
+
+## ファイル構造
+
+インポートするファイル形式に応じてファイルを構成します。
+
+<Tabs>
+  <Tab title="CSV ファイル">
+    - 最初の行は列名である必要があります（ヘッダー行として扱われます）。
+    - 列名の重複（名前は大文字と小文字を区別します）や列名の欠落があってはなりません。
+    - 区切り文字としてサポートされるのはカンマ（`,`）のみです。
+    - 空の行は避けてください。
+    - 属性タイプ _list_ およびその他の複合型（JSON、辞書など）。
+    - CSV ファイルの複数行サポートは、デフォルトで無効になっています。この機能が必要な場合は、サポートにお問い合わせください。`Ctrl+M` や `\r` など、`\n` 以外の改行形式はサポートされていません。複数行サポートを有効にすると、インポートの処理速度に悪影響を与える可能性があります。
+
+    サンプルファイル：[登録済みユーザー](https://uploads-samples-cdn.moengage.com/registered_user_data.csv)、[匿名ユーザー](https://uploads-samples-cdn.moengage.com/anonymous_user_data.csv)、[イベント](https://uploads-samples-cdn.moengage.com/sample_event.csv)、[マッピングファイル](https://uploads-samples-cdn.moengage.com/upload_mapping.json)。
+  </Tab>
+  <Tab title="JSON ファイル">
+    JSON ファイルは、`.json` 拡張子を持つ改行区切り JSON（NDJSON）である必要があります。各行は、改行で区切られた完全で自己完結型の JSON オブジェクトです。
+
+    ```json wrap
+    {"user_id": "user123", "name": "John Doe", "email": "john.doe@example.com", "address": {"city": "New York", "zip": "10001"}}
+    {"user_id": "user124", "name": "Jane Smith", "email": "jane.smith@example.com", "preferences": ["email_updates", "sms_alerts"]}
+    ```
+
+    サンプルファイル：[登録済みユーザー](https://app-cdn.moengage.com/partners-integration-ui/app-marketplace-public/helpdoc/registered_user_data.json)、[匿名ユーザー](https://app-cdn.moengage.com/partners-integration-ui/app-marketplace-public/helpdoc/anonymous_user_data.json)、[イベント](https://app-cdn.moengage.com/partners-integration-ui/app-marketplace-public/helpdoc/sample_event.json)、[マッピングファイル](https://app-cdn.moengage.com/partners-integration-ui/app-marketplace-public/helpdoc/upload_mapping.json)。
+
+    #### ファイル構造と JSON レベルのマッピング
+
+    JSON ファイルをアップロードまたは選択すると、MoEngage はデータのフラット化された表形式のプレビューを生成します。このプレビューでは、2 レベルの深さ（ルートレベル + 1 つのネストレベル）までのキーが個別の列として表示されます。
+
+    ```json
+    {
+      "item-id": 123,
+      "item-type": "books",
+      "item-cost": {
+        "amount": {
+          "cost-price": 100,
+          "discount": 0
+        },
+        "currency": "USD"
+      }
+    }
+    ```
+
+    | キー | レベル | マッピング可能か |
+    | --- | --- | --- |
+    | `item-id`, `item-type` | 1 | 属性に直接マッピング可能。 |
+    | `item-cost` | 1（オブジェクト） | オブジェクト全体としてマッピング可能。 |
+    | `item-cost.amount` | 2（オブジェクト） | オブジェクト全体としてマッピング可能。 |
+    | `item-cost.currency` | 2 | 属性に直接マッピング可能。 |
+    | `cost-price`, `discount` | 3 | 不可。2 レベルより深いため。 |
+
+    #### マッピング機能
+
+    - **プリミティブキーのマッピング**：レベル 1 またはレベル 2 の任意のプリミティブキーを、標準の MoEngage 属性に直接マッピングできます。
+    - **オブジェクト全体またはオブジェクトの配列のマッピング**：完全な JSON オブジェクトまたはオブジェクトの配列を、それぞれ "Object" または "Array of Objects" タイプの単一の MoEngage 属性にマッピングできます。オブジェクト全体をマッピングすると、その内部構造とすべてのネストされたキーが保持されてインポートされます。MoEngage 内でこれらのキーの名前を変更することはできません。
+    - **フィールドの個別選択**：親オブジェクト全体ではなく、オブジェクトの特定のプリミティブフィールド（レベル 2 まで）のみをマッピングするには、マッピングテーブルで親オブジェクト属性をスキップしてから、ネストされた個々のプリミティブキーをマッピングします。
+    - **マッピングファイル**：マッピングファイルを使用して、JSON キーのマッピングを自動化できます。マッピングファイルは、フラット化された JSON パスを参照します（例：`"column": "user_profile.id"`）。
+
+    #### マッピングの制限
+
+    **オブジェクトの配列内のレベル 2 キー**：オブジェクトの配列内にネストされた個々のレベル 2 キーを直接マッピングすることはできません。オブジェクトの配列全体を "Array of Objects" 属性にマッピングすることは可能で、その場合はネストされた構造全体がインポートされます。
+
+    #### データ取り込み時の動作
+
+    - **null または空の文字列**：マッピングされたキーの値が null または空の文字列の場合、MoEngage はそれをスキップし、対応するデータを更新しません。
+    - **マッピングされていない/スキップされたキー**：JSON ファイル内の追加のキーのうち、マッピングもスキップ指定もされていないものは無視され、取り込まれません。
+  </Tab>
+</Tabs>
+
+<Info>
+  MoEngage は、配列以外の列での `|`（パイプ）文字をサポートしていません。String、Numeric、Boolean の列にこの文字が含まれていないことを確認してください。
+</Info>
+
+## フォルダ構造
+
+すべてのファイルを 1 つのフォルダに配置し、設定時にフォルダパスを構成します。MoEngage はサブフォルダやルートフォルダ内を参照しません。
+
+## 配列のサポート（CSV）
+
+<ArraySupport />
+
+# 制限
+
+ファイルインポートには以下の制限があります。
+
+<DataArchival />
+
+| 制限 | 値 |
+| --- | --- |
+| ファイルサイズ | CSV/JSON ファイルあたり 500 MB 未満。これより大きいファイルは分割してください。 |
+| 行数 | 1 つの CSV または JSON ファイルは、1 時間あたりの行数制限までサポートします。1 時間あたりの行数制限を超えるファイルは拒否されます。 |
+| 列/属性 | ユーザーは 100 列、イベントはイベントあたり 100 列。 |
+| ファイル名のプレフィックス | 最大 100 文字。 |
+| ファイル数 | インポート実行あたり最大 250 ファイル。 |
+
+**レート制限**（デフォルト値。引き上げについては MoEngage にお問い合わせください）：
+
+| インポートの種類 | 1 時間あたり | 1 日あたり |
+| --- | --- | --- |
+| ユーザー | 600K/時 | 14M/日 |
+| イベント | 5M/時 | 40M/日 |
+
+1 時間あたりのレートは 1 時間に取り込まれる最大数、1 日あたりのレートは 1 日の合計上限です。レート制限を超えると、Data Imports ダッシュボードに _Rate limit breached_ アラートが表示されます。
+
+<Tip>
+  非常に多数のファイルを同時にスケジュールすることは避けてください。個々のファイルが小さくても、処理のバックログが発生し、取り込みが遅れる可能性があります。多数のファイルをまとめてキューに入れるのではなく、スケジュールされたインポートを時間をずらすか、バッチに分けて実行してください。
+</Tip>
+
+# 必要なアクセス権と接続
+
+インポートを作成する前に、MoEngage にソースへのアクセス権を付与します。
+
+<Tabs>
+  <Tab title="Amazon S3">
+    MoEngage に S3 バケットへの読み取りアクセス権を付与し、App Marketplace で接続を設定します。IAM 権限と接続の設定については、[認証を設定する](/ja/partner-guide/data-and-analytics/cloud-storage/amazon-s3#step-1-set-up-authentication)、[権限を付与する](/ja/partner-guide/data-and-analytics/cloud-storage/amazon-s3#step-2-grant-permissions)、および [App Marketplace で Amazon S3 を接続する](/ja/partner-guide/data-and-analytics/cloud-storage/amazon-s3#step-3-connect-amazon-s3-on-the-app-marketplace)を参照してください。
+  </Tab>
+  <Tab title="SFTP">
+    App Marketplace で、適切な権限を持つ [SFTP 接続](https://partners.moengage.com/hc/en-us/articles/26763225201172-SFTP#01H7YCB0T78V73YJSY4Y8A8X0S)を設定します。詳細については、[新しい SFTP 接続を構成する](https://partners.moengage.com/hc/en-us/articles/26763225201172-SFTP#h_01JFHD1Q8VFS8SCBZZWCERE7Z2)を参照してください。
+  </Tab>
+</Tabs>
+
+# インポートを設定する
+
+インポートは 3 つのステップで設定します。接続とファイル形式を構成し、列を MoEngage 属性にマッピングし、インポート頻度を選択します。
+
+<Info>
+  左側のナビゲーションに **Data** メニューが表示されない場合は、MoEngage カスタマーサクセスチームに連絡して有効にしてください。
+</Info>
+
+MoEngage のサイドバーで **Data** > **Data imports** に移動し、**+ Import** をクリックして、**Users** または **Events** を選択します。次に、ソースのタイルを選択して **Continue** をクリックします。
+
+## ステップ 1：接続とファイル形式を構成する
+
+**Registered users** と **Anonymous users** のどちらをインポートするかを選択するか（ユーザーインポートの場合）、インポートするイベントを選択します（イベントインポートの場合）。登録済みユーザーと匿名ユーザーのインポートでは、想定されるファイル名が異なります。[命名規則](#naming-conventions)を参照してください。
+
+イベントの場合、ファイル名は選択したイベントのイベント名で始まる必要があります。たとえば、イベント "App/Site Opened" のイベント名は `MOE_APP_OPENED` であるため、ファイル名は `MOE_APP_OPENED_` で始まります。新しいイベントを作成するには、**+ Create event** をクリックして一意の名前を入力します。新しいイベントは、最初のインポートが成功した後にのみアプリに表示されます。
+
+次に、接続とフォルダを構成します。
+
+<Tabs>
+  <Tab title="Amazon S3">
+    1. **S3 connection** リストで接続を選択します（または **+ Add connection** をクリックします）。
+    2. **File type** リストで **CSV** または **JSON** を選択します。
+    3. **Folder path** ボックスにディレクトリパスを入力します。MoEngage はマーケットプレイスの接続からバケット名を解決するため、バケット名や末尾のスラッシュは含めないでください。
+    4. PGP で暗号化されたファイルをインポートするには、**Is your file encrypted?** を選択し、秘密の **Decryption Key**、任意の公開 **Signing Key**、および **Key passphrase** を入力します。
+
+    <img src="/images/s3-imports-select-connection.png" alt="S3 接続、ファイル形式、フォルダパス、暗号化のオプション" />
+  </Tab>
+  <Tab title="SFTP">
+    1. **SFTP connection** リストで接続を選択します（または **+ Add connection** をクリックします）。
+    2. **Folder URL** ボックスに、`sftp://[host-name]/` で始まる完全なパスを末尾のスラッシュなしで入力します（例：`sftp://files.hostname.com/my_folder`）。MoEngage はルートフォルダやサブフォルダをサポートしていないため、すべてのファイルを 1 つのフォルダに保存してください。
+    3. PGP で暗号化されたファイルをインポートするには、**Is your file encrypted?** を選択し、秘密の **Decryption Key**、任意の公開 **Signing Key**、および **Key passphrase** を入力します。
+
+    <img src="/images/moengage_84ac18.png" alt="SFTP 接続、フォルダ URL、暗号化のフィールド" />
+  </Tab>
+</Tabs>
+
+ダッシュボードでこのインポートを識別するための一意の **Import name** を入力します。
+
+<Accordion title="PGP 暗号化を設定する">
+  <PgpEncryption />
+</Accordion>
+
+### ファイルの構成
+
+ファイル名に含まれる DateTime 形式を選択します（ファイル名は `_<date time format>.csv` で終わる必要があります）。フォルダ内に一致するファイルが少なくとも 1 つ存在することを確認してから、**Fetch file(s)** をクリックします。接続と形式が正しい場合、MoEngage は上位 5 行のプレビューを表示します。
+
+MoEngage がファイルを取得できない場合、以下のメッセージが表示されることがあります。
+
+<Tabs>
+  <Tab title="Amazon S3">
+    - **Given S3 Access Key is not valid**：S3 マーケットプレイス接続の詳細を確認してください。
+    - **Please check the folder path and try again**：フォルダパスと、そのフォルダに互換性のあるファイルが存在することを確認してください。
+    - **Found zero data rows in the file**：ファイルのヘッダーの後に行がありません。MoEngage は少なくとも 2 行（ヘッダー 1 行 + データ 1 行）を想定しています。
+  </Tab>
+  <Tab title="SFTP">
+    - **Given credentials are not correct**：正しい SFTP 認証情報を入力して、再度取得してください。
+    - **Please check the folder path and try again**：フォルダパスと、そのフォルダに互換性のあるファイルが存在することを確認してください。
+    - **Found zero data rows in the file**：ファイルのヘッダーの後に行がありません。MoEngage は少なくとも 2 行（ヘッダー 1 行 + データ 1 行）を想定しています。
+  </Tab>
+</Tabs>
+
+**Next** をクリックしてマッピングに進みます。
+
+## ステップ 2：列を MoEngage 属性にマッピングする
+
+各ファイル列を MoEngage 属性にマッピングします。各列には、サンプル値付きの列名、**Map attribute** セレクター（データ型を選択し、DateTime 列の場合は形式も選択）、および **Skip** アクションが表示されます。新しい属性を作成するには、**+ Create attribute** をクリックします。**+ Add Field** をクリックして、マッピングを手動で入力することもできます。
+
+必須のマッピングは、インポートの種類によって異なります。
+
+- **ユーザーインポート（登録済み）**：識別子の列を **User ID** にマッピングします。[Unified Identity](/ja/user-guide/data/user-data/unified-identity-identity-resolution) が有効になっている場合は、追加の識別子もマッピングするオプションがあります。
+- **ユーザーインポート（匿名）**：識別子の列を **Anonymous ID** にマッピングします。
+- **イベントインポート**：識別子の列を **User ID** に、タイムスタンプの列を **Event Time** にマッピングします。
+
+<Tabs>
+  <Tab title="Amazon S3">
+    イベントの場合は、**Event Time (UTC)** または **Event Time (App Timezone)** のいずれかをマッピングします。Event Time (UTC) を選択した場合、イベント時刻は MoEngage ダッシュボードの設定で構成されたタイムゾーンに変換されます。
+  </Tab>
+  <Tab title="SFTP">
+    イベントの場合は、**Event Time (UTC)** または **Event Time (App Timezone)** のいずれかをマッピングします。Event Time (UTC) を選択した場合、イベント時刻は MoEngage ダッシュボードの設定で構成されたタイムゾーンに変換されます。
+  </Tab>
+</Tabs>
+
+必須のマッピングが設定されると、その列をスキップすることはできなくなります。
+
+### マッピングファイル
+
+必要に応じて、マッピングファイルをアップロードして列を自動マッピングできます。マッピングテーブルの右上にある **Upload mapping file** をクリックし、ファイルを選択します。マッピングは自動的に構成され、マッピングファイルで参照されているがまだ存在しない属性を作成するためのモーダルが表示されます。マッピングファイルにあってファイルにない列は無視され、ファイルにあってマッピングファイルにない列は、手動マッピング用に空欄のまま残されます。
+
+新規インポートの場合、MoEngage は参考として使用できるサンプルマッピングファイルを提供しています。既存のインポートを複製した場合、そのマッピングファイルがあらかじめ添付されており、ダウンロードできます。マッピングファイルで MoEngage に存在しない属性に列がマッピングされている場合、そのマッピングは空欄のまま残されます。まず UI から属性を作成してから、列をその属性にマッピングしてください。
+
+<MappingFileConcept />
+
+### ポートフォリオのサポート（プロジェクトレベルのルーティング）
+
+<PortfolioRouting />
+
+### ファイルセグメントとして保存する
+
+**Save as File Segment** をオンにして名前を入力すると、インポートしたユーザーからキャンペーンで使用できるセグメントが作成されます。
+
+- **既存のセグメント**：ユーザーは追加モードで追加されます。新しいユーザーが追加され、削除されるユーザーはいません。
+- **新しいセグメント**：更新モードを選択します。**Replace**（各インポートでセグメントのユーザーが完全に置き換えられます）または **Append**（各インポートでユーザーが追加され、削除されるユーザーはいません）。
+
+<Warning>
+  ファイルセグメント名に `/` や Unicode 文字を使用しないでください。使用するとインポートが失敗します。
+</Warning>
+
+### インポートの動作
+
+ユーザーインポートの場合、**Import Behaviour** で **Update existing users only** を選択すると、MoEngage にすでに存在するユーザーの属性を一括更新できます。このインポートでは MoEngage は新しいユーザーを作成せず、識別子が MoEngage にまだ存在しない行は無視されます。
+
+### インポート通知を送信する
+
+通知をオンにし、インポートの作成時、成功時、または失敗時にアラートを受け取る**メール受信者を最大 10 人**選択します。マッピングが完了したら、**Next** をクリックします。
+
+## ステップ 3：インポート頻度を選択する
+
+MoEngage がファイルを取得するタイミングを定義します。
+
+- **1 回限りのインポート**：すぐに実行するか、将来の日時にスケジュールします。
+- **定期的なインポート**：間隔と詳細設定を指定して、毎時、毎日、毎週、または毎月実行します。
+
+各実行で、MoEngage は構成された DateTime 形式に一致するファイルを取得するため、ファイル名が正しいことを確認してください。必要に応じて、一定回数の実行後または特定の日付にインポートを終了するように設定できます。**Done** をクリックします。
+
+<ReachabilityNote />
+
+# 重複インポート
+
+一度に構成できる一意のインポートは 1 つのみです。以下の**すべて**が既存のアクティブなインポートと一致する場合、そのインポートは重複と見なされます。
+
+<Tabs>
+  <Tab title="Amazon S3">
+    1. **インポートの種類**：Users または Events。
+    2. **インポートのサブタイプ**：イベント名、または Registered / Anonymous。
+    3. **S3 フォルダパス**。
+    4. **バケット名**。
+  </Tab>
+  <Tab title="SFTP">
+    1. **インポートの種類**：Users または Events。
+    2. **インポートのサブタイプ**：イベント名、または Registered / Anonymous。
+    3. **SFTP フォルダパス**（ホスト名を含む完全なフォルダパス）。
+  </Tab>
+</Tabs>
+
+いずれか 1 つのパラメーターが異なる場合、そのインポートは一意です。
+
+# インポート失敗ポリシー
+
+MoEngage は、失敗したファイルを最大 30 回まで自動的に再試行してから、完全に FAILED としてマークします。設定時に、失敗時のメールアラートを構成できます。ファイルレベルの失敗によってスケジュールが停止することはなく、今後のスケジュールされた実行は独立して継続されます。
+
+# サポートされる日時形式
+
+これらは、マッピングファイルの `datetime_format` フィールドで使用するか、マッピング時に DateTime 列を構成する際に使用します。
+
+<DatetimeFormats />
+
+# インポートを管理する
+
+インポートの監視、インポートステータスの理解、または手動や API による実行のトリガーについては、Imports Overview の[インポートの仕組み](/ja/user-guide/data/imports/overview-imports#how-imports-work)を参照してください。
+
+# よくある質問
+
+<UniversalImportFaqs />
+
+<FileImportFaqs />
+

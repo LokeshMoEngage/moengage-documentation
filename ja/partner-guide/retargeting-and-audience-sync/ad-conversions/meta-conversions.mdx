@@ -1,0 +1,203 @@
+---
+title: "Meta Conversions"
+description: "MoEngageからMetaのConversions APIにWebおよびオフラインのコンバージョンイベントを送信し、アトリビューションと広告の最適化を改善します。"
+---
+
+# はじめに
+
+Meta Conversions連携は、MoEngageとMetaの間に安全なServer-to-Server（S2S）接続を確立します。Cookieの制限や広告ブロッカーなどのブラウザ側の障害の影響を軽減することで、より一貫性のある高精度なデータストリームを確保し、アトリビューションを改善します。
+
+MoEngageは、Metaに対して以下の個別のコネクタをサポートしています。
+
+- **Meta Web Conversions**: MoEngage Web SDKで取得したWebサイトイベント（購入、登録、Add to Cartなど）をMetaのサーバーに直接送信します。
+- **Meta Offline Conversions**: 価値の高いオフラインデータ（店舗での取引、CRMのリード、電話注文など）をMetaに直接同期し、オムニチャネルマーケティングの効果全体を測定します。
+
+## ユースケース
+
+Meta ConversionsをMoEngageと連携すると、イベントデータを同期して以下のユースケースに対応できます。
+
+- **シグナルの回復力**: 通常はブラウザのプライバシー設定や広告ブロックソフトウェアによってブロックされる「失われた」コンバージョンを回復します。
+- **オフラインからオンラインへのアトリビューション**: 実店舗での取引とデジタル広告のクリックの間のギャップを埋め、総ROIを測定します。
+- **広告費用対効果（ROAS）の最適化**: 高品質なリアルタイムデータをMetaの機械学習アルゴリズムに提供し、顧客獲得単価（CPA）を下げて広告配信を改善します。
+
+## 前提条件
+
+<Info>
+  **前提条件**
+
+  設定する前に、以下へのアクセス権があることを確認してください。
+
+  - Pixel ID : Conversions Appを使用するには、[Pixel ID⁠](https://www.facebook.com/business/help/952192354843755?id=1205376682832142)を取得する必要があります。Webサイト用にすでにPixelを設定している場合は、ブラウザイベントとサーバーイベントに同じPixel IDを使用することをお勧めします。
+  - Business Manager : [Business Manager](https://business.facebook.com/)も必要です。Business Managerをまだお持ちでない場合は、ヘルプセンターの記事「[Business Managerの作成方法](https://www.facebook.com/business/help/1710077379203657)」を参照してください。
+
+  Meta Conversionsは**Connected Channels**アドオンの一部です。アカウントで有効にするには、担当のMoEngage CSM（カスタマーサクセスマネージャー）にお問い合わせください。
+</Info>
+<Warning>
+  **サポートされるイベントタイプ**
+
+  - この連携は、**Web**および**オフライン**のコンバージョンイベントのみをサポートしています。
+  - **Business Messagingイベント**（例: Messenger、WhatsApp、Instagram Directから取得されたイベント）は、このアプリでは**サポートされていません**。
+</Warning>
+
+# 連携の設定
+
+## ステップ1: MetaからPixel IDを取得する
+
+接続する前に、Meta Events ManagerからPixel（Dataset）IDを取得します。
+
+### 1.1. 実装するPixelを選択する
+
+[Events Manager](https://business.facebook.com/events_manager2/list/dataset/187333913263269/overview?business_id=382201902342752)で、**Data Sources** > **Datasets and Pixels**に移動します。
+
+データセットを選択し、表示されたPixel IDをコピーします。
+
+![Meta Business Manager - Pixel ID](/images/partner_46241046266772.png)
+
+### 1.2. Settingsタブを選択する
+
+Pixelを選択したら、**Settings**タブに移動して設定オプションにアクセスします。
+
+![Pixelを選択したら、Settingsタブに移動して設定オプションにアクセスします](/images/partner_48774989703956.png)
+
+## ステップ2: Meta Events Managerからアクセストークンを生成する
+
+Events Manager内で、以下の手順に従います。
+
+![Events Manager内で、以下の手順に従います](/images/partner_48775002535444.png)
+
+トークンを取得したら、Events ManagerのOverviewタブにある**Manage Integrations**ボタンをクリックします。ポップアップ画面で、Conversions APIの横にある**Manage**ボタンをクリックします。これにより、Conversions APIアプリとConversions APIシステムユーザーが自動的に作成されます。*アプリを操作したり、権限を共有したりする必要はありません*。
+
+![トークンを取得したら、Events ManagerのOverviewタブにあるManage Integrationsボタンをクリックします。](/images/partner_48775002536596.png)
+
+<Warning>
+  **注意:**
+  **Generate access token**
+  リンクは、ビジネスの開発者権限を持つユーザーにのみ表示されます。
+  他のユーザーにはこのリンクは表示されません。
+
+  **重要:** 新しい
+  アクセス
+  トークンを生成した場合は、コネクタを使用する前に
+  MoEngageで必ず更新してください。
+</Warning>
+
+# キャンペーンの設定
+
+設定する連携タイプを選択します。Web ConversionsとOffline Conversionsはどちらも同じ認証情報を必要としますが、追跡するコンバージョンイベントの種類が異なります。
+
+<Tabs>
+  <Tab title="Web Conversions">
+    ## ステップ1: App MarketplaceでMeta Web Conversionsを接続する
+
+    App MarketplaceでMeta Web Conversionsを接続するには、以下の手順を実行します。
+
+    1. MoEngage UIの左側のナビゲーションメニューで、**App Marketplace**をクリックします。
+    2. **App Marketplace**ページで、**Meta Conversions**を検索します。
+    3. **Meta Conversions**タイルをクリックします。
+    4. **Meta Conversions**ページで、**Integrate**タブをクリックします。
+    5. (<img src="/images/partner_46241459747988.png" alt="ドロップダウン" className="inline-block" style={{ display: 'inline' }} />)下矢印キーをクリックし、**Track Web Conversions**をクリックします。
+    6. 以下の詳細を入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | **Connection name** | はい | 一意の内部名（例: Meta Web Conversions）。 |
+    | **Pixel ID** | はい | 一意のMeta Pixel ID。 |
+    | **Access Token** | はい | Meta Events Managerで生成したAccess Tokenを貼り付けます。 |
+
+    7. **Connect**をクリックして接続を保存します。
+       ![接続フォーム](/images/partner_48774989713428.png)
+
+    ## ステップ2: Meta Web Conversionsキャンペーンを作成する
+
+    Meta Web Conversionsキャンペーンを作成するには、以下の手順を実行します。
+
+    1. MoEngage UIの左側のナビゲーションメニューで、**Engage**をクリックし、**Campaigns**をクリックします。
+    2. **All campaigns**ページで、**+ Create campaign**をクリックします。
+    3. **Create campaign**ダイアログボックスの**Connected Apps**で、**Meta Conversions**をクリックし、最も適切な配信タイプをクリックします。
+    4. ステップ1（**Target Users**）で、オーディエンスを選択します。
+    5. ステップ2（**Content**）で、コネクタ（**Track Web Conversions**）と作成した接続を選択します。
+    6. **Conversion Details**で、以下のフィールドを設定します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | Event Type | はい | ドロップダウンから標準のMetaコンバージョンイベントを選択します。 |
+    | Event Source URL | はい | イベントが発生したブラウザのURL。検証済みドメインと一致している必要があります。例: 'https://example.com/checkout'。 |
+    | Event ID | いいえ | イベントの重複を避けるための、LeadやTransaction IDなどの一意のID。 |
+    | Conversion Value | いいえ | コンバージョンによって生み出された収益。 |
+    | Currency | いいえ | ドロップダウンから通貨コードを選択します |
+    | Click ID | いいえ | _fbcブラウザCookieに保存されたMeta Click ID。正確なアトリビューションのために強く推奨されます。ユーザープロファイルに取得されたMeta Click ID（`fbclid`）が、イベントと広告クリックの照合に使用されます。 |
+    | Client User Agent | いいえ | イベントに対応するブラウザのユーザーエージェント。**例:** Mozilla/5.0 (Windows NT 10.0; Win64; x64) |
+
+    **注意:** メールアドレスと電話番号のフィールドには、標準のMoEngageユーザー属性が自動的に入力されます。これらはユーザーのプライバシーを保護するため、送信前にSHA-256を使用して自動的にハッシュ化されます。
+
+    ![キャンペーンの設定](/images/partner_48774989714580.png)
+
+    7. これでキャンペーンをテストして送信する準備が整いました。*Test*機能を使用して、コネクタの設定をテストすることもできます。
+       ![キャンペーンのテスト](/images/partner_46242745219092.png)
+    8. 以下のようなメッセージが表示されれば、設定は完了です。
+    9. キャンペーンを公開します。
+
+    ![成功メッセージ](/images/partner_48774989715348.png)
+
+     <Warning> 
+     Webイベントのイベント時間の制限: イベント時間は、送信時点で**過去7日以内である必要があります**。リクエスト内のいずれかのイベントの時間が7日より古い場合、Metaは*リクエスト*を拒否し、イベントは一切処理されません。 
+     </Warning>
+  </Tab>
+  <Tab title="Offline Conversions">
+    ## ステップ1: App MarketplaceでMeta Offline Conversionsを接続する
+
+    App MarketplaceでMeta Offline Conversionsを接続するには、以下の手順を実行します。
+
+    1. MoEngage UIの左側のナビゲーションメニューで、**App Marketplace**をクリックします。
+    2. **App Marketplace**ページで、**Meta Conversions**を検索します。
+    3. **Meta Conversions**タイルをクリックします。
+    4. **Meta Conversions**ページで、**Integrate**タブをクリックします。
+    5. (<img src="/images/partner_46241459747988.png" alt="ドロップダウン" className="inline-block" style={{ display: 'inline' }} />) 下矢印キーをクリックし、**Track Offline Conversions**をクリックします。
+    6. 以下の詳細を入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | **Connection name** | はい | 一意の内部名（例: Meta Offline Conversions）。 |
+    | **Pixel ID** | はい | 一意のMeta Pixel（Dataset）ID。 |
+    | **Access Token** | はい | Meta Events Managerで生成したAccess Tokenを貼り付けます。 |
+
+    7. **Connect**をクリックして接続を保存します。
+       ![接続フォーム](/images/partner_48774989713428.png)
+
+    ## ステップ2: Meta Offline Conversionsキャンペーンを作成する
+
+    Meta Offline Conversionsキャンペーンを作成するには、以下の手順を実行します。
+
+    1. MoEngage UIの左側のナビゲーションメニューで、**Engage**をクリックし、**Campaigns**をクリックします
+    2. **All campaigns**ページで、**+ Create campaign**をクリックします。
+    3. **Create campaign**ダイアログボックスの**Connected Apps**で、**Meta Conversions**をクリックし、最も適切な配信タイプをクリックします。
+    4. ステップ1（**Target Users**）で、オーディエンスを選択します。
+    5. ステップ2（**Content**）で、コネクタ（**Track Offline Conversions**）と作成した接続を選択します。
+    6. **Conversion Details**で、以下のフィールドを設定します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | Event Type | はい | ドロップダウンから標準のMetaコンバージョンイベントを選択します。 |
+    | Event ID | いいえ | イベントの重複を避けるための、Transaction IDなどの一意のID。 |
+    | Conversion Value | いいえ | オフラインコンバージョンによって生み出された収益。 |
+    | Currency | いいえ | ドロップダウンから通貨コードを選択します |
+    | Order ID | いいえ | この取引のOrder IDまたはレシート番号。 |
+
+    **注意:** メールアドレスと電話番号のフィールドには、標準のMoEngageユーザー属性が自動的に入力されます。これらはユーザーのプライバシーを保護するため、送信前にSHA-256を使用して自動的にハッシュ化されます。
+
+    ![キャンペーンの設定](/images/partner_48774989717012.png)
+
+    7. これでキャンペーンをテストして送信する準備が整いました。*Test*機能を使用して、コネクタの設定をテストすることもできます。
+       ![キャンペーンのテスト](/images/partner_46242745219092.png)
+    8. 以下のようなメッセージが表示されれば、設定は完了です。
+    9. キャンペーンを公開します。
+
+    ![成功メッセージ](/images/partner_48774989715348.png)
+
+    <Warning>
+    オフラインイベントのイベント時間の制限
+    
+    **実店舗イベントの例外:** Offline Conversionを使用する場合、コンバージョン発生後**62日**まで取引を送信できます。
+    </Warning>
+  </Tab>
+</Tabs>

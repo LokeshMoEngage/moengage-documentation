@@ -1,0 +1,128 @@
+---
+title: "小売向けの Computed Traits"
+description: "オムニチャネル小売向けの Computed Traits のリファレンスです。各トレイトの計算方法、データソース、ビジネスユースケースを紹介します。"
+keywords: "computed traits, retail, omnichannel, loyalty, store visits, basket, coupons, seasonality, user attributes"
+---
+
+小売は、実店舗、アプリ、Web、マーケットプレイスにまたがっています。Computed Traits を使うと、それらすべてのシグナルを統合し、セグメンテーション、パーソナライズ、Flows の分岐に使用できるリアルタイムのユーザー属性に変換できます。エンジニアのサポートや CSV のアップロードは必要ありません。
+
+このページはメニューとしてご利用ください。各行には、何を作成するか、どの計算方法を選ぶか、必要なイベントデータ、ビジネス上の成果、活用方法が記載されています。
+
+Computed Traits を初めて使用する場合は、[Computed Traits - 概要](/ja/user-guide/data/computed-traits/computed-traits-overview)で Computed Traits の概要と各計算方法の仕組みを、[Computed Trait の作成](/ja/user-guide/data/computed-traits/create-a-computed-trait)で作成手順を確認してください。
+
+## Computed Traits の仕組み
+
+このページのすべてのトレイトは、同じ 4 ステップのモデルに従います。このモデルを理解すれば、以下の表をひと目で読み取れるようになります。
+
+<Steps>
+  <Step title="イベントから始める" icon="database">
+    Store Visit や Order Placed など、すでにトラッキングしているユーザー行動です。
+  </Step>
+  <Step title="計算方法を選ぶ" icon="calculator">
+    [Count、Aggregation、First/Last Value、または SQL](/ja/user-guide/data/computed-traits/computed-traits-overview#methods-of-computations) から選択します。
+  </Step>
+  <Step title="トレイトを取得する" icon="user-check">
+    Last Store Visited のように、自動的に更新されるリアルタイムの属性です。
+  </Step>
+  <Step title="活用する" icon="rocket">
+    セグメンテーション、分析、Jinja パーソナライズ、Flows で使用します。
+  </Step>
+</Steps>
+
+トレイトが実行されると、MoEngage のあらゆる場所で使用できる標準のユーザー属性になります。トレイトから[セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments)を作成したり、[分析](/ja/user-guide/analyze/moengage-analytics/overview)でグループ化やフィルタリングを行ったり、[Jinja パーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)でメッセージ本文に値を挿入したり、トレイトに基づいて [Flow](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows) を分岐させたりできます。
+
+<Tip>
+  **ここで紹介するトレイトのほとんどはノーコードで作成できます。** <Badge color="green">Count</Badge> <Badge color="green">Aggregation</Badge> および <Badge color="green">First/Last Value</Badge> の方法では SQL は不要です。<Badge color="purple">SQL</Badge> が必要になるのは、複数のイベントを組み合わせる複合スコアや、引き換え率や完了率などの比率を算出する場合のみです。このページのノーコードのトレイトはすべてご自身で作成できます。
+</Tip>
+
+## まずはここから
+
+最初に次の 3 つを作成しましょう。最も早く成果が得られ、キャンペーン間で最も再利用しやすいトレイトです。
+
+<CardGroup cols={3}>
+  <Card title="Last Store Visited" icon="store">
+    **Last Value** · 店舗ベースのマーケティングをすぐに実現できます。
+  </Card>
+  <Card title="Total Annual Spend" icon="coins">
+    **Aggregation** · ロイヤルティティアの割り当てを支えます。SQL は不要です。
+  </Card>
+  <Card title="Favorite Department" icon="shapes">
+    **Last Value** · すべてのカテゴリ別ニュースレターを動的にします。
+  </Card>
+</CardGroup>
+
+## 目的別にトレイトを探す
+
+<Info>
+  これらの表に記載されているイベント名とプロパティ名は例です。実際の名前はアプリのデータトラッキング方法によって異なるため、ここに記載されている `Store Visit` という名前のイベントが見つからない場合があります。トレイトを作成する前に **Data** でトラッキング済みのイベントとプロパティを確認し、不足しているものがあれば開発チームにトラッキングを依頼してください。トラッキングの仕組みについては、[イベントトラッキングの完全ガイド](/ja/user-guide/data/event-data/a-complete-guide-to-event-tracking)を参照してください。
+</Info>
+
+### 店舗とチャネル
+
+購入者がオンライン、店舗内、店舗の近くのいずれにいても、すべてのメッセージに適切なコンテキストを持たせます。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Last Store Visited | Last Value | **イベント:** `Store Visit`(ビーコンまたはレシートから取得)、**プロパティ:** `store_id` | 店舗でのオファー、在庫アラート、イベントへの招待をパーソナライズします。 | 店舗別のオファーを SMS またはプッシュで送信し、メールに店長からの挨拶を追加します。 |
+| Total Store Visits Last 30 Days | Count | **イベント:** `Store Visit` | 頻繁に来店する顧客に特典を提供し、来店が途絶えた顧客をウィンバックします。 | 3 回以上の来店でロイヤルティ特典を集中的に送信し、30 日間来店がない場合はウィンバックのプッシュを送信します。 |
+| Total Online Orders | Count | **イベント:** `Online Order Placed` | オンラインエンゲージメントのシンプルな指標です。 | 店舗での購入と組み合わせて、オンラインのみの購入者と店舗のみの購入者をセグメント化します。 |
+| Total Store Purchases | Count | **イベント:** `Store Purchase Completed` | オンライン注文を補完する店舗での購入指標です。 | オンライン注文と組み合わせて、各購入者のチャネル行動を導き出します。 |
+| Online vs. Offline Ratio | SQL Computation | `Online Orders` / (`Online Orders` + `Store Purchases`) | 真のオムニチャネル行動を捉える比率です。 | 店舗のみの購入者にはアプリを勧め、オンラインのみの購入者には店舗の利用を促します。 |
+| Preferred Shopping Time | Last Value | **イベント:** `Order Placed`、**プロパティ:** `hour_of_day` | 各購入者のリズムに合わせてメッセージのタイミングと人員配置を調整します。 | 送信時間のフォールバックとして使用し、ピーク時間帯のキャンペーンの前に店長に通知します。 |
+
+### カテゴリとバスケット
+
+毎月の CSV 更新なしで、マーチャンダイザーに購入者単位のアフィニティとバスケットのデータを提供します。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Favorite Department | Last Value | **イベント:** `Product Purchased`、**プロパティ:** `department`(Grocery、Apparel、Electronics、Home) | 売り場別のニュースレターとカテゴリのプロモーションをパーソナライズします。 | 売り場に応じてコンテンツブロックを切り替え、カテゴリのローンチメールを各購入者のアフィニティに合わせて絞り込みます。 |
+| Average Basket Size (Items) | Aggregation (Average) | **イベント:** `Order Placed`、**プロパティ:** `item_count` | まとめ買いをする購入者と、買い足しをする購入者を見分けます。 | まとめ買いをする購入者には複数購入割引を、買い足しをする購入者には利便性を訴求するメッセージを送信します。 |
+| Average Basket Value | Aggregation (Average) | **イベント:** `Order Placed`、**プロパティ:** `basket_value` | 送料無料や購入特典のしきい値をパーソナライズします。 | Jinja を使用して、購入者ごとに調整した「あと少しで送料無料」という動的なメッセージを表示します。 |
+| Distinct Categories Purchased | Aggregation (Count Distinct) | **イベント:** `Product Purchased`、**プロパティ:** `category` | 購入者がどれだけ幅広く購入しているかを明らかにします。 | ロイヤル顧客には深掘りしたニュースレターを、探索型の購入者には幅広いレコメンデーションのカルーセルを送信します。 |
+| Last Category Purchased | Last Value | **イベント:** `Product Purchased`、**プロパティ:** `category` | 購入直後のタイミングで関連カテゴリへのクロスセルを行います。 | 購入の 3 日後に、関連カテゴリのルールで絞り込んだクロスセルキャンペーンを実施します。 |
+
+### ロイヤルティとリワード
+
+リアルタイムのポイントとティアの属性を使用して、ロイヤルティプログラムをスプレッドシートでの管理業務から常時稼働のマーケティングに変えます。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Lifetime Loyalty Points Earned | Aggregation (Sum) | **イベント:** `Points Earned`、**プロパティ:** `points` | ロイヤルティを強化し、引き換えを促進するマイルストーンのお祝いです。 | 1K、5K、10K ポイントでマイルストーンのプッシュを送信し、入会記念日をお祝いします。 |
+| Total Annual Spend | Aggregation (Sum) | **イベント:** `Order Placed`(過去 365 日間)、**プロパティ:** `order_amount` | ロイヤルティティアの分類を決定する要素です。 | 利用額の範囲でセグメント化し、Silver、Gold、Platinum などのティアを割り当てます。 |
+| Points Balance | Aggregation (Sum) | **イベント:** `Points Balance Snapshot`、**プロパティ:** `current_balance` | ポイント失効による解約を減らし、引き換えを促進します。 | Jinja を使用して「`{{points_balance}}` ポイントがまもなく失効します」と表示します。 |
+| Total Redemptions | Count | **イベント:** `Points Redeemed` | ポイントを貯める顧客と引き換える顧客を見分けます。 | 貯める顧客には引き換え方法のチュートリアルを、引き換える顧客にはボーナスポイントのプロモーションを送信します。 |
+| Days to Tier Upgrade | SQL Computation | 次のティアに必要なポイントを、1 日あたりの平均獲得ポイントで割ったもの | 購入者が次のティアにどれだけ近いかを示し、モチベーションを高める複合トレイトです。 | 進捗バー付きで「Gold まであと 45 日」というパーソナライズされたプッシュを送信します。 |
+
+### クーポンと価格
+
+小売の利益率は低いものです。これらのトレイトを使用すると、一律の割引ではなく、パーソナライズされた割引を実施できます。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Total Coupons Applied | Count | **イベント:** `Coupon Applied` | 引き換え量を示すシンプルな指標です。 | 過去 90 日間の引き換えがゼロの購入者には、大幅な割引を送信しません。 |
+| Preferred Coupon Type | Last Value | **イベント:** `Coupon Applied`、**プロパティ:** `coupon_type`(% off、flat、BOGO、free shipping) | オファーの形式をパーソナライズします。 | 各購入者には、過去に引き換えたことのあるタイプのオファーのみを送信します。 |
+| Average Discount % | Aggregation (Average) | **イベント:** `Order Placed`、**プロパティ:** `discount_percent` | 各購入者が期待する割引率の基準値です。 | 平均割引率の低い購入者を大規模なセールキャンペーンから除外します。 |
+| Coupon Redemption Rate | SQL Computation | `Coupons Applied` / `Coupons Sent` | 反応する顧客にオファーを集中させるための比率です。 | 5% 未満の購入者は定価トラックに移し、引き換え率の高い顧客にはより大きなオファーを送信します。 |
+
+### 季節性と購入サイクル
+
+小売には季節性があります。これらのトレイトは、カレンダーだけでなく、各購入者個人の季節性を明らかにします。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Last Purchase Date | Last Value | **イベント:** `Order Placed`、**プロパティ:** `timestamp` | 離脱を検出するための汎用的な最新性トレイトです。 | 日付演算子を使用してセグメントを作成し、60 日、90 日、120 日の時点で段階的にウィンバックを強化します。 |
+| Total Orders (Last 30 / 60 / 90 Days) | Count | **イベント:** `Order Placed`(期間指定) | 頻度のシグナルです。複数の期間を組み合わせて減速を見つけます。 | 30 日間と 90 日間の傾向を比較して、離脱を早期に検出します。 |
+| Purchase Cadence (Days) | SQL Computation | `Order Placed` イベント間の平均間隔 | 各購入者のリズムに合わせて補充を促すメッセージのタイミングを調整する複合トレイトです。 | 各購入者の購入サイクルの 90% の時点で補充リマインダーを送信する Flow を実行します。 |
+| Seasonal Shopper Flag | SQL Computation | Diwali、Ramadan、Christmas など、特定の月に購入が集中している | 各購入者が重視するタイミングに施策を集中させる複合トレイトです。 | 季節のキャンペーンは季節の購入者にのみ送信し、それ以外の顧客には送信せずにリーチ可能性を維持します。 |
+
+## 関連ドキュメント
+
+Computed Traits は MoEngage 全体で使用されます。以下のガイドでは、上記の表で言及されている機能について説明しています。
+
+- [セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments): Computed Trait の値からオーディエンスを作成します。
+- [分析](/ja/user-guide/analyze/moengage-analytics/overview): Computed Trait の値でユーザー行動をグループ化およびフィルタリングします。
+- [キャンペーンとチャネル](/ja/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels): ユーザーにアプローチできるチャネルです。
+- [Flows](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows): トレイトに基づいてユーザーを異なるパスに分岐させます。
+- [メッセージのパーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/overview): Jinja を使用してトレイトの値をコンテンツに挿入します。
+- [Data](/ja/user-guide/data/key-concepts/overview-data): これらのトレイトの基盤となるイベントデータを MoEngage が収集・管理する方法です。

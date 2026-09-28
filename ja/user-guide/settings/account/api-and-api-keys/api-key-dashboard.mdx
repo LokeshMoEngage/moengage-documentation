@@ -1,0 +1,279 @@
+---
+title: "API キーダッシュボード"
+description: "認証に使用する API キーの表示、作成、編集、再生成、アーカイブを行います。この記事では、サポートされている認証方式である Basic と OAuth 2.0 について説明します。"
+keywords: ["authentication type", "API key authentication type", "MoEngage API key", "create an API key", "multi-API key", "multikey", "API key rotation", "legacy API key", "Basic Auth (Legacy)", "OAuth 2.0 access token expiration", "API key permissions", "archived API keys", "API key audit logs"]
+---
+
+<Note>
+  これは Early Access 機能です。アカウントで有効にするには、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+</Note>
+
+## 概要
+
+API キーは通常、認証または認可のメカニズムとして使用されます。API キーは、API リソースへのアクセスに関連付けられた一意の識別子です。
+
+API キーは API アクセスのセキュリティと説明責任を確保し、使用状況を効果的に管理・監視できるようにします。
+
+マルチ API キー機能は現在、次の API グループでサポートされています。
+
+| API グループ | サポートされている認証タイプ |
+| --- | --- |
+| [Data APIs](/ja/api/data/data-overview) | Basic Auth, OAuth 2.0 |
+| [Segmentation APIs](/ja/api/custom-segments/custom-segments-overview) | Basic Auth |
+| [Push APIs](/ja/api/push/push-overview) | Basic Auth (Legacy) |
+| [Campaigns](/ja/api/campaigns/campaigns-overview) | Basic Auth, OAuth 2.0 |
+| [Inform](/ja/api/inform/inform-overview) | Basic Auth |
+| [Offerings](/ja/api/offerings/offerings-overview) | Basic Auth, OAuth 2.0 |
+| Decision Policy | Basic Auth, OAuth 2.0 |
+| [Dashboard & Analyze](/ja/api/analytics/analytics-overview) | Basic Auth, OAuth 2.0 |
+
+<Note>
+ - Segmentation APIs と Inform は Basic Auth でのみ利用できます。
+ - Push APIs 用の新しい API キーの作成は現在サポートされていません。Push APIs は、このダッシュボードに移行された **Basic Auth (Legacy)** キーでのみ動作します。
+</Note>
+
+MoEngage にデータを送信するには、その API 用の Workspace ID とキーを使用できます。キーを再生成すると、古いキーは即座に失効し、新しいキーが機能するまでに時間がかかるため、サービスが中断する可能性があります。MoEngage では、このような状況を回避できるよう複数の API キーを提供しています。
+
+- **既存のキーが利用可能な間に新しいキーを生成する**: マルチキーのサポートにより、新しいキーが機能するまで既存のキーは有効なままです。これにより、ダウンタイムを発生させることなく、セキュリティ目的でキーをローテーションできます。たとえば、チームが新しいキーを統合するのに時間が必要な場合でも、その間は古いキーが引き続き機能します。新しいキーの統合後、古いキーをアーカイブできます。
+- **チームごとに異なるキーを使用する**: 社内のチームや外部ベンダーごとに、それぞれが必要な API に範囲を限定した個別のキーを作成できます。これにより、きめ細かなアクセス制御が可能になり、組織全体のセキュリティが向上します。
+
+キーを使用できる IP アドレスを制限するには、[API Firewall](/ja/user-guide/settings/account/security/api-firewall) を参照してください。
+
+## 認証タイプ
+
+MoEngage は、API キーについて 2 つの認証タイプをサポートしています。
+
+- **Basic Auth**: API キーとシークレットを使用する標準的な認証方式です。トークンの有効期限が要件とならないサーバー間の統合に適しています。
+- **OAuth 2.0**: 有効期間の短いアクセストークンを発行するトークンベースの認証方式です。トークンの有効期限はカスタマイズ可能で、バックエンドがアクセストークンを自動的に検証します。
+
+## キーを作成する
+
+<Info>
+  - マルチ API キー機能が有効になると、API ダッシュボード内の既存の API キーは、レガシーキーとして新しい API キーダッシュボードに移行されます。
+  - レガシーキー（ワークスペース作成時に以前自動生成され、この新しいダッシュボードに移行されたもの）の詳細を表示し、引き続き使用できます。ただし、レガシーキーのアーカイブ、編集、再生成はサポートされていません。
+  - レガシーキーは将来非推奨となるため、MoEngage では新しいキーを作成して使用することを推奨しています。
+</Info>
+
+<Steps>
+  <Step title="API Keys ページを開く">
+    MoEngage ダッシュボードの左側のナビゲーションメニューで、**Settings** \> **Account** \> **API keys** に移動します。
+  </Step>
+  <Step title="新しいキーの作成を開始する">
+    **+ Create new key** をクリックします。
+
+    <Frame><img src="/images/create-new-key.png" alt="API Keys ページで強調表示された Create new key ボタン" /></Frame>
+  </Step>
+  <Step title="キーの詳細フォームを開く">
+    **Create new key** ダイアログで、キーの詳細を入力します。
+  </Step>
+  <Step title="キーに名前を付ける">
+    **Key name** ボックスに名前を入力します。キー名は 100 文字以内にする必要があります。
+  </Step>
+  <Step title="認証タイプを選択する">
+    **Authentication Type** で使用する方式を選択し、その方式のオプションを設定します。
+
+    <Tabs>
+      <Tab title="Basic Auth">
+        **Select APIs for access** で、このキーを使用してアクセスする API グループを選択します。
+
+        - Data APIs
+        - Segmentation APIs
+        - Campaigns
+        - Inform
+        - Offerings
+        - Decision Policy
+        - Dashboard & Analyze
+
+       <Frame><img src="/images/basicauth.png" alt="Basic 認証の Create new key ダイアログで新しい API キーを作成する手順を示す画像" /></Frame>
+ 
+      </Tab>
+      <Tab title="OAuth 2.0">
+        1. **Access token expiration (in minutes)** ボックスに、トークンの有効期間を入力します。値は 5～60 分の範囲で指定する必要があり、デフォルトは 15 分です。
+
+           <Info>
+             このボックスは、**Authentication Type** が **OAuth 2.0** に設定されている場合にのみ表示されます。
+           </Info>
+
+        2. **Select APIs for access** で、このキーを使用してアクセスする API グループを選択します。
+           - Data APIs
+           - Campaigns
+           - Offerings
+           - Decision Policy
+           - Dashboard & Analyze
+
+         <Frame><img src="/images/oAuth20.png" alt="OAuth 2.0 の Create new key ダイアログで新しい API キーを作成する手順を示す画像" /></Frame>
+
+        **Segmentation APIs** と **Inform** は OAuth 2.0 キーには表示されません。これらのグループにアクセスするには、Basic Auth キーを作成してください。
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="API アクセスの範囲を設定する">
+    グループの横にある <Icon icon="plus" /> をクリックしてグループを展開し、個々の API を選択します。**Select all** または **De-select all** を使用すると、すべてのグループにわたって選択を管理できます。
+  </Step>
+  <Step title="新しいキーを保存する">
+    **Create key** をクリックします。キーが **Active API keys** に表示されます。
+  </Step>
+</Steps>
+
+リクエストでキーを使用する方法については、[Authentication](/ja/api/introduction#authentication) を参照してください。エンドポイントごとのリクエスト制限とペイロードの上限については、[Rate Limits](/ja/api/rate-limits) を参照してください。
+
+## 有効なキーを表示する
+
+**API Keys** ページの **Active API keys** テーブルには、次の列が表示されます。
+
+| 列 | 説明 |
+| --- | --- |
+| Key name | キーに割り当てられた名前。 |
+| Auth type | **Basic Auth**、**OAuth 2.0**、または移行されたレガシーキーの場合は **Basic Auth (Legacy)**。 |
+| Created on | キーが作成された日時と、作成したユーザーのメールアドレス。 |
+| Key | マスクされたキーの値と、表示ボタンおよびコピーボタン。 |
+| Actions (<Icon icon="ellipsis-stroke-vertical" />) | キーを管理するためのオプション。[キーを管理する](#manage-keys) を参照してください。 |
+
+検索バーを使用してキーを検索できます。有効なキーの数はテーブルの上に表示されます。
+
+<Note>
+  レガシーキーは、認証タイプ **Basic Auth (Legacy)** として表示されます。これらのキーは表示して引き続き使用できますが、編集、再生成、アーカイブはできません。
+</Note>
+
+## キーを管理する
+
+**API Keys** ページで、キーの <Icon icon="ellipsis-stroke-vertical" /> をクリックすると、次のオプションが表示されます。 <Frame><img src="/images/manage-key.png" alt="View key details、Regenerate key、Edit key details、Archive key のオプションを示すキーのアクションメニュー" /></Frame>
+
+| オプション | 説明 |
+| --- | --- |
+| [View key details](#view-key-details) | キーの詳細をすべて表示します。詳細パネルから **Edit key details** と **Regenerate key** にもアクセスできます。 |
+| Regenerate key | 新しいキーを生成します。 |
+| [Edit key details](#edit-key-details) | キーの名前または API アクセス設定を編集します。 |
+| Archive key | キーをアーカイブします。アーカイブされたキーはアーカイブを解除できません。アーカイブ済みキーの一覧には最大 10 個のアーカイブ済みキーが保持されます。 |
+
+<Warning>
+  再生成すると、古いキーは即座に失効します。エラーを避けるため、統合内の古いキーを置き換えてください。
+</Warning>
+
+### キーの詳細を表示する
+
+<Steps>
+  <Step title="キーのアクションメニューを開く">
+    **API Keys** ページで、表示するキーの <Icon icon="ellipsis-stroke-vertical" /> をクリックします。
+  </Step>
+  <Step title="詳細パネルを開く">
+    **View key details** をクリックします。詳細パネルのフィールドは、キーの認証タイプによって異なります。
+
+    <Tabs>
+      <Tab title="Basic Auth">
+        | フィールド | 説明 |
+        | --- | --- |
+        | Key name | キーに割り当てられた名前。 |
+        | API key | マスクされたキーの値と、表示ボタンおよびコピーボタン。 |
+        | Authentication type | **Basic Auth**、または移行されたレガシーキーの場合は **Basic Auth (Legacy)**。 |
+        | Last updated on | キーが最後に変更された日時。 |
+        | Last updated by | キーを最後に変更したユーザーのメールアドレス。 |
+        | Created on | キーが作成された日時。 |
+        | Created by | キーを作成したユーザーのメールアドレス。 |
+        | API access | このキーで選択された API。有効なオプションはチェックマークで示されます。グループの横にある <Icon icon="plus" /> をクリックすると、そのグループに含まれる個々の API が表示されます。 |
+      </Tab>
+      <Tab title="OAuth 2.0">
+        | フィールド | 説明 |
+        | --- | --- |
+        | Key name | キーに割り当てられた名前。 |
+        | API key | マスクされたキーの値と、表示ボタンおよびコピーボタン。 |
+        | Authentication type | **OAuth 2.0**。 |
+        | Access token expiration | トークンの有効期間（分）。 |
+        | Last updated on | キーが最後に変更された日時。 |
+        | Last updated by | キーを最後に変更したユーザーのメールアドレス。 |
+        | Created on | キーが作成された日時。 |
+        | Created by | キーを作成したユーザーのメールアドレス。 |
+        | API access | このキーで選択された API。有効なオプションはチェックマークで示されます。グループの横にある <Icon icon="plus" /> をクリックすると、そのグループに含まれる個々の API が表示されます。 |
+      </Tab>
+    </Tabs>
+  </Step>
+</Steps>
+
+詳細パネルから **Edit key details** または **Regenerate key** をクリックして、それらの操作を実行できます。
+
+<Frame><img src="/images/edit-regenerate-keyy.png" alt="キー名、API キー、認証タイプ、アクセストークンの有効期限、監査フィールド、API アクセスを表示する View key details パネル。Edit key details ボタンと Regenerate key ボタンが強調表示されている" /></Frame>
+
+### キーの詳細を編集する
+
+<Steps>
+  <Step title="キーのアクションメニューを開く">
+    **API Keys** ページで、編集するキーの <Icon icon="ellipsis-stroke-vertical" /> をクリックします。
+  </Step>
+  <Step title="編集ダイアログを開く">
+    **Edit key details** をクリックします。
+  </Step>
+  <Step title="フィールドを更新する">
+    **Edit key details** ダイアログで、編集可能なフィールドを編集します。
+
+    <Tabs>
+      <Tab title="Basic Auth">
+        | フィールド | 編集可否 |
+        | --- | --- |
+        | Key name | 可 |
+        | Authentication Type | 不可 |
+        | Select APIs for access | 可 |
+      </Tab>
+      <Tab title="OAuth 2.0">
+        | フィールド | 編集可否 |
+        | --- | --- |
+        | Key name | 可 |
+        | Authentication Type | 不可 |
+        | Access token expiration | 可 |
+        | Select APIs for access | 可 |
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="変更を保存する">
+    **Save** をクリックします。変更を行うまで、**Save** ボタンは無効のままです。
+  </Step>
+</Steps>
+
+### アーカイブ済みキーを表示する
+
+1. **API Keys** ページで、**View archived keys** をクリックします。
+2. アーカイブ済みキーの一覧が開き、Key name、Auth type、Archived on、Key の各列が表示されます。
+
+<Frame><img src="/images/view-archived-key-page.png" alt="キー名、認証タイプ、作成日、キーの各列を表示するアーカイブ済みキーの一覧" /></Frame>
+
+## 監査ログ
+
+<Frame><img src="/images/auditt-logs.png" alt="API キーのアクションを表示する監査ログページ" /></Frame>
+
+[監査ログ](/ja/user-guide/settings/account/audit-logs/audit-logs) を使用すると、MoEngage ダッシュボードで実行されたアクションを追跡できます。監査ログには API キーに関連するすべてのアクションが含まれるため、誰がいつ各アクションを実行したかを特定できます。**Audit logs** では次の操作を行えます。
+
+- <Icon icon="bars-filter" /> をクリックして、**Team(s)**、**Action**、**Actor**、**Date time Range** に基づいて監査ログをフィルタリングします。
+- **Search logs by** 検索バーに値を入力して、関連する監査ログを取得します。
+- **Export audit logs** をクリックして、監査ログレポートをメールで受け取ります。メールにはレポートのダウンロードリンクが含まれます。
+
+API キーに関連するすべてのアクションについて、**Audit logs** の **Entity** 列には **API Keys** と表示されます。**Action** 列には次の値が表示されます。
+
+- **Create** は、API キーが正常に作成されたときに表示されます。
+- **Update** は、次の場合に表示されます。
+  - キー名が更新された場合。
+  - キーの API 選択が更新された場合。
+  - キーが再生成された場合。
+- **Delete** は、キーがアーカイブされたときに表示されます。
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="レガシーキーとは何ですか？">
+    レガシーキーとは、ワークスペース作成時に自動的に作成され、以前の API キーダッシュボードからこのダッシュボードに移行された API キーです。編集、再生成、アーカイブはできません。
+  </Accordion>
+
+  <Accordion title="OAuth 2.0 のアクセストークンの有効期限とは何ですか？">
+    OAuth 2.0 のアクセストークンの有効期限は、アクセストークンが無効になるまでに保護された API の呼び出しに使用できる期間を制限するセキュリティ機能です。
+
+    アクセストークンは一時的なデジタルパスとして機能します。すべてのアプリやサービスとパスワードを共有する代わりに、認可サーバーが有効期間の短いトークンを発行します。そのトークンが有効期限に達すると、API はそれ以降のリクエストを拒否し、`HTTP 401 Unauthorized` エラーを返します。
+  </Accordion>
+
+  <Accordion title="アクセストークンの有効期限が重要なのはなぜですか？">
+    - **セキュリティの向上**: 攻撃者が有効期間の短いトークンを盗んだ場合でも、トークンが機能しなくなるまでのわずかな時間しか悪用できません。
+    - **リソースの管理**: 有効期限により、未使用または放置されたトークンが認可サーバーのデータベースを圧迫するのを防ぎます。
+    - **標準の有効期間**: アクセストークンの有効期限は 5～60 分の範囲で設定できます。
+  </Accordion>
+
+  <Accordion title="MoEngage は期限切れのトークンをどのように処理しますか？">
+    MoEngage は、アクセストークンとともにリフレッシュトークンを発行します。アプリはこの有効期間の長いリフレッシュトークンをバックグラウンドで使用して新しいアクセストークンをリクエストするため、ユーザーに再ログインを強いることはありません。
+  </Accordion>
+</AccordionGroup>

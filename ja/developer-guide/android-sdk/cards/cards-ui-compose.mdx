@@ -1,0 +1,274 @@
+---
+title: "Jetpack Compose での Cards"
+description: "cards-ui-compose モジュールを使用して、MoEngage Cards フィードを Jetpack Compose のユーザーインターフェースに埋め込みます。"
+keywords: ["Jetpack Compose Cards", "cards-ui-compose", "MoECardsScreen", "MoECardsComposeUiHelper", "Android Compose App Inbox", "MoECardComposeActivity"]
+---
+
+import AndroidCardsCountApis from '/ja/snippets/android-cards-count-apis.mdx';
+
+`cards-ui-compose` モジュールは、MoEngage Cards フィードを Jetpack Compose のユーザーインターフェースとして提供します。このモジュールは、カードリスト、カテゴリタブ、プルして更新 (pull to refresh)、空の状態を描画し、クリックのトラッキングとカードアクションを処理します。
+
+このモジュールは Kotlin で記述されており、Composable 関数を公開しています。MoEngage Android BOM 4.4.0 以降で利用できます。
+
+Cards 機能とキャンペーンの設定については、[Cards の概要](/ja/user-guide/campaigns-and-channels/cards/getting-started-with-cards/cards-overview)を参照してください。
+
+## SDK のインストール
+
+### BOM を使用したインストール
+
+MoEngage では、依存関係の管理に BOM を使用することを推奨しています。BOM はすべての MoEngage モジュールについて互換性のあるバージョンを解決するためです。[BOM を使用したインストール](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)のドキュメントを参照してください。
+
+アプリケーションの依存関係にモジュールを追加します。`[BOM_VERSION]` を、統合する SDK リリースの BOM バージョンに置き換えてください。各リリースの BOM バージョンは [Android SDK リリースノート](/ja/release-notes/sdks/android#23rd-september-2026)に記載されています。
+
+<CodeGroup>
+
+```kotlin build.gradle.kts wrap
+dependencies {
+    implementation(platform("com.moengage:android-bom:[BOM_VERSION]"))
+
+    implementation("com.moengage:cards-ui-compose")
+}
+```
+
+</CodeGroup>
+
+### Jetpack Compose の有効化
+
+依存関係を追加する前に、アプリケーションモジュールで Jetpack Compose を有効にしてください。必要なビルド構成については、[Jetpack Compose セットアップガイド](https://developer.android.com/develop/ui/compose/setup)を参照してください。
+
+## UI コンポーネントの追加
+
+カードフィードは、SDK が提供するアクティビティを起動するか、既存の画面内に Composable を配置することで統合できます。
+
+各 API はワークスペース識別子を受け取ります。アプリケーションが複数の MoEngage ワークスペースで構成されている場合は識別子を渡し、単一のワークスペースを使用している場合は省略してください。
+
+### SDK が提供するアクティビティの使用
+
+`MoECardComposeActivity` は、ツールバーと戻るナビゲーションを備えた完全な画面です。モジュールのマニフェストですでに宣言されているため、直接起動できます。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardComposeActivity
+import com.moengage.core.MOENGAGE_ACCOUNT_IDENTIFIER
+
+val intent = Intent(this, MoECardComposeActivity::class.java)
+// Pass the extra only if your application is configured with more than one workspace.
+intent.putExtra(MOENGAGE_ACCOUNT_IDENTIFIER, "YOUR_WORKSPACE_ID")
+startActivity(intent)
+```
+
+</CodeGroup>
+
+`MOENGAGE_ACCOUNT_IDENTIFIER` エクストラが存在しない場合、アクティビティはデフォルトのインスタンスを使用します。
+
+### Composable の使用
+
+既存の画面内にフィードを描画するには、`MoECardsScreen()` を使用します。カテゴリタブを含むフィード全体が描画されます。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardsScreen
+
+setContent {
+    ApplicationTheme {
+        Scaffold(topBar = { ApplicationToolbar() }) { paddingValues ->
+            Box(modifier = Modifier.padding(paddingValues)) {
+                MoECardsScreen(appId = "YOUR_WORKSPACE_ID")
+            }
+        }
+    }
+}
+```
+
+</CodeGroup>
+
+### 単一カテゴリの描画
+
+タブバーなしで 1 つのカテゴリのカードを描画するには、`MoECardsList()` を使用します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardsList
+
+MoECardsList(category = "Offers", appId = "YOUR_WORKSPACE_ID")
+```
+
+</CodeGroup>
+
+## UI のカスタマイズ
+
+### 色とテキストスタイル
+
+フィードには一連の色とテキストスタイルが用意されています。`MoECardsComposeUiHelper.setTheme()` を使用して、色、テキストスタイル、またはその両方をオーバーライドできます。
+
+`MoECardColorsLight` と `MoECardDefaultTextStyles` にはデフォルト値が保持されています。これらからコピーし、必要なプロパティのみを変更することで、残りのプロパティはデフォルト値のまま維持されます。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.theme.MoECardColorsLight
+import com.moengage.cards.ui.compose.theme.MoECardDefaultTextStyles
+import com.moengage.cards.ui.compose.theme.MoECardsThemeSpec
+import com.moengage.cards.ui.compose.MoECardsComposeUiHelper
+
+val colors = MoECardColorsLight.copy(
+    background = Color(0xFFFFF3E0),
+    header = Color(0xFFBF360C),
+    cta = Color(0xFF00695C)
+)
+
+val textStyles = MoECardDefaultTextStyles.copy(
+    header = MoECardDefaultTextStyles.header.copy(fontSize = 20.sp)
+)
+
+MoECardsComposeUiHelper.setTheme(
+    MoECardsThemeSpec(colors = colors, textStyles = textStyles),
+    "YOUR_WORKSPACE_ID"
+)
+```
+
+</CodeGroup>
+
+テーマはフィードが描画される前 (通常は `onCreate()` 内) に設定してください。テーマは、`MoECardComposeActivity` を含め、フィードが表示されるすべての場所に適用されます。
+
+デフォルトのテーマに戻すには `null` を渡します。オーバーライドを単一の画面にのみ適用する場合は、その画面の `onDestroy()` でクリアしてください。クリアしない場合、次にフィードが表示される場所でもテーマが有効なままになります。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardsComposeUiHelper
+
+MoECardsComposeUiHelper.setTheme(null, "YOUR_WORKSPACE_ID")
+```
+
+</CodeGroup>
+
+以下の色プロパティを使用できます。
+
+`background`、`header`、`message`、`timestamp`、`cta`、`unclickedIndicator`、`separator`、`tabBackground`、`tabSelectedText`、`tabUnselectedText`、`newUpdatesText`、`newUpdatesBackground`、`toolbarContent`、`refreshIndicatorBackground`、`refreshIndicatorContent`、`dialogBackground`
+
+以下のテキストスタイルプロパティを使用できます。
+
+`header`、`message`、`cta`、`timestamp`、`tab`
+
+### テキスト文字列
+
+フィード内のテキストをオーバーライドするには、アプリケーションの `strings.xml` ファイルで同じリソース名を宣言します。
+
+| リソース名 | 表示される場所 | デフォルト |
+| --- | --- | --- |
+| `moe_card_feed_title` | `MoECardComposeActivity` のツールバーのタイトル、およびアクティビティのラベル。 | Inbox |
+| `moe_card_new_updates` | フィードを開いている間に新しいカードが届いたときに表示されるボタン。 | New Updates |
+| `moe_card_no_message_available` | 空の状態。 | No notifications to show, check again later. |
+| `moe_card_delete_title` | 長押し時の削除オプション。 | Delete |
+
+<CodeGroup>
+
+```xml strings.xml wrap
+<resources>
+    <!-- Toolbar title in MoECardComposeActivity, and the activity label. Default: Inbox -->
+    <string name="moe_card_feed_title">Notifications</string>
+
+    <!-- Button shown when new cards arrive while the feed is open. Default: New Updates -->
+    <string name="moe_card_new_updates">New messages</string>
+
+    <!-- Empty state. Default: No notifications to show, check again later. -->
+    <string name="moe_card_no_message_available">You are all caught up.</string>
+
+    <!-- Delete option on long press. Default: Delete -->
+    <string name="moe_card_delete_title">Remove</string>
+</resources>
+```
+
+</CodeGroup>
+
+### カスタムカードレイアウト
+
+SDK がリスト、タブ、プルして更新、トラッキングを引き続き処理する一方で、カードレイアウトを完全に置き換えることができます。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardsComposeUiHelper
+
+MoECardsComposeUiHelper.setCardContent({ card, onClick ->
+    Column(modifier = Modifier.clickable { onClick() }) {
+        Text(card.headerText)
+        card.messageText?.let { Text(it) }
+    }
+}, "YOUR_WORKSPACE_ID")
+```
+
+</CodeGroup>
+
+`card` パラメーターは、ヘッダー、メッセージ、CTA テキスト、画像 URL、タイムスタンプ、固定 (ピン留め) 状態、クリック状態、および設定されたアクションを公開します。
+
+デフォルトのカードレイアウトに戻すには `null` を渡します。
+
+## コールバック
+
+### クリックリスナー
+
+デフォルトでは、カードをタップすると MoEngage ダッシュボードで設定されたアクションが実行されます。代わりにアプリケーション内でナビゲーションを処理するには、クリックリスナーを登録します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.cards.ui.compose.MoECardsComposeUiHelper
+
+MoECardsComposeUiHelper.setClickListener({ clickData ->
+    // clickData.card holds the card that was tapped.
+    // clickData.navigationAction holds the configured action.
+    false
+}, "YOUR_WORKSPACE_ID")
+```
+
+</CodeGroup>
+
+アプリケーションがカードのリダイレクトを処理する場合は `true` を返してください。この場合、SDK は設定されたアクションを実行しません。SDK に設定済みのアクションを実行させる場合は `false` を返してください。どちらの場合も SDK はクリックをトラッキングします。
+
+<Warning>
+  ユーザーがカードをタップしたときに `onClick()` を呼び出してください。これにより、SDK がクリックをトラッキングし、設定されたアクションを実行します。
+</Warning>
+
+### 同期コールバック
+
+アプリケーションの起動時またはフォアグラウンド移行時にカードが同期されたときにコールバックを受け取るには、[_SyncCompleteListener_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core.listener/-sync-complete-listener/index.html) インターフェースを実装し、[_MoECardHelper.setSyncCompleteListener()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/set-sync-complete-listener.html) を使用して登録します。
+
+## 画像と GIF
+
+このモジュールは、追加の設定なしで静的なカード画像を描画します。Android 9 以降では、追加の設定なしでアニメーション GIF も描画します。
+
+それ以前の Android バージョンでアニメーション GIF を描画する場合、またはアプリケーションにすでに含まれている画像読み込みライブラリを使用する場合は、Coil または Glide のいずれかを追加してください。SDK は Coil 3.5.0 および Glide 5.0.7 に対してコンパイルされています。これらのバージョン以上を使用してください。
+
+<CodeGroup>
+
+```kotlin Coil wrap
+dependencies {
+    implementation("io.coil-kt.coil3:coil-compose:3.5.0")
+    implementation("io.coil-kt.coil3:coil-network-okhttp:3.5.0")
+    implementation("io.coil-kt.coil3:coil-gif:3.5.0") // Required for animated GIFs.
+}
+```
+
+
+```kotlin Glide wrap
+dependencies {
+    implementation("com.github.bumptech.glide:glide:5.0.7")
+}
+```
+
+</CodeGroup>
+
+Coil 3 は `coil-network-okhttp` がないとネットワーク経由で画像を読み込まないため、`coil-compose` と併せて `coil-network-okhttp` が必要です。
+
+これ以上の設定は必要ありません。SDK は実行時に利用可能なライブラリを検出して使用します。
+
+## カード数の API
+
+これらの API を使用して、ユーザーがクリックしていないカードの数と、デバイス上の新しいカードの数を取得します。
+
+<AndroidCardsCountApis />

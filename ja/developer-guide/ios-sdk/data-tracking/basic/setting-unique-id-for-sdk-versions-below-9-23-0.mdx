@@ -1,0 +1,78 @@
+---
+title: "SDKバージョン9.23.0未満でのUnique IDの設定"
+description: "MoEngage iOS SDKバージョン9.23.0未満で、ログインとログアウト用に一意のユーザーIDを設定します。"
+---
+
+# ユーザーのログイン / ログアウト
+
+以下に記載するとおりに、ユーザーのログインとログアウトを処理することが重要です。これを正しく行わないと、データが破損する可能性が十分にあります。
+
+- アプリユーザーの `unique id` を取得し、[_setUniqueID(\_:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)setUniqueID:) [Link]メソッドを使用してその情報をSDKに渡してください。この `unique id` は、ユーザーを識別するため、またインストールやプラットフォームをまたいでユーザープロファイルをマージするために使用されます。
+- また、ユーザーがアプリからログアウトしたら、SDKの [_resetUser()_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)resetUser) [Link]を呼び出す必要があります。これにより、新しい匿名ユーザーが作成され、以降のイベントは新しいユーザーのプロファイルにトラッキングされます。
+
+ユーザーのログイン/ログアウト時に、以下のメソッドを必ず呼び出してください。
+
+## ログイン
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.setUniqueID(UNIQUE_ID) // UNIQUE_ID is used to uniquely identify a user.
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] setUniqueID:UNIQUE_ID]; // UNIQUE_ID is used to uniquely identify a user.
+```
+
+</CodeGroup>
+
+<Note>
+  UniqueIDフィールドでは次の値は使用できません： "unknown", "guest", "null", "0", "1", "true", "false", "user_attribute_unique_id", "(empty)", "na", "n/a", "", "dummy_seller_code", "user_id", "id", "customer_id", "uid", "userid", "none", "-2", "-1", "2"
+</Note>
+
+<Warning>
+  **UNIQUE IDの混乱**
+
+  - MoEngage iOS SDKを初めて本番公開する際は、すでにログインしているユーザーの **Unique ID** を他のユーザー属性とともに設定していることを確認してください。
+  - すべてのユーザーに単一のunique idを使用していないことを確認してください。これは、値をサーバーから取得する代わりにハードコードした場合に発生する可能性があります。
+  - 間に [_resetUser()_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)resetUser) メソッドを呼び出さずに2つの異なるunique id情報を渡すと、SDKは内部で既存のユーザーを強制的にログアウトします。
+</Warning>
+
+## ログアウト
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.resetUser()
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] resetUser];
+```
+
+</CodeGroup>
+
+# ユーザー属性Unique IDの更新
+
+<Warning>
+  **重要**
+
+  ユーザー属性Unique IDを更新するには、[_setUniqueID(\_:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)setUniqueID:) [Link]ではなく [_setAlias(\_:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)setAlias:)[Link] を使用してください。新しい値で [_setUniqueID(\_:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)setUniqueID:) [Link]を呼び出すと、現在のユーザーがリセットされ、システム内に意図しないユーザーが作成されることになります。
+</Warning>
+
+既存ユーザーのUnique IDの値を更新する必要がある場合は、以下のように、更新後のUnique IDの値を指定して [_setAlias(\_:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)setAlias:) [Link]メソッドを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.setAlias(UPDATED_UNIQUE_ID)
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] setAlias:UPDATED_UNIQUE_ID];
+```
+
+</CodeGroup>

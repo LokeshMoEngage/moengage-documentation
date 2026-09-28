@@ -1,0 +1,155 @@
+---
+title: "リアルタイムのアンインストールトラッキング"
+description: "毎日のサイレントプッシュ通知の代わりに Firebase Cloud Functions を使用して、アプリのアンインストールをリアルタイムでトラッキングします。"
+---
+
+# リアルタイムのアンインストールトラッキングとは
+
+リアルタイムのアンインストールトラッキングを使用すると、_Firebase Analytics_ が統合されたアプリをユーザーがアンインストールした直後に、そのアンインストールをトラッキングできます。
+
+Firebase は、アプリがアンインストールされると **app-remove** イベントをトラッキングします。MoEngage は Firebase Cloud Functions を使用してこの **app-remove** イベントを利用します。
+
+# Firebase Cloud Functions とは
+
+Cloud Functions for Firebase は、Firebase の機能や HTTPS リクエストによってトリガーされたイベントに対してプログラムでレスポンスを返すサーバーレスフレームワークです。詳細については、[Cloud Functions for Firebase](https://firebase.google.com/docs/functions) を参照してください。
+
+# リアルタイムのアンインストールトラッキングは既存のアンインストールトラッキングとどう違うのか
+
+MoEngage の現在のアンインストールトラッキングは、1 日 1 回すべてのユーザーデバイスにサイレントプッシュ通知を送信することで行われます。アンインストールのトラッキングには最大 24 時間かかります。
+
+リアルタイムのアンインストールトラッキングを使用すると、Firebase SDK によってアンインストールが即座にトラッキングされるため、ユーザーのアンインストールに迅速に対応できます。
+
+# リアルタイムのアンインストールトラッキングの実装
+
+<Check>
+  Firebase Blaze プランのアカウントがあることを確認してください。
+
+  Cloud Functions をランタイム環境にデプロイするには、プロジェクトが [Firebase の料金プラン](https://firebase.google.com/pricing)に加入している必要があります。
+</Check>
+
+## 共通識別子の設定
+
+アプリに Firebase Analytics SDK が統合されていることを確認してください。詳細については、[Google アナリティクスを使ってみる](https://firebase.google.com/docs/analytics/get-started)を参照してください。
+
+MoEngage と Firebase の間で共通の識別子を設定するには、アプリに次のコードを追加します。
+
+<CodeGroup>
+
+```kotlin Kotlin
+val firebaseAnalytics = FirebaseAnalytics.getInstance(this)
+MoEHelper.getInstance(this).setUniqueId("<unique-id>")
+firebaseAnalytics.setUserProperty("MOE_USER_ATTRIBUTE_UNIQUE_ID", "<unique-id>")
+}
+```
+
+</CodeGroup>
+
+**注：** UniqueID フィールドでは次の値は使用できません："unknown"、"guest"、"null"、"0"、"1"、"true"、"false"、"user_attribute_unique_id"、"(empty)"、"na"、"n/a"、""、"dummy_seller_code"、"user_id"、"id"、"customer_id"、"uid"、"userid"、"none"、"-2"、"-1"、"2"
+
+## Firebase を使用したコンバージョンイベントの設定
+
+<Check>
+  リアルタイムのアンインストールトラッキングのために、アプリが Firebase Analytics と統合されていることを確認してください。
+</Check>
+
+Firebase Analytics はイベント `app_remove` を自動的に収集します。`app_remove` イベントは Android 専用のイベントで、インストール元に関係なく、アプリケーションパッケージがデバイスから削除またはアンインストールされたときにトラッキングされます。リアルタイムのアンインストールを設定するには、Firebase ダッシュボードで `app_remove` イベントがコンバージョンイベントとしてマークされていることを確認してください。
+
+コンバージョンイベントを設定するには、次の手順に従います。
+
+1. [Firebase コンソール](https://console.firebase.google.com/)に移動し、アプリと統合されている Firebase プロジェクトを選択します。
+2. Firebase ダッシュボードで、**Analytics \> Events** を選択します。
+3. イベントリストで **app_remove** イベントの **_Mark as Conversion_** トグルを有効にします。
+
+## Cloud Function の作成
+
+コンバージョンイベントを設定したら、[Cloud Function for Firebase](https://firebase.google.com/docs/functions/get-started) を使用して関数を作成し、**app_remove** イベントを MoEngage に送信します。
+
+Node JS を使用して Cloud Function を作成・公開するには、次の手順に従います。
+
+1. [Node.js](https://nodejs.org/en/) と [npm](https://www.npmjs.com/) をインストールします。\
+   関数を記述するには Node.js 環境が必要です。Firebase CLI を使用して、関数を Cloud Functions ランタイムにデプロイします。
+2. 次のコードを使用して Firebase CLI をインストールします。
+
+<CodeGroup>
+
+```CLI CLI Command
+npm install -g firebase-tools
+```
+
+</CodeGroup>
+
+3. **_firebase login_** を実行してブラウザでログインし、Firebase ツールを認証します。
+4. Firebase プロジェクトのディレクトリに移動します。
+5. **_firebase init functions_** を実行します。
+6. 言語オプションとして **_Javascript_** を選択します。
+7. **index.js** ファイルに次のコードを追加します。
+
+<CodeGroup>
+
+```javascript index.js
+"use strict";
+
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const https = require("https");
+require("firebase-functions/lib/logger/compat");
+
+admin.initializeApp();
+
+exports.sendAndroidUninstallToMoEngage = functions.analytics.event("app_remove")
+    .onLog((event) => {
+      console.log("sendAndroidUninstallToMoEngage() : Event is: " +
+      JSON.stringify(event));
+      return exports.sendAppUninstallEventData(event);
+    });
+
+exports.sendAppUninstallEventData = function(event) {
+//fetch the unique ID <MOE_USER_ATTRIBUTE_UNIQUE_ID>
+var uniqueId = event.user.userProperties.MOE_USER_ATTRIBUTE_UNIQUE_ID.value;
+//send event using S2S API of MoEngage
+//https://www.moengage.com/docs/api/data/data-overview
+};
+```
+
+</CodeGroup>
+
+8. **package.json** ファイルに次のコードを追加します。
+
+<CodeGroup>
+
+```json pacakage.json
+{
+  "name": "functions",
+  "description": "Cloud Functions for Firebase",
+  "scripts": {
+    "lint": "eslint .",
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "12"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^10.0.0",
+    "firebase-functions": "^3.16.0",
+    "firebase-tools": "^9.23.0",
+    "g": "^2.0.1",
+    "requestretry": "^4.1.1"
+  },
+  "devDependencies": {
+    "eslint": "^7.6.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-plugin-promise": "^4.0.1",
+    "firebase-functions-test": "^0.2.0",
+    "requestretry": "^4.1.1",
+    "web-push": "^3.4.5"
+  },
+  "private": true
+}
+```
+
+</CodeGroup>

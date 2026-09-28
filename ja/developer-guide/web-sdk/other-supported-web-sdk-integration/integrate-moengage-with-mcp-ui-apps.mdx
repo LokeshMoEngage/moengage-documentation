@@ -1,0 +1,239 @@
+---
+title: "MoEngage と MCP UI アプリの統合"
+description: "MoEngage Web SDK を MCP UI アプリケーションに統合する方法について説明します。CSP を設定し、SDK を初期化して、MCP UI アプリを介してユーザーの行動をトラッキングします。"
+---
+
+# 概要
+
+このガイドでは、MoEngage Web SDK を MCP UI アプリケーションに統合する方法について説明します。
+
+### 主な機能
+
+- ユーザーの行動をリアルタイムでトラッキングする。
+- On-Site Messaging (OSM) をトリガーする。
+- Cards をトリガーする。
+
+<Info>
+  MCP UI アプリケーションは、安全な iframe サンドボックス内でカスタムウィジェットを実行します。そのため、実行 URL はプライマリドメインとは異なり、標準の URL ベースのキャンペーンはサポートされません。
+
+  ただし、代わりにカスタムイベントで配信されるようにキャンペーンを設定することで、ターゲットを絞った体験をシームレスに提供できます。この統合では、イベントトリガーベースのすべての On-Site Messages (OSM) と Cards が引き続き完全にサポートされます。
+</Info>
+
+# MCP UI アプリケーションのセットアップと設定
+
+<Tip>
+  **前提条件**
+
+  - 統合を開始する前に、MoEngage の App ID とデータセンター (DC) を用意してください。
+  - OpenAI プラットフォームで作成された [MCP UI アプリ](https://modelcontextprotocol.io/extensions/apps/overview) [(OpenAI サンプルアプリ)](https://github.com/openai/openai-apps-sdk-examples)。
+</Tip>
+
+# 実装手順
+
+## 1. 依存関係のインストール
+
+プロジェクトディレクトリで次のコマンドを実行します。
+
+```shellscript NPM wrap
+npm install @moengage/web-sdk
+```
+
+## 2. CSP ドメインのホワイトリストの設定
+
+MCP UI アプリケーションのウィジェットは厳格な内部 iframe サンドボックス内で実行されるため、デフォルトでは標準の CSP ヘッダーによってアプリケーションがブロックされます。MCP サーバーの設定で、CSP の URL を明示的にホワイトリストに登録する必要があります。
+
+ブラウザによってリクエストがブロックされないように、`connect-src` と `script-src` ディレクティブで、MoEngage の URL (ベース URL、トラッキングエンドポイント、OSM 配信 URL) とサンドボックスの URL の両方をホワイトリストに登録してください。
+
+スムーズな統合のために、以下のエンドポイントをホワイトリストに登録してください。
+
+**script-src:**
+
+- [**https://cdn.moengage.com/**](https://cdn.moengage.com/)
+- [**https://app-cdn.moengage.com/**](https://app-cdn.moengage.com/)
+
+**image-src:**
+
+- [**https://moe-email-campaigns.s3.amazonaws.com/**](https://moe-email-campaigns.s3.amazonaws.com/)
+- [**https://image.moengage.com/**](https://image.moengage.com/)
+- [**https://image-eu.moengage.com/**](https://image-eu.moengage.com/)
+- [**https://image-ap1.moengage.com/**](https://image-ap1.moengage.com/)
+- [**https://image-04.moengage.com/**](https://image-04.moengage.com/)
+- [**https://image-06.moengage.com/**](https://image-06.moengage.com/)
+- [**https://image.moengage.com/all-campaign-images-moe-dc-100/**](https://image.moengage.com/all-campaign-images-moe-dc-100/)
+
+**connect-src:**
+
+- [**https://sdk-01.moengage.com/**](https://sdk-01.moengage.com/)
+- [**https://sdk-02.moengage.com/**](https://sdk-02.moengage.com/)
+- [**https://sdk-03.moengage.com/**](https://sdk-03.moengage.com/)
+- [**https://sdk-04.moengage.com/**](https://sdk-04.moengage.com/)
+- [**https://sdk-06.moengage.com/**](https://sdk-06.moengage.com/)
+
+**frame-src:**
+
+- [**https://cdn.moengage.com/**](https://cdn.moengage.com/)
+
+**style-src:**
+
+- [**https://cdn.moengage.com/**](https://cdn.moengage.com/)
+- [**https://app-cdn.moengage.com/**](https://app-cdn.moengage.com/)
+- [**https://fonts.bunny.net/**](https://fonts.bunny.net/)
+
+**font-src:**
+
+- [**https://fonts.bunny.net/**](https://fonts.bunny.net/)
+
+URL をホワイトリストに登録しないと、`Refused to connect to https://\*\*\*.moengage.com/\*\*\*\* because it violates the following Content Security Policy directive.` というエラーが発生します。
+
+## 3. SDK の初期化と認証情報の挿入
+
+React コンポーネントがマウントされる前に SDK を初期化します。MoEngage の App ID とデータセンターの認証情報を、ウィジェットの HTML または環境変数に挿入します。
+
+初期化を適切に管理し、ウィジェット全体で SDK メソッドを公開するために、カスタムラッパーフック [`useMoEngage.js`](https://github.com/moengage/webSDK-sample/blob/master/ChatGPT-App/src/client/hooks/useMoEngage.js) を作成します。
+
+```javascript useMoEngage Hook
+import { useCallback, useRef, useEffect } from 'react';
+import moengage from '@moengage/web-sdk';
+
+function logMoe(msg) {
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[MoEngage]', msg);
+  }
+}
+
+// React hook wrapping @moengage/web-sdk. Initializes on mount; all methods are stable via useCallback.
+export default function useMoEngage() {
+  const initRef = useRef(false);
+
+  useEffect(() => {
+    if (initRef.current) return;
+    initRef.current = true;
+
+    try {
+      const appId = window.__MOENGAGE_APP_ID__;
+      const cluster = window.__MOENGAGE_DATA_CENTER__ || '';
+
+      if (!appId) {
+        logMoe('App ID not configured, MoEngage disabled');
+        return;
+      }
+
+      moengage.initialize({
+        appId,
+        env: 'LIVE',
+        logLevel: 0,
+        cluster,
+      });
+      logMoe(`Initialized with appId: ${appId}, cluster: ${cluster}`);
+    } catch (err) {
+      logMoe(`Init error: ${err.message}`);
+    }
+  }, []);
+
+  const trackEvent = useCallback((eventName, properties = {}) => {
+    try {
+      moengage.trackEvent(eventName, properties);
+      logMoe(`Event: ${eventName} ${JSON.stringify(properties)}`);
+    } catch (err) {
+      logMoe(`Track error (${eventName}): ${err.message}`);
+    }
+  }, []);
+
+  const identifyUser = useCallback((userId, attributes = {}) => {
+    try {
+      const userObj = { uid: userId, ...attributes };
+      moengage.identifyUser(userObj);
+      logMoe(`Identified: ${userId} with ${Object.keys(attributes).length} attrs`);
+    } catch (err) {
+      logMoe(`Identify error: ${err.message}`);
+    }
+  }, []);
+
+  const setEmailId = useCallback((email) => {
+    try {
+      moengage.setEmailId(email);
+      logMoe(`Email set: ${email}`);
+    } catch (err) {
+      logMoe(`Set email error: ${err.message}`);
+    }
+  }, []);
+
+  const setAttribute = useCallback((name, value) => {
+    try {
+      moengage.setUserAttribute(name, value);
+      logMoe(`Attribute: ${name} = ${value}`);
+    } catch (err) {
+      logMoe(`Attribute error: ${err.message}`);
+    }
+  }, []);
+
+  const getAttribute = useCallback((name) => {
+    try {
+      const val = moengage.getUserAttribute(name);
+      logMoe(`Attribute "${name}" = ${JSON.stringify(val)}`);
+      return val;
+    } catch (err) {
+      logMoe(`Get attribute error: ${err.message}`);
+      return undefined;
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    try {
+      moengage.logoutUser();
+      logMoe('User logged out');
+    } catch (err) {
+      logMoe(`Logout error: ${err.message}`);
+    }
+  }, []);
+
+  return {
+    trackEvent,
+    identifyUser,
+    setEmailId,
+    setAttribute,
+    getAttribute,
+    logout,
+  };
+}
+```
+
+## 4. ツール結果の処理 (handleToolResult)
+
+[`handleToolResult`](https://github.com/moengage/webSDK-sample/blob/master/ChatGPT-App/src/client/components/App.jsx) コールバックは、中央のイベントディスパッチャーとして機能します。MoEngage SDK メソッドは、次の 2 つの方法でトリガーできます。
+
+- 直接の UI インタラクション: ユーザーが UI 要素を直接クリックまたは操作します。
+- チャットコマンド: ユーザーが Model Context Protocol (MCP) を介してプロンプトを発行します。
+
+[`handleToolResult`](https://github.com/moengage/webSDK-sample/blob/master/ChatGPT-App/src/client/components/App.jsx) コールバックを使用して、MCP サーバーから受信した postMessage コマンドを取得し、適切な MoEngage SDK ラッパー関数にルーティングします。
+
+```javascript handleToolResult
+// MCP tool result handler — MoEngage actions (excerpt)
+const handleToolResult = (result) => {
+  const data = result?.structuredContent || result?.result?.structuredContent || null;
+  if (!data) return;
+
+  switch (data.action) {
+    // Track a custom event
+    case 'moe_track_event':
+      if (data.eventName) moe.trackEvent(data.eventName, data.properties || {});
+      break;
+
+    // Identify + set attributes on a user
+    case 'moe_identify_user':
+      if (data.userId) moe.identifyUser(data.userId, data.attributes || {});
+      break;
+  }
+};
+```
+
+<Info>
+  `useMoEngage` フックと `handleToolResult` ディスパッチャーを配置することで、イベントのトラッキングがウィジェットのインタラクティブなフローにシームレスに組み込まれます。
+
+  - **カスタムイベント**: UI インタラクションが発生したとき (iframe 内でのユーザーの直接のクリック、または MCP によって処理される MCP UI アプリケーションのプロンプトのいずれか) に、trackEvent 関数を呼び出します。
+  - この統合は、手動の UI インタラクション ("Add to Cart" ボタンのクリックなど) とチャットコマンド (MCP 経由) の両方が、最終的に同じ基盤の JavaScript 関数を実行するように設計されています。チャットインターフェースはイベントを直接トラッキングしません。MCP を使用してウィジェットを呼び出し、ウィジェットが標準のトラッキングイベントを発生させます。
+</Info>
+
+# サンプルアプリケーション
+
+完全に機能する環境でこの統合を実践的に示した完全なデモについては、[サンプルアプリケーション](https://github.com/moengage/webSDK-sample/tree/master/ChatGPT-App)を参照してください。

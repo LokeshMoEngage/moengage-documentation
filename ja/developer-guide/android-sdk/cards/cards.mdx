@@ -1,0 +1,349 @@
+---
+title: "Cards"
+description: "MoEngage Cards を設定して、Android アプリのユーザーに永続的な受信トレイやニュースフィードのメッセージを配信します。"
+---
+
+import AndroidCardsCountApis from '/ja/snippets/android-cards-count-apis.mdx';
+
+さまざまなカテゴリにグループ化できるターゲット型または自動化された App Inbox/NewsFeed メッセージを作成し、指定した期間 Inbox/Feed に残り続けるさまざまな更新情報やオファーでユーザーをターゲティングできます。詳細については、[Cards](https://www.moengage.com/docs/user-guide/campaigns-and-channels/cards/create/create-a-card-campaign) を参照してください。
+
+<img
+  src="/images/android-cards.png"
+  alt="Android Cards"
+  title="Android Cards"
+  style={{ width:"38%" }}
+/>
+
+# SDK のインストール
+
+## BOM を使用したインストール
+
+BOM を使用した統合が推奨される統合方法です。[BOM を使用したインストール](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)のドキュメントを参照してください。BOM を構成したら、以下のように app/build.gradle ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```kotlin build.gradle.kts wrap
+dependencies {
+    implementation("com.moengage:cards-core")
+}
+```
+
+</CodeGroup>
+
+BOM を構成したら、アプリケーションに必要な特定の MoEngage モジュールを含めます。 \
+注: これらの依存関係にはバージョン番号は不要です。BOM がバージョンを自動的に管理します。
+
+### **画像および GIF の読み込みにおける Glide への SDK の依存**
+
+SDK は画像と GIF の読み込みに [Glide](https://bumptech.github.io/glide/) を使用します。アプリケーションにまだ Glide が含まれていない場合は、必ず追加してください。SDK はライブラリバージョン **4.9.0** を使用してコンパイルされています。アプリケーションでも同じバージョン以上を使用することを推奨します。
+
+# UI コンポーネントの追加
+
+カード UI をアプリケーションに統合するには、SDK が提供するアクティビティを使用するか、SDK が提供する Fragment をアプリケーション内の既存の Activity にアタッチします。
+
+<Info>
+  アプリケーションのユーザーインターフェースを Jetpack Compose で構築している場合は、以下で説明する Activity や Fragment の代わりに `cards-ui-compose` モジュールを使用してください。[Jetpack Compose での Cards](/ja/developer-guide/android-sdk/cards/cards-ui-compose) を参照してください。
+</Info>
+
+## Activity を使用した統合
+
+SDK のマニフェストファイルでは [_CardActivity_](https://moengage.github.io/android-api-reference/cards-ui/com.moengage.cards.ui/-card-activity/index.html) がすでに宣言されているため、Activity のテーマやその他の起動プロパティをカスタマイズしたい場合を除き、追加の作業は必要ありません。\
+デフォルトの宣言は以下のとおりです。
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+	<activity
+	        android:name="com.moengage.cards.ui.CardActivity"
+	        android:label="@string/moe_card_feed_title"
+	        android:theme="@style/MoECardTheme.NoActionBar"
+	/>
+```
+
+</CodeGroup>
+
+カスタマイズ方法の詳細については、「カスタマイズ」を参照してください。
+
+## Fragment を使用した統合
+
+カード UI を Fragment として統合するには、アプリケーション内の適切な場所で [_CardFragment_](https://moengage.github.io/android-api-reference/cards-ui/com.moengage.cards.ui/-card-fragment/index.html) をインフレートします。
+
+# UI のカスタマイズ
+
+SDK は一連の UI カスタマイズを提供しています。
+
+## Activity のカスタマイズ
+
+SDK が提供するアクティビティを統合する場合、ラベルやテーマなどをカスタマイズできます。\
+テーマやラベルをカスタマイズするには、アプリのマニフェストでアクティビティを再宣言し、目的のテーマまたはラベルを指定します。\
+または、以下で説明するように SDK のデフォルトをオーバーライドすることもできます。
+
+### Activity のラベル
+
+アクティビティのデフォルトのラベルは **Inbox** です。ラベルを変更する場合は、**strings.xml** ファイルにラベル名を指定した **moe_card_feed_title** 文字列を追加します。
+
+<CodeGroup>
+
+```markdown strings.xml wrap
+<string name="moe_card_feed_title">[YOUR_LABEL_NAME]</string>
+```
+
+</CodeGroup>
+
+### Activity のテーマ
+
+Activity に適用されるデフォルトのテーマは **MoECardTheme.NoActionBar** です。\
+テーマの定義は以下のとおりです。
+
+<CodeGroup>
+
+```xml colors.xml wrap
+<style name="MoECardTheme" parent="Theme.AppCompat.Light" />
+
+<style name="MoECardTheme.NoActionBar">
+  <item name="windowActionBar">false</item>
+  <item name="windowNoTitle">true</item>
+  <item name="colorPrimary">@color/moe_card_color_primary</item>
+  <item name="colorPrimaryDark">@color/moe_card_color_primary_dark</item>
+  <item name="colorAccent">@color/moe_card_color_accent</item>
+  <item name="colorControlNormal">@color/moe_card_control_color</item>
+</style>
+
+<style name="MoETheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+<style name="MoETheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+```
+
+</CodeGroup>
+
+<CodeGroup>
+
+```xml colors.xml wrap
+ <!--  Theme customisation -->
+<color name="moe_card_color_accent">#1C64D0</color>
+<color name="moe_card_color_primary_dark">@color/moe_black</color>
+<color name="moe_card_color_primary">@color/moe_white</color>
+<color name="moe_card_control_color">@color/moe_black</color>
+```
+
+</CodeGroup>
+
+テーマをカスタマイズするには、いずれかの色属性をオーバーライドします。\
+オーバーライドするには、アプリケーションの **colors.xml** ファイルで同じ名前の属性を定義し、目的の色を指定します。\
+たとえば、アクセントカラーをカスタマイズする場合は、以下のようにアプリケーションの **color.xml** で **moe_card_color_accent** を定義し、**[YOUR_COLOR]** を目的の色に置き換えます。
+
+<CodeGroup>
+
+```xml colors.xml wrap
+<color name="moe_card_color_accent">[YOUR_COLOR]</color>
+```
+
+</CodeGroup>
+
+### Activity のツールバー
+
+**CardActvity** のレイアウトには、以下のスタイルのツールバーがあります。いずれかのプロパティをカスタマイズする場合は、以下のスタイル全体をオーバーライドするか、個々の項目をオーバーライドすることもできます。
+
+<CodeGroup>
+
+```xml styles.xml wrap
+<style name="MoECardToolbarTextStyle" parent="TextAppearance.Widget.AppCompat.Toolbar.Title">
+  <item name="android:textColor">@color/moe_card_toolbar_text_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+  <item name="android:textSize">@dimen/moe_card_tab_font_size</item>
+</style>
+```
+
+</CodeGroup>
+
+ツールバーの背景色は、テーマのプライマリカラーに設定されます。
+
+## タブのカスタマイズ
+
+カード UI はタブレイアウトで構築されています。SDK が提供するカスタマイズオプションは以下のとおりです。
+
+- テキストの外観
+- フォント
+- テキストサイズ
+- 選択時/非選択時のタブのテキスト色
+- 選択時/非選択時のタブの背景色
+
+これらのプロパティをカスタマイズするには、アプリケーションの **colors.xml** または **styles.xml** ファイルで、SDK が定義したスタイルまたは色属性をオーバーライドします。
+
+<CodeGroup>
+
+```xml style.xml wrap
+<style name="MoECardTabTextStyle">
+  <item name="android:textColor">@color/moe_card_toolbar_text_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+  <item name="android:textSize">@dimen/moe_card_tab_font_size</item>
+</style>
+```
+
+</CodeGroup>
+
+<CodeGroup>
+
+```xml colors.xml wrap
+<color name="moe_card_tab_selected_text_color">#1C64D0</color>
+<color name="moe_card_tab_unselected_text_color">#8E8E8E</color>
+<color name="moe_card_tab_background_selected">@color/moe_white</color>
+<color name="moe_card_tab_background_unselected">@color/moe_white</color>
+```
+
+</CodeGroup>
+
+## テキストのカスタマイズ
+
+各カードには 3 つのテキストフィールドと 1 つのボタンがあります。
+
+- ヘッダー
+- メッセージ
+- Call to Action ボタン (CTA)
+- タイムスタンプ
+
+これらの各コンポーネントのデフォルトスタイルは、以下のスタイル全体をオーバーライドするか、個々の項目をオーバーライドすることで変更できます。\
+これらのフィールドの色やテキストの書式 (太字、斜体など) といった一部のスタイル要素は MoEngage ダッシュボードからカスタマイズできますが、フォントやテキストサイズなどその他の要素は SDK 側で固定されています。これらの値はオーバーライドでき、すべてのカードに適用されます。
+
+<Info>
+  これらのスタイルで定義されている色はデフォルトの色であり、キャンペーン作成時に選択された色によってオーバーライドされます。
+</Info>
+
+<CodeGroup>
+
+```xml styles.xml wrap
+{/*  Header style  */}
+<style name="MoECardHeaderTextStyle">
+  <item name="android:textSize">@dimen/moe_card_header_font_size</item>
+  <item name="android:singleLine">true</item>
+  <item name="android:ellipsize">marquee</item>
+  <item name="android:textColor">@color/moe_card_header_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+</style>
+{/*  Message style  */}
+<style name="MoECardMessageTextStyle">
+  <item name="android:textSize">@dimen/moe_card_content_font_size</item>
+  <item name="android:maxLines">3</item>
+  <item name="android:ellipsize">end</item>
+  <item name="android:textColor">@color/moe_card_message_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+</style>
+{/*  Button style  */}
+<style name="MoECardCtaStyle">
+  <item name="android:textColor">@color/moe_card_cta_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+  <item name="android:textSize">@dimen/moe_card_cta_font_size</item>
+  <item name="android:singleLine">true</item>
+  <item name="android:ellipsize">marquee</item>
+  <item name="android:textAllCaps">false</item>
+  <item name="android:background">@android:color/transparent</item>
+  <item name="android:foreground">?android:attr/selectableItemBackground</item>
+</style>
+{/*  Timestamp Style  */}
+<style name="MoECardTimeTextStyle">
+  <item name="android:textSize">@dimen/moe_card_time_font_size</item>
+  <item name="android:singleLine">true</item>
+  <item name="android:ellipsize">marquee</item>
+  <item name="android:textColor">@color/moe_card_timestamp_color</item>
+  <item name="android:fontFamily">@font/roboto</item>
+</style>
+```
+
+</CodeGroup>
+
+<CodeGroup>
+
+```xml colors.xml wrap
+{/*  Text Color  */}
+<color name="moe_card_header_color">#424242</color>
+<color name="moe_card_message_color">#616161</color>
+<color name="moe_card_timestamp_color">#9E9E9E</color>
+```
+
+</CodeGroup>
+
+### タイムスタンプ形式のカスタマイズ
+
+各カードに表示されるタイムスタンプのデフォルト形式は **MMM dd, hh:mm a** です。この形式は、SDK の初期化時に [_MoEngage.Builder_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) オブジェクトの [_configureCards()_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-cards.html) にカスタム形式を渡すことでカスタマイズできます。
+
+## カードのカスタマイズ
+
+特定のカードについて、以下のプロパティをカスタマイズできます。
+
+- 未クリックインジケーターの色
+- カードの背景色 (キャンペーン作成時に選択された色によってオーバーライドされます)
+
+目的の色を使用するには、**colors.xml** で以下の色リソースをオーバーライドします。
+
+<CodeGroup>
+
+```xml colors.xml wrap
+<color name="moe_card_unclicked_indicator_color">#5956D6</color>
+<color name="moe_card_background_color">@color/moe_white</color>
+```
+
+</CodeGroup>
+
+## 空の状態
+
+受信トレイにカードが 1 枚もない場合、SDK は以下のように画像とメッセージを含む空の画面を表示します。
+
+<img
+  src="/images/emptystate.png"
+  alt="空の状態"
+  title="空の状態"
+  style={{ width:"37%" }}
+/>
+
+画像とメッセージは必要に応じてカスタマイズできます。
+
+#### 画像のカスタマイズ
+
+画像をカスタマイズするには、SDK の初期化時に [MoEngage.Builder](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) オブジェクトの [_configureCards()_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-cards.html) API に画像のリソース ID を渡します。
+
+#### メッセージのカスタマイズ
+
+メッセージをカスタマイズするには、アプリケーションの **strings.xml** ファイルで **moe_card_no_message_available** をオーバーライドします。
+
+<CodeGroup>
+
+```xml strings.xml wrap
+<string name="moe_card_no_message_available">[YOUR_STRING_GOES_HERE]</string>
+```
+
+</CodeGroup>
+
+## 削除テキストのカスタマイズ
+
+削除ボタンのメッセージをカスタマイズするには、アプリケーションの **strings.xml** で以下の文字列リソースをオーバーライドします。
+
+<CodeGroup>
+
+```xml xml wrap
+<string name="moe_card_delete_title">[YOUR_STRING_GOES_HERE]</string>
+```
+
+</CodeGroup>
+
+## プルして更新の無効化
+
+デフォルトでは、Card Activity/Fragment ではプルして更新機能が有効になっています。[_MoEngage.Builder_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) の [_configureCards()_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-cards.html) API を使用して、プルして更新を無効にできます。
+
+# API
+
+<AndroidCardsCountApis />
+
+# コールバック
+
+SDK は以下の場合にコールバックを提供します。
+
+- アプリケーションの起動時/フォアグラウンド移行時にカードが正常に同期されたとき
+- ユーザーがカードをクリックしたとき
+
+## 同期コールバック
+
+アプリケーションの起動時/フォアグラウンド移行時の同期完了のコールバックを受け取るには、[_SyncCompleteListener_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core.listener/-sync-complete-listener/index.html) インターフェースを実装し、[_MoECardHelper.setSyncCompleteListener()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/set-sync-complete-listener.html) を使用してコールバックを登録します。
+
+## クリックコールバック
+
+カードのクリック時にコールバックを受け取るには、[_OnCardClickListener_](https://moengage.github.io/android-api-reference/cards-ui/com.moengage.cards.ui.listener/-on-card-click-listener/index.html) インターフェースを実装し、[_MoECardUiHelper.setClickListener()_](https://moengage.github.io/android-api-reference/cards-ui/com.moengage.cards.ui/-mo-e-card-ui-helper/set-click-listener.html) を使用してコールバックを登録します。

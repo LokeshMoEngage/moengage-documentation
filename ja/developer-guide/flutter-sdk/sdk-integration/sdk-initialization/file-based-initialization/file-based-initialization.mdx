@@ -1,0 +1,175 @@
+---
+title: "ファイルベースの初期化"
+description: "コードではなくネイティブの設定ファイルを使用して、MoEngage Flutter SDKの初期化を設定します。"
+---
+
+## 概要
+
+<Info>
+  v10.3.0以降、Flutter SDKはファイルベースの初期化をサポートしています。
+</Info>
+
+統合プロセスを効率化し、初期化エラーを最小限に抑えるために、MoEngageはスクリプトベースの初期化をサポートしています。この方法では、App IDと設定をネイティブの設定ファイル内で直接管理できるため、アプリケーションロジックから分離して保持できます。
+
+この記事では、フォームベースのインターフェイスを使用して初期化用の検証済みコードスニペットを生成し、モジュール固有の設定にアクセスする方法を説明します。
+
+<Info>
+  SDKは手動で初期化することもできます。この方法が必要な場合は、[フレームワークの初期化](/ja/developer-guide/flutter-sdk/sdk-integration/sdk-initialization/manual-initialization/framework-initialization)のガイドを参照してください。
+</Info>
+
+初期化スクリプトを生成するには、次の手順に従います。
+
+1. [初期化Webサイト](https://app-cdn.moengage.com/sdk/integration/config/index.html)に移動します。
+2. アプリケーションの要件に基づいて値を設定します。以下の設定パラメーターの表を参照してください。
+   - [Android](#android-configuration-reference)
+   - [iOS](#ios-configuration-reference)
+3. フォーム下部の **Generate Code** をクリックします。
+
+## ステップ1：Androidの設定（XML）
+
+Androidでは、アプリケーションのリソースディレクトリにXML設定ファイルを配置することで初期化が行われます。
+
+### Android設定リファレンス
+
+`moengage.xml` で使用できるキーの一覧は以下のとおりです。
+
+<Accordion title="Androidの設定">
+  | カテゴリー | XMLキー名 | 型 | 説明 |
+  | :-- | :-- | :-- | :-- |
+  | **Core** | `com_moengage_core_workspace_id` | String | Workspace IDを指定します。このフィールドは必須です。 |
+  |  | `com_moengage_core_file_based_initialisation_enabled` | Boolean | この機能を有効にするには `true` に設定します。 |
+  |  | `com_moengage_core_data_center` | Integer | デフォルト：`1`。詳細については、[データセンターの値](#data-center-values)を参照してください。 |
+  |  | `com_moengage_core_environment` | String | サポートされる値は `default`、`live`、`test` です。 |
+  |  | `com_moengage_core_custom_base_domain` | String | SDKのネットワークトラフィックを独自のサブドメイン経由でルーティングするための、ベースとなるカスタムプロキシドメインを指定します。 |
+  |  | `com_moengage_core_integration_partner` | String | コア統合パートナーを指定します。例：`segment` または `mparticle`。 |
+  | **Push** | `com_moengage_push_notification_small_icon` | Drawable | スモールアイコンのリソースID。 |
+  |  | `com_moengage_push_notification_large_icon` | Drawable | ラージアイコンのリソースID。 |
+  |  | `com_moengage_push_notification_color` | Color | 通知のアクセントカラー。 |
+  |  | `com_moengage_push_notification_token_retry_interval` | Integer | トークン登録の再試行間隔（秒）。 |
+  |  | `com_moengage_push_kit_registration_enabled` | Boolean | `true` の場合、SDKがプッシュトークンを登録します。 |
+  | **Logs** | `com_moengage_core_log_level` | Integer | `0`（ログなし）～`5`（Verbose）。デフォルト：`3`。 |
+  |  | `com_moengage_core_log_enabled_for_release_build` | Boolean | `true` の場合、リリースビルドでもログを出力します。 |
+  | **Security** | `com_moengage_core_storage_encryption_enabled` | Boolean | ローカルストレージの暗号化を有効にします。 |
+  |  | `com_moengage_core_network_encryption_enabled` | Boolean | ネットワーク上のペイロード暗号化を有効にします。 |
+  | **Sync** | `com_moengage_core_periodic_data_sync_enabled` | Boolean | フォアグラウンドでの定期的なデータ同期を有効にします。 |
+  |  | `com_moengage_core_background_data_sync_enabled` | Boolean | バックグラウンドでの定期的なデータ同期を有効にします。 |
+  | **In-App** | `com_moengage_inapp_show_in_new_activity_enabled` | Boolean | 特定のTV/Android構成で必要です。 |
+</Accordion>
+
+<Warning>
+  **トラブルシューティング**
+
+  XMLファイルが存在しない場合、または `com_moengage_core_workspace_id` が空の場合、SDKは `ConfigurationMismatchError` をスローします。
+</Warning>
+
+### 設定ファイルを追加する
+
+生成されたファイルを `android/app/src/main/res/values/` に配置します。
+
+## ステップ2：iOSの設定（Info.plist）
+
+iOSでは、`Info.plist` に設定ディクショナリを追加することで初期化が行われます。
+
+### iOS設定リファレンス
+
+`MoEngage` ディクショナリで使用できるキーの一覧は以下のとおりです。
+
+<Accordion title="iOSの設定">
+  | カテゴリー | Plistキー | 型 | 説明 |
+  | :-- | :-- | :-- | :-- |
+  | **Core** | `WorkspaceId` | String | Workspace IDを指定します。必須フィールドです。 |
+  |  | `IsSdkAutoInitialisationEnabled` | Boolean | SDKの自動初期化を有効にするには `true` に設定します。 |
+  |  | `DataCenter` | Integer | データセンターの値を指定します。これは必須フィールドです。デフォルト値は _1_ です。詳細については、[データセンターの値](#data-center-values)を参照してください。 |
+  |  | `IsTestEnvironment` | String / Boolean | お客様が選択したオプション（`true`/`false`）。デフォルト値：`$(SWIFT_ACTIVE_COMPILATION_CONDITIONS)`。 |
+  |  | `CustomBaseDomain` | String | SDKのネットワークトラフィックを独自のサブドメイン経由でルーティングするための、ベースとなるカスタムプロキシドメインを指定します。 |
+  |  | `IntegrationPartner` | String | 統合パートナーを指定します。例：`segment` または `mparticle`。デフォルト値：なし。 |
+  |  | `AppGroupName` | String | SDKデータの共有に使用するApp Group名を指定します。デフォルト値：`""`。 |
+  | **Logs** | `IsLoggingEnabled` | Boolean | SDKログを有効にするには _true_ に設定します。 |
+  |  | `Loglevel` | Integer | `0`～`5`。デフォルト：`2`。 |
+  | **Security** | `IsStorageEncryptionEnabled` | Boolean | ローカルストレージの暗号化を有効にします。デフォルト値：`false`。 |
+  |  | `KeychainGroupName` | String | 暗号化キーの保存に使用するキーチェーングループ名を指定します。`IsStorageEncryptionEnabled` が `true` の場合は必須フィールドです。デフォルト値：`""`。 |
+  |  | `IsNetworkEncryptionEnabled` | Boolean | ペイロードの暗号化を有効にします。デフォルト：`false`。 |
+  |  | `EncryptionEncodedTestKey` | String | ダッシュボードから自動入力される文字列。`IsNetworkEncryptionEnabled` が `true` の場合に使用されます。 |
+  |  | `EncryptionEncodedLiveKey` | String | ダッシュボードから自動入力される文字列。`IsNetworkEncryptionEnabled` が `true` の場合に使用されます。 |
+  | **Sync** | `AnalyticsEnablePeriodicFlush` | Boolean | 定期的なデータフラッシュを有効にします。デフォルト：`true`。 |
+  |  | `AnalyticsPeriodicFlushDuration` | Integer | フラッシュ間隔（秒）。デフォルト：`60`。 |
+  | **In-App** | `InAppDisplaySafeAreaInset` | Real | セーフエリアのパディングを表す小数値。デフォルト：`0`。 |
+  |  | `InAppShouldProvideDeeplinkCallback` | Boolean | `true` の場合、ディープリンク時にコールバックを提供します。デフォルト：`false`。 |
+</Accordion>
+
+### データセンターの値
+
+お客様のリージョンに対応する整数を設定します。値が正しくない場合、データが失われます。
+
+| データセンター | ダッシュボードホスト |
+| --- | --- |
+| 1 | [dashboard-01.moengage.com](http://dashboard-01.moengage.com) |
+| 2 | [dashboard-02.moengage.com](http://dashboard-02.moengage.com) |
+| 3 | [dashboard-03.moengage.com](http://dashboard-03.moengage.com) |
+| 4 | [dashboard-04.moengage.com](http://dashboard-04.moengage.com) |
+| 5 | [dashboard-05.moengage.com](http://dashboard-05.moengage.com) |
+| 6 | [dashboard-06.moengage.com](http://dashboard-06.moengage.com) |
+
+### Info.plistを更新する
+
+1. プロジェクトの `Info.plist`（`ios/Runner/` にあります）を開きます。
+2. `Dictionary` 型の `MoEngage` という名前の新しいトップレベルキーを作成します。
+3. [初期化Webサイト](https://app-cdn.moengage.com/sdk/integration/config/index.html)で生成された設定ファイルの内容を追加します。
+
+<Warning>
+  キー `IsSdkAutoInitialisationEnabled` はイギリス英語の綴り（'s'）を使用しています。以下に示すキー名を正確に使用してください。そうしないと初期化が失敗します。
+</Warning>
+
+**XMLスニペットの表現：**
+
+<CodeGroup>
+
+```xml XML
+<key>MoEngage</key>
+<dict>
+    <key>WorkspaceId</key>
+    <string>YOUR_WORKSPACE_ID</string>
+    <key>IsTestEnvironment</key>
+    <string>$(SWIFT_ACTIVE_COMPILATION_CONDITIONS)|$(GCC_PREPROCESSOR_DEFINITIONS)</string>
+    <key>DataCenter</key>
+    <integer>1</integer>
+    <key>CustomBaseDomain</key>
+    <string>data.example.com</string>
+    <key>IsLoggingEnabled</key>
+    <true/>
+</dict>
+```
+
+</CodeGroup>
+
+## ステップ3：フレームワークレベルの初期化
+
+ネイティブファイルを設定すると、ハイブリッドフレームワークでの初期化コードが簡素化されます。
+
+**MoEngageFlutter(YOUR\_Workspace\_ID)** オブジェクトを作成し、プロジェクトのApp Widgetの **initState()** メソッド内で、以下のように **MoEngageFlutter** プラグインの **initialise()** を呼び出します。
+
+<CodeGroup>
+
+```dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+@override
+void initState() {
+  super.initState();
+  initPlatformState();
+  _moengagePlugin.initialise();
+}
+```
+
+</CodeGroup>
+
+## ステップ4：移行と優先順位
+
+手動のコードベースの初期化からファイルベースの方法に移行するには、[こちら](/ja/developer-guide/flutter-sdk/sdk-integration/sdk-initialization/file-based-initialization/migration-and-precedence)を参照してください。
+
+## ステップ5：環境（テストとライブ）
+
+これらのファイル内でテスト/ライブ環境を設定できます。
+
+- **Android：** キー `<string name="com_moengage_core_environment">test</string>` を使用します。
+- **iOS：** `<key>IsTestEnvironment</key> <true/>` を使用します。

@@ -1,0 +1,1457 @@
+---
+title: "オーディエンスと配信のリファレンス"
+description: "trigger_condition、segmentation_details、scheduling_details、delivery_controls、conversion_goal_details、control_group_details、utm_params、campaign_audience_limit、advanced、geofences のリファレンスです。Create Campaign および Update Campaign エンドポイントで使用されます。"
+keywords: ["trigger_condition", "segmentation_details", "scheduling_details", "delivery_controls", "conversion_goal_details", "control_group_details", "utm_params", "campaign_audience_limit", "geofences", "filters", "periodic", "BTS", "user timezone", "frequency capping"]
+icon: "users-viewfinder"
+---
+
+このリファレンスでは、キャンペーンがどのようにユーザーに届くかを定義するリクエストボディのコンポーネントについて説明します: `trigger_condition`、`segmentation_details`、`scheduling_details`、`delivery_controls`、`conversion_goal_details`、`control_group_details`、`utm_params`、`campaign_audience_limit`、`advanced`、`basic_details.geofences`。これらは [Create Campaign](/ja/api/create-campaigns/create-campaign-draft-v5) および [Update Campaign](/ja/api/update-campaigns/update-campaign-v5) で使用されます。
+
+`basic_details`(geofences を除く)と、チャネル、プラットフォーム、テンプレートタイプごとの `campaign_content` については、[キャンペーンコンテンツのリファレンス](/ja/api/campaigns/campaign-content-reference) を参照してください。
+
+<Note>
+フィールドの型、列挙値、必須マーカーについては、`/api/campaigns/campaign-draft.yaml` にある OpenAPI 仕様が正式な情報源です。このページでは、インラインのスキーマ説明では表現できない、実行可能なバリエーションと条件付きルールを補足します。
+</Note>
+
+## クイックスタート
+
+最小限のオーディエンス設定は、`segmentation_details.is_all_user_campaign: true` または `segmentation_details.included_filters` 配下の単一のフィルターのいずれかです。最小限のスケジュールは `scheduling_details.delivery_type: ASAP` です。イベントトリガー型キャンペーンでは、`trigger_condition` も必要です。
+
+<CodeGroup>
+
+```json One-time Push to a custom segment
+{
+  "segmentation_details": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "custom_segments",
+          "name": "High-LTV users",
+          "id": "seg_5f1a3b2c"
+        }
+      ]
+    }
+  },
+  "scheduling_details": {
+    "delivery_type": "ASAP"
+  }
+}
+```
+
+```json Event-triggered Email
+{
+  "trigger_condition": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "actions",
+          "action_name": "cart_abandoned",
+          "execution": { "type": "atleast", "count": 1 },
+          "executed": true
+        }
+      ]
+    },
+    "trigger_delay_type": "ASAP"
+  },
+  "scheduling_details": {
+    "delivery_type": "AT_FIXED_TIME",
+    "start_time": "2026-07-15T09:00:00",
+    "expiry_time": "2026-12-31T23:59:59"
+  }
+}
+```
+
+</CodeGroup>
+
+以下は、サポートされているすべての配信タイプ、フィルタープリミティブ、配信制御フラグを網羅したリファレンス資料です。
+
+## ページの内容
+
+| セクション | リクエストボディ内の位置 |
+| :--- | :--- |
+| [トリガー条件](#trigger-conditions) | `trigger_condition` |
+| [フィルタープリミティブ](#filter-primitives) | `included_filters.filters[]`、`excluded_filters.filters[]`、`trigger_condition.*_filters.filters[]` |
+| [キャンペーンのオーディエンス](#campaign-audience) | `segmentation_details` |
+| [キャンペーンの配信スケジュール](#campaign-delivery-schedule) | `scheduling_details` |
+| [配信制御](#delivery-controls) | `delivery_controls` |
+| [コンバージョン目標のトラッキング](#conversion-goal-tracking) | `conversion_goal_details` |
+| [コントロールグループ](#control-groups) | `control_group_details` |
+| [UTM パラメータ](#utm-parameters) | `utm_params` |
+| [キャンペーンのオーディエンス上限](#campaign-audience-cap) | `campaign_audience_limit` |
+| [Push の詳細設定](#advanced-push-settings) | `advanced`(Push のみ) |
+| [ジオフェンスのターゲティング](#geofence-targeting) | `basic_details.geofences` |
+| [検証ルール](#validation-rules) | 検証時に適用される横断的なルール |
+| [既存のキャンペーンの更新](#updating-an-existing-campaign) | `PATCH /v5/campaigns/{campaign_id}` の状態ごとの制限 |
+
+## トリガー条件
+
+`trigger_condition` オブジェクトは、トリガー型キャンペーンがいつ発火するかを定義します。以下の配信タイプでは **必須** です。
+
+- Push の `EVENT_TRIGGERED`、`DEVICE_TRIGGERED`、`LOCATION_TRIGGERED`。
+- Email の `EVENT_TRIGGERED`。
+
+`BUSINESS_EVENT_TRIGGERED` キャンペーンは、`basic_details.business_event` によってトリガーを識別し、`trigger_condition` は使用しません。
+
+| フィールド | 型 | チャネルのサポート |
+| :--- | :--- | :--- |
+| `included_filters` | [FilterGroup](#filter-primitives) | Push、Email。トリガーが発火するために一致する必要があるプライマリ条件です。 |
+| `secondary_included_filters` | [FilterGroup](#filter-primitives) | Push、Email。プライマリ条件と組み合わせる追加のフィルターです。 |
+| `trigger_delay_type` | enum | Push: `DELAY`、`ASAP`、`INTELLIGENT_DELAY`。Email: `DELAY`、`ASAP`。 |
+| `trigger_delay_value` | integer | 遅延の数値です。`trigger_delay_type` が `DELAY` の場合は **必須** です。 |
+| `trigger_delay_granularity` | enum | `MINUTES`、`HOURS`、または `DAYS`。`trigger_delay_type` が `DELAY` の場合は **必須** です。 |
+| `trigger_relation` | enum | `BEFORE` または `AFTER`。`trigger_delay_type` が `DELAY` の場合は **必須** です。 |
+| `trigger_attr` | object | `trigger_relation` が `BEFORE` の場合に、時間の基準として使用される属性です。 |
+| `intelligent_delay_optimization` | object | Push のみ。`trigger_delay_type` が `INTELLIGENT_DELAY` の場合は **必須** です。[Intelligent delay の最適化(Push)](#intelligent-delay-optimization-push) を参照してください。 |
+
+<Warning>
+`INTELLIGENT_DELAY` は **Push のみ** でサポートされています。Email の `trigger_delay_type` では `DELAY` または `ASAP` を指定できます。
+</Warning>
+
+### トリガー遅延のバリエーション
+
+<Tabs>
+<Tab title="ASAP">
+
+トリガー条件が満たされるとすぐにキャンペーンが発火します。
+
+```json
+{
+  "trigger_condition": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "actions",
+          "action_name": "purchase_completed",
+          "execution": { "type": "atleast", "count": 1 },
+          "executed": true
+        }
+      ]
+    },
+    "trigger_delay_type": "ASAP"
+  }
+}
+```
+
+</Tab>
+<Tab title="DELAY (AFTER)">
+
+トリガー条件が満たされてから一定時間後にキャンペーンが発火します。
+
+```json
+{
+  "trigger_condition": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "actions",
+          "action_name": "cart_abandoned",
+          "execution": { "type": "atleast", "count": 1 },
+          "executed": true
+        }
+      ]
+    },
+    "trigger_delay_type": "DELAY",
+    "trigger_delay_value": 30,
+    "trigger_delay_granularity": "MINUTES",
+    "trigger_relation": "AFTER"
+  }
+}
+```
+
+`trigger_delay_type` が `DELAY` の場合、`trigger_delay_value`、`trigger_delay_granularity`、`trigger_relation` はすべて必須です。
+
+</Tab>
+<Tab title="DELAY (BEFORE)">
+
+ユーザー属性を基準とした時刻(例: フライトの出発時刻)の前にキャンペーンが発火します。`trigger_relation` は `BEFORE` で、時間の基準は `trigger_attr.name` で渡します。
+
+```json
+{
+  "trigger_condition": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "actions",
+          "action_name": "ticket_booked",
+          "execution": { "type": "atleast", "count": 1 },
+          "executed": true
+        }
+      ]
+    },
+    "trigger_delay_type": "DELAY",
+    "trigger_delay_value": 2,
+    "trigger_delay_granularity": "HOURS",
+    "trigger_relation": "BEFORE",
+    "trigger_attr": {
+      "name": "departure_time"
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="INTELLIGENT_DELAY (Push)">
+
+MoEngage が、最小/最大の時間枠内でユーザーごとに最適な送信時刻を選択します。Push のみです。
+
+```json
+{
+  "trigger_condition": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "actions",
+          "action_name": "session_start",
+          "execution": { "type": "atleast", "count": 1 },
+          "executed": true
+        }
+      ]
+    },
+    "trigger_delay_type": "INTELLIGENT_DELAY",
+    "intelligent_delay_optimization": {
+      "min_delay_value": 1,
+      "min_delay_granularity": "HOURS",
+      "max_delay_value": 24,
+      "max_delay_granularity": "HOURS"
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+### Intelligent delay の最適化(Push)
+
+`intelligent_delay_optimization` オブジェクトは、MoEngage が最適な送信時刻を選択する時間枠を定義します。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `min_delay_value` | integer | 下限の数値部分です。 |
+| `min_delay_granularity` | enum | `MINUTES` または `HOURS`。 |
+| `max_delay_value` | integer | 上限の数値部分です。 |
+| `max_delay_granularity` | enum | `HOURS` または `DAYS`。 |
+
+### プライマリおよびセカンダリのトリガーフィルター
+
+`secondary_included_filters` は、同様に一致する必要がある追加のフィルターグループを追加します。「ユーザーが X を行い、かつ Y でもある」という形式のトリガーに便利です。
+
+```json
+{
+  "trigger_condition": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "actions",
+          "action_name": "purchase_completed",
+          "execution": { "type": "atleast", "count": 1 },
+          "executed": true
+        }
+      ]
+    },
+    "secondary_included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "user_attributes",
+          "data_type": "string",
+          "name": "loyalty_tier",
+          "operator": "is",
+          "value": "gold"
+        }
+      ]
+    },
+    "trigger_delay_type": "ASAP"
+  }
+}
+```
+
+### 配信タイプごとのトリガー要件
+
+| 配信タイプ | `trigger_condition` | `basic_details.business_event` | `basic_details.geofences` |
+| :--- | :--- | :--- | :--- |
+| `EVENT_TRIGGERED`(Push、Email) | **必須**。 | — | — |
+| `BUSINESS_EVENT_TRIGGERED`(Push、Email) | 使用しません。 | **必須**。 | — |
+| `DEVICE_TRIGGERED`(Push) | **必須**。 | — | — |
+| `LOCATION_TRIGGERED`(Push) | **必須**。 | — | **必須**。[ジオフェンスのターゲティング](#geofence-targeting) を参照してください。 |
+| `ONE_TIME`(Push、Email) | 該当なし。 | — | — |
+| `PERIODIC`(Push、Email) | 該当なし。 | — | — |
+
+## フィルタープリミティブ
+
+フィルターは、`segmentation_details` の `included_filters.filters[]` と `excluded_filters.filters[]`、および `trigger_condition` の `included_filters.filters[]` と `secondary_included_filters.filters[]` の中で使用されるプリミティブです。すべてのフィルターグループは次の形式を持ちます。
+
+```json
+{
+  "filter_operator": "and",
+  "filters": [
+    /* one or more filter objects */
+  ]
+}
+```
+
+`filter_operator` は `and` または `or`(小文字)です。フィルターは `filter_type` によって区別されるオブジェクトです。
+
+| `filter_type` | 用途 |
+| :--- | :--- |
+| `user_attributes` | ユーザー属性(string、double、datetime、bool)で照合します。 |
+| `actions` | ユーザーがイベントを実行したかどうかで照合します。 |
+| `custom_segments` | 保存済みのカスタムセグメントに含まれるユーザーを照合します。 |
+
+<Tabs>
+<Tab title="ユーザー属性ベースのフィルター">
+
+```json
+{
+  "filter_type": "user_attributes",
+  "data_type": "string",
+  "category": "Tracked Standard Attribute",
+  "name": "country",
+  "operator": "is",
+  "value": "IN",
+  "case_sensitive": false,
+  "negate": false
+}
+```
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `filter_type` | enum | `user_attributes`(固定)。 |
+| `data_type` | enum | `string`、`double`、`datetime`、または `bool`(小文字)。 |
+| `category` | string | 属性のカテゴリ(例: `Tracked Standard Attribute`)。 |
+| `name` | string | 属性名(例: `country`、`uid`)。 |
+| `operator` | string | 演算子は `data_type` によって異なります。[データ型ごとの演算子](#operators-per-data-type) を参照してください。 |
+| `value` | varies | 照合する値です。`exists` 演算子では不要です。 |
+| `case_sensitive` | boolean | 比較で大文字と小文字を区別するかどうか。 |
+| `negate` | boolean | 条件を否定するかどうか。 |
+| `project_name` | string | ワークスペースで Portfolio 機能が有効になっている場合は **必須** です。 |
+
+#### データ型ごとの演算子
+
+| `data_type` | 使用可能な `operator` の値 |
+| :--- | :--- |
+| `bool` | `is`, `exists` |
+| `double` | `in`, `between`, `lessThan`, `greaterThan`, `exists` |
+| `string` | `in`, `contains`, `containsInTheFollowing`, `startWithInTheFollowing`, `endsWithInTheFollowing`, `exists`, `is` |
+| `datetime` | `inTheLast`, `on`, `between`, `before`, `after`, `inTheNext`, `exists`, `today` |
+
+</Tab>
+<Tab title="アクションベースのフィルター(属性あり/なし)">
+
+ユーザーがイベントを実行した(または実行しなかった)かどうかでフィルタリングします。
+
+```json
+{
+  "filter_type": "actions",
+  "action_name": "purchase_completed",
+  "execution": { "type": "atleast", "count": 1 },
+  "executed": true
+}
+```
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `filter_type` | enum | `actions`(固定)。 |
+| `action_name` | string | イベント名です。 |
+| `execution.type` | enum | `atleast`、`atmost`、または `exactly`。 |
+| `execution.count` | integer | 比較対象の回数です。 |
+| `executed` | boolean | アクションが実行されたかどうか。 |
+| `attributes` | [FilterGroup](#filter-primitives) | 任意。イベント属性でフィルタリングします(ネストされたフィルターグループ)。 |
+| `condition` | string | 任意。条件ラベル(例: `IF`)。 |
+
+イベント属性フィルターを含むアクションフィルター:
+
+```json
+{
+  "filter_type": "actions",
+  "action_name": "product_viewed",
+  "execution": { "type": "atleast", "count": 1 },
+  "executed": true,
+  "attributes": {
+    "filter_operator": "and",
+    "filters": [
+      {
+        "filter_type": "user_attributes",
+        "data_type": "double",
+        "name": "price",
+        "operator": "greaterThan",
+        "value": 100
+      }
+    ]
+  }
+}
+```
+
+</Tab>
+<Tab title="カスタムセグメント">
+
+保存済みのカスタムセグメントを名前と ID で参照します。
+
+```json
+{
+  "filter_type": "custom_segments",
+  "name": "High-LTV users",
+  "id": "seg_5f1a3b2c"
+}
+```
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `filter_type` | enum | `custom_segments`(固定)。 |
+| `name` | string | カスタムセグメント名(ダッシュボードに表示される名前)。 |
+| `id` | string | カスタムセグメント ID です。 |
+
+セグメント ID と名前は、MoEngage ダッシュボードの **Segments** で確認できます。セグメント作成の詳細については、[Custom Segments](/ja/user-guide/segment/create-segments/manage-segments) を参照してください。
+
+</Tab>
+</Tabs>
+
+## キャンペーンのオーディエンス
+
+`segmentation_details` オブジェクトは、キャンペーンを受信するユーザーを定義します。明示的なフィルターグループと、すべてのユーザーをターゲットにするフラグの 2 つのトップレベルモードがサポートされています。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `included_filters` | [FilterGroup](#filter-primitives) | ユーザーをオーディエンスに含めるフィルターです。 |
+| `excluded_filters` | [FilterGroup](#filter-primitives) | ユーザーをオーディエンスから除外するフィルターです。 |
+| `is_all_user_campaign` | boolean | `true` の場合、すべてのユーザーがターゲットになります(オプトインステータスに従います)。 |
+| `send_campaign_to_opt_out_users` | boolean | `true` の場合、オプトアウトしたユーザーもターゲットになります。 |
+
+<Tabs>
+<Tab title="すべてのユーザー">
+
+```json
+{
+  "segmentation_details": {
+    "is_all_user_campaign": true
+  }
+}
+```
+
+</Tab>
+<Tab title="カスタムセグメント">
+
+```json
+{
+  "segmentation_details": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "custom_segments",
+          "name": "High-LTV users",
+          "id": "seg_5f1a3b2c"
+        }
+      ]
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="ユーザー属性フィルター">
+
+```json
+{
+  "segmentation_details": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "user_attributes",
+          "data_type": "string",
+          "name": "country",
+          "operator": "is",
+          "value": "IN"
+        }
+      ]
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="包含と除外">
+
+```json
+{
+  "segmentation_details": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "user_attributes",
+          "data_type": "string",
+          "name": "country",
+          "operator": "is",
+          "value": "IN"
+        }
+      ]
+    },
+    "excluded_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "custom_segments",
+          "name": "Internal testers",
+          "id": "seg_testers"
+        }
+      ]
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="オプトアウトを含める">
+
+```json
+{
+  "segmentation_details": {
+    "is_all_user_campaign": true,
+    "send_campaign_to_opt_out_users": true
+  }
+}
+```
+
+`send_campaign_to_opt_out_users: true` は、ユーザーとの関係によって同意が暗黙的に得られているトランザクションメッセージや運用上のメッセージを対象としています。
+
+</Tab>
+</Tabs>
+
+## キャンペーンの配信スケジュール
+
+`scheduling_details.delivery_type` フィールドで送信モデルを選択します。値に応じて、必要なフィールドが異なります。
+
+| `delivery_type` | 送信動作 | 必須の関連フィールド |
+| :--- | :--- | :--- |
+| `ASAP` | キャンペーンが公開されるとすぐに送信します。 | なし。 |
+| `AT_FIXED_TIME` | 特定のタイムスタンプに送信します。 | `start_time`(ISO 8601)。 |
+| `SEND_IN_BTS` | 時間枠内で各ユーザーにとって最適な時刻に送信します。 | `start_time` と `bts_details`。 |
+| `SEND_IN_USER_TIMEZONE` | 各ユーザーのローカルタイムゾーンにおける固定の時刻に送信します。 | `start_time` と `user_timezone_details`。 |
+
+`PERIODIC` キャンペーンでは、`delivery_type` は `AT_FIXED_TIME` で、`periodic_details` が必須です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `delivery_type` | enum | `ASAP`、`AT_FIXED_TIME`、`SEND_IN_BTS`、または `SEND_IN_USER_TIMEZONE`。 |
+| `start_time` | date-time (ISO 8601) | キャンペーンの開始時刻です。 |
+| `expiry_time` | date-time (ISO 8601) | キャンペーンの有効期限です。トリガー型キャンペーンでアクティビティの期間を制限するために使用します。 |
+| `periodic_details` | object | `PERIODIC` キャンペーンでは **必須** です。[定期スケジュール](#periodic-schedules) を参照してください。 |
+| `bts_details` | object | `delivery_type` が `SEND_IN_BTS` の場合は **必須** です。[Best Time to Send](#best-time-to-send) を参照してください。 |
+| `user_timezone_details` | object | `delivery_type` が `SEND_IN_USER_TIMEZONE` の場合は **必須** です。[ユーザーのタイムゾーン](#user-timezone) を参照してください。 |
+
+### スケジュールのバリエーション
+
+<Tabs>
+<Tab title="ASAP">
+
+```json
+{
+  "scheduling_details": {
+    "delivery_type": "ASAP"
+  }
+}
+```
+
+</Tab>
+<Tab title="AT_FIXED_TIME">
+
+```json
+{
+  "scheduling_details": {
+    "delivery_type": "AT_FIXED_TIME",
+    "start_time": "2026-07-15T09:00:00",
+    "expiry_time": "2026-07-15T18:00:00"
+  }
+}
+```
+
+`start_time` は ISO 8601 形式です。`expiry_time` は任意で、一般的にイベントトリガー型キャンペーンで配信期間を定義するために使用されます。
+
+</Tab>
+<Tab title="SEND_IN_BTS">
+
+Best Time to Send: MoEngage は、`start_time` と `bts_details.window_end_time` で定義された時間枠内で、過去のエンゲージメントに基づいてユーザーごとに最適な送信時刻を選択します。
+
+```json
+{
+  "scheduling_details": {
+    "delivery_type": "SEND_IN_BTS",
+    "start_time": "2026-07-15T09:00:00",
+    "bts_details": {
+      "send_in_bts": true,
+      "if_user_bts_is_not_available": "send_at_start_time",
+      "if_user_bts_outside_time_window": "send_at_window_end",
+      "window_end_time": "6:43 am"
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="SEND_IN_USER_TIMEZONE">
+
+キャンペーンは、各ユーザーのローカルタイムゾーンにおける同じ時刻に送信されます。
+
+```json
+{
+  "scheduling_details": {
+    "delivery_type": "SEND_IN_USER_TIMEZONE",
+    "start_time": "2026-07-15T09:00:00",
+    "user_timezone_details": {
+      "send_in_user_timezone": true,
+      "send_if_user_timezone_has_passed": false
+    }
+  }
+}
+```
+
+`send_if_user_timezone_has_passed` が `false` の場合、ローカル時刻がすでに `start_time` を過ぎているユーザーはスキップされます。
+
+</Tab>
+<Tab title="PERIODIC">
+
+定期キャンペーンは、`AT_FIXED_TIME` と `periodic_details` を組み合わせます。
+
+```json
+{
+  "scheduling_details": {
+    "delivery_type": "AT_FIXED_TIME",
+    "start_time": "2026-07-15T09:00:00",
+    "periodic_details": {
+      "sending_frequency": "WEEKLY",
+      "repeat_frequency": 1,
+      "repeat_on_days_of_week": ["MONDAY"]
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+### 定期スケジュール
+
+`periodic_details` オブジェクトは、`PERIODIC` キャンペーンでは **必須** です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `sending_frequency` | enum | `DAILY`、`WEEKLY`、または `MONTHLY`。 |
+| `repeat_frequency` | integer | 繰り返しの間隔(例: 毎週の場合は `1`、2 週間ごとの場合は `2`)。 |
+| `no_of_occurences` | integer | キャンペーンが送信される合計回数です。 |
+| `repeat_on_date_of_month` | array of integer | 送信する月内の日付(1〜31)。`MONTHLY` で使用します。 |
+| `repeat_on_days_of_week` | array of enum | `MONDAY`、`TUESDAY`、`WEDNESDAY`、`THURSDAY`、`FRIDAY`、`SATURDAY`、`SUNDAY` のうち 1 つ以上。`WEEKLY` または `MONTHLY` で使用します。 |
+| `repeat_on_days_of_week_for_month` | array of `{ week_granularity, repeat_on_days_of_week }` | `MONTHLY` で、月内の特定の週をターゲットにするために使用します。 |
+
+`repeat_on_days_of_week_for_month` の各エントリは、次の形式を持ちます。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `week_granularity` | enum | `FIRST`、`SECOND`、`THIRD`、`FOURTH`、または `LAST`。 |
+| `repeat_on_days_of_week` | array of enum | 1 つ以上の曜日名。 |
+
+<Tabs>
+<Tab title="毎日">
+
+```json
+{
+  "scheduling_details": {
+    "delivery_type": "AT_FIXED_TIME",
+    "start_time": "2026-07-15T09:00:00",
+    "periodic_details": {
+      "sending_frequency": "DAILY",
+      "repeat_frequency": 1,
+      "no_of_occurences": 10
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="毎週">
+
+```json
+{
+  "scheduling_details": {
+    "delivery_type": "AT_FIXED_TIME",
+    "start_time": "2026-07-15T09:00:00",
+    "periodic_details": {
+      "sending_frequency": "WEEKLY",
+      "repeat_frequency": 1,
+      "repeat_on_days_of_week": ["FRIDAY"]
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="毎月の特定の日付">
+
+```json
+{
+  "scheduling_details": {
+    "delivery_type": "AT_FIXED_TIME",
+    "start_time": "2026-07-15T09:00:00",
+    "periodic_details": {
+      "sending_frequency": "MONTHLY",
+      "repeat_frequency": 1,
+      "repeat_on_date_of_month": [1, 15]
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="毎月第 1 月曜日">
+
+```json
+{
+  "scheduling_details": {
+    "delivery_type": "AT_FIXED_TIME",
+    "start_time": "2026-07-15T09:00:00",
+    "periodic_details": {
+      "sending_frequency": "MONTHLY",
+      "repeat_frequency": 1,
+      "repeat_on_days_of_week_for_month": [
+        { "week_granularity": "FIRST", "repeat_on_days_of_week": ["MONDAY"] }
+      ]
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+### Best Time to Send
+
+`bts_details` オブジェクトは、`delivery_type` が `SEND_IN_BTS` の場合は **必須** です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `send_in_bts` | boolean | 最適な時刻に送信するかどうか。 |
+| `if_user_bts_is_not_available` | string | ユーザーの最適な時刻が不明な場合のフォールバック動作です。 |
+| `if_user_bts_outside_time_window` | string | ユーザーの最適な時刻が時間枠外になる場合のフォールバック動作です。 |
+| `window_end_time` | string | BTS の時間枠の終了時刻です。 |
+
+### ユーザーのタイムゾーン
+
+`user_timezone_details` オブジェクトは、`delivery_type` が `SEND_IN_USER_TIMEZONE` の場合は **必須** です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `send_in_user_timezone` | boolean | 各ユーザーのローカルタイムゾーンで送信するかどうか。 |
+| `send_if_user_timezone_has_passed` | boolean | ローカル時刻がすでに `start_time` を過ぎているユーザーにも送信するかどうか。 |
+
+## 配信制御
+
+`delivery_controls` オブジェクトには、スロットリング、フリークエンシーキャップ、DND の動作、オフライン/キューイングのフラグが含まれます。使用できるフィールドは Push と Email で異なります。
+
+### Push の配信制御
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `bypass_dnd` | boolean | Do Not Disturb をバイパスするかどうか。イベントトリガー型キャンペーンでは **必須** です。 |
+| `campaign_throttle_rpm` | integer | 1 分あたりのリクエスト数によるスロットル値です。デバイストリガー型、ロケーショントリガー型、イベントトリガー型のキャンペーンには **適用されません**。 |
+| `count_for_frequency_capping` | boolean | このキャンペーンからの送信をワークスペースのフリークエンシーキャップにカウントするかどうか。 |
+| `ignore_frequency_capping` | boolean | このキャンペーンがワークスペースのフリークエンシーキャップをバイパスするかどうか。 |
+| `minimum_delay_between_two_notification_in_hour` | integer | このキャンペーンからの 2 つのプッシュ間の最小時間(時間単位)です。イベントトリガー型およびデバイストリガー型キャンペーンに適用されます。 |
+| `max_time_to_show_message_of_same_camapign` | string | メッセージがユーザーに表示される最大時間(時間単位)です。デバイストリガー型キャンペーンに適用されます。(フィールド名には仕様上のタイプミス `camapign` がそのまま残っています。) |
+| `expiry_time_of_sync_data_in_hour` | string | トリガー条件が満たされない場合に、同期されたキャンペーンデータが期限切れになるまでの時間(時間単位)です。デバイストリガー型キャンペーンに適用されます。 |
+| `send_message_in_offline_mode` | boolean | デバイスがオフラインの間にメッセージを保存して配信するかどうか。デバイストリガー型キャンペーンに適用されます。 |
+| `send_limit_value` | string | 時間枠内でユーザーがキャンペーンを受信できる最大回数です。ロケーショントリガー型キャンペーンに適用されます。 |
+| `send_limit_granularity_in_hours` | string | `send_limit_value` の時間枠(時間単位)です。ロケーショントリガー型キャンペーンに適用されます。 |
+| `ignore_global_minimum_delay` | boolean | ワークスペース全体のプッシュ間の最小間隔をバイパスするかどうか。イベントトリガー型キャンペーンに適用されます。 |
+| `queuing_enabled` | boolean | 配信できないメッセージを後で配信するためにキューに入れるかどうか。**フラグによる制御あり**。有効にするには MoEngage のアカウントチームにお問い合わせください。 |
+| `queue_duration` | integer | メッセージをキューに保持する時間(時間単位)です。`queuing_enabled` が `true` の場合は `0` より大きい値である必要があります。**フラグによる制御あり**。 |
+| `limit_send_config` | object | ローリング時間枠内でユーザーがこのキャンペーンを受信できる回数を制限するための設定です。定期キャンペーンおよびイベントトリガー型キャンペーンに適用されます。トランザクションキャンペーンには適用されません。**フラグによる制御あり**。有効にするには MoEngage のアカウントチームにお問い合わせください。 |
+
+<Tabs>
+<Tab title="スロットルとフリークエンシーキャップ">
+
+```json
+{
+  "delivery_controls": {
+    "campaign_throttle_rpm": 50000,
+    "count_for_frequency_capping": true,
+    "ignore_frequency_capping": false
+  }
+}
+```
+
+</Tab>
+<Tab title="イベントトリガー型">
+
+```json
+{
+  "delivery_controls": {
+    "bypass_dnd": false,
+    "minimum_delay_between_two_notification_in_hour": 24,
+    "ignore_global_minimum_delay": false
+  }
+}
+```
+
+</Tab>
+<Tab title="デバイストリガー型">
+
+```json
+{
+  "delivery_controls": {
+    "minimum_delay_between_two_notification_in_hour": 12,
+    "max_time_to_show_message_of_same_camapign": "48",
+    "expiry_time_of_sync_data_in_hour": "24",
+    "send_message_in_offline_mode": true
+  }
+}
+```
+
+</Tab>
+<Tab title="ロケーショントリガー型">
+
+```json
+{
+  "delivery_controls": {
+    "send_limit_value": "1",
+    "send_limit_granularity_in_hours": "24"
+  }
+}
+```
+
+</Tab>
+<Tab title="キューイング(フラグによる制御あり)">
+
+```json
+{
+  "delivery_controls": {
+    "queuing_enabled": true,
+    "queue_duration": 12
+  }
+}
+```
+
+`queuing_enabled` と `queue_duration` はフラグによって制御されます。この機能が有効になっていないワークスペースでこれらを含めると、検証エラーが返されます。キューに入れられたメッセージの詳細な動作については、[Message Queuing](/ja/user-guide/settings/channels/delivery-controls/message-queuing) を参照してください。
+
+</Tab>
+</Tabs>
+
+### Email の配信制御
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `bypass_dnd` | boolean | Do Not Disturb をバイパスするかどうか。 |
+| `campaign_throttle_rpm` | integer | 1 分あたりのリクエスト数によるスロットル値です。 |
+| `count_for_frequency_capping` | boolean | キャンペーンをフリークエンシーキャップにカウントするかどうか。 |
+| `ignore_frequency_capping` | boolean | フリークエンシーキャップをバイパスするかどうか。 |
+| `minimum_delay_between_two_notification_in_hour` | integer | このキャンペーンからの 2 通のメール間の最小時間(時間単位)です。 |
+| `limit_send_config` | object | ローリング時間枠内でユーザーがこのキャンペーンを受信できる回数を制限するための設定です。定期キャンペーンおよびイベントトリガー型キャンペーンに適用されます。トランザクションキャンペーンには適用されません。**フラグによる制御あり**。有効にするには MoEngage のアカウントチームにお問い合わせください。 |
+
+```json
+{
+  "delivery_controls": {
+    "campaign_throttle_rpm": 2000,
+    "count_for_frequency_capping": true,
+    "ignore_frequency_capping": false,
+    "minimum_delay_between_two_notification_in_hour": 24
+  }
+}
+```
+
+## コンバージョン目標のトラッキング
+
+`conversion_goal_details` オブジェクトは、キャンペーンの成果をアトリビューションするために MoEngage がトラッキングするイベントを設定します。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `attribution_window_in_hours` | integer | 目標イベントをキャンペーンにアトリビューションするためのルックバック期間(時間単位)です。 |
+| `goals` | array of [Goal fields](#goal-fields) | トラッキングする目標のリストです。 |
+
+### 目標のフィールド
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `goal_name` | string | 目標の表示名です。 |
+| `goal_event_name` | string | コンバージョンとしてトラッキングされるイベントです。 |
+| `goal_event_attribute` | object | 任意。[目標イベント属性のフィールド](#goal-event-attribute-fields) を参照してください。 |
+| `is_primary_goal` | boolean | その目標がプライマリ目標かどうか。 |
+| `revenue_attribute` | string | 収益のトラッキングに使用するイベント属性です。 |
+| `revenue_currency` | string | 収益トラッキングの通貨です。 |
+
+#### 目標イベント属性のフィールド
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `name` | string | 属性名です。 |
+| `condition` | string | 条件(例: `is`、`contains`、`between`)。 |
+| `data_type` | enum | `STRING`、`DOUBLE`、`BOOL`、`NUMBER`、`GEOPOINT`、`DATETIME`、`ARRAY_DOUBLE`、`ARRAY_STRING`、`OBJECT`、または `ARRAY_OBJECT`。(大文字であり、フィルターの `data_type` とは異なります。) |
+| `value` | string | 照合する値です。 |
+| `value1` | string | セカンダリ値(`between` で使用)。 |
+| `negate` | boolean | 条件を否定するかどうか。 |
+| `value_type` | string | フィルタリング対象の値の型です。 |
+| `array_filter_type` | string | 配列属性の論理フィルタータイプです。 |
+| `filters` | array of object | `data_type` が `OBJECT` または `ARRAY_OBJECT` の場合に使用するサブフィルターです。 |
+| `is_case_sensitive` | boolean | 比較で大文字と小文字を区別するかどうか。 |
+
+<Tabs>
+<Tab title="単一のコンバージョン目標">
+
+```json
+{
+  "conversion_goal_details": {
+    "attribution_window_in_hours": 36,
+    "goals": [
+      {
+        "goal_name": "Purchase",
+        "goal_event_name": "purchase_completed",
+        "is_primary_goal": true,
+        "goal_event_attribute": {
+          "name": "category",
+          "condition": "is",
+          "data_type": "STRING",
+          "value": "electronics"
+        }
+      }
+    ]
+  }
+}
+```
+
+</Tab>
+<Tab title="複数のコンバージョン目標">
+
+```json
+{
+  "conversion_goal_details": {
+    "attribution_window_in_hours": 72,
+    "goals": [
+      { "goal_name": "Add to cart", "goal_event_name": "cart_added", "is_primary_goal": true },
+      { "goal_name": "Purchase", "goal_event_name": "purchase_completed", "is_primary_goal": false }
+    ]
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+## コントロールグループ
+
+`control_group_details` オブジェクトは、キャンペーンレベルおよびグローバルのコントロールグループ(送信対象から除外されるユーザー)を設定します。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `is_campaign_control_group_enabled` | boolean | キャンペーンのコントロールグループが有効かどうか。 |
+| `campaign_control_group_percentage` | integer (0–100) | 除外するオーディエンスの割合です。`is_campaign_control_group_enabled` が `true` の場合は **必須** です。 |
+| `is_global_control_group_enabled` | boolean | ワークスペースのグローバルコントロールグループをキャンペーンに適用するかどうか。 |
+
+<Tabs>
+<Tab title="キャンペーンのコントロールグループ">
+
+```json
+{
+  "control_group_details": {
+    "is_campaign_control_group_enabled": true,
+    "campaign_control_group_percentage": 10,
+    "is_global_control_group_enabled": false
+  }
+}
+```
+
+</Tab>
+<Tab title="グローバルコントロールグループ">
+
+```json
+{
+  "control_group_details": {
+    "is_campaign_control_group_enabled": false,
+    "is_global_control_group_enabled": true
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+## UTM パラメータ
+
+`utm_params` オブジェクトは、キャンペーンコンテンツ内の URL に UTM トラッキングパラメータを付加します。5 つの標準キーが明示的に定義されています。`utm_` で始まる **最大 5 つの追加カスタムキー** もサポートされています。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `utm_source` | string | トラフィックの参照元です。UTM パラメータを使用する場合は **必須** です。 |
+| `utm_medium` | string | チャネルの種類です。UTM パラメータを使用する場合は **必須** です。 |
+| `utm_campaign` | string | キャンペーン名です。 |
+| `utm_term` | string | 有料トラフィックの検索キーワードです。 |
+| `utm_content` | string | リンクを区別するためのコンテンツ要素です。 |
+| カスタム `utm_*` キー | string | `utm_` で始まる最大 5 つの追加キー(例: `utm_cust`、`utm_c1ust`)。 |
+
+```json
+{
+  "utm_params": {
+    "utm_source": "google",
+    "utm_medium": "push",
+    "utm_campaign": "summer_sale",
+    "utm_term": "mobile+sale",
+    "utm_content": "banner",
+    "utm_cust": "value1",
+    "utm_c1ust": "value2"
+  }
+}
+```
+
+<Warning>
+カスタムキーの上限は合計 5 つです。`utm_` で始まらないカスタムキーは拒否されます。
+</Warning>
+
+## キャンペーンのオーディエンス上限
+
+`campaign_audience_limit` オブジェクトは、キャンペーンが到達できるユーザー数に上限を設定します。
+
+<Warning>
+**フラグによって制御される機能です。** どのワークスペースでもデフォルトでは有効になっていません。フラグが有効になっていないワークスペースで `campaign_audience_limit` を含めると、`error.code: VALIDATION_FAILED` および `error.message: "Campaign Audience Limit feature is not enabled for this db"` とともに `400` が返されます。有効にするには MoEngage のアカウントチームにお問い合わせください。
+</Warning>
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `is_campaign_audience_limit_enabled` | boolean | 上限を適用するかどうか。`true` の場合、`metric`、`frequency`、`limit` はすべて必須です。`false` の場合、これら 3 つのフィールドは指定しないでください。 |
+| `metric` | enum | `SENT`(現在サポートされている唯一の値)。有効な場合は **必須** です。 |
+| `frequency` | enum | `TOTAL`(全期間の上限。Push と Email のすべての配信タイプ)または `INSTANCE`(送信ごとの上限。**定期 Push のみ**)。有効な場合は **必須** です。 |
+| `limit` | integer (1–9,999,999,999) | 最大ユーザー数です。有効な場合は **必須** です。 |
+
+**サポートされているチャネル:** Email、Push。`BROADCAST_LIVE_ACTIVITY` ではサポートされていません。
+
+<Tabs>
+<Tab title="全期間の上限(TOTAL)">
+
+```json
+{
+  "campaign_audience_limit": {
+    "is_campaign_audience_limit_enabled": true,
+    "metric": "SENT",
+    "frequency": "TOTAL",
+    "limit": 100000
+  }
+}
+```
+
+Push と Email の両方のすべての配信タイプに適用されます。
+
+</Tab>
+<Tab title="インスタンスごとの上限(INSTANCE)">
+
+```json
+{
+  "campaign_audience_limit": {
+    "is_campaign_audience_limit_enabled": true,
+    "metric": "SENT",
+    "frequency": "INSTANCE",
+    "limit": 50000
+  }
+}
+```
+
+**定期 Push** キャンペーンでのみサポートされています。送信ごとにオーディエンスの上限を設定します。
+
+</Tab>
+<Tab title="無効">
+
+```json
+{
+  "campaign_audience_limit": {
+    "is_campaign_audience_limit_enabled": false
+  }
+}
+```
+
+`false` の場合、`metric`、`frequency`、`limit` は含めないでください。
+
+</Tab>
+</Tabs>
+
+## Push の詳細設定
+
+`advanced` オブジェクト(Push のみ)には、通知の有効期限の設定とプラットフォームごとの優先度が含まれます。
+
+<Note>
+`advanced` は Push のリクエストボディの一部です。Email のリクエストボディには含まれません。
+</Note>
+
+### 有効期限の設定
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `expire_notification_after_value` | integer | 通知の有効期限の数値です。 |
+| `expire_notification_after_type` | enum | `HOUR` または `DAY`。 |
+| `remove_from_inbox_after_value` | integer | 受信トレイから削除するまでの数値です。 |
+| `remove_from_inbox_after_type` | enum | `DAY`(使用できる唯一の値)。 |
+
+```json
+{
+  "advanced": {
+    "expiration_settings": {
+      "expire_notification_after_value": 24,
+      "expire_notification_after_type": "HOUR",
+      "remove_from_inbox_after_value": 7,
+      "remove_from_inbox_after_type": "DAY"
+    }
+  }
+}
+```
+
+### プラットフォームレベルの優先度
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `android_specific_priority.send_with_priority` | boolean | Android で優先度付きで送信するかどうか。 |
+| `ios_specific_priority.apns_priority` | enum | `1`、`5`、または `10`(文字列)。APNS の優先度です。 |
+| `ios_specific_priority.interruption_level` | enum | `Passive`、`Active`、`Time sensitive`、または `Critical`。 |
+| `ios_specific_priority.relevance_score` | number | `0`、`0.5`、または `1`。 |
+
+<Tabs>
+<Tab title="iOS の APNS 優先度">
+
+```json
+{
+  "advanced": {
+    "platform_level_priority": {
+      "ios_specific_priority": {
+        "apns_priority": "10",
+        "interruption_level": "Time sensitive",
+        "relevance_score": 1
+      }
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="Android の優先度">
+
+```json
+{
+  "advanced": {
+    "platform_level_priority": {
+      "android_specific_priority": {
+        "send_with_priority": true
+      }
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+## ジオフェンスのターゲティング
+
+`basic_details.geofences` オブジェクトは、Push の `LOCATION_TRIGGERED` キャンペーンでは **必須** です。このフィールドは構造上 `basic_details` の中にありますが、ロケーショントリガー型のターゲティングにおいて `trigger_condition` および `delivery_controls.send_limit_*` と連携して機能するため、ここで説明しています。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `name` | string | ジオフェンスの一意の名前です。**必須**。 |
+| `latitude` | string | 中心の緯度です。**必須**。 |
+| `longitude` | string | 中心の経度です。**必須**。 |
+| `radius` | string | 半径(メートル単位)です。**必須**。 |
+| `dwell_time_value` | string | 滞在時間の数値です。`triggered_at` が `dwell` の場合は **必須** です。 |
+| `dwell_time_granularity` | enum | `MINUTES`、`HOURS`、または `DAYS`。`triggered_at` が `dwell` の場合は **必須** です。 |
+| `response_time_value` | string | トリガー条件が満たされてから送信するまでの応答時間の数値です。**必須**。 |
+| `response_time_granularity` | enum | `MINUTES`、`HOURS`、または `DAYS`。**必須**。 |
+| `triggered_at` | enum | `ENTRY`、`EXIT`、または `dwell`(注: `dwell` は小文字です)。**必須**。 |
+
+<Tabs>
+<Tab title="ENTRY">
+
+ユーザーがジオフェンスに入ったときにキャンペーンが発火します。
+
+```json
+{
+  "basic_details": {
+    "platforms": ["ANDROID", "IOS"],
+    "geofences": {
+      "name": "Downtown Store",
+      "latitude": "40.758",
+      "longitude": "-73.985",
+      "radius": "500",
+      "response_time_value": "5",
+      "response_time_granularity": "MINUTES",
+      "triggered_at": "ENTRY"
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="EXIT">
+
+ユーザーがジオフェンスから出たときにキャンペーンが発火します。
+
+```json
+{
+  "basic_details": {
+    "platforms": ["ANDROID", "IOS"],
+    "geofences": {
+      "name": "Downtown Store",
+      "latitude": "40.758",
+      "longitude": "-73.985",
+      "radius": "500",
+      "response_time_value": "5",
+      "response_time_granularity": "MINUTES",
+      "triggered_at": "EXIT"
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="dwell">
+
+設定された滞在時間の間、ユーザーがジオフェンス内に留まった後にキャンペーンが発火します。
+
+```json
+{
+  "basic_details": {
+    "platforms": ["ANDROID"],
+    "geofences": {
+      "name": "Mall - Food Court",
+      "latitude": "40.758",
+      "longitude": "-73.985",
+      "radius": "200",
+      "dwell_time_value": "10",
+      "dwell_time_granularity": "MINUTES",
+      "response_time_value": "0",
+      "response_time_granularity": "MINUTES",
+      "triggered_at": "dwell"
+    }
+  }
+}
+```
+
+`triggered_at` の値 `dwell` は小文字です。仕様上、`ENTRY` および `EXIT`(どちらも大文字)とは区別されます。`dwell` を設定した場合、`dwell_time_value` と `dwell_time_granularity` は必須です。
+
+</Tab>
+</Tabs>
+
+## 検証ルール
+
+以下のルールは、このページの複数のサブオブジェクトにまたがって適用されます。
+
+| ルール | 出典 |
+| :--- | :--- |
+| `trigger_condition` は、Push の `EVENT_TRIGGERED`、`DEVICE_TRIGGERED`、`LOCATION_TRIGGERED`、および Email の `EVENT_TRIGGERED` で必須です。 | `PushTriggerCondition`、`EmailTriggerCondition` の説明 |
+| `basic_details.business_event` は、`BUSINESS_EVENT_TRIGGERED`(Push および Email)で必須です。`BUSINESS_EVENT_TRIGGERED` では、`trigger_condition` は使用されません。 | `PushBasicDetailsV5.business_event`、`EmailBasicDetailsV5.business_event` |
+| `basic_details.geofences` は `LOCATION_TRIGGERED` で必須です。`LOCATION_TRIGGERED` は **Push のみ** です。 | [ジオフェンスのターゲティング](#geofence-targeting) |
+| `geofences.triggered_at: dwell` には `dwell_time_value` と `dwell_time_granularity` が必要です。値 `dwell` は **小文字** です。`ENTRY` と `EXIT` は大文字です。 | `Geofences.triggered_at` |
+| `trigger_delay_type: DELAY` には `trigger_delay_value`、`trigger_delay_granularity`、`trigger_relation` が必要です。 | `PushTriggerCondition.trigger_delay_type`、`EmailTriggerCondition.trigger_delay_type` |
+| `trigger_delay_type: INTELLIGENT_DELAY` は **Push のみ** です。`intelligent_delay_optimization`(`min_delay_value`、`min_delay_granularity`、`max_delay_value`、`max_delay_granularity` を含む)が必要です。`min_delay_granularity` では `MINUTES` または `HOURS` を指定できます。`max_delay_granularity` では `HOURS` または `DAYS` を指定できます。 | `PushTriggerCondition` の説明 |
+| `trigger_relation: BEFORE` には `trigger_attr.name`(送信の基準として使用される時間属性)が必要です。 | `PushTriggerCondition.trigger_relation` |
+| `filter_operator` は **小文字** の `and` または `or` です。 | `FilterGroup.filter_operator` |
+| `UserAttributeFilter.data_type` の値は **小文字**(`string`、`double`、`datetime`、`bool`)です。`GoalEventAttribute.data_type` の値は **大文字**(`STRING`、`DOUBLE`、...)です。これらのスキーマは別物です。 | `UserAttributeFilter.data_type`、`GoalEventAttribute.data_type` |
+| `UserAttributeFilter.operator` で使用できる値は `data_type` によって異なります。[データ型ごとの演算子](#operators-per-data-type) を参照してください。 | `UserAttributeFilter.operator` |
+| ワークスペースで Portfolio 機能が有効になっている場合、`UserAttributeFilter.project_name` は **必須** です。 | `UserAttributeFilter.project_name` |
+| `PERIODIC` キャンペーンでは、`scheduling_details.periodic_details` が必須で、`scheduling_details.delivery_type` は `AT_FIXED_TIME` です。 | `PeriodicDetails` の説明 |
+| `SEND_IN_BTS` では `bts_details` が必須です。`SEND_IN_USER_TIMEZONE` では `user_timezone_details` が必須です。 | `BTSDetails`、`UserTimezoneDetails` の説明 |
+| Push のイベントトリガー型キャンペーンでは、`delivery_controls.bypass_dnd` は **必須** です。 | `PushDeliveryControls.bypass_dnd` |
+| `delivery_controls.campaign_throttle_rpm` は、Push のデバイストリガー型、ロケーショントリガー型、イベントトリガー型キャンペーンには **適用されません**。 | `PushDeliveryControls.campaign_throttle_rpm` |
+| `delivery_controls.queuing_enabled` と `queue_duration` はフラグによって制御されます。`queuing_enabled` が `true` の場合、`queue_duration` は `0` より大きい値である必要があります。 | `PushDeliveryControls.queuing_enabled` |
+| `delivery_controls.send_limit_value` と `send_limit_granularity_in_hours` は **ロケーショントリガー型** キャンペーンに適用されます。 | `PushDeliveryControls.send_limit_value` |
+| `delivery_controls.max_time_to_show_message_of_same_camapign`、`expiry_time_of_sync_data_in_hour`、`send_message_in_offline_mode` は **デバイストリガー型** キャンペーンに適用されます。 | `PushDeliveryControls` |
+| `is_campaign_control_group_enabled` が `true` の場合、`control_group_details.campaign_control_group_percentage` は **必須** です。割合は `0` から `100` の間である必要があります。 | `ControlGroupDetails.campaign_control_group_percentage` |
+| `campaign_audience_limit` はフラグによって制御されます。この機能が有効になっていないワークスペースでこれを含めると、`400 VALIDATION_FAILED` が返されます。有効な場合、`metric`、`frequency`、`limit` はすべて必須です。無効な場合、これら 3 つのフィールドは指定しないでください。`frequency: INSTANCE` は **定期 Push のみ** です。 | `CampaignAudienceLimit` の説明 |
+| `utm_params` では、5 つの標準キーに加えて、`utm_` で始まる最大 5 つの追加カスタムキーを指定できます。UTM パラメータを使用する場合、`utm_source` と `utm_medium` は必須です。 | `UTMParams` の説明 |
+| `advanced.expiration_settings.remove_from_inbox_after_type` では `DAY` のみ指定できます。その他の単位はエラーになります。 | `AdvancedDetails.expiration_settings` |
+| `advanced.platform_level_priority.ios_specific_priority.apns_priority` の値は **文字列**(`"1"`、`"5"`、`"10"`)です。`relevance_score` の値は **数値**(`0`、`0.5`、`1`)です。`interruption_level` では `Passive`、`Active`、`Time sensitive`、`Critical` を指定できます(`Time sensitive` のスペースと大文字/小文字に注意してください)。 | `AdvancedDetails.platform_level_priority` |
+
+## 既存のキャンペーンの更新
+
+`PATCH /v5/campaigns/{campaign_id}` は、このページのすべてのスキーマを再利用します。更新には追加のルールが適用されます。
+
+- ネストされたオブジェクト内のフィールドを更新する場合、リクエストには **親オブジェクト全体** を含める必要があります。たとえば、`segmentation_details.included_filters.filters` 内の 1 つのフィルターを変更する場合は、`segmentation_details` ブロック全体を含めます。
+- **`ACTIVE`** 状態のキャンペーンでは、以下のフィールドを編集できません。
+  - `trigger_condition`
+  - `segmentation_details`
+  - `conversion_goal_details`
+  - スケジュールの **タイプ**(`delivery_type`)
+  - スケジュールの **開始日**(`scheduling_details.start_time`)
+- **`SCHEDULED`** 状態のキャンペーンでは、スケジュールのタイプを除くすべてのフィールドを編集できます。
+- **`STOPPED`** または **`ARCHIVED`** 状態のキャンペーンは更新できません。
+- イベントトリガー型キャンペーンで `trigger_condition` または `campaign_content` を更新した場合、コンテンツのキャッシュにより、ユーザーに反映されるまで最大 **30 分** かかることがあります。
+- 定期キャンペーンでは、設定の変更は次回のスケジュール実行から適用されます。
+- 1 回限りのキャンペーンでは、変更は更新時点でまだ送信されていないメッセージに適用されます。
+
+<Tabs>
+<Tab title="segmentation_details (Email)">
+
+```json
+{
+  "channel": "EMAIL",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "segmentation_details": {
+    "included_filters": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "filter_type": "user_attributes",
+          "data_type": "string",
+          "name": "city",
+          "operator": "in",
+          "value": "{{city_value}}"
+        }
+      ]
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="delivery_controls (Push)">
+
+```json
+{
+  "channel": "PUSH",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "delivery_controls": {
+    "bypass_dnd": false,
+    "campaign_throttle_rpm": 50000,
+    "count_for_frequency_capping": true
+  }
+}
+```
+
+</Tab>
+<Tab title="delivery_controls (Email)">
+
+```json
+{
+  "channel": "EMAIL",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "delivery_controls": {
+    "bypass_dnd": false,
+    "campaign_throttle_rpm": 2000,
+    "count_for_frequency_capping": true
+  }
+}
+```
+
+</Tab>
+<Tab title="conversion_goal_details">
+
+```json
+{
+  "channel": "{{channel}}",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "conversion_goal_details": {
+    "attribution_window_in_hours": 36,
+    "goals": [
+      {
+        "goal_name": "Goal 1",
+        "goal_event_name": "{{conversion_event_name}}",
+        "is_primary_goal": true
+      }
+    ]
+  }
+}
+```
+
+</Tab>
+<Tab title="control_group_details">
+
+```json
+{
+  "channel": "{{channel}}",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "control_group_details": {
+    "is_campaign_control_group_enabled": true,
+    "campaign_control_group_percentage": 10
+  }
+}
+```
+
+</Tab>
+<Tab title="campaign_audience_limit">
+
+```json
+{
+  "channel": "{{channel}}",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "campaign_audience_limit": {
+    "is_campaign_audience_limit_enabled": true,
+    "metric": "SENT",
+    "frequency": "TOTAL",
+    "limit": 100000
+  }
+}
+```
+
+</Tab>
+<Tab title="advanced (Push)">
+
+```json
+{
+  "channel": "PUSH",
+  "campaign_delivery_type": "{{campaign_delivery_type}}",
+  "updated_by": "{{user_email}}",
+  "advanced": {
+    "expiration_settings": {
+      "expire_notification_after_value": 24,
+      "expire_notification_after_type": "HOUR"
+    },
+    "platform_level_priority": {
+      "ios_specific_priority": {
+        "apns_priority": "10",
+        "interruption_level": "Active"
+      },
+      "android_specific_priority": {
+        "send_with_priority": true
+      }
+    }
+  }
+}
+```
+
+</Tab>
+<Tab title="basic_details.geofences">
+
+```json
+{
+  "channel": "PUSH",
+  "campaign_delivery_type": "LOCATION_TRIGGERED",
+  "updated_by": "{{user_email}}",
+  "basic_details": {
+    "geofences": {
+      "name": "{{geofence_name}}",
+      "latitude": "{{latitude}}",
+      "longitude": "{{longitude}}",
+      "radius": "{{radius_meters}}",
+      "response_time_value": "5",
+      "response_time_granularity": "MINUTES",
+      "triggered_at": "ENTRY"
+    }
+  }
+}
+```
+
+</Tab>
+</Tabs>
+
+## 関連情報
+
+- [キャンペーンコンテンツのリファレンス](/ja/api/campaigns/campaign-content-reference) — チャネル、プラットフォーム、テンプレートタイプごとの `basic_details` と `campaign_content`。
+- [Create Campaign](/ja/api/create-campaigns/create-campaign-draft-v5) — 必須フィールド、正常系の cURL、エラーレスポンス。
+- [Update Campaign](/ja/api/update-campaigns/update-campaign-v5) — 状態ごとの編集制限。
+- [Update Campaign Status](/ja/api/update-campaigns/update-campaign-status-v5) — `STOP`、`PAUSE`、`RESUME` の遷移。
+- [Validate Campaign](/ja/api/create-campaigns/validate-campaign-v5) — 公開時の検証チェック。
+- [キャンペーンドラフトの概要](/ja/api/campaigns/campaign-draft-overview) — ライフサイクル、チャネル、サポートされている配信タイプ。

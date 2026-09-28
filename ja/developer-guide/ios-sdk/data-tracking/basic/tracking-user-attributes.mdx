@@ -1,0 +1,442 @@
+---
+title: "ユーザー属性のトラッキング"
+description: "iOS SDK でユーザー属性をトラッキングし、クロスプラットフォームでの識別のために一意の識別子を設定します。"
+keywords: "UserAttributeLevel, MoEngageUserAttributeLevelProject, MoEngageUserAttributeLevelPortfolio, project-level attribute, portfolio-level attribute, attribute level, setUserAttribute level"
+---
+
+import IdentifyUserNetworkFailure from '/ja/snippets/identify-user-network-failure.mdx';
+
+ユーザー属性とは、ユーザーについて把握している情報のことです。年齢や性別などのデモグラフィック情報、プランなどのアカウント固有の情報、あるいはユーザーが特定の A/B テストのバリエーションを見たかどうかなどが含まれます。ユーザー属性は、顧客のライフタイム全体を通じて参照できる顧客のアイデンティティです。
+
+# ユーザーの識別
+
+SDK バージョン 9.23.0 未満については、[こちらのドキュメント](https://www.moengage.com/docs/developer-guide/ios-sdk/data-tracking/basic/setting-unique-id-for-sdk-versions-below-9-23-0)を参照してください。
+
+識別子の設定は、次の目的で重要です。
+
+- iOS、Android、Web などのプラットフォーム間でユーザーの行動を結び付けるため。
+- 不要なユーザーや古いユーザーが作成されないようにするため。
+- インストール/再インストールをまたいでユーザーを識別するため。
+
+## 単一の識別子
+
+以下の API を呼び出して、識別子を MoEngage SDK に渡します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.identifyUser(identity: "identifier")
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] identifyUserWithIdentity:@"identifier" workspaceId:nil];
+```
+
+</CodeGroup>
+
+<Note>
+  このメソッドは、非推奨となった **_setUniqueId()_** の代替です。アプリケーションで \*\*\*setUniqueId() \*\*\*を使用している場合は、**_identifyUser()_** に置き換えることを検討してください_。_
+</Note>
+
+## 複数の識別子
+
+アプリケーションでユーザーを識別するための識別子が複数ある場合は、以下の API を使用してすべての識別子を SDK に渡すことができます。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.identifyUser(
+    identities: [
+        "identifierName1": "identifierValue1", "identifierName2": "identifierValue2"
+    ]
+)
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] identifyUserWithIdentities:@{
+    @"identifierName1": @"identifierValue1", @"identifierName2": @"identifierValue2"
+} workspaceId:nil];
+```
+
+</CodeGroup>
+
+異なる識別子名で `identifyUser()` を複数回呼び出した場合、SDK はその識別子を既に設定されている識別子に追加します。
+
+<Info>
+  **情報**
+
+  ユーザー識別とセッション管理を改善するため、SDK の関数が更新されています。
+
+  - **強制ログアウト**：MoEngage SDK は、デバイス上で新しいユーザーが検出された場合でも、以前のユーザーを自動的にログアウトしなくなりました。データの破損を避けるため、Identity resolution が有効なワークスペースでは、ログアウトを明示的に呼び出す必要があります。
+  - **SetUniqueID**：_IdentifyUser_ 関数は複数の識別子をサポートしているため、ユーザー識別に _SetUniqueID_ 関数を使用する必要はなくなりました。_SetUniqueID_ は今後の SDK バージョンのリリースで削除予定となっています。特にワークスペースで Identity resolution を使用している場合は、代わりに _identifyUser_ を使用することが重要です。
+  - **SetAlias**：Identity resolution 機能が有効なワークスペースでは、MoEngage SDK は以前の識別子の値を保存します。_IdentifyUser_ 関数を使用して新しい識別子の値をトラッキングすると、MoEngage SDK は識別子の値の変更を検出し、それに応じてレポートします。
+  - ログアウトせずに _IdentifyUser_ 関数を呼び出した場合、既存のログイン済みユーザーの ID が更新されます。
+</Info>
+
+この機能の詳細については、ヘルプ[ドキュメント](/ja/user-guide/data/user-data/unified-identity-identity-resolution)を参照してください。
+
+<IdentifyUserNetworkFailure />
+
+詳細については、以下を参照してください。
+
+- [SDK の有効化/無効化](/ja/developer-guide/ios-sdk/compliance/compliance#enabledisable-sdk)
+- [データトラッキングのオプトアウト](/ja/developer-guide/ios-sdk/compliance/compliance#opt-out-of-data-tracking)
+
+## ログアウト
+
+アプリケーションは、ユーザーがアプリケーションからログアウトするたびに MoEngage SDK に通知する必要があります。ユーザーがアプリケーションからログアウトするたびに API を呼び出して SDK に通知してください。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.resetUser()
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] resetUser];
+```
+
+</CodeGroup>
+
+<Warning>
+  - ログアウトは非同期です。次のユーザーの識別、ユーザー属性の設定、イベントのトラッキングは、ログアウトの完了後にのみ行ってください。
+  - ログアウトの処理中に送信されたデータは、失われるか誤って帰属されます。タイミングによっては、SDK がそのデータを以前のユーザーに対して記録するか、そのユーザーのデータを消去する際に破棄します。これらの呼び出しの順序を制御するには、[ログアウトコールバック](#logout-callback)を使用してください。
+</Warning>
+
+ログアウトすると、ユーザーの属性と ID が消去され、新しいセッションで新しい匿名ユーザーが開始されます。SDK はデバイス識別子とプッシュトークンを保持するため、ログアウトによってデバイスのプッシュ登録が解除されることはありません。`resetUser()` は、ユーザーがログアウトしたときにのみ呼び出してください。呼び出すたびに新しい匿名ユーザーが作成され、デバイスが再登録されます。
+
+### ログアウトコールバック
+
+ログアウトの完了時にコールバックを受け取るには、`resetUser()` が返すタスクを監視します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.resetUser()
+    .onSuccess { _ in
+        // Process your logout completion here
+    }
+    .onFailure { failure in
+        print("Logout failed: \(failure.reason) - \(failure.message)")
+    }
+```
+
+
+```objective-c Objective C wrap
+MoEngageResetUserTask *task = [[MoEngageSDKAnalytics sharedInstance] resetUser];
+
+[task onSuccess:^(id _Nonnull result) {
+    // Process your logout completion here
+}];
+
+[task onFailure:^(MoEngageRequestFailure * _Nonnull failure) {
+    NSLog(@"Logout failed: %@ - %@", failure.reason, failure.message);
+}];
+```
+
+</CodeGroup>
+
+<Note>
+  iOS SDK [11.00.0](/ja/release-notes/sdks/ios#22nd-july-2026) 以降、`resetUser()` は `Void` ではなく型付きのタスクオブジェクト（[`MoEngageResetUserTask`](https://moengage.github.io/ios-api-reference/Classes/MoEngageResetUserTask.html)）を返します。結果は `.onSuccess` / `.onFailure` または非同期の `result()` メソッドで監視します。11.00.0 未満の SDK バージョンでは、同等の機能は `resetUser(withCompletionBlock:)` です。このバリアントは 11.00.0 から非推奨となり、上記の型付きタスクが推奨されます。
+</Note>
+
+# デフォルトのユーザー属性
+
+メール ID、携帯電話番号、性別、ユーザー名、誕生日など、いくつかのデフォルトの SDK ユーザー属性を設定できます。SDK によってトラッキングされるデフォルト属性は、以下のように設定できます。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.setName(userName)
+MoEngageSDKAnalytics.sharedInstance.setLastName(userLastname)
+MoEngageSDKAnalytics.sharedInstance.setFirstName(userFirstName)
+MoEngageSDKAnalytics.sharedInstance.setEmailID(userEmailID)
+MoEngageSDKAnalytics.sharedInstance.setMobileNumber(userPhoneNo)
+MoEngageSDKAnalytics.sharedInstance.setGender(.male) //Use MoEngageUserGender enum
+MoEngageSDKAnalytics.sharedInstance.setDateOfBirth(userBirthdate)//userBirthdate should be a Date instance
+MoEngageSDKAnalytics.sharedInstance.setLocation(MoEngageGeoLocation(withLatitude: userLocationLat, andLongitude: userLocationLng)) //userLocationLat and userLocationLng are double values of the location coordinates
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] setName:userName];
+[[MoEngageSDKAnalytics sharedInstance] setLastName:userLastname];
+[[MoEngageSDKAnalytics sharedInstance] setFirstName:userFirstName];
+[[MoEngageSDKAnalytics sharedInstance] setEmailID:userEmailID];
+[[MoEngageSDKAnalytics sharedInstance] setMobileNumber:userPhoneNo];
+[[MoEngageSDKAnalytics sharedInstance] setGender:MoEngageUserGenderMale]; // Use MoEngageUserGender enum
+[[MoEngageSDKAnalytics sharedInstance] setDateOfBirth:userBirthdate];//userBirthdate should be a NSDate instance  
+[[MoEngageSDKAnalytics sharedInstance] setLocation:[[MoEngageGeoLocation alloc] initWithLatitude:userLocationLat andLongitude:userLocationLng]];//userLocationLat and userLocationLng are double values of the location coordinates
+```
+
+</CodeGroup>
+
+<Note>
+  - MoEngage のシステムで正しく機能させるには、ユーザーの電話番号/携帯電話番号を文字列としてトラッキングする必要があります。
+  - サポートされているデータ型とデータトラッキングポリシーの詳細については、[データトラッキングポリシー](/ja/user-guide/data/key-concepts/data-tracking-policies)を参照してください。
+</Note>
+
+検証ルールの完全な一覧と、`DEBUG` ビルドとリリースビルドでの動作の違いについては、[検証と制限](#validations-and-restrictions)を参照してください。
+
+# カスタムユーザー属性
+
+カスタム属性を設定するには、[こちら](https://www.moengage.com/docs/user-guide/getting-started/integration/default-ios-sdk#default-user-attributes)に記載されているものとは異なるカスタムキーを指定するだけです。以下に例を示します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.setUserAttribute("Bengaluru", withAttributeName: "Current_city")
+MoEngageSDKAnalytics.sharedInstance.setUserAttribute(["Bengaluru","Delhi","Chennai"], withAttributeName: "Current_cities")
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] setUserAttribute:@"Bengaluru" withAttributeName:@"Current_city"];
+NSArray *myArray = @[@"Bengaluru", @"Delhi", @"Chennai"];
+[[MoEngageSDKAnalytics sharedInstance] setUserAttribute:myArray withAttributeName:@"Current_cities"];
+```
+
+</CodeGroup>
+
+<Note>
+  iOS SDK [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) 以降、`setUserAttribute(_:withAttributeName:level:forAppID:)` では、Swift の並行処理の安全性のために `value` パラメーターが `Sendable` に準拠している必要があります（`Any` → `any Sendable`）。これらの例で使用しているリテラル値（文字列、配列、およびこれらの辞書）は既に `Sendable` に準拠しているため、変更なしでコンパイルできます。Swift 6 言語モードまたは厳格な並行処理チェックでは、`Sendable` に準拠していない値を更新する必要があります。
+</Note>
+
+検証ルールの完全な一覧については、[検証と制限](#validations-and-restrictions)を参照してください。
+
+## JSON 属性
+
+MoEngage-iOS-SDK **_v9.17.5_** から、JSON および JSON の配列のユーザー属性がサポートされるようになりました。以下に例を示します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.setUserAttribute(["item-id" : 123,"item-type" : "books","item-cost" : ["amount" : 100,"currency" : "USD"]],withAttributeName: "product")
+
+MoEngageSDKAnalytics.sharedInstance.setUserAttribute([["item-id" : 123,"item-cost" : ["amount" : 100,"currency" : "USD"]],["item-id" : 323,"item-cost" : ["amount" : 90,"currency" : "USD"]]],withAttributeName: "products")
+```
+
+
+```objective-c Objective C wrap
+[MoEngageSDKAnalytics.sharedInstance setUserAttribute:@{@"item-id" : @123,@"item-type" : @"books",@"item-cost" : @{@"amount" : @100,@"currency" : @"USD"}} withAttributeName:@"product"];
+
+[MoEngageSDKAnalytics.sharedInstance setUserAttribute:@[@{@"item-id" : @123,@"item-cost" : @{@"amount" : @100,@"currency" : @"USD"}} , @{@"item-id" : @323,@"item-cost" : @{@"amount" : @90,@"currency" : @"USD"}}] withAttributeName:@"products"];
+```
+
+</CodeGroup>
+
+# ポートフォリオレベルのユーザー属性
+
+<Info>
+  **前提条件**
+
+  - iOS SDK バージョン 10.07.0 以上。
+  - MoEngage ワークスペースで複数のプロジェクトが構成されている必要があります。詳細については、[Portfolio](/ja/user-guide/settings/account/portfolio/portfolio) を参照するか、MoEngage のアカウントマネージャーにお問い合わせください。
+</Info>
+
+[Portfolio](/ja/user-guide/settings/account/portfolio/portfolio) が有効なワークスペースでは、ユーザー属性をプロジェクトレベル（特定のプロジェクトにスコープ）またはポートフォリオレベル（ワークスペース内のすべてのプロジェクトで共有）のいずれかでトラッキングできます。
+
+## ポートフォリオレベルの属性の設定
+
+ユーザー属性をポートフォリオレベルで設定するには、以下の API を使用します。`level` パラメーターには、属性を現在のプロジェクトにスコープする `.project`（Objective-C：`MoEngageUserAttributeLevelProject`）、またはポートフォリオ内のすべてのプロジェクトで共有する `.portfolio`（Objective-C：`MoEngageUserAttributeLevelPortfolio`）を指定できます。`level` パラメーターを省略した場合、属性はデフォルトでプロジェクトレベルになります。
+
+<CodeGroup>
+
+```swift Swift wrap
+// Project-level attribute (default — same as existing behaviour)
+MoEngageSDKAnalytics.sharedInstance.setUserAttribute("value", withAttributeName: "attribute_name", level: .project)
+
+// Portfolio-level attribute (shared across all projects in the portfolio)
+MoEngageSDKAnalytics.sharedInstance.setUserAttribute("value", withAttributeName: "attribute_name", level: .portfolio)
+```
+
+```objective-c Objective C wrap
+// Project-level attribute (default)
+[[MoEngageSDKAnalytics sharedInstance] setUserAttribute:@"value"
+                                      withAttributeName:@"attribute_name"
+                                                  level:MoEngageUserAttributeLevelProject];
+
+// Portfolio-level attribute
+[[MoEngageSDKAnalytics sharedInstance] setUserAttribute:@"value"
+                                      withAttributeName:@"attribute_name"
+                                                  level:MoEngageUserAttributeLevelPortfolio];
+```
+
+</CodeGroup>
+
+<Warning>
+  ポートフォリオレベルでの一意の ID の設定はサポートされておらず、Xcode のデバッグビルドで致命的な例外が発生します。識別子の設定には、プロジェクトレベルの `identifyUser` API を使用してください。[ユーザーの識別](#identifying-users)を参照してください。
+</Warning>
+
+# 日付と時刻のユーザー属性
+
+日付と時刻の属性をユーザー属性として設定できます。これについては、以下のコードブロックのメソッドを参照してください。
+
+<CodeGroup>
+
+```swift Swift wrap
+//1. Track UserAttribute using Date instance
+MoEngageSDKAnalytics.sharedInstance.setUserAttributeDate(Date(), withAttributeName: "Date Attr 1")
+
+//2. Track UserAttribute using ISO Date String in format "yyyy-MM-dd'T'HH:mm:ss'Z'"
+MoEngageSDKAnalytics.sharedInstance.setUserAttributeISODate("2020-01-12T18:45:59Z", withAttributeName: "Date Attr 2")
+
+//3. Track UserAttribute using Epoch value
+MoEngageSDKAnalytics.sharedInstance.setUserAttributeEpochTime(663333, withAttributeName: "Date Attr 3")
+```
+
+
+```objective-c Objective C wrap
+//1. Track UserAttribute using Date instance
+[[MoEngageSDKAnalytics sharedInstance] setUserAttributeDate:[NSDate date] withAttributeName:@"DateAttr1"];
+ 
+//2. Track UserAttribute using ISO Date String in format "yyyy-MM-dd'T'HH:mm:ss'Z'"
+[[MoEngageSDKAnalytics sharedInstance] setUserAttributeISODate:@"2020-01-12T18:45:59Z" withAttributeName:@"DateAttr2"];
+ 
+//3. Track UserAttribute using Epoch value
+double timestampEpochValue = [[NSDate date] timeIntervalSince1970];
+[[MoEngageSDKAnalytics sharedInstance] setUserAttributeEpochTime:timestampEpochValue withAttributeName:@"LastPurchaseDate"];
+```
+
+</CodeGroup>
+
+# 位置属性
+
+ユーザーの位置や任意の位置をユーザー属性として設定できます。これには [_setLocation(\_:withAttributeName:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)setLocation:withAttributeName:) メソッドを使用し、次の例に示すように位置の緯度と経度の値を渡します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.setLocation(MoEngageGeoLocation.init(withLatitude: 72.90909, andLongitude: 12.34567), withAttributeName: "attribute name")
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] setLocation:[[MoEngageGeoLocation alloc] initWithLatitude:23.33 andLongitude:26.22] withAttributeName:@"attribute name"];
+```
+
+</CodeGroup>
+
+# 検証と制限
+
+ユーザー属性には、`DEBUG` ビルドとリリースビルドの両方に適用される 2 層の検証があります。
+
+- **命名と形式のルール** — ビルド構成に関係なく常に適用されます。以下の[命名と形式のルール](#naming-and-format-rules)を参照してください。
+- **型の検証** — 無効な属性値（`null`、カスタムモデル、`NaN`、`Infinity`、空のコレクション、`NSURL`、Array または Dictionary 内にネストされた `Date`/`MoEngageGeoLocation` などのサポートされていない型）は、`DEBUG` ビルドでは致命的な例外を引き起こし、リリースビルドではサイレントに破棄されます。以下の[サポートされている属性値の型](#supported-attribute-value-types)を参照してください。
+
+<Info>
+  iOS SDK における `DEBUG` モードとは、SDK が `initializeDefaultTestInstance(_:)`（TEST ワークスペース）を使用して初期化され、アプリが Xcode に接続された状態で実行されていることを意味します。これは、デバッグシンボルが有効になっているリリースビルドとは異なります。
+</Info>
+
+## 命名と形式のルール
+
+- **属性名は空であってはなりません。** 属性名として空の文字列（`""`）を渡すと、`DEBUG` ビルドでは致命的な例外が発生します。リリースビルドでは、その属性は破棄されます。
+- **属性名にドット（`.`）を含めないでください。**
+- **属性名をドル記号（`$`）で始めないでください。**
+- **予約済みのプレフィックス。** イベント、イベント属性、またはユーザー属性の名前に `moe_` をプレフィックスとして使用することはできません。これはシステムのプレフィックスであり、使用すると事前の通知なしに定期的にブロックリストに登録される可能性があります。
+- **予約済みのキーワード。** ユーザー属性をトラッキングする際は、以下のキーを使用しないでください。これらは SDK およびシステム用に予約されています。
+  - `USER_ATTRIBUTE_UNIQUE_ID`
+  - `USER_ATTRIBUTE_USER_EMAIL`
+  - `USER_ATTRIBUTE_USER_MOBILE`
+  - `USER_ATTRIBUTE_USER_NAME`
+  - `USER_ATTRIBUTE_USER_GENDER`
+  - `USER_ATTRIBUTE_USER_FIRST_NAME`
+  - `USER_ATTRIBUTE_USER_LAST_NAME`
+  - `USER_ATTRIBUTE_USER_BDAY`
+  - `USER_ATTRIBUTE_NOTIFICATION_PREF`
+  - `USER_ATTRIBUTE_OLD_ID`
+  - `USER_ATTRIBUTE_DND_START_TIME`
+  - `USER_ATTRIBUTE_DND_END_TIME`
+  - `MOE_TIME_FORMAT`
+  - `MOE_TIME_TIMEZONE`
+  - `MOE_GAID`
+  - `MOE_ISLAT`
+  - `INSTALL`
+  - `UPDATE`
+  - `status`
+  - `user_id`
+  - `source`
+
+## サポートされている属性値の型
+
+属性値は、`String`、`Number`、`Date`、`MoEngageGeoLocation`、`Dictionary`、または `Array`（文字列または数値の配列）のいずれかである必要があります。`NSURL` はサポートされていないため、渡す前に文字列に変換してください。
+
+サポートされていない値が渡された場合：
+
+- `DEBUG` ビルドでは、データの問題を早期に発見できるよう、SDK が致命的な例外をスローしてアプリをクラッシュさせます。
+- リリースビルドでは、SDK は該当する無効な属性を破棄します。ユーザーに設定された他の属性は影響を受けません。
+
+`DEBUG` の例外が発生する一般的な原因：
+
+- `null`（`NSNull()`）を渡す。
+- カスタムモデルや UI 要素（例：`UIColor`、`UIImage`）を渡す。
+- `NaN` や `Infinity` などの無効な数値を渡す。
+- 空の Array または Dictionary を渡す。
+- Array または Dictionary の中に `Date` または `MoEngageGeoLocation` オブジェクトをネストする。これらは値として直接渡す必要があります。
+
+<Info>
+  アップグレード中にこれらの `DEBUG` 検証によってアプリがクラッシュする場合は、SDK を初期化する前に `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` を呼び出して、一時的にオプトアウトしてください。問題が修正されたら、この呼び出しを削除してください。
+</Info>
+
+## サポートされていない属性値のフィルタリング
+
+新しいバージョンの iOS SDK にアップグレードする際に、アプリが呼び出し箇所で型が検証されていない属性値を渡している場合は、`setUserAttribute` を呼び出す前に型チェックのガードを追加してください。これにより `DEBUG` でのクラッシュを防ぎ、すべてのビルドで有効なデータのみが SDK に渡されるようになります。
+
+<CodeGroup>
+
+```swift Swift wrap
+// Helper to check if a value is a supported user attribute type.
+  // Call this before passing any dynamically-typed value to setUserAttribute(_:withAttributeName:).
+  func isSupportedUserAttributeValue(_ value: Any) -> Bool {
+      switch value {
+      case let d as Double: return !d.isNaN && !d.isInfinite
+      case let f as Float:  return !f.isNaN && !f.isInfinite
+      case is String, is Bool, is Int, is Int8, is Int16, is Int32, is Int64,
+           is UInt, is UInt8, is UInt16, is UInt32, is UInt64, is NSNumber:
+          return true
+      case let arr as [Any]:          return !arr.isEmpty
+      case let dict as [String: Any]: return !dict.isEmpty
+      default: return false
+      }
+  }
+
+  // Usage — value comes from a server response, external model, or unknown source
+  if isSupportedUserAttributeValue(dynamicValue) {
+      MoEngageSDKAnalytics.sharedInstance.setUserAttribute(dynamicValue, withAttributeName: "attribute_name")
+  }
+  // Values that fail the check (custom objects, NSNull, NaN, empty collections, etc.)
+  // are skipped without crashing in both DEBUG and Release builds.
+
+```
+
+```objective-c Objective C wrap
+// Check if a value is a supported user attribute type before passing to the SDK.
+  - (BOOL)isSupportedUserAttributeValue:(id)value {
+      if ([value isKindOfClass:[NSString class]] || [value isKindOfClass:[NSNumber class]]) {
+          if ([value isKindOfClass:[NSNumber class]]) {
+              double d = [(NSNumber *)value doubleValue];
+              if (isnan(d) || isinf(d)) return NO;
+          }
+          return YES;
+      }
+      if ([value isKindOfClass:[NSArray class]])      return [(NSArray *)value count] > 0;
+      if ([value isKindOfClass:[NSDictionary class]]) return [(NSDictionary *)value count] > 0;
+      return NO;
+  }
+
+  // Usage
+  if ([self isSupportedUserAttributeValue:dynamicValue]) {
+      [[MoEngageSDKAnalytics sharedInstance] setUserAttribute:dynamicValue
+                                           withAttributeName:@"attribute_name"];
+  }
+  // Unsupported values are skipped without crashing in both DEBUG and Release builds.
+```
+
+</CodeGroup>
+
+<Note>
+  `Date` および `MoEngageGeoLocation` の値は、`setUserAttribute:withAttributeName:` ではなく、専用の `setUserAttributeDate`、`setUserAttributeISODate`、`setUserAttributeEpochTime`、`setLocation:withAttributeName:` メソッドを使用して渡す必要があります。
+</Note>

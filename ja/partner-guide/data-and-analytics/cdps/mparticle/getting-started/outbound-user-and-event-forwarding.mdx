@@ -1,0 +1,255 @@
+---
+title: "アウトバウンド(ユーザーとイベントの転送)"
+---
+
+# はじめに
+
+<Info>
+  mParticle 連携は現在、[Unified Identity (Identity Resolution)](https://www.moengage.com/docs/user-guide/data/user-data/unified-identity-identity-resolution) および [Portfolio](https://www.moengage.com/docs/user-guide/settings/account/portfolio/portfolio) をサポートしていません。OS タイプとしての TV はサポートされていません。
+</Info>
+
+MoEngage × mParticle 連携により、mParticle に送信しているすべてのユーザーデータとイベントデータが、サーバー間 API を介して MoEngage に送信されます。
+
+# 連携
+
+<Info>
+  - MoEngage の設定にアクセスできることを確認してください。
+  - mParticle ダッシュボードにアクセスできることを確認してください。
+</Info>
+
+# 範囲
+
+| 連携 | 詳細 |
+| --- | --- |
+| サーバー間 API | クラウドモードとも呼ばれます。データは mParticle のサーバーから MoEngage のサーバーに直接送信されます。プッシュ通知やアプリ内メッセージのメッセージング要件については、MoEngage SDK との統合が必要です。 |
+| mParticle バンドルキット | デバイスモードとも呼ばれます。詳細については、[こちら](/ja/partner-guide/data-and-analytics/cdps/mparticle/kit-integration/android-kit-integration)を参照してください。 |
+
+# サーバー間連携
+
+mParticle は、すべてのデータをイベントとして MoEngage に転送します。その後、MoEngage システムはイベントタイプとユーザー ID に基づいてイベントまたはユーザー属性を作成します。
+
+<Warning>
+  **重要**
+
+  サーバー間連携は、In-Apps、Cards、Push 通知などの機能をサポートしていません。これらのチャネルを使用する場合は、MoEngage SDK との統合が必要です。
+</Warning>
+
+## サポートされているデータタイプ
+
+| タイプ | 詳細 |
+| --- | --- |
+| mParticle の入力ソース | すべての mParticle 入力ソースがサポートされています。<ul><li>Android</li><li>iOS</li><li>Custom Feeds</li><li>Web</li></ul> |
+| ユーザー ID | MoEngage では、すべての MoEngage ユーザー属性をエクスポートできます。ユーザー ID については、次のもののみがサポートされています。<ul><li>Customer ID</li><li>Email Address</li><li>MPID</li></ul> デフォルトでは、連携は Customer ID で動作します。他の ID(上記のもの)を使用する場合は、MoEngage の CSM または MoEngage サポートチームにお問い合わせください。 |
+| イベントタイプ | 次のイベントタイプがサポートされています。<ul><li>Commerce Events</li><li>Custom/App Events</li><li>Push Subscription</li><li>User Attribute Change</li><li>User Identity Change</li></ul> |
+| システム通知タイプ | 次のタイプがサポートされています。<ul><li>CCPA Consent State</li><li>GDPR Consent State</li></ul> |
+
+## 手順
+
+## ステップ 1. mParticle で MoEngage を出力として設定する
+
+mParticle ダッシュボードで、次の操作を行います。
+
+1. Setup \> Output に移動します。
+2. _Event_ タブに移動します。右上の _Add Event Output_ をクリックします。
+3. MoEngage を検索します。
+4. ポップアップで、MoEngage アプリの詳細を入力します。<img src="/images/partner_10223292084884.png" alt="Screenshot_2022-10-20_at_1.13.18_PM.png" />
+
+| フィールド | 詳細 |
+| --- | --- |
+| Configuration name | 設定には任意の名前を付けることができます(例: "MoEngage Prod")。 |
+| App ID | MoEngage アカウントの Workspace ID は、**Settings - \> Account -\> APIs -\>Workspace ID** で確認できます。MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+| Secret key | Secret key は Data API Key です。MoEngage アカウントの Data API Key は、\*\*Settings - \> Account -\> APIs -\> API keys \*\*\>**Data** の API 設定で確認できます。 |
+
+## ステップ 2: MoEngage 接続を設定する
+
+mParticle ダッシュボードで、次の操作を行います。
+
+1. _Connections_ \>\> _Connect_ に移動します。
+2. 目的の入力ストリームを選択します。<img src="/images/input-stream.png" alt="入力ストリーム" />
+3. 出力として MoEngage アカウントを選択します。これはステップ 1 で設定したアカウントです。
+4. 要件に応じて転送ルールを定義します。[mParticle でのデータ転送の詳細はこちら。](https://docs.mparticle.com/guides/platform-guide/connections/#forwarding-rules) <img src="/images/partner_10223358141204.png" alt="Screenshot_2022-10-20_at_1.19.49_PM.png" />
+
+有効化すると、MoEngage ダッシュボードにユーザーとイベントが表示されるようになります。
+
+# データマッピング
+
+## データマッピング
+
+| mParticle のデータタイプ | MoEngage のデータタイプ | 詳細 |
+| --- | --- | --- |
+| 予約済みユーザー属性 | MoEngage の標準属性 | [mParticle の予約済み属性](https://docs.mparticle.com/developers/sdk/web/users/#reserved-attributes)は、MoEngage の標準属性にマッピングされます。 |
+| ユーザー ID | MoEngage の標準属性 | mParticle のユーザー ID は、MoEngage の標準属性にマッピングされます。 |
+| その他のユーザー属性 | カスタムユーザー属性 | mParticle に渡されたユーザー属性のうち、予約済みユーザー属性キーに該当しないものは、MoEngage でカスタム属性として記録されます。ユーザー属性は、文字列、数値、ブール値、日付、配列、さらにはオブジェクトもサポートしています。_オブジェクトのサポートは標準では提供されていません。有効にするには、MoEngage の CSM またはサポートチームにお問い合わせください。_ |
+| カスタムイベント | カスタムイベント | mParticle のカスタムイベントは、MoEngage でカスタムイベントとして認識されます。イベント属性はカスタムイベント属性として転送されます。MoEngage に渡されるイベント属性は、文字列、数値、ブール値、日付オブジェクトをサポートしています。 |
+| 購入コマースイベント | カスタムイベント | 購入コマースイベントは、MoEngage のカスタムイベントにマッピングされます。<ul><li>購入イベントのアクション名がイベント名になります。</li><li>購入イベント固有のすべての属性は、イベント属性として保存されます。</li><li>連携の範囲には、次のアクションが含まれます。<ul><li>Add to cart</li><li>Remove from cart</li><li>Checkout</li><li>Checkout option</li><li>Click</li><li>View Detail</li><li>Purchase</li><li>Refund</li><li>Add to wishlist</li><li>Remove from wishlist</li></ul></li><li>商品、トランザクションの詳細、合計金額などのその他のイベント属性は、それぞれの属性にマッピングされます。</li><li>詳細については、以下の Commerce Events マッピングのセクションを参照してください。</li><li>これらのイベントのサポートを追加する方法については、カスタマーサポートマネージャーにお問い合わせください。</li></ul> |
+| その他のコマースイベント | カスタムイベント | その他のコマースイベントは、MoEngage のカスタムイベントにマッピングされます。<ul><li>コマースイベントの `action` 名がイベント名になります。</li><li>これらのイベント固有のすべての属性は、イベント属性として保存されます。</li><li>詳細については、以下の Commerce Events マッピングのセクションを参照してください。</li><li>これらのイベントのサポートを追加する方法については、カスタマーサポートマネージャーにお問い合わせください。</li></ul> |
+| その他の mParticle イベント | サポート対象外 | "session\_start"、"session\_end"、"custom\_event"、"screen\_view"、"error"、"privacy\_setting\_change"、"push\_subscription"、"application\_state\_transition"、"push\_message\_receipt"、"promotion\_action"、"impression"、"attribution" などのイベントは現在サポートされていません。 |
+| ユーザー更新関連のイベント(user\_attribute\_change) | ユーザー属性が更新されます | mParticle の各リクエストはイベントによってトリガーされます。メールアドレスの更新など、ユーザー属性が変更された場合: <ul><li>変更が SDK によって追跡されている場合は、"user\_attribute\_change" イベントとして MoEngage に渡されます。そして、MoEngage 側でユーザー属性が更新されます。</li><li>ユーザー属性が mParticle の別の入力フィード(カスタムフィード、パートナーフィード、計算属性)によって更新された場合、これらは MoEngage などの出力には転送されません。<ul><li>このような場合、新しい値は、ユーザーによってトリガーされる次のイベントでのみ MoEngage などの出力に渡されます。今後アクションがない場合、更新された値は MoEngage に渡されません。</li><li>一般的には、MoEngage で更新する必要がある特定のユーザー属性のみを送信する、個別の "user attribute updated" イベント(ダミーイベント)を作成することをお勧めします。</li></ul></li></ul> |
+
+## Portfolio のサポート
+
+<Info>
+  この機能を使用すると、属性マッピングを使用して、単一の mParticle ソースから MoEngage ワークスペース内の特定のプロジェクトにイベントをルーティングできます。
+</Info>
+
+### 設定要件
+
+特定のプロジェクトにイベントをルーティングするには、mParticle ワークスペースで次の設定を行う必要があります。
+
+- **プロジェクト識別子をマッピングする**: MoEngage にイベントを転送する際に、ソースプロパティ(例: `brand_name` または `app_id`)を MoEngage のイベント属性 `moe_project_name` にマッピングします。
+- **完全一致を確認する**: ソースフィールドの値は、MoEngage の Portfolio で設定されているプロジェクト名と完全に一致する必要があります。一致判定では大文字と小文字が区別されます。
+
+### イベント取り込みのルール
+
+MoEngage は、次のロジックに基づいてイベントの取り込みを処理します。
+
+- **ルーティング成功**: `moe_project_name` の値が設定済みのプロジェクト名と一致する場合、MoEngage はその特定のプロジェクトレベルでイベントを取り込みます。
+- **フォールバック動作**: `moe_project_name` 属性が欠落している、空白である、または設定済みのプロジェクト名と完全に一致しない場合、MoEngage はグローバルな Portfolio レベルでイベントを取り込みます。**注意**: Portfolio レベルで取り込まれたデータは、特定のプロジェクトに関連付けられません。このデータは、プロジェクト固有の分析、セグメンテーション、キャンペーンのターゲティングには使用できません。
+
+詳細については、[Portfolio](/ja/user-guide/settings/account/portfolio/portfolio) および [Portfolio: Data Ingestion and Management](/ja/user-guide/data/key-concepts/portfolio-data-ingestion-and-management#event-attributes-project-level) を参照してください。
+
+<Warning>
+  **制限事項**
+
+  mParticle イベントのプロジェクトレベルのルーティングは利用可能です。次の機能はグローバルな Portfolio レベルで管理されます。
+
+  - **ユーザー同期**: プロジェクトレベルではサポートされていません。アウトバウンドのユーザー同期中、ユーザーはデフォルトでグローバルな Portfolio レベルで追跡されます。
+  - **コホート同期**: プロジェクトレベルではサポートされていません。
+</Warning>
+
+## Commerce Events のマッピング
+
+- MoEngage は Commerce Events の展開をサポートしていません。
+- 商品アクションイベントのアクション名が、MoEngage でのイベント名になります。
+- ワークスペースでこれらのイベントのサポートを追加する方法については、カスタマーサポートマネージャーにお問い合わせください。
+
+### 商品ベース
+
+商品ベースのコマースイベントは、購入につながる可能性のある商品とのすべてのインタラクションを測定します。商品イベントには次のものが含まれます。
+
+- Add to cart
+- Remove from cart
+- Checkout
+- Checkout option
+- Click
+- View Detail
+- Purchase
+- Refund
+- Add to wishlist
+- Remove from wishlist
+
+#### 共通のイベント属性
+
+| Commerce Event フィールド | MoEngage イベント属性 | データタイプ | 必須 | 説明 |
+| --- | --- | --- | --- | --- |
+| `ProductAction.TransactionId` | `TransactionId` | string | いいえ | 特定のトランザクションに関連付けられた ID。 |
+| `ProductAction.Products[]` | `Products[]` | object-array | いいえ | 商品のリスト。 |
+| `ProductAction.Products[].Name` | `Products[].Name` | string | いいえ | 特定の商品に関連付けられた名前。 |
+| `ProductAction.Products[].Category` | `Products[].Category` | string | いいえ | 特定の商品に関連付けられたカテゴリ。 |
+| `ProductAction.Products[].Brand` | `Products[].Brand` | string | いいえ | 特定の商品に関連付けられたブランド。 |
+| `ProductAction.Products[].TotalProductAmount` | `Products[].TotalProductAmount` | string | いいえ | 特定のトランザクションにおける特定の商品に関連付けられた合計金額。 |
+| `ProductAction.Products[].Attributes["myProductAttribute"]` | `Products[].Attributes["myProductAttribute"]` | string | いいえ | 特定の商品に関連付けられたカスタム属性。 |
+| `ProductAction.Attributes["myEventAttribute"]` | `myEventAttribute` | any | いいえ | イベントのカスタム属性。 |
+
+#### 購入イベント
+
+| Commerce Event フィールド | MoEngage イベント属性 | データタイプ | 必須 | 説明 |
+| --- | --- | --- | --- | --- |
+| `CurrencyCode` | `currency` | string | いいえ | 通貨コード。 |
+| `ProductAction.Products[]` | `Products[]` | object-array | いいえ | 商品のリスト。 |
+| `ProductAction.Products[].Id` | `Products[].Id` | string | いいえ | 特定の商品に関連付けられた ID。 |
+| `ProductAction.Products[].Price` | `Products[].Price` | double | いいえ | 特定の商品 1 単位に関連付けられた価格。 |
+| `ProductAction.Products[].Quantity` | `Products[].Quantity` | int | いいえ | 特定の商品に関連付けられた数量。 |
+| `ProductAction.TotalAmount` | `Total Amount` | string | いいえ | 特定のトランザクションに関連付けられた合計金額。 |
+| `ProductAction.ShippingAmount` | `Shipping Amount` | string | いいえ | 特定のトランザクションに関連付けられた送料。 |
+| `ProductAction.TaxAmount` | `Tax Amount` | string | いいえ | 特定のトランザクションに関連付けられた税額。 |
+
+#### 購入以外のイベント
+
+| Commerce Event フィールド | MoEngage イベント属性 | データタイプ | 必須 | 説明 |
+| --- | --- | --- | --- | --- |
+| `ProductAction.Products[].Id` | `Products[].Id` | string | いいえ | 特定の商品に関連付けられた ID。 |
+| `ProductAction.Products[].Price` | `Products[].Price` | double | いいえ | 特定の商品 1 単位に関連付けられた価格。 |
+| `ProductAction.Products[].Quantity` | `Products[].Quantity` | int | いいえ | 特定の商品に関連付けられた数量。 |
+
+### プロモーションベース
+
+| Commerce Event フィールド | MoEngage イベント属性 | データタイプ | 必須 | 説明 |
+| --- | --- | --- | --- | --- |
+| `PromotionAction.Promotions[].Id` | `Promotions[].Id` | string | いいえ | 特定のプロモーションに関連付けられた ID。 |
+| `PromotionAction.Promotions[].Name` | `Promotions[].Name` | string | いいえ | 特定のプロモーションに関連付けられた名前。 |
+| `PromotionAction.Promotions[].Creative` | `Promotions[].Creative` | string | いいえ | 特定のプロモーションに関連付けられたクリエイティブ。 |
+| `PromotionAction.Promotions[].Position` | `Promotions[].Position` | string | いいえ | 特定のプロモーションに関連付けられた位置。 |
+| `PromotionAction.Attributes["myEventAttribute"]` | `myEventAttribute` | any | いいえ | イベントのカスタム属性。 |
+
+### インプレッションベース
+
+| Commerce Event フィールド | MoEngage イベント属性 | データタイプ | 必須 |
+| --- | --- | --- | --- |
+| `ProductImpressions[].ProductImpressionList` | `Impressions[]["product impression list"]` | string | いいえ |
+| `ProductImpressions[].Products[].Id` | `Products[].Id` | string | いいえ |
+| `ProductImpressions[].Products[].Name` | `Products[].Name` | string | いいえ |
+| `ProductImpressions[].Products[].Category` | `Products[].Category` | string | いいえ |
+| `ProductImpressions[].Products[].Brand` | `Products[].Brand` | string | いいえ |
+| `ProductImpressions[].Products[].Price` | `Products[].Price` | string | いいえ |
+| `ProductImpressions[].Products[].Quantity` | `Products[].Quantity` | string | いいえ |
+| `ProductImpressions[].Products[].TotalProductAmount` | `Products[].TotalProductAmount` | string | いいえ |
+| `ProductImpressions[].Products[].Attributes["myProductAttribute"]` | `Products[]["myProductAttribute"]` | any | いいえ |
+| `ProductImpressions[].Attributes["myEventAttribute"]` | `myEventAttribute` | any | いいえ |
+
+## ユーザー ID のマッピング
+
+次のユーザー ID がサポートされています。
+
+- Customer ID
+- Email Address
+- MPID (mParticle ID)
+
+デフォルトでは、連携は Customer ID で動作します。他の ID(上記のもの)を使用する場合は、MoEngage の CSM または MoEngage サポートチームにお問い合わせください。
+
+# レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は mParticle データの取り込みを、ワークスペースあたり最大 500 リクエスト/秒(RPS)に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、mParticle のデフォルトの再試行ポリシーを参照してください。詳細については、mParticle のドキュメントを参照してください。
+
+**再試行の上限到達**: mParticle がデータのバッチに対するすべての再試行を使い果たした場合は、mParticle サポートチームに連絡して、失敗したリクエストを再送してもらう必要があります。
+
+# よくある質問
+
+<AccordionGroup>
+  <Accordion title="一部のユーザー属性が欠落しているか、更新されません。">
+    mParticle の各リクエストはイベントによってトリガーされます。メールアドレスの更新など、ユーザー属性が変更されると、mParticle はイベントをトリガーします。
+
+    - 変更が SDK によって追跡されている場合は、"user\_attribute\_change" イベントとして MoEngage などの出力に渡されます。その後、MoEngage がユーザー属性を更新します。
+    - ユーザー属性が mParticle の別の入力フィード(カスタムフィード、パートナーフィード、計算属性)によって更新された場合、これらは MoEngage などの出力には転送されません。
+      - このような場合、新しい値は、ユーザーによってトリガーされる次のイベントでのみ MoEngage などの出力に渡されます。今後アクションがない場合、更新された値は MoEngage に渡されません。
+      - 一般的には、MoEngage で更新する必要がある特定のユーザー属性のみを送信する、個別の "user attribute updated" イベント(ダミーイベント)を作成することをお勧めします。
+  </Accordion>
+
+  <Accordion title="mParticle から MoEngage に履歴データを再送する">
+    MoEngage は任意の期間のイベントを受け入れます。そのため、履歴データを mParticle に再送すると、自動的に MoEngage に流れ込みます。
+
+    データがすでに mParticle にあり、それを MoEngage に転送したい場合は、mParticle にデータを再送する方法があります。履歴データを再送するには、mParticle の担当者にお問い合わせください。
+  </Accordion>
+
+  <Accordion title="MoEngage にイベントが表示されません。">
+    MoEngage 連携は、特定のタイプのイベントのみをサポートしています。特定のイベントが連携でサポートされているかどうかを確認するには、ドキュメントの[このセクション](/ja/partner-guide/data-and-analytics/cdps/mparticle/getting-started/outbound-user-and-event-forwarding)を参照してください。
+
+    mParticle は、すべてのイベントをリアルタイムで MoEngage に送信します。ただし、サポートされているスループットレートは 15k RPM(リクエスト/分)です。送信レートがしきい値を超えると、一部のイベントがドロップされる可能性があります。
+
+    **推奨事項 -**
+
+    _短期的な対策-_ mParticle には、スループットレートの超過やシステムのダウンタイムによって MoEngage でドロップされたデータを再送する方法があります。履歴データを再送するには、mParticle の担当者にお問い合わせください。
+
+    長期的な対策- mParticle にデータを送信するレートを制御すること(上限は 15k RPM)をお勧めします。
+  </Accordion>
+
+  <Accordion title="MoEngage にデータを送信する際にユーザー/イベント属性名を変更するにはどうすればよいですか?">
+    形式や名前の変更は、[mParticle Rules](https://docs.mparticle.com/guides/platform-guide/rules/) を使用して mParticle プラットフォームで直接行うことができます。mParticle の担当者と直接連携して、任意の属性に対するルールを有効化および定義できます。
+  </Accordion>
+
+  <Accordion title="Data Exports では最新のユーザー属性が保証されますか?">
+    いいえ。Data Exports は主にイベントをほぼリアルタイムでエクスポートするために構築されており、MoEngage のユーザー属性は非同期で更新されるため、現時点ではエクスポートでユーザー属性の最新値を保証することはできません。
+  </Accordion>
+</AccordionGroup>

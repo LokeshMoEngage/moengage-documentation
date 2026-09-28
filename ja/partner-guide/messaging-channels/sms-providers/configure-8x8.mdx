@@ -1,0 +1,47 @@
+---
+title: "8x8 の設定"
+---
+
+8x8 CPaaS (Communications Platform as a Service) は、音声、ビデオ、チャット、WhatsApp (その他のメッセージングアプリチャネルを含む)、SMS の機能をアプリケーションに統合するための強力な API とツールのスイートを提供します。
+
+<Info>
+  8x8 アカウント、サブアカウント、API キーを用意していることを確認してください。これらのパラメーターはどちらも、8x8 Connect Portal の [API Keys セクション](https://connect.8x8.com/messaging/api-keys) で確認できます。
+
+  - API Key - 8x8 の API での認証に使用します。詳細については、[こちら](https://developer.8x8.com/connect/docs/authentication) を参照してください。
+  - Subaccount - 8x8 のサブアカウントです。8x8 アカウントには、デフォルトでサブアカウントが作成されています。新しいサブアカウントは、サポートチーム ([_cpaas-support@8x8.com_](mailto:cpaas-support@8x8.com)) にリクエストできます。
+
+  8x8 の認証情報に関する問題については、[cpaas-support@8x8.com](mailto:_cpaas-support@8x8.com) までお問い合わせください。
+</Info>
+
+# 8x8 をカスタム SMS コネクター (サービスプロバイダー) として設定する
+
+この記事では、MoEngage ダッシュボードで 8x8 をカスタム SMS コネクター (サービスプロバイダー) として設定する方法について説明します。
+
+# MoEngage UI で 8x8 を設定する
+
+MoEngage ダッシュボードにログインし、次の手順に従います。
+
+1. **Settings** -\> **Channel** -\> **SMS** -\> **Sender Configuration** に移動します。
+2. 右上隅にある **\+Add Service Provider** をクリックします。
+3. **Sender Details** 画面で次の詳細を追加します。**Mark as default** トグルをオンにすると、設定中のサービスプロバイダーのデフォルト送信者としてこの送信者がマークされます。デフォルトとしてマークすると、キャンペーン作成時に別の送信者を選択しない限り、MoEngage からのすべての SMS キャンペーンの送信にこの送信者が使用されます。
+
+| フィールド | 説明 |
+| --- | --- |
+| **Service provider name** | このフィールドは MoEngage ダッシュボードで設定するサービスプロバイダーを識別するもので、一意である必要があります。サービスプロバイダー名として **8x8 SMS** を入力します。 |
+| **Sender name** | このフィールドは、キャンペーンやアラートの作成時に使用できる、読みやすい送信者名を識別します。送信者の名前として **8x8 SMS** を入力します。 |
+| **Sender type** | 送信者タイプは **Promotional** または **Transactional** のいずれかです。<ul><li>ブランドに関する情報の送信、お得な情報のプロモーション、またはユーザーとのエンゲージメントに送信者を使用する場合は、**Sender type** として **Promotional** を選択します。</li><li>取引に関するアラート、OTP、セキュリティ情報、またはトランザクションとして分類できる情報の送信に送信者を使用する場合は、**Sender type** として **Transactional** を選択します。</li></ul> |
+
+4. 次の詳細を追加して Webhook を設定します。
+
+| フィールド | 説明 |
+| --- | --- |
+| API URL | このフィールドには、送信者に API リクエストを送信する際に使用する URL の情報が含まれます。この情報は送信者の API ドキュメントから取得できます。ここに送信者の API エンドポイントを入力します。8x8 の API URL は `[https://sms.8x8.com/api/v1/subaccounts/{Subaccount}/messages](https://sms.8x8.com/api/v1/subaccounts/{Subaccount}/messages) {Subaccount}` です。URL 内の {Subaccount} は、お使いの 8x8 サブアカウントに置き換えてください。これは 8x8 Connect ダッシュボードの [API Keys セクション](https://connect.8x8.com/login/?redirect=%2Fmessaging%2Fapi-keys) で確認できます。 |
+| Method | HTTP メソッドとして **POST** を選択します。 |
+| URL Parameters | このオプションを使用して、API に渡す URL パラメーターをキーと値のペアとして追加します。この情報は送信者の API ドキュメントから取得できます。たとえば、API URL の呼び出しで GET メソッドを使用する場合、API Key や Authorization などのすべてのパラメーターが URL パラメーターとして渡されます。 |
+| Headers | 次のオプションを使用して、API に渡すリクエストヘッダーをキーと値のペアとして追加します。<ul><li>Content-Type: application/json</li><li>Authorization: Bearer `{Api Key}`</li></ul> API キーは、8x8 Connect ダッシュボードの [API Keys セクション](https://connect.8x8.com/login/?redirect=%2Fmessaging%2Fapi-keys) で確認できます。 |
+| Body Type | リクエストのボディを設定します。JSON を選択し、次の詳細を追加します。<ul><li>message フィールドに Moesms\_message を追加して、MoEngage のメッセージをリクエストに渡します。</li><li>sender フィールドに、8x8 アカウントの Sender ID を追加します。</li><li>recipient フィールドに Moesms\_destination を追加して、メッセージに受信者を追加します。</li></ul> |
+
+5. **テスト SMS を送信** して、設定を確認します。
+6. **Save** をクリックして、送信者設定を保存します。
+7. MoEngage ダッシュボードで送信者を作成した後、配信トラッキングを設定できます。配信トラッキングの詳細については、[カスタムコネクターの配信トラッキング](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-custom-connector-for-sms) を参照してください。
+8. 配信トラッキングのレスポンスの属性は、手動または自動でマッピングできます。

@@ -1,0 +1,75 @@
+---
+title: "Boomi"
+description: "Boomi の統合フローを使用して、MoEngage を Oracle、Salesforce、SAP、またはスタック内の他のシステムと接続します。"
+keywords: ["Boomi", "iPaaS", "integration platform", "HTTP Client connector", "Web Services Server", "Streams", "dedicated endpoint", "workflow automation"]
+---
+
+[Boomi](https://boomi.com/) は、ビジュアル開発ツールと構築済みコネクターを通じてアプリケーションとデータソースを接続する統合プラットフォームです。カスタムコードを書かずに統合フローを構築できます。
+
+Boomi に接続された任意のシステムと MoEngage の間で、顧客データをユーザーまたはイベントとしてインポートして同期できます。また、[Streams](/ja/api/data/moengage-streams) を通じてキャンペーンデータやエンゲージメントデータをエクスポートできます。
+
+## ユースケース
+
+次の表は、この連携で構築できる内容を示しています。
+
+| ユースケース | 説明 |
+| --- | --- |
+| リアルタイム CRM 同期 | MoEngage のキャンペーン配信イベントやエンゲージメントイベントを発生と同時に Salesforce に送信し、エンゲージメントスコアとアクティビティ履歴を最新の状態に保ちます。 |
+| データウェアハウス連携 | MoEngage の行動イベントを Snowflake ウェアハウスにエクスポートし、分析やビジネスインテリジェンスのレポートに活用します。 |
+| 基幹業務システム（ERP）同期 | MoEngage と SAP や Oracle などの ERP システムの間で顧客属性、購入イベント、ロイヤルティデータを同期し、単一の顧客レコードを維持します。 |
+| 双方向のロイヤルティプログラム | ロイヤルティプラットフォームのポイントやティア情報を MoEngage にインポートし、キャンペーンのエンゲージメント指標をエクスポートして、特典やオファーのターゲティングを調整します。 |
+
+## 前提条件
+
+<Info>
+  - 接続の作成とプロセスのデプロイの権限を持つ Boomi Integration アカウントが必要です。
+  - MoEngage からデータを受信するには、Boomi アカウントに [Services Enablement](https://help.boomi.com/bundle/integration/page/c-atm-Services_Enablement.html) が含まれている必要があります。これは Professional Plus、Enterprise、Enterprise Plus エディションで利用できます。
+</Info>
+
+## MoEngage にデータをプッシュする
+
+[HTTP Client connector](https://help.boomi.com/docs/atomsphere/integration/connectors/r-atm-http_client_connector_d64af80e-febe-4cd2-89ad-e3d0fc53c502/) から呼び出す専用エンドポイントを通じて、ユーザーとイベントを MoEngage にプッシュします。エンドポイントはお客様のデータに固有のものです。送信するペイロードを定義すると、MoEngage がそれに一致するエンドポイントをプロビジョニングします。
+
+### ステップ 1: 専用エンドポイントをリクエストする
+
+専用エンドポイントをリクエストするには、次の手順を実行します。
+
+1. MoEngage のカスタマーサクセスマネージャー（CSM）または [MoEngage Support](https://help.moengage.com/hc/en-us/requests/new) に連絡します。
+2. 送信するペイロードと、ユーザーまたはイベントとしてインポートするデータを共有します。MoEngage はこれらの詳細を使用して、ペイロードに適したエンドポイントをプロビジョニングします。
+3. MoEngage から、Boomi で使用する専用エンドポイント URL と認証情報が共有されます。
+
+### ステップ 2: 統合フローを構築する
+
+Boomi からエンドポイントにデータを送信するには、次の手順を実行します。
+
+1. HTTP Client connector ステップを追加し、MoEngage のエンドポイント URL を指す接続を作成します。
+2. コネクターのオペレーションで、メソッドを **POST** に設定し、MoEngage から共有された認証情報を追加します。
+3. プロセスをデプロイし、少量のレコードで実行します。
+
+概要については、以下のサンプル図を参照してください。プロセスはソースシステムからレコードを取得し、MoEngage と合意したペイロードにマッピングして、専用エンドポイントにプッシュします。ソース（Pull）とマッピングのステップは、お客様のシステムとデータによって異なります。
+
+![Pull API ステップ、ペイロードを変換する Map ステップ、MoEngage にデータをプッシュする HTTP Client ステップを示す Boomi のプロセスキャンバス](/images/boomi-integration-flow.png)
+
+プロセスをスケジュールする前に、MoEngage で実行結果を確認してください。テストバッチのユーザーとイベントがワークスペースに表示され、送信したレコードのユーザープロファイルで確認できます。
+
+## MoEngage からデータをエクスポートする
+
+<Info>
+  Streams は有料のアドオンです。ワークスペースで有効にするには、CSM にお問い合わせください。
+</Info>
+
+[Streams](/ja/api/data/moengage-streams) は、キャンペーンのインタラクションイベントとユーザー行動データを、任意のエンドポイントにほぼリアルタイムで転送します。ストリームの送信先を Boomi のリスナーエンドポイントに設定すると、Boomi はそのデータを接続先の任意のシステムに転送できます。
+
+### ステップ 1: Boomi でリスナーエンドポイントを構築する
+
+MoEngage のデータを受信するエンドポイントを作成するには、次の手順を実行します。
+
+1. Web Services Server connector で始まるプロセスを作成します。
+2. JSON リクエストを受け付ける [Web Services Server operation](https://help.boomi.com/docs/Atomsphere/Integration/Connectors/r-atm-Web_Services_Server_operation_e74fceaf-877d-45fa-a7b0-7a5ac72719b4) を設定します。
+3. プロセスをデプロイし、生成されたエンドポイント URL と認証情報をコピーします。
+
+Streams が送信するペイロードに一致するようにリクエスト構造を定義します。フィールドレベルの仕様については、[Streams](/ja/api/data/moengage-streams) を参照してください。
+
+### ステップ 2: ワークスペースで Streams をリクエストする
+
+前のステップで取得したエンドポイント URL と認証情報、および転送したいイベントを添えて、CSM または MoEngage Support に連絡します。MoEngage がストリームを設定し、Boomi エンドポイントへのデータ転送を開始します。

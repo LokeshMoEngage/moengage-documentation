@@ -1,0 +1,60 @@
+---
+title: "iOS の Push 設定"
+description: "APNS 証明書とプッシュ登録を含め、Unity アプリで iOS のプッシュ通知を設定します。"
+---
+
+# iOS での Push の設定
+
+## APNS 証明書
+
+まず、iOS でプッシュ通知を送信できるようにするには、APNS 証明書を作成してダッシュボードにアップロードする必要があります。以下の手順に従ってください。
+
+- [APNS 証明書を作成する](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+- [作成された証明書を .pem 形式に変換する](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+- [.pem ファイルを MoEngage ダッシュボードにアップロードする](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+
+\*各手順のリンクをたどって完了してください。
+
+## プッシュ登録
+
+次に、以下に示すようにプラグインの **RegisterForPush** メソッドを使用して、アプリでプッシュ通知の登録を行う必要があります。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.RegisterForPush();
+```
+
+</CodeGroup>
+
+## App Target の設定
+
+MoEngage プラグインは、初回ビルド時にプロジェクトのセットアップを行います。ただし、以下に示すように、Capability セクションで `AppGroups` および `Background Mode` の設定とともに `Push Notifications` が有効になっていることを確認してください。
+
+<Info>
+  MoEngage プラグインは、`group.<app bundle id>.moengage` という形式でアプリの App Group を作成します。これが Apple 開発者アカウントで解決されていることを確認してください。
+</Info>
+
+## Extensions
+
+MoEngage プラグインは、Extension ターゲットのセットアップも行います。MoENotificationServiceExtension と MoEPushTemplateExtension に同じ App Group Id が設定されていることを確認してください。
+
+## 仮承認（Provisional Push Authorization）
+
+仮承認（iOS 12 以降で利用可能）を使用すると、事前に権限をリクエストすることなくユーザーにプッシュ通知を送信できます。通知は通知センターに静かに配信され、ユーザーは通知を維持するかオフにするかを選択できます。
+
+仮承認を有効にするには、プッシュ登録の前に次の API を呼び出します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.RegisterForProvisionalPush();
+```
+
+</CodeGroup>
+
+<Info>
+  仮プッシュは iOS 12 以降でのみ利用できます。それより前の iOS バージョンでは、この呼び出しは効果がありません。
+</Info>

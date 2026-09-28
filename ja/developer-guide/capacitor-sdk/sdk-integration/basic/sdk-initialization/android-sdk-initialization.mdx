@@ -1,0 +1,85 @@
+---
+title: "Android SDK の初期化"
+description: "Capacitor アプリの Application クラスで、ワークスペース ID を使用して MoEngage Android SDK を初期化します。"
+---
+
+# SDK の初期化
+
+<Info>
+  SDK は onCreate() 内のメインスレッドで初期化してください。ワーカースレッドを作成してそのスレッドで SDK を初期化しないでください。
+</Info>
+
+<CodeGroup>
+
+```Java Java
+import android.app.Application;
+import com.moengage.capacitor.MoEInitializer;
+import com.moengage.core.MoEngage;
+import com.moengage.core.DataCenter;
+
+public class MainApplication extends Application {
+
+  @Override public void onCreate() {
+    super.onCreate();
+// this is the instance of the application class and "YOUR_WORKSPACE_ID" is the Workspace ID from the dashboard.
+MoEngage.Builder moEngage = new MoEngage.Builder(this,"YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X);
+MoEInitializer.initialiseDefaultInstance(this, moEngage);
+  }
+}
+```
+
+</CodeGroup>
+
+ダッシュボードのホストに基づいて設定する必要がある各データセンターの詳細は次のとおりです。
+
+| データセンター              | ダッシュボードのホスト            |
+| ------------------------ | ------------------------- |
+| DataCenter.DATA_CENTER_1 | dashboard-01.moengage.com |
+| DataCenter.DATA_CENTER_2 | dashboard-02.moengage.com |
+| DataCenter.DATA_CENTER_3 | dashboard-03.moengage.com |
+| DataCenter.DATA_CENTER_4 | dashboard-04.moengage.com |
+| DataCenter.DATA_CENTER_5 | dashboard-05.moengage.com |
+
+設定可能な項目の詳細な一覧については、[API リファレンス](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html)を参照してください。
+
+<Info>
+  すべての設定は、初期化の前にビルダーに追加されます。複数の場所で initialize を呼び出している場合は、動作の一貫性を保つために、初期化のたびに必要なすべてのフラグと設定が指定されていることを確認してください。
+</Info>
+
+アプリケーションにまだ Application クラスがない場合は、android プラットフォームフォルダ内の Java ソースコードに移動し、Application クラスファイルを追加します。
+
+<img
+  src="/images/AndroidSDKInitialization1.png"
+  alt="Android SDK の初期化 1"
+  style={{ width:"53%" }}
+/>
+
+Application クラスが **AndroidManifest.xml** ファイルにも定義されていることを確認してください。
+
+# MoEngage プラグインの登録
+
+**Activity** クラスの **onCreate()** でプラグインを登録します。
+
+<CodeGroup>
+
+```Java Java
+import com.getcapacitor.BridgeActivity;
+import com.moengage.capacitor.MoECapacitorCorePlugin;
+
+public class MainActivity extends BridgeActivity {
+
+  @Override protected void onCreate(Bundle savedInstanceState) {
+    //register the MoEngage Capacitor Plugin
+    registerPlugin(MoECapacitorCorePlugin.class);
+    super.onCreate(savedInstanceState);
+  }
+}
+```
+
+</CodeGroup>
+
+# MoEngage ストレージファイルを自動バックアップから除外する
+
+これは必須の統合手順であり、データの破損を防ぐために非常に重要です。Android の自動バックアップサービスは、Shared Preference ファイルやデータベースファイルなどを定期的にバックアップします。詳細は[こちら](https://developer.android.com/guide/topics/data/autobackup)をご覧ください。このバックアップにより、MoEngage SDK の識別子がバックアップされ、再インストール後に復元されます。この識別子の復元により、データが破損し、プッシュ通知でユーザーにリーチできなくなります。
+
+バックアップの復元後にデータが破損しないようにするには、MoEngage SDK のストレージファイルをバックアップ対象から除外してください。除外するファイルの詳細については、ドキュメントの [MoEngage ストレージファイルを自動バックアップから除外する](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup)のセクションを参照してください。

@@ -1,0 +1,207 @@
+---
+title: "SDK統合ガイド"
+description: "モバイル、Web、クロスプラットフォームフレームワークにMoEngage SDKを統合して、カスタマーエンゲージメントを実現します。"
+keywords: ["MoEngage SDK", "SDK integration", "integration guide", "iOS SDK", "Android SDK", "Web SDK", "React Native SDK", "Flutter SDK", "event tracking", "push token registration"]
+---
+
+MoEngage SDKは、アプリケーション内で動作する軽量でモジュール式のクライアントライブラリです。イベントトラッキング、ユーザー識別、プッシュトークンの登録、アプリ内メッセージのレンダリング、コンテンツカードの配信を処理し、オフラインキューイングを備えたバッチ処理のHTTPSリクエストを通じてMoEngageサーバーにデータを同期します。
+
+**SDKはデフォルトで以下を自動収集します：** セッションの開始/終了、アプリバージョン、デバイスモデル、OSバージョン、タイムゾーン、ロケール。プッシュが設定されている場合、プッシュトークンは自動的に登録されます。その他のトラッキング（イベント、ユーザー属性）はすべて、API呼び出しによって明示的に行います。
+
+## サポートされているプラットフォーム
+
+### ネイティブ
+
+<CardGroup cols={3}>
+  <Card title="Android SDK" icon="android" href="/ja/developer-guide/android-sdk/sdk-integration/basic-integration/configuring-build-settings">
+    KotlinおよびJava。プッシュ（FCM、HMS）、アプリ内メッセージ、カード、プッシュテンプレート、プッシュアンプリフィケーション、通知センター、位置情報トリガー、Android TVをサポート。モジュール式で、必要なものだけを追加できます。
+  </Card>
+
+  <Card title="iOS SDK" icon="apple" href="/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration">
+    SwiftおよびObjective-C。プッシュ（APNs）、アプリ内メッセージ、カード、プッシュテンプレート、Live Activities、リアルタイムトリガー、通知センター、Apple TVをサポート。CocoaPodsまたはSPMで利用できます。
+  </Card>
+
+  <Card title="Web SDK" icon="globe" href="/ja/developer-guide/web-sdk/web-sdk-overview/web-sdk-overview">
+    フレームワークに依存しないJavaScript SDK。Webプッシュ、オンサイトメッセージング（OSM）、データトラッキング、カード、ライフサイクルコールバックをサポート。React、Angular、Vue、Next.js、および任意のSPAやMPAで動作します。AMPページ、ブラウザー拡張機能、WebView、スマートTVにも対応しています。
+  </Card>
+</CardGroup>
+
+### クロスプラットフォーム
+
+<Info>
+  クロスプラットフォームSDKは、ネイティブのAndroid SDKおよびiOS SDKへの橋渡しとなる統一APIを提供します。フレームワークレベルの統合に加えて、プッシュ通知、アプリ内メッセージのレンダリング、その他のネイティブ機能に関するプラットフォーム固有のセットアップ手順を完了する必要があります。
+</Info>
+
+<CardGroup cols={3}>
+  <Card title="React Native" icon="react" href="/ja/developer-guide/react-native-sdk/overview/getting-started-with-react-native-sdk">
+    React Native CLIプロジェクトをサポート。プッシュ、アプリ内メッセージ、カード、TVに対応。Androidではネイティブのセットアップが必要で、iOSではCocoaPodsを介して自動リンクされます。
+  </Card>
+
+  <Card title="Expo" icon="react" href="/ja/developer-guide/react-native-sdk/sdk-integration/expo/installation">
+    **react-native-expo-moengage** 設定プラグインによるExpo managed workflowのサポート。プッシュ、アプリ内メッセージ、カードに対応。ネイティブモジュールのリンクにはEAS Buildが必要です。
+  </Card>
+
+  <Card title="Flutter" icon="mobile" href="/ja/developer-guide/flutter-sdk/overview/getting-started-with-flutter-sdk">
+    iOS、Android、Web向けのネイティブバインディングを備えたDartプラグイン。プッシュ、アプリ内メッセージ、カード、ジオフェンス、通知センターに対応。Null安全（Dart 2.12\+）。
+  </Card>
+
+  <Card title="Cordova" icon="code" href="/ja/developer-guide/cordova-sdk/sdk-integration/sdk-installation/framework-dependency">
+    Apache Cordovaプラグイン。プッシュ、アプリ内メッセージ、データトラッキングに対応。CocoaPodsのサポートには **cordova-ios** 4.3\+ が必要です。
+  </Card>
+
+  <Card title="Capacitor" icon="bolt" href="/ja/developer-guide/capacitor-sdk/sdk-integration/basic/sdk-installation/framework-dependency">
+    Capacitorプラグイン（Capacitor 3\+）。プッシュ、アプリ内メッセージ、データトラッキング、ジオフェンスに対応。TypeScript API。
+  </Card>
+
+  <Card title="Ionic" icon="bolt" href="/ja/developer-guide/ionic-sdk/sdk-integration/sdk-installation">
+    IonicはネイティブランタイムとしてCordovaまたはCapacitorを使用します。Ionicプロジェクトのネイティブレイヤーに合ったプラグインを選択してください。Ionic専用のSDKはありません。
+  </Card>
+
+  <Card title="Unity" icon="gamepad" href="/ja/developer-guide/unity-sdk/sdk-integration/sdk-installation/sdk-installation">
+    iOSおよびAndroid向けのネイティブバインディングを備えたUnityプラグイン。プッシュ、アプリ内メッセージ、データトラッキング、プッシュテンプレート、位置情報トリガーキャンペーンに対応。
+  </Card>
+</CardGroup>
+
+### 特殊プラットフォーム
+
+<CardGroup cols={2}>
+  <Card title="TVとOTT" icon="tv" href="/ja/developer-guide/tv-and-ott-integrations/getting-started/tv-and-ott-integrations">
+    Android TV（Android SDK経由）、Apple TV（iOS SDK経由）、スマートTV（Web SDK経由）。プッシュとアプリ内メッセージのサポートはプラットフォームによって異なります。
+  </Card>
+
+  <Card title="Eコマースプラットフォーム" icon="cart-shopping" href="/ja/developer-guide/ecommerce-platforms/shopify/shopify-20">
+    Shopify 2.0（アプリ埋め込みブロック）、Magento、WooCommerce。Eコマースイベントを自動トラッキングし、商品カタログを同期します。
+  </Card>
+</CardGroup>
+
+## プラットフォームの互換性
+
+| プラットフォーム | 言語 | 最小バージョン | パッケージマネージャー | インストールガイド |
+| --- | --- | --- | --- | --- |
+| **Android** | Kotlin, Java | API 23（Android 6.0）、compileSdk 36 | Maven Central | [BOM（推奨）](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) |
+| **iOS** | Swift, Objective-C | iOS 13、Xcode 15\+ | CocoaPods, SPM | [SPM](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration) |
+| **Web** | JavaScript | [ブラウザー互換表](/ja/developer-guide/web-sdk/web-sdk-overview/web-sdk-browser-compatibility-matrix) | CDNまたはnpm | [統合ガイド](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration) |
+| **React Native** | TypeScript/JS \+ ネイティブ | RN 0.60\+（ネイティブの最小要件を継承） | npm | [RN CLIガイド](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-installation/framework-dependency) |
+| **Expo** | TypeScript/JS \+ ネイティブ | Expo SDK 47\+（ネイティブの最小要件を継承） | npm | [Expoプラグインガイド](/ja/developer-guide/react-native-sdk/sdk-integration/expo/installation) |
+| **Flutter** | Dart \+ ネイティブ | Dart 2.12\+、Flutter 3.x（ネイティブの最小要件を継承） | pub.dev | [Flutterガイド](/ja/developer-guide/flutter-sdk/sdk-integration/sdk-installation/framework-dependency) |
+| **Cordova** | JavaScript \+ ネイティブ | cordova-ios 4.3\+、cordova-cli 6.4\+ | npm | [Cordovaガイド](/ja/developer-guide/cordova-sdk/sdk-integration/sdk-installation/framework-dependency) |
+| **Capacitor** | TypeScript \+ ネイティブ | Capacitor 3\+（ネイティブの最小要件を継承） | npm | [Capacitorガイド](/ja/developer-guide/capacitor-sdk/sdk-integration/basic/sdk-installation/framework-dependency) |
+
+## クイックスタート
+
+プラットフォームを選択し、統合ガイドに従ってください。最初のイベント送信までの目安時間は、ネイティブSDKで **15～30分**、クロスプラットフォームで **30～60分**（追加のネイティブ設定が必要なため）です。
+
+<Steps>
+  <Step title="Workspace IDを取得する">
+    MoEngageダッシュボードで、**Settings → Account → APIs → Workspace ID** に移動します。SDKの初期化にこのIDが必要です。
+  </Step>
+  <Step title="データセンターを設定する">
+    データセンターによって、SDKが通信するAPIエンドポイントが決まります。ダッシュボードURLのホストからデータセンターを確認してください（例：`dashboard-01.moengage.com` → `dc_1`）。これはSDKの初期化時に設定する必要があります。
+  </Step>
+  <Step title="SDKをインストールする">
+    上の表にあるプラットフォーム固有のインストールガイドに従ってください。
+  </Step>
+  <Step title="SDKを初期化する">
+    Workspace IDとデータセンターを指定して初期化メソッドを呼び出します。開発中は **TEST** 環境を、本番環境では **LIVE** を使用してください。
+  </Step>
+  <Step title="最初のイベントをトラッキングする">
+    イベントトラッキングAPIを呼び出してカスタムイベントを送信します。MoEngageダッシュボードの **Analytics → Event Analysis** に表示されることを確認してください。
+  </Step>
+</Steps>
+
+### プラットフォーム別の前提条件
+
+統合を開始する前に、以下を準備してください。
+
+- **Android：** `google-services.json` が設定されたFirebaseプロジェクト（FCMプッシュに必要）。Gradle 7.0\+、AGP 7.0\+、Java 8\+。
+- **iOS：** プッシュ通知のエンタイトルメントが有効なApple Developerアカウント。MoEngageダッシュボードにアップロードされたAPNs認証キー（`.p8` ファイル）。
+- **Web：** HTTPS対応のドメイン（Service Workerを使用するWebプッシュに必要）。
+- **クロスプラットフォーム（React Native / Expo / Flutter / Cordova / Capacitor）：** 上記のネイティブの前提条件すべてに加え、フレームワーク固有のツールチェーン。
+
+## プラットフォーム別の機能の利用可否
+
+すべての機能がすべてのプラットフォームで利用できるわけではありません。統合を開始する前に、この表でサポート状況を確認してください。
+
+| 機能 | Android | iOS | Web | React Native | Expo | Flutter | Cordova | Capacitor |
+| --- | :-: | :-: | :-: | :-: | :-: | :-: | :-: | :-: |
+| **プッシュ通知** | ✅ FCM, HMS | ✅ APNs | ✅ Web Push | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **プッシュテンプレート** | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **プッシュアンプリフィケーション** | ✅ | — | — | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Device Triggered Push** | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Live Activities** | — | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **HTMLアプリ内メッセージ（テンプレート、Nudge）** | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **In-App NATIV** | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **オンサイトメッセージング（OSM）** | — | — | ✅ | — | — | — | — | — |
+| **カード** ¹ | ✅ | ✅ | ✅ | ✅ ² | ✅ ² | ✅ ² | — | — |
+| **データトラッキング** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **位置情報/ジオフェンス** | ✅ | ✅ | — | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **通知センター（受信トレイ）** | ✅ | ✅ | — | ✅ | ✅ | ✅ | — | — |
+| **Webパーソナライゼーション** | — | — | ✅ | — | — | — | — | — |
+| **GDPRオプトアウト** | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Personalize** | ✅ | ✅ | ✅ | ✅ | — | ✅ | — | — |
+
+¹ Android、iOS、Web、およびUIカードとセルフハンドルカードの両方。
+
+² セルフハンドルのみ。
+
+<Warning>
+  一部の機能には追加のモジュール依存関係が必要です。正確な依存関係の要件については、プラットフォーム固有の統合ガイドを確認してください。
+</Warning>
+
+## 一般的な統合タスク
+
+| タスク | Android | iOS | Web |
+| --- | --- | --- | --- |
+| SDKのインストール | [ビルド設定](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/configuring-build-settings) | [SDKの統合](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration) | [Web SDKの統合](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration) |
+| 初期化 | [初期化](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization) | [初期化](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization) | [統合](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration) |
+| プッシュの設定 | [プッシュの設定](/ja/developer-guide/android-sdk/push/basic/push-configuration) | [プッシュの統合](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial) | [Webプッシュ](/ja/developer-guide/web-sdk/web-push/configure-and-integrate-web-push) |
+| イベントのトラッキング | [イベントのトラッキング](/ja/developer-guide/android-sdk/data-tracking/basic/track-events) | [イベントのトラッキング](/ja/developer-guide/ios-sdk/data-tracking/basic/tracking-events) | [イベントトラッキング](/ja/developer-guide/web-sdk/data-tracking/web-sdk-events-tracking) |
+| ユーザー属性のトラッキング | [ユーザー属性](/ja/developer-guide/android-sdk/data-tracking/basic/track-user-attributes) | [ユーザー属性](/ja/developer-guide/ios-sdk/data-tracking/basic/tracking-user-attributes) | [ユーザー属性](/ja/developer-guide/web-sdk/data-tracking/web-sdk-user-attributes-tracking) |
+| アプリ内メッセージ / OSMの有効化 | [In-App NATIV](/ja/developer-guide/android-sdk/in-app-messages/in-app-nativ) | [In-App NATIV](/ja/developer-guide/ios-sdk/in-app-messages/in-app-nativ) | [オンサイトメッセージング](/ja/developer-guide/web-sdk/onsite-messaging/configure-and-integrate-on-site-messaging) |
+| カードの追加 | [カード](/ja/developer-guide/android-sdk/cards/cards) | [カード](/ja/developer-guide/ios-sdk/cards/cards-in-i-os) | [カード](/ja/developer-guide/web-sdk/cards/cards) |
+| コンプライアンス | [コンプライアンス](/ja/developer-guide/android-sdk/compliance/compliance) | [コンプライアンス](/ja/developer-guide/ios-sdk/compliance/compliance) | [データのオプトアウト](/ja/developer-guide/web-sdk/data-tracking/configure-data-opt-out-in-web-sdk) |
+| SDK統合の検証 | [統合の検証](/ja/user-guide/getting-started/integration-validation/android-native-integration-validation) | [リリースチェックリスト](/ja/developer-guide/ios-sdk/checklist/release-checklist) | [MoEngage Assist Chrome拡張機能](/ja/developer-guide/web-sdk/integration-validation/moengage-assist-chrome-extension) |
+
+## アップグレードと移行
+
+<CardGroup cols={2}>
+  <Card title="Android移行ガイド" icon="arrow-up">
+    [10.x → 11.x](/ja/developer-guide/android-sdk/migration/updating-to-11xxx-from-10xxx) · [11.x → 12.x](/ja/developer-guide/android-sdk/migration/updating-to-12xxx-from-11xxx) · [マニフェスト → コードベースの初期化](/ja/developer-guide/android-sdk/migration/moving-from-manifest-to-code-based-integration) · [Maven Centralへの移行](/ja/developer-guide/android-sdk/migration/migration-to-maven-central)
+  </Card>
+
+  <Card title="iOS移行ガイド" icon="arrow-up">
+    [→ v6.0.0](/ja/developer-guide/ios-sdk/migration/migration-to-sdk-version-6-0-0) · [→ v7.0.0](/ja/developer-guide/ios-sdk/migration/migration-to-sdk-version-7-0-0) · [→ v8.2.0](/ja/developer-guide/ios-sdk/migration/migration-to-sdk-version-8-2-0) · [→ v9.0.0](/ja/developer-guide/ios-sdk/migration/migration-to-sdk-version-9-0-0)
+  </Card>
+</CardGroup>
+
+## 開発者向けリソース
+
+<CardGroup cols={3}>
+  <Card title="サンプルアプリ" icon="flask">
+    動作するリファレンス実装：[Android](/ja/developer-guide/android-sdk/sample-app/android-sample-app) · [iOS](/ja/developer-guide/ios-sdk/sample-app/i-os-sample-app) · [React Native](/ja/developer-guide/react-native-sdk/sample-app/react-native-sample-app) · [Flutter](/ja/developer-guide/flutter-sdk/sample-app/flutter-sample-app) · [Capacitor](/ja/developer-guide/capacitor-sdk/sample-app/capacitor-sample-app)
+  </Card>
+
+  <Card title="リリースノート" icon="clock-rotate-left" href="/ja/release-notes/sdks/ios">
+    すべてのSDKの変更履歴。GitHubで[リリースを購読](/ja/release-notes/sdks/ios)すると、新しいバージョン、破壊的変更、セキュリティパッチの通知を受け取れます。
+  </Card>
+
+  <Card title="トラブルシューティング" icon="wrench">
+    [Android](/ja/developer-guide/android-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs) · [iOS](/ja/developer-guide/ios-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs-ios) · [React Native](/ja/developer-guide/react-native-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs-react) · [Flutter](/ja/developer-guide/flutter-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs-flutter) · [Capacitor](/ja/developer-guide/capacitor-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs-capacitor)
+  </Card>
+
+  <Card title="リリースチェックリスト" icon="list-check">
+    リリース前の検証：[Android](/ja/developer-guide/android-sdk/checklist/release-checklist) · [iOS](/ja/developer-guide/ios-sdk/checklist/release-checklist)
+  </Card>
+
+  <Card title="SDKのパフォーマンスとサイズ" icon="gauge">
+    [Androidのサイズ](/ja/developer-guide/android-sdk/performance/sdk-size-impact) · [Androidのパフォーマンス](/ja/developer-guide/android-sdk/performance/sdk-performance) · [iOSフレームワークのサイズ](/ja/developer-guide/ios-sdk/framework-size-impact/framework-size-impact)
+  </Card>
+
+  <Card title="セキュリティとコンプライアンス" icon="shield-halved">
+    [Androidのコンプライアンス](/ja/developer-guide/android-sdk/compliance/compliance) · [iOSのコンプライアンス](/ja/developer-guide/ios-sdk/compliance/compliance) · [Google Playのデータ開示](/ja/developer-guide/android-sdk/compliance/prepare-for-google-plays-data-disclosure-requirements) · [GDPR/CCPA API](/ja/api/gdpr-ccpa/gdpr-ccpa-overview)
+  </Card>
+</CardGroup>
+
+<Info>
+  サポートが必要な場合は、カスタマーサクセスマネージャーにお問い合わせください。
+</Info>

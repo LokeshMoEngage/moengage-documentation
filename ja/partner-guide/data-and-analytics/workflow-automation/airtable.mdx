@@ -1,0 +1,104 @@
+---
+title: "Airtable"
+---
+
+# はじめに
+
+[Airtable](https://airtable.com/) は、リレーショナルデータベースを作成・共有できる使いやすいオンラインプラットフォームです。
+
+# MoEngage × Airtable
+
+MoEngage と Airtable の連携により、MoEngage のユーザーデータとイベントデータを Airtable に転送し、すべてのデータを 1 か所に保存して、さらなる処理や分析に活用できます。この連携では、次のことができます。
+
+1. MoEngage Connector Campaigns を使用して Airtable にデータを転送する
+
+# 連携の前提条件
+
+- Airtable アカウントにアクセスできることを確認してください。
+- MoEngage Dashboard で Data API キーにアクセスできることを確認してください。Data API ID と Data API Key は、**Settings** -\> **Account** -\> **APIs** で確認できます。Data API ID は **Workspace ID** と同じです。Data API Key は、同じ画面の **API Keys** -\> **Data** セクションで確認できます。
+
+## MoEngage から Airtable にデータを送信する
+
+### ステップ 1: Airtable API アクセストークンを取得する
+
+![Step-1-API-Token-Details.png](/images/partner_15197254837012.png)
+
+1. Airtable Dashboard で、右上のプロフィールアイコン \>\> Developer hub をクリックします。または、[/create/token](https://airtable.com/create/tokens) にアクセスします。
+2. 既存のトークンがない場合は、「Create token」をクリックします。
+3. トークンに名前を付け、次のスコープを付与します。
+   1. `data.records:write` - API を使用してレコードを作成、編集、削除する
+4. 要件に応じて、トークンの「Access」を定義します。
+5. 「Create token」をクリックしてトークンを生成します。Airtable ではこのトークンが再表示されないため、安全な場所に控えておいてください。MoEngage から行うすべての API 呼び出しで、このトークンを渡す必要があります。
+
+Airtable API でサポートされているさまざまな認証方法の詳細は、[こちら](https://airtable.com/developers/web/api/authentication)をご覧ください。
+
+### ステップ 2: MoEngage Dashboard で Connector Campaign を設定する
+
+1. MoEngage Dashboard に移動します。
+2. 次のいずれかの方法を使用します。
+   1. **All Campaigns** ページで、**Create Campaign** をクリックします。\
+      Create Campaign ページが表示されます。\
+      <img src="/images/partner_22022827372052.png" alt="CreateCampaign_RightNav.png" />
+   2. **Create New** \> **Campaign** をクリックします。\
+      Create Campaign ページが表示されます。\
+      <img src="/images/partner_22022813215892.png" alt="CreateCampaignLeftNav.png" />
+3. Connectors の下にある **Custom** をクリックします。
+4. キャンペーンの配信タイプとして「Event-Triggered」を選択します。
+   - 配信タイプの詳細については、[Delivery Types](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/introduction/delivery-types-moengage-channels) を参照してください。
+5. 次の画面でキャンペーンに名前を付け、Criteria として「Device Uninstall」を選択します。
+6. トリガーには「immediately」を選択します。
+
+![UseCase2-Step3.png](/images/partner_22022813224852.png)
+
+7. このユースケースでは、オーディエンスとして「All users」を選択します。問題がなければ「Next」をクリックします。
+8. コンテンツ画面で、ペイロードと Webhook URL を定義します。
+9. メソッドとして「POST」を選択します（Airtable の [Create Records API](https://airtable.com/developers/web/api/create-records) の詳細をご覧ください）。
+10. Webhook URL には `https://api.airtable.com/v0/{baseId}/{tableIdOrName}` を入力します。
+
+対応する Web ブラウザでベースを開くと、アドレスバーに次のような URL が表示されます（Google Chrome の場合）。
+
+![addressBarAirtableURL](https://cdn.airtable.document360.io/d0ee2ee4-3f78-47c7-b388-85e40be9fb89/Images/Documentation/addressBarAirtableURL.jpg)
+
+各スラッシュの間には、Base、Table、View の ID を識別する文字列があります。
+
+- Base ID は「`app`」で始まります
+- Table ID は「`tbl`」で始まります
+- View ID は「`viw`」で始まります <img src="/images/partner_15197578625300.png" alt="airtable-url-breakdown.png" />
+
+11. 次のヘッダーを定義します。
+12. `Authorization`: `Bearer <TOKEN_YOU_COPIED_EARLIER>`
+13. `Content-Type`: `application/json`
+14. 「Body Type」として raw を選択し、次の内容を貼り付けます。
+
+```json
+{
+  "records": [
+    {
+      "fields": {
+        "Name": "{{UserAttribute['First Name']}} {{UserAttribute['Last Name']}}",
+        "Email": "{{UserAttribute['Email (Standard)']}}"
+      }
+    }
+  ]
+}
+```
+
+実際のペイロードは、テーブルの列に合わせて調整する必要があります。詳細は[こちら](https://airtable.com/developers/web/api/create-records#request-fields)をご覧ください（@ を入力してパーソナライズされた値を挿入することもできます）。
+
+13. 次に、この Webhook をテストする必要があります。下にスクロールしてテストユーザーのデータを入力し、「test」をクリックします。
+
+14. テストが成功したことを示す新しいモーダルが表示されます。
+
+![UseCase2-Step5.png](/images/partner_22022827408404.png)
+
+15. Airtable の Base ビューに戻ります。
+
+### ステップ 3: テーブルが更新されたか確認する
+
+![Step-3-Verify.png](/images/partner_15198060073748.png)
+
+テーブルに新しい行が表示されます。これにより、データが正常に Airtable に送信されたことを確認できます。
+
+### ステップ 4: キャンペーンを公開する
+
+設定の準備ができたら、キャンペーンを公開します。トリガー条件が満たされると、MoEngage が API を呼び出します。

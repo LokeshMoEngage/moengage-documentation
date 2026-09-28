@@ -1,0 +1,101 @@
+---
+title: "Android"
+description: "Unity プロジェクトの Android Application クラスで MoEngage SDK を手動で初期化します。"
+---
+
+## カスタムマニフェストファイルを有効にする
+
+Build Settings に移動し、プラットフォームを Android に切り替えます。次に、**Player Settings --\> Player --\> Android --\> Publishing Settings** に移動します。\
+Build の見出しの下にある **Custom Main Manifest** にチェックを入れます。
+
+<Frame>
+  ![Unity Custom Main Manifest](/images/Unity-Custom-Main-Manifest.png)
+</Frame>
+
+## 依存関係を追加する
+
+MoEngage プラグインは、以下の Jetpack ライブラリに依存しています。アプリケーションにまだ含まれていない場合は、追加してください。\
+アプリケーションの **Player Settings** でカスタム Gradle テンプレートを有効にし、以下の依存関係を追加できます。
+
+<CodeGroup>
+
+```Groovy Groovy
+implementation("androidx.core:core:1.9.0") implementation("androidx.appcompat:appcompat:1.4.2") implementation("androidx.lifecycle:lifecycle-process:2.5.1")
+```
+
+</CodeGroup>
+
+## Application クラスを追加する
+
+- Java/Kotlin クラスを作成し、**Assets --\> Plugins --\> Android** フォルダーに追加します。このクラスで **android.app.Application** を継承し、onCreate() をオーバーライドします。
+- 上記で作成したクラスを、マニフェストファイルの application タグ内で宣言します。
+
+<CodeGroup>
+
+```AndroidManifest.xml AndroidManifest.xml
+<application android:name="[FULLY_QUALIFIED_NAME_OF_APPLICATION_CLASS]">
+```
+
+</CodeGroup>
+
+マニフェストファイルは **Assets--\> Plugins --\> Android** フォルダーにあります。
+
+## SDK の初期化
+
+MoEngage ダッシュボードの **Dashboard → Settings → Workspace → General** から Workspace ID を取得し、**Application クラスの onCreate()** メソッドで MoEngage SDK を初期化します。
+
+<Info>
+  ワーカースレッドを作成してそのスレッドで SDK を初期化するのではなく、**onCreate()** 内のメインスレッドで SDK を初期化することをお勧めします。
+</Info>
+
+<CodeGroup>
+
+```kotlin Kotlin
+import com.moengage.unity.wrapper.MoEInitializer
+import com.moengage.core.MoEngage
+import com.moengage.core.DataCenter
+
+// "YOUR_WORKSPACE_ID" is the Workspace ID from the dashboard.
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+
+MoEInitializer.initialiseDefaultInstance(applicationContext, moEngage)
+```
+
+```java Java
+import com.moengage.unity.wrapper.MoEInitializer;
+import com.moengage.core.MoEngage;
+import com.moengage.core.DataCenter;
+
+// "YOUR_WORKSPACE_ID" is the Workspace ID from the dashboard.
+MoEngage.Builder moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X);
+
+MoEInitializer.INSTANCE.initialiseDefaultInstance(applicationContext, moEngage);
+```
+
+</CodeGroup>
+
+以下は、ダッシュボードのホストに基づいて設定する必要があるデータセンターの詳細です。
+
+| データセンター              | ダッシュボードのホスト            |
+| ------------------------ | ------------------------- |
+| DataCenter.DATA_CENTER_1 | dashboard-01.moengage.com |
+| DataCenter.DATA_CENTER_2 | dashboard-02.moengage.com |
+| DataCenter.DATA_CENTER_3 | dashboard-03.moengage.com |
+| DataCenter.DATA_CENTER_4 | dashboard-04.moengage.com |
+| DataCenter.DATA_CENTER_5 | dashboard-05.moengage.com |
+
+使用可能な設定の詳細な一覧については、[API リファレンス](https://moengage.github.io/android-api-reference/core/com.moengage.core/[android-jvm]-mo-engage/-builder/index.html) を参照してください。
+
+<Info>
+  すべての設定は、初期化の前にビルダーに追加されます。複数の場所で initialize を呼び出している場合は、動作の一貫性を保つために、初期化のたびに必要なすべてのフラグと設定が指定されていることを確認してください。
+</Info>
+
+<Info>
+  このプログラムによる方法の代わりに、設定ファイルを使用して SDK を初期化することもできます。詳細については、[ファイルベースの初期化](/ja/developer-guide/unity-sdk/sdk-integration/sdk-initialization/file-based-initialization/android) を参照してください。
+</Info>
+
+## MoEngage ストレージファイルを自動バックアップから除外する
+
+これは必須の統合手順であり、データの破損を防ぐために非常に重要です。Android の自動バックアップサービスは、Shared Preference ファイルやデータベースファイルなどを定期的にバックアップします。詳細は [こちら](https://developer.android.com/guide/topics/data/autobackup) を参照してください。このバックアップにより、MoEngage SDK の識別子がバックアップされ、再インストール後に復元されます。この識別子の復元により、データが破損し、プッシュ通知でユーザーにリーチできなくなります。
+
+バックアップの復元後にデータが破損しないようにするには、MoEngage SDK のストレージファイルをバックアップ対象から除外してください。除外するファイルの詳細については、ドキュメントの [MoEngage ストレージファイルを自動バックアップから除外する](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup) セクションを参照してください。

@@ -1,0 +1,326 @@
+---
+title: "InApp NATIV"
+description: "Cordova アプリで MoEngage の In-App NATIV キャンペーンを設定し、ユーザーにコンテキストに応じたメッセージを表示します。"
+---
+
+In-App メッセージは、ユーザーのセグメントに送信できるカスタムビューで、カスタムメッセージの表示、新しいオファーの提供、特定のページへの誘導などに使用できます。In-App メッセージは MoEngage アカウントから作成できます。
+
+<img
+  src="/images/InAppNATIV1-1.png"
+  alt="In App NATIV1 1"
+  style={{ width:"28%" }}
+/>
+
+## Android の依存関係のインストール
+
+## BOM を使用したインストール
+
+BOM を使用した統合が推奨される統合方法です。[BOM を使用したインストール](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)のドキュメントを参照してください。BOM を設定したら、以下のように _app/build.gradle_ ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```json build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:inapp")
+}
+```
+
+</CodeGroup>
+
+BOM を設定したら、アプリケーションに必要な特定の MoEngage モジュールを含めます。\
+注：これらの依存関係にバージョン番号は必要ありません。BOM が自動的に管理します。
+
+## 手動インストール
+
+![](https://img.shields.io/maven-central/v/com.moengage/inapp)
+
+\*\*android/\*\***_app/build-extras.gradle_** ファイルに次の依存関係を追加します。
+
+<CodeGroup>
+
+```json build-extras.gradle
+dependencies {
+...
+implementation("com.moengage:inapp:\$sdkVersion")
+}
+```
+
+</CodeGroup>
+
+**\$sdkVersion** を適切な SDK バージョンに置き換えてください。
+
+### **InApp で画像と GIF を表示するための要件**
+
+InApp バージョン **7.0.0** 以降、SDK は In-App で画像と GIF を表示するために [Glide](https://bumptech.github.io/glide/) を必要とします。**build.gradle** ファイルに以下の依存関係を追加する必要があります。
+
+<CodeGroup>
+
+```groovy Groovy
+dependencies {
+ ...
+ implementation("com.github.bumptech.glide:glide:4.16.0")
+}
+```
+
+</CodeGroup>
+
+# In-App メッセージを表示する方法
+
+<Note>
+  MoEngage は、メタ API 呼び出しによって対象となる In-App キャンペーンのリストを更新します。アクティブなセッション中は、アプリがバックグラウンドからフォアグラウンドに戻ったとき（最大で 15 分に 1 回）にリストが更新され、新しいセッションが開始されたとき、またはアプリが強制終了されて再起動されたときには即座に更新されます。
+</Note>
+
+InApp を表示するには、以下のように **showInApp()** メソッドを使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.showInApp();
+```
+
+</CodeGroup>
+
+# Nudge
+
+Nudge は、画面上のさまざまな位置に表示できる、邪魔にならない In-App メッセージです。表示するには **showNudge()** メソッドを使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+
+// To show a nudge with the Top position
+moe.showNudge(MoENudgePosition.top);
+
+// To show a nudge with the Bottom position
+moe.showNudge(MoENudgePosition.bottom);
+
+// To show a nudge with the BottomLeft position
+moe.showNudge(MoENudgePosition.bottomLeft);
+
+// To show a nudge with the BottomRight position
+moe.showNudge(MoENudgePosition.bottomRight);
+
+// To show a nudge with the Any position
+moe.showNudge(MoENudgePosition.any);
+```
+
+</CodeGroup>
+
+# InApp/Nudge のリダイレクトのデフォルト動作
+
+InApp または Nudge をクリックした場合、MoEngage SDK が処理するのは **リッチランディングのナビゲーション** によるリダイレクトのみです。
+
+画面名およびディープリンクによるリダイレクトについては、アプリのコードでユーザーを適切な画面またはディープリンクにリダイレクトする必要があります。画面名およびディープリンクによるリダイレクトを処理するには、InApp クリックのコールバックメソッドを実装する必要があります。MoEngage SDK は InApp のペイロードをこのコールバックコードに渡すだけです。実装手順は、統合の InApp コールバックのセクションに記載されています。
+
+# コンテキストベースの InApp
+
+コンテキストベースの InApp を導入しました。InApp キャンペーンの作成時に、キャンペーンにコンテキスト（タグ）を設定できます。SDK はアプリで設定されている現在のコンテキストを確認し、現在設定されているコンテキストがキャンペーンのコンテキストと一致する場合にのみ InApp を表示します。
+
+## 現在のコンテキストの設定：
+
+InApp モジュールの現在のコンテキストを設定するには、以下のように **setCurrentContext()** メソッドを使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+moe.setCurrentContext(\["Home","CategoriesScreen"\]);
+```
+
+</CodeGroup>
+
+## コンテキストのリセット：
+
+InApp モジュールの現在のコンテキストをリセットするには、**resetCurrentContext()** メソッドを呼び出します。
+
+<CodeGroup>
+
+```javascript JavaScript
+moe.resetCurrentContext();
+```
+
+</CodeGroup>
+
+# セルフハンドル In-App メッセージ
+
+SDK はセルフハンドル In-App を表示しません。キャンペーンの作成時に、ダッシュボードで JSON ペイロードを指定する必要があります。**getSelfHandledInApp()** メソッドを呼び出すと、SDK は同じペイロードをアプリに提供し、すべての配信コントロールがチェックされた後にコールバックで情報を受け取ります。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.getSelfHandledInApp();
+
+//Callback for receiving self-handled inapp
+moe.on('onInAppSelfHandle', function(selfHandledPayload) {
+console.log('Self hanlded InApp Info: ' + JSON.stringify(selfHandledPayload));
+});
+```
+
+</CodeGroup>
+
+セルフハンドル InApp を使用した後、インプレッション、クリック、閉じる操作の統計を更新するには、セルフハンドル In-App コールバックで受け取ったペイロードを使用して次のメソッドを呼び出します。
+
+<CodeGroup>
+
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+
+// Track impression
+moe.selfHandledShown(selfHandledPayload)
+// Track Click
+moe.selfHandledClicked(selfHandledPayload)
+// Track Dismiss
+moe.selfHandledDismissed(selfHandledPayload)
+```
+
+</CodeGroup>
+
+# In-App メッセージのルール
+
+In-App の表示時には、次のルールを使用します。
+
+In-App が機能するための前提条件：
+
+- 現在のセッションで InApp のバックエンド同期が成功したかどうか。
+- デバイスが iPad/タブレットでないかどうかを確認します。
+- 現在の画面で InApp が無効になっているかどうかを確認します。
+- デバイスの向きが縦向き（Portrait）であることを確認します（横向きはサポートされていません）。
+
+アクティブなキャンペーンのリスト（優先度と最終更新時刻でソート）内の各キャンペーンについて、次の項目がチェックされます。
+
+- グローバル遅延が経過したかどうかを確認します。キャンペーンに **Ignore Global Delay** が設定されている場合はスキップします。
+- キャンペーンの有効期限が切れていないかどうかを確認します
+- 表示ルール
+- Show Only on Screen を確認します
+- 現在のコンテキストと照合します
+- 配信コントロール
+- 永続性チェック（InApp のプライマリアクションが完了していても InApp を表示したい場合）
+- キャンペーンが最大表示回数に達していないかどうかを確認します
+- キャンペーンレベルの遅延が経過したかどうかを確認します。
+
+すべてのルールを満たす最初のキャンペーンがユーザーに表示されます。
+
+# In-App イベントに対する JavaScript でのコールバック
+
+In-App イベントに対するコールバックを JavaScript で受け取るには、以下のようにクリックリスナーを登録する必要があります。
+
+必要な最小プラグインバージョン：6.0.0
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.on('onInAppShown', function(inAppInfo) {
+console.log('InApp Shown with Info: ' + JSON.stringify(inAppInfo));
+});
+
+moe.on('onInAppClick', function(inAppInfo) {
+console.log('InApp Shown Clicked with Info: ' + JSON.stringify(inAppInfo));
+});
+
+moe.on('onInAppDismiss', function(inAppInfo) {
+console.log('InApp Dismissed with Info: ' + JSON.stringify(inAppInfo));
+});
+
+moe.on('onInAppCustomAction', function(inAppInfo) {
+console.log('InApp Custom Action with Info: ' + JSON.stringify(inAppInfo));
+});
+```
+
+</CodeGroup>
+
+## コールバックのペイロード構造
+
+上記のコールバックで受け取る InAppInfo の構造は次のとおりです。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+{
+"accountMeta": {
+"appId": ""
+},
+"data": {
+"platform": "iOS/android",
+"campaignName": "",
+"campaignId": "",
+"campaignContext": {},
+"actionType": "navigation",
+"navigation": { // Key will only be present for onInAppClick callback
+"navigationType": "screen/deep_linking",
+"value": "",
+"kvPair": {
+"k1": "v1"
+}
+},
+"customAction": {// Key will only be present for onInAppCustomAction callback
+"kvPair": {
+"k2": "v2"
+}
+},
+"data": { // Key will only be present for onInAppSelfHandle callback
+"payload": "", // payload entered in dashboard while creating selfHandled campaign
+"dismissInterval": 60 // auto dismiss interval
+}
+}
+}
+```
+
+</CodeGroup>
+
+# 画面の向きの変更への対応
+
+<Info>
+  これは Android プラットフォームのみが対象です。
+</Info>
+
+SDK バージョン **7.3.0** 以降、In-App は縦向きと横向きの両方のモードでサポートされています。SDK が In-App の表示を処理するためには、デバイスの向きが変わったときに SDK に通知する必要があります。
+
+これには 2 つの方法があります。
+
+1. アプリの Android ネイティブ部分に API 呼び出しを追加する
+2. MoEngage プラグインの **onOrientationChanged()** を呼び出す
+
+## アプリの Android ネイティブ部分に API 呼び出しを追加する
+
+アプリの Activity クラスで **onConfiguartionChanged()** API コールバックを受け取ったときに SDK に通知します。
+
+<CodeGroup>
+
+```java Java wrap
+import android.os.Bundle;
+import org.apache.cordova.\*;
+import com.moengage.cordova.MoECordovaHelper;
+
+public class MainActivity extends CordovaActivity {
+...
+@Override
+public void onConfigurationChanged(Configuration newConfig) {
+super.onConfigurationChanged(newConfig);
+MoECordovaHelper.getInstance().onConfigurationChanged();
+...
+}
+...
+}
+```
+
+</CodeGroup>
+
+## MoEngage プラグインの向き変更 API を呼び出す
+
+以下の API を呼び出して、向きの変更を SDK に通知します。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+...
+
+// Notify SDK on orientation change
+moe.onOrientationChanged();
+```
+
+</CodeGroup>

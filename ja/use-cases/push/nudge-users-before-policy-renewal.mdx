@@ -1,0 +1,84 @@
+---
+title: "保険契約の更新前にユーザーに働きかける"
+---
+
+# はじめに
+
+保険を基盤とする企業にとって、契約更新はビジネスを推進するための重要な指標です。ユーザーは保険の満了日が近づくほど、契約更新の意向が高まります。契約更新前にユーザーに働きかけることで、タイムリーな更新を確実にし、収益と顧客維持率の向上につなげられる可能性があります。
+
+#### 契約更新前にユーザーに働きかけるメリット
+
+- **更新率の向上**: リマインダーと積極的なエンゲージメントにより、ユーザーは迫っている期限と保障を継続するメリットを思い出すため、更新率を大幅に向上させることができます。
+- **収益の安定**: 更新を促すことで、企業は安定した収入源を確保し、潜在的な離脱を回避できます。
+- **顧客維持**: 既存顧客を維持することは、多くの場合、新規顧客を獲得するよりも費用対効果が高く、更新を促すことで顧客関係が強化されます。
+- **価値の訴求**: 働きかけを通じて、契約のメリットを紹介し、懸念事項に対処し、場合によってはアップグレードや特別オファーを提供することで、更新プロセスをより魅力的なものにできます。
+- **顧客体験の向上**: タイムリーなリマインダーとパーソナライズされたコミュニケーションを提供することで、企業は顧客体験を向上させ、顧客満足への取り組みを示すことができます。
+- **アップセルやクロスセルの機会**: 働きかけを通じて関連する商品やサービスを提案することで、最初の契約更新以上の収益増加につなげられる可能性があります。
+
+このユースケースは、健康保険の契約更新についてユーザーにリマインドする [Push キャンペーンを作成する](/ja/use-cases/push/nudge-users-before-policy-renewal#create-a-push-campaign)ことで実現します。
+
+# 期待される結果
+
+ユーザーは、契約の更新を促すプッシュ通知をスマートフォンで受け取ります。
+
+<img
+  src="/images/moengage_550d1c.png"
+  alt="15.png"
+  style={{ width:"54%" }}
+/>
+
+<Tip>
+  - プラットフォームが MoEngage Android または iOS SDK と統合されている必要があります。詳細については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - システムが Push templates SDK 4.0.0 バージョンと統合されている必要があります。詳細については、[Android SDK](/ja/developer-guide/android-sdk) を参照してください。
+  - 契約が満了する前にユーザーを特定してキャンペーンを送信するためのイベントが MoEngage で使用可能である必要があります。この例では、イベント _policy\_issued_ を使用します。ユーザーへの働きかけを開始できるように、このイベントには正しい日時形式の _expiry date_ または _renewal date_ がイベント属性として含まれている必要があります。
+  - [Push チャネル](/ja/user-guide/campaigns-and-channels/mobile-push/getting-started-with-mobile-push)が設定されている必要があります。
+</Tip>
+
+# Push キャンペーンの作成
+
+このセクションでは、健康保険の契約更新についてユーザーにリマインドする Push キャンペーンを作成します。
+
+## ステップ 1: ユーザーのターゲティング
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. All campaigns ページで **\+ Create campaign** をクリックします。
+3. **Outbound** の下で **Push** \>**Event Triggered** をクリックします。<img src="/images/moengage_5e48e5.png" alt="pushlessgoooo.png" /> \
+   キャンペーンを定義する最初のステップ **Target users** に移動します。
+4. キャンペーンの名前とタグを定義します。次の詳細を入力します。
+   1. **Team**: 組織のアカウントで Teams が有効になっている場合は、チームを選択します。詳細については、[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。
+   2. **Campaign name**: キャンペーンの名前を入力します。たとえば、_Policy Renewal_ です。
+   3. **Campaign tags**: 必要なキャンペーンタグを選択します。<img src="/images/moengage_9438fc.png" alt="Nudgeusecase2.png" />
+5. **Trigger Criteria** セクションで、トリガー条件を定義します。\
+   本日満了する契約については、契約の更新についてすぐにユーザーにリマインドする必要があります。契約の更新日または満了日は、正しい日時形式である必要があります。
+6. 上記のロジックを定義するには、次の手順を実行します。
+   1. **IF user** セクションで _policy\_issued_ を選択します。
+   2. **\+ Attribute** をクリックし、希望する日付として契約の満了日を選択します。
+   3. **THEN trigger the message** セクションで **Immediately** オプションを選択して、すぐにユーザーにリマインダーを送信します。そのため、この例ではターゲットオーディエンスを次のように設定できます。<img src="/images/moengage_143689.png" alt="Nudgeusecase3.png" /> 上記のフィルターが正しく機能するためには、選択した属性がサポートされている形式である必要があります。詳細については、[Create an Event-Triggered Campaign](/ja/user-guide/campaigns-and-channels/getting-started/triggers/event/create-an-event-triggered-campaign) を参照してください。
+7. **Target audience** セクションで **All users** を選択します。
+8. **Target Platforms** セクションで **Android** を選択します。<img src="/images/moengage_e9c3a0.png" alt="Nudgeusecase4.png" />
+9. **Next** をクリックして 2 番目のステップ **Content** に移動し、Push キャンペーンのコンテンツを定義します。
+
+## ステップ 2: コンテンツ
+
+1. 使用するテンプレートを選択します。この例では、**Timer** を選択します。<img src="/images/moengage_0dbedf.png" alt="6.png" />
+2. キャンペーンに必要なコンテンツを入力します。コンテンツは手動で入力することも、Merlin AI を使用して生成することもできます。詳細については、[Generate Push Messages with Merlin AI](/ja/user-guide/ai-and-intelligence/merlin-ai/merlin-ai-copywriter/generate-push-messages-with-merlin-ai) を参照してください。
+3. ユーザーの名前や契約名などの情報を使用して、メッセージにパーソナライゼーションを追加します。このようなパーソナライゼーションにより、特に複数のカードを持つユーザーにとって、メッセージがより状況に即したものになります。これを行うには、「@」と入力します。Push Personalization ポップアップが表示され、請求額、クレジットカード名などのイベント属性や、名前などのユーザープロパティを見つけることができます。<img src="/images/moengage_43a608.png" alt="7.png" /> 要件に基づいて属性を選択できます。
+4. ディープリンクオプションを使用して、ユーザーをアプリ内の請求書支払いページに誘導します。
+   1. **Default click action** リストで _Navigate to a screen_ を選択します。
+   2. **Take user to a specific screen** リストで、該当する画面を選択します。
+5. **Timer** セクションで、タイマーの詳細を追加します。**Timer ends at** フィールドを使用してタイマーの期間を選択できます。<img src="/images/moengage_633a60.png" alt="Screenshot 2024-06-03 at 7.30.23 AM.png" /> この場合、通知は 2 時間後にユーザーのデバイスから消去されます。
+6. **Advanced** セクションで、次の操作を行います。
+   1. **Make notification sticky** トグルをオンにして、通知を固定表示にします。
+   2. **Dismiss button text** フィールドに、必要な詳細を追加します。<img src="/images/moengage_cd45a0.png" alt="Screenshot 2024-06-03 at 7.31.43 AM.png" />
+7. **Template backup** セクションで、バックアップコンテンツの詳細を入力します。
+8. **Next** をクリックして 3 番目のステップ **Schedule and goals** に移動し、キャンペーンのスケジュールと目標を定義します。
+
+## ステップ 3: スケジュールと目標
+
+1. 要件に基づいて、このキャンペーンの開始日時と終了日時、およびコンバージョン目標を定義します。<img src="/images/moengage_65cc81.png" alt="Screenshot 2024-06-03 at 7.42.12 AM.png" />
+2. 要件に基づいて配信設定を変更します。詳細については、[Create Push Campaigns](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns) を参照してください。<img src="/images/moengage_364716.png" alt="11.png" />
+3. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、健康保険の契約更新についてユーザーにリマインダーを送信する Push キャンペーンを作成しました。これにより、期限のあるアクションを実行するようユーザーに働きかけることができます。

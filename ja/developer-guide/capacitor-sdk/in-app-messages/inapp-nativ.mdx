@@ -1,0 +1,488 @@
+---
+title: "InApp NATIV"
+description: "Capacitor アプリで MoEngage のアプリ内 NATIV キャンペーンを設定し、ユーザーにコンテキストに応じたメッセージを表示します。"
+---
+
+InApp NATIV キャンペーンは、ユーザーがアプリを使用している間にメッセージを表示することでユーザーをターゲットにします。コンテキストに応じた情報を提供するのに非常に効果的で、アプリの目的の画面や、ユーザーがアプリ内で実行した目的のアクションに応じて、クロスセルやアップセルに役立ちます。
+
+<img
+  src="/images/InAppNATIV1.png"
+  alt="In App NATIV1"
+  style={{ width:"46%" }}
+/>
+
+## Android 依存関係のインストール
+
+## BOM を使用したインストール
+
+BOM を使用した統合が推奨される統合方法です。[BOM を使用したインストールのドキュメント](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)を参照してください。BOM を設定したら、以下に示すように _app/build.gradle_ ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```json build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:inapp")
+}
+```
+
+</CodeGroup>
+
+BOM を設定したら、アプリケーションに必要な特定の MoEngage モジュールを含めます。 \
+注: これらの依存関係にバージョン番号は必要ありません。BOM が自動的に管理します。
+
+### **InApp で画像と GIF を表示するための要件**
+
+InApp バージョン **7.0.0** 以降、SDK で In-App に画像や GIF を表示するには [Glide](https://bumptech.github.io/glide/) が必要です。**build.gradle** ファイルに以下の依存関係を追加する必要があります。
+
+<CodeGroup>
+
+```Code Groovy
+dependencies {
+ ...
+ implementation("com.github.bumptech.glide:glide:4.16.0")
+}
+```
+
+</CodeGroup>
+
+# InApp の表示
+
+<Note>
+  MoEngage は、meta API 呼び出しを介して対象となる In-App キャンペーンのリストを更新します。アクティブなセッション中は、アプリがバックグラウンドからフォアグラウンドに戻ったとき（最大で 15 分に 1 回）にリストが更新され、新しいセッションが開始されたときや、アプリが強制終了されて再起動されたときには即座に更新されます。
+</Note>
+
+以下に示すように、アプリ内で InApp を表示する必要がある場所で **showInApp()** を呼び出します。 
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core';
+MoECapacitorCore.showInApp({ appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+# ナッジの表示
+
+**_capacitor-moengage-core_** バージョン **6**\*\*.0.0\*\* 以降、MoEngage InApp SDK は非侵入型のナッジの表示をサポートしています。  
+
+ナッジ InApp キャンペーンを表示するには、`showNudge()` を呼び出します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core';
+// Display Nudge on the any available position
+MoECapacitorCore.showNudge({position: MoENudgePosition.Any, appId: "YOUR_WORKSPACE_ID" });
+// Display Nudge on the specific position
+MoECapacitorCore.showNudge({position: MoENudgePosition.Top, appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+# InApp/ナッジのリダイレクトのデフォルト動作
+
+InApp またはナッジをクリックすると、MoEngage SDK は**リッチランディングナビゲーション**のリダイレクト**のみ**を処理します。 
+
+画面名とディープリンクのリダイレクトについては、アプリのコードでユーザーを適切な画面またはディープリンクにリダイレクトする必要があります。画面名とディープリンクのリダイレクトを処理するには、InApp クリックコールバックメソッドを実装する必要があります。MoEngage SDK は、InApp ペイロードをこのコールバックコードに渡すだけです。実装手順は、統合の InApp コールバックのセクションに記載されています。
+
+# Self-Handled InApp
+
+## 単一の Self-Handled InApp
+
+Self-Handled InApp は、SDK によって配信されますが、表示はアプリで処理する必要があるメッセージです。\
+Self-Handled In-App を取得するには、以下のメソッドを呼び出します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core';
+MoECapacitorCore.getSelfHandledInApp({ appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+Self-Handled In-App のペイロードはコールバックを介して返されます。以下に示すようにコールバックを登録します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore, MoEInAppSelfHandledCampaignData } from 'capacitor-moengage-core';
+MoECapacitorCore.addListener("inAppCampaignSelfHandled", (data: MoEInAppSelfHandledCampaignData) => {
+ console.log(" Received callback 'inAppCampaignSelfHandled',  data: " + JSON.stringify(data))
+});
+```
+
+</CodeGroup>
+
+## 複数の Self-Handled InApp
+
+複数の Self-Handled In-App を取得するには、`getSelfHandledInApps()` メソッドを呼び出します。これは、`MoEInAppSelfHandledCampaignsData` オブジェクトを含む Promise を返します。
+
+```javascript TypeScript wrap
+import { MoECapacitorCore } from 'capacitor-moengage-core';
+MoECapacitorCore.getSelfHandledInApps({ appId: "YOUR_WORKSPACE_ID" }).then((data) => {
+    console.log("Self Handled InApps Data:", JSON.stringify(data));
+});
+```
+
+# 統計のトラッキング
+
+Self-Handled InApp の表示、クリック、閉じる操作はアプリケーションによって制御されるため、In-App が表示、クリック、または閉じられるたびに SDK に通知する必要があります。以下は、SDK に通知するために呼び出す必要のあるメソッドです。Self-Handled In-App のコールバックでアプリケーションに提供されたキャンペーンオブジェクトを、以下の API のパラメータとして渡す必要があります。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore, MoEInAppSelfHandledCampaignData } from 'capacitor-moengage-core';
+//Track self handled shown
+MoECapacitorCore.selfHandledShown(selfHandledCampaignData)
+//Track self handled widget clicked
+MoECapacitorCore.selfHandledClicked(selfHandledCampaignData)
+//Track self handled dismissed
+MoECapacitorCore.selfHandledDismissed(selfHandledCampaignData)
+```
+
+</CodeGroup>
+
+# InApp コールバック
+
+<Warning>
+  コールバックは、show メソッドまたはトリガーイベントによって InApp が表示される前に登録する必要があります。これらのコールバックを設定した後に、プラグインの `initialize()` メソッドを呼び出していることを確認してください。詳細については、[ドキュメント](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization)を参照してください。
+</Warning>
+
+InApp キャンペーンが表示、閉じられる、またはクリックされるたびにコールバックを提供しています。以下に示すように登録できます。侵入型 InApp と非侵入型ナッジ InApp の両方で、アクションを処理するためにこの呼び出しを使用してください。 
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore, MoEInAppLifecycleData, MoEInAppNavigationData, MoEInAppCustomActionData } from 'capacitor-moengage-core';
+
+MoECapacitorCore.addListener("inAppCampaignShown", (data: MoEInAppLifecycleData) => {
+    console.log(" Received callback 'inAppCampaignShown',  data: " + JSON.stringify(data))
+});
+
+MoECapacitorCore.addListener("inAppCampaignDismissed", (data: MoEInAppLifecycleData) => {
+    console.log(" Received callback 'inAppCampaignDismissed',  data: " + JSON.stringify(data))
+});
+
+MoECapacitorCore.addListener("inAppCampaignClicked", (data: MoEInAppNavigationData) => {
+    console.log(" Received callback 'inAppCampaignClicked',  data: " + JSON.stringify(data))
+});
+
+MoECapacitorCore.addListener("inAppCampaignCustomAction", (data: MoEInAppCustomActionData) => {
+    console.log(" Received callback 'inAppCampaignCustomAction',  data: " + JSON.stringify(data))
+});
+```
+
+</CodeGroup>
+
+| イベントタイプ                       | イベント名                |
+| -------------------------------- | ------------------------- |
+| InApp 表示                      | inAppCampaignShown        |
+| InApp クリック                    | inAppCampaignClicked      |
+| InApp 閉じる                  | inAppCampaignDismissed    |
+| カスタムアクション付き InApp クリック | inAppCampaignCustomAction |
+
+# コンテキスト InApp
+
+特定の画面/アクティビティで InApp キャンペーンを制限するだけでなく、アプリケーション内のユーザーのコンテキストに基づいて In-App を制限することもできます。アプリケーション内のユーザーのコンテキストを設定するには、以下に示すように **setInAppContext()** API を使用します。
+
+## コンテキストの設定
+
+**showInApp()** を呼び出す前に、以下のメソッドを呼び出してコンテキストを設定します。
+
+<CodeGroup>
+
+```javascript JavaScript
+import { MoECapacitorCore } from 'capacitor-moengage-core';
+ 
+// replace array elements with actual values.
+MoECapacitorCore.setInAppContext({ contexts: ["c1","c2"] , appId: YOUR_WORKSPACE_ID });
+```
+
+</CodeGroup>
+
+## コンテキストのリセット
+
+ユーザーがコンテキストから離れたら、**resetInAppContext()** API を使用して既存のコンテキストをリセット/クリアします。
+
+<CodeGroup>
+
+```javascript JavaScript
+import { MoECapacitorCore } from 'capacitor-moengage-core';
+MoECapacitorCore.resetInAppContext({ appId: YOUR_WORKSPACE_ID });
+```
+
+</CodeGroup>
+
+# ペイロード構造
+
+<CodeGroup>
+
+```typescript TypeScript
+ /**
+ * In-App lifecycle event camapaign data
+ */
+export interface MoEInAppLifecycleData {
+    /**
+     * Account information
+     */
+    accountMeta: MoEAccountMeta;
+    /**
+     * In-App Campaign data
+     */
+    campaignData: MoEInAppCampaignData;
+    /**
+     * Platform information
+     */
+    platform: MoEPlatform;
+}
+
+/**
+ * Campaign data.
+ */
+export interface MoEInAppCampaignData {
+    /**
+     * Unique Identifier for the campaign
+     */
+    campaignId: string;
+    /**
+     * Name given to the campaign while creation on the MoEngage Dashboard.
+     */
+    campaignName: string;
+    /**
+     * Additional Meta data related to the campaign.
+     */
+    campaignContext: MoEInAppCampaignContext;
+}
+
+/**
+ * In-App navigation event campaign data
+ */
+export interface MoEInAppNavigationData {
+    /**
+     * Account information
+     */
+    accountMeta: MoEAccountMeta;
+    /**
+     * In-App Campaign data
+     */
+    campaignData: MoEInAppCampaignData;
+    /**
+     * Navigation action data
+     */
+    navigation: MoEInAppNavigation;
+    /**
+     * Platform Data
+     */
+    platform: MoEPlatform;
+}
+
+/**
+ * In-App navigation action data
+ */
+export interface MoEInAppNavigation {
+    /**
+     * InApp Action type
+     */
+    actionType: MoEInAppActionType;
+    /**
+     * Type of Navigation.
+     */
+    navigationType: string;
+    /**
+     * Navigation URL
+     */
+    navigationUrl: string;
+    /**
+     * Key-Value Pair entered on the MoEngage Platform during campaign creation.
+     */
+    kvPair: Map<string, Object>;
+}
+
+/**
+ * In-App custom event campaign data
+ */
+export interface MoEInAppCustomActionData {
+    /**
+     * Account information
+     */
+    accountMeta: MoEAccountMeta;
+    /**
+     * In-App Campaign data
+     */
+    campaignData: MoEInAppCampaignData;
+    /**
+     * Custom Action data
+     */
+    customAction: MoEInAppCustomAction;
+    /**
+     * Platform information
+     */
+    platform: MoEPlatform;
+}
+
+/**
+ * InApp Action type
+ */
+export declare enum MoEInAppActionType {
+    NAVIGATION = "navigation",
+    CUSTOM = "custom"
+}
+
+/**
+ * In-App custom action data
+ */
+export interface MoEInAppCustomAction {
+    /**
+     * InApp Action type
+     */
+    actionType: MoEInAppActionType;
+    /**
+     * Key-Value Pair entered on the MoEngage Platform during campaign creation.
+     */
+    kvPair: Map<string, object>;
+}
+
+export interface MoEInAppSelfHandledCampaignsData {
+  /**
+   * Account information
+   */
+  accountMeta: MoEAccountMeta;
+  /**
+   * Array of self handled campaigns
+   */
+  campaigns: Array<MoEInAppSelfHandledCampaignData>;
+}
+
+/**
+* Data for self handled campaign.
+*/
+export interface MoEInAppSelfHandledCampaignData {
+    /**
+     * Account information
+     */
+     accountMeta: MoEAccountMeta;
+    /**
+     * In-App Campaign data
+     */
+    campaignData: MoEInAppCampaignData;
+    /**
+     * SelfHandled data
+     */
+    selfHandled: MoEInAppSelfHandledCampaign; 
+    /**
+     * Platform information
+     */
+    platform: MoEPlatform;
+}
+
+/**
+* Self Handled campaign object
+*/
+export interface MoEInAppSelfHandledCampaign {
+    /**
+     * Self handled campaign payload.
+     */
+     payload: string;
+    /**
+     * Interval after which in-app should be dismissed, unit - Seconds
+     */
+     dismissInterval: number;
+    /**
+     * Should the campaign be dismissed by pressing the back button or using the back gesture.
+     * if the value is true campaign should be dismissed on back press.
+     */
+     isCancellable: boolean; 
+    /**
+     * Display rules for the campaign
+     */
+     displayRules: MoEInAppDisplayRules;
+}
+
+/**
+ * Display rules for self handled campaign 
+ */
+export interface MoEInAppDisplayRules {
+  /**
+   * Screen name where campaign should be displayed   
+   */
+  screenName: string;
+  /**
+   * List of contexts   
+   */
+  contexts: Array<string>;
+  /**
+   * List of screen names   
+   */
+  screenNames: Array<string>;
+}
+
+/**
+ * Data returned when a logout operation is successfully completed. 
+ */
+export interface MoELogoutCompleteData {
+  /**
+    * Account information   
+    */
+    accountMeta: MoEAccountMeta;
+  /**
+   * Platform type   
+   */
+    platform: MoEPlatform;
+}
+```
+
+</CodeGroup>
+
+
+# 画面の向きの変更の処理
+
+<Info>
+  これは Android プラットフォームのみが対象です
+</Info>
+
+SDK が In-App の表示を処理するためには、デバイスの向きが変わったときに MoEngage SDK に通知する必要があります。
+
+これには 2 つの方法があります。
+
+1. アプリの Android ネイティブ部分に API 呼び出しを追加する
+2. MoEngage プラグインの **onOrientationChanged()** を呼び出す
+
+## アプリの Android ネイティブ部分に API 呼び出しを追加する
+
+アプリのアクティビティクラスで **onConfigurationChanged()** API コールバックを受信したときに SDK に通知します。
+
+<CodeGroup>
+
+```auto Java
+import android.content.res.Configuration;
+import android.os.Bundle;
+import com.getcapacitor.BridgeActivity;
+import com.moengage.capacitor.MoECapacitorCorePlugin;
+import com.moengage.capacitor.MoECapacitorHelper;
+
+public class MainActivity extends BridgeActivity {
+
+  @Override public void onConfigurationChanged(Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    MoECapacitorHelper.INSTANCE.onConfigurationChanged();
+  }
+}
+```
+
+</CodeGroup>
+
+## MoEngage プラグインの画面の向きの変更 API を呼び出す
+
+画面の向きの変更を SDK に通知するには、以下の API を呼び出します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core';
+MoECapacitorCore.onOrientationChanged();
+```
+
+</CodeGroup>

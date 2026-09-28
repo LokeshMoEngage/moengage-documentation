@@ -1,0 +1,226 @@
+---
+title: "Decision Policy をシミュレーションする"
+description: "特定のユーザープロファイルに対してオファリングがどのようにランク付けされ選択されるかをシミュレーションし、Decision Policy のロジックをリアルタイムで検証・テストします。"
+---
+
+Decision Policy のシミュレーション機能を使用すると、Decision Policy の作成前とアクティブ化後のどちらでも、ディシジョニングロジックをリアルタイムで検証・テストできます。
+
+この機能の主な目的は、オファーごとに異なるセグメンテーション条件とキャッピング上限に基づいて、ユーザーへのレスポンスとしてどのオファリングがどの順序で返されるかを正確に確認することです。特定のユーザープロファイル (識別済みユーザーと匿名ユーザーの両方) の評価をシミュレーションし、セッション固有のパラメーターを追加することで、どのオファリングが選択、適格、または除外されるかを確認できます。
+
+この機能は、設定ミスの防止に役立ち、ターゲットセグメントのルールが意図どおりに機能することを保証し、ランク付けの段階で適用される優先度スコアやカスタム数式の内訳を明確に示します。
+
+<Info>
+  **前提条件**
+
+  シミュレーションを実行する前に、以下の要件を満たしていることを確認してください。
+
+  - ワークスペースに Decision Policy が存在している必要があります。詳細については、[Decision Policy を作成する](/ja/user-guide/decisioning/offer-decisioning/decision-policy)を参照してください。
+  - ユーザーロールに Decision Policy の **View** 権限が必要です。編集者と閲覧専用ユーザーの両方がシミュレーション機能にアクセスして実行できます。
+</Info>
+
+## シミュレーション機能にアクセスする
+
+MoEngage UI では、次の 2 つの主要なフローから Decision Policy シミュレーターにアクセスできます。
+
+**ポリシーの作成中または編集中にアクセスする**
+
+ポリシーを作成中または編集中の場合:
+
+1. **Create Decision Policy** または **Edit Decision Policy** ページで、基本情報とオファリングを設定します。
+2. **Run Simulation** (右下隅の **Create** の左側にあります) をクリックします。
+   <img
+     src="/images/Access the simulation1.png"
+     alt="右下隅の Run Simulation ボタンが強調表示された Create Decision Policy ページ"
+     style={{ width: "100%", marginTop: "8px" }}
+   />
+
+**Decision Policies リストからアクセスする**
+
+作成済みのポリシーのシミュレーターにアクセスするには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、Decisioning メニュー項目 <img src="/images/simulation2.png" alt="Decisioning メニューアイコン" style={{ display: "inline-block", height: "20px", width: "20px", objectFit: "contain", verticalAlign: "middle" }} /> にポインターを合わせます。**Decisioning** メニューが表示されます。
+2. **Decision Policies** をクリックします。
+   <img
+     src="/images/simulation3.png"
+     alt="Decision Policies が強調表示された展開済みの Decisioning メニュー"
+     style={{ width: "60%", marginTop: "8px", border: "none", boxShadow: "none" }}
+   />
+   **Decision Policies** ページが表示されます。
+   <img
+     src="/images/simulation4.png"
+     alt="作成済みのすべてのポリシーが表示された Decision Policies リストページ"
+     style={{ width: "100%", marginTop: "8px" }}
+   />
+3. ポリシーリストから、次のいずれかの方法でシミュレーターを開きます。
+   - **リストから直接開く**: テストするポリシーを見つけ、ポリシー名の横にある **Actions** 列の省略記号アイコンをクリックします。**Edit** をクリックしてから、**Run Simulation** をクリックします。
+     <img
+       src="/images/simulation5.png"
+       alt="Run Simulation ボタンが強調表示された Edit Decision Policy ページ"
+       style={{ width: "100%", marginTop: "8px" }}
+     />
+   - **ポリシーの詳細ページから開く**: 表示するポリシーの名前をクリックして詳細ページを開き、**Run Simulation** (ページ右上隅の **Edit** の横にあります) をクリックします。
+     <img
+       src="/images/simulation6.png"
+       alt="右上隅の Run Simulation ボタンが強調表示されたポリシー詳細ページ"
+       style={{ width: "100%", marginTop: "8px" }}
+     />
+
+## シミュレーションを設定する
+
+Simulate decision policy ウィンドウが表示されると、上部のセクションに **Ranking Strategy**、**Offering Selection** モード、**Total Input**、**Expected Output** の上限など、アクティブなポリシーのパラメーターが表示されます。
+
+シミュレーションを設定するには、以下で選択したユーザー設定モードに記載されている手順を実行します。
+
+### 識別済みユーザー
+
+データベース内の既存のユーザープロファイルで Decision Policy を評価するには、**Identified User** オプションを選択します。
+
+**特定のユーザー**
+
+特定のユーザーを選択する場合は、**Choose specific user** オプションを選択します。以下の表に記載されている主要なシステム識別子のいずれかを使用して、ユーザープロファイルを検索できます。
+
+| 識別子 | 説明 / ユースケース |
+| --- | --- |
+| **ID** | ワークスペースのパーティションに設定された一意のカスタム顧客データベース ID。 |
+| **Email** | ユーザーの主要な登録メールアドレス。 |
+| **Phone** | ユーザーの携帯電話または固定電話の番号 (国番号を含む)。 |
+| **MoEngage ID** | システムによって生成される一意のユーザー識別子。 |
+
+特定のユーザーを検索して読み込むには:
+
+1. **Select user by** リストで、検索に使用する識別子 (**ID**、**Email**、**Phone**、または **MoEngage ID**) をクリックします。
+2. **User identifier value** ボックスに対応する ID 値を入力し、**Find User** をクリックします。
+   <Note>
+     **プロファイルが見つからない場合**: 一致するプロファイルが返されない場合は、正しいアクティブなワークスペースパーティション内で検索していることを確認してください。セキュリティとテストの正確性のため、シミュレーションはアクティブなワークスペースパーティション内にローカルで分離されています。
+   </Note>
+3. 一致するプロファイルが見つかると、"1 profile found. Selected user with \[Identifier Type\]: \[value\]" というメッセージが表示されます。識別子の値にポインターを合わせるとプロファイル属性を確認できます。また、**View user** をクリックすると、プロファイルの詳細全体が新しいタブで開きます。
+   <img
+     src="/images/simulation7.png"
+     alt="ツールチップに属性の詳細が表示された、一致したユーザープロファイルを示す Simulate Decision Policy ウィンドウ"
+     style={{ width: "100%", marginTop: "8px" }}
+   />
+
+**ランダムユーザー**
+
+特定の識別子を入力せずにポリシーの全般的な動作を評価したい場合は、**Choose random user** をクリックします。シミュレーターがワークスペースのデータベースからアクティブなユーザープロファイルをランダムに自動選択し、評価を実行します。
+
+### 匿名ユーザー
+
+既存のデータベースプロファイルや過去の識別子を持たない初回訪問者をシミュレーションするには、**Anonymous User** オプションを選択します。
+
+<img
+  src="/images/simulation8.png"
+  alt="Anonymous User オプションが選択された Simulate Decision Policy ウィンドウ"
+  style={{ width: "100%", marginTop: "8px" }}
+/>
+
+<Info>
+  匿名ユーザーの場合、MoEngage は **All Users** をターゲットとし、キャッピングルール (ユーザーレベルと全体のいずれも) が設定されていない Primary オファリングのみを評価します。Decision Policy 内のその他のオファリング (特定のターゲティングルールやキャッピングルールが設定されているものを含む) はすべてスキップされます。適格な Primary オファリングが見つからない場合は、フォールバックオファリングが設定されていればそれが返されます。
+</Info>
+
+### セッション内属性を定義する (任意)
+
+**In session attribute** セクションで **\+ In-session attribute** をクリックし、リアルタイムのセッション固有のキーと値のペアを定義して、コンテキストに基づく適格性ルールをテストします。
+
+<img
+  src="/images/simulation9.png"
+  alt="Attribute と Value の入力フィールドが表示された In-session attribute セクション"
+  style={{ width: "60%", marginTop: "8px" }}
+/>
+
+キーと値のペアの例:
+
+- デバイスタイプ \[例: Key: `device_platform` | Value: `iOS`\]。
+- 参照元 \[例: Key: `traffic_source` | Value: `google_search`\]。
+- 現在のカート金額 \[例: Key: `cart_value` | Value: `150.00`\]。
+
+詳細については、[オファリングのセッション内属性](/ja/user-guide/decisioning/offer-decisioning/create-offerings#in-session-attributes)を参照してください。
+
+## シミュレーションを実行する
+
+シミュレーションの実行は読み取り専用の操作です。オファリングの配信、イベントの記録、ユーザーのフリークエンシーキャッピング上限の消費は行われません。
+
+1. **Run Simulation** をクリックします。
+   <img
+     src="/images/simulation10.png"
+     alt="Run Simulation ボタン"
+     style={{ width: "180px", marginTop: "8px" }}
+   />
+   <Note>
+     重複したリクエストを防ぐため、処理中は **Run Simulation** が無効になります。上記のシミュレーション入力パラメーターのいずれかを変更するまで、無効のままになります。
+   </Note>
+   <Info>
+     シミュレーションの実行は読み取り専用の操作です。オファリングの配信、イベントの記録、ユーザーのフリークエンシーキャッピング上限の消費は行われません。シミュレーションの実行後、出力の概要を確認できます。
+   </Info>
+
+## シミュレーション結果
+
+シミュレーション中、この機能は各オファリングを評価し、次のいずれかの状態を割り当てます。
+
+<img
+  src="/images/simulation11.png"
+  alt="Selected、Eligible、Ineligible、Not Evaluated のタブが表示されたシミュレーション結果パネル"
+  style={{ width: "100%", marginTop: "8px" }}
+/>
+
+- **Selected**: 表示用に最終的に選択されたオファリングです。これらのオファリングはすべての適格性チェックに合格し、設定された出力上限の範囲内で、ポリシーの戦略に基づいて最上位にランク付けされたものです。
+- **Eligible**: ターゲットセグメンテーションとキャッピングのルールをすべて満たしたものの、選択されなかったオファリングです。これは、優先度スコアやカスタム数式の値が低い場合、または上位のオファリングがすでに出力上限に達している場合に発生します。優先度スコアやカスタム数式の値が同じ場合は、タイブレークロジックを適用して適格性が決定されます。詳細については、[Decision Policy に関する FAQ](/ja/user-guide/decisioning/offer-decisioning/faqs-on-decision-policy#how-does-the-priority-value-work-when-multiple-offerings-are-eligible)を参照してください。
+- **Ineligible**: ターゲットセグメントのチェックまたはキャッピング上限のルールのいずれかを満たさなかったオファリングです。
+- **Not Evaluated**: 評価中に完全にスキップされたオファリングです。これは、匿名ユーザーをシミュレーションする際に特定のターゲティングルールやキャッピングルールが設定されている Primary オファリング、または適格な Primary オファリングが想定出力上限を完全に満たしている場合のフォールバックオファリングで発生します。エンジンはアクティブなオファリングを優先するため、スケジュール済みおよび期限切れのオファリングも評価から除外されます。
+
+<Info>
+  オファリングが **Target Segment** の段階で失敗した場合、MoEngage は後続の段階 (**Capping Limit** など) の評価を自動的にスキップします。スキップされた段階は、表内でダブルダッシュ (--) で示されます。デバッグのために、オファリングの元の **Priority score** は引き続き表示されます。
+</Info>
+
+## 結果テーブルを分析する
+
+各列には次の詳細が表示されます。
+
+<img
+  src="/images/simulation12.png"
+  alt="すべての列ヘッダー (Offering Name、Offering Type、Status、Target Segment、Capping Limit、Final Score) が強調表示されたシミュレーション結果テーブル"
+  style={{ width: "100%", marginTop: "8px" }}
+/>
+
+| 列名 | 説明 |
+| --- | --- |
+| Offering Name | オファリングを識別する一意の名前と、割り当てられたタグ。 |
+| Offering Type | オファリングが Primary と Fallback のどちらであるかを示します。 |
+| Status | オファリングのスケジュール状態 (例: Active、Scheduled、Expired)。 |
+| Target Segment | シミュレーション対象のユーザーがセグメント条件に一致する場合は **Pass** が表示され、一致しない場合またはスキップされた場合は **Fail** が表示されます。 |
+| Capping Limit | ユーザーがオファリングのフリークエンシーキャッピングルールを超えていない場合は **Pass** が表示され、超えている場合またはスキップされた場合は **Fail** が表示されます。 |
+| Final Score | この列は、Decision Policy で設定されたランク付け戦略に応じて動的に変わります。<ul><li>**Priority**: オファリングに割り当てられた優先度の数値がそのまま表示されます。</li><li>**Final Score**: 重み付けされたカスタム数式のパラメーターに基づいて算出されたスコアが表示されます。スコアの横にある情報アイコンをクリックすると、計算の詳細 (CTR、優先度、属性に割り当てられた重みなど) を示すポップアップが表示されます。</li><li>**CTR**: **AI Auto Optimize** 戦略が有効な場合に使用されるクリック率の指標が表示されます。</li></ul> <img src="/images/simulation13-1.gif" alt="Simulation13 1" title="Simulation13 1" /> |
+
+## シミュレーションデータを管理・エクスポートする
+
+結果ツールバーの以下のツールを使用して、シミュレーション結果を管理・抽出できます。
+
+**グローバル検索**
+
+**Search by Offering** name ボックスにキーワードを入力します。4 つのステータスタブ (**Selected**、**Eligible**、**Ineligible**、**Not Evaluated**) すべてで、一致するオファリングが同時に絞り込まれます。
+
+<img
+  src="/images/simulation14.png"
+  alt="Search by Offering name フィールドが強調表示されたシミュレーション結果パネル"
+  style={{ width: "100%", marginTop: "8px" }}
+/>
+
+**ステータスフィルター**
+
+**Select status** リストをクリックして、オファリングを運用状態で絞り込みます (例: **Active** のオファリングのみを表示)。
+
+<img
+  src="/images/simulation15.png"
+  alt="Select status フィルターが強調表示されたシミュレーション結果パネル"
+  style={{ width: "100%", marginTop: "8px" }}
+/>
+
+**CSV のダウンロード**
+
+**Download CSV** をクリックして、表形式の結果をエクスポートします。エクスポートされたファイルには、UI に表示されるすべての値 (正しい優先度、セグメントチェック、スコアを含む) が保持されます。
+
+<img
+  src="/images/simulation16.png"
+  alt="Download CSV ボタンが強調表示されたシミュレーション結果パネル"
+  style={{ width: "100%", marginTop: "8px" }}
+/>

@@ -1,0 +1,159 @@
+---
+title: "Argoid"
+---
+
+## はじめに
+
+[Argoid](https://www.argoid.ai/) は、ハイパーパーソナライズされたレコメンデーションにより、企業がデジタルタッチポイント全体でパーソナライズされた体験を提供できるよう支援します。E コマースや OTT プラットフォームが 1:1 のパーソナライズで収益を拡大できるようにします。
+
+## MoEngage と Argoid
+
+MoEngage と Argoid の統合により、パーソナライズされた E コマースのレコメンデーションを含むメールを、各ユーザーに最適なタイミングでトリガーでき、コンバージョンとリテンションの向上、チャーンの削減を実現できます。
+
+MoEngage キャンペーンでは、次の Argoid の機能を使用できます。
+
+| 機能 | 説明 |
+| --- | --- |
+| 商品レコメンデーション | 「こちらもおすすめ」や「トレンド」などのレールに、各買い物客向けにパーソナライズされた商品レコメンデーションを埋め込み、メールのコンバージョンと売上を向上させます。 |
+| カート放棄レコメンデーション | 最近のカート放棄やユーザーの好みに基づいて、最適なタイミングで最適な商品をレコメンドし、買い物客のエンゲージメントを高めます。 |
+| 在庫切れレコメンデーション | ユーザーが関心を持つ商品が在庫切れになったときに、購入意欲の高い類似商品をレコメンドします。 |
+| ウィッシュリストレコメンデーション | ウィッシュリストに追加した商品の変更について、最適なタイミングで買い物客にリマインドします。 |
+| クロスセルとアップセル | パーソナライズされたメールを通じて補完的な商品レコメンデーションを生成し、平均注文額とリピート購入率を向上させます。 |
+
+## 統合
+
+<Info>
+  **前提条件**
+
+  - Argoid アカウント。
+  - Argoid API へのアクセス権。
+</Info>
+
+### ステップ 1: API エンドポイントと仕様を取得する
+
+Recommendation Feed API の詳細については、Argoid チームにお問い合わせください。
+
+### ステップ 2: MoEngage ダッシュボードで Content API を設定する
+
+MoEngage の [Content API](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を使用して、Argoid をフィードとして追加します。ユースケースごとに 1 つずつ、Argoid の複数の API を同時に追加できます。
+
+#### API を設定する
+
+1. **Settings** \> **Advanced settings** \> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。 <img src="/images/partner_21979512889876.png" alt="Add content API ボタンが強調表示された MoEngage の Content API 画面" />
+2. Argoid のサブドメイン API をエンドポイント URL に追加します。 <img src="/images/partner_35546704245396.png" alt="Argoid のエンドポイント URL が入力された Content API 設定画面" /> **API URL**
+   ```text wrap
+   https://prod.[YOUR-ARGOID-ACCOUNT-NAME].saas.argoid.com/[YOUR-ARGOID-ACCOUNT-NAME]/v1/trending/products
+   ```
+   <Note>
+     この API エンドポイントは参考例です。実際のエンドポイントは異なる場合があります。最新の仕様については Argoid に確認してください。
+   </Note>
+   **Headers**
+   | パラメーター | 説明 | 例 |
+   | --- | --- | --- |
+   | `Authorization` | **必須。** API 認証キー。 | `Basic SGVyZSBpcyBhbiBleGFtcGxlIG9mIHlvdXIgQVBJIGtleS4=` |
+   | <img src="/images/partner_35546690523284.png" alt="Authorization ヘッダーが設定された Content API 設定の Headers セクション" /> |  |  |
+   | **Parameters** |  |  |
+   | パラメーター | 説明 | 例 |
+   | --- | --- | --- |
+   | `num_recos` | 商品の数。 | `9` |
+   | `user_id` | 指定したユーザー ID のレコメンデーションを取得します。 | `{{UserAttribute['ID']}}` |
+   | `country` | 国に基づいてレコメンデーションを取得します。 | `in` |
+   | <img src="/images/partner_35546690523924.png" alt="num_recos、user_id、country がマッピングされた Content API 設定の Parameters セクション" /> |  |  |
+3. **Save** をクリックします。Argoid API が MoEngage に表示されます。
+
+<Tip>
+  キャンペーンで使用する前に、**Test** をクリックして API レスポンスを検証してください。
+</Tip>
+
+![Argoid API が表示された MoEngage の Content API リスト](/images/partner_35546704253460.png)
+
+**レスポンスのサンプル:**
+
+<CodeGroup>
+
+```ruby Ruby wrap
+{
+  "recommendations": [
+    {
+      "category": "My Category",
+      "brand": "My Brand",
+      "itemGroupId": "12_MYGROUPID222",
+      "pageLink": "https://www.demoblaze.com/prod.html?idp_=1",
+      "imageLink": "https://www.demoblaze.com/imgs/galaxy_s6.jpg",
+      "actualPrice": "360.00 USD",
+      "currentPrice": "324.00 AED",
+      "productId": "12_MYPRODID0222"
+    },
+    {
+      "category": "My Category",
+      "brand": "My Brand",
+      "itemGroupId": "12_MYGROUPID122",
+      "pageLink": "https://www.demoblaze.com/prod.html?idp_=6",
+      "imageLink": "https://www.demoblaze.com/imgs/xperia_z5.jpg",
+      "actualPrice": "320.00 USD",
+      "currentPrice": "288.00 AED",
+      "productId": "12_MYPRODID0389"
+    }
+  ],
+  "userId": "{{UserAttribute['ID']}}",
+  "numOfRecos": 2
+}
+```
+
+</CodeGroup>
+
+### ステップ 3: MoEngage キャンペーンで Content API を使用する
+
+これで、Content API をキャンペーンで使用できるようになりました。詳細については、[Content APIs](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を参照してください。
+
+1. キャンペーン作成のステップ 2 で、`@` を入力します。
+2. パーソナライズのポップアップで、ステップ 2 で設定した Content API を選択します。
+3. [MoEngage Templating Language](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用します。
+
+![JINJA を使用して Argoid のレコメンデーションを挿入している MoEngage エディター](/images/partner_35757718090260.png)
+
+コンテンツブロックの HTML を編集することもできます。
+
+<CodeGroup>
+
+```html HTML wrap
+<!-- code continued before -->
+<!-- START row 1 -->
+     <div class="row">
+        <!-- product 1 -->
+        <div class="grid-item">
+           <div align="center">
+             <a style="outline: none;" href="{{results.recommendations[0].pageLink}}" target="_blank" rel="noopener noreferrer" data-saferedirecturl=""><img src="{{results.recommendations[0].imageLink}}"></a>
+           <div class="product__info">
+              <h4 id="01GT5PP2J7WVZTV783NK8RB7WN" class="product__brand">‎{{results.recommendations[0].brand}}</h4>
+              <span class="product__pricing"> <span class="product-sales-price">{{results.recommendations[0].currentPrice}}</span> </span>
+           </div>
+        </div>
+        </div>
+        <!-- product 2 -->
+        <div class="grid-item">
+           <div align="center">
+              <a style="outline: none;" href="{{results.recommendations[1].pageLink}}" target="_blank" rel="noopener noreferrer" data-saferedirecturl=""><img src="{{results.recommendations[1].imageLink}}"></a>
+           <div class="product__info">
+              <h4 id="01GT5PP2J8JZ0CQXG2CTMGGPPM" class="product__brand">‎{{results.recommendations[1].brand}}</h4>
+              <span class="product__pricing"> <span class="product-sales-price">{{results.recommendations[1].currentPrice}}</span> </span>
+           </div>
+        </div>
+        </div>
+        <!-- product 3 -->
+        <div class="grid-item">
+           <div align="center">
+             <a style="outline: none;" href="{{results.recommendations[2].pageLink}}" target="_blank" rel="noopener noreferrer" data-saferedirecturl=""><img src="{{results.recommendations[2].imageLink}}"></a>
+             <div class="product__info">
+               <h4 id="01GT5PP2J8PAKKX1KZCJYCM1YT" class="product__brand">‎{{results.recommendations[2].brand}}</h4>
+               <span class="product__pricing"> <span class="product-sales-price">{{results.recommendations[2].currentPrice}}</span> </span>
+             </div>
+           </div>
+        </div>
+        <!-- END product 3 -->
+     </div>
+<!-- END row 1 -->
+<!-- code continued after -->
+```
+
+</CodeGroup>

@@ -1,0 +1,81 @@
+---
+title: "iOS プッシュの設定"
+description: "React Native アプリで、APNS 証明書と Entitlements を使用して iOS プッシュ通知を設定します。"
+---
+
+## プッシュの設定
+
+プッシュ通知を設定する方法は次の 2 つです。
+
+### APNS 認証キー:
+
+iOS ユーザーにプッシュ通知を送信するには、アプリケーション用の APNs Auth Key ファイルを生成し、MoEngage ダッシュボードにアップロードする必要があります。Auth Key の生成方法については、こちらの[リンク](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/apns-authentication-key)を参照してください。
+
+### APNS 証明書:
+
+iOS でプッシュ通知を送信できるようにするには、まず APNS 証明書を作成してダッシュボードにアップロードする必要があります。以下の手順に従ってください。
+
+- [APNS 証明書を作成する](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy#create-an-apns-certificate-in-developer-account)
+- [作成した証明書を .pem 形式に変換する](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy#converting-certificate-to-pem-format)
+- [.pem ファイルを MoEngage ダッシュボードにアップロードする](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy#uploading-pem-file-to-moengage-dashboard)
+
+## プロジェクトへの Push Entitlement の追加:
+
+APNS 証明書をアップロードしたら、Xcode プロジェクトで Push Entitlement を有効にします。アプリのターゲットを選択し、Capabilities に移動します。以下に示すように、アプリの Push Notifications 機能を有効にします。
+
+![プッシュ通知の有効化 1](/images/enable-push-notification-1.png)
+
+## アンインストールのトラッキング:
+
+アンインストールのトラッキングにはサイレントプッシュを使用します。すべてのユーザーのアンインストールをトラッキングするには、以下に示すように、アプリの Capabilities で Remote Notification のバックグラウンドモードを有効にします。
+
+![アンインストールのトラッキング 1](/images/uninstall-tracking-1.png)
+
+## プッシュの登録:
+
+その後、以下に示すように、プラグインの **registerForPush** メソッドを使用してプッシュ通知を登録する必要があります。
+
+<CodeGroup>
+
+```javascript JavaScript
+//This is only for iOS
+import ReactMoE from 'react-native-moengage'
+ReactMoE.registerForPush();
+```
+
+</CodeGroup>
+
+<Warning>
+  リモート通知関連のコールバックはすべてプラグインが受け取るため、AppDelegate ではそれらを受け取ることはできません。そのため、代わりにプラグインが提供する通知のオブザーバーを追加する必要があります。
+</Warning>
+
+## 仮のプッシュ登録（Provisional Push）:
+
+<Info>
+  - この機能は、プラグインのバージョン **_11.1.0_** からサポートされています。
+</Info>
+
+仮のプッシュ通知（Provisional Push）を登録するには、以下に示すように、プラグインの **_registerForProvisionalPush_** API を呼び出します。
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE from 'react-native-moengage'
+
+// This API is only for iOS
+
+ReactMoE.registerForProvisionalPush();
+```
+
+</CodeGroup>
+
+## リッチプッシュとテンプレートのサポート:
+
+React Native アプリでリッチプッシュ（通知内の画像/動画/音声）とテンプレートをサポートするには、iOS の Notification Service Extension と Content Extension を設定します。
+
+- [サービス拡張機能とコンテンツ拡張機能を統合する](developer-guide/react-native-sdk/push/basic/integrating-moengage-service-and-content-extensions/set-up-ios-notification-extensions-for-rich-push-and-impression-tracking)
+
+または、リッチプッシュとプッシュテンプレートを手動で統合することもできます。詳細については、以下のドキュメントを参照してください。
+
+- [リッチプッシュ](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#optional)
+- [プッシュテンプレート](https://www.moengage.com/docs/developer-guide/ios-sdk/push/optional/push-templates)

@@ -1,0 +1,272 @@
+---
+title: "プッシュトークンの登録と表示"
+description: "MoEngage Android SDK 15.03.00 以降で、Firebase Installation ID を使用して Android デバイスをプッシュに登録し、通知を表示します。"
+keywords: ["Android プッシュトークン登録", "Firebase Installation ID", "passInstallationId", "addInstallationIdListener", "firebase_messaging_installation_id_enabled", "MoEngage Android プッシュ設定"]
+---
+
+<Warning>
+  このページは、MoEngage Android SDK 15.03.00 以降に適用されます。15.03.00 未満のバージョンについては、[プッシュトークンの登録と表示（レガシー）](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display-legacy)を参照してください。
+
+  既存の連携をアップグレードする場合は、[Firebase Installation ID への移行](/ja/developer-guide/android-sdk/migration/migrating-to-firebase-installation-id)を参照してください。
+</Warning>
+
+## 前提条件
+
+開始する前に、以下の設定を完了してください。
+
+- アプリケーション用の Firebase プロジェクトを作成し、`google-services.json` 設定ファイルを追加します。[Firebase Android セットアップガイド](https://firebase.google.com/docs/android/setup)を参照してください。
+- `com.google.firebase:firebase-messaging` 25.1.2 以上を使用してください。これは Firebase Installation ID に必要な最小バージョンです。
+- FCM の認証情報を生成し、MoEngage ダッシュボードに追加します。[FCM 認証](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)および[プッシュの設定](/ja/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+
+## 概要
+
+MoEngage Android SDK 15.03.00 は、Firebase Installation ID を使用してデバイスをプッシュに登録します。
+
+Installation ID を生成するコンポーネントに応じて、2 つのフローを利用できます。
+
+- [フロー 1: MoEngage が Installation ID の生成を処理する](#flow-1-moengage-handles-installation-id-generation)では、MoEngage SDK が Installation ID を生成して通知を表示するために必要な手順について説明します。
+- [フロー 2: アプリケーションが Installation ID の生成を処理する](#flow-2-the-application-handles-installation-id-generation)では、アプリケーションが Installation ID を生成して MoEngage SDK に渡すために必要な手順について説明します。
+
+## フロー 1: MoEngage が Installation ID の生成を処理する
+
+<Warning>
+  **重要**
+
+  アプリケーションのマニフェストファイルでは、`com.google.firebase.MESSAGING_EVENT` インテントフィルターを持つサービスを 1 つだけ宣言してください。マニフェストでそのようなサービスが複数宣言されている場合、最初のサービスのみがコールバックを受け取ります。その結果、MoEngage SDK はプッシュペイロードを受信できず、配信率が低下します。
+</Warning>
+
+### ステップ 1: MoEngage Messaging Service を宣言する
+
+マニフェストファイルに `MoEFireBaseMessagingService` を追加します。
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<service android:name="com.moengage.firebase.MoEFireBaseMessagingService"
+      android:exported="false">
+    <intent-filter>
+         <action android:name="com.google.firebase.MESSAGING_EVENT" />
+    </intent-filter>
+</service>
+```
+
+</CodeGroup>
+
+### ステップ 2: Firebase Installation ID を有効にする
+
+マニフェストファイルに以下のメタデータを追加します。
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<meta-data
+    android:name="firebase_messaging_installation_id_enabled"
+    android:value="true" />
+```
+
+</CodeGroup>
+
+### Installation ID の登録（オプション）
+
+SDK が Installation ID を登録するように、MoEngage SDK の初期化が完了した後に [_registerForInstallationId()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/register-for-installation-id.html) API を呼び出します。この呼び出しは、以下の場合にのみ必要です。
+
+- アプリケーションで Firebase の自動初期化が無効になっている場合。[自動初期化の防止に関する Firebase のドキュメント](https://firebase.google.com/docs/cloud-messaging/android/get-started#prevent-auto-initialization)を参照してください。
+- MoEngage SDK の初期化が遅延する場合。たとえば、アプリケーションが Application クラスの `onCreate()` メソッドではなくワーカースレッドで SDK を初期化する場合です。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.firebase.MoEFireBaseHelper
+
+MoEFireBaseHelper.getInstance().registerForInstallationId(context)
+```
+
+
+```Java Java
+import com.moengage.firebase.MoEFireBaseHelper;
+
+MoEFireBaseHelper.getInstance().registerForInstallationId(context);
+```
+
+</CodeGroup>
+
+アプリケーションが MoEngage の登録をオプトアウトしている場合、この API は Installation ID を登録しません。
+
+### Installation ID の取得（オプション）
+
+アプリケーションで MoEngage が生成した Installation ID を読み取る必要がある場合は、以下のいずれかのオプションを適用します。
+
+#### オプション 1: Installation ID を非同期で取得する
+
+[_addInstallationIdListener()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/add-installation-id-listener.html) API を使用して、Application クラスで [_InstallationIdAvailableListener_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase.listener/-installation-id-available-listener/index.html) を登録します。SDK は、リスナーの登録後に生成または更新した Installation ID に対してのみコールバックをトリガーします。
+
+コールバックの受信を停止するには、[_removeInstallationIdListener()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/remove-installation-id-listener.html) を呼び出します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.firebase.MoEFireBaseHelper
+
+MoEFireBaseHelper.getInstance().addInstallationIdListener { result -> }
+```
+
+
+```Java Java
+import com.moengage.firebase.MoEFireBaseHelper;
+
+MoEFireBaseHelper.getInstance().addInstallationIdListener(result -> {});
+```
+
+</CodeGroup>
+
+#### オプション 2: Installation ID を同期的に取得する
+
+ワーカースレッドから [_getInstallationId()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/get-installation-id.html) API を呼び出します。呼び出し時に Installation ID が利用できない場合、API は `null` を返します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.firebase.MoEFireBaseHelper
+
+// Call this from a worker thread.
+MoEFireBaseHelper.getInstance().getInstallationId(context)
+```
+
+
+```Java Java
+import com.moengage.firebase.MoEFireBaseHelper;
+
+// Call this from a worker thread.
+MoEFireBaseHelper.getInstance().getInstallationId(context);
+```
+
+</CodeGroup>
+
+### MoEngage 以外のペイロードのプッシュ表示（オプション）
+
+アプリケーションが MoEngage 以外から送信された通知を処理する場合は、このコールバックを実装します。マニフェストファイルで SDK のサービスを宣言すると、SDK は MoEngage プラットフォーム以外のサーバーから受信したプッシュペイロードごとにコールバックを提供します。
+
+[_NonMoEngagePushListener_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase.listener/-non-mo-engage-push-listener/index.html) インターフェースを実装し、onCreate メソッドで [_MoEFireBaseHelper.getInstance().addNonMoEngagePushListener()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/add-non-mo-engage-push-listener.html) を使用して登録します。
+
+アプリケーションがバックグラウンドにある間も SDK がコールバックを呼び出す可能性があるため、コールバックは Application クラスの `onCreate()` メソッドで登録してください。
+
+## フロー 2: アプリケーションが Installation ID の生成を処理する
+
+MoEngage SDK が Installation ID を生成する場合は、このセクションをスキップしてください。
+
+### ステップ 1: MoEngage のプッシュトークン登録をオプトアウトする
+
+MoEngage SDK はデフォルトでプッシュに登録します。アプリケーションが Installation ID を生成する場合は、まず MoEngage の登録をオプトアウトしてください。
+
+[_MoEngage.Builder_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) オブジェクトの [_configureFcm()_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-fcm.html) API を使用して、トークンの登録を無効にします。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+val moEngage = MoEngage.Builder(
+        application = this,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureNotificationMetaData(
+        NotificationConfig(
+            smallIcon = R.drawable.small_icon,
+            largeIcon = R.drawable.large_icon,
+            notificationColor = R.color.notiColor,
+            isMultipleNotificationInDrawerEnabled = false,
+            isBuildingBackStackEnabled = false,
+            isLargeIconDisplayEnabled = true
+        )
+    )
+    .configureFcm(FcmConfig(isRegistrationEnabled = false))
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```Java Java
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon, R.color.notiColor, true, true, true))
+    .configureFcm(new FcmConfig(false))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+アプリケーションで Installation ID を設定します。FCM の設定については、[Firebase Installation ID へのアクセスに関する Firebase のドキュメント](https://firebase.google.com/docs/cloud-messaging/android/get-started#access-firebase-installation-id)を参照してください。
+
+### ステップ 2: Installation ID を MoEngage SDK に渡す
+
+MoEngage プラットフォームがデバイスに通知を配信するには Installation ID が必要なため、アプリケーションは [_passInstallationId()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/pass-installation-id.html) API を使用して Installation ID を MoEngage SDK に渡す必要があります。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.firebase.MoEFireBaseHelper
+
+MoEFireBaseHelper.getInstance().passInstallationId(context, "INSTALLATION_ID")
+```
+
+
+```Java Java
+import com.moengage.firebase.MoEFireBaseHelper;
+
+MoEFireBaseHelper.getInstance().passInstallationId(context, "INSTALLATION_ID");
+```
+
+</CodeGroup>
+
+### ステップ 3: プッシュペイロードを MoEngage SDK に渡す
+
+SDK はリッチプッシュ通知を含む通知をレンダリングするため、アプリケーションが独自のサービスを宣言している場合でも、MoEngage プラットフォームからのペイロードを MoEngage SDK に渡してください。
+
+Firebase サービスの `onMessageReceived()` メソッドから [_passPushPayload()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/pass-push-payload.html) API を呼び出します。渡す前に、[_isFromMoEngagePlatform()_](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase/-mo-e-push-helper/is-from-mo-engage-platform.html) API を使用して、ペイロードが MoEngage プラットフォームから送信されたものかどうかを確認してください。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(remoteMessage.data)) {
+    MoEFireBaseHelper.getInstance().passPushPayload(applicationContext, remoteMessage.data)
+} else {
+    // Your application's logic for displaying its own notification.
+}
+```
+
+
+```Java Java
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(remoteMessage.getData())) {
+    MoEFireBaseHelper.getInstance().passPushPayload(getApplicationContext(), remoteMessage.getData());
+} else {
+    // Your application's logic for displaying its own notification.
+}
+```
+
+</CodeGroup>
+
+## リッチランディング
+
+リッチランディングページは、プッシュキャンペーンからアプリケーション内で Web URL を開きます。どのコンポーネントが Installation ID を生成するかに関係なく、リッチランディングページを表示するにはこの手順が必要です。
+
+<Info>
+  以下の宣言は、現在の SDK バージョンに含まれています。`MoEActivity` の親 Activity を変更する必要がある場合にのみ追加してください。
+</Info>
+
+AndroidManifest.xml ファイルに以下の Activity を追加します。
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<activity
+  android:name="com.moe.pushlibrary.activities.MoEActivity"
+  android:label="[ACTIVITY_NAME]"
+  android:parentActivityName="[PARENT_ACTIVITY_NAME]" >
+</activity>
+```
+
+</CodeGroup>
+
+| パラメーター | 説明 |
+| --- | --- |
+| `[ACTIVITY_NAME]` | リッチランディングページに表示されるラベルです。 |
+| `[PARENT_ACTIVITY_NAME]` | `MoEActivity` の親 Activity です。 |

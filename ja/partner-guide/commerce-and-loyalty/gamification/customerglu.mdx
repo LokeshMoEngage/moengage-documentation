@@ -1,0 +1,71 @@
+---
+title: "CustomerGlu"
+description: "Outbound Integrations と MoEngage Streams を使用して MoEngage と CustomerGlu の間でイベントを双方向に転送し、ゲーミフィケーションを取り入れたアプリ内体験を実現します。"
+---
+
+# 概要
+
+[CustomerGlu](https://www.customerglu.com/) は、ローコードの顧客体験プラットフォームです。プロダクトチームに必要なツールとサポートを提供し、ユーザーのリテンションを高めてビジネスの成長を促進する魅力的なアプリ内体験の作成を支援します。
+
+# MoEngage × CustomerGlu
+
+MoEngage と CustomerGlu の統合により、MoEngage と CustomerGlu の間でイベントを双方向に転送できます。イベントを MoEngage に転送すると、適切なユーザーに適切なタイミングでターゲティングできます。MoEngage でアクションが実行されたときに、CustomerGlu にイベントを転送してセグメントを作成し、ストリーク、クイズなどのアプリ内体験でユーザーとのエンゲージメントを図ることができます。また、MoEngage のプッシュキャンペーンやメールキャンペーンを使用して、ユーザーをゲーミフィケーション体験へリダイレクトするユーザー固有のキャンペーンバナーを送信することもできます。
+
+# 統合
+
+<Info>
+  - CustomerGlu ダッシュボードへのアクセス権が必要です。
+  - MoEngage から CustomerGlu にイベントを送信するには、アカウントで [MoEngage Streams](https://help.moengage.com/hc/en-us/articles/360045896572-MoEngage-Streams) を有効にする必要があります。
+</Info>
+
+## CustomerGlu から MoEngage にイベントを送信する
+
+<Info>
+  Data API ID とキーは、**Settings - \> Account -\> APIs** で確認できます。
+</Info>
+
+CustomerGlu から MoEngage にイベントを転送するには、次の手順を実行する必要があります。
+
+1. CustomerGlu ダッシュボードで Outbound Integrations を設定するには、_CustomerGlu_ _\> \>_ _MoEngage_ に移動し、[分析イベント](https://docs.customerglu.com/schema/analytics-schema-v4)をリアルタイムで受信できるようにします。
+   | **フィールド** | **説明** |
+   | --- | --- |
+   | App ID | MoEngage アカウントの Workspace ID (以前の App ID) は、**Settings \> Account \> APIs \> Workspace ID** で確認できます。 |
+   | Data API ID | MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+   | Data API Key | MoEngage アカウントの Data API キーは、**Settings \> App Settings \> APIs \> API Keys \> Data** で確認できます。 |
+   | Data Center Name | MoEngage の URL `https://dashboard-OX.moengage.com` を確認します。ダッシュボードの値 `{‘DC-01’ , ‘DC-02’ , ‘DC-03’ , ‘DC-04’}` に基づいて、CustomerGlu ダッシュボードのデータセンター名に正しい値を設定します。[詳細はこちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)。 |
+2. MoEngage ダッシュボードから対応する値をコピーし、CustomerGlu ダッシュボードに貼り付けます。
+
+## MoEngage から CustomerGlu にイベントを送信する
+
+MoEngage から CustomerGlu にイベントを転送するには、カスタマーサクセスマネージャーと連携して、アカウントで [MoEngage Streams](https://help.moengage.com/hc/en-us/articles/360045896572-MoEngage-Streams) を有効にする必要があります。次の情報をご提供いただければ、MoEngage がイベントエクスポートを有効にします。
+
+| **フィールド** | **値** |
+| --- | --- |
+| Request URL | `https://stream.customerglu.com/v3/moengage` |
+| Request Method | `POST` |
+| Headers | <ol><li>`X-API-KEY` - CustomerGlu から提供された WriteKey。</li></ol> |
+
+## MoEngage キャンペーンで CustomerGlu のキャンペーン URL を送信する
+
+ゲームをプッシュ通知として送信したり、アプリ内のバナーをクリックしたときにキャンペーンやウォレットにリダイレクトしたりするユースケースでは、必要な属性を URL パラメーターとして渡すことで、CustomerGlu のキャンペーンやウォレットのユーザー固有の URL を生成できます。
+
+- `BASE_URL` と `WRITE_KEY` は CustomerGlu から共有されます。
+- 特定のキャンペーンの `CAMPAIGN_ID` は、次のようにダッシュボードからコピーできます。 <img src="https://2115685913-files.gitbook.io/~/files/v0/b/gitbook-x-prod.appspot.com/o/spaces%2F-M0ahLW2WavtwcwNbSR9%2Fuploads%2Fda04eBuTfzKOKVxZQvRS%2Fimage.png?alt=media&token=b1498f2f-5879-46f3-80f5-e379be60507c" />
+
+### ゲーム
+
+ゲームには、スクラッチカード、ルーレット、スロットマシンなど、アクティビティに基づかないすべてのキャンペーンが含まれます。MoEngage キャンペーンに次の URL を含めます。
+
+`https://{{BASE_URL}}/reward/?writekey={WRITE_KEY}&userId={USER_ID}&campaignId={CAMPAIGN_ID}`
+
+### チャレンジ/プログラム
+
+チャレンジには、ストリーク、マルチステップ、紹介など、アクティビティに基づくすべてのキャンペーンが含まれます。MoEngage キャンペーンに次の URL を含めます。
+
+`https://{{BASE_URL}}/program/?writekey={WRITE_KEY}&userId={USER_ID}&campaignId={CAMPAIGN_ID}`
+
+### ウォレット
+
+ウォレットには、ユーザーのすべてのゲーム、チャレンジ、報酬が集約されています。MoEngage キャンペーンに次の URL を含めます。
+
+`https://{{BASE_URL}}/wallet/?writekey={WRITE_KEY}&userId={USER_ID}`

@@ -1,0 +1,78 @@
+---
+title: "Web Push の購読者を特定する方法"
+---
+
+この記事では、次のシナリオで Web Push の購読者を検出してセグメント化する方法について説明します。
+
+- ウェブサイトで Web Push の許可を付与したユーザーの数
+- 指定した期間内に購読/購読解除したユーザーの数
+- プッシュ通知を購読した Web ページ URL に基づいてユーザーをセグメント化する
+- 閲覧した Web ページ URL に基づいてユーザーをセグメント化する
+- Web Push 通知を受信およびクリックしたユーザーの数
+
+<Tip>
+  Web Push がすでにインテグレーションされていること。詳細については、[Web Push インテグレーション](/ja/developer-guide/web-sdk/web-sdk-overview/web-sdk-overview)を参照してください。
+</Tip>
+
+### **ナビゲーション**
+
+- これらのクエリはすべて、次のナビゲーションで実行します: _MoEngage Dashboard \> Segment \> Create Segment_。
+- 次のナビゲーションで、Web Push 購読者の日次および合計数を確認することもできます: _MoEngage Dashboard \> Dashboard \> Key Metrics_。
+
+## Web Push 購読者の総数を特定する
+
+Web Push 通知を購読しているユーザーの数を特定するには、次の手順を実行します。
+
+1. _Filter users by_ オプションを選択します。
+2. User Property タブで、Web Push Subscription Status 属性を選択し、_さらに_ ドロップダウンから True を選択します。 <img alt="Screenshot_2022-08-18_at_11.31.12_AM.png" src="/images/moengage_5f09aa.png" />
+
+これにより、一度 Push 通知を購読した後に購読を解除した購読者の数も特定できます。
+
+**注:** 以前は、Web Push 購読者は **Web Push Preference** が **Granted** であるという条件で特定されていました。このユーザー属性は近日中に段階的に廃止され、**Web Push Subscription Status** に置き換えられます。この属性は動的であり、ユーザーがウェブサイトにアクセスしたとき、またはユーザーのプッシュトークンに関する GCM からの応答を受け取ったときに、ユーザーのプッシュ購読ステータスが更新されます。
+
+## Web Push の購読
+
+指定した期間内に Web Push を購読したユーザーの数を確認することもできます(使用できる時間フィルター: 過去 X 日間、2 つの日付の間、日付より前、日付より後、特定の日付、今日)。
+
+このイベントの MoEngage 識別子は、_Subscribed to Web Push_ というユーザー行動です。購読数を特定するには、次の手順を実行します。
+
+1. _Filter users by_ オプションを選択します。
+2. User behavior タブで、_Has Executed\*\*Subscribed to Web Push_ イベントを _少なくとも 1 回_ という条件を選択し、次に示すように任意の期間を追加します。 <img alt="Screenshot_2022-08-18_at_11.44.33_AM.png" src="/images/moengage_39c087.png" />
+
+## Web Push の購読解除
+
+指定した期間内に Web Push の購読を解除したユーザーの数を確認できます(使用できる時間フィルター: 過去 X 日間、2 つの日付の間、日付より前、日付より後、特定の日付、今日)。
+
+このイベントの MoEngage 識別子は、_Denied Web Push Subscription_ というユーザー行動です。購読解除数を特定するには、次の手順を実行します。
+
+1. _Filter users by_ オプションを選択します。
+2. User behavior タブで、_Has Executed Denied Web Push Subscription_ イベントを _少なくとも 1 回_ という条件を選択し、次に示すように任意の期間を追加します。 <img alt="Screenshot_2022-08-18_at_12.06.00_PM.png" src="/images/moengage_ff74f0.png" />
+
+<Info>
+  ユーザーが Web Push 通知の購読を解除したことを把握するソースは 2 つあります。イベント属性 _Source_ を選択すると、この 2 つを区別できます。
+
+  - **Website**: ユーザーがウェブサイトから直接許可を削除してページを再読み込みすると、購読ステータスが _False_ に更新され、イベント属性 _Source が Website_ のイベント _Web User Unsubscribed_ が作成されます。
+  - **Campaign**: ユーザーがブラウザー設定から Push の許可を削除した場合、そのユーザーにキャンペーンが送信された時点で、Push サービス(GCM、AutoPush など)からステータスを把握します。購読ステータスが _False_ に更新され、イベント属性 _Source が Campaign_ のイベント _Web User Unsubscribed_ が作成されます。
+</Info>
+
+## Web 購読 URL
+
+_Web Push Subscription Page URL_ は、ユーザーがウェブサイトのどのページで Push を購読しているかを特定するのに役立つユーザー属性です。以下で説明するように、この属性を使用してユーザーのカスタムセグメントを作成する際に便利です。
+
+特定のユーザーグループにスポーツ関連の通知のみを送信するには、Web Push Subscription Page URL contains _sports_ という条件を追加します。
+
+![Screenshot\_2022-08-18\_at\_12.39.00\_PM.png](/images/moengage_397bc1.png)
+
+## Web Page Viewed(Viewed Web Page)
+
+Viewed Web Page イベントは、ユーザーが閲覧しているウェブサイトのページを特定するのに役立ちます。次に示すように、これを使用して、ウェブサイトの特定のランディングページを閲覧したユーザーを含むセグメントを作成し、関連する通知を送信できます。
+
+![Viewed\_web\_page.png](/images/moengage_e62dd8.png)
+
+_Viewed Web Page_ イベントの一般的なユースケースは、購読者に閲覧/カート放棄通知を送信し、離脱した Web ページに直接誘導することです。詳細については、[60 分でできる Web Push キャンペーン](/ja/user-guide/campaigns-and-channels/web-push/getting-started-with-web-push/web-push-campaigns-within-60-minutes)を参照してください。
+
+## Notification Received Web
+
+Notification Received Web イベントは、作成したキャンペーンから通知を受信およびクリックしたユーザーを特定するのに役立ちます。特定のキャンペーンについてこのイベントを特定したい場合は、このクエリでイベント属性として Campaign ID を指定します。
+
+![Notification\_Received\_Web.png](/images/moengage_6eaf69.png)

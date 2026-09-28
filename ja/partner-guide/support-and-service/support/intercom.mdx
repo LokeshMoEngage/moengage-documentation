@@ -1,0 +1,315 @@
+---
+title: "Intercom"
+description: "Workflows または Series の Webhook を使用して、Intercom から MoEngage にユーザー、リード、サポートイベントを同期し、コンテキストに沿ったエンゲージメントキャンペーンをトリガーします。"
+---
+
+Intercom は、パーソナライズされたメッセンジャーベースの体験を通じて、企業がより良いユーザー関係を構築できるよう支援するユーザーメッセージングプラットフォームです。ライブチャット、マーケティングオートメーション、ユーザーサポート、ユーザーエンゲージメントのツールを 1 つのプラットフォームに統合し、企業がユーザーライフサイクルのあらゆる段階でユーザーとつながれるよう支援します。
+
+## MoEngage × Intercom
+
+MoEngage と Intercom の統合により、企業はシームレスなデータ同期を通じてユーザーエンゲージメントとサポートの取り組みを強化できます。この統合により、次のことが可能になります。
+
+- Intercom から MoEngage に、リード、ユーザー、および関連する企業データを同期する。
+- チケットの状態更新や会話属性などのサポートアクティビティを、MoEngage の行動イベントとしてインポートする。
+- 包括的なユーザープロファイリングのために、カスタム属性とタグを取得する。
+- サポートのインタラクションやユーザーライフサイクルイベントに基づいてキャンペーンをトリガーする。
+
+## ユースケース
+
+Intercom を MoEngage と統合すると、次のユースケースを実現できます。
+
+- **リードとユーザーデータの同期**: Intercom で新しく作成されたリードとユーザーを MoEngage に自動的に同期し、ターゲットを絞ったマーケティングキャンペーンに活用します。
+- **サポート主導のエンゲージメントのトリガー**: Intercom でチケットが作成された瞬間に、リードまたはユーザーのデータを MoEngage に送信し、コンテキストに沿ったフォローアップキャンペーンをトリガーします。
+- **チケットの状態に基づくキャンペーンの自動化**: チケットの状態が更新される(例: 解決済み、クローズ、エスカレーション)たびにデータを MoEngage に送信し、満足度調査、アップセルオファー、再エンゲージメントメッセージをタイムリーに送信します。
+
+### 同期モジュール
+
+次の表は、各モジュールのデフォルトの同期タイプを示しています。
+
+| モジュール | MoEngage の同期タイプ |
+| --- | --- |
+| Users | Users |
+| Leads | Users |
+| Ticket Attributes | Events |
+| Companies | Users(Users および Leads と同期) |
+| Custom Tracked Attributes | Custom Event Properties |
+
+<Info>
+  企業情報 - Companies モジュールもサポートされています。データを常に最新の状態に保つため、関連する企業情報はそれぞれ Users および Leads のレコードと同期されます。
+</Info>
+
+# 統合
+
+<Info>
+  開始する前に、次の要件を満たしていることを確認してください。
+
+  - Workflow による統合方法の場合: Intercom の Advanced プラン以上が必要です。
+  - Series による方法の場合: Series(Intercom の有料アドオン)が有効になっている必要があります。
+</Info>
+
+# 方法 1: Intercom Workflows を使用する
+
+Workflows は、**Conversation Created** や **Ticket Resolved** などのトリガーに基づいてリアルタイムでデータを同期するのに最適です。次のとおり、基本的なデータ同期のためのシンプルなアプローチと、データエンリッチメントのための高度なアプローチから選択できます。
+
+- アプローチ A: [シンプルな Workflows(基本同期)](#approach-a-simple-workflows-basic-sync)
+- アプローチ B: [高度な Workflows(拡張同期)](#approach-b-advanced-workflows-enhanced-sync)
+
+## アプローチ A: シンプルな Workflows(基本同期)
+
+標準データをシンプルかつ直接同期する場合に使用します。このシンプルな Workflow を設定するには、次の手順を実行します。
+
+- ステップ 1: [MoEngage Webhook Data Connector を作成する](#step-1-create-the-moengage-webhook-data-connector)
+- ステップ 2: [リクエストボディの構造](#step-2-request-body-structure)
+- ステップ 3: [Data Connector をトリガーする Workflow を作成する](#step-3-create-a-workflow-to-trigger-the-data-connector)
+
+### ステップ 1: MoEngage Webhook Data Connector を作成する
+
+MoEngage Webhook Data Connector を作成するには、次の手順を実行します。
+
+1. Intercom ダッシュボードの左側のナビゲーションバーで、左下のナビゲーションバーにある **Settings** アイコン <img src="/images/partner_41376635681684.png" /> をクリックします。
+2. **Settings** メニューで **Integrations** をクリックしてセクションを展開し、**Data connectors** をクリックします。
+3. **Data connectors** ページで、右上の **\+ New data connector** をクリックして設定プロセスを開始します。\
+   <img src="/images/partner_41411186744340.png" />\
+   **Data connectors** ページが表示されます。
+4. **About** タブで、コネクタの次の詳細を入力します。
+   1. **Name** ボックスに、コネクタの名前を入力します。
+   2. **Description** ボックス(オプション)に、コネクタの目的を説明する説明を追加します。
+   3. デフォルトでは、**Enable Fin to use this connector directly** チェックボックスが選択されています(オプション)。
+5. **Next step** をクリックして次に進みます。 <img src="/images/partner_41456704378772.png" />
+6. **API connection** タブで、次の詳細を入力します。
+
+| Intercom のセクション | 説明 |
+| --- | --- |
+| **Method** | **POST** |
+| **URL** | MoEngage から提供された専用 URL を次の形式で入力します: `https://api-0X.moengage.com/v1/partner/intercom/{events/user}/?configName={config_name}` |
+| **Custom Headers** | Content-Type: application/json<br />Authorization: オンラインの [Basic Auth Header Generator tool](https://www.debugbear.com/basic-auth-header-generator) を使用して Basic 認証トークンを生成します。ユーザー名に **Workspace ID**、パスワードに **Data API Key** を入力する必要があります。認証情報を確認するには、次の手順を実行します。 <ol><li>MoEngage UI で **Settings** \> **Account** \> **APIs** に移動します。</li><li>**Workspace ID**(**旧 app id**)の下にある ID をコピーします。</li><li>**API keys** の下にある **Data** をコピーします。 <br /><br />Basic 認証トークンは **Workspace ID** と **Data** を組み合わせたものです。たとえば、次の値を Basic 認証トークンとして貼り付けます:`Basic Qk5CR1NNNUR4eHh4eHhWQ1hSRFJEWTdSOlFsWHVoTHVaeHh4eHh4QWQrQnBYUEotNw==`<br />**注意**: トークンは余分なスペースを含めずに完全にコピーしてください。</li></ol> |
+
+7. **Next step** をクリックして **Test response** タブに進み、ペイロードのサンプル値を指定して接続をテストします。 <img src="/images/mceclip8.png" alt="Intercom と MoEngage の接続が成功したことを示す Test response タブ" /> **注意**: ライブの Workflow でコネクタを使用する前に、Intercom が MoEngage に正常に接続されていることを確認してください。
+
+### ステップ 2: リクエストボディの構造
+
+<Info>
+  Intercom Series は組み込みの属性インサーターに依存しています。統合エラーを防ぐため、具体的な設定と要件を MoEngage のカスタマーサクセスマネージャー(CSM)と共有することをお勧めします。
+</Info>
+
+リクエストボディのセクションを設定するには、Intercom の属性インサーターを使用して次の値を動的にマッピングする必要があります。また、必要に応じて任意のキーと値を追加できます。
+
+| キー | 説明 |
+| --- | --- |
+| `type` | 送信されるレコードのタイプ(例: user)を識別します。 |
+| `u_fn` | ユーザーの名です。 |
+| `u_ln` | ユーザーの姓です。 |
+| `u_mb` | ユーザーの携帯電話番号です。 |
+| `customer_id` | ユーザーの一意の識別子です。 |
+| `intercom_id` | Intercom でのユーザーの一意の ID です。 |
+| `createdate` | ユーザーレコードが最初に作成された日時のタイムスタンプです。この値は変更されません。 |
+| `modified_at` | ユーザーレコードが最後に変更または更新された日時のタイムスタンプです。この値はレコードが更新されるたびに変わります。 |
+
+### ステップ 3: Data Connector をトリガーする Workflow を作成する
+
+データ接続をトリガーする Workflow を作成するには、次の手順を実行します。
+
+1. Intercom ダッシュボードの左側のナビゲーションバーで、**Fin AI Agent** をクリックします。
+2. **Fin AI Agent** メニューで **Workflows** をクリックします。
+3. **Workflows** ページで、右上の **\+ New workflow** をクリックします。
+4. **\+ New workflow** リストで **Create from scratch** をクリックします。 <img src="/images/partner_41411186745492.png" /> **Create from scratch using the following triggers** ダイアログボックスが表示されます。
+5. 目的の Workflow トリガーを選択します(例: 左側の **Ticket-only** カテゴリをクリックし、**When a ticket is created trigger** をクリック)。 <img src="/images/partner_41390933738516.png" /> 次に、トリガーを設定する必要があります。
+6. Workflow キャンバスの **When a ticket is created** パネルで、次を設定します。
+   - **Channels**: トリガーを適用するチャネル(例: Web、iOS など)を指定します。
+   - **Filters**: Workflow を **Users**、**Leads**、またはその両方に対して実行するかを選択します。
+7. **\+ Add step** をクリックして Data Connector アクションを追加します。
+8. **Choose what's next** メニューで **Data connector** を検索または選択します。 <img src="/images/partner_41456677398676.png" />
+9. 先ほど作成した特定のコネクタを選択します。 <img src="/images/partner_41456677401364.png" />
+10. 右上の **Set live** をクリックして Workflow を保存し、有効にします。
+    <Info>
+      **情報**
+      - 属性インサーターで利用可能なシンプルな属性(例: ユーザーの名前、メールアドレス、サブスクリプションプラン)のみ使用できます。
+      - Workflow は、変換のオプションを提供せずにデータを送信します。
+    </Info>
+
+## アプローチ B: 高度な Workflows(拡張同期)
+
+MoEngage に送信する前にデータをエンリッチまたは変換したい場合に使用します。この高度な Workflow を設定するには、次の手順を実行します。
+
+- ステップ 1: [カスタム会話オブジェクトを作成する](#step-1-create-custom-conversation-objects)
+- ステップ 2: [Intercom API トークンを取得する](#step-2-get-your-intercom-api-token)
+- ステップ 3: [Intercom API データエンリッチメントコネクタを作成する](#step-3-create-the-intercom-api-data-enrichment-connector)
+- ステップ 4: [MoEngage Webhook Data Connector を作成する](#step-4-create-the-moengage-webhook-data-connector)
+- ステップ 5: [リクエストボディの構造](#step-5-request-body-structure)
+- ステップ 6: [Data Connector をトリガーする Workflow を作成する](#step-6-create-a-workflow-to-trigger-the-data-connector)
+
+### ステップ 1: カスタム会話オブジェクトを作成する
+
+カスタム会話オブジェクトを作成するには、次の手順を実行します。
+
+1. Intercom ダッシュボードの左側のナビゲーションバーで、左下のナビゲーションバーにある **Settings** アイコン <img src="/images/partner_41376635681684.png" /> をクリックします。
+2. **Settings** メニューで **Data** をクリックしてセクションを展開し、**Conversations** をクリックします。
+3. **Conversations** ページで、右上の **\+ Create attribute** をクリックして設定プロセスを開始します。 <img src="/images/partner_41411186747540.png" /> **Create a new attribute** ダイアログボックスが表示されます。
+4. **General** タブで、次の詳細を入力します。
+   1. **Format** リストで、属性のデータ型(例: **Text**、**Number** など)を選択します。
+   2. **Name** ボックスに、属性の名前(例: session\_count)を入力します。
+   3. **Description** ボックス(オプション)に、属性の用途を説明する説明(例: User session count)を追加します。
+   4. 必要に応じて、オプションの表示設定と必須設定を構成します。
+   5. **Save** をクリックします。 <img src="/images/partner_41411252387860.png" />
+
+### ステップ 2: Intercom API トークンを取得する
+
+Intercom API トークンを取得するには、次の手順を実行します。
+
+1. Intercom ダッシュボードの左側のナビゲーションバーで、左下のナビゲーションバーにある **Settings** アイコン <img src="/images/partner_41376635681684.png" /> をクリックします。
+2. **Home** ページの **Integrations** セクションで、**Developer Hub** をクリックします。 <img src="/images/partner_41411166801300.png" /> INTERCOM | Developer Hub <img src="/images/partner_41411252388372.png" />ウィンドウが表示されます。次に、新しいアプリを作成するか、既存のアプリを使用するかを決定する必要があります。
+3. 新しいアプリを作成するには:
+   1. **Your apps** ページで **New app** をクリックします。**New app** ダイアログボックスが表示されます。
+   2. **App name** ボックスに、アプリの名前を入力します。
+   3. **Workspace list** で、アプリのワークスペースを選択します。
+   4. **Create app** をクリックします。
+4. 既存のアプリを使用するには:
+   1. リストからアプリを見つけて選択します。
+   2. 右上の **Edit** をクリックします。
+5. アプリの左側のナビゲーションメニューで、**Authentication** を選択します。
+6. **Authentication** ページの **Access token** セクションで、トークンをコピーします。これは Bearer Token として使用されます。
+7. **Permissions** セクションまでスクロールし、アプリの権限が有効になっていることを確認します。 <img src="/images/partner_41411462119828.png" />
+
+### ステップ 3: Intercom API データエンリッチメントコネクタを作成する
+
+<Info>
+  **情報**
+
+  次の手順に示すように、Intercom Contact Search API を使用して追加データを取得します。その他のタスクには、[Intercom API リファレンス](https://developers.intercom.com/docs/references/rest-api/api.intercom.io/contacts/searchforcontacts)に記載されている任意の API を使用できます。
+</Info>
+
+Intercom Contact Search API を作成するには、次の手順を実行します。
+
+1. MoEngage Webhook Data Connector を作成します。そのためには、[ステップ 1: MoEngage Webhook Data Connector を作成する](#step-1-create-the-moengage-webhook-data-connector)セクションに記載されている手順 6 までを実行します。
+2. **Request Body** セクションに、次の JSON を貼り付けます。これにより、メールアドレスまたは外部 ID を使用して連絡先が検索されます。
+   <CodeGroup>
+   ```json JSON
+   {
+     "query": {
+       "operator": "OR",
+       "value": [
+         {
+           "field": "email",
+           "operator": "=",
+           "value": "{{ insert email id }}"
+         },
+         {
+           "field": "external_id",
+           "operator": "=",
+           "value": "{{ insert external_id }}"
+         }
+       ]
+     }
+   }
+   ```
+   </CodeGroup>
+3. **Next step** をクリックして **Test response** タブに進み、ペイロードのサンプル値を指定して接続をテストします。 <img src="/images/partner_41456256508692.png" /> **注意**: ライブの Workflow でコネクタを使用する前に、Intercom が MoEngage に正常に接続されていることを確認してください。
+4. **Next step** をクリックして **Data transformation** タブに進みます。
+5. 次のコードをコードエディターに貼り付けて、API レスポンスから最初の連絡先を抽出します。
+   <CodeGroup>
+   ```python Python wrap
+   def transform(api_response):
+     """Extract first contact from search results array
+     Args:
+       api_response: The raw response data from the API call
+     Returns:
+       dict: First contact data or empty dict if no contacts found
+     """
+     # Extract first contact from the data array
+     if isinstance(api_response, dict) and 'data' in api_response and api_response['data']:
+       return api_response['data'][0]
+     else:
+       return {}
+   return transform(inputs['data'])
+   ```
+   </CodeGroup>
+6. **Next step** をクリックして **Object mapping** タブに進みます。
+7. 同期する必要がある各属性のマッピングを設定します。
+8. **Save and set live** をクリックします。 <img src="/images/partner_41456346752660.png" />
+
+### ステップ 4: MoEngage Webhook Data Connector を作成する
+
+まず、MoEngage Webhook Data Connector を作成します。そのためには、[ステップ 1: MoEngage Webhook Data Connector を作成する](#step-1-create-the-moengage-webhook-data-connector)セクションに記載されている手順 6 までを実行し、レスポンスをテストして接続を確認します。
+
+### ステップ 5: リクエストボディの構造
+
+[ステップ 2: リクエストボディの構造](#step-2-request-body-structure)セクションの手順に従ってペイロードを作成し、作成したカスタムオブジェクトを追加して、追加でエンリッチされたデータをペイロードに含めます。
+
+### ステップ 6: Data Connector をトリガーする Workflow を作成する
+
+データ接続をトリガーする Workflow を作成するには、次の手順を実行します。
+
+1. MoEngage Webhook Data Connector を作成します。そのためには、[ステップ 3: Data Connector をトリガーする Workflow を作成する](#step-3-create-a-workflow-to-trigger-the-data-connector)セクションに記載されている手順 7 までを実行します。
+2. 追加データを取得するために作成したカスタム Data Connector を選択します。
+3. エンリッチされたデータを送信するために作成した Webhook Data Connector を追加します。
+4. Workflow を有効化します。
+5. **Save and Set** をクリックします。 <img src="/images/partner_41456201382804.png" />
+
+# 方法 2: Webhook を使用した Series Workflows を使用する
+
+このアプローチでは、Intercom Series 内の Webhook を使用して、User または Lead のデータを MoEngage に送信します。複雑な API 呼び出しを必要とせずに、アウトバウンドメッセージングシーケンスの一部として標準のユーザーフィールドと会話フィールドを同期する場合に最適です。
+
+<Info>
+  **情報**
+
+  Intercom Series は組み込みの属性インサーターに依存しています。統合エラーを防ぐため、具体的な設定と要件を MoEngage のカスタマーサクセスマネージャー(CSM)と共有することをお勧めします。
+</Info>
+
+Series Workflow を設定するには、次の手順を実行します。
+
+- ステップ 1: [Series に移動する](#step-1-navigate-to-series)
+- ステップ 2: [トリガーを設定する](#step-2-set-the-trigger)
+- ステップ 3: [Webhook アクションを追加する](#step-3-add-the-webhook-action)
+- ステップ 4: [リクエストボディの構造](#step-4-request-body-structure)
+- ステップ 5: [テストして有効化する](#step-5-test-and-activate)
+
+### ステップ 1: Series に移動する
+
+Series に移動するには、次の手順を実行します。
+
+1. Intercom ダッシュボードの左側のナビゲーションバーで、**Outbound** をクリックします。
+2. **Outbound** メニューで **Series** をクリックします。
+3. **Series** ページで、右上の **\+ New Series** をクリックします。 <img src="/images/partner_41454332176148.png" /> **Choose a template** ダイアログボックスが表示されます。
+4. **Start from scratch** をクリックします。 <img src="/images/partner_41454473940884.png" /> 次に、エントリールールを設定する必要があります。
+5. **Enter a title** ページの右側にある **Audience to target** サイドバーで **Rules** をクリックし、この Series に参加するユーザーの条件を定義します。
+6. 最後までスクロールし、**Actions to take** で **WEBHOOK** をクリックします。 <img src="/images/partner_41456101612564.png" />
+
+### ステップ 2: トリガーを設定する
+
+トリガーを設定するには、次の手順を実行します。
+
+1. **Enter a title** ページで **Entry Rules** タイルをクリックします。**Enter a title** ダイアログボックスが表示されます。
+2. **Visitors and Users** フィルターボタンをクリックしてメニューを開き、**Visitors**、**Leads**、または **Users** を選択します。
+3. ターゲットにする特定のオーディエンスのチェックボックスを選択します。 <img src="/images/partner_41456101613972.png" />
+4. **Save rules** をクリックして設定を適用します。
+
+### ステップ 3: Webhook アクションを追加する
+
+Webhook アクションを追加するには、次の操作を実行します。
+
+1. **Enter a title** ページで **WEBHOOK** タイルをクリックします。**Enter a title** ダイアログボックスが表示されます。
+2. 次の詳細を入力します。
+
+| Webhook のセクション | 説明 |
+| --- | --- |
+| **Method** | **POST** |
+| **URL** | MoEngage から提供された専用の Webhook URL を次の形式で入力します: `https://api-0X.moengage.com/v1/partner/intercom/{events/users}/?configName={config_name}` |
+| **Webhook Headers** | Content-Type: application/json<br />Authorization: オンラインの [Basic Auth Header Generator tool](https://www.debugbear.com/basic-auth-header-generator) を使用して Basic 認証トークンを生成します。ユーザー名に **Workspace ID**、パスワードに **Data API Key** を入力する必要があります。認証情報を確認するには、次の手順を実行します。 <ol><li>MoEngage UI で **Settings** \> **Account** \> **APIs** に移動します。</li><li>**Workspace ID**(**旧 app id**)の下にある ID をコピーします。</li><li>**API keys** の下にある **Data** をコピーします。 <br /><br />Basic 認証トークンは **Workspace ID** と **Data** を組み合わせたものです。たとえば、次の値を Basic 認証トークンとして貼り付けます:`Basic Qk5CR1NNNUR4eHh4eHhWQ1hSRFJEWTdSOlFsWHVoTHVaeHh4eHh4QWQrQnBYUEotNw==`<br />**注意**: トークンは余分なスペースを含めずに完全にコピーしてください。</li></ol> |
+
+![](/images/partner_41456101615380.png)
+
+### ステップ 4: リクエストボディの構造
+
+[ステップ 2: リクエストボディの構造](#step-2-request-body-structure)セクションの手順に従ってペイロードを作成し、作成したカスタムオブジェクトを追加して、追加でエンリッチされたデータをペイロードに含めます。
+
+### ステップ 5: テストして有効化する
+
+Webhook をテストし、データが MoEngage に届くことを確認してください。データが正しく受信されたことを確認したら、**Click series live** をクリックします。<img src="/images/partner_41456101617044.png" />
+
+## レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Intercom データの取り込みをワークスペースあたり最大 500 リクエスト/秒(RPS)に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、Intercom のデフォルトの再試行ポリシーを参照してください。
+
+**再試行の上限到達**: Intercom があるデータバッチのすべての再試行を使い果たした場合は、Intercom サポートチームに連絡して、失敗したリクエストを再実行してもらう必要があります。

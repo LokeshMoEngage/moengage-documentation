@@ -1,0 +1,73 @@
+---
+title: "イベントのトラッキング"
+description: "MoEngage の trackEvent API を使用して、Flutter アプリでカスタムユーザーイベントとそのプロパティをトラッキングします。"
+---
+
+<Info>
+  SDK は MoEngage の FUP ポリシーに準拠しています。詳細については、[Fair Usage Policy](https://www.moengage.com/docs/user-guide/data/key-concepts/fair-usage-policy-fup) を参照してください。
+</Info>
+
+イベントのトラッキングとは、ユーザーが実行したアクションを、そのアクションを説明するプロパティとともに記録する方法です。trackEvent を 1 回呼び出すごとに、1 つのユーザーアクションが記録されます。チームの誰もがすぐに意味を理解できるよう、イベント名は人が読んでわかりやすいものにすることをお勧めします。
+
+TrackEvent() の呼び出しには、イベント名と、イベントに関する追加のイベント属性を表す Properties インスタンスの 2 つのパラメーターが必要です。キャンペーン作成時のセグメンテーションに役立つと思われる追加情報をすべて追加してください。たとえば、次の例は、使用可能なすべてのデータ型を使用してイベントをトラッキングする例を示しています。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+var properties = MoEProperties();
+properties.addAttribute("attrString", "String Value")
+          .addAttribute("attrInt", 123)
+          .addAttribute("attrBool", true)
+          .addAttribute("attrDouble", 12.32)
+          .addAttribute("attrLocation", new MoEGeoLocation( 12.1, 77.18) )
+          .addAttribute("attrArray", ["item1", "item2", "item3"])
+          .addAttribute('product', {'item-id' : 123,'item-type' : 'books','item-cost' : {'amount' : 100,'currency' : 'USD'}})
+          .addAttribute('products', [{'item-id' : 123,'item-cost' : {'amount' : 100,'currency' : 'USD'}},{'item-id' : 323,'item-cost' : {'amount' : 90,'currency' : 'USD'}}])
+          .addISODateTime("attrDate", "2019-12-02T08:26:21.170Z");
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.trackEvent('Flutter Event', properties);
+```
+
+</CodeGroup>
+
+<Info>
+  イベント、イベント属性、ユーザー属性の名前に「moe\_」をプレフィックスとして使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なく定期的にブラックリストに登録される可能性があります。
+</Info>
+
+# アナリティクス
+
+MoEngage SDK は、ユーザーセッションとアプリケーションのトラフィックソースのトラッキングを開始しました。ユーザーセッションとアプリケーションのトラフィックソースのトラッキングの仕組みについて詳しくは、次のドキュメントを参照してください。 
+
+-  [Session and Source Analysis](https://www.moengage.com/docs/user-guide/analyze/analytics/session-and-source/session-and-source-analysis) 
+-  [Advanced Session and Source Analysis](https://www.moengage.com/docs/user-guide/analyze/analytics/session-and-source/advanced-session-and-source-analysis)
+
+ユーザーセッションのトラッキングに伴い、イベントを選択的に非インタラクティブとしてマークできる柔軟性を導入しました。
+
+## 非インタラクティブイベントとは何ですか？
+
+セッションの計算にまったく影響を与えないイベントを、非インタラクティブイベントと呼びます。非インタラクティブイベントには、次の特性があります。
+
+- 新しいセッションを開始しません。
+- セッションを延長しません。
+- ユーザーセッションに関連する情報を持ちません。
+
+## イベントを非インタラクティブとしてマークするにはどうすればよいですか？
+
+イベントを非インタラクティブとしてマークするには、以下に示すように **Properties** インスタンスに対して **setNonInteractiveEvent()** を呼び出します。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+var properties = MoEProperties();
+properties.addAttribute( "attrString", "String Value")
+          .addAttribute("attrInt", 123)
+          .setNonInteractiveEvent();
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.trackEvent('Non Interactive Event', properties);
+```
+
+</CodeGroup>

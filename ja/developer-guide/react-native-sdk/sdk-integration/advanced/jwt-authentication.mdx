@@ -1,0 +1,232 @@
+---
+title: "JWT 認証"
+description: "React Native アプリケーションに JWT 認証を実装して、MoEngage のデータ収集を保護します。"
+keywords: "JWT, JSON Web Token, SDK authentication, passAuthenticationDetails, authenticationError, React Native"
+---
+
+## 概要
+
+JWT（JSON Web Token）認証は、ユーザーの身元を安全に検証するための標準的な方法です。JWT 認証を実装することで、MoEngage でのデータ収集プロセスに重要なセキュリティ層を追加できます。
+
+この機能により、識別済みユーザーに代わって送信されるデータが本物であり、改ざんされていないことが保証されます。このセキュリティは、お客様自身のサーバーによって暗号署名されたトークンを必須とすることで実現されており、権限のないユーザーが正当なユーザーになりすますことを防ぎます。
+
+<Note>
+  **前提条件**
+
+  実装を始める前に、以下の要件を満たしていることを確認してください。
+
+  - JWT 認証機能を利用するには、アプリケーションで MoEngage React Native Core プラグインのバージョン [**_12.9.1_**](/ja/release-notes/sdks/react-native#core-12-9-1) 以上を使用している必要があります。
+  - 公開鍵を管理し、この機能の適用設定を行うために、MoEngage ダッシュボードへのアクセス権が必要です。適用設定の詳細については、[こちらを参照してください](/ja/user-guide/settings/account/security/sdk-authentication#step-2-select-an-enforcement-mode)。
+</Note>
+
+次の図は、アプリケーション、お客様のサーバー、MoEngage SDK、MoEngage サーバー間のやり取りを示しています。
+
+![アプリケーションがお客様のサーバーに JWT をリクエストして MoEngage SDK に渡し、SDK が認証済みリクエストを MoEngage サーバーに送信する流れを示すフロー図](/images/jwt1.jpeg)
+
+## 統合
+
+React Native アプリケーションに JWT 認証を統合するには、以下を実行します。
+
+### ステップ 1: JWT 認証を有効にする
+
+各プラットフォームのネイティブ SDK の初期化時に JWT 認証を有効にします。アプリケーションで使用している初期化方法に合った手順に従ってください。ステップ 2 と 3 はどちらの方法でも同じです。
+
+<Tip>
+  [config generator](https://app-cdn.moengage.com/sdk/integration/config/index.html) を使用して設定ファイルを生成する場合は、**Enable JWT Authorisation** を **Yes** に設定してください。生成されるファイルには、以下で説明するキーが含まれます。
+</Tip>
+
+#### Android
+
+**手動初期化**
+
+**_MoEngage.Builder_** オブジェクトで **_NetworkAuthorizationConfig_** プロパティを設定します。詳細については、[Android SDK の初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/android)を参照してください。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.NetworkAuthorizationConfig
+import com.moengage.core.config.NetworkRequestConfig
+import com.moengage.react.MoEInitializer
+
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNetworkRequest(NetworkRequestConfig(NetworkAuthorizationConfig(isJwtEnabled = true)))
+MoEInitializer.initializeDefaultInstance(applicationContext, moEngage)
+```
+
+
+```java Java wrap
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+import com.moengage.core.config.NetworkAuthorizationConfig;
+import com.moengage.core.config.NetworkRequestConfig;
+import com.moengage.react.MoEInitializer;
+
+MoEngage.Builder builder = MoEngage.builder(this, "YOUR_WORKSPACE_ID", DataCenter.getDataCenterX())
+    .configureNetworkRequest(new NetworkRequestConfig(new NetworkAuthorizationConfig(true)));
+MoEInitializer.INSTANCE.initializeDefaultInstance(getApplicationContext(), builder);
+```
+
+</CodeGroup>
+
+**ファイルベースの初期化**
+
+`moengage.xml` 設定ファイルに次のキーを追加します。詳細については、[ファイルベースの初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/file-based-initialization/file-based-initialization#android-configuration-reference)を参照してください。
+
+```xml moengage.xml
+<bool name="com_moengage_core_jwt_authorization_enabled">true</bool>
+```
+
+#### iOS
+
+**手動初期化**
+
+**_MoEngageSDKConfig_** オブジェクトで **_networkConfig_** プロパティを設定します。詳細については、[iOS SDK の初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/ios)を参照してください。
+
+<CodeGroup>
+
+```swift Swift wrap
+let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: .YOUR_DATA_CENTER)
+sdkConfig.networkConfig = MoEngageNetworkRequestConfig(authorizationConfig: MoEngageNetworkAuthorizationConfig(isJwtEnabled: true))
+MoEngageInitializer.sharedInstance().initializeDefaultSDKConfig(sdkConfig, andLaunchOptions: launchOptions)
+```
+
+
+```objective-c Objective-C wrap
+MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:YOUR_DATA_CENTER];
+sdkConfig.networkConfig = [[MoEngageNetworkRequestConfig alloc] initWithAuthorizationConfig:[[MoEngageNetworkAuthorizationConfig alloc] initWithIsJwtEnabled:YES]];
+[[MoEngageInitializer sharedInstance] initializeDefaultSDKConfig:sdkConfig andLaunchOptions:launchOptions];
+```
+
+</CodeGroup>
+
+**ファイルベースの初期化**
+
+`Info.plist` の `MoEngage` ディクショナリに次のキーを追加します。詳細については、[ファイルベースの初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/file-based-initialization/file-based-initialization#ios-configuration-reference)を参照してください。
+
+```xml Info.plist
+<key>IsJwtEnabled</key>
+<true/>
+```
+
+### ステップ 2: JWT を SDK に渡す
+
+JWT のライフサイクルの管理はアプリケーション側の責任です。推奨されるフローは、ユーザーのログイン時にトークンを取得し、そのトークンを SDK に渡すことです。また、以降のアプリ起動時にトークンの有効期限が切れていないかを確認し、必要に応じて新しいトークンを取得する必要があります。
+
+**_passAuthenticationDetails()_** メソッドを使用して、SDK にトークンを渡します。
+
+```typescript TypeScript wrap
+import ReactMoE, {
+  MoEAuthenticationType,
+  MoEJwtAuthenticationData,
+} from "react-native-moengage";
+
+ReactMoE.passAuthenticationDetails({
+  authenticationType: MoEAuthenticationType.JWT,
+  data: new MoEJwtAuthenticationData("YOUR_JWT_TOKEN", "USER_IDENTIFIER"),
+});
+```
+
+詳細については、[インターフェースと列挙型](#interfaces-and-enums)を参照してください。
+
+### ステップ 3: リスナーを登録して認証エラーを処理する
+
+SDK は、MoEngage サーバーから返されたトークン検証エラーを `authenticationError` イベントを通じて通知します。認証が失敗したときにアプリケーションが新しいトークンを取得して提供できるように、このイベントのリスナーを登録してください。
+
+アプリケーションが常にコールバックを受け取れるように、ルートコンポーネントなどのグローバルスコープでリスナーを登録してください。
+
+```typescript TypeScript wrap
+import ReactMoE, {
+  MoEAuthenticationType,
+  MoEAuthenticationErrorData,
+  MoEJwtAuthenticationErrorData,
+} from "react-native-moengage";
+
+ReactMoE.setEventListener(
+  "authenticationError",
+  (error: MoEAuthenticationErrorData) => {
+    if (error.authenticationType === MoEAuthenticationType.JWT) {
+      const errorData = error.data as MoEJwtAuthenticationErrorData;
+      const jwtError = errorData.code;
+      const message = errorData.message;
+      // Take appropriate action based on jwtError.
+      // For example, fetch a new token and call passAuthenticationDetails() again.
+    }
+  }
+);
+```
+
+コールバックの受信を停止するには、同じイベント名で **_removeEventListener()_** を呼び出します。
+
+```typescript TypeScript wrap
+ReactMoE.removeEventListener("authenticationError");
+```
+
+詳細については、[インターフェースと列挙型](#interfaces-and-enums)を参照してください。
+
+## インターフェースと列挙型
+
+以下のインターフェース、クラス、列挙型は、このガイドで説明する JWT 認証メソッドで使用されるデータ構造を定義します。トークンのペイロードを作成する際やエラーを処理する際に使用してください。
+
+```typescript TypeScript wrap
+// Payload accepted by passAuthenticationDetails().
+interface MoEAuthenticationData {
+  authenticationType: MoEAuthenticationType;
+  data: MoEAuthenticationDetails; // For JWT, use MoEJwtAuthenticationData.
+}
+
+// Authentication scheme used to authenticate the SDK's network requests.
+enum MoEAuthenticationType {
+  JWT = "JWT",
+}
+
+// JWT specific authentication payload.
+// Construct with: new MoEJwtAuthenticationData(token, userIdentifier)
+interface MoEJwtAuthenticationData extends MoEAuthenticationDetails {
+  token: string;
+  userIdentifier: string;
+}
+
+// Payload delivered with the authenticationError event.
+interface MoEAuthenticationErrorData {
+  accountMeta: MoEAccountMeta;
+  platform: MoEPlatform;
+  authenticationType: MoEAuthenticationType;
+  data: MoEAuthenticationErrorDetails; // For JWT, use MoEJwtAuthenticationErrorData.
+}
+
+// JWT specific error details.
+interface MoEJwtAuthenticationErrorData extends MoEAuthenticationErrorDetails {
+  code: MoEJwtErrorCode;
+  token: string;
+  userIdentifier: string;
+  message: string;
+}
+
+// Reason the JWT authentication failed.
+enum MoEJwtErrorCode {
+  TimeConstraintFailure = "TIME_CONSTRAINT_FAILURE",
+  DecryptionFailed = "DECRYPTION_FAILED",
+  HeaderTypeIncompatible = "HEADER_TYPE_INCOMPATIBLE",
+  PayloadContentMissing = "PAYLOAD_CONTENT_MISSING",
+  InvalidSignature = "INVALID_SIGNATURE",
+  IdentifierMismatch = "IDENTIFIER_MISMATCH",
+  Unknown = "UNKNOWN",
+  TokenNotAvailable = "TOKEN_NOT_AVAILABLE",
+}
+
+// Platform on which the error occurred.
+enum MoEPlatform {
+  Android = "android",
+  IOS = "iOS",
+}
+```
+
+<Info>
+  **情報**
+
+  - 認証エラーによって API リクエストが失敗した場合、アプリケーションが新しいトークンを提供するまで、SDK はリクエストを再試行しません。
+  - 1 つのセッション内で認証が 10 回連続して失敗すると、SDK は次のセッションが開始されるまでデータの同期を試行しなくなります。このカウンターは、同期が成功するとリセットされます。
+  - ユーザーのログアウト時に JWT エラーによってデータ同期が失敗した場合、保留中のデータは削除され、再試行は行われません。
+</Info>

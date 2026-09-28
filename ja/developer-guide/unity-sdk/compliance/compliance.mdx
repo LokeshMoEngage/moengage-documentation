@@ -1,0 +1,108 @@
+---
+title: "コンプライアンス"
+description: "Unity アプリケーションでデータトラッキングをオプトアウトしたり、MoEngage SDK を有効化・無効化したりします。"
+---
+
+# データトラッキングのオプトアウト
+
+SDK によるデータトラッキングをオプトアウトするには、以下に示すように **optOutDataTracking( )** メソッドを使用します。データトラッキングをオプトアウトした後、ユーザーのイベントまたは属性のトラッキングを開始するには、明示的にオプトインする必要があります。
+
+<CodeGroup>
+
+```c# c#
+// shouldOptOut: Bool indicating opt-out status, set true if you want to opt-out
+MoEngageClient.optOutDataTracking(shouldOptOut);
+```
+
+</CodeGroup>
+
+# SDK の有効化/無効化
+
+MoEngage SDK にユーザー情報をトラッキングさせたくない場合、または MoEngage システムにデータを送信させたくない場合は、以下に示すように **DisableSdk()** メソッドを使用します。
+
+<CodeGroup>
+
+```c# c#
+MoEngageClient.DisableSdk();
+```
+
+</CodeGroup>
+
+この API が呼び出されると、すべての SDK API が動作しなくなります。SDK は **EnableSdk()** が呼び出されるまで無効のままです。\
+ユーザーの同意を得たら、以下の API を使用して SDK を有効にします。
+
+<CodeGroup>
+
+```c# c#
+MoEngageClient.EnableSdk();
+```
+
+</CodeGroup>
+
+上記のメソッドは Unity Plugin バージョン 1.2.0 以降で利用できます。
+
+# ネイティブ SDK の初期化
+
+コンプライアンスポリシーに基づいて、必要に応じて SDK を無効状態で初期化することもできます。そのためには、SDK の初期化時に SDK の状態を無効として示すブール値を渡します。
+
+## ANDROID:
+
+<CodeGroup>
+
+```Kotlin Kotlin
+import com.moengage.unity.wrapper.MoEInitializer
+import com.moengage.core.MoEngageimport com.moengage.core.DataCenterimport com.moengage.core.model.SdkState
+
+// this is the instance of the application class and "YOUR_WORKSPACE_ID" is the Workspace ID from the dashboard.
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID",[YOUR_DATA_CENTER])
+  
+MoEInitializer.initialize(getApplicationContext(), moEngage, sdkState)
+```
+
+
+```Java Java
+import com.moengage.unity.wrapper.MoEInitializer;
+import com.moengage.core.MoEngage;import com.moengage.core.DataCenter;import com.moengage.core.model.SdkState;
+
+// this is the instance of the application class and "YOUR_WORKSPACE_ID" is the Workspace ID from the dashboard.
+MoEngage.Builder moEngage =
+        new MoEngage.Builder(this, "YOUR_WORKSPACE_ID",[YOUR_DATA_CENTER]);
+
+MoEInitializer.initialiseDefaultInstance(applicationContext, moEngage, sdkState)
+```
+
+</CodeGroup>
+
+## iOS:
+
+iOS の場合、SDK は `MoEUnityAppController` クラスで初期化されます。ここで、以下に示すように、初期化メソッドを更新して SDK 無効化パラメーターを含めます。
+
+<CodeGroup>
+
+```Objective-C Objective-C
+@implementation MoEUnityAppController
+
+- (instancetype)init
+{
+    self = [super init];
+    if (self) {
+        UnityRegisterAppDelegateListener(self);
+    }
+    return self;
+}
+
+# pragma mark - UIApplicationDelegate methods
+
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    [super application:application didFinishLaunchingWithOptions:launchOptions];
+
+    // SDK Initialization, with SDK State(isSdkEnabled) as MoEngageSDKStateDisabled for disabling the SDK
+    [[MoEUnityInitializer sharedInstance] initializeSDKWithLaunchOptions:launchOptions withSDKState:MoEngageSDKStateDisabled];
+  
+    return YES;
+}
+
+@end
+```
+
+</CodeGroup>

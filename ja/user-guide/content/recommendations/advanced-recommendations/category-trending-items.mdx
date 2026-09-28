@@ -1,0 +1,110 @@
+---
+title: "Trending Items"
+description: "集計されたユーザーインタラクションデータを使用して、カテゴリやロケーションなどの特定のカタログ属性内でトレンドになっているアイテムを表示するレコメンデーションを作成します。"
+---
+
+# 概要
+
+Trending Items は、集計されたユーザーインタラクションに基づいて注目を集めているアイテムを特定する、Merlin AI を活用したレコメンデーションモデルです。MoEngage は、購入、閲覧、ウィッシュリストなどのインタラクションイベントを定義された期間でグループ化し、カテゴリ、サブカテゴリ、都市など、選択したカタログ属性内でトレンドになっているものを表示します。その後、これらのトレンド結果を、最近のアクティビティやプロファイル属性に基づいて個々のユーザーに関連付けることができます。
+
+<Info>
+  **前提条件**
+
+  Trending Items レコメンデーションを作成する前に、次の要件を満たしていることを確認してください。
+
+  - アカウントで Advanced Recommendations が有効になっていること。
+  - ユーザーアクションイベントを MoEngage と統合し、各イベントに一意のアイテム ID が含まれていること。
+  - 関連するユーザーとアイテムのインタラクションイベントをトラッキングし、MoEngage の標準イベントにマッピングしていること。
+  - アカウントにアクティブなカタログがあること。
+  - Attribute Trend の場合、カタログに `category` や `city` などのカテゴリ型アイテム属性が少なくとも 1 つ含まれていること。
+
+  詳細については、[Map User Actions](/ja/user-guide/content/recommendations/getting-started/map-user-actions-settings) および [Catalogs](/ja/user-guide/content/recommendations/getting-started/catalogs) を参照してください。
+</Info>
+
+## ユースケース
+
+Trending Items は次のユースケースをサポートします。
+
+- **カテゴリ別のトレンド**: ユーザーが Electronics セクションを閲覧している場合は Electronics でトレンドのアイテムを表示し、Fashion を閲覧している場合は Fashion でトレンドのアイテムを表示します。
+- **地域別のトレンド**: カタログ内のロケーション属性に基づいて、ユーザーの都市や地域でトレンドになっているアイテムを表示します。
+- **フォールバックレコメンデーション**: Frequently Viewed Together または Frequently Bought Together レコメンデーションのインタラクションデータが不足している場合のフォールバックとして Trending Items を使用します。
+
+## Popular Items フォールバック
+
+Popular Items は、カタログ全体で全体のインタラクション数が最も多いアイテムをランク付けします。パーソナライズされないため、すべてのユーザーが同じ集団レベルのリストを受け取ります。
+
+MoEngage は、すべての Advanced Recommendations モデルのデフォルトのフォールバックとして Popular Items を提供します。モデルのデータが少なすぎる場合、MoEngage は Popular Items にフォールバックするため、新規ユーザーやインタラクション履歴が少ないユーザーでもレコメンデーションを受け取ることができます。このフォールバックを設定する必要はなく、MoEngage が自動的に提供します。
+
+詳細については、[Advanced Recommendations の概要](/ja/user-guide/content/recommendations/advanced-recommendations/overview-advanced-recommendations) を参照してください。
+
+## トレンドタイプ
+
+Trending Items は、**Global Trend** と **Attribute Trend** の 2 つのトレンドタイプをサポートしています。
+
+1. **Global Trend**: カタログ内のすべてのアイテムのインタラクションデータを集計し、カテゴリや属性に関係なく、カタログレベルでトレンドになっているアイテムを表示します。設定項目は次のとおりです。
+   - **Generate trends, ranked by**: アイテムのランク付けに使用するインタラクション指標 (Best sellers、Most viewed、Most wish-listed、Most cart additions、Top revenue generators など)。
+   - **In the last**: インタラクションを集計する期間 (24 時間、7 日、14 日、30 日など)。
+2. **Attribute Trend**: 特定のカタログ属性の値の範囲内でトレンドになっているアイテムを特定します。トレンドのアイテムをグローバルに表示するのではなく、ユーザーが最後に閲覧したカテゴリやプロファイルに保存されている都市など、各ユーザーに関連する属性値の範囲内でトレンドになっているものを表示します。
+
+## トレンドの設定
+
+属性トレンドを設定するには、次のオプションを使用できます。
+
+| フィールド | 説明 |
+| --- | --- |
+| **Generate \[attribute\] trends** | トレンドをグループ化するカタログ属性 (`category`、`subcategory`、`city` など)。 |
+| **Ranked by** | アイテムのランク付けに使用するインタラクション指標: Best sellers、Most viewed、Most wish-listed、Most cart additions、Top revenue generators。 |
+| **In the last** | インタラクションを集計する期間: 24 時間、7 日、14 日、30 日。 |
+
+# トレンドソース
+
+トレンドを設定した後、MoEngage は各ユーザーのプロファイルに基づいて関連する属性値を決定します。属性値を定義するには、次のいずれかのオプションを選択します。
+
+- **Custom value**: 固定の属性値を入力します。MoEngage は、このレコメンデーションの対象となるすべてのユーザーに対して、その特定の値でトレンドになっているアイテムを表示します。例: カタログ属性が `Category` で、カスタム値を `Electronics` に設定した場合、個々のロケーションや閲覧履歴に関係なく、**すべての**ユーザーがトレンドの電子機器アイテムのレコメンデーションを受け取ります。
+- **User property**: 各顧客の関連する属性値を保存している動的なユーザープロパティにマッピングします。MoEngage は、個々のユーザーのリアルタイムのプロパティ値を使用して結果をパーソナライズします。\
+  例: カタログ属性が `City` で、それをユーザープロパティ `Home City` にマッピングした場合:
+  - ユーザー A (`Home City` が "Chicago" に設定) には、**Chicago** でトレンドになっているアイテムが表示されます。
+  - ユーザー B (`Home City` が "London" に設定) には、**London** でトレンドになっているアイテムが表示されます。
+
+# Trending Items レコメンデーションを作成する
+
+<Info>
+  Admin、Manager、Marketer のロールがレコメンデーションを作成できます。
+</Info>
+
+Trending Items レコメンデーションを作成するには、次の手順を実行します。
+
+1. MoEngage のサイドバーメニューで、**Content** メニューアイコン <img alt="Content メニューアイコン" src="/images/contentitem1.png" style={{ display: "inline-block", height: "20px", width: "auto" }} /> にカーソルを合わせます。Content メニューが表示されます。
+2. **Recommendations** をクリックします。 <img src="/images/content2.png" alt="Recommendations ページへのナビゲーション" /> Recommendations ページが表示されます。
+3. **\+ Create recommendation** をクリックします。 <img src="/images/content3.png" alt="Create recommendation ボタン" /> Create recommendation ページが表示されます。
+4. **Predictive** で **Trending Items** を選択し、**Next** をクリックします。 <img src="/images/Trending1.png" alt="Trending Items レコメンデーションモデルを選択" />
+5. **Recommendation name** ボックスに、レコメンデーションの名前を入力します。
+6. **Recommendation description** ボックスに、説明を入力します (任意)。
+   <Note>
+     MoEngage は、アカウント内のすべての AI レコメンデーションで選択されたカタログを **Catalog** ボックスに事前入力します。**Catalog** フィールドは無効になっており、選択後は変更できません。別のカタログを使用するには、カスタマーサクセスマネージャー (CSM) にお問い合わせください。
+   </Note>
+7. **Trend configuration** で、トレンドタイプを選択します。
+   - **Global trend**: カタログ内のすべてのアイテムのインタラクションを集計します。
+     1. **Global trend** カードをクリックします。
+     2. **Generate trends, ranked by** リストで、MoEngage がトレンドアイテムのランク付けに使用するインタラクション指標を選択します (例: Best sellers)。
+     3. **In the last** リストで、MoEngage がインタラクションを集計する期間を選択します (例: 7 日)。 <img src="/images/global-trend.png" alt="Global trend を設定" />
+   - **Attribute trend**: カタログ属性の値の範囲内でトレンドになっているアイテムを表示します。
+     1. **Attribute trend** カードをクリックします。
+     2. **Generate \[attribute\] trends** リストで、トレンドをグループ化するカタログ属性 (`category` など) を選択します。
+     3. **Ranked by** リストで、インタラクション指標を選択します。
+     4. **In the last** リストで、集計期間を選択します。
+     5. **Show trends to user, where** で、カタログ属性と演算子を選択します。固定値を入力するには **Custom Value** を、ユーザープロファイルのプロパティにマッピングするには **User property** を選択します。必要に応じて、値を完全一致させるには **Case Sensitive** を選択します。 <img src="/images/Trending3.png" alt="Trending Items レコメンデーションのトレンドタイプとトレンドソースを設定" />
+8. 必要に応じて、**Filter items by user actions** をオンにして、結果に表示するアイテムを制御します。
+   - **Select user action to keep items**: レコメンデーション結果と指定したユーザーアクション条件の両方に含まれるアイテムのみを含めます。**\+ Filter** をクリックして、アクション、時間演算子、値を追加します。
+   - **Select user action to remove items**: 指定したユーザーアクション条件に基づいて、レコメンデーション結果からアイテムを除外します。**\+ Filter** をクリックして、アクション、時間演算子、値を追加します。 <img src="/images/content7.png" alt="ユーザーアクションフィルターを設定" />
+9. 必要に応じて、**Filter items by item attributes** をオンにして、カタログデータに基づいて結果をフィルタリングします。**Item where** で商品属性と演算子を選択し、**Custom value** または **User property** を選択して値を定義します。値を完全一致させるには、**Case sensitive** を選択します。**\+ Filter** をクリックして条件を追加します。 <img src="/images/filter-items-by-attributes.png" alt="アイテム属性でアイテムをフィルタリング" />
+10. **Create** をクリックします。
+    <Note>
+      **Test recommendation** セクションでは、MoEngage がレコメンデーションの処理を完了するまで **Show results** は無効のままです。次のバナーが表示されます: "You will be able to test recommendations after processing is complete. Processing will complete in 2 hours."
+    </Note>
+
+# レコメンデーションをテストする
+
+Trending Items の結果はユーザーの最近のアクティビティに基づいてユーザーごとに異なる可能性があるため、MoEngage は結果を自動入力しません。レコメンデーションを作成した後、MoEngage での処理には約 2 時間かかります。
+
+処理が完了したら、実際のユーザー、ランダムサンプル、または特定のアイテムに対してレコメンデーションをテストします。詳細については、[Test a Recommendation](/ja/user-guide/content/recommendations/getting-started/test-a-recommendation) を参照してください。

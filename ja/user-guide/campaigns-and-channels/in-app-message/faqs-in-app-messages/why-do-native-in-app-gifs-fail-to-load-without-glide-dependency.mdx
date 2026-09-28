@@ -1,0 +1,35 @@
+---
+title: "Android で Glide 依存関係がないとネイティブ In-App の GIF が読み込まれないのはなぜですか？"
+description: "アプリレベルの build.gradle に Glide 画像ライブラリの依存関係を追加して、Android Native およびハイブリッドフレームワークでネイティブ In-App の GIF が読み込まれない問題を解決します。"
+---
+
+## 問題
+
+Android Native や、Flutter、React Native などのハイブリッドフレームワークで Glide 依存関係がない場合、ネイティブ In-App メッセージで GIF が読み込まれません。
+
+## 説明
+
+- In-App モジュールは、In-App メッセージに含まれる画像や GIF の読み込みを Glide 画像ライブラリに完全に依存しています。
+- 次のメソッドを呼び出すだけでは、In-App メッセージの表示は完了しません。
+
+```java
+MoEInAppHelper.getInstance().showInApp(context)
+```
+
+- Glide 依存関係がない状態でこのメソッドを呼び出すと、次のエラーが発生します。
+
+```
+Library support not found: Image and gif require Glide library.
+```
+
+## 解決策
+
+In-App モジュールで画像や GIF が確実に表示されるようにするには、アプリレベルの `build.gradle` ファイルに Glide ライブラリを追加します。
+
+```groovy build.gradle (:app)
+dependencies {
+  implementation 'com.github.bumptech.glide:glide:4.16.0'
+}
+```
+
+依存関係を追加した後、Gradle ファイルを同期してアプリを再ビルドします。Glide が組み込まれ、画像や GIF を含む In-App メッセージが正しく表示されるようになります。

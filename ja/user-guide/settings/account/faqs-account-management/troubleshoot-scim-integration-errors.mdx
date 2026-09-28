@@ -1,0 +1,37 @@
+---
+title: "SCIM 連携エラーのトラブルシューティング"
+description: "JumpCloud やその他の SCIM 2.0 IdP など、ID プロバイダーとの連携時に MoEngage で発生する一般的な SCIM プロビジョニングエラーを解決します。"
+---
+
+## サポートされている ID プロバイダー
+
+MoEngage は、SCIM 2.0 プロトコルに準拠するすべての ID プロバイダー (IdP) での SCIM プロビジョニングをサポートしています。[Okta、Azure (Microsoft Entra ID)、JumpCloud](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim) についてステップバイステップのガイドを用意しているのは、MoEngage のお客様の多くがこれらの IdP を使用しているためであり、MoEngage が SCIM のサポートをこれらに限定しているわけではありません。
+
+SCIM 2.0 に準拠した別の IdP を使用している場合は、IdP のドキュメントに従って、MoEngage ワークスペースで生成された SCIM ベース URL とベアラートークンを設定してください。このトークンの生成方法の詳細については、[MoEngage で SCIM を設定する](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim)を参照してください。
+
+## 問題
+
+プロビジョニングが失敗する、または IdP からのユーザーやロールの更新が MoEngage に同期されません。
+
+## 説明
+
+同期処理を開始して報告するシステムは IdP であるため、SCIM の同期エラーは MoEngage ではなく IdP の管理コンソールに表示されます。
+
+<Info>
+  SCIM を設定する前に、MoEngage ワークスペースの [シングルサインオン (SSO)](/ja/user-guide/settings/account/security/single-sign-on-sso) を設定してください。MoEngage では、SCIM の前提条件として、正しく動作する SSO 設定が必要です。
+</Info>
+
+## 解決策
+
+1. IdP の管理コンソールで、具体的な同期エラーメッセージと詳細を確認します。
+2. 同期の失敗を調査できるよう、IdP に表示された正確なエラーメッセージを MoEngage サポートチームに共有します。
+
+## JumpCloud 固有の問題
+
+<Accordion title="グループ管理を有効にするとプロビジョニングが失敗する">
+  JumpCloud は現在、ユーザーメンバーを含まない SCIM グループを作成しますが、MoEngage API はこれを拒否します。Provisioning タブの **Enable management of User Groups and Group Membership in this application** トグルを無効のままにし、代わりに個々のユーザーレベルでロールを割り当ててください。手順については、[ロール属性をマッピングする](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-4-map-the-role-attribute)を参照してください。
+</Accordion>
+
+<Accordion title="ロールの更新が MoEngage に反映されない">
+  JumpCloud の Export Attribute Mapping の送信先属性で、role の前にコロンではなくピリオドが使用されていることを確認してください: `urn:ietf:params:scim:schemas:extension:moengage:2.0:User.role`。Okta や Azure で使用されるコロン区切りの構文とは異なり、JumpCloud は role を `moengage:2.0:User` 拡張のプロパティとして読み取ります。
+</Accordion>

@@ -1,0 +1,65 @@
+---
+title: "Delighted"
+---
+
+# はじめに
+
+Delighted は、実用的なフィードバックによってブランドのビジネス成長を支援する、すぐに使えるカスタマーエクスペリエンスプラットフォームです。
+
+# MoEngage × Delighted
+
+Delighted は、メール、ウェブ、SMS を介してリアルタイムで実用的な顧客フィードバックを収集するためのツールです。MoEngage と Delighted の連携により、以下のことができます。
+
+- MoEngage がイベントを取得したときに、Delighted のアンケートをユーザーに送信する。
+- ユーザーがアプリまたはウェブサイトで特定のイベントを実行したときに、そのユーザーを Autopilot に追加する。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  - Delighted アカウントにリンクされた [Private API Key](https://app.delighted.com/docs/api#authentication) を把握しておく必要があります。
+</Info>
+
+## MoEngage を介して Delighted のアンケート配信をトリガーする
+
+MoEngage の Connector Campaigns を使用すると、ユーザーがアプリまたはウェブサイトで何らかのアクションを実行したときに、Delighted のアンケートを送信できます。
+
+MoEngage でコネクタキャンペーンを作成するには、以下を行います。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最も適した配信タイプを選択します。この例では、「Event Triggered」を選択し、イベントとして「Purchased」を選択します。<img src="/images/partner_20264613012372.png" />
+2. キャンペーンのステップ 2 で、以下を行います。
+
+### Delighted API を呼び出す
+
+アンケートを送信するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして POST を選択します。
+- Headers
+  - `Authorization`: オンラインツールを使用し、ユーザー名に `Delighted API Key` を指定し、パスワードを空白にして Basic 認証を作成します。<img src="/images/partner_20264654903572.png" /> 上記の例では、このヘッダーの値は `Basic PGRlbGlnaHRlZF9hcGlfa2V5Pjo=` になります。
+  - `Content-Type`: `application/json`
+- Webhook URL としてエンドポイント `https://api.delighted.com/v1/people.json` を追加します。
+- Body: @ を入力してペイロードをパーソナライズします。
+  <CodeGroup>
+  ```json JSON
+  {
+      "email": "{{UserAttribute['Email (Standard)']}}",
+      "properties": {
+          "Purchase Experience": "Mobile App",
+          "State": "{{UserAttribute['Install Status']}}",
+          "City": "{{UserAttribute['Last Known City']}}",
+          "OrderValue": "{{EventAttribute['cart_value']}}"
+      }
+  }
+  ```
+  </CodeGroup>
+
+![](/images/partner_20264613015316.png)
+
+- 詳細については、[Delighted の API ドキュメント](https://app.delighted.com/docs/api/sending-to-people)を参照してください。
+- このステップでキャンペーンをテストできます。
+- 準備ができたら、そのままこのキャンペーンを公開できます。
+
+## Delighted Autopilot にユーザーを追加する
+
+ユーザーが特定のイベントを実行したときに、上記のように MoEngage Connector Campaign をトリガーし、[Delighted の Autopilot API](https://app.delighted.com/docs/api/adding-people-to-autopilot) を呼び出すことができます。Delighted はユーザーのアンケートを自動的にスケジュールし、Autopilot の設定で構成された頻度でアンケートを送信し続けます。

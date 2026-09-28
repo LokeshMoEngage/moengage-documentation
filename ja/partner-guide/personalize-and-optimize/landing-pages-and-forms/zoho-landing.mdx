@@ -1,0 +1,88 @@
+---
+title: "Zoho Landing"
+description: "Zoho Landing のフォーム送信をユーザーまたはイベントとして MoEngage に送信し、リード獲得を充実させてリアルタイムのエンゲージメントキャンペーンをトリガーします。"
+keywords: ["zoho landing", "landing page", "form submission", "lead capture", "user sync", "event sync", "moengage integration"]
+---
+
+## はじめに
+
+[Zoho Landing](https://www.zoho.com/landingpage/) は、埋め込みフォームでリードを獲得するための高コンバージョンのページを作成・公開できるランディングページビルダーです。MoEngage と連携すると、Zoho Landing ページからのすべてのフォーム送信が、充実したリードイベントとして MoEngage に直接送信されるため、ターゲットキャンペーンやパーソナライズされたメッセージングで新しいリードにリアルタイムで対応できます。
+
+<Note>
+  Zoho Landing 連携は **Zoho Landing によって構築および保守されています**。カスタマイズのリクエストや Zoho Landing コネクタの動作に固有の問題については、[support@zoholandingpage.com](mailto:support@zoholandingpage.com) にお問い合わせください。
+</Note>
+
+## ユースケース
+
+Zoho Landing を MoEngage と連携すると、以下のユースケースに対応できます。
+
+- **ランディングページのフォームからのリード獲得を充実させる**: 連絡先の詳細、カスタム属性、ページのコンテキストを含むフォーム送信データを、リードイベントとして MoEngage に自動的に送信し、新しい見込み顧客をすぐにセグメント化してエンゲージメントを図れます。
+- **リアルタイムのリード育成フローをトリガーする**: フォーム送信時に発生するイベントを使用して、MoEngage 内でパーソナライズされたオンボーディングジャーニー、ドリップキャンペーン、営業アラートを開始できます。
+
+## 同期タイプ
+
+| 同期タイプ | 同期される内容 |
+| --- | --- |
+| **User** | 名前、メールアドレス、電話番号、デモグラフィック、任意のカスタムユーザー属性などのカスタム属性を使用して、MoEngage のユーザープロファイルを作成または更新します。 |
+| **Event** | MoEngage のユーザープロファイルに対して行動イベントを記録します。`lead_generation`、`demo_request`、`webinar_signup` などのフォーム送信アクションを追跡するために使用します。 |
+
+<Note>
+  同期タイプは URL パス（`/user/` または `/events/`）から自動的に判断されます。MoEngage サポートチームが、ユースケースに適したエンドポイント URL を提供します。
+</Note>
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - **Integrations** にアクセスできる有効な Zoho Landing アカウント。
+  - MoEngage の **Workspace ID** と **Data API Key**。
+</Info>
+
+### ステップ 1: MoEngage エンドポイントを取得する
+
+連携用の専用エンドポイントを取得するには、MoEngage サポートチームに連絡してください。
+
+Zoho Landing から MoEngage へのリクエストを認証するには、**Workspace ID** と **Data API Key** が必要です。これらを取得するには、以下を行います。
+
+1. MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。
+2. **Workspace ID**（以前の名称は _App ID_）で、Workspace ID をコピーします。
+3. **API Keys** で、**Data** に表示されているキーをコピーします。
+
+![Workspace ID と Data API Key フィールドが表示された MoEngage の Settings APIs ページ](/images/zohobilling1.png)
+
+これら 2 つの値を使用して **Basic 認証トークン**を生成します。
+
+オンラインの [Basic Auth Header Generator](https://www.debugbear.com/basic-auth-header-generator) を使用し、ユーザー名に **Workspace ID**、パスワードに **Data API Key** を入力します。生成されたトークンは、Zoho Landing でコネクタを設定する際に `Authorization` ヘッダーの値として使用します。
+
+<Note>
+  生成されたトークンが完全にコピーされ、余分なスペースが含まれていないことを確認してください。トークンの形式は `Basic <base64-encoded-credentials>` です。
+</Note>
+
+### ステップ 2: Zoho Landing で MoEngage 接続を設定する
+
+Zoho Landing で **Integrations** \> **MoEngage** に移動し、以下の詳細を入力します。
+
+| フィールド | 値 |
+| --- | --- |
+| **Account Name** | Zoho Landing 内でこの MoEngage アカウント接続を識別するためのラベル。 |
+| **API URL** | イベントを受信する MoEngage エンドポイント（[ステップ 1](#step-1-get-your-moengage-endpoint) で取得）。 |
+| **APP ID** | MoEngage の **Workspace ID**。 |
+| **API Data Key** | **Settings** \> **Account** \> **APIs** からコピーした MoEngage の **Data API Key**。 |
+
+入力したら、**Add Account** をクリックして接続を保存します。
+
+![API URL、App ID、API Data Key フィールドが表示された Zoho Landing の MoEngage アカウント設定画面](/images/zohobilling2.png)
+
+### ステップ 3: フォームフィールドをマッピングする
+
+アカウントが接続されたら、Zoho Landing のフォームフィールドを対応する MoEngage のフィールドにマッピングします。Zoho Landing は、フォームが送信されるたびに、マッピングされた値を MoEngage に送信するペイロードに自動的に含めます。
+
+![フィールドが MoEngage の属性にマッピングされた Zoho Landing のフォームフィールドマッピング画面](/images/zohobilling3.png)
+
+![マッピングされた MoEngage のフィールドが表示された Zoho Landing のフィールドマッピング確認画面](/images/zohobilling4.png)
+
+<Note>
+  - Event タイプのエンドポイントでは、`event_name` フィールドが**必須**です。`event_name` のないリクエストは拒否されます。
+  - フィールドマッピングは Zoho Landing 内で管理されます。利用可能なフィールドやマッピングの動作の変更については、[support@zoholandingpage.com](mailto:support@zoholandingpage.com) にお問い合わせください。
+</Note>

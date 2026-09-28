@@ -1,0 +1,78 @@
+---
+title: "Campaign Stats and Reports の概要"
+description: "リアルタイムのキャンペーンパフォーマンス統計を取得し、詳細なキャンペーンレポートをプログラムでダウンロードします。"
+icon: "file-magnifying-glass"
+---
+
+MoEngage Campaign Stats and Reports API を使用すると、MoEngage ダッシュボードの外部でマーケティングのパフォーマンスを監視できます。これらのエンドポイントを使用して、リアルタイムのプラットフォームレベルの統計を取得したり、長期的な分析のためにダウンロード可能なレポートを生成したりできます。
+
+## エンドポイント
+
+Campaign Stats and Reports API は、主に 2 つの機能領域に分かれています。
+
+- [Get Campaign Stats](/ja/api/stats/get-campaign-stats): プラットフォームレベルでリアルタイムのパフォーマンス指標（クリック、インプレッション、コンバージョン）を取得します。
+- [Download Campaign Report](/ja/api/campaign-reports/download-campaign-report): 指定した期間のキャンペーンデータファイルを直接ダウンロードします。
+
+## 機能の比較
+
+| 機能           | Campaign Stats API         | Campaign Report API       |
+| ----------------- | -------------------------- | ------------------------- |
+| **データの鮮度**  | リアルタイム                  | 履歴（期間指定）   |
+| **出力形式** | JSON                       | ZIP/GZIP ファイル             |
+| **バッチ上限**   | 1 回の呼び出しあたり 10 キャンペーン      | 90 日間の期間        |
+| **主な用途**   | ライブ監視／ダッシュボード | 詳細分析／監査 |
+
+## よくある質問
+
+### キャンペーン統計
+
+<AccordionGroup>
+  <Accordion title="1 回の Stats リクエストでクエリできるキャンペーンの数はいくつですか？">
+    1 回の API 呼び出しで、`campaign_ids` 配列に最大 **10 個のキャンペーン ID** を渡すことができます。さらに多くのキャンペーンのデータが必要な場合は、`offset` パラメーターと `limit` パラメーターを使用して結果をページングしてください。
+  </Accordion>
+  <Accordion title="TOTAL 指標と UNIQUE 指標の違いは何ですか？">
+    `metric_type` パラメーターを使用すると、表示を切り替えることができます。**TOTAL** はすべての発生回数をカウントし（例: 1 人のユーザーによる 3 回のクリック）、**UNIQUE** はアクションを実行した個別のユーザー数をカウントします。
+  </Accordion>
+  <Accordion title="特定のロケールやバリエーションの統計を取得できますか？">
+    はい。レスポンスオブジェクトは Platform \> Locale \> Variation の階層構造になっているため、A/B テストやローカライズされたコンテンツの詳細なパフォーマンスを確認できます。
+  </Accordion>
+  <Accordion title="開始日のみを渡した場合、API のレスポンスはどうなりますか？">
+    終了日なしで開始日のみを渡した場合、API はエラーレスポンスを返します。目的のレスポンスを取得するには、開始日と終了日の両方が必要です。
+  </Accordion>
+  <Accordion title="キャンペーン ID を指定せずに開始日と終了日を渡した場合、子キャンペーンの統計も取得できますか？">
+    キャンペーン ID を指定せずに開始日と終了日を指定した場合、API は親キャンペーンと子キャンペーンの両方の統計を返します。統計は指定した期間について取得できます。
+  </Accordion>
+  <Accordion title="レスポンス内で親キャンペーンに属する統計はどのように識別しますか？">
+    API レスポンス内で親キャンペーンに属する統計を識別するには、「Campaign Details and Reachability」API を使用できます。この API は、リクエストに含まれるすべてのキャンペーン ID を指定して呼び出す必要があります。親キャンペーンでは親キャンペーン ID フィールドが存在しないため、子キャンペーンと区別できます。
+  </Accordion>
+  <Accordion title="キャンペーン間の親子関係はどのように確認できますか？">
+    Campaign Details and Reachability API を使用すると、子キャンペーンを親キャンペーンに関連付けることができます。
+  </Accordion>
+</AccordionGroup>
+
+### キャンペーンレポート
+
+<AccordionGroup>
+  <Accordion title="レポートのダウンロードが 400 エラーで失敗したのはなぜですか？">
+    これは通常、指定した `FILENAME` が正しくない場合、レポートが 7 日以上前に作成された（期限切れ）場合、またはパス内の `APP_ID` が認証情報と一致しない場合に発生します。
+  </Accordion>
+  <Accordion title="定期キャンペーンのレポートを取得できますか？">
+    はい。Report API は、ワンタイムキャンペーンと定期キャンペーンの両方をサポートしています。ファイル名が、ダウンロードしたい特定のインスタンスと一致していることを確認してください。
+  </Accordion>
+  <Accordion title="署名の実装が正しいかどうかはどのように確認できますか？">
+    連結にパイプ文字（`|`）が `APPID|FILENAME|SECRETKEY` のとおり正確に使用されていることを確認してください。SHA256 でハッシュ化する前に、生成された文字列が UTF-8 でエンコードされていることを確認してください。
+  </Accordion>
+  <Accordion title="選択した日付でレスポンスが返ってこないのはなぜですか？">
+    選択した日付に、レポートを取得できる実行済みのキャンペーンが存在しない可能性があり、その場合はエラーメッセージが返されることがあります。
+  </Accordion>
+  <Accordion title="レポートファイルはいつでも取得できますか？">
+    生成されたレポートは、作成日から 7 日で期限切れになります。
+  </Accordion>
+  <Accordion title="レポートを生成する際に選択できる最大日数は何日ですか？">
+    最大 90 日間のレポートを生成できます。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+Postman コレクションを使用して、統合をテストし、署名ロジックを検証できます。[Postman コレクションを表示](https://www.postman.com/moengage-dev/api-docs/collection/s8t1ta0/moengage-campaign-stats-api) →

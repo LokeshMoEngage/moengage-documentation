@@ -1,0 +1,338 @@
+---
+title: "メッセージアーカイブ"
+description: "規制遵守と記録保持のために、MoEngage で顧客へのメッセージをアーカイブします。各チャネルで送信されたコミュニケーションを S3 または SFTP へのエクスポートで保存します。"
+---
+
+<Info>
+  Message Archival 機能は有料のアドオンです。詳細については、MoEngage の Customer Success Manager (CSM) またはサポートチームにお問い合わせください。
+</Info>
+
+## 概要
+
+メッセージアーカイブとは、顧客に送信したコミュニケーションを後でアクセスできるように保存するプロセスです。これらの顧客メッセージを保持することは、次のような複数の理由から重要です。
+
+- **規制遵守**: 地域や業界 (特に BFSI 分野) に応じて、世界各国のさまざまな規制機関が、顧客とのあらゆる「電子的コミュニケーション」を保存することを企業に義務付けています。顧客とのコミュニケーションの保存を推奨するにとどまる規則もあれば、企業に保存を義務付ける規則もあります。場合によっては、保持規則で保持すべきコミュニケーションの種類も定められています。たとえば、すべてのメッセージ (プロモーションメッセージを含む) を保存するか、少なくともトランザクションメッセージを所定の期間保存するといった内容です。\
+  各地域の規則およびガイドラインの例を次に示します。
+  | 国または地域 | 規則またはガイドライン |
+  | --- | --- |
+  | 米国 | [FINRA Rule 2210](https://www.finra.org/rules-guidance/rulebooks/finra-rules/2210) |
+  |  | [SEC Rule 17a-4](https://www.law.cornell.edu/cfr/text/17/240.17a-4) |
+  |  | [GLBA Rule for Financial Information Privacy](https://www.ftc.gov/business-guidance/resources/how-comply-privacy-consumer-financial-information-rule-gramm-leach-bliley-act) |
+  |  | [FRCP Rule 26](https://en.wikipedia.org/wiki/Federal_Rules_of_Civil_Procedure) |
+  | カナダ | [IDA 29.7](https://www.iiroc.ca/sites/default/files/2021-06/RulesCollated_en.pdf) |
+  | EU | [MiFID II](https://www.esma.europa.eu/sites/default/files/library/esma35-43-349_mifid_ii_qas_on_investor_protection_topics.pdf) |
+  | 英国 | [Durable Medium](https://www.fca.org.uk/firms/durable-medium) |
+  | インド | [Digital Lending Guidelines](https://rbidocs.rbi.org.in/rdocs/notification/PDFs/GUIDELINESDIGITALLENDINGD5C35A71D8124A0E92AEB940A7D25BB3.PDF) |
+  
+  <Info>
+   保持期間は規則ごとに異なります。たとえば、SEC Rule 17a-4 のデフォルトの保持期間は 6 年ですが、GLBA Rule for Financial Information Privacy のデフォルトの保持期間は 7 年です。
+  </Info>
+
+- **カスタマーエクスペリエンス**: 顧客が受信したメッセージについて、サポート窓口に問い合わせてくることがあります。こうした顧客により良く対応するには、顧客に送信したすべてのトランザクションメッセージやプロモーションメッセージに関する情報をチームが把握できるようにする必要があります。そうすることで、カスタマーサービスチームは顧客に送信されたパーソナライズされたメッセージを確認して、顧客からの問い合わせや苦情に対応できます。これをメッセージの送信/配信イベント (MoEngage の [S3 Exports](/ja/user-guide/data/exports/events/data-warehouse/s3-exports) または [Streams](https://www.moengage.com/docs/api/data/moengage-streams) を使用) と組み合わせることで、受信されたメッセージや、メールボックスの容量不足や携帯電話番号が利用できないなどのさまざまな理由で配信されなかったメッセージを 360 度の視点で把握できます。ブランドから顧客に送信されたコミュニケーションを 360 度の視点で把握できることで、カスタマーサービスチームは全体的なコンテキストを理解でき、対応時間 (TAT) と対応コストを削減できます。さらに重要なことに、全体的なカスタマーエクスペリエンスが向上します。
+- **監査**: メッセージアーカイブは、顧客に送信されたコンテンツを確認するための強力なツールです。顧客が受信したメッセージについて苦情を申し立てたり異議を唱えたりした場合に、これらのアーカイブファイルを使用して主張の妥当性を確認できます。
+
+  <Tip>
+   上記の理由から、MoEngage では顧客メッセージのコピーを少なくとも 2 ～ 6 か月間、可能であればそれ以上保持することをお勧めします。
+  </Tip>
+
+## MoEngage のメッセージアーカイブ
+
+MoEngage は Message Archival 機能を提供しており、企業は顧客に送信した実際の通知コンテンツのコピーを保持することを選択できます。この機能は、規制への準拠、監査ニーズへの対応、顧客へのより良い対応に役立ちます。この機能は、Email、SMS、Push、RCS の各チャネルと Inform で利用できます。
+
+この機能のその他の利点は次のとおりです。
+
+- **無期限の保存**: これらのメッセージを MoEngage に 1 か月間、または必要な期間だけ保存することを選択できます。
+- **自動アーカイブ**: 機能を有効にすると、指定したチャネルについて、すべてのベンダー/プラットフォームにわたって顧客メッセージが自動的にアーカイブされます。
+- **安全な保存**: MoEngage は、メッセージの暗号化を含め、メッセージファイルが安全に保管されるようにします。
+- **UI ベースのアクセス**: 各メッセージには、MoEngage ダッシュボードでユーザーとイベントごとにアクセスできます。
+- **各ファイルのダウンロードオプション**: メッセージファイルを簡単にダウンロードして、ローカルコピーを保持できます。
+- **メッセージファイルの取得 (任意)**: MoEngage では、これらのメッセージをお客様のファイルストアに取得できます。すべてのファイルには一意の識別子があり、ファイルをキャンペーン/アラートまで追跡できるようになっています。
+
+| チャネル | Message Archival のサポート |
+| --- | --- |
+| Push | はい |
+| SMS | はい |
+| RCS | はい |
+| Email | はい |
+| Inform | はい |
+| WhatsApp | いいえ |
+| In-App | いいえ |
+| OSM | いいえ |
+| Connectors | いいえ |
+
+## ダッシュボードでメッセージのコピーを表示する
+
+<Info>
+  _View sent message_ オプションは、MoEngage またはクライアント所有の S3 バケットにアーカイブされたメッセージでのみ利用でき、SFTP サーバーにアーカイブされたメッセージでは利用できません。
+</Info>
+
+顧客に送信されたアーカイブメッセージ (Email、Push、SMS、または RCS) のコピーを MoEngage ダッシュボードで表示できます。表示するには、次のようにします。
+
+- 送信されたコミュニケーションを確認したい顧客の User Profile で、**Activity Info** タブに移動します。
+- **User Activity** \> **Events** に、ユーザーに関連付けられたイベントのリストが表示されます。
+- メッセージのコピーは、_Email Sent、_ _SMS Sent、Notification Received Android、Notification Sent iOS、Notification Received Web_、および _RCS Sent_ イベントで確認できます。
+
+<Tabs>
+  <Tab title="Email">
+    顧客に送信されたメールのコピーを表示するには、次のようにします。
+
+    1. ユーザーの User Profile に移動します。
+    2. **Activity Info** タブをクリックします。
+    3. 対象のキャンペーンに関連付けられた _Email Sent_ イベントで、顧客に送信されたメールを探します。
+    4. **View sent message** をクリックして、顧客に送信されたコミュニケーションを表示します。
+    5. 右上隅の **Download** をクリックして、送信されたメールに対応する EML ファイルをダウンロードします。
+
+    **注**:
+
+    - メールのコピー内のリンクは説明のためにのみ追加されており、機能しない場合があります。
+    - 250 KB を超えるテンプレートはアーカイブされません。
+    - メールの添付ファイルはアーカイブされません。
+
+    ![2023-06-05\_15-17-10](/images/moengage_4e08ec.png)
+  </Tab>
+  <Tab title="SMS">
+   顧客に送信された SMS メッセージのコピーを表示するには、次のようにします。
+
+    1. ユーザーの User Profile に移動します。
+    2. **Activity Info** タブをクリックします。
+    3. キャンペーンに関連付けられた _SMS Sent_ イベントで、顧客に送信された SMS を探します。
+    4. **View sent message** をクリックして、顧客に送信されたコミュニケーションを表示します。
+    5. **Download** をクリックして、送信された SMS の PDF をダウンロードします。
+
+    **注**:
+
+    - SMS のコピー内のリンクは説明のためにのみ追加されており、機能しない場合があります。
+    - SMS Connector が Sinch の場合、_SMS Delivered_ イベントでも **View sent message** オプションを利用できます。
+
+    ![SMS\_Archival (1).gif](/images/moengage_4282f6.png)
+  </Tab>
+  <Tab title="Push">
+    顧客に送信された Push 通知のコピーを表示するには、次のようにします。
+
+    1. ユーザーの User Profile に移動します。
+    2. **Activity Info** タブをクリックします。
+    3. キャンペーンに関連付けられた _Notification Received Android、_ _Notification Received iOS、_ または _Notification Received Web_ イベント (プラットフォームに応じて) で、顧客に送信された Push 通知を探します。
+    4. **View sent message** をクリックして、顧客に送信されたコミュニケーションを表示します。
+    5. **Download as PDF** をクリックして、送信された Push 通知の PDF をダウンロードします。
+
+    **注**:
+
+    - Push 通知のコピー内のリンクは説明のためにのみ追加されており、機能しない場合があります。
+    - Push メッセージ内の絵文字は、ダウンロードした PDF では表示されません。
+
+    ![Push\_ViewCopy (1).gif](/images/moengage_d4900e.png)
+  </Tab>
+  <Tab title="RCS">
+    顧客に送信された RCS メッセージのコピーを表示するには、次のようにします。
+
+    1. ユーザーの User Profile に移動します。
+    2. **Activity Info** タブをクリックします。
+    3. キャンペーンに関連付けられた _RCS Sent_ イベントで、顧客に送信された RCS を探します。
+    4. **View sent message** をクリックして、顧客に送信されたコミュニケーションを表示します。
+    5. **Download** をクリックして、送信された RCS の PDF をダウンロードします。
+      <Info>
+      - アーカイブされたコピーには、キャンペーンで使用されたテンプレートタイプ (**Text**、**Rich card**、または **Carousel**) が反映されます。
+      - **Carousel** テンプレートを使用するキャンペーンでは、最初のカードだけでなく、そのメッセージの一部として送信されたすべてのカード (最大 10 枚) がまとめてアーカイブされます。受信者のアーカイブコピーを表示またはダウンロードすると、適用されたカードレベルのパーソナライゼーションを含め、その受信者に送信されたすべてのカードを確認できます。
+      - RCS メッセージのコピー内のリンクは説明のためにのみ追加されており、機能しない場合があります。
+      - RCS メッセージの代わりにフォールバック SMS が送信された場合 (たとえば、受信者のデバイスまたはネットワークが RCS をサポートしていなかったため)、アーカイブされたコピーには SMS のコンテンツが反映され、対応する *SMS Sent* イベントで確認できます。
+      </Info>
+
+     ![rcs_message_archival.gif](/images/rcs_message_archival.gif) 
+     
+  </Tab>
+</Tabs>
+
+<Info>
+  - PII Tokenized Sending が有効になっている場合、MoEngage では Message Archival はサポートされません。PII Tokenized Sending を使用すると、MoEngage プラットフォーム内に顧客の PII を保存せずに顧客とエンゲージできます。詳細については、[PII Tokenized Sending](/ja/user-guide/data/privacy/personal-data-or-personally-identifiable-information-pii/pii-tokenized-sending) を参照してください。
+  - アカウントで PGP 暗号化を有効にすると、PGP 暗号化を有効にする前にアーカイブされたメッセージを含め、すべてのアーカイブメッセージで *View sent message* オプションが利用できなくなります。詳細については、[メッセージの暗号化](/ja/user-guide/campaigns-and-channels/campaign-management-and-reports/message-archival/message-archival#message-encryption)を参照してください。
+</Info>
+
+
+## ファイルの保存
+
+ファイルの保存には、次のオプションがあります。
+
+- MoEngage の S3 バケットに保存する
+- お客様の S3 バケットに保存する
+- お客様の SFTP サーバーに保存する
+
+#### MoEngage の S3 バケットに保存する
+
+アーカイブされたファイルを MoEngage UI で表示したい場合は、ファイルを MoEngage の S3 バケットに保存すると便利です。ファイルをお客様独自の S3 バケットにのみ保存する場合、MoEngage がそれらのアーカイブファイルを UI に表示するには読み取りアクセス権が必要です。
+
+<Info>
+  一度設定を選択すると、後で変更することはできません。メッセージファイルをお客様の S3 バケットに保存することにした場合、この設定を変更して MoEngage に保存することはできません。
+</Info>
+
+#### お客様の S3 バケットに保存する
+
+これらのファイルを MoEngage の S3 バケットに保存する場合は、MoEngage がお客様用のバケットを作成し、メッセージを安全に保存します。
+
+お客様の S3 バケットにファイルを保存するには、次の手順を実行します。
+
+1. データを保存する S3 バケットの名前を共有し、MoEngage に読み取りおよび書き込みアクセス権を付与します。
+2. バケットの ARN URL も提供する必要があります。詳細については、[ARN URL の設定](/ja/user-guide/campaigns-and-channels/campaign-management-and-reports/message-archival/message-archival#set-up-the-arn-url)を参照してください。
+3. MoEngage では、ファイルを保存するフォルダ名が必要です。
+4. デフォルトのファイルパスから変更する場合、MoEngage では別のファイルパスの名前が必要です。
+
+#### お客様の SFTP サーバーに保存する
+
+このオプションでは、ユーザー認証情報による認証を使用して、アーカイブデータをお客様独自の SFTP サーバーに保存できます。接続の設定に関する詳細なガイドについては、[SFTP Integration のドキュメント](https://partners.moengage.com/hc/en-us/articles/26763225201172-SFTP#h_01HYTHXP4D381B4PT9B5GNJHZ7)を参照してください。
+
+詳細については、以下を参照してください。
+
+- ファイルパスと命名規則については、[ファイルパスと命名規則](/ja/user-guide/campaigns-and-channels/campaign-management-and-reports/message-archival/file-path-and-naming-convention)を参照してください。
+- ファイルの内容については、[ファイルの内容](/ja/user-guide/campaigns-and-channels/campaign-management-and-reports/message-archival/file-contents)を参照してください。
+
+### ARN URL の設定
+
+すでに S3 バケットをお持ちの場合でも、権限を制限できるように、MoEngage 専用の新しいバケットを作成することをお勧めします。
+
+<Info>
+  この手順では、AWS S3 アクセスを設定するために IT チームまたは DevOps チームとの連携が必要です。
+</Info>
+
+1. アプリ用のバケットを作成するには、[S3 コンソール](https://console.aws.amazon.com/s3/ "https://console.aws.amazon.com/s3/")を開き、手順に従って AWS にサインインするか、アカウントを作成します。
+2. サインインしたら、**Storage & Content Delivery** カテゴリから **S3** を選択します。
+3. 次の画面で **Create Bucket** を選択すると、バケットを作成してリージョンを選択するよう求められます。
+4. ナビゲーションバーの **Policies** タブに移動し、**Get Started**、**Create Policy** の順に選択します。これにより、ユーザーの権限を追加できます。
+5. **Create Your Own Policy** を選択します。これにより、指定したバケットにのみ MoEngage がアクセスできるよう、権限が制限されます。
+6. 独自のポリシーを作成する際に、任意の **Policy Name** を指定し、**Policy Document** セクションに次のコードを入力します。**INSERTSID** を SID に、**INSERTPOLICYID** をポリシー ID に、**INSERTBUCKETNAME** をバケット名に必ず置き換えてください。
+   <CodeGroup>
+   ```json DC-01, DC-02, DC-03, and DC-04 wrap
+   {
+       "Version": "2012-10-17",
+       "Id": {{INSERTPOLCIYID}},
+       "Statement": [
+         {
+           "Sid": {{INSERTSID}},
+           "Effect": "Allow",
+           "Principal": {
+           "AWS": [
+             "arn:aws:iam::612427630422:role/campaigns_archival_s3_export-role-e1qw8ulf",
+             "arn:aws:iam::612427630422:role/S3-EC2-InstanceRole"
+           ]
+           },
+           "Action": [
+             "s3:GetObject",
+             "s3:PutObject",
+             "s3:ListBucket",
+             "s3:GetLifecycleConfiguration"
+           ],
+           "Resource": [
+             "arn:aws:s3:::{{INSERTBUCKETNAME}}",
+             "arn:aws:s3:::{{INSERTBUCKETNAME}}/*"
+           ]
+         }
+       ]
+   }
+   ```
+   ```json DC-05 and DC-06 wrap
+   {
+       "Version": "2012-10-17",
+       "Id": {{INSERTPOLCIYID}},
+       "Statement": [
+         {
+           "Sid": {{INSERTSID}},
+           "Effect": "Allow",
+           "Principal": {
+           "AWS": [
+             "arn:aws:iam::163129101105:role/campaigns_archival_s3_export-role-e1qw8ulf",
+             "arn:aws:iam::163129101105:role/S3-EC2-InstanceRole"
+           ]
+           },
+           "Action": [
+             "s3:GetObject",
+             "s3:PutObject",
+             "s3:ListBucket",
+             "s3:GetLifecycleConfiguration"
+           ],
+           "Resource": [
+             "arn:aws:s3:::{{INSERTBUCKETNAME}}",
+             "arn:aws:s3:::{{INSERTBUCKETNAME}}/*"
+           ]
+         }
+       ]
+   }
+   ```
+   </CodeGroup>
+
+## メッセージの暗号化
+
+MoEngage では、アーカイブする顧客メッセージを暗号化する方法として、**KMS 暗号化**と **PGP 暗号化**の 2 つをサポートしています。暗号化タイプは、アカウントで Message Archival を設定する際に選択します。
+
+<Info>
+   アーカイブメッセージの暗号化方法を変更するには、CSM または MoEngage サポートチームにお問い合わせください。
+</Info>
+
+### 保存場所別の暗号化サポート
+
+| 保存場所 | KMS 暗号化 | PGP 暗号化 |
+| ----------------- | -------------- | --------------- |
+| お客様独自の S3 バケット | サポート対象 | サポート対象 |
+| MoEngage 所有の S3 バケット | サポート対象 | サポート対象外 |
+| お客様の SFTP サーバー | サポート対象外 | サポート対象 |
+
+* **KMS 暗号化**は既存の暗号化タイプで、S3 バケット (お客様または MoEngage のバケット) にアーカイブされたメッセージでのみ機能します。MoEngage は、SFTP サーバーにアーカイブされたファイルの KMS 暗号化をサポートしていません。
+* **PGP 暗号化**は新しい暗号化タイプです。S3 と SFTP の両方でサポートされていますが、S3 の場合はお客様独自のバケットにメッセージをアーカイブする場合にのみサポートされます。MoEngage 所有の S3 バケットにメッセージをアーカイブする場合、サポートされる暗号化タイプは KMS のみです。
+
+### PGP 暗号化の設定
+
+PGP 暗号化を使用するには、PGP 公開鍵を MoEngage と共有します。MoEngage はこの鍵を使用して、すべてのメッセージを暗号化してから、お客様の S3 バケットまたは SFTP サーバーにアーカイブします。
+
+次の点に注意してください。
+
+* **ファイル拡張子**: PGP 暗号化を有効にすると、新しくアーカイブされるメッセージファイルには PGP ファイル拡張子が付きます。
+* **ファイルパスと命名規則**: PGP 暗号化を有効にしても、既存のファイルパスやファイルの命名規則は変更されません。
+* **ダッシュボードでのメッセージの表示**: アカウントで PGP 暗号化を有効にすると、PGP 暗号化に切り替える前にアーカイブされたメッセージを含め、すべてのアーカイブメッセージで **View sent message** オプションが利用できなくなります。これは、MoEngage がダッシュボードに表示するためにメッセージコンテンツを復号できなくなるためです。詳細については、[ダッシュボードでメッセージのコピーを表示する](/ja/user-guide/campaigns-and-channels/campaign-management-and-reports/message-archival/message-archival#view-a-message-copy-on-the-dashboard)を参照してください。
+
+### 鍵の有効期限と再試行の動作
+
+PGP 鍵には有効期限があります。メッセージアーカイブが中断されないように、現在の鍵の有効期限が切れる前に、更新した鍵を MoEngage と共有してください。
+
+新しい鍵を共有する前に鍵の有効期限が切れた場合、またはその他の理由で S3 バケットや SFTP サーバーへの接続が切断された場合は、次のようになります。
+
+1. MoEngage は、S3 バケットまたは SFTP サーバーへのアーカイブメッセージの書き込みを停止します。
+2. 代わりに MoEngage は、これらのメッセージを内部の再試行キューに書き込み、最大 30 日間保持します。
+3. 有効な更新済みの鍵を共有すると (または接続が復元されると)、MoEngage は再試行キューに保持されているすべてのメッセージを S3 バケットまたは SFTP サーバーにプッシュします。
+
+## よくある質問
+
+<Accordion title="ファイルの保持期間はどのくらいですか？また、これらのメッセージはダッシュボードにどのくらいの期間表示されますか？">
+  ファイルの保持期間とは、これらの顧客メッセージファイルが MoEngage に保存される期間を指します。デフォルトのメッセージファイルの保持期間は、S3 バケットのファイル保持期間によって異なります。
+
+  これらのメッセージは、デフォルトで 30 日間ダッシュボードに表示されます。この期間は、イベントの保持期間によって異なります。
+
+  メッセージファイルには、MoEngage ダッシュボードで _Email Sent、Notification Received Android、Notification Sent iOS、Notification Received Web、_ _SMS Sent_ などのイベントを使用してアクセスします。MoEngage ダッシュボードを通じて保存されているすべてのメッセージファイルにアクセスするには、イベントの保持期間がメッセージファイルの保持期間と同じかそれ以上である必要があります。または、これらのメッセージファイルを MoEngage ダッシュボードを介さずにオフラインでアクセスできるように保存することもできます。
+
+  お客様の SFTP サーバーに保存されたファイルについては、MoEngage はデータ保持を管理しません。これはお客様がサーバー上で完全に管理します。また、SFTP にアーカイブされたメッセージは MoEngage ダッシュボードで表示できません。
+
+  **注**: MoEngage のイベント保持期間とメッセージファイルの保持期間は、どちらもニーズに応じて設定できます。
+</Accordion>
+
+<Accordion title="ファイルがダッシュボードに表示されない場合、どのようにアクセスまたは表示できますか？">
+  ファイルのイベント保持期間が過ぎている場合は、クエリ言語を使用して、ファイルが保存されている S3 にクエリを実行することでファイルを取得できます。
+
+  ファイルが SFTP サーバーに保存されている場合は、SFTP サーバーから直接アクセスする必要があります。
+</Accordion>
+
+<Accordion title="ファイルの書き込み中に S3 がダウンした場合はどうなりますか？">
+  MoEngage では、この状況に対処するために 2 回の再試行をサポートしています。ファイル書き込みの 1 回目の再試行は、最初の試行から 1 時間後に行われます。S3 がまだダウンしている場合、2 回目の再試行は最初の試行から 4 時間後に行われます。
+
+  SFTP の場合: 接続に失敗すると、MoEngage は 5 秒ごとに 3 回ファイルの書き込みを再試行します。
+
+  S3 または SFTP のいずれかで再試行後もファイルの書き込みに失敗した場合、MoEngage はこれらのファイルのコピーを内部で 60 日間保存します。サポートチームに連絡して、手動でバケットに書き込んでもらうことができます。
+</Accordion>
+
+<Accordion title="ファイルが S3 バケットまたは SFTP サーバーに書き込まれないのはなぜですか？">
+  ファイルが保存場所に書き込まれない理由として、次のような複数の理由が考えられます。
+
+  - S3 の場合、MoEngage に対するバケットの読み取りまたは書き込みアクセス権が取り消されている可能性があります。
+  - SFTP の場合、認証情報が正しくないか変更されている可能性があります。または、サーバーのファイアウォールが MoEngage のアクセスをブロックしている可能性があります。
+  - ファイルを保存するフォルダが見つからない可能性があります。
+  - S3 バケットまたは SFTP サーバーが長期間ダウンしていて、すべての再試行が失敗している可能性があります。
+</Accordion>
+
+<Accordion title="Message Archival 機能を有効にしたり、イベントの保持期間やファイルの保持期間を変更したりするにはどうすればよいですか？">
+  CSM またはサポートチームにお問い合わせください。
+</Accordion>

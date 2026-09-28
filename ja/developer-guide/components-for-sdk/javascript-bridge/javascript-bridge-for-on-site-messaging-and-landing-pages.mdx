@@ -1,0 +1,140 @@
+---
+title: "On-Site Messaging およびランディングページ向け JavaScript Bridge"
+description: "MoEngage JavaScript Bridge を使用して、On-Site Messaging キャンペーンやランディングページからイベント、クリック、閉じる操作、フォーム送信をトラッキングします。"
+keywords: ["OSM", "オンサイトメッセージング", "ランディングページ", "JavaScript bridge", "MoeOsm", "Moengage.landingPages"]
+---
+
+On-Site Messaging（OSM）キャンペーンとランディングページは、Web テンプレートが MoEngage SDK とやり取りできる JavaScript Bridge インターフェースをサポートしています。
+
+ブリッジには一連の API が含まれており、On-Site Messaging ではグローバル変数 `MoeOsm`、ランディングページでは `Moengage.landingPages` を使用してアクセスできます。
+
+以下のセクションでは、OSM とランディングページで利用可能なすべての JS Bridge メソッドを一覧にし、各 API について詳しく説明します。
+
+## On-Site Messaging（OSM）
+
+以下の表に、On-Site Messaging キャンペーンで利用可能なすべての JS Bridge メソッドを示します。
+
+| メソッド名 | 説明 |
+| --- | --- |
+| `MoeOsm.trackEvent(eventName, eventAttr)` | OSM テンプレートからカスタムイベントをトラッキングします。`eventName` はトラッキングするイベントの名前です。`eventAttr` はイベントとともにトラッキングされるイベント属性です。 |
+| `MoeOsm.trackClick(widgetId)` | キャンペーンのパフォーマンス測定のためにクリックをトラッキングします。`widgetId` はクリックされたウィジェットの識別子です。1 つのテンプレートに複数の CTA がある場合に便利です。 |
+| `MoeOsm.trackDismiss()` | キャンペーンのパフォーマンス測定のために閉じる操作の統計をトラッキングします。 |
+| `MoeOsm.dismissMessage()` | ボタンのクリックやその他のクリックで OSM メッセージを閉じるために、このメソッドをテンプレートに組み込みます。 |
+
+<Info>
+**OSM 向けの JS メソッド**
+
+以下の JS メソッドを OSM テンプレートに統合すると、メッセージを閉じるなどのクリック時アクションを実行したり、イベント、クリック、閉じる操作などのデータをトラッキングしたりできます。
+</Info>
+
+### イベントのトラッキング
+
+OSM テンプレートからカスタムイベントをトラッキングするには、`MoeOsm.trackEvent(eventName, eventAttr)` API を使用します。
+
+<CodeGroup>
+```javascript JavaScript
+onclick="MoeOsm.trackEvent('add to cart', {price: 300})"
+```
+</CodeGroup>
+
+### クリックのトラッキング
+
+ウィジェットのクリックイベントをトラッキングするには、`MoeOsm.trackClick(widgetId)` API を使用します。
+
+<CodeGroup>
+```javascript JavaScript
+onclick="MoeOsm.trackClick('1')"
+```
+</CodeGroup>
+
+### 閉じる操作のトラッキング
+
+OSM テンプレートから閉じるイベントをトラッキングするには、`MoeOsm.trackDismiss()` API を使用します。
+
+<CodeGroup>
+```javascript JavaScript
+MoeOsm.trackDismiss();
+```
+</CodeGroup>
+
+### メッセージを閉じる
+
+ボタンのクリックやその他のクリックで OSM メッセージを閉じるには、`MoeOsm.dismissMessage()` API を使用します。
+
+<CodeGroup>
+```javascript JavaScript
+MoeOsm.dismissMessage();
+```
+</CodeGroup>
+
+## ランディングページ
+
+以下の表に、ランディングページで利用可能なすべての JS Bridge メソッドを示します。
+
+| メソッド名 | 説明 |
+| --- | --- |
+| `Moengage.landingPages.trackClick(lp_context, <widget_id>)` | ランディングページ上のクリックをトラッキングします。有効な `href` を持つすべての要素には、デフォルトでこのクリックトラッキングが追加されています。 |
+| `Moengage.landingPages.trackFormSubmit(lp_context, <attribute_object>)` | フォーム送信をトラッキングします。このイベントは、ランディングページにフォーム要素が存在する場合にもデフォルトでトラッキングされます。 |
+| `Moengage.landingPages.trackEvent(<event_name>, lp_context, <event_attributes>)` | ランディングページからカスタムイベントをトラッキングします。 |
+
+<Info>
+**ランディングページ向けの JS メソッド**
+
+以下の JS メソッドをランディングページテンプレートに統合すると、ページ要素のクリックのトラッキング、フォーム送信の取得、カスタムイベントのトラッキングが行えます。
+</Info>
+
+### lp_context オブジェクト
+
+`lp_context` は、MoEngage がすべてのランディングページでグローバルに利用できるようにしているランディングページのコンテキストオブジェクトです。変更したり自分で作成したりせず、そのままブリッジメソッドに渡してください。MoEngage はこのオブジェクトを使用して、トラッキングされる各イベントにランディングページの完全なコンテキストを付与します。これには、キャンペーン統計がイベントをランディングページに帰属させるために使用する `moe_lp_formatted_id` 属性が含まれます。
+
+<Warning>
+`lp_context` オブジェクトは常にそのまま渡してください。コンテキスト引数を自分で構築すると、イベントに `moe_lp_formatted_id` が含まれなくなります。その場合、イベントはユーザープロファイルには表示されますが、クリックはランディングページのキャンペーン統計にカウントされません。
+
+✅ **正しい例：** `Moengage.landingPages.trackClick(lp_context, 'Register_Now')`
+
+❌ **誤った例：** `Moengage.landingPages.trackClick({id: <landing_page_id>, name: <landing_page_name>}, 'Register_Now')`
+</Warning>
+
+### クリックのトラッキング
+
+ランディングページ内の要素のクリックをトラッキングするには、`Moengage.landingPages.trackClick(lp_context, <widget_id>)` API を使用します。
+
+<Note>
+有効な `href` 属性を持つすべての要素には、デフォルトでこのクリックトラッキングが追加されています。
+</Note>
+
+<CodeGroup>
+```javascript JavaScript
+onclick="Moengage.landingPages.trackClick(lp_context, 'Register_Now')"
+```
+</CodeGroup>
+
+### フォーム送信のトラッキング
+
+ランディングページでのフォーム送信をトラッキングするには、`Moengage.landingPages.trackFormSubmit(lp_context, <attribute_object>)` API を使用します。
+
+<Note>
+このイベントは、ランディングページにフォーム要素が存在する場合、デフォルトでトラッキングされます。
+</Note>
+
+<CodeGroup>
+```javascript JavaScript
+const attributeObj = {
+  name: document.getElementById("name").value.trim(),
+  email: document.getElementById("email").value.trim(),
+  mobile: document.getElementById("mobile").value.trim(),
+  consent: document.getElementById("consent").checked ? "yes" : "no"
+};
+Moengage.landingPages.trackFormSubmit(lp_context, attributeObj);
+```
+</CodeGroup>
+
+### イベントのトラッキング
+
+ランディングページからカスタムイベントをトラッキングするには、`Moengage.landingPages.trackEvent(<event_name>, lp_context, <event_attributes>)` API を使用します。
+
+<CodeGroup>
+```javascript JavaScript
+Moengage.landingPages.trackEvent('plan_selected', lp_context, {plan: 'premium', price: 499});
+```
+</CodeGroup>

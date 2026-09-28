@@ -1,0 +1,266 @@
+---
+title: "メッセージテンプレートとコールバックの形式"
+---
+
+# MoEngage へのオンボーディング手順
+
+この記事では、MoEngage が WhatsApp テンプレートメッセージの送信に使用する標準のペイロード形式と、MoEngage にコールバック情報を配信するための標準のコールバック形式について説明します。WhatsApp パートナーは、以下の手順に従って MoEngage にオンボーディングしてください。
+
+1. MoEngage が送信するリクエストのペイロード形式を実装します。形式は [メッセージテンプレートの送信](#send-message-template)セクションで共有しています。
+2. [メッセージステータスのコールバック](#message-status-callbacks)セクションで共有している形式で、MoEngage にコールバック情報を送信します。
+3. クイックリプライボタンからのインバウンドメッセージを MoEngage に送信する場合は、[インバウンドメッセージ](#inbound-messages)セクションで共有している形式に従います。
+4. MoEngage チームがテストを完了して顧客をオンボーディングするために使用する API エンドポイントとリクエストヘッダーを共有します。
+
+# メッセージテンプレートの送信
+
+このセクションでは、MoEngage がお客様の API に送信するリクエストのメッセージペイロードについて詳しく説明します。
+
+## API エンドポイント/URL
+
+メッセージの送信先となるパートナーの **API エンドポイントまたは API URL** です。これは WhatsApp パートナーから提供されます。
+
+## リクエストヘッダーのサンプル
+
+API Key、Workspace ID、Authentication など、リクエストに追加するヘッダーに関する情報を共有する必要があります。たとえば、使用する Authentication が Bearer 認証の場合、MoEngage はリクエストの Authorization ヘッダーにそれを追加します。そのサンプルを以下に示します。
+
+```text Sample Header
+--header 'Authentication: Bearer <client auth token to be used by vendor>' \
+```
+
+## リクエストボディ
+
+これは MoEngage がお客様の API に送信するリクエストです。
+
+| キー | 必須 | データ型 | 説明 |
+| --- | --- | --- | --- |
+| msg\_id | 必須 | String | MoEngage から送信されるメッセージの一意の識別子です。この ID は、MoEngage に送信される配信コールバックで返す必要があります。 |
+| from | 必須 | String | メッセージを送信するブランドの WhatsApp Business Account（WABA）番号です。 |
+| to | 必須 | String | メッセージの送信先となるユーザーの WhatsApp 番号です。番号は E.164 形式で送信する必要があります。 |
+| template | 必須 | Object | このオブジェクトには、メッセージの送信に使用するテンプレートに関する情報が含まれます。テンプレート名、言語、およびヘッダー、ボディ、ボタンなどのコンポーネントが含まれます。詳細については、Template オブジェクトを参照してください。 |
+
+### **Template オブジェクト**
+
+WhatsApp テンプレートをメッセージの送信に使用するには、WhatsApp による事前承認が必要です。詳細については、[WhatsApp テンプレート](/ja/user-guide/campaigns-and-channels/whatsapp/getting-started-with-whatsapp/whatsapp-templates)を参照してください。
+
+| キー | 必須 | データ型 | 説明 |
+| --- | --- | --- | --- |
+| name | 必須 | String | このフィールドはテンプレートの名前を表します。 |
+| language | 必須 | Object | このフィールドは、テンプレートを表示する言語を指定します。<br />構造：<br />"language": `{"code": "LANGUAGE_CODE"}` <br />code は、使用する言語のコードまたはロケールコードを表します。詳細については、[Supported Languages](https://developers.facebook.com/docs/whatsapp/api/messages/message-templates#supported-languages) を参照してください。 |
+| components | 任意 | String | このフィールドには、ヘッダー、ボディ、ボタンなどの WhatsApp のコンポーネントが含まれます。このフィールドは、使用するテンプレートによって異なります。詳細については、[Components Object](https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages#components-object) を参照してください。 |
+
+このセクションで説明する Template オブジェクトは、Meta の WhatsApp Messages リファレンスにある Template Object と同じ構造に従います。詳細については、[Template Object in Messages](https://developers.facebook.com/docs/whatsapp/cloud-api/reference/messages#template-object) を参照してください。
+
+## ペイロードのサンプル
+
+MoEngage が送信するリクエストのペイロードのサンプルを以下に示します。サンプルペイロードは、選択したテンプレートによって異なることに注意してください。
+
+```python Python
+{
+  "msg_id": "MESSAGE_ID",  # Unique identifier, to be returned in callback
+  "from": "WABA NUMBER",
+  "to": "PHONE_NUMBER", # To number would be in E.164 format
+  "template": {
+    "name": "TEMPLATE_NAME",
+    "language": {
+      "code": "LANGUAGE_CODE"
+    },
+    "components": [
+      {
+        "type": "header",
+        "parameters": [
+          {
+            "type": "image",
+            "image": {
+              "link": "http(s)://URL"
+            }
+          }
+        ]
+      },
+      {
+        "type": "body",
+        "parameters": [
+          {
+            "type": "text",
+            "text": "TEXT_STRING"
+          },
+          {
+            "type": "currency",
+            "currency": {
+              "fallback_value": "VALUE",
+              "code": "USD",
+              "amount_1000": "NUMBER"
+            }
+          },
+          {
+            "type": "date_time",
+            "date_time": {
+              "fallback_value": "MONTH DAY, YEAR"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+## cURL リクエストのサンプル
+
+```curl Sample cURL
+curl --location '<api_url provided by the vendor>' \
+  --header 'Content-Type: application/json' \
+  --header 'Authentication: Bearer <client auth token to be used by vendor>' \
+  --data '<payload>'
+```
+
+## 想定されるレスポンス
+
+| キー | 必須 | データ型 | 説明 |
+| --- | --- | --- | --- |
+| status | 必須 | String | このフィールドはリクエストのステータスを表し、メッセージが正常に送信されたかどうかを示します。2xx レスポンスの場合にのみ含める必要があります。使用可能な値：success、failure |
+| error | 必須 | Object | このフィールドは、失敗した場合のエラーコードとエラーメッセージを指定します。2xx レスポンスの場合にのみ含める必要があります。<br />構造：<br />"error" : `{ `<br />`"code" : "ERROR_CODE", `<br />`"message" : "ERROR_DESCRIPTION" `<br />`}`<br />2xx の失敗時に MoEngage に（error オブジェクト内で）返すエラーコードと対応するエラーメッセージについては、[エラーコード](#error-codes)で詳しく説明しています。 |
+| message | 任意 | String | このフィールドには、4xx および 5xx エラーが発生した場合のエラーの説明が含まれます。 |
+
+### **エラーコード**
+
+| エラーコード | このエラーコードを返すタイミング |
+| --- | --- |
+| 7000 | 認証情報が無効な場合 |
+| 7001 | テンプレートパラメーターが無効な場合 |
+| 7002 | 電話番号が無効な場合 |
+| 7003 | 電話番号が WhatsApp メッセージの受信を購読していない場合 |
+| 7004 | その他のエラー |
+
+<Tabs>
+  <Tab title="200">
+    リクエストが成功した場合のレスポンスのサンプル
+
+    ```json
+    {
+      "status": "success | failure",
+      "error" : {
+        "code" : "ERROR_CODE",
+        "message" : "ERROR_DESCRIPTION"
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="4xx">
+    4xx エラーの場合のレスポンスのサンプル
+
+    ```json
+    {
+      "message": "ERROR_DESCRIPTON"
+    }
+    ```
+  </Tab>
+  <Tab title="5xx">
+    不明なエラーの場合のレスポンスのサンプル
+
+    ```json
+    {
+      "message": "ERROR_DESCRIPTON"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### **スループット**
+
+60K～200K RPM のスループットをサポートしています。
+
+# メッセージステータスのコールバック
+
+MoEngage へのコールバックレスポンスでメッセージステータスを送信する際に使用する形式を以下に説明します。
+
+## コールバック URL
+
+コールバック URL はパートナーごとに生成され、次の形式になります。
+
+```text Sample Callback URL
+https://api-0x.moengage.com/whatsapp/dlr/<vendor_name>
+```
+
+## 認証
+
+認証は不要です。以下のセクションに記載されている形式に準拠した有効なリクエストはすべて受け付けます。
+
+## コールバックレスポンスの形式
+
+<CodeGroup>
+
+```python Python
+{
+   "statuses": [
+  	 {
+      	"msg_id": "MESSAGE_ID",   # From send message req
+      	"status": "sent | delivered | read | failed",
+      	"timestamp": "TIMESTAMP", # Event timestamp (epoch)
+      	"error": {                #Required only in case of failure
+          		"code": "ERROR_CODE",
+          		"description": "ERROR_DESCRIPTION"
+      	}
+  	 },
+  	 {
+      	#Support multiple status callbacks in a single request
+  	 }
+   ]
+}
+```
+
+</CodeGroup>
+
+| キー | 必須 | データ型 | 説明 |
+| --- | --- | --- | --- |
+| msg\_id | 必須 | String | このフィールドは、MoEngage からのリクエストで送信されたメッセージの一意の識別子を表します。 |
+| status | 必須 | String | このフィールドはメッセージのステータスを表します。使用可能な値：sent、delivered、read、failed |
+| timestamp | 必須 | String | このフィールドは、メッセージの配信が試行された時刻のタイムスタンプを表します。タイムスタンプはエポック数値として送信する必要があります。 |
+| error | 任意 | Object | このフィールドは、受信者へのメッセージ送信時に発生したエラーを表し、エラーのコードと説明が含まれます。送信するエラーコードの詳細については、[エラーコード](#error-codes)を参照してください。 |
+
+# インバウンドメッセージ
+
+MoEngage は、次のユースケースで受信テキストメッセージをサポートしています。
+
+- ユーザーが購読解除のために _STOP_ メッセージを送信した場合
+- ユーザーが送信された WhatsApp メッセージに対してクイックリプライボタンを使用して返信した場合
+- ユーザーが送信された WhatsApp メッセージ内のボタンをクリックして返信した場合
+
+## インバウンドメッセージの形式
+
+MoEngage へのインバウンドメッセージに使用する形式を以下に説明します。\\
+
+<CodeGroup>
+
+```java Java
+ 
+{
+    "from": "MOBILE_NUMBER",
+    "waba_number": "BUSINESS_WABA_NUMBER",
+    "timestamp": "TIMESTAMP",
+    "type": "text | button",
+    
+    "context": {
+        "msg_id": "MESSAGE_ID"
+    },
+    "text": {  # Optional if type is button (quick reply button)
+    	    "body": "INCOMING_MESSAGE"
+    },
+    "button": { # Optional if type is text
+        "payload": "{'orderid' : '12345', 'reply': 'yes'}",
+        "text": "Yes, cancel it"
+    }
+}
+```
+
+</CodeGroup>
+
+| キー | 必須 | データ型 | 説明 |
+| --- | --- | --- | --- |
+| from | 必須 | String | メッセージを送信するユーザーの WhatsApp 番号です。番号は E.164 形式で送信する必要があります。 |
+| waba\_number | 必須 | String | メッセージを受信するブランドの WhatsApp Business Account（WABA）番号です。 |
+| timestamp | 必須 | String | このフィールドは、ユーザーからレスポンスを受信した時刻のタイムスタンプを表し、エポック数値形式である必要があります。 |
+| msg\_id | 必須 | String | このフィールドは、MoEngage からのリクエストで送信されたメッセージの一意の識別子を表します。 |
+| type | 必須 | String | このフィールドは、送信されるメッセージのタイプ（テキストメッセージか、ボタンからの返信か）を表します。使用可能な値：text、button |
+| context | 必須 | Object | このオブジェクトには、ユーザーに送信され、ユーザーが返信しているメッセージに対応する MoEngage からのリクエストのメッセージ ID が含まれます。<br />構造：<br />"context": `{ "msg_id": "MESSAGE_ID" }` <br />msg\_id フィールドは、MoEngage から発信されるリクエストで送信されます。詳細については、[メッセージテンプレートの送信](#send-message-template)を参照してください。 |
+| text | 任意 | Object | このフィールドには受信テキストメッセージが含まれ、type が text の場合は必須です。<br />構造：<br />"text": `{ "body": "INCOMING_MESSAGE" }` |
+| button | 任意 | Object | このフィールドにはクイックリプライボタンからの受信メッセージが含まれ、type が button の場合は必須です。<br />構造：<br />"button": `{ `<br />`"payload": "{'orderid' : '12345', 'reply': 'yes'}", `<br />`"text": "Yes, cancel it" }` |

@@ -1,0 +1,421 @@
+---
+title: "InApp NATIV"
+description: "MoEngage SDK を使用して、Unity アプリにコンテキストに応じた In-App NATIV キャンペーンを表示します。"
+---
+
+In-App NATIV キャンペーンは、ユーザーがアプリを使用している間にメッセージを表示することでユーザーをターゲットにします。コンテキストに応じた情報を提供したり、アプリ内の目的の画面やユーザーがアプリ内で実行した目的のアクションに応じてクロスセル/アップセルを行ったりするのに非常に効果的です。
+
+<Frame>
+  <img
+    src="/images/inapp-native.png"
+    alt="In-App Native"
+    style={{ width:"51%" }}
+  />
+</Frame>
+
+## Android 依存関係のインストール
+
+  ![Maven 3](/images/maven-3.svg)
+
+**mainTemplate.gradle** ファイルに次の依存関係を追加します。
+
+<CodeGroup>
+
+```gradle Groovy
+dependencies {
+  ...
+  implementation("com.moengage:inapp:$sdkVersion")}
+```
+
+</CodeGroup>
+
+**\$sdkVersion** を適切な SDK バージョンに置き換えてください。
+
+### **InApp で画像と GIF を表示するための要件**
+
+<Info>
+  InApp バージョン **7.0.0** 以降、SDK は In-App で画像と GIF を表示するために [Glide](https://bumptech.github.io/glide/) を必要とします。**mainTemplate.gradle** ファイルに以下の依存関係を追加する必要があります。
+</Info>
+
+<CodeGroup>
+
+```gradle Groovy
+dependencies {
+ ...
+ implementation("com.github.bumptech.glide:glide:4.9.0")
+ annotationProcessor("com.github.bumptech.glide:compiler:4.9.0")
+}
+```
+
+</CodeGroup>
+
+# In-App の表示
+
+<Note>
+  MoEngage は、meta API の呼び出しを通じて、対象となる In-App キャンペーンのリストを更新します。アクティブなセッション中は、アプリがバックグラウンドからフォアグラウンドに戻ったとき（最大で 15 分に 1 回）にリストが更新されます。また、新しいセッションが開始されたとき、またはアプリが強制終了されて再起動されたときには、即座に更新されます。
+</Note>
+
+画面に In-App メッセージを表示するには、以下の API を呼び出します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.ShowInApp();
+```
+
+</CodeGroup>
+
+# Nudge の表示
+
+画面上の指定した位置に Nudge タイプの In-App メッセージを表示するには、`MoEInAppHelper.ShowNudge()` を使用します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEInAppHelper.ShowNudge(NudgePosition.Top);
+```
+
+</CodeGroup>
+
+`NudgePosition` 列挙型は、Nudge が表示される位置を定義します。
+
+| 値    | 説明                        |
+| -------- | ---------------------------------- |
+| `Top`    | 画面の上部に Nudge を表示します。    |
+| `Bottom` | 画面の下部に Nudge を表示します。 |
+| `BottomLeft` | 左下隅に Nudge を表示します。 |
+| `BottomRight` | 右下隅に Nudge を表示します。 |
+
+# Self-Handled InApp
+
+Self-Handled In-App は、SDK がアプリケーションに配信するメッセージで、アプリケーションは SDK から配信されたペイロードを使用して UI を構築します。
+
+## 単一の Self-Handled InApp
+
+単一の Self-Handled In-App メッセージをリクエストするには、以下の API を呼び出します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.GetSelfHandledInApp();
+```
+
+</CodeGroup>
+
+ペイロードはコールバックを介して返されます。以下に示すようにコールバックを登録します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+// register a callback
+MoEGameObject.InAppSelfHandled += InAppSelfHandledCallback;
+
+public void InAppSelfHandledCallback(object sender, InAppSelfHandledCampaignData inAppData) {
+    // process the self-handled payload here
+    string selfHandledPayload = inAppData.selfHandled.payload;
+}
+```
+
+</CodeGroup>
+
+## 複数の Self-Handled InApp
+
+<Info>
+  イベントトリガー型の複数の Self-Handled In-App はサポートされていません。
+</Info>
+
+複数の Self-Handled キャンペーンを取得するには、`MoEngageClient.GetSelfHandledInApps()` を使用します。SDK は、キャンペーン作成時に設定されたキャンペーンの優先度順に、最大 5 件のキャンペーンを返します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.GetSelfHandledInApps();
+```
+
+</CodeGroup>
+
+キャンペーンのリストはコールバックを介して返されます。以下に示すようにコールバックを登録します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+// register a callback
+MoEGameObject.<CALLBACK_EVENT> += <CALLBACK_METHOD>;
+
+public void <CALLBACK_METHOD>(object sender, <CAMPAIGNS_DATA_CLASS> campaignsData) {
+    // iterate over the list of self-handled campaigns
+    foreach (var campaign in campaignsData.campaigns) {
+        string payload = campaign.selfHandled.payload;
+    }
+}
+```
+
+</CodeGroup>
+
+### 統計のトラッキング
+
+リスト内の各キャンペーンの統計は、個別にトラッキングする必要があります。個々の `InAppSelfHandledCampaignData` オブジェクトを、以下の API のパラメーターとして渡します。
+
+<CodeGroup>
+
+```c# c#
+// call whenever in-app is shown
+MoEngageClient.SelfHandledShown(campaign);
+// call whenever in-app is clicked
+MoEngageClient.SelfHandledClicked(campaign);
+// call whenever in-app is dismissed
+MoEngageClient.SelfHandledDismissed(campaign);
+```
+
+</CodeGroup>
+
+# InApp コールバック
+
+SDK は、In-App が表示、閉じられた、またはクリックされた（ウィジェットにナビゲーションアクションまたはカスタムアクションが関連付けられている場合のみ）ときに、クライアントアプリケーションにコールバックを提供します。\
+上記のケースで通知を受け取るには、以下のコールバックを使用します。
+
+## InApp の表示
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+// register a callback
+MoEGameObject.InAppShown += InAppShownCallback;
+
+public void InAppShownCallback(object sender, InAppData inappData){
+    Debug.Log(TAG + " InAppShownCallback() : ");
+}
+```
+
+</CodeGroup>
+
+## InApp のクリック
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+// register a callback
+MoEGameObject.InAppClicked += InAppClickedCallback;
+
+public void InAppClickedCallback(object sender, InAppClickData inAppData)
+{   Debug.Log(TAG + " InAppClickedCallback() : ");
+}
+```
+
+</CodeGroup>
+
+## InApp のカスタムアクション
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+// register a callback
+MoEGameObject.InAppCustomAction += InAppCustomActionCallback;
+
+public void InAppCustomActionCallback(object sender, InAppClickData inAppData)
+{
+  // key value pairs for custom aciton. 
+  IDictionary<string, object> keyValuePairs = ((CustomAction) inAppData.action).keyValuePairs;   Debug.Log(TAG + " InAppCustomActionCallback() : keyValuePairs: " + keyValuePairs.ToString());
+}
+```
+
+</CodeGroup>
+
+## InApp の終了
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+// register a callback
+MoEGameObject.InAppDismissed += InAppDismissedCallback;
+
+public void InAppDismissedCallback(object sender, InAppData inAppData)
+{   Debug.Log(TAG + " InAppDismissedCallback() : ");
+}
+```
+
+</CodeGroup>
+
+## InApp ペイロード
+
+<CodeGroup>
+
+```c# c#
+  /// InApp Campaign model
+  public class InAppData {
+    ///  Account info 
+    public AccountMeta accountMeta;
+
+    ///  InApp campaign info 
+    public InAppCampaign campaignData;
+
+    ///   Native platform from which the callback was triggered. 
+    public Platform platform;
+  }
+ 
+  /// Meta-data related to your MoEngage account.
+  public class AccountMeta {
+    ///  Account Identifier  
+    public string appId;
+  }
+  
+  /// InApp Campaign Details
+  public class InAppCampaign {
+    ///  Unique identifier for each campaign. 
+    public string campaignId;
+
+    ///  Campaign Name 
+    public string campaignName;
+
+    ///  Additional meta data of campaign 
+    public InAppCampaignContext campaignContext;
+  }
+ 
+  /// Additonal meta of InAppCampaign
+  public class InAppCampaignContext {
+    ///  Formatted campaign id 
+    public string formattedCampaignId;
+  }
+  
+  /// InApp model when click action is performed.
+  public class InAppClickData {
+    ///  Account info 
+    public AccountMeta accountMeta;
+
+    ///  InApp campaign info 
+    public InAppCampaign campaignData;
+
+    ///   Native platform from which the callback was triggered. 
+    public Platform platform;
+
+    ///  Action info 
+    public InAppClickAction action;
+  }
+  
+  /// InApp Navigation action model.Available only in InAppClickedCallback()
+  public class NavigationAction: InAppClickAction {
+    ///  Navigation action type 
+    public ActionType actionType;
+
+    ///  Type of Navigation action.Possible value deep_linking or screen 
+    public NavigationType navigationType;
+    
+    ///   Deeplink Url or the Screen Name used for the action. 
+    public string url;
+
+    ///  Additional Key-Value pairs entered on the MoEngage Platform for navigation action of the campaign
+    public IDictionary < string, object > keyValuePairs;
+  }
+
+  /// Custom action performed on inapp.Available only in InAppCustomActionCallback()
+  public class CustomAction: InAppClickAction {
+    /// Custom Action type 
+    public ActionType actionType;
+    ///  Key-Value Pair entered on the MoEngage Platform during campaign creation. 
+    public IDictionary < string, object > keyValuePairs;
+  }   /// InApp SelfHandled model. Available on InAppSelfHandledCallback() callback
+  public class InAppSelfHandledCampaignData {
+    ///  Account info 
+    public AccountMeta accountMeta;
+    
+    ///  InApp campaign info 
+    public InAppCampaign campaignData;
+   
+    ///   Native platform from which the callback was triggered. 
+    public Platform platform;
+    
+    ///   SelfHandled payload info 
+    public SelfHandled selfHandled;
+  }
+  
+  /// SelfHandled Payload information
+  public class SelfHandled {
+    ///  Self handled campaign payload. 
+    public string payload;
+
+    ///   Interval after which in-app should be dismissed, unit - Seconds 
+    public long dismissInterval;
+
+    /// Should the campaign be dismissed by pressing the back button or using the back gesture. if the value is true campaign should be dismissed on back press.  
+    public bool isCancellable;
+  }
+```
+
+</CodeGroup>
+
+# 画面の向きの変更の処理
+
+<Info>
+  これは Android プラットフォームのみが対象です
+</Info>
+
+Unity Plugin バージョン 2.2.0 以降、In-App は縦向きと横向きの両方のモードでサポートされています。\
+SDK が In-App の表示を処理できるように、デバイスの向きが変更されたときに SDK に通知する必要があります。
+
+これには 2 つの方法があります。
+
+1. アプリの Android ネイティブ部分に API 呼び出しを追加する
+2. MoEngage プラグインの **onOrientationChanged()** を呼び出す
+3. アプリの Android ネイティブ部分に API 呼び出しを追加する
+
+UnityPlayerActivity クラスで **onConfigurationChanged()** API コールバックを受け取ったときに、SDK に通知します。
+
+<CodeGroup>
+
+```java Java
+public class SampleUnityPlayerActivity extends UnityPlayerActivity {
+  ...
+    @Override 
+     public void onConfigurationChanged(@NonNull Configuration newConfig) {
+         super.onConfigurationChanged(newConfig);
+   
+         //API to notify MoEngage SDK
+         MoEUnityHelper.getInstance().onConfigurationChanged();
+       ...
+     }
+  ...
+}
+```
+
+</CodeGroup>
+
+カスタムの **UnityPlayerActivity** を作成したくない場合は、Android 版 MoEngage SDK に同梱されている **MoEUnityPlayerActivity** を利用できます。このアクティビティは、デバイスの設定変更を内部で処理します。\
+このアクティビティをアプリのエントリーポイントとして追加する必要があります。そのためには、**AndroidManifest.xml** 内の現在のエントリーポイントを以下のコードに置き換えます。
+
+<CodeGroup>
+
+```xml XML
+... 
+<activity android:name="com.moengage.unity.wrapper.MoEUnityPlayerActivity" android:theme="@style/UnityThemeSelector"> 
+  <intent-filter> <action android:name="android.intent.action.MAIN" /> 
+    <category android:name="android.intent.category.LAUNCHER" /> 
+    <category android:name="android.intent.category.LEANBACK_LAUNCHER" /> 
+  </intent-filter> 
+  <meta-data android:name="unityplayer.UnityActivity" android:value="true" /> 
+</activity> 
+...
+```
+
+</CodeGroup>
+
+## MoEngage プラグインの向き変更 API を呼び出す
+
+向きの変更を SDK に通知するには、以下の API を呼び出します。
+
+<CodeGroup>
+
+```objectivec c#
+MoEngageClient.OnOrientationChanged();
+```
+
+</CodeGroup>

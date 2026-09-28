@@ -1,0 +1,64 @@
+---
+title: "Attentive の設定"
+---
+
+# はじめに
+
+[**Attentive**](https://www.attentive.com/) は、リアルタイムでパーソナライズされたモバイルメッセージングを通じて、行動を促す有意義なインタラクションを生み出せるよう、大手ブランドや組織を支援しています。
+
+# MoEngage × Attentive
+
+MoEngage と Attentive の連携により、MoEngage のキャンペーンから直接トリガーされる Attentive の SMS および MMS を送信できます。この連携では、Connector Campaigns で Attentive の Messages API を使用して Attentive のメッセージをトリガーできます。
+
+# 連携
+
+<Warning>
+  **前提条件**
+
+  - Attentive アカウントを持っていることを確認してください。
+  - [認証](https://docs.attentive.com/pages/authentication/) に必要となるため、Attentive アカウントの API トークンにアクセスできることを確認してください。
+</Warning>
+
+## ステップ 1: Attentive プラットフォームでメッセージを作成する
+
+手順に従って、Attentive で 1 回限りのメッセージを作成します。これは、メッセージ ID を生成し、Attentive の短縮リンクを使用してクリックを追跡するために必要です。キャンペーンについては、次の点に注意してください。
+
+- 一意の Campaign Name を入力します。たとえば、MoEngage Cart Checkout Message のようなわかりやすい名前にします。
+- 空のセグメントを選択します。既存の購読者がいないセグメントを選択する必要があります。これにより、メッセージが既存の購読者に送信されないようになります。
+- 短縮リンクを追加します。この時点で、短縮リンク以外は空のメッセージになっているはずです。
+
+**空のセグメント** にキャンペーンを送信した後、Attentive のプラットフォームからメッセージ ID を保存できます。
+
+## ステップ 2: MoEngage でコネクターキャンペーンを作成する
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順に従います。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最適な配信タイプを選択します。 <img src="/images/partner_4678168106516.png" alt="Screenshot_2022-02-21_at_10.48.46_PM.png" />
+2. キャンペーンのステップ 2 で、次の操作を行います。
+   - メソッドとして POST を選択します。
+   - Webhook URL として `https://api.attentivemobile.com/v1/text/send` を追加します。
+   - Headers に次を追加します。
+     - `Authorization`: `Bearer <token>`
+     - `Content-Type`: `application/json`
+   - パラメーターは空のままにします。
+   - Body で Raw を選択し、次のコードをコピーして貼り付けます。
+     <CodeGroup>
+     ```json JSON
+     {
+         "to": "{{UserAttribute['Mobile Number (Standard)']}}",
+         "body": "This is a test message.",
+         "subscriptionType": "MARKETING",
+         "useShortLinks": true,
+         "messageName": "Test Message",
+         "skipFatigue": false
+     }
+     ```
+     </CodeGroup>
+
+完全な設定はこちらで確認できます: [Messages API](https://docs.attentive.com/pages/api-reference/messages/#send-a-message)。
+
+3. これで、キャンペーンをテストして送信する準備が整いました。Create Connector Campaign のステップ 2 で利用できる Test 機能を使用して、コネクターの設定をテストすることもできます。
+
+![Screen\_Shot\_2022-02-22\_at\_11.12.42\_AM.png](/images/partner_4678362626196.png)
+
+テストユーザーがメッセージを正常に受信すれば、設定は完了です。キャンペーンを Publish してください。

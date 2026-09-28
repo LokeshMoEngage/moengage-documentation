@@ -1,0 +1,144 @@
+---
+title: "Voucherify"
+---
+
+# はじめに
+
+[Voucherify](https://www.voucherify.io/) は、ユーザーエンゲージメントと維持率を高めるパーソナライズされたキャンペーンやロイヤルティプログラムを実現するオールインワンのプロモーションプラットフォームです。
+
+# MoEngage × Voucherify
+
+MoEngage と Voucherify の連携により、Content API を使用して固有のコードを送信し、プロモーションキャンペーンを拡大できます。この連携により、顧客にプロモーションを知らせ、一人ひとりにパーソナライズされたクーポンを配布できます。イベントトリガー型の MoEngage キャンペーンにより、特定の機会に応じて新しい Voucherify のクーポンやギフトカードを顧客に配信できます。
+
+以下の例では、次のシナリオを実装します。
+
+1. ストアを訪問していない顧客に割引クーポンを提供して、再来店を促す。
+2. バウチャーを贈られた顧客のみがそれを利用できるようにする。
+3. 顧客がメールでパーソナライズされたクーポンを受け取れるようにする。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  - Voucherify アカウントへのアクセス権があることを確認してください。
+</Info>
+
+## ステップ 1: 非アクティブな顧客をエンゲージするための Voucherify キャンペーンを準備する
+
+1. Voucherify ダッシュボードで、新しい [Unique Coupons Campaign](https://support.voucherify.io/article/46-bulk-unique-codes-campaign) を作成します。
+2. [キャンペーン取得エンドポイント](https://docs.voucherify.io/reference/get-campaign)を呼び出すか、キャンペーンダッシュボードを開いたときのブラウザのアドレスバーから、キャンペーン ID を取得します。
+
+![](/images/partner_15879185978388.png)
+
+## ステップ 2: 上記のキャンペーンから新しいコードを発行する MoEngage Content API エンドポイントを設定する
+
+MoEngage アカウントで、Settings → App → APIs → Content API タブに移動し、「Add」ボタンをクリックします。
+
+1. API Name: Content API エンドポイントの名前です。後から変更することはできません。この例では、`Customer Reactivation` キャンペーンからバウチャーコードを送信するため、`new_reactivation_voucher` という名前にしています。
+2. API Url: Create Publications エンドポイントのアドレス `{{API_URL}}/v1/publications/create` を入力します。API Url は、Voucherify の Project Settings の `Application Information` セクションで確認できます。
+3. _Parameters_ タブで、次の操作を行います。
+   1. _campaign_ パラメーターを追加し、Voucherify のキャンペーン ID を入力します。
+   2. _customer_ パラメーターを追加し、Voucherify で顧客の source\_id フィールドとして使用する MoEngage のフィールドを入力します。この例では、顧客のメールアドレスを source\_id として使用しています。MoEngage のユーザー属性の詳細については、[こちら](/ja/user-guide/data/event-data/derived-events-and-attributes)を参照してください。
+
+<img
+  src="/images/partner_15879310627732.png"
+  className="mr-auto"
+/>
+
+4. _Headers_ タブで、次の操作を行います。
+   1. `X-App-Id` ヘッダーと `X-App-Token` ヘッダーを追加します。MoEngage との連携用のアプリケーションキーは、Voucherify の Project Settings の `Integration Keys` セクションで生成できます。
+
+<img
+  src="/images/partner_15879301166612.png"
+  className="mr-auto"
+/>
+
+2. `Content-Type` ヘッダーを `application/json` に設定します。
+
+<img
+  src="/images/partner_15879333346580.png"
+  className="mr-auto"
+/>
+
+5. 設定を保存した後、_play_ アイコンでテストできます。すべてが正しく設定されていれば、Voucherify のレスポンスが表示されます。
+
+<img
+  src="/images/partner_15879370756884.png"
+  className="mr-auto"
+/>
+
+## ステップ 3: MoEngage キャンペーンで Content API エンドポイントを使用する
+
+1. 新しい MoEngage キャンペーンを作成します。
+
+<img
+  src="/images/partner_15879396555924.png"
+  className="mr-auto"
+/>
+
+2. メールのコンテンツを準備します。テンプレート言語 Jinja を使用すると、顧客名などをコンテンツに挿入したり、ステップ 2 で作成した Content API エンドポイントを呼び出してそのレスポンスを解析し、目的の情報を顧客に表示したりできます。MoEngage での Jinja の使用方法の詳細については、[こちらの記事](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)を参照してください。
+   1. Voucherify の create publication エンドポイントを呼び出し、メールの受信者に新しいコードを発行するには、次のコードスニペットを使用します。
+
+```jinja wrap
+   {% set publication
+        = ContentApi.new_reactivation_voucher({({"params":{"customer":"{{UserAttribute['Email
+        (Standard)']}}"}})}) %}
+```
+
+2. レスポンスから発行されたバウチャーのコードのみを抽出するには、式 `{{publication.voucher.code}}` を使用します。
+
+<img
+  src="/images/partner_15879477980180.png"
+  className="mr-auto"
+/>
+
+3. テンプレートエディターでプレビューボタンをクリックすると、[パーソナライズモード](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalized-preview)で特定の顧客にメッセージがどのように表示されるかをプレビューできます。また、テンプレートエディターの下にある _Test Campaign_ フィールドを使用してメールを送信し、テストすることもできます。
+
+<img
+  src="/images/partner_15879480332180.png"
+  className="mr-auto"
+/>
+
+4. キャンペーンを公開してメッセージが送信されると（スケジュールされた時刻、またはできるだけ早く）、各メッセージは顧客ごとにカスタマイズされ、その顧客に発行されたバウチャーコードが含まれます。
+
+<img
+  src="/images/partner_15879482764436.png"
+  className="mr-auto"
+/>
+
+5. メール送信中に行われた各発行呼び出しは、Voucherify ダッシュボードの Audit Log で確認することもできます。
+
+<img
+  src="/images/partner_15879531262868.png"
+  className="mr-auto"
+/>
+
+また、生成されたコードは Voucherify のキャンペーンダッシュボードで確認できます。
+
+<img
+  src="/images/partner_15879535034516.png"
+  className="mr-auto"
+/>
+
+## 紹介コードとロイヤルティカードの発行
+
+紹介コードやロイヤルティカードを割り当てるプロセスは、上記で説明したものとほぼ同じです。キャンペーン名パラメーターを、作成した紹介キャンペーンまたはロイヤルティキャンペーンに変更するだけです。Voucherify の[紹介プログラム](https://support.voucherify.io/article/48-referral-program-basics)と[ロイヤルティプログラム](https://support.voucherify.io/category/389-loyalty-campaigns)の詳細については、こちらを参照してください。
+
+この例では、ID `camp_f0bKCWIYyTfOept56g2UMLY7` の紹介プログラムから顧客のコードを取得します。紹介プログラムの設定で「Customer will be allowed to join campaign only once」オプションが有効になっているため、顧客がすでにプログラムの会員である場合はそのカードコードが返され、まだ紹介コードが割り当てられていない場合は新たに割り当てられ、新しいコードがレスポンスに含まれます。
+
+1. Content API エンドポイントを設定します。
+
+<img
+  src="/images/partner_15879519884692.png"
+  className="mr-auto"
+/>
+
+2. ロイヤルティカードを取得する関数を呼び出すには、次のコードを使用します。
+
+```django wrap
+{% set ref_code = ContentApi.get_customer_referral_code({({"params":{"customer":"{{UserAttribute['Email
+    (Standard)']}}"}})}) %}
+```
+
+顧客の紹介コードまたはロイヤルティカードのコードには、同じスニペット `{{ref_code.voucher.code}}` を使用してアクセスできます。顧客は自分の紹介コードを友人と共有できます。友人が購入時にそのコードを使用すると、紹介者には Voucherify ダッシュボードで設定したギフトが付与されます。

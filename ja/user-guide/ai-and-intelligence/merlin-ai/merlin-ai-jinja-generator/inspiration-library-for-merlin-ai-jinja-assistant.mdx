@@ -1,0 +1,434 @@
+---
+title: "Merlin AI Jinja Assistant のインスピレーションライブラリ"
+description: "Merlin AI を使用して自然言語のクエリから Jinja コードを生成するための例とベストプラクティスを紹介します。プロンプトを構造化するためのヒントも含まれています。"
+---
+
+この記事では、自然言語のクエリから Jinja コードを生成し、動的コンテンツの実装を簡素化するためのベストプラクティスの例を紹介します。生成される Jinja コードは、自然言語クエリに含まれる詳細に直接対応することを理解しておくことが重要です。最適な結果を得るには、自然言語クエリを構造化し、正確な属性名と、目的の動的コンテンツに関する関連情報を含めてください。
+
+## 例
+
+**❌ 悪い Jinja の説明:**
+
+類似アイテムのタイトルと説明。説明が 50 文字を超える場合は切り詰める。
+
+**✅ 良い Jinja の説明:**
+
+Product Set Similar_Items から 6 件のタイトルと説明を表示する。説明は 50 文字を超える長さで切り詰める。
+
+# インスピレーションライブラリ
+
+Merlin AI Jinja Assistant を使用すると、動的コンテンツを簡単に作成できます。以下は、自然言語クエリとそれに対応する Jinja コードの出力例です。これらの例は、最適な Jinja コードを生成するための詳細な自然言語リクエストを作成する際のヒントとして活用できます。
+
+<table style={{ width: "100%", tableLayout: "fixed" }}>
+  <thead>
+    <tr>
+      <th style={{ width: "50%", textAlign: "left", paddingBottom: "1rem", borderBottom: "2px solid #e5e7eb", fontWeight: "bold" }}>
+        動的コンテンツ
+      </th>
+      <th style={{ width: "50%", textAlign: "left", paddingBottom: "1rem", borderBottom: "2px solid #e5e7eb", fontWeight: "bold" }}>
+        カスタムソリューション
+      </th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      配列データ型の event attribute["Product Titles"] のすべての値を出力してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% for title in EventAttribute['Product Titles'] %}
+  {{ title }}
+{% endfor %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      配列データ型の EventAttribute["Product Titles"] の最初の値を、その値が 'Tshirt' の場合にのみ出力してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% if EventAttribute['Product Titles'][0] == 'Tshirt' %}
+  {{ EventAttribute['Product Titles'][0] }}
+{% endif %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      オブジェクトデータ型の ProductSet.CouponCode から最初の 10 件の商品タイトルを出力してください。Product set 内の商品が足りない場合は、ProductSet. DemoRecommendations を使用して商品を追加し、両方の Product set からのタイトルの合計が 10 件になるようにしてください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% set products = ProductSet.CouponCode[:10] %}
+{% if products|length < 10 %}
+  {% set additional_products = ProductSet.DemoRecommendations[:10 - products|length] %}
+  {% set products = products + additional_products %}
+{% endif %}
+{% for product in products %}
+  {{ product.title }}
+{% endfor %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      ProductSet DemoRecommendations を取得してください。存在するかどうかを確認し、存在する場合は ProductSet からタイトルを最大 5 件出力し、20 文字に切り詰めてください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% if ProductSet.DemoRecommendations %}
+  {% for product in ProductSet.DemoRecommendations[:5] %}
+    {{ product.title[:20] + '...' if product.title|length > 20 else product.title }}
+  {% endfor %}
+{% endif %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      ProductSet DemoRecommendations が存在するかどうかを確認し、ProductSet DemoRecommendations から Product Title と Product Price を奇数番目のもののみ取得し、通し番号も追加してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% if ProductSet.DemoRecommendations %}
+  {% for product in ProductSet.DemoRecommendations %}
+    {% if loop.index is odd %}
+      {{ loop.index }}. {{ product.title }} - {{ product.price }}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      ProductSet CouponCode が存在するかどうかを確認し、ProductSet CouponCode から Product price を 50% 割引した価格で取得してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% if ProductSet.CouponCode %}
+  {% for product in ProductSet.CouponCode %}
+    {{ product.price * 0.5 }}
+  {% endfor %}
+{% endif %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      ProductSet CouponCode が存在する場合は、ProductSet CouponCode を取得してください。商品タイトルの数が 6 件かどうかを確認し、6 件の商品タイトルを取得してください。商品数が 6 件未満の場合は、もう一方の ProductSet DemoRecommendations を実行し、この ProductSet DemoRecommendations から残りの商品を取得してください。両方の Product set に同じ商品がある場合は、1 つだけ表示してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% set displayed_titles = [] %}
+{% if ProductSet.CouponCode %}
+  {% for product in ProductSet.CouponCode %}
+    {% if displayed_titles|length < 6 and product.title not in displayed_titles %}
+      {{ product.title }}
+      {% set _ = displayed_titles.append(product.title) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{% if displayed_titles|length < 6 and ProductSet.DemoRecommendations %}
+  {% for product in ProductSet.DemoRecommendations %}
+    {% if displayed_titles|length < 6 and product.title not in displayed_titles %}
+      {{ product.title }}
+      {% set _ = displayed_titles.append(product.title) %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      Product set DemoRecommendations ではどのようなパーソナライズを使用できますか？商品は 1 件だけにしたいです。価格も追加できますか？
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% if ProductSet.DemoRecommendations %}
+  {% for product in ProductSet.DemoRecommendations[0:1] %}
+    {{ product.title }} - {{ product.price }}
+  {% endfor %}
+{% endif %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      UserAttribute の値のデータ型が文字列か文字列の配列かを確認する条件を作成する Jinja コードを作成してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% if UserAttribute is string %}
+{% elif UserAttribute is sequence and UserAttribute[0] is string %}
+{% endif %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      この JINJA を修正してください `{% if ProductSet.DemoRecommendations %} {% for product in ProductSet.DemoRecommendations[:5] %} {{ product.title[:20] + '...' if product.title|length > 20 else product.title }} {% endfor %} {% endif %}`
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% if ProductSet.DemoRecommendations %}
+  {% for product in ProductSet.DemoRecommendations[:5] %}
+    {{ product.title[:19] + '...' if product.title|length > 20 else product.title }}
+  {% endfor %}
+{% endif %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      現在時刻を HH:MM:SS 形式で取得するにはどうすればよいですか？
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{{ '%H:%M:%S' | today() }}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      EventAttribute Delivery Date を抽出して dd/mm/yyyy 形式にフォーマットし、IST タイムゾーンでの今日の日付との差の日数を計算し、その差が 2 日以上か 2 日未満かを確認する条件分岐を処理するプログラムが必要です。日付を記憶してください。Delivery Date は未来または過去の場合がありますが、差の絶対値を考慮してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% set date = EventAttribute['Delivery Date'] %}
+{% set now = '%d/%m/%Y'|today('IST') %}
+{% set diff = (EventAttribute['Delivery Date']|dateFormatter('%d/%m/%Y')|days('%d/%m/%Y'|today('IST')))|abs %}
+{% if diff >= 2 %}
+  {{ "Difference is greater than or equal to 2 days." }}
+{% else %}
+  {{ "Difference is less than 2 days." }}
+{% endif %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      2 つの日付の差を求める日時フォーマッターが必要です。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% set date1 = UserAttribute['Date1'] %}
+{% set date2 = UserAttribute['Date2'] %}
+{% set diff = date1|dateFormatter('%d/%m/%Y')|days(date2|dateFormatter('%d/%m/%Y')) %}
+{% set year = diff // 365 %}
+{% set month = (diff - (year * 365)) // 30 %}
+{% set day = diff - (year * 365) - (month * 30) %}
+{{ year }} Years, {{ month }} Months, {{ day }} Days
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      Product set CouponCode からタイトルを取得してください。説明が重複している場合は、最初の値のみを残して削除してください。最後に、一意のタイトルと説明のみを出力してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% set unique_titles = [] %}
+{% set unique_descriptions = [] %}
+{% if ProductSet.CouponCode %}
+  {% for product in ProductSet.CouponCode %}
+    {% if product.description not in unique_descriptions %}
+      {{ unique_titles.append(product.title)|replace('None', '') }}
+      {{ unique_descriptions.append(product.description)|replace('None', '') }}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+{% for i in range(0, unique_titles|length) %}
+  {{ unique_titles[i] }}: {{ unique_descriptions[i] }}
+{% endfor %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      名を出力してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{{ UserAttribute['First Name'] }}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      次の SMS について、Event Attribute 'currency' と 'Order Value' を Jinja で配信できるようにサポートが必要です。Hi. Your payment for `{{Order Value}}` was declined, as your credit card is currently suspended. ルール 1. 主要な通貨は、代わりに次の記号でフォーマットする必要があります: `GBP = £`、`USD = $`、`AUD = $`、`EUR = €` (重要: 通貨記号と 'amount' の間にスペースを入れないこと。例: €8.00)。ペイロードで送られてくる可能性のあるその他の通貨コードは、通貨コードのまま維持します。例: AED 8.00 (重要: 通貨記号と 'Order Value' の間にスペースを入れること) 2. 'Order Value' は 3 桁区切りでフォーマットする必要があります。例: 1,989、12,986、123,098 など。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% set currency_symbols = {'GBP': '£', 'USD': '$', 'AUD': '$', 'EUR': '€'} %}
+{% set currency_symbol = currency_symbols.get(currency, currency) %}
+{% if currency in currency_symbols %}
+  {% set formatted_amount = amount|string|replace(',', '')|int|format('%0,.2f') %}
+  {% set display_amount = currency_symbol ~ formatted_amount %}
+{% else %}
+  {% set formatted_amount = amount|string|replace(',', '')|int|format('%0,.2f') %}
+  {% set display_amount = currency_symbol ~ ' ' ~ formatted_amount %}
+{% endif %}
+Hi. Your payment for {{ Order Value }} was declined, as your credit card is currently suspended. Please see the email we sent you, or get in touch if you need help.
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      配列データ型の event attribute["Product Titles"] の 1 番目と 2 番目の値を '+' で連結してください。連結した値が 5 文字を超える場合は、連結した文字列の 5 文字を出力し、末尾に '...' を追加してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% set concatenated = EventAttribute['Product Titles'][0] ~ '+' ~ EventAttribute['Product Titles'][1] %}
+{% if concatenated|length > 5 %}
+  {{ concatenated[:5] ~ '...' }}
+{% else %}
+  {{ concatenated }}
+{% endif %}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      この Jinja を修正してください `{% set target_date = '13/03/2025' %} {% set today_date = '%d/%m/%Y'|today('EST') %} {% set diff = target|days(today_date) %} {{ diff }} Days`
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% set target_date = '13/03/2025' %}
+{% set today_date = '%d/%m/%Y'|today('EST') %}
+{% set diff = target_date|days(today_date) %}
+{{ diff }} Days
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+    <tr>
+      <td style={{ verticalAlign: "top", paddingRight: "1rem", paddingTop: "1rem", wordWrap: "break-word", borderBottom: "1px solid #e5e7eb" }}>
+
+      float データ型の Event Attribute "Order Value" の末尾の小数点以下のゼロを削除し、データ型を float から string に変換してください。
+
+      </td>
+      <td style={{ verticalAlign: "top", paddingTop: "1rem", borderBottom: "1px solid #e5e7eb" }}>
+
+<CodeGroup>
+```jinja Jinja wrap
+{% set value = EventAttribute['Order Value'] %}
+{% set formatted_value = ('%.15g' % value)|string %}
+{{ formatted_value }}
+```
+</CodeGroup>
+
+      </td>
+    </tr>
+  </tbody>
+</table>

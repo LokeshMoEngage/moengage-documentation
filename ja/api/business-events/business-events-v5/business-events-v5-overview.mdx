@@ -1,0 +1,70 @@
+---
+title: "Business Events API(V5): 概要"
+description: "統合された MoEngage ゲートウェイを通じてリアルタイムのビジネスイベントをトリガーし、ワークスペースに登録されているイベントを参照します。"
+icon: "bolt"
+keywords: ["business events v5", "trigger business event", "list business events", "search business events"]
+---
+
+import ApiAuthentication from '/ja/snippets/api-authentication.mdx';
+
+MoEngage Business Events API(V5)を使用すると、フライトの遅延、ウォッチ中のアイテムの値下げ、OTT シリーズの新エピソード公開など、ワークスペースに登録済みのビジネスイベントを発火できます。イベントを発火すると、それに関連付けられたすべてのアクティブなキャンペーンとフローが配信キューに追加されるため、ユーザー行動だけでなく外部のデータポイントに基づいた、文脈に即したコミュニケーションを自動化できます。V5 エンドポイントでは、ワークスペースに存在するビジネスイベントを参照することもできます。
+
+これらのエンドポイントは、統合された MoEngage ゲートウェイを通じて、バージョン管理された `{response_id, type, data}` エンベロープで提供されます。新しいビジネスイベントを作成するには、[Business Events(レガシー)](/ja/api/business-events/business-events-legacy/business-events-overview) API を使用してください。この操作はまだ V5 に移行されていません。
+
+## エンドポイント
+
+Business Events API(V5)は、以下のエンドポイントで構成されています。
+
+- [Trigger Business Event (V5)](/ja/api/business-events/trigger-business-event-v5): 登録済みのビジネスイベントを発火し、関連付けられたキャンペーンとフローをキューに追加します。
+- [List Business Events](/ja/api/business-events/list-business-events): ワークスペース内のすべてのビジネスイベントを一覧表示するか、名前または ID で 1 つを参照します。キャンペーン数とトリガー数を返し、カーソルベースのページネーションをサポートします。
+- [Search Business Events (V5)](/ja/api/business-events/search-business-events-v5): すべてのビジネスイベントを一覧表示するか、名前または ID で複数のイベントを一度に参照します。List Business Events と同じフィールドを返し、カーソルベースのページネーションをサポートします。
+
+## 認証
+
+<ApiAuthentication />
+
+## よくある質問
+
+### ビジネスイベントのトリガー
+
+<AccordionGroup>
+  <Accordion title="トリガー時にすべてのイベント属性を渡す必要がありますか?">
+    いいえ。ビジネスイベントに定義されたすべての属性を送信する必要はありません。キャンペーンとフローで使用するパーソナライズに必要な属性のみを含めてください。
+  </Accordion>
+  <Accordion title="存在しないイベントをトリガーするとどうなりますか?">
+    イベント名は、ワークスペースに登録されているイベントと照合して検証されます。トリガーする前に、`event_name` が [Create Business Event](/ja/api/business-events/create-business-event) API で作成済みのイベントと一致していることを確認してください。
+  </Accordion>
+  <Accordion title="triggered_status は何を意味しますか?">
+    `triggered_status` はトリガーの結果をまとめたものです。`SUCCESS`(関連付けられたすべてのキャンペーンまたはフローが予約された)、`PARTIAL_SUCCESS`(少なくとも 1 つが予約され、少なくとも 1 つがクォータによりスキップされた)、`FAILURE`(何も予約されなかった。すべてがクォータによりスキップされたか、イベントにアクティブなキャンペーンやフローが関連付けられていない)のいずれかです。
+  </Accordion>
+  <Accordion title="実際にトリガーされたキャンペーンやフローを確認するにはどうすればよいですか?">
+    レスポンスの `data` オブジェクト内の `triggered_campaign_ids` と `triggered_flow_ids` を確認してください。これらには、今回の発火で予約された ID が一覧表示されます。`failed_campaign_ids` と `failed_flow_ids` には、クォータによりスキップされたものが一覧表示されます。
+  </Accordion>
+  <Accordion title="キャンペーンがトリガーを受信したことをダッシュボードで確認するにはどうすればよいですか?">
+    MoEngage ダッシュボードで **Engage -\> Campaigns** に移動し、ビジネスイベントに関連付けられたキャンペーンを検索すると、リアルタイムの分析とトリガー数を確認できます。
+  </Accordion>
+</AccordionGroup>
+
+### ビジネスイベントの参照
+
+<AccordionGroup>
+  <Accordion title="Search Business Events (V5) ではなく List Business Events を使用すべきなのはどのような場合ですか?">
+    すべてを閲覧する場合や、クエリパラメータとして渡した正確な `name` または `id` で 1 つのイベントを参照する場合は、[List Business Events](/ja/api/business-events/list-business-events) を使用してください。`filters.names` と `filters.ids` は配列を受け付けるため、複数のイベントを一度に参照する場合は [Search Business Events (V5)](/ja/api/business-events/search-business-events-v5) を使用してください。どちらも同じフィールドを返し、フィルターを指定しない場合はすべてを一覧表示します。
+  </Accordion>
+  <Accordion title="1 回の検索で names と ids を組み合わせることはできますか?">
+    いいえ。`filters.names` または `filters.ids` のいずれか一方を指定し、両方は指定しないでください。両方を指定すると `400` エラーが返されます。List Business Events の `name` および `id` クエリパラメータにも同じルールが適用されます。
+  </Accordion>
+  <Accordion title="結果をページ送りするにはどうすればよいですか?">
+    どちらのエンドポイントも、1 ページあたり最大 20 件のイベントを返します。`pagination.has_more` が `true` の場合は、`pagination.next_cursor` を `cursor` として渡して次のページを取得します。カーソルは不透明な値として扱い、デコードや変更は行わないでください。
+  </Accordion>
+  <Accordion title="V5 の属性データ型がレガシーのものと異なるのはなぜですか?">
+    V5 エンドポイントは、属性の型を `string`、`number`、`boolean`、`datetime` として返します。レガシーの [Create Business Event](/ja/api/business-events/create-business-event) API は、`string`、`int`、`float`、`array`、`date` を受け付けます。連携を V5 に移行する際は、両者の対応付けを行ってください。
+  </Accordion>
+  <Accordion title="campaign_count と trigger_count の違いは何ですか?">
+    `trigger_count` は、イベントがトリガーされた合計回数です。`campaign_count` は、すべての発火を通じてそれらのトリガーによって開始された子キャンペーンの累計数です。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+事前設定済みの Postman コレクションを使用して、これらのエンドポイントをテストできます: [MoEngage Business Events コレクションを表示](https://www.postman.com/moengage-dev/api-docs/collection/k48uulb/moengage-business-events-api-v5?action=share&source=copy-link&creator=3486165)。

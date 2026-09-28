@@ -1,0 +1,319 @@
+---
+title: "Microsoft Dynamics 365 Customer Service"
+description: "Power Automate を介して Microsoft Dynamics 365 Customer Service を MoEngage に接続し、ケース、SLA、アンケートのイベントをストリーミングしてコンテキストに沿ったキャンペーンに活用します。"
+---
+
+## はじめに
+
+[Microsoft Dynamics 365 Customer Service](https://www.microsoft.com/en-us/dynamics-365/products/customer-service) は、カスタマーサポート業務を管理および効率化するために設計されたエンタープライズグレードのソリューションです。ケース管理、オムニチャネルエンゲージメント、サービス分析のツールを提供し、顧客とのインタラクションを強化します。この統合は Microsoft Power Automate を介して MoEngage に接続し、リアルタイムのサービスデータ(ケースの作成や解決など)を D365 から MoEngage に送信できるようにします。主なメリットは、リアルタイムのカスタマーサービスアクティビティに基づいて、MoEngage からコンテキストに即した高度にパーソナライズされたキャンペーンをトリガーできることです。
+
+## 主な機能
+
+この統合により、次のことが可能になります。
+
+- D365 Customer Service から MoEngage に連絡先とアカウントを同期する。
+- ケースの作成、解決、SLA の更新などのサービスアクティビティを行動イベントとしてインポートする。
+- CSAT、NPS、その他のフィードバックデータをセグメンテーション用のイベントとして取得する。
+- サポートのインタラクションやケースのライフサイクルイベントに基づいて、コンテキストに沿ったキャンペーンをトリガーする。
+
+### 同期モジュール
+
+次の表は、D365 Customer Service の各モジュールのデータ同期を示しています。
+
+| モジュール | MoEngage の同期タイプ |
+| --- | --- |
+| Contacts | Users |
+| Cases | Events |
+| CSAT/SLA | Events |
+| Onboarding (Custom) | Events(カスタム) |
+| Custom Entities | Events(カスタム) |
+
+## ユースケース
+
+- **ケースベースのエンゲージメント**: D365 で新しいケースが作成されると、データを即座に MoEngage に送信し、ケース番号と解決予定時間を記載した確認メールをトリガーします。
+- **解決とフィードバック**: D365 でケースが「Resolved」とマークされたら、MoEngage キャンペーンを介して CSAT または NPS アンケートをトリガーし、即時のフィードバックを取得します。
+- **SLA とエスカレーション**: SLA ステータスの更新を監視します。SLA が「Nearing Breach」になった場合は、顧客への事前の最新情報キャンペーンと、サポートマネージャーへの社内アラートをトリガーします。
+- **フィードバック主導のジャーニー**: アンケートで低い CSAT スコアを受け取った場合、ユーザーを MoEngage の特定の再エンゲージメントジャーニーに自動的に追加し、D365 でフォローアップタスクを作成します。
+
+# ステップバイステップの統合ガイド
+
+<Info>
+  **前提条件**
+
+  Power Platform および D365 Customer Service 環境への管理者アクセス権が必要です。
+</Info>
+
+## ステップ 1: MoEngage のエンドポイントを取得する
+
+1. MoEngage サポートチームに連絡し、専用の統合エンドポイントをリクエストします。
+2. リクエストには、プロフィールのリンクに使用する共通識別子(メールアドレス、external\_id、または D365 GUID)を明記します。
+3. MoEngage から次の情報が提供されます。
+   1. 専用の Webhook URL(形式: `https://api-0X.moengage.com/v1/partner/d365-service/{events/users}/?configName={config_name}`)
+   2. 統合の設定名
+
+## ステップ 2: Power Automate フローを作成する
+
+この統合のすべてのフローでは、Microsoft Dataverse コネクタを使用します。このコネクタの仕組みの詳細な概要については、公式の [Microsoft Dataverse ドキュメント](https://learn.microsoft.com/en-us/connectors/commondataserviceforapps/)を参照してください。
+
+1. [Power Automate](https://flow.microsoft.com/) を開きます。
+2. **Create** \> **Automated Cloud Flow** をクリックします。
+3. フローに名前を付けます: `D365 - Sync [Entity] to MoEngage`(例: `D365 - Sync Case Created to MoEngage`)。
+4. トリガーを選択します: **When a row is added, modified or deleted (Dataverse)**。
+5. トリガーの詳細を設定します。
+   1. **Change type**: ペイロードに応じて、**Added**、**Modified**、または **Added or Modified** を選択します。
+   2. **Table name**: エンティティ(例: Cases、Contacts、SLA KPI Instances)を選択します。
+   3. **Scope**: **Organization**。
+
+![Dataverse トリガーの設定を示す Power Automate のフロー作成画面](/images/partner_43266552718484.png)
+
+### どのトリガーをいつ使用するか(シナリオ別)
+
+すべてのシナリオで同じトリガー(**When a row is added, modified or deleted**)を使用しますが、毎回異なる設定を行います。
+
+![Dataverse エンティティの Power Automate トリガー設定オプション](/images/partner_43266552718868.png)
+
+#### 1. ケースの作成/更新(およびユーザープロフィールの同期)
+
+**目的**: 新しいケースが登録/更新されたときに、イベントと顧客の詳細を送信します。
+
+**トリガーの設定:**
+
+- **Change type**: Added
+- **Table name**: Cases(または incident)
+
+#### 2. SLA 違反/警告
+
+**目的**: SLA ステータスが「Nearing Noncompliance」または「Noncompliant」に変わったときにイベントを送信します。
+
+**トリガーの設定:**
+
+- **Change type**: Added or Modified
+- **Table name**: SLA KPI Instances
+
+#### 3. CSAT アンケートの送信
+
+**目的**: 顧客がアンケートを送信した後に、顧客のスコアとフィードバックを送信します。
+
+**トリガーの設定:**
+
+- **Change type**: Added
+- **Table name**: Survey Responses
+
+![Survey Responses テーブルの Power Automate トリガー設定](/images/partner_43266552720148.png)
+
+## ステップ 3: HTTP Webhook アクションを設定する
+
+1. **New Step** をクリックし、**HTTP** を選択します。
+2. 次の項目を入力します。
+   | フィールド | 値 |
+   | --- | --- |
+   | **Method** | **POST** |
+   | **URI** | MoEngage から提供された専用の Webhook URL を入力します。 |
+   | **Headers** | `Authorization: Basic [Base64(Workspace_ID:API_Key)]`<br />`Content-Type: application/json` |
+   | **Body** | 以下のサンプルペイロードを使用します。 |
+
+### Basic 認証トークンを生成する
+
+1. オンラインの [Basic Auth Header Generator tool](https://www.debugbear.com/basic-auth-header-generator) を使用して Basic トークンを取得します。
+2. **Username**: MoEngage の Workspace ID(MoEngage Dashboard \>\> Settings \>\> APIs で確認できます)。
+3. **Password**: MoEngage の Data API Key(MoEngage Dashboard \>\> Settings \>\> APIs で確認できます)。
+4. ツールによって `Basic {base64_encoded_credentials}` の値が生成されるので、これを Authorization ヘッダーに貼り付けます。
+
+![生成された認証トークンを示す Basic Auth Header Generator ツール](/images/partner_43267024664980.png)
+
+## ステップ 4: リクエストボディのペイロードを追加する
+
+以下から適切なペイロードテンプレートをコピーし、HTTP アクションの Body フィールドに貼り付けます。
+
+Power Automate の式を使用して、プレースホルダーの値を D365 の動的フィールドに置き換えます。動的フィールドを追加するには、Body フィールドをクリックし、**Dynamic content** を選択して、利用可能な D365 フィールドを参照します。
+
+## サンプルペイロード
+
+### ケースの作成/更新(ユーザーのアップサートあり)
+
+このペイロードを使用して、イベントを作成し、MoEngage でユーザーのプロフィールを作成/更新します。完全な `user_attributes` を送信する必要があるのは、このペイロードのみです。
+
+**トリガーの設定:**
+
+- **Change type**: Added or Modified
+- **Table name**: Cases
+
+```json wrap
+{
+  "customer_id": "@{triggerOutputs()?['body/_customerid_value']}",
+  "updated_at": "@{triggerOutputs()?['body/createdon']}",
+  "user_attributes": {
+    "email": "@{outputs('Get_Customer_Details')?['body/emailaddress1']}",
+    "mobile": "@{outputs('Get_Customer_Details')?['body/mobilephone']}",
+    "first_name": "@{outputs('Get_Customer_Details')?['body/firstname']}",
+    "last_name": "@{outputs('Get_Customer_Details')?['body/lastname']}",
+    "type": "@{triggerOutputs()?['body/_customerid_value@Microsoft.Dynamics.CRM.lookuplogicalname']}"
+  },
+  "event_name": "Case Created",
+  "event_attributes": {
+    "case_id": "@{triggerOutputs()?['body/incidentid']}",
+    "case_number": "@{triggerOutputs()?['body/ticketnumber']}",
+    "title": "@{triggerOutputs()?['body/title']}",
+    "description": "@{triggerOutputs()?['body/description']}",
+    "case_type": "@{triggerOutputs()?['body/casetypecode@OData.Community.Display.V1.FormattedValue']}",
+    "priority": "@{triggerOutputs()?['body/prioritycode@OData.Community.Display.V1.FormattedValue']}",
+    "status": "@{triggerOutputs()?['body/statecode@OData.Community.Display.V1.FormattedValue']}"
+  }
+}
+```
+
+<Info>
+  **注意**
+
+  このペイロードには「Get row by ID」(Dataverse)ステップが必要です。HTTP アクションの前にこのステップを追加し、Case トリガーの `_customerid_value` を使用して連絡先の詳細(メールアドレス、電話番号など)を取得します。このステップには `Get_Customer_Details` という名前を付けます。
+</Info>
+
+### ケースの作成/更新(ユーザーのアップサートなし)
+
+このペイロードを使用して、MoEngage のユーザープロフィールを更新せずにイベントを送信します。
+
+**トリガーの設定:**
+
+- **Change type**: Added or Modified
+- **Table name**: Cases
+
+```json wrap
+{
+  "customer_id": "@{triggerOutputs()?['body/_customerid_value']}",
+  "updated_at": "@{triggerOutputs()?['body/modifiedon']}",
+  "event_name": "Case Created/Updated",
+  "event_attributes": {
+    "case_id": "@{triggerOutputs()?['body/incidentid']}",
+    "case_number": "@{triggerOutputs()?['body/ticketnumber']}",
+    "title": "@{triggerOutputs()?['body/title']}",
+    "description": "@{triggerOutputs()?['body/description']}",
+    "case_type": "@{triggerOutputs()?['body/casetypecode@OData.Community.Display.V1.FormattedValue']}",
+    "priority": "@{triggerOutputs()?['body/prioritycode@OData.Community.Display.V1.FormattedValue']}",
+    "status": "@{triggerOutputs()?['body/statecode@OData.Community.Display.V1.FormattedValue']}"
+  }
+}
+```
+
+<Info>
+  **注意**
+
+  このペイロードはユーザー属性を含まずイベントデータのみを送信するため、追加の Dataverse ステップは必要ありません。
+</Info>
+
+### SLA ステータスの更新(イベント)
+
+このペイロードを使用して、SLA ステータスが変更されたとき(例: 「Nearing Noncompliance」または「Noncompliant」になったとき)にイベントを送信します。
+
+**トリガーの設定:**
+
+- **Change type**: Added or Modified
+- **Table name**: SLA KPI Instances
+
+```json wrap
+{
+  "customer_id": "@{triggerOutputs()?['body/_customerid_value']}",
+  "updated_at": "@{triggerOutputs()?['body/modifiedon']}",
+  "event_name": "SLA Updated",
+  "event_attributes": {
+    "case_id": "@{outputs('Get_Case_Details')?['body/incidentid']}",
+    "first_response": "@{outputs('Get_Case_Details')?['body/_firstresponsebykpiid_value']}",
+    "sla": "@{outputs('Get_Case_Details')?['body/_slaid_value']}",
+    "sla_id": "@{triggerOutputs()?['body/slakpiinstanceid']}",
+    "resolve_sla": "@{outputs('Get_Case_Details')?['body/resolvebyslastatus']}"
+  }
+}
+```
+
+<Info>
+  **注意**
+
+  このペイロードには「Get row by ID」(Dataverse)ステップが必要です。HTTP アクションの前にこのステップを追加し、親の Case を取得して(Row ID として `_regarding_value` を使用)、その `_customerid_value` を取得します。このステップには `Get_Case_Details` という名前を付けます。
+</Info>
+
+### アンケート回答の受信(イベント)
+
+このペイロードを使用して、CSAT/NPS スコアとフィードバックコメントをイベントとして送信します。
+
+**トリガーの設定:**
+
+- **Change type**: Added
+- **Table name**: Survey Responses(または `msdyn_surveyresponse` / Customer Voice エンティティ)
+
+```json wrap
+{
+  "customer_id": "@{triggerOutputs()?['body/_regardingobjectid_value']}",
+  "updated_at": "@{triggerOutputs()?['body/modifiedon']}",
+  "event_name": "Survey Response Received",
+  "event_attributes": {
+    "response_id": "@{triggerOutputs()?['body/activityid']}",
+    "survey_name": "@{triggerOutputs()?['body/_msdyn_surveyid_value@OData.Community.Display.V1.FormattedValue']}",
+    "case_id": "@{triggerOutputs()?['body/_msdyn_caseid_value']}",
+    "csat_score": "@{triggerOutputs()?['body/msdyn_csatscore']}",
+    "feedback_comment": "@{triggerOutputs()?['body/msdyn_feedbackcomment']}"
+  }
+}
+```
+
+### カスタムオンボーディングステータスの更新(イベント)
+
+このペイロードは、カスタムエンティティ(例: `cr123_onboarding`)に使用します。顧客のオンボーディングステータスが変更されたときにイベントを送信します。
+
+**トリガーの設定:**
+
+- **Change type**: Modified
+- **Table name**: Onboardings(またはカスタムエンティティのスキーマ名)
+- **Select columns**: `cr123_statuscode`(ステータスフィールドが変更されたときのみフローが実行されるため、フローの実行回数を節約できます)。
+
+```json wrap
+{
+  "customer_id": "@{triggerOutputs()?['body/_cr123_contactid_value']}",
+  "updated_at": "@{triggerOutputs()?['body/modifiedon']}",
+  "event_name": "Onboarding Status Updated",
+  "event_attributes": {
+    "onboarding_id": "@{triggerOutputs()?['body/cr123_onboardingid']}",
+    "status": "@{triggerOutputs()?['body/cr123_statuscode@OData.Community.Display.V1.FormattedValue']}",
+    "stage_name": "@{triggerOutputs()?['body/cr123_stagename']}",
+    "owner_id": "@{triggerOutputs()?['body/_ownerid_value']}"
+  }
+}
+```
+
+## 必須フィールド
+
+MoEngage でデータを適切に処理するには、すべてのペイロードに次のフィールド(キー)を含める必要があります。
+
+| フィールド | 説明 | 必須 |
+| --- | --- | --- |
+| `customer_id` | ユーザープロフィールをリンクするための一意の識別子です。 | はい |
+| `updated_at` | イベントのタイムスタンプです。 | はい |
+| `event_name` | イベントタイプ(例: 「Case Created」、「SLA Updated」)です。 | はい(すべてのイベント) |
+| `event_attributes` | イベント固有の詳細(ケース ID、ステータスなど)です。 | はい(すべてのイベント) |
+| `user_attributes` | カスタムのキーと値のペア(メールアドレス、名前など)です。 | はい(ユーザーのアップサートの場合)、いいえ(その他のイベントの場合) |
+
+## データマッピングのガイドライン
+
+- **一意の識別子(`customer_id`)**: D365 と MoEngage の間でユーザープロフィールをリンクするには、一貫性のある不変の識別子を使用します。これは、データのマージと重複したユーザープロフィールの防止に不可欠です。一般的なオプション:
+  - メールアドレス(一意の場合)
+  - D365 レコードの GUID(`contactid`、`leadid` など)
+  - 外部 ID(D365 で設定されている場合)
+- **イベント名**: 分析とセグメンテーションのために MoEngage でアクションを識別および分類できるよう、常にわかりやすい `event_name` を含めてください。
+
+## ステップ 5: 統合をテストする
+
+1. Power Automate で **Test** \> **Manually** をクリックします。
+2. D365 でテストレコードを作成または変更して、トリガーを起動します(例: 新しい Case の作成、SLA の更新)。
+3. フローの実行を監視します。
+   - HTTP 200/201 の成功レスポンスが返されることを確認します。
+   - フローの実行詳細にエラーがないか確認します。
+4. MoEngage で確認します。
+   - MoEngage Dashboard \> Users または Events に移動します。
+   - テストユーザー/イベントを検索します。
+   - 1~5 分以内にデータが正しく表示されることを確認します。
+
+## レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Microsoft Dynamics 365 Customer Service データの取り込みをワークスペースあたり最大 500 リクエスト/秒(RPS)に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+Power Automate フローで `429` レスポンスを処理するには、HTTP アクションに再試行ポリシーを設定し、制限に達したときにイベントが自動的に再送信されるようにします。
+
+**再試行の上限到達**: HTTP アクションがすべての再試行を使い果たすと、フローの実行は失敗します。Power Automate の実行履歴から失敗した実行を再送信して、リクエストを再実行してください。

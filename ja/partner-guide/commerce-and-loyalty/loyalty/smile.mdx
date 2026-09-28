@@ -1,0 +1,75 @@
+---
+title: "Smile"
+---
+
+# はじめに
+
+[Smile.io](https://smile.io/) は、オンラインで事業を展開する企業 _向け_ のロイヤルティ管理ソフトウェアです。ビジネスブランドは単一のプラットフォームからさまざまな紹介プログラムを開始し、カスタマイズ可能で魅力的な多様な報酬プログラムを提供できます。
+
+# MoEngage × Smile
+
+MoEngage と Smile の連携により、MoEngage で顧客のアクティビティを取得して Smile ダッシュボードに転送し、ユーザーがそれらのアクティビティに対して報酬を受け取れるようにできます。
+
+# 連携
+
+<Info>
+  - Smile API の権限があることを確認してください。
+  - MoEngage ダッシュボードへのアクセス権があることを確認してください。
+</Info>
+
+## ステップ 1: Smile API キーを取得する
+
+MoEngage から Smile にイベントを転送するには、Smile API キーが必要です。
+
+1. Smile ダッシュボードで、_Settings_ \>\> _Platforms_ に移動します。\\
+   ![](https://smile-22e33444d303.intercom-attachments-1.com/i/o/208728187/b417b8385a506fdeade83e54/file-45iTCYo3c0.png)
+2. 上部にある **Show more** を選択すると、公開キーと秘密キーが表示されます。\
+   <img src="https://smile-22e33444d303.intercom-attachments-1.com/i/o/208728188/c58a336db5087417436da998/file-KEd7WSM6YD.png" />\\
+   ![](https://smile-22e33444d303.intercom-attachments-1.com/i/o/208728192/98b77387efa09d4fb3ee933f/file-Y9FkjPuN6H.png)
+3. API への認証は HTTP Bearer 認証で行います。秘密キーを Bearer の値として使用します。
+
+## ステップ 2: MoEngage でコネクターキャンペーンを作成する
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最も適した配信タイプを選択します。この場合は、「Event triggered」を選択します。
+
+![Screenshot\_2022-02-21\_at\_10.48.46\_PM.png](/images/partner_19201619090452.png)
+
+トリガー条件とターゲットオーディエンスを選択します。
+
+2. キャンペーンのステップ 2 で、次の操作を行います。
+
+### Smile API を呼び出す
+
+MoEngage のイベントを Activity として Smile に転送するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして POST を選択します
+- Headers:
+  - `Authorization`: `Bearer <your_secret_key>`
+  - `Content-Type`: `application/json`
+- Webhook URL としてエンドポイントを追加します: `https://api.smile.io/v1/activities`
+- Body:
+  <CodeGroup>
+  ```json JSON
+  {
+    "activity": {
+      "customer_id": {{UserAttribute['smile_customer_id']}},
+      "token": "activity_f57a9b5a8d0ac5",
+      "properties": {
+          "order_value": {{EventAttribute['order_value']}}
+      }
+    }
+  }
+  ```
+  </CodeGroup>
+
+![](/images/partner_19202300616468.png)
+
+- 詳細については、[Smile API ドキュメント](https://api-reference.smile.io/#create-an-activity)を参照してください。
+
+## リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整っています。コネクターキャンペーン作成のステップ 2 にあるテスト機能を使用して、コネクターの設定をテストすることもできます。<img src="/images/partner_19201588181268.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+
+その後、キャンペーンを公開できます。

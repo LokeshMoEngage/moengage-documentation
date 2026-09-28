@@ -1,0 +1,291 @@
+---
+title: "Freshsales CRM"
+---
+
+
+
+# はじめに
+
+[Freshsales](https://www.freshworks.com/crm/sales/) は、世界中のサポートチーム、営業チーム、マーケティングチームに利用されている人気の CRM ツールです。Freshsales のサービスにより、企業はクラウドテクノロジーを活用して、パートナー、顧客、見込み顧客とより良い関係を築くことができます。
+
+# MoEngage × Freshsales
+
+MoEngage と Freshsales の統合により、Freshsales から MoEngage へリードや顧客データをシームレスに転送できるようになり、マーケティングと営業の取り組みを効率化できます。この統合により、次のことができます。
+
+- MoEngage で Freshsales の連絡先、商談などを作成または更新する。
+- Freshsales の営業活動を MoEngage のイベントとしてインポートする。
+- Freshsales の任意のカスタムモジュールを MoEngage にインポートする。
+
+## ユースケース
+
+- MoEngage のパーソナライズされたキャンペーンで営業アプローチを改善する。
+- MoEngage のキャンペーンを使用して失注した商談に新機能の情報を届け、商談を取り戻す。
+- MoEngage を使用してターゲットを絞ったキャンペーンを送信し、リードを商談に転換する。
+- MoEngage のイベントトリガー型キャンペーンを使用して見込み顧客に迅速にエンゲージし、ファネルの次の段階へと進める。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  MoEngage を Freshsales CRM と統合するには、Freshsales アカウントがあることを確認してください。
+</Info>
+
+統合用の専用エンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストでは、MoEngage とパートナープラットフォームの間でユーザープロファイルを紐付けるために使用する共通の識別子を指定する必要があります。
+
+## Freshsales から MoEngage への同期
+
+| Freshsales のモジュール | 同期のサポート |
+| --- | --- |
+| Contacts | ✅ ユーザー/イベントとしてサポート |
+| Accounts | ✅ ユーザー/イベントとしてサポート |
+| Deals | ✅ ユーザー/イベントとしてサポート |
+| Tasks | ✅ Advanced Content 経由でのみイベントとしてサポート |
+| Meetings | ✅ Advanced Content 経由でのみイベントとしてサポート |
+| Call Logs | ✅ Advanced Content 経由でのみイベントとしてサポート |
+| Custom | ❎ Freshsales ではサポートされていません |
+
+Contacts、Accounts、Deals などを MoEngage と同期するには、Freshsales CRM で Webhook を設定する必要があります。
+
+1. Freshsales CRM ダッシュボードで、_Admin Settings_ \>\> _Workflows_ \>\> _Create workflow_ に移動します。<img src="/images/partner_36478610748564.png" />
+2. ユースケースに応じて、同期するモジュールを選択します。Freshsales では 1 つのワークフローにつき 1 つのモジュールしかサポートされないため、複数のモジュールを同期する場合は、モジュールごとに個別のワークフローを作成する必要があります。MoEngage のエンドポイントはモジュールごとに固有であることに注意してください。<img src="/images/partner_36478584058260.png" />
+3. "When to trigger this workflow?" セクションで、トリガーとして "When \<module\> is created or updated" を選択し、このワークフローを "repeatedly for the same \<module\>" で実行するように設定します。
+4. ユースケースに応じて、"What conditions should be met?" セクションでフィルター条件を追加することもできます。すべての作成/更新でトリガーする場合は、空欄のままにします。
+5. "What actions should be executed?" セクションで、モジュールの "Trigger webhook" アクションを選択します。次の内容を入力します。
+
+![](/images/partner_36478610750228.png)
+
+| Freshsales のセクション | 説明 |
+| --- | --- |
+| Select request method | POST |
+| Enter callback URL | MoEngage から提供された専用の Webhook URL を入力します。これらの URL をユースケースに合わせて調整するには、カスタマーサクセスマネージャーにご相談ください。 |
+| Requires authentication | このオプションをオンにします。 |
+| Enter username | MoEngage アカウントのワークスペース ID は、**Settings -\> Account -\> APIs -\> Workspace ID** で確認できます。MoEngage アカウントの Data API ID とワークスペース ID は同じです。 |
+| Enter password | Data API Key を入力します。MoEngage アカウントの Data API キーは、**Settings -\> Account -\> APIs -\> API keys \> Data** で確認できます。 |
+| Select encoding format | JSON |
+| Compose request body | ユースケースに応じて、Simple（すぐに使える統合）または MoEngage Webhook との Advanced 統合を選択できます。 |
+| Content | <ul><li>Simple を選択した場合は、MoEngage と同期するプロパティを選択します。</li><li>Advanced を選択した場合は、Freshsales のプレースホルダーを使用して、ユースケースに合わせたペイロードを作成する必要があります。</li></ul> |
+
+Simple Content を選択した場合は、MoEngage のデフォルトのマッピングが適用されます。
+
+### MoEngage のユーザーとしての Contacts
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| Contact External ID | Customer ID |
+| Contact Mobile Number | Mobile Number（標準） |
+| Contact First Name | First Name（標準） |
+| Contact Last Name | Last Name（標準） |
+| その他のフィールド | 同じ名前のカスタム属性 |
+
+注: 関連する Sales Account の詳細を Contact ワークフローに送信することもできます。
+
+### MoEngage のユーザーとしての Accounts
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| Sales Account ID | Customer ID |
+| その他のフィールド | 同じ名前のカスタム属性 |
+
+注: Account が更新/作成されたときは、関連するすべての Contacts を更新し、Contact ワークフローを使用して Account の詳細を MoEngage に同期することをお勧めします。
+
+### MoEngage のイベントとしての Tasks、Meetings、Call Logs
+
+Tasks、Meetings、Call Logs の MoEngage への同期は、Advanced Content モードでのみ使用できます。**Compose request body** で "Advanced" を選択します。Tasks のサンプルペイロード形式は次のとおりです。
+
+```json wrap
+{
+    "task_targetable_external_id": "{{task.targetable.external_id}}",
+    "task_event_name": "Task Created or Updated",
+    "custom_arr": "{{task.description}}"
+}
+```
+
+Meetings と Call Logs の同期にも、同様のペイロード構造を使用できます。MoEngage がペイロードに含まれることを想定しているマッピングは次のとおりです。
+
+### Tasks
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| Contact External ID <br />`(task_targetable_external_id)` | Customer ID <br /> <ul><li>Tasks は MoEngage にイベントとして追加されます。</li></ul> |
+| Event name <br />`(task_event_name)` | Event Name <br /> <ul><li>このフィールドは Freshsales にはありません。Advanced Content のペイロードに手動で追加する必要があります。</li></ul> |
+| その他のフィールド | 同じ名前のカスタムイベント属性 |
+
+### Meetings
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| Contact External ID <br />`(appointment_targetable_external_id)` | Customer ID <br /> <ul><li>Meetings は MoEngage にイベントとして追加されます。</li></ul> |
+| Event name <br />`(appointment_event_name)` | Event Name <br /> <ul><li>このフィールドは Freshsales にはありません。Advanced Content のペイロードに手動で追加する必要があります。</li></ul> |
+| その他のフィールド | 同じ名前のカスタムイベント属性 |
+
+### Call Logs
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| Contact External ID <br />`(phone_call_entity_external_id)` | Customer ID <br /> <ul><li>Call Logs は MoEngage にイベントとして追加されます。</li></ul> |
+| Event name <br />`(phone_call_event_name)` | Event Name <br /> <ul><li>このフィールドは Freshsales にはありません。Advanced Content のペイロードに手動で追加する必要があります。</li></ul> |
+| その他のフィールド | 同じ名前のカスタムイベント属性 |
+
+### Advanced Content の本文
+
+上記のいずれかのモジュールで Advanced Content の本文を使用する場合は、次のようなペイロード構造を使用できます。
+
+```json
+{
+    "external_id": "{{contact.external_id}} or equivalant",
+    "event_name": "<Your event name>",
+    "other attrs": "<their value>"
+}
+```
+
+マッピングが正しく機能するために、MoEngage は次のキーを想定しています。
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| External ID <br />`(external_id)` | Customer ID（ユーザーとイベントの両方） |
+| Event name <br />`(event_name)` | Event Name（イベントのみ） |
+| その他のフィールド | 同じ名前のカスタムユーザー/イベント属性 |
+
+# はじめに
+
+[Freshsales](https://www.freshworks.com/crm/sales/) は、世界中のサポートチーム、営業チーム、マーケティングチームに利用されている人気の CRM ツールです。Freshsales のサービスにより、企業はクラウドテクノロジーを活用して、パートナー、顧客、見込み顧客とより良い関係を築くことができます。
+
+# MoEngage × Freshsales
+
+MoEngage と Freshsales の統合により、Freshsales から MoEngage へリードや顧客データをシームレスに転送できるようになり、マーケティングと営業の取り組みを効率化できます。この統合により、次のことができます。
+
+- MoEngage で Freshsales の連絡先、商談などを作成または更新する。
+- Freshsales の営業活動を MoEngage のイベントとしてインポートする。
+- Freshsales の任意のカスタムモジュールを MoEngage にインポートする。
+
+## ユースケース
+
+- MoEngage のパーソナライズされたキャンペーンで営業アプローチを改善する。
+- MoEngage のキャンペーンを使用して失注した商談に新機能の情報を届け、商談を取り戻す。
+- MoEngage を使用してターゲットを絞ったキャンペーンを送信し、リードを商談に転換する。
+- MoEngage のイベントトリガー型キャンペーンを使用して見込み顧客に迅速にエンゲージし、ファネルの次の段階へと進める。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  MoEngage を Freshsales CRM と統合するには、Freshsales アカウントがあることを確認してください。
+</Info>
+
+統合用の専用エンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストでは、MoEngage とパートナープラットフォームの間でユーザープロファイルを紐付けるために使用する共通の識別子を指定する必要があります。
+
+## Freshsales から MoEngage への同期
+
+| Freshsales のモジュール | 同期のサポート |
+| --- | --- |
+| Contacts | ✅ ユーザー/イベントとしてサポート |
+| Accounts | ✅ ユーザー/イベントとしてサポート |
+| Deals | ✅ ユーザー/イベントとしてサポート |
+| Tasks | ✅ Advanced Content 経由でのみイベントとしてサポート |
+| Meetings | ✅ Advanced Content 経由でのみイベントとしてサポート |
+| Call Logs | ✅ Advanced Content 経由でのみイベントとしてサポート |
+| Custom | ❎ Freshsales ではサポートされていません |
+
+Contacts、Accounts、Deals などを MoEngage と同期するには、Freshsales CRM で Webhook を設定する必要があります。
+
+1. Freshsales CRM ダッシュボードで、_Admin Settings_ \>\> _Workflows_ \>\> _Create workflow_ に移動します。<img src="/images/partner_36478610748564.png" />
+2. ユースケースに応じて、同期するモジュールを選択します。Freshsales では 1 つのワークフローにつき 1 つのモジュールしかサポートされないため、複数のモジュールを同期する場合は、モジュールごとに個別のワークフローを作成する必要があります。MoEngage のエンドポイントはモジュールごとに固有であることに注意してください。<img src="/images/partner_36478584058260.png" />
+3. "When to trigger this workflow?" セクションで、トリガーとして "When \<module\> is created or updated" を選択し、このワークフローを "repeatedly for the same \<module\>" で実行するように設定します。
+4. ユースケースに応じて、"What conditions should be met?" セクションでフィルター条件を追加することもできます。すべての作成/更新でトリガーする場合は、空欄のままにします。
+5. "What actions should be executed?" セクションで、モジュールの "Trigger webhook" アクションを選択します。次の内容を入力します。
+
+![](/images/partner_36478610750228.png)
+
+| Freshsales のセクション | 説明 |
+| --- | --- |
+| Select request method | POST |
+| Enter callback URL | MoEngage から提供された専用の Webhook URL を入力します。これらの URL をユースケースに合わせて調整するには、カスタマーサクセスマネージャーにご相談ください。 |
+| Requires authentication | このオプションをオンにします。 |
+| Enter username | MoEngage アカウントのワークスペース ID は、**Settings -\> Account -\> APIs -\> Workspace ID** で確認できます。MoEngage アカウントの Data API ID とワークスペース ID は同じです。 |
+| Enter password | Data API Key を入力します。MoEngage アカウントの Data API キーは、**Settings -\> Account -\> APIs -\> API keys \> Data** で確認できます。 |
+| Select encoding format | JSON |
+| Compose request body | ユースケースに応じて、Simple（すぐに使える統合）または MoEngage Webhook との Advanced 統合を選択できます。 |
+| Content | <ul><li>Simple を選択した場合は、MoEngage と同期するプロパティを選択します。</li><li>Advanced を選択した場合は、Freshsales のプレースホルダーを使用して、ユースケースに合わせたペイロードを作成する必要があります。</li></ul> |
+
+Simple Content を選択した場合は、MoEngage のデフォルトのマッピングが適用されます。
+
+### MoEngage のユーザーとしての Contacts
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| Contact External ID | Customer ID |
+| Contact Mobile Number | Mobile Number（標準） |
+| Contact First Name | First Name（標準） |
+| Contact Last Name | Last Name（標準） |
+| その他のフィールド | 同じ名前のカスタム属性 |
+
+注: 関連する Sales Account の詳細を Contact ワークフローに送信することもできます。
+
+### MoEngage のユーザーとしての Accounts
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| Sales Account ID | Customer ID |
+| その他のフィールド | 同じ名前のカスタム属性 |
+
+注: Account が更新/作成されたときは、関連するすべての Contacts を更新し、Contact ワークフローを使用して Account の詳細を MoEngage に同期することをお勧めします。
+
+### MoEngage のイベントとしての Tasks、Meetings、Call Logs
+
+Tasks、Meetings、Call Logs の MoEngage への同期は、Advanced Content モードでのみ使用できます。**Compose request body** で "Advanced" を選択します。Tasks のサンプルペイロード形式は次のとおりです。
+
+```json
+{
+    "task_targetable_external_id": "{{task.targetable.external_id}}",
+    "task_event_name": "Task Created or Updated",
+    "custom_arr": "{{task.description}}"
+}
+```
+
+Meetings と Call Logs の同期にも、同様のペイロード構造を使用できます。MoEngage がペイロードに含まれることを想定しているマッピングは次のとおりです。
+
+### Tasks
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| Contact External ID <br />`(task_targetable_external_id)` | Customer ID <br /> <ul><li>Tasks は MoEngage にイベントとして追加されます。</li></ul> |
+| Event name <br />`(task_event_name)` | Event Name <br /> <ul><li>このフィールドは Freshsales にはありません。Advanced Content のペイロードに手動で追加する必要があります。</li></ul> |
+| その他のフィールド | 同じ名前のカスタムイベント属性 |
+
+### Meetings
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| Contact External ID <br />`(appointment_targetable_external_id)` | Customer ID <br /> <ul><li>Meetings は MoEngage にイベントとして追加されます。</li></ul> |
+| Event name <br />`(appointment_event_name)` | Event Name <br /> <ul><li>このフィールドは Freshsales にはありません。Advanced Content のペイロードに手動で追加する必要があります。</li></ul> |
+| その他のフィールド | 同じ名前のカスタムイベント属性 |
+
+### Call Logs
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| Contact External ID <br />`(phone_call_entity_external_id)` | Customer ID <br /> <ul><li>Call Logs は MoEngage にイベントとして追加されます。</li></ul> |
+| Event name <br />`(phone_call_event_name)` | Event Name <br /> <ul><li>このフィールドは Freshsales にはありません。Advanced Content のペイロードに手動で追加する必要があります。</li></ul> |
+| その他のフィールド | 同じ名前のカスタムイベント属性 |
+
+### Advanced Content の本文
+
+上記のいずれかのモジュールで Advanced Content の本文を使用する場合は、次のようなペイロード構造を使用できます。
+
+```json
+{
+    "external_id": "{{contact.external_id}} or equivalant",
+    "event_name": "<Your event name>",
+    "other attrs": "<their value>"
+}
+```
+
+マッピングが正しく機能するために、MoEngage は次のキーを想定しています。
+
+| Freshsales のフィールド | MoEngage の属性 |
+| --- | --- |
+| External ID <br />`(external_id)` | Customer ID（ユーザーとイベントの両方） |
+| Event name <br />`(event_name)` | Event Name（イベントのみ） |
+| その他のフィールド | 同じ名前のカスタムユーザー/イベント属性 |

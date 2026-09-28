@@ -1,0 +1,119 @@
+---
+title: "Olo"
+description: "注文、ゲストのサインアップ、オプトインなどの Olo の Webhook イベントを MoEngage にストリーミングし、再注文、オンボーディング、呼び戻しのレストランキャンペーンを構築します。"
+keywords: ["Olo", "restaurant webhooks", "guest data", "order events", "webhook integration"]
+---
+
+# はじめに
+
+[Olo](https://www.olo.com/) は、複数店舗を展開するレストランブランド向けのレストランテクノロジープラットフォームです。セルフサービス型の Webhook フレームワークを通じて、Olo は注文、ゲストのサインアップ、オプトイン設定などのほぼリアルタイムのイベントデータを発行します。これらを MoEngage に直接ストリーミングして、パーソナライズされたライフサイクル主導のキャンペーンに活用できます。
+
+# MoEngage × Olo
+
+MoEngage と Olo の連携により、レストランブランドはゲストデータを統合し、すべての自社チャネルで活用できます。この連携により、次のことが可能になります。
+
+- 注文イベント (注文、キャンセル、受け取り) を MoEngage の行動イベントとしてほぼリアルタイムで取り込む。
+- ゲストのサインアップとオプトインのデータを同期して、MoEngage のユーザープロファイルを作成および拡充する。
+- 高度なセグメンテーションのために、ロイヤルティのチェックインやベンダーレベルのイベントを取得する。
+- 注文が行われた直後やゲストが離脱した直後に、パーソナライズされたキャンペーンをトリガーする。
+
+## ユースケース
+
+Olo を MoEngage と連携すると、次のユースケースを実現できます。
+
+- **再注文キャンペーン**: ゲストの最終注文が定義された経過期間のしきい値を超えたときに、パーソナライズされたプッシュまたはメールキャンペーンをトリガーします。
+- **新規ゲストのオンボーディング**: Olo の注文フローからサインアップしたゲストを歓迎し、初回注文のインセンティブキャンペーンを配信します。
+- **離脱したゲストの呼び戻し**: 30 日以上 **Order Placed** イベントがないユーザーを特定し、関連するオファーを含む再エンゲージメントキャンペーンを配信します。
+- **注文マイルストーンの特典**: 累計 5 回目または 10 回目の注文に達したゲストを検出し、ロイヤルティ特典メッセージを自動的にトリガーします。
+- **購入後のフィードバック**: **Order Picked Up** イベントから数分以内に、自動化されたレビュー依頼や満足度アンケートを送信します。
+
+次の表は、Olo の Webhook イベントの一部を示しています。ユースケースに応じて追加のイベントを設定できます。
+
+| Olo イベントタイプ | 説明 |
+| --- | --- |
+| `UserSignedUp` | ゲストが Olo を介してサインアップします。プロファイル属性とサブスクリプション設定が取得されます。 |
+| `OrderPlaced` | ゲストが注文します。バスケットの内容、店舗、合計金額、配送方法が取得されます。 |
+| `OrderCancelled` | ゲストが注文をキャンセルします。呼び戻しフローや注文分析に使用されます。 |
+| `OrderPickedUp` | ゲストが注文を受け取ります。購入後のフローをトリガーします。 |
+| `GuestOptIn` | ゲストがコミュニケーション設定を更新します。メールと SMS のサブスクリプション状態が取得されます。 |
+
+<Info>
+  **開始する前に**
+
+  Olo では、ブランド環境ごとに1つの Destination URL のみが許可されます。すべてのイベントタイプは同じ MoEngage エンドポイントにルーティングされ、`X-Olo-Event-Type` ヘッダーを使用して区別されます。
+</Info>
+
+<Info>
+  **前提条件**
+
+  続行する前に、次のものがあることを確認してください。
+
+  - Olo Dashboard の **Dev Tools \> Webhooks** にアクセスできる **Brand Manager** 権限 (またはそれ以上)。
+  - **Settings \> Account \> APIs** で確認できる MoEngage の **Workspace ID** と **Data API Key**。
+</Info>
+
+## ステップ 1: MoEngage のエンドポイントを取得する
+
+MoEngage は、この連携用に専用の Webhook 取り込みエンドポイントを提供します。この URL を、Olo の Webhook 設定の **Destination URL** として使用します。
+
+MoEngage のエンドポイントは次の形式に従います。
+
+```text wrap
+https://api-0X.moengage.com/v1/partner/olo/{events|user}/?configName={config_name}
+```
+
+## ステップ 2: Olo Dashboard で Webhook を設定する
+
+Olo で Webhook を設定するには、次の手順を実行します。
+
+1. 右上の **Add Webhook** をクリックします。
+
+![右上に Add Webhook ボタンが表示された Olo Dashboard](/images/webhooks1.png)
+
+3. **Webhook Name** フィールドに、わかりやすい名前を入力します。例: `MoEngage {{Your Workspace Name}}`。
+4. **Destination URL** フィールドに、ステップ 1 の MoEngage エンドポイント URL を貼り付けます。
+5. **Developer Partner** ドロップダウンで、承認済みパートナーのリストから **MoEngage** を選択します。
+6. **Headers** で、`Authorization` ヘッダーを追加します。その値を生成するには、MoEngage の **Workspace ID** をユーザー名、**Data API Key** をパスワードとして、[Basic Auth Header Generator ツール](https://www.debugbear.com/basic-auth-header-generator)を使用します。
+   - 認証情報を確認するには、MoEngage で **Settings \> Account \> APIs** に移動します。
+   - **Workspace ID** (**earlier app id**) の下にある ID をコピーします。
+   - **API keys** の下にある **Data** の値をコピーします。
+   - トークンは両方の値を組み合わせたものです。例: `Basic Qk5CR1NNNUR4eHh4eHhWQ1hSRFJEWTdSOlFsWHVoTHVaeHh4eHh4QWQrQnBYUEotNw==`
+   - **注**: 余分なスペースを入れずに、トークン全体をコピーしてください。
+7. **Order Events** セクションと **User Events** セクションで、MoEngage に転送するイベントタイプを有効にします。
+
+![Webhook 設定の Order Events および User Events セクションが表示された Olo Dashboard](/images/sharedsecret2.png)
+
+8. イベントを選択したら、**Test Webhook** をクリックして、MoEngage エンドポイントにテストペイロードを送信します。
+
+<Warning>
+  **Shared Secret**
+
+  Webhook の作成フロー中に、Olo は64文字の **Shared Secret** を表示します。これは、ペイロード検証用の `X-Olo-Signature` ヘッダーを計算するために使用されます。Olo はこれを1回しか表示しないため、コピーして安全に保管してください。設定のために、この値を MoEngage の担当者に提供してください。
+</Warning>
+
+![Webhook 作成中に Shared Secret フィールドが表示された Olo Dashboard](/images/allsystems3.png)
+
+<Warning>
+  **テストイベントが必要**
+
+  Olo では、Webhook を公開する前にテストイベントから成功レスポンスを受け取る必要があります。これは必須の条件であり、MoEngage エンドポイントから `200` レスポンスを受信するまで、**Publish Webhook** ボタンは非アクティブのままです。
+
+  テストが失敗した場合は、再試行する前に Destination URL と Authorization ヘッダーを確認してください。
+</Warning>
+
+9. テストが成功したら、Publish Webhook をクリックして有効にします。
+
+<Note>
+  **一意の識別子 (Customer ID)**
+
+  MoEngage は、Olo の `customerId` を一意の識別子として使用します。この値は変更不可であるため、正確なプロファイル解決が保証され、重複が防止されます。別の識別子を使用する場合は、Webhook を設定する前に MoEngage チームにお問い合わせください。
+</Note>
+
+## レート制限と信頼性
+
+| トピック | 詳細 |
+| --- | --- |
+| **レート制限** | MoEngage は Olo の Webhook データの取り込みを、ワークスペースあたり最大 **500 リクエスト/秒 (RPS)** に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。 |
+| **再試行** | Olo の組み込みの再試行ポリシーは `429` および `5xx` レスポンスを自動的に処理し、リクエストを破棄する前に **24 時間で最大 50 回**再試行します。 |
+| **再試行の上限到達** | Olo がすべての再試行を使い切った場合は、Olo Developer Support ([developersupport@olo.com](mailto:developersupport@olo.com)) に連絡して、失敗したリクエストを再送してもらってください。 |
+| **重複排除** | Olo は at-least-once 配信を保証しているため、再試行の状況下では同じイベントを複数回受信する可能性があります。MoEngage は `X-Olo-Message-Id` ヘッダーを使用して、受信イベントを自動的に重複排除します。 |

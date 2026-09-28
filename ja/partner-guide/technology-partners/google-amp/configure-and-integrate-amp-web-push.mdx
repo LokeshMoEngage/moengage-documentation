@@ -1,0 +1,137 @@
+---
+title: "AMP Web Push の設定と統合"
+---
+
+<Info>
+  **AMP Web Push 統合の前提条件**
+
+  1. AMP Web Push を統合する前に、AMP analytics が統合されていることを確認してください。
+  2. AMP Web Push を統合する前に、AMP analytics が統合されていることを確認してください。
+  3. MoEngage AMP Web Push 統合では、デフォルトでは MoEngage のデフォルトのユーザー属性とイベントはトラッキングされません。
+</Info>
+
+# AMP Web Push
+
+Web プッシュ通知は、MoEngage Web SDK と serviceworker.js を使用しても機能しません。\
+Google は最近、この統合をサポートする個別のプラグインを公開しました。これにより、ニュースパブリッシャー、ブロガー、または AMP を使用してウェブページを高速に配信するすべてのユーザーが、プッシュ通知の購読をユーザーに促すことができます。
+
+<Info>
+  Android デバイスのみがサポートされています。
+</Info>
+
+AMP Web Push を統合するには、次の手順に従います。
+
+# AMP Web Push スクリプトを追加する
+
+Web Push を使用する .amp ファイルの `<head>` セクションに、次の行を追加します。
+
+```html
+&lt;script async custom-element="amp-web-push" src="https://cdn.ampproject.org/v0/amp-web-push-0.1.js"&gt;&lt;/script&gt;
+```
+
+# ヘルパーファイルを追加する
+
+使用しているダッシュボードに対応するファイルをダウンロードし、ウェブサイトのルートディレクトリでファイルが利用できることを確認します。右クリックして **Save Link as...** をクリックし、ファイルを保存します。
+
+| ダッシュボードホスト | ファイル |
+| --- | --- |
+| dashboard-01.moengage.com | <ol><li>[amp-helper-frame.html](https://cdn.moengage.com/release/dc_1/amp-helper-frame.html)</li><li>[amp-permission-dialog.html](https://cdn.moengage.com/release/dc_1/amp-permission-dialog.html)</li><li>[serviceworker\_amp.js](https://cdn.moengage.com/release/dc_1/serviceworker_amp.js)</li></ol> |
+| [dashboard-02.moengage.com](http://dashboard-02.moengage.com) | <ol><li>[amp-helper-frame.html](https://cdn.moengage.com/release/dc_2/amp-helper-frame.html)</li><li>[amp-permission-dialog.html](https://cdn.moengage.com/release/dc_3/amp-permission-dialog.html)</li><li>[serviceworker\_amp.js](https://cdn.moengage.com/release/dc_3/serviceworker_amp.js)</li></ol> |
+| dashboard-03.moengage.com | <ol><li>[amp-helper-frame.html](https://cdn.moengage.com/release/dc_3/amp-helper-frame.html)</li><li>[amp-permission-dialog.html](https://cdn.moengage.com/release/dc_3/amp-permission-dialog.html)</li><li>[serviceworker\_amp.js](https://cdn.moengage.com/release/dc_3/serviceworker_amp.js)</li></ol> |
+| \| dashboard-04.moengage.com | <ol><li>[amp-helper-frame.html](https://cdn.moengage.com/release/dc_4/amp-helper-frame.html)</li><li>[amp-permission-dialog.html](https://cdn.moengage.com/release/dc_4/amp-permission-dialog.html)</li><li>[serviceworker\_amp.js](https://cdn.moengage.com/release/dc_4/serviceworker_amp.js)</li></ol> |
+
+# コードを追加する
+
+`<body>` タグ内に次のコードを追加します。
+
+```html
+&lt;amp-web-push
+id="amp-web-push"
+layout="nodisplay"
+helper-iframe-url="https://DOMAIN.COM/amp-helper-frame.html"
+permission-dialog-url="https://DOMAIN.COM/amp-permission-dialog.html"
+service-worker-url="https://DOMAIN.COM/serviceworker_amp.js?app_id=Workspace_ID"
+&gt;&lt;/amp-web-push&gt;
+```
+
+次の部分を置き換えます。
+
+- DOMAIN.COM を実際のドメインに置き換えます。
+- Workspace ID を、MoEngage Dashboard \> Settings \> General で確認できる値に置き換えます。
+
+<Info>
+  すべてのファイルが同じソースパスで利用でき、HTTPS で提供されていることを確認してください。
+</Info>
+
+# 購読ボタンまたは購読解除ボタンを追加する
+
+ユーザーが AMP Web Push 通知を購読または購読解除するには、購読/購読解除ボタン、つまり AMP Web Push ウィジェットが必要です。
+
+次のコードは、購読ボタンまたは購読解除ボタンを追加します。
+
+```html
+&lt;div class="web-push"&gt;
+&lt;!-- A subscription widget --&gt;
+&lt;amp-web-push-widget visibility="unsubscribed" layout="fixed" width="250" height="45"&gt;
+<button class="subscribe" on="tap:amp-web-push.subscribe">Subscribe to Notifications</button>
+&lt;/amp-web-push-widget&gt;
+&lt;!-- An unsubscription widget --&gt;
+&lt;amp-web-push-widget visibility="subscribed" layout="fixed" width="250" height="45"&gt;
+<button class="unsubscribe" on="tap:amp-web-push.unsubscribe">Unsubscribe from Notifications</button>
+&lt;/amp-web-push-widget&gt;
+&lt;/div&gt;
+```
+
+ボタンを機能させるには、`on="tap:amp-web-push.subscribe"` を指定した `<button>` または `&lt;a&gt;` を使用します。次のことが可能です。
+
+- ボタンのコールトゥアクションを変更する。
+- 独自のテキストを使用するか、そのままにする。
+
+# CSS のコードを使用してウィジェットのスタイルを設定する
+
+購読または購読解除ウィジェットのレイアウトは固定されています。ただし、CSS を変更することでボタンとレイアウトをデザインできます。デフォルトの CSS は次のとおりです。
+
+```html
+&lt;style amp-custom&gt;
+amp-web-push-widget button.subscribe &#123;
+display: inline-flex;
+align-items: center;
+border-radius: 2px;
+border: 0;
+box-sizing: border-box;
+margin: 0;
+padding: 10px 15px;
+cursor: pointer;
+outline: none;
+font-size: 15px;
+font-weight: 400;
+background: #4A90E2;
+color: white;
+box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.5);
+-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+&#125;
+amp-web-push-widget button.subscribe:active &#123;
+transform: scale(0.9);
+&#125;
+amp-web-push-widget button.unsubscribe &#123;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+height: 45px;
+border: 0;
+margin: 0;
+cursor: pointer;
+outline: none;
+font-size: 15px;
+font-weight: 400;
+background: transparent;
+color: #B1B1B1;
+-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+background-color: #eee;
+border-radius: 2px;
+&#125;
+amp-web-push-widget button.unsubscribe:active &#123;
+transform: scale(0.9);
+&#125;
+&lt;/style&gt;
+```

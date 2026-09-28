@@ -1,0 +1,138 @@
+---
+title: "HTML テンプレートのレンダリングの問題"
+description: "Android の Gmail アプリでモバイル向けに最適化されたバージョンではなくデスクトップ版のテンプレートが表示される問題など、MoEngage でのメールのレンダリングの問題をトラブルシューティングします。"
+---
+
+# Android の Gmail アプリでのレンダリングの問題
+
+Android の Gmail アプリで開いたメールが、テンプレートのモバイル版ではなくデスクトップ版で表示される場合は、Gmail の「メールを自動調整」（Auto-fit email messages）設定が原因である可能性があります。ただし、この現象は iOS 版のアプリでは見られません。
+
+## Auto-fit Email Messages 設定
+
+Gmail の Android アプリでは、デフォルトで「メールを自動調整」がオンになっています。この設定がオンの場合、Gmail はメッセージのサイズを自動的に変更します。これにより、テンプレートのモバイル版ではなくデスクトップ版が表示されます。この設定のチェックを外すと、モバイルプレビューが正しく表示されます。
+
+モバイルプレビューが使用されるように、この設定をオフにしてください。オフにするには、次の手順を実行します。
+
+1. Gmail アプリに移動します。
+2. 左上のメニューアイコンをタップします。
+3. General Settings をタップし、Auto-fit Email Messages オプションのチェックを外します。
+
+メールキャンペーンの作成時に画像 URL オプションを使用してテンプレートに画像を追加したにもかかわらず画像がピクセル化される場合は、Auto-fit Email Messages が原因である可能性があります。MoEngage はこのオプションの画像を処理しません。画像が正しく表示されるように、Auto-Fit Email Messages オプションをオフにしてください。
+
+# Gmail でのメールのクリッピング
+
+Gmail クライアントは、さまざまな理由でクリッピングメッセージを表示することがあります。そのいくつかを以下に示します。
+
+1. メールテンプレートのサイズが大きい。テンプレートのサイズは 90KB 以内に抑えることをお勧めします。
+2. メールに次の文字が含まれている場合、Gmail は実際にはメッセージをクリッピングしていなくても「Message has been clipped」というテキストを表示することがあります。
+   - 著作権記号 ©、登録商標記号 ®、商標記号 ™ などの非 ASCII 文字
+   - 空白用に追加されたもの（nbsp）など、一部の HTML エンティティはクリッピングの問題を引き起こす可能性があります。HTML エンティティは `&<entity_code>,` の形式であり、以下に示すものはメールのクリッピングを引き起こす可能性があります。
+     - `&nbsp;` - ノーブレークスペース（一部のケース）
+     - `&copy;` - ©著作権
+     - `&reg;` - ®登録商標
+     - `&yen;` - ¥ 円
+     - `&pound;` - £ ポンド
+     - `&cent;` - ¢ セント
+   - クリッピングが発生しないように、HTML テンプレートのコードを調べて、上記のエンティティを削除することをお勧めします。たとえば、テンプレートの末尾や先頭に `&nbsp;` が付いている場合や、テンプレート内で `Hello&nbsp;User` のように空白を追加するためにコンテンツ（またはタグ）の間で `&nbsp;` が使用されている場合は、それを削除してください。`Hello&nbsp;User` を _Hello User_ に置き換えて、メールを再送信してください。
+3. テストメールでクリッピングが見られる場合は、件名が同じであることが原因である可能性があります。Gmail は、同じ件名のメールを受信トレイ内で1つのメールにまとめる（「スレッド化」する）ことがよくあります。同じキャンペーンのテストメールを何通も送信すると、メッセージが大きくなりすぎて Gmail がクリッピングする場合があります。テスト目的の場合は、件名を変更するか、受信トレイ内の以前のテストメールを削除してから、テストメールを再送信してください。
+
+# メールのプレビューが空白になる
+
+プレビューが空白になるのは、HTML テンプレートで `<amp-carousel>`、`<amp-image>` などの Accelerated Mobile Page タグが使用されていることが原因である可能性があります。AMP タグは標準の HTML タグではありません。AMP は Google のモジュールであり、AMP 用のスクリプトが HTML に追加されている場合に機能します。
+
+MoEngage では、セキュリティ上の理由からスクリプトタグが無効化（削除）されます。そのため、メールに AMP タグが追加されていてもレンダリングされず、プレビューが空白になります。サポートされている HTML タグの一覧については、[Allowed HTML Tags for Email Templates](/ja/user-guide/campaigns-and-channels/email/create/create-content-with-the-drag-and-drop-editor) を参照してください。
+
+# JINJA を使用した HTML テーブルが機能しない
+
+テーブルのコンテンツの間に JINJA コードを配置すると、HTML エディターは JINJA コードをテーブルから離れた先頭の位置に移動します。
+
+たとえば、テーブルの各行に商品名を表示したいとします。以下の構文は、HTML エディターで正しくレンダリングされません。
+
+<CodeGroup>
+
+```html HTML wrap
+<table>
+<% for item in items %>
+<tr><td>{{item.name}}</td></tr>
+<% endfor %>
+</table>
+```
+
+</CodeGroup>
+
+JINJA の値を使用してテーブルをレンダリングする正しい方法は、JINJA 構文を含むダミー行を含めることです。ダミー行は通常、display プロパティを None に設定して記述します。
+
+<CodeGroup>
+
+```html HTML wrap
+<tr style="display:none;">{% JINJA CODE %}</td></tr>
+```
+
+</CodeGroup>
+
+上記のコードを使用し、ダミー行に JINJA コードを配置することで、テーブルを正しくレンダリングできるようになります。
+
+<CodeGroup>
+
+```text HTML
+<table>
+<tr style="display:none;"><td><% for item in items %></td></tr>
+<tr><td>{{item.name}}</td></tr>
+<tr style="display:none;"><td><% endfor %></td></tr>
+</table>
+```
+
+</CodeGroup>
+
+# MoEngage はメールでのダークモード / prefers-color-scheme スタイリングをサポートしていますか？
+
+MoEngage は、`@media (prefers-color-scheme: dark)`、`[data-ogsc]`、`[data-ogsb]` セレクターを含むダークモード用の CSS メディアクエリを削除、変更、ブロックすることはありません。テンプレートに追加した CSS はすべて、MoEngage や送信インフラストラクチャ（SendGrid）によって変更されることなく、そのまま受信トレイに配信されます。
+
+<Warning>
+`prefers-color-scheme` のサポートは、MoEngage ではなく、受信側のメールクライアントに完全に依存します。Gmail（Android を含むすべてのプラットフォーム）と一部の Outlook バージョンは、このメディアクエリに対応していません。代わりに、これらのクライアントはテンプレートの色や画像に独自の自動ダークモード反転を適用し、作成したカスタムのダークモード CSS を上書きします。
+</Warning>
+
+ロゴなどの重要なブランディング要素で `prefers-color-scheme` を利用する前に、[caniemail.com](https://www.caniemail.com/features/css-at-media-prefers-color-scheme/) で最新のクライアントサポート状況を確認してください。
+
+**Gmail の自動反転に耐える必要があるロゴ/ブランディングの推奨アプローチ：**
+
+アートワークの周囲に控えめな白いストローク、アウトライン、またはドロップシャドウを付けた、単一の透過 PNG を使用します。
+
+- ライトモードでは、白いストロークは白い背景に溶け込んで見えなくなります。
+- ダークモード（Gmail の自動反転）では、背景が黒になり、白いストロークによってロゴが見える状態に保たれます。
+
+この方法は Gmail の自動反転に逆らうのではなく、それと連携して機能するため、CSS による切り替えに頼る必要がまったくありません。
+
+<Note>
+最後の手段となる高度なオプションとして、`mix-blend-mode: screen` の CSS テクニックを使用して、反転されたダークな背景に白いロゴを強制的に表示させることができます。これには、クライアント間での慎重なテストが必要であり、すべての環境で機能することは保証されません。この手法を利用する前に、[caniemail.com](https://www.caniemail.com/features/css-mix-blend-mode/) で `mix-blend-mode` のサポート状況を確認してください。
+</Note>
+
+<CodeGroup>
+
+```html HTML wrap
+<style>
+  /* Standard dark mode support for Apple Mail, Outlook Mac, etc. */
+  @media (prefers-color-scheme: dark) {
+    .light-logo { display: none !important; }
+    .dark-logo { display: block !important; }
+  }
+</style>
+
+<div>
+  <img src="https://your-domain.com/business-black.png" class="light-logo" alt="business" style="display: block; width: 120px; height: auto;">
+
+  <div class="dark-logo" style="display: none; mso-hide: all;">
+    <div style="background: #000000; mix-blend-mode: screen;">
+      <div style="background: #000000; mix-blend-mode: difference;">
+        <img src="https://your-domain.com/business-white.png" alt="business" style="display: block; width: 120px; height: auto; color: #ffffff;">
+      </div>
+    </div>
+  </div>
+</div>
+```
+
+</CodeGroup>
+
+<Info>
+一般的なデザインのヒント：受信者のクライアントがダークモード CSS に対応しているかどうかにかかわらず読みやすいロゴとテキストの色（たとえば、両方のモードで十分なコントラストがあるグレーやブランドカラー）を選択してください。
+</Info>

@@ -1,0 +1,88 @@
+---
+title: "請求書支払いをクロスセルする方法"
+---
+
+# はじめに
+
+クロスセルは、マーケターがユーザーの定着率と顧客生涯価値 (CLV) を高めるための効果的な方法の 1 つです。FinTech アプリケーションは、さまざまな種類の請求書支払い（ガス、電気、携帯電話、ブロードバンドなど）を処理します。請求書支払いの多くは設定が 1 回で済み、その後の支払いは自動支払いオプションで自動化できるため、定着しやすい傾向があります。
+
+この記事では、いずれかのカテゴリで初めて請求書を支払ったユーザーに、他の請求書の支払いにも利用するよう促す Flow キャンペーンを作成します。このユースケースを実現するために、Flows の Conditional Split 機能を使用します。
+
+# 期待される結果
+
+ユーザーは、請求書の支払いを促すプッシュ通知をスマートフォンで受信します。
+
+<img
+  alt="1.png"
+  src="/images/moengage_29d490.png"
+  style={{ width:"60%" }}
+/>
+
+<Tip>
+  - ユーザーの請求書支払いのアクションと、カテゴリ、請求金額、支払日、次回の支払期日などの関連情報を追跡するイベント。この例では、「Bill Payment Completed」というイベント名にします。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - Push、Email、SMS、WhatsApp などの 1 つ以上のチャネルの設定。
+</Tip>
+
+# Flow を作成する
+
+このセクションでは、顧客がアプリで初めて請求書を支払ったときに、他の請求書も支払うよう促す Flow を作成します。
+
+## Flow の詳細を追加する
+
+1. **Engage** \> **Flows** に移動して **\+ Create Flow** をクリックするか、サイドバーに移動して **\+ Create new** をクリックしてから **Flow** をクリックします。
+2. **\+ Start with a blank canvas** をクリックして、このユースケース用の Flow の作成を開始します。最初のステップ「Details and goals」に移動します。
+3. 次の詳細を入力します。
+   - Flow Name: Flow 名を入力します。たとえば、「Cross Sell Bill payments」と入力します。
+   - Flow tags: 必要な Flow タグを選択します。
+4. **Conversion goal** セクションで、**Exit on conversion** トグルをオンにして、「Bill Payment Completed」イベントを実行してコンバージョンしたユーザーを Flow から退出させます。これは主要なコンバージョン目標であり、ユーザーが請求書の支払いを正常に完了したときにトリガーされます。
+   ![2.png](/images/moengage_382c29.png)
+5. **Next** をクリックして 2 番目のステップ「When will users enter the flow」に進みます。このステップでは、トリガー条件を指定して、ユーザーをいつ Flow に参加させるかを定義します。この例では、イベントは「Bill Payment Completed」とします。
+6. **IF user** セクションで、ユーザーが請求書の支払いに成功したときにトリガーされるイベント「Bill Payment Completed」を選択します。
+7. **THEN enter the user** セクションで、**Immediately** オプションを選択します。
+   ![3.png](/images/moengage_574e60.png)
+8. **Flow Schedule** セクションで、必要に応じて Flow の開始時刻と終了時刻を定義します。デフォルトでは、Flow は「As soon as possible」に開始され、終了しません。
+9. **Limit user entry into this flow** トグルをオンにして、ユーザーが Flow に参加できる最大回数を定義します。このような制限を定義すると、ユーザーが繰り返し Flow に再参加するのを制御でき、過剰なメッセージ送信を避けられるため、より良いユーザーエクスペリエンスを提供できます。
+   ![4.png](/images/moengage_96c233.png)
+10. **Next** をクリックして 3 番目のステップ「Who will enter the flow」に進みます。ここでは、Flow のターゲットオーディエンスとコントロールグループを選択します。
+11. このユースケースでは、初めて請求書を支払ったユーザーにクロスセルを行うため、オーディエンスは基本的にこれまで一度も支払いをしたことのないユーザーです。ユーザーは支払いの直後にこの Flow に参加します。**User behavior** タブで、最初のドロップダウンリストで「Has Not Executed」を選択し、2 番目のドロップダウンリストで「Bill Payment Completed」イベントを選択します。ターゲットオーディエンスの定義は次のとおりです。
+    ![5.png](/images/moengage_dbc544.png)
+12. **Next** をクリックしてキャンバスセクションに移動します。ここでは、ユーザーが進む Flow の構造を定義できます。
+
+## Flow の構造を定義する
+
+1. **\+** アイコンをクリックします。ドロワーが表示されます。
+2. **Conditions** で、エントリー条件として「Conditional Split」を追加し、ユーザーが支払いを行って Flow に参加したカテゴリに基づいてユーザーを分割します。
+   ![6.png](/images/moengage_17336c.png)
+3. これを行うには、追加した Conditional Split ステージの編集アイコンをクリックします。
+   ![7.png](/images/moengage_aa5aa2.png)
+4. Flow entry events セクションで「Trigger condition: Bill Payment Completed」を選択します。このオプションを選択すると、Flow に参加した後の新しいイベントを待つのではなく、ユーザーが参加するきっかけとなったイベントに基づいてユーザーをブランチに分割できます。詳細については、[Branching of Users via Condition Stages](/ja/user-guide/flows-cross-channel-messaging/create/conditions-and-controls-in-flows/branching-of-users-in-flows) を参照してください。
+   ![8.png](/images/moengage_e50c11.png)
+5. **\+ Attribute** をクリックし、ユーザーが支払った請求書の種類を持つ「Category」属性を選択します。
+   ![9.png](/images/moengage_1ffb4e.png)
+   上の画像に示す Conditional Split を定義すると、携帯電話料金を支払ってこの Flow に参加したユーザーは、Mobile Bill という名前のブランチ 1 を通過します。その他のユーザーは Default Branch を通過します。
+6. 要件に基づいて、Conditional Split を使用してカテゴリを追加します。
+   ![10.png](/images/moengage_dc82c0.png)
+7. クロスセルのためにユーザーにメッセージを送信する Action ステージを追加します。このようにユーザーを分割すると、Mobile Bill ブランチに入ったユーザーには電気料金の支払いや家賃などを試すよう促し、他のブランチではその逆を促すといった具合に、具体的なメッセージを送ることができます。
+8. このプロセスを簡単にするには、ブランチ 1 で Action ステージを定義し、それを他のブランチにコピーして、一から作成する代わりに軽微な編集を行います。
+   1. 定義したステージにマウスポインターを合わせ、コピーアイコンをクリックします。
+      ![11.png](/images/moengage_901913.png)
+   2. ステージを追加する場所の **\+** アイコンをクリックし、ドロワーの上部セクションをクリックします。\
+      ![12.png](/images/moengage_b938bb.png)
+       Electricity Bill ブランチとまったく同じ設定の Push ステージが追加されます。
+   3. 必要な変更を行い、ここでは携帯電話料金や家賃などを試すよう促す内容にします。
+9. アクションキャンペーンを編集する際は、ユーザー名、性別、その他の情報など、ユーザーに関する追加情報を使用してメッセージをパーソナライズします。また、前回の支払いにかかった時間やその他の関連情報も含めます。パーソナライズされたメッセージは、ユーザーが大切にされていると感じ、ブランドとのつながりを感じるため、一般的なメッセージよりも高い効果が期待できます。詳細については、[Personalization in Flows](/ja/user-guide/flows-cross-channel-messaging/create/actions-in-flows/personalization-in-flows) を参照してください。
+10. 各ブランチで Action キャンペーンを定義したら、**Has done event** ステージを追加し、ドロップダウンリストから「Bill Payment Completed」イベントまたはその他の目標を選択して、ユーザーがコンバージョンしたかどうかを確認します。
+11. **Keep evaluating for the next** トグルをオンにして、ユーザーがイベントを実行するのを待つ最大時間を定義します。このユースケースでは、2 日と入力します。
+    ![14.png](/images/moengage_336926.png)
+12. Action ステージと同様に、この条件ステージもすべてのブランチにコピーできます。詳細については、[Add Actions to Flows](/ja/user-guide/flows-cross-channel-messaging/create/actions-in-flows/add-actions-to-flows) を参照してください。
+13. No パスには、ユーザーに働きかけるためのアクションキャンペーンを必要なだけ追加します。特に「Has done events」の Yes パスでは、Wait ステージを使用して各コミュニケーションの間に間隔を空け、ユーザーへの過剰なメッセージ送信を避けてください。詳細については、[Add Controls to Flow](/ja/user-guide/flows-cross-channel-messaging/create/conditions-and-controls-in-flows/force-move-or-delay-users-in-flows) を参照してください。
+    ![15.png](/images/moengage_2ac235.png)
+14. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、いずれかのカテゴリで初めて請求書を支払ったユーザーに、他の請求書の支払いにも利用するよう促す Flow キャンペーンを作成しました。
+
+- Flow を公開したので、Flow のパフォーマンスを[分析](/ja/user-guide/flows-cross-channel-messaging/faqs/analyzing-flows)できます。
+- キャンペーンによって Flow に参加したユーザー数を把握できます。「Flow ID」を指定して「User Entered Flow」イベントでセグメンテーションを作成します。詳細については、[Users who have entered/exited the Flow](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/tracking-users-in-flows) を参照してください。
+- キャンペーンによってユーザーが実際に他の請求書を支払った状況も把握できます。「Flow ID」を指定して「Flow Trip Conversion」イベントでセグメンテーションを作成します。詳細については、[Conversion Tracking and Attribution in Flows](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/conversion-attribution-in-flows) を参照してください。

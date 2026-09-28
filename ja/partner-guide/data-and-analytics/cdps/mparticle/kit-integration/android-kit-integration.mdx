@@ -1,0 +1,215 @@
+---
+title: "Android Kit の統合"
+---
+
+MoEngage Kit の統合を開始する前に、mParticle Android SDK を統合してください。詳細については、[開発者向けドキュメント](https://docs.mparticle.com/developers/sdk/android/initialization)および [Kit 統合のドキュメント](https://docs.mparticle.com/developers/client-sdks/android/kits/)を参照してください。mParticle Android SDK がすでにアプリケーションに統合されている場合は、この手順をスキップしてください。
+
+# MoEngage Kit の統合
+
+## SDK のインストール
+
+### Catalog を使用したインストール
+
+Version Catalog を使用して MoEngage SDK を統合する方法が推奨される統合方法です。まだカタログを設定していない場合は、[Configure Version Catalog](https://developers.moengage.com/hc/en-us/articles/4407395989268-Installing-Version-Catalog) ドキュメントを参照して設定してください。カタログを設定したら、以下のように **_app/build.gradle_** ファイルに依存関係を追加します。
+
+```groovy build.gradle
+dependencies {
+    ...
+    implementation("com.moengage:mparticle-android-integration-moengage:$sdkVersion")
+    implementation("com.mparticle:android-kit-base:5.58.3")
+}
+```
+
+\$**sdkVersion** を最新の Kit バージョンに置き換えてください。
+
+### 依存関係のインストール
+
+MoEngage SDK は、動作のために Google が提供する次の Jetpack ライブラリに依存しています。アプリケーションにまだ存在しない場合は、必ず追加してください。
+
+```groovy build.gradle
+implementation("androidx.core:core:1.13.1")
+implementation("androidx.appcompat:appcompat:1.6.1")
+implementation("androidx.lifecycle:lifecycle-process:2.7.0")
+```
+
+ビルド設定や SDK で使用されるその他のライブラリの詳細については、[Android SDK Configuration](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/advanced-or-optional/sdk-configuration) ドキュメントを参照してください。
+
+## MoEngage SDK の設定
+
+設定ページの Dashboard --\> Settings --\> Account --\> General から Workspace ID(以前の App ID)を取得し、mParticle Kit を初期化する前に、_Application_ クラスの _onCreate()_ で MoEngage SDK を設定します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+val moEngageBuilder = MoEngage.Builder(this, "WORKSPACE_ID", [YOUR_DATA_CENTER])
+MoEngage.configureForDefaultInstance(moEngageBuilder, IntegrationPartner.M_PARTICLE)
+```
+
+```java Java wrap
+MoEngage.Builder moEngageBuilder = new MoEngage.Builder(this, "WORKSPACE_ID", [YOUR_DATA_CENTER]);
+MoEngage.configureForDefaultInstance(moEngageBuilder, IntegrationPartner.M_PARTICLE);
+```
+
+</CodeGroup>
+
+## mParticle SDK に MoEngage SDK を追加する
+
+mParticle SDK の初期化時に、MoEngage Kit を Kit として追加する必要があります。
+
+<CodeGroup>
+
+```kotlin Kotlin
+// 1167 is Unique ID for the MoEngage Kit
+val options = MParticleOptions.builder(this)
+    .credentials("YOU MPARTICLE API KEY", "YOUR MPARTICLE API SECRET")
+    .configuration(KitOptions().addKit(1167, MoEngageKit::class.java))
+    .build()  
+MParticle.start(options)
+```
+
+```java Java
+// 1167 is Unique ID for the MoEngage Kit
+MParticleOptions options = MParticleOptions.builder(this)
+    .credentials(M_PARTICLE_API_KEY, M_PARTICLE_API_SECRET)
+    .configuration(new KitOptions().addKit(1167, MoEngageKit.class))
+    .build();
+MParticle.start(options);
+```
+
+</CodeGroup>
+
+# MoEngage のストレージファイルを自動バックアップから除外する
+
+Android の自動バックアップサービスは、Shared Preference ファイルやデータベースファイルなどを定期的にバックアップします。
+
+詳細については、[Auto Backup](https://developer.android.com/guide/topics/data/autobackup) を参照してください。
+
+バックアップにより、MoEngage SDK の識別子がバックアップされ、再インストール後に復元されます。識別子が復元されると、データが破損し、プッシュ通知でユーザーにリーチできなくなります。
+
+バックアップの復元後にデータが破損しないようにするには、MoEngage SDK のストレージファイルをバックアップから除外してください。
+
+これを設定するには、[Exclude MoEngage Storage File from Auto-Backup](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup) ドキュメントを参照してください。
+
+# プッシュ通知の処理
+
+FCM コンソールから Server Key をコピーし、MoEngage ダッシュボードに追加します(Server Key の場所がわからない場合は、[Getting FCM Server Key](https://www.moengage.com/docs/developer-guide/partner-integrations/firebase/getting-fcm-server-key) を参照してください)。アップロードするには、MoEngage Dashboard --\> Settings --\> Channel --\> Push --\> Mobile Push --\> Android に移動し、Server Key とパッケージ名を追加します。
+
+<Warning>
+  Test 環境と Live 環境の両方にキーを追加してください。
+</Warning>
+
+## プッシュ通知のメタデータを追加する
+
+プッシュ通知を表示するには通知に関するメタデータが必要であり、スモールアイコンとラージアイコンの drawable は必須です。
+
+_configureNotificationMetaData()_ を使用して、設定を SDK に渡します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+val moEngageBuilder = MoEngage.Builder(this, "WORKSPACE_ID", [YOUR_DATA_CENTER])
+     .configureNotificationMetaData(NotificationConfig(R.drawable.small_icon, R.drawable.large_icon)) 
+MoEngage.configureForDefaultInstance(moEngageBuilder, IntegrationPartner.M_PARTICLE)
+```
+
+```java Java wrap
+MoEngage.Builder moEngageBuilder = new MoEngage.Builder(this, "WORKSPACE_ID", [YOUR_DATA_CENTER])
+    .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon));
+MoEngage.configureForDefaultInstance(moEngageBuilder, IntegrationPartner.M_PARTICLE);
+```
+
+</CodeGroup>
+
+プッシュ通知が機能するように、Application クラスの _onCreate()_ で SDK にメタデータが設定されていることを確認してください。
+
+<Info>
+  通知のスモールアイコンは、フラットで正面向きのデザインで、透明な背景に白で描かれている必要があります。
+</Info>
+
+## Firebase Cloud Messaging の設定
+
+### mParticle SDK を使用した設定
+
+mParticle SDK には、プッシュトークンの登録を処理し、mParticle SDK でプッシュ通知を受信する方法が用意されています。設定オプションについては、[プッシュ統合のドキュメント](https://docs.mparticle.com/developers/client-sdks/android/push-notifications/)を参照してください。
+
+### MoEngage SDK またはアプリケーションを使用した設定
+
+MoEngage SDK で FCM を設定する場合、または独自に処理する場合は、[MoEngage のプッシュ統合のドキュメント](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)を確認してください。
+
+MoEngage Android SDK で提供される機能の詳細については、次のリンクを参照してください。
+
+- [プッシュ通知](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)
+- [ジオフェンス](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/location-triggered)
+- [アプリ内メッセージ](https://www.moengage.com/docs/developer-guide/android-sdk/in-app-messages/in-app-nativ)
+- [Notification Center](https://developers.moengage.com/hc/en-us/articles/4403893700756-Notification-Center-for-MoEngage-SDK-version-11-1-00-)
+- [高度な設定](https://www.moengage.com/docs/developer-guide/android-sdk/push/advanced/callbacks-and-customisation)
+- [API リファレンス](https://moengage.github.io/android-api-reference/index.html)
+- [コンプライアンス](https://www.moengage.com/docs/developer-guide/android-sdk/compliance/prepare-for-google-plays-data-disclosure-requirements)
+- [リリースノート](/ja/release-notes/sdks/android#14th-december-2023)
+
+# mParticle SDK の使用方法
+
+詳細な使用方法については、[開発者向けドキュメント](https://docs.mparticle.com/developers/client-sdks/android/initialization/)を参照してください。
+
+## ユーザー管理
+
+ユーザー ID は、mParticle の IDSync フレームワークと MoEngage のユーザープロファイルの組み合わせによって管理されます。
+
+アプリケーションでユーザーの状態を管理するには、mParticle の開発者向け統合ドキュメントの [IDSync](https://docs.mparticle.com/developers/client-sdks/android/idsync/) ドキュメントを確認してください。
+
+デフォルトでは、この連携により、次の主要な mParticle 識別子が追加のコードなしで MoEngage のユーザー属性に自動的にマッピングされます。
+
+- customerId
+- email
+- mobileNumber
+
+### 追加の識別子のマッピング
+
+その他の識別子(ソーシャルメディア ID、内部エイリアスなど)を同期するには、**_setMappingForIdentity(),_** メソッドを使用して明示的にマッピングする必要があります。これにより、mParticle の **_userIdentity_** API 呼び出しによって識別子が追加または更新されたときに、その変更が対応する MoEngage のユーザー属性に反映されます。
+
+#### 呼び出すタイミング
+
+この設定は、アプリの起動シーケンスの特定の時点で実行する必要があります。
+
+1. MoEngage SDK を初期化した**後**。
+2. mParticle の **_userIdentity_** API を初めて呼び出す**前**。
+
+このロジックを配置するのに最適な場所は、**Application の _onCreate()_ メソッド**です。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+// In your Application class's onCreate() method
+// 1. Define the mappings
+val identitiesMapping: Map&lt;mparticle.identitytype, String&gt; = mapOf()
+/**
+ * 2. Set the Identity mapping for mParticle and MoEngage
+ * Example Usage: setMappingForIdentity(mapOf(MParticle.IdentityType.Facebook to "u_fb"))
+ */   
+MoEMParticleHelper.setMappingForIdentity(identitiesMapping)
+```
+
+```java Java wrap
+// In your Application class's onCreate() method
+// 1. Define the mappings
+Map&lt;MParticle.IdentityType, String&gt; identitiesMapping = Map.of();  
+/** 
+ * 2. Set the Identity mapping for mParticle and MoEngage
+ * Example Usage: setMappingForIdentity(mapOf(MParticle.IdentityType.Facebook to "u_fb"))
+ */
+MoEMParticleHelper.INSTANCE.setMappingForIdentity(identitiesMapping);
+```
+
+</CodeGroup>
+
+## イベントトラッキング
+
+mParticle SDK からカスタムイベントとコマースイベントを追跡するには、[logEvent](https://docs.mparticle.com/developers/client-sdks/android/event-tracking/) を使用します。mParticle SDK は、関連するプロファイルとともにイベントを MoEngage Kit に送信します(mParticle ダッシュボードで設定されている場合)。
+
+## ユーザー属性のトラッキング
+
+mParticle SDK には、ユーザー属性を設定するための [setUserAttributeList](https://docs.mparticle.com/developers/client-sdks/android/users/) が用意されています。mParticle の標準属性とカスタム属性のどちらを設定しても、両方とも MoEngage Kit に渡され、MoEngage SDK で適切にマッピングされます。
+
+# サンプル実装
+
+サンプル実装については、[こちら](https://github.com/moengage/mparticle-android-integration-moengage)の GitHub リポジトリを参照してください。

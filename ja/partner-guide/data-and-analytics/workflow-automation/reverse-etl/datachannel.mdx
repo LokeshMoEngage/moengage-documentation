@@ -1,0 +1,64 @@
+---
+title: "DataChannel"
+description: "DataChannel のリバース ETL を使用して、データウェアハウスのユーザーを MoEngage に同期し、高度なセグメンテーションやクロスチャネルキャンペーンに活用します。"
+keywords: ["datachannel", "reverse etl", "data warehouse", "user sync", "moengage integration"]
+---
+
+## はじめに
+
+[DataChannel](https://www.datachannel.co/) は、エンドツーエンドのデータ統合およびアクティベーションプラットフォームです。DataChannel は、さまざまなソースのデータを単一の一元化されたリポジトリに統合するとともに、リポジトリから選択したアプリやサービスへの逆方向のデータフローもサポートしています。
+
+## MoEngage と DataChannel
+
+MoEngage と DataChannel の連携により、データウェアハウスに保存されているユーザーを MoEngage に直接転送できます。これにより、ユーザーを効果的に分析・セグメント化し、MoEngage のさまざまなチャネルでキャンペーンを使用してターゲティングできます。
+
+## 連携の前提条件
+
+- DataChannel アカウントにアクセスできることを確認してください。
+- 少なくとも 1 つのデータソースまたはデータウェアハウスが設定されていることを確認してください。Data API ID と Data API Key は、**Settings** > **Account** > **APIs** で確認できます。Data API ID は **Workspace ID** と同じです。Data API Key は、同じ画面の **API Keys** > **Data** セクションで確認できます。
+
+### ステップ 1: DataChannel でデータモデルを作成する
+
+![Create New ボタンがある DataChannel の Data Models ページ](https://docs.datachannel.co/getting-started/1.0.0/_images/data-models-page2.png)
+
+1. DataChannel ダッシュボードで Data Models ページに移動し、**Create New** ボタンをクリックして、データウェアハウス内のデータに適用する新しい Data Model を作成します。Data Model を作成する前に、データウェアハウスを追加していることを確認してください。
+2. 画面に表示されるフィールドで、Data Model に名前を付け、Data Model を適用するデータウェアハウスを選択します。必要なフィールドを取得するために実行する Model Definition（SQL クエリ）を入力します。SQL を検証し、**Add Model** ボタンをクリックします。
+3. まだデータウェアハウスを追加していない場合は、[data warehouse](https://docs.datachannel.co/getting-started/1.0.0/destinations/index.html#_datachannel_managed_warehouse) タブに移動してウェアハウスを追加します。
+
+### ステップ 2: MoEngage を DataChannel に接続する
+
+![DataChannel の MoEngage 送信先認証情報フォーム](https://docs.datachannel.co/getting-started/1.0.0/reverse_etl/_images/moengagenew-credentials.png)
+
+1. DataChannel Dashboard で、*Destinations* > *MoEngage* に移動します。
+2. 新しい MoEngage の認証情報を追加します。
+
+| フィールド | 詳細 |
+| --- | --- |
+| Name | この送信先に「MoEngage」という名前を付けます。 |
+| Data Center | MoEngage の URL に基づいて、[このページ](https://www.moengage.com/docs/user-guide/data/key-concepts/data-centers-in-moengage)で確認できます。**REST API Host** 列に表示されている値を正確に選択します。 |
+| Username | Data API ID です。MoEngage アカウントの Workspace ID と同じです。MoEngage アカウントの Workspace ID は、**Settings > Account > APIs > Workspace ID** で確認できます。 |
+| Password | Data API Key です。MoEngage Dashboard 内で作成できます。MoEngage アカウントの Data API キーは、**Settings > Account > APIs > API keys > Data** API settings で確認できます。 |
+
+### ステップ 3: MoEngage との新しい同期を設定する
+
+![DataChannel の MoEngage 送信先のデータ同期設定](https://docs.datachannel.co/getting-started/1.0.0/reverse_etl/_images/moengagenew-reverseetl.png)
+
+1. MoEngage 送信先ページで、**+ Data Sync** をクリックしてアカウントへのデータ同期の追加を開始します。
+2. 表示されるリストから、該当する MoEngage アカウントにアクセスできるアカウント認証情報を選択し、*Next* をクリックします。
+3. データ同期のリストから **User** を選択し、*Next* をクリックします。
+4. この同期に使用するデータモデルを選択します。
+
+#### パラメーターの設定
+
+![DataChannel の MoEngage 同期詳細設定](https://docs.datachannel.co/getting-started/1.0.0/reverse_etl/_images/moengagenew-sync-detail.png)
+
+| フィールド | 詳細 |
+| --- | --- |
+| Fields Selection | *必須。* MoEngage プラットフォームにプッシュするフィールドをここで選択します。1 つ以上のフィールドの名前を変更することもできます。すべてのフィールドをプッシュするには、SELECT ALL を選択するだけです。 |
+| Fetch Mode | *必須。* データの更新方法を指します。FULL は選択したデータから列全体を更新し、INCREMENTAL は前回の取得以降に追加された新しいレコードを更新します。 |
+| Incremental Key Dependant | *必須（Fetch Mode = Incremental の場合）。* Incremental キーとして使用するフィールドを選択します。 |
+
+5. 同期を実行するスケジュールを設定します。同期のスケジュール設定の詳細な説明は、[こちら](https://docs.datachannel.co/getting-started/1.0.0/set-up/scheduling_syncs.html)をご覧ください。
+6. 同期に名前と説明（任意）を付け、Finish をクリックして保存します。
+
+これで、ユーザーが MoEngage に同期されます。

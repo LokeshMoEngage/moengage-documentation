@@ -1,0 +1,214 @@
+---
+title: "プッシュコールバック"
+description: "Flutter アプリでプッシュクリックのコールバックを登録し、MoEngage で通知の操作を処理します。"
+---
+
+## プッシュクリックのコールバック
+
+MoEngage の Flutter プラグインは、プッシュクリック時のコールバックをオプションで提供します。
+
+コールバックを登録するには、Dart コード内の **MoEngageFlutter** オブジェクトで **setPushClickCallbackHandler()** を呼び出します。\
+この API は、**typedef** が **PushClickCallbackHandler(PushCampaignData data).** であるメソッドを入力として受け取ります。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+void _onPushClick(PushCampaignData message) {
+    print("_onPushClick(): Push click callback from native to flutter. Payload " +
+            message.toString());
+  }
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.setPushClickCallbackHandler(_onPushClick);
+```
+
+</CodeGroup>
+
+アプリケーションが初期化されたらすぐにこのコールバックが設定されるようにしてください。アプリケーションウィジェットの **initState()** 内で設定することをお勧めします。
+
+MoEngage プラグインの initialize **()** を呼び出す前に、コールバックが設定されていることを確認してください。
+
+## ペイロード
+
+コールバックで受信される NotificationPayload は、次の定義を持つ `PushCampaignData` インスタンスです。
+
+<CodeGroup>
+
+```Dart Dart
+class PushCampaignData {
+  Platforms platform;
+  AccountMeta accountMeta;
+  PushCampaign data;
+}
+```
+
+</CodeGroup>
+
+**platform** - コールバックがトリガーされたネイティブプラットフォームです。有効な値は **android**、**ios** です。**data** - **PushCampaignData** オブジェクトです。
+
+<CodeGroup>
+
+```Dart Dart
+class PushCampaign {
+  bool isDefaultAction;
+  Map<String, dynamic> clickedAction;
+  Map<String, dynamic> payload;
+}
+```
+
+</CodeGroup>
+
+**isDefaultAction** - このキーは Android プラットフォームでのみ存在します。ユーザーがデフォルトのコンテンツをクリックしたかどうかを示すブール値です。ユーザーがデフォルトのコンテンツをクリックした場合は true、それ以外の場合は false になります。
+
+**clickedAction** - 通知のクリック時に実行されるアクションです。
+
+**clickedAction** マップのペイロード構造
+
+<CodeGroup>
+
+```json JSON
+{
+  "clickedAction": {
+    "type": "navigation/customAction",
+    "payload": {
+      "type": "screenName/deepLink/richLanding",
+      "value": "",
+      "kvPair": {
+        "key1": "value1",
+        "key2": "value2",
+        ...
+      }
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+**clickedAction.type** - クリックアクションの種類です。有効な値は **navigation** と **customAction** です。現在、**customAction** は Android でのみサポートされています。\
+**clickAction.payload** - クリックされたアクションのアクションペイロードです。\
+**clickedAction.payload.type** - 定義されたナビゲーションアクションの種類です。有効な値は **screenName**、**deepLink**、**richLanding** です。
+
+現在、iOS の場合、リッチランディングとディープリンクの URL は SDK によって内部で処理され、このコールバックには渡されません。そのため、iOS の場合に有効な値は **screenName** のみです。\
+**clickAction.value** - ナビゲーションアクションまたはカスタムペイロードに入力された値です。\
+**clickAction.kvPair** - MoEngage プラットフォームで入力されたカスタムのキーと値のペアです。\
+**payload** - キャンペーンの完全なペイロードです。
+
+## Android のペイロード
+
+ユーザーが通知のデフォルトのコンテンツをクリックした場合、キーと値のペアとキャンペーンのペイロードは **payload** キー内にあります。ユーザーがアクションボタンまたはプッシュテンプレートのアクションをクリックした場合、アクションペイロードは **clickedAction** 内にあります。\
+**isDefaultAction** キーを使用して、ユーザーがデフォルトのコンテンツをクリックしたかどうかを確認し、それに応じてペイロードを解析できます。
+
+## iOS のペイロード
+
+iOS の場合、クリックされたアクションのキーと値のペアは常に **clickedAction** プロパティで受信されます。iOS の通知ペイロードの構造については、こちらの[リンク](/ja/developer-guide/ios-sdk/push/advanced/custom-notification-handling)を参照してください。
+
+## Android でのセルフハンドルのプッシュクリック（オプション）
+
+デフォルトでは、ユーザーが通知をクリックすると、SDK はユーザーを定義された Activity にリダイレクトし、特定の Flutter コンポーネントを読み込むためにコールバックをアプリケーションに渡します。
+
+アプリケーションがフォアグラウンドにある場合、アプリケーションが再読み込みされているように見え、あまり良いユーザー体験とは言えません。ユーザーを特定の Flutter コンポーネントに移動させるだけにしたい場合もあるでしょう。アプリケーションがフォアグラウンドにあるときにプッシュクリックを自分で処理するには、以下の手順に従ってください。
+
+Flutter プラグインを初期化する際に、**_PushConfig_** オブジェクトでフォアグラウンドクリックのコールバックを有効にします。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+...
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(
+    "YOUR_WORKSPACE_ID",
+    moEInitConfig: MoEInitConfig(
+    pushConfig: PushConfig(
+      shouldDeliverCallbackOnForegroundClick: true)
+  )
+);
+```
+
+</CodeGroup>
+
+**Android の設定**
+
+以下のように、Application クラスでの SDK の初期化時に **lifecycleAwareCallback** フラグを有効にします。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+MoEInitializer.initialiseDefaultInstance(
+  context = applicationContext,
+  builder = moEngage,
+  lifecycleAwareCallbackEnabled = true)
+```
+
+
+```java Java wrap
+MoEngage.Builder moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID");
+MoEInitializer.INSTANCE.initializeDefaultInstance(getApplicationContext(), moEngage, true);
+```
+
+</CodeGroup>
+
+アプリのルートウィジェットに **WidgetsBindingObserver** を追加して、アプリケーションがフォアグラウンドに移行するたびに **_initialize()_** を呼び出す必要があります。
+
+そのため、**initialise()** を 2 か所で呼び出す必要があります。1 つは通常どおり **initState()** 内で、もう 1 つはアプリのルートウィジェットの **didChangeAppLifecycleState()** 内です。
+
+<CodeGroup>
+
+```Dart Dart wrap
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
+class _MyAppState extends State with WidgetsBindingObserver {
+  final MoEngageFlutter _moengagePlugin = MoEngageFlutter("<YOUR_WORKSPACE_ID>");
+  @override
+  void initState() {
+    super.initState();
+    _moengagePlugin.initialise(); // Initialise MoEngage SDK
+    WidgetsBinding.instance.addObserver(this);
+  }
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
+      _moengagePlugin.initialise(); //Call initialise() again in on App Resume State
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+以下のようにリダイレクトを処理します。
+
+<CodeGroup>
+
+```Dart Dart wrap
+void _onPushClick(PushCampaignData message) {
+    if (message.data.selfHandledPushRedirection) {
+	// Handle Redirection for Deeplinking or ScreenName
+    } else {
+	// Callback After SDK Handled Redirection
+    }
+}
+```
+
+</CodeGroup>
+
+AndroidManifest.xml の **application** タグ内に、以下の Activity を追加します。
+
+<CodeGroup>
+
+```xml XML wrap
+<manifest ...>
+    <application ...>
+        <activity
+            android:name="com.moengage.pushbase.activities.PushTracker"
+            android:launchMode="singleInstance"
+            tools:replace="android:launchMode" />
+    </application>
+<manifest/>
+```
+
+</CodeGroup>

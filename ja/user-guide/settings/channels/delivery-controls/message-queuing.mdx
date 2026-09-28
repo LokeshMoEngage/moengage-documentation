@@ -1,0 +1,181 @@
+---
+title: "Message Queuing"
+description: "MoEngage の Message Queuing を使用して、ブロックされたメッセージを自動的に再試行します。Frequency Capping または遅延の制限がリセットされるまで配信を保留します。"
+---
+
+# 概要
+
+<Note>
+  _Message Queuing_ は Early Access 機能です。アカウントで有効にするには、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームにお問い合わせください。
+</Note>
+
+_Message Queuing_ は、キャンペーン作成フローの配信設定によって配信されなかったメッセージを自動的に再試行して配信することで、キャンペーンがオーディエンスに確実に届くようにします。メッセージが [Frequency Capping](/ja/user-guide/settings/channels/delivery-controls/frequency-capping) や [Minimum Delay](/ja/user-guide/settings/channels/delivery-controls/minimum-delay-between-campaigns) によってブロックされた場合、MoEngage はメッセージを破棄せずに一時的なキューに入れます。ユーザーが対象になるとすぐに、MoEngage は自動的にメッセージを送信します。
+
+_Message Queuing_ により、マーケターはキャンペーンのスケジュールを手動で調整することなく、キャンペーンのリーチを最大化し、タイムリーなコミュニケーションを維持できます。
+
+<Info>
+  _Message Queuing_ は、配信タイプが one-time、periodic、business event-triggered、event-triggered の Push キャンペーンと、フローキャンペーンでのみサポートされています。
+</Info>
+
+# ユースケース
+
+_Message Queuing_ により、さまざまな柔軟なキャンペーン配信シナリオが可能になります。
+
+- **キャンペーンリーチの最適化:** [Frequency Capping](/ja/user-guide/settings/channels/delivery-controls/frequency-capping) によってキャンペーンを受け取れなかったユーザーへのメッセージを自動的に再試行したり、[Minimum Delay](/ja/user-guide/settings/channels/delivery-controls/minimum-delay-between-campaigns) 設定の影響を受けたユーザーへの配信を確保したり、手動で再スケジュールすることなくエンゲージメントを最大化したりできます。
+- **時間に敏感なキャンペーンの管理:** フラッシュセールなど、即時配信が不可欠なプロモーションでは、キャンペーンレベルでキューイングを無効にできます。キューイングを無効にすると、即座に送信できないメッセージは完全に破棄されます。
+- **ジャーニーの継続性の優先**: オンボーディングのような複数ステップのフローでは、ユーザーがすべての重要なメッセージを正しい順序で受け取れるようにできます。一時的な上限によってステップがスキップされるのではなく、メッセージが保留されて後で配信されるため、ストーリーが損なわれません。
+
+# キューイングの仕組み
+
+キャンペーンメッセージがトリガーされたものの、事前に設定された配信ルールにより配信できない場合、_Message_ _Queuing_ 機能はメッセージを保留して後で再試行します。
+
+以下の手順で、Message Queuing の仕組みを説明します。
+
+1. **トリガーとチェック:** ユーザーに対してメッセージがトリガーされ、MoEngage は DND \> Frequency Capping \> Minimum Delay の順序で配信制限をチェックします。event-triggered キャンペーンでは、実行順序は DND \> Campaign Minimum Delay \> Frequency Capping \> Global Minimum Delay です。
+2. **キュー:** 制限に該当した場合、メッセージは破棄されずに、キャンペーン作成のステップ 3 で設定した期間だけキューに入れられます。
+3. **再試行:** ユーザーが対象になるとすぐに (たとえば、Frequency Cap がリセットされた、Minimum Delay が経過した、DND ウィンドウが終了したなど)、MoEngage はキューに入れられたメッセージの再送信を自動的に試みます。
+4. **送信または破棄:**
+   - 定義されたキューイング期間内にユーザーが対象になった場合、MoEngage はメッセージを送信します。
+   - ユーザーが対象になる前にキューイング期間が終了した場合、MoEngage はメッセージを破棄します。破棄の理由はキャンペーン分析に記録されます (例: "After FC Removal")。
+
+<Info>
+  - _One-Time、_ _Periodic (child)、Business event-triggered (child)_ のプッシュキャンペーンでは、キューに入れられたすべてのメッセージが送信または破棄されるまで、キャンペーンのステータスは _Sending_ のままになります。
+  - ユーザーのキューに複数のメッセージがある場合、MoEngage は配信ウィンドウが利用可能になるとすぐに、キューに入れられた順序 (_先入れ先出し_) でメッセージを送信します。
+  - キャンペーンで _Ignore FC_ と _Ignore Min delay_ の両方が有効になっている場合、そのキャンペーンのキューイング設定は自動的に無効になります。
+  - _Campaign Minimum Delay_ は _Event-triggered_ キャンペーンにのみ適用されます。
+  - event-triggered キャンペーンを編集して新しいバージョンを作成すると、MoEngage はすべてのユーザーを削除し、キューをゼロ (0) にリセットします。
+</Info>
+
+## DND 設定でのキューイングの動作
+
+キャンペーンの DND 設定とキューイング設定は連携してメッセージ配信を制御します。それらがどのように相互作用するかを以下に説明します。
+
+### DND 時間を尊重する場合 (Ignore DND がオフ)
+
+- **キューイングがオンの場合:** (DND、FC、または Minimum Delay により) 破棄されるはずだったすべてのメッセージがキューに入れられます。MoEngage は、DND ウィンドウが経過し、ユーザーが他のルールに基づいて対象になるのを待ってから送信します。これは、ユーザーの設定を尊重しながら配信を最大化するための最善の方法です。
+- **キューイングがオフの場合:** DND によって破棄されたメッセージのみが、翌日に送信されるようにキューに入れられます ("Save and Send" DND オプションを使用している場合)。FC または Minimum Delay によってブロックされたメッセージは直ちに破棄されます。
+
+### DND 時間を無視する場合 (Ignore DND がオン)
+
+- **キューイングがオンの場合:** DND は考慮されないため、MoEngage はいつでもメッセージを送信します。_Message Queuing_ は Frequency Capping または Minimum Delay によって破棄されたメッセージにのみ使用でき、それらの特定の制限が解除されるとすぐに、時間帯に関係なく送信されます。
+- **キューイングがオフの場合:** MoEngage はすべてのメッセージを直ちに送信します。DND のために保留されるメッセージはありません。
+
+# ダッシュボードの設定
+
+以下のように、キャンペーン作成ワークフロー内で _Message Queuing_ 設定を直接構成できます。
+
+## キャンペーンのキューイングを有効にする
+
+1. プッシュキャンペーン作成フローのステップ 3: [**Schedule and goals**](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns#step-3-scheduling-and-goals) の **Delivery controls** セクションで、**Enable Message Queuing** トグルを見つけます。
+2. 次の操作を行えます:
+   - **キューイングを有効にする:** **Enable Message Queuing** トグルをオンにすると、Frequency Capping または Minimum Delay によってブロックされたメッセージが自動的にキューに入れられます。
+   - **キューイング期間を設定する:** メッセージがキューに残る期間を指定します (例: 5 時間)。最大 48 時間まで設定できます。
+   - **キューイングを無効にする:** 即座に送信できないメッセージを破棄したい時間に敏感なキャンペーンでは、**Enable Message Queuing** トグルをオフにします。
+
+![ENABLEQUEUE.gif](/images/moengage_ecc39c.png)
+
+## キューに入れられたメッセージを監視する
+
+キャンペーンが公開された後、キャンペーン分析ダッシュボードからキューに入れられたメッセージのパフォーマンスを監視できます。
+
+- 一時的な _Queued_ バナーに、配信待ちのメッセージ数が表示されます。
+- _Attempted_ や _Sent_ などの配信ファネルの統計は、キューに入れられたメッセージが配信されるとリアルタイムで更新されます。
+- _Dropped_ の数には、最初はまだ配信のためにキューに入っているメッセージが含まれます。この指標はメッセージが送信されるとリアルタイムで更新され、見込みの成功ではなく実際の成功に基づくファネルを提供します。
+
+![monitor queueing.png](/images/moengage_5fc4a6.png)
+
+## Flows での Message Queuing
+
+_Message Queuing_ は Flows 内でも、特に Push ノードでサポートされています。これにより、ユーザーが (Frequency Capping または Minimum Delay により) 配信対象外の状態で Push ノードに到達した場合でも、メッセージは破棄されずに保留されて再試行されます。
+
+Flow 内の Push ノードで _Message Queuing_ を有効にするには:
+
+1. Flow を開き、目的の Push ノードの **Edit** アイコンをクリックします。
+2. 開いた Push キャンペーンページで、**Delivery controls** セクションに移動します。
+3. **Enable Message Queuing** を **ON** に切り替えます。
+4. **Queuing Duration** を指定します。詳細については、[キャンペーンのキューイングを有効にする](/ja/user-guide/settings/channels/delivery-controls/message-queuing#enable-queuing-for-a-campaign)を参照してください。
+
+<Info>
+  1 つの Flow 内の複数の Push ノードで _Message Queuing_ を有効にできます。この機能はすべての Flow タイプでサポートされています。
+</Info>
+
+### Flows のキューイングルール
+
+Flow 内で _Message Queuing_ が有効な場合、次のルールが適用されます。
+
+- **ノンブロッキングの進行:** ユーザーが Push ノードでキューに入れられた場合 (例: Frequency Capping により)、ユーザーはそのノードで保留されません。メッセージが指定された期間キューに残っている間、ユーザーは直ちに Flow の次のステージへとジャーニーを続けます。
+- **Global Exit Criteria:** Push メッセージがまだキューにある間にユーザーが [Global Exit Criteria](/ja/user-guide/flows-cross-channel-messaging/create/create-flows/create-a-flow) を満たして Flow を終了した場合でも、ユーザーが対象になるとメッセージは配信されます。Flow からの終了によって、配信キューにすでに存在するメッセージがさかのぼって削除されることはありません。
+
+# 例
+
+以下のシナリオは、さまざまなキャンペーン設定で _Message Queuing_ がどのように機能するかを示しています。
+
+## シナリオ 1: Frequency Capping と DND
+
+このシナリオは、Frequency Capping (FC) と Do Not Disturb (DND) 時間によってブロックされたプッシュ通知を _Message Queuing_ がどのように処理するかを示しています。
+
+### 設定
+
+- **Frequency Cap:** 1 日に 3 件のプッシュ通知
+- **DND 時間:** 午後 10 時から午前 7 時
+- **キューイング期間:** 48 時間
+
+| 時刻 | キャンペーン | 制限 | キューイングアクション | 配信ステータス |
+| --- | --- | --- | --- | --- |
+| 午前 10 時 - 午後 7 時 | C1、C2、C3 (Push) | なし | N/A | 配信済み (FC カウント: 3) |
+| 午後 8:00 | C4 (Push) | Frequency Cap | キューに追加 | 配信待ち |
+| 午前 12:01 | C4 (Push) | DND 時間 | キューに保持 | 配信待ち (FC リセット、DND 有効) |
+| 午前 7:01 | C4 (Push) | なし | キューから送信 | 配信済み |
+
+## シナリオ 2: FC、DND、Minimum Delay の組み合わせ
+
+このシナリオは、キューイングがさまざまなチャネルに対して複数のルールを同時に管理する方法を示しています。キューイングはプッシュ通知にのみ適用される点に注意してください。
+
+### 設定
+
+- **Frequency Cap:** 1 日に 5 件のコミュニケーション
+- **Minimum Delay:** コミュニケーション間に 30 分
+- **DND 時間:** 午後 10 時から午前 7 時
+- **キューイング期間:** 48 時間
+
+| 時刻 | キャンペーン | 制限 | キューイングアクション | 配信ステータス |
+| --- | --- | --- | --- | --- |
+| 午前 10:00 | C1 (Push) | なし | N/A | 配信済み (コミュニケーション数: 1) |
+| 午前 10:15 | C2 (Push) | Minimum Delay | キューに追加 | 配信待ち |
+| 午前 10:31 | C2 (Push) | なし | キューから送信 | 配信済み (コミュニケーション数: 2) |
+| 午前 10:45 - 午前 11:30 | C3 (Email)、C4 (Push) | なし | N/A | 配信済み (コミュニケーション数: 4) |
+| 午前 11:45 | C5 (Push) | Minimum Delay | キューに追加 | 配信待ち |
+| 午後 12:01 | C5 (Push) | なし | キューから送信 | 配信済み (コミュニケーション数: 5、FC 上限に到達) |
+| 午後 7:00 | C6 (Email) | Frequency Cap | N/A (Push キャンペーンではない) | 破棄 |
+| 午後 10:00 | C7 (SMS) | Frequency Cap、DND 時間 | N/A (Push キャンペーンではない) | 破棄 |
+
+# FAQ
+
+<Accordion title="キャンペーンの Message Queuing の上限は何ですか?">
+  MoEngage は、クライアントおよびワークスペースごとに次の Message Queuing の上限を適用します。キューが上限に達した後に送信されたメッセージは破棄されます。one-time、periodic、Business event-triggered の場合、キューに入れられるメッセージの最大数は 10,000,000 です。Event-triggered キャンペーンの場合、キューに入れられるメッセージの最大数は 1,000,000 です。
+</Accordion>
+
+<Accordion title="キャンペーンで Ignore FC、Ignore Min delay、または Ignore DND 設定を有効にするとどうなりますか?">
+  キャンペーンで _Ignore FC_、_Ignore Min delay_、または _Ignore DND_ を有効にすると、そのキャンペーンのキューイング設定は自動的に無効になります。
+</Accordion>
+
+<Accordion title="Message Queuing 機能をサポートしているチャネルはどれですか?">
+  Message Queuing は、配信タイプが one-time、periodic、business event-triggered、event-triggered の Push キャンペーンと、フローキャンペーンでサポートされています。
+</Accordion>
+
+<Accordion title="キャンペーンで現在キューに入っているユーザー数はどこで確認できますか?">
+  現在キューに入っているユーザー数は、キャンペーン分析ダッシュボードで確認できます。メッセージが配信待ちである限り、_Queued_ バナーが表示されます。
+</Accordion>
+
+<Accordion title="キューにまだメッセージがある場合、キャンペーンのステータスは「Completed」と表示されますか?">
+  いいえ。one-time および periodic キャンペーンの場合、キューに入れられたすべてのメッセージが送信されるか、キュー期間の終了後に破棄されるまで、キャンペーンのステータスは _Sending_ のままです。
+</Accordion>
+
+<Accordion title="アクティブなキャンペーンのキューイング期間を編集できますか?">
+  periodic および triggered キャンペーンでは、キューイング期間を編集できます。変更は新しくキューに入れられるメッセージにのみ適用され、すでにキューにあるメッセージには影響しません。
+</Accordion>
+
+<Accordion title="バージョン管理において、one-time、periodic、event-triggered キャンペーンの Message Queuing はどのように機能しますか?">
+  - event-triggered キャンペーンを編集して新しいバージョンを作成すると、MoEngage はすべてのユーザーを削除し、キューをゼロ (0) にリセットします。
+  - one-time および periodic キャンペーンの場合、システムはすでにキューにあるメッセージを元のキャンペーンバージョンを使用して処理・送信します。
+</Accordion>

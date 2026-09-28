@@ -1,0 +1,418 @@
+---
+title: "Web SDK の統合"
+description: "スクリプトベースまたは手動の初期化方式を使用して、Web サイトに MoEngage Web SDK を統合します。"
+---
+
+import DocsMcpBanner from '/ja/snippets/docs-mcp-banner.mdx';
+
+<DocsMcpBanner />
+
+## 概要
+
+サポートされている任意のフレームワーク（CDN、NPM、GTM、SPA、AMP、Flutter、Shopify）向けに、次の 2 つの方法のいずれかを使用して Web SDK を統合できます。
+
+- **スクリプトベースの初期化（推奨）:** フォームベースのインターフェイスを使用して、検証済みのコードスニペットを生成したり、モジュール固有の設定にアクセスしたりします。詳細については、[スクリプトベースの初期化（推奨）](#option-1-script-based-initialization-recommended)を参照してください。
+- **手動統合:** SDK のパラメーターと初期化コードを手動で設定します。詳細については、[オプション 2: 手動統合](#option-2-manual-integration)を参照してください。
+
+<Check>
+  **Workspace ID（App ID）**と**データセンター**が必要です。これらの詳細は、ダッシュボードで `Settings > App > General` に移動して確認できます。
+</Check>
+
+## オプション 1: スクリプトベースの初期化（推奨）
+
+信頼性が高く効率的なセットアップを実現するために、**スクリプトベースの初期化**方式を使用することをお勧めします。この方式では検証済みの JavaScript スニペットが生成されるため、構文エラーの可能性がなくなり、アプリケーションの種類に基づいて必要なフラグが自動的に含まれます。
+
+<Check>
+  - **ワークスペースの詳細:** **Workspace ID（App ID）**と**データセンター**（ダッシュボードの `Settings > App > General` で確認できます）を用意してください。
+  - **Service Worker（Web Push の場合）:** Web Push を有効にする場合は、**ルートディレクトリ**に `serviceworker.js` という名前のファイルを作成します。
+  - **ホワイトリスト登録（CSP）:** サイトでコンテンツセキュリティポリシーを使用している場合は、必要な MoEngage の URL をホワイトリストに登録します。詳細については、[こちら](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration#whitelisting-urls)を参照してください。
+</Check>
+
+初期化スクリプトを生成するには、次の手順に従います。
+
+1. [Web SDK 初期化 Web サイト](https://app-cdn.moengage.com/sdk/integration/config/index.html)に移動します。
+2. アプリケーションの要件に基づいて値を設定します。各フィールドの詳細な説明については、以下の[設定パラメーター](#configuration-parameters)の表を参照してください。
+3. フォームの下部にある **Generate Code** をクリックして、検証済みの JavaScript スニペットを作成します。
+4. 生成されたコードを実装します。ツールに表示されたコードスニペットをコピーし、次のようにプロジェクトに貼り付けます。
+   - **Service Worker を更新する（Web Push が有効な場合）:** 生成された `importScripts(...)` 行を `serviceworker.js` ファイルの先頭に追加します。
+   - **HTML ファイルを変更する（Web Personalization が有効な場合）:** 生成された `<link>` タグと Personalization の `<script>` タグを、ルート HTML ファイルの `<head>` セクションの先頭に追加します。
+   - **SDK を初期化する:**
+     - **CDN** の場合: 初期化スクリプトを `<head>` タグに直接貼り付けます。
+     - **NPM** の場合: `import` ステートメントと `Moengage.initialize({...})` ブロックをメインの JavaScript ファイルに貼り付けます。
+
+<Info>
+  **事後要件**
+
+  統合後、ブラウザのデベロッパーツール（Network タブ）を開いてセットアップを検証します。ページを再読み込みし、リクエストが MoEngage のエンドポイント（例: `cdn.moengage.com` や `sdk-0X.moengage.com`）に正常に到達していることを確認します。
+</Info>
+
+### 設定パラメーター
+
+初期化方式で正しいコードを生成するには、特定の入力が必要です。次の表に、設定で使用できるフィールドの詳細を示します。
+
+<Accordion title="設定パラメーター">
+  | セクション | フィールド名 | 説明 |
+  | :-- | :-- | :-- |
+  | **Integration Method** | How will you install the SDK? | インストール方法を決定します。<ul><li>**NPM / Yarn:** Webpack や Rollup などのバンドラーを選択します。</li><li>**CDN:** 標準の HTML Script タグによるインストールを選択します。</li><li>**Other Integration:** **GTM（Google Tag Manager）**、**AMP（Accelerated Mobile Pages）**、**Shopify**、**Flutter**、**Smart TV** などの特殊なプラットフォーム向けのドキュメントへの直接リンクを表示します。</li></ul> |
+  | **Core Configuration** | MoEngage Workspace ID | 一意の App ID を使用して、MoEngage ダッシュボード内のアプリケーションを識別します。 |
+  |  | MoEngage Data Center | ダッシュボードの URL に関連付けられたデータセンターを指定します。詳細については、[こちら](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/data-center)を参照してください。 |
+  |  | MoEngage Environment | データのレポート環境を設定します。テスト環境にデータを送信する場合は `'TEST'` を、本番データの場合は `'LIVE'` を使用します。 |
+  |  | Log Level | ブラウザコンソールでの SDK ログの詳細度を制御します。<ul><li>`0`: ログを表示しません（LIVE に推奨）。</li><li>`1`: 重要な SDK ログとエラー（TEST のデフォルト）。</li><li>`2`: すべての情報、デバッグ、エラー、警告のログ。</li></ul> |
+  |  | MoEngage Project ID | [Portfolio](https://www.moengage.com/docs/user-guide/settings/account/portfolio/portfolio) 機能が有効な場合に、特定のプロジェクトを識別します。 |
+  |  | Use Latest SDK Version | 有効にすると、Web SDK の最新バージョンが自動的に対象になります。 |
+  |  | SDK Version | 対象とする SDK のバージョンを指定します。**Use Latest SDK Version** チェックボックスが選択されている場合、このフィールドは表示されません。 |
+  | **Application Profile** | My website is a Single Page Application (SPA) | Web サイトがシングルページアプリケーション（SPA）として動作するかどうかを示します。 |
+  |  | This is for a browser extension | アプリケーションがブラウザ拡張機能であるかどうかを示します。<br /><br />**注**: 選択すると、SDK による Cookie の保存が行われなくなり、クロスサブドメインのユーザー共有が無効になります。 |
+  | **Feature Configuration** | Enable Web Push Notifications | プッシュトークンの収集とブラウザ通知の表示に必要なモジュールを含めます。 |
+  |  | Enable On-Site Messaging | ポップアップやインタースティシャルなどのオンサイトキャンペーンを Web サイトに表示するために必要なモジュールを有効にします。 |
+  |  | Enable Cards Notification Inbox | Cards モジュールの Notification Inbox を有効にし、UI Customization セクションのロックを解除します。 |
+  |  | Enable Web Personalization | Web Personalization モジュールを有効にします。 |
+  |  | Disable SDK at Initialization | SDK を無効の状態で初期化します。<br /><br />**注**: 選択した場合、トラッキングを有効にするには `Moengage.enableSdk()` メソッドを明示的に呼び出す必要があります。 |
+  | **Web Push Details**<br />**_（Enable Web Push Notifications が有効な場合に表示）_** | Service Worker Path | サイトのルートからの Service Worker ファイルへのパスを定義します。デフォルトのパスは `/serviceworker.js` です。 |
+  |  | Service Worker Scope | Service Worker がアクティブになれるページを定義します。デフォルトは /（サイト全体）です。制限するには、特定のパス（例: /app/）を入力します。 |
+  | **Cards Configuration & UI Customization**<br />**_（Enable Cards Notification Inbox が有効な場合に表示）_** | CSS Selector for Inbox Icon | クリックすると受信トレイが開く HTML 要素を、その一意の CSS ID またはクラス（例: `#bell-icon`）を使用して識別します。 |
+  |  | Floating Bell Icon (Desktop) | デスクトップのフローティングベルアイコンの設定を行います。<ul><li>**Icon URL:** ベルアイコンの画像ソースを設定します。</li><li>**Position:** 上、右、下、左のオフセットを定義します。</li><li>**Count Background Color:** 未読バッジの背景色を設定します。</li><li>**Count Text Color:** 未読バッジのテキストの色を設定します。</li><li>**Icon Background Color:** ベル自体の背景色を設定します。</li><li>**Font URL:** カスタムフォントファイルの URL を指定します。</li><li>**z-index:** ベルアイコンの z 軸の重なり順を設定します。</li></ul> |
+  |  | Floating Bell Icon (Mobile) | モバイルのフローティングベルアイコンの設定を行います。<ul><li>**Icon URL:** ベルアイコンの画像ソースを設定します。</li><li>**Position:** 上、右、下、左のオフセットを定義します。</li><li>**Count Background Color:** 未読バッジの背景色を設定します。</li><li>**Count Text Color:** 未読バッジのテキストの色を設定します。</li><li>**Icon Background Color:** ベル自体の背景色を設定します。</li><li>**Font URL:** カスタムフォントファイルの URL を指定します。</li><li>**z-index:** ベルアイコンの z 軸の重なり順を設定します。</li></ul> |
+  |  | General & Icons | 受信トレイコンテナーのグローバルなスタイルとアイコンを設定します。<ul><li>**Background Color:** 受信トレイコンテナーの背景色を設定します。</li><li>**Overlay Color:** 受信トレイの背後にあるオーバーレイマスクの色を設定します。</li><li>**DateTime Color:** カードの日時表示のテキストの色を設定します。</li><li>**Unclicked Indicator Color:** 未読メッセージのインジケータードットの色を設定します。</li><li>**Option Button Color:** カードのオプション/メニューボタンの色を設定します。</li><li>**Icon URLs:** *Pin Icon*、*Refresh Icon*、*Close (Web) Icon*、*Close (Mobile) Icon* のカスタム URL を定義します。</li></ul> |
+  |  | Card Dismissal | ユーザーがカードを閉じられるかどうかを制御します。<ul><li>**Enable Dismiss Option:** 有効にすると、ユーザーがカードを閉じられるようになります。</li><li>**Text Color:** 閉じるテキストまたはアイコンの色を設定します。</li></ul> |
+  |  | Navigation Bar | 受信トレイの上部ヘッダーの設定を行います。<ul><li>**Text:** ヘッダーのタイトルテキストを定義します。</li><li>**Text Color:** ヘッダーのタイトルテキストの色を設定します。</li><li>**Background Color:** ナビゲーションバーの背景色を設定します。</li><li>**Font Size:** ヘッダータイトルのフォントサイズを設定します。</li><li>**Font URL:** ヘッダー用のカスタムフォントファイルの URL を指定します。</li></ul> |
+  |  | Tabs | カテゴリタブ（例: "All"、"Unread"）を設定します。<ul><li>**Active Tab Text Color:** 現在選択されているタブのテキストの色を設定します。</li><li>**Active Tab Underline Color:** アクティブなタブを示す線の色を設定します。</li><li>**Active Tab Background Color:** アクティブなタブの背景色を設定します。</li><li>**Inactive Tab Text Color:** 選択されていないタブのテキストの色を設定します。</li><li>**Background Color:** タブコンテナーの背景色を設定します。</li><li>**Font Size:** タブのテキストのフォントサイズを設定します。</li><li>**Font URL:** タブ用のカスタムフォントファイルの URL を指定します。</li></ul> |
+  |  | Card Content | カードのタイポグラフィと区切りのスタイルを設定します。<ul><li>**Header Font Size:** カードのタイトル/ヘッダーのフォントサイズを設定します。</li><li>**Description Font Size:** カードの本文テキストのフォントサイズを設定します。</li><li>**CTA Font Size:** コールトゥアクションのボタンまたはリンクのフォントサイズを設定します。</li><li>**Font URL:** カードコンテンツ用のカスタムフォントファイルの URL を指定します。</li><li>**Separator Color:** カード間の区切り線の色を設定します。</li></ul> |
+  |  | Empty State | メッセージがない場合に表示される視覚要素を設定します。<ul><li>**Image URL:** 受信トレイが空の場合に表示される画像のソース URL を指定します。</li><li>**Text:** 受信トレイが空の場合に表示されるメッセージテキストを定義します。</li></ul> |
+  |  | Cards Inbox z-index | **z-index Value:** 受信トレイコンテナーの z 軸の重なり順を設定します。 |
+</Accordion>
+
+### 一般的な設定シナリオ
+
+開発やデバッグのニーズに合わせて、環境の選択とログの詳細度をそれぞれ個別に設定できます。
+
+| 環境（`env`） | ログレベル（`logLevel`） | データの送信先     | コンソール出力                                            |
+| ------------------- | ---------------------- | -------------------- | --------------------------------------------------------- |
+| `'TEST'`            | `0`                    | テストダッシュボード       | クリーンなコンソール（SDK ログなし）。                              |
+| `'TEST'`            | `1`                    | テストダッシュボード       | 重要なログとエラー（テストに推奨）。       |
+| `'LIVE'`            | `0`                    | 本番ダッシュボード | 本番設定。ログは表示されません。                       |
+| `'LIVE'`            | `1`                    | 本番ダッシュボード | トラブルシューティングのために本番環境で SDK のエラーログを有効にします。 |
+
+## オプション 2: 手動統合
+
+<Info>
+- MoEngage の API は camelCase に移行しました。`app_id` や `project_id` などの初期化プロパティは、`appId` および `projectId` になりました。従来のプロパティも引き続き機能しますが、コンソールに非推奨の警告が記録されます。
+
+- 以下の更新された CDN スニペットには、従来の（snake_case）メソッド名と最新の（camelCase）メソッド名の両方を登録する新しい配列 u=[...] が含まれています。これにより、SDK がページ上で完全に読み込まれる前に、どちらの構文でもネットワーク呼び出しを安全にキューに入れられるため、後方互換性が確保されます。
+
+- セットアップに応じて、次のガイドラインに従ってください。
+
+  - 新規統合: camelCase メソッドを使用して SDK を実装します。これにより、統合が最新の JavaScript 標準とネイティブに互換性を持つようになり、コンソールの警告を防ぐことができます。
+
+  - CDN/NPM: Script タグが最新バージョンを取得する場合、SDK は従来の呼び出しを新しいロジックに自動的にマッピングします。ただし、camelCase へのリファクタリングを推奨します。
+
+  - 固定バージョン: 重要: 新しい camelCase メソッドは、従来の SDK バージョンでは利用できません。ソースコード内の SDK バージョンを 2.71.00 以降に更新するまで、コードをリファクタリングしないでください。
+
+詳細については、[こちら](https://www.moengage.com/docs/developer-guide/web-sdk/migration/standardizing-web-sdk-apis-for-cross-platform-consistency)を参照してください。 
+</Info>
+
+初期化パラメーターをコードベースで直接設定することで、SDK を手動で統合できます。以下のリストからプラットフォームまたはフレームワークを選択して、具体的な手動統合ガイドを確認してください。
+
+- [CDN](#method-1-moengage-cdn)
+- [NPM](#method-2-using-npm)
+- [Google Tag Manager(GTM)](/ja/developer-guide/web-sdk/other-supported-web-sdk-integration/google-tag-manager-gtm-templates)
+- [シングルページアプリ（SPA）のサポート](/ja/developer-guide/web-sdk/other-supported-web-sdk-integration/single-page-app-spa-support)
+- [AMP Web Push の設定と統合](/ja/developer-guide/web-sdk/other-supported-web-sdk-integration/configure-and-integrate-amp-web-push)
+- [Flutter SDK](/ja/developer-guide/flutter-sdk/overview/getting-started-with-flutter-sdk)
+- [Shopify アプリ](/ja/developer-guide/ecommerce-platforms/shopify/shopify-20)
+
+手動統合を行う場合は、必ず次の設定手順を完了してください。
+
+1. Web SDK のデータ収集に使用する MoEngage のデータセンターを指定します。
+2. ホワイトリスト登録を有効にします。
+
+<Info>
+  これはすべての Web モジュールに必要な手順です。
+</Info>
+
+### 方法 1: MoEngage CDN
+
+#### TEST 統合
+
+##### データセンター
+
+ダッシュボードのホストに基づいて設定する必要がある各データセンターの詳細は次のとおりです。
+
+| ダッシュボードホスト            | データセンター |
+| ------------------------- | ----------- |
+| dashboard-01.moengage.com | dc_1        |
+| dashboard-02.moengage.com | dc_2        |
+| dashboard-03.moengage.com | dc_3        |
+| dashboard-04.moengage.com | dc_4        |
+| dashboard-06.moengage.com | dc_6        |
+
+以下の統合で使用するため、適切なデータセンターを手元に用意しておいてください。
+
+MoEngage では、まずテスト環境で統合を実行し、その後本番環境またはライブ環境に統合することを推奨しています。
+
+テスト環境に統合するには:
+
+1. トラッキングが必要なすべてのページの `<head>` タグに、次のコードを挿入します。
+2. "APP ID" を、MoEngage ダッシュボードの設定ページで確認できる値に置き換えます。\
+   `Dashboard --> Settings --> App --> General` に移動し、APP ID をコピーします。
+3. sdkVersion の値を、使用する Web SDK のバージョンに置き換えます。x（メジャー）の形式を使用することをお勧めします。
+4. "DC" を上の表のデータセンターに置き換えます。
+5. ワークスペースで _Portfolio_ が有効になっている場合は、`projectId` キーと、その値としてプロジェクトのプロジェクト ID を渡す必要があります。
+
+<CodeGroup>
+
+```javascript Without Portfolio wrap
+<script type="text/javascript">
+var moeDataCenter = "{DC}"; // Replace "DC" with the actual Data center value from the above table
+var moeAppID = "{WorkspaceID}"; // Replace "WorkspaceID" available in the settings page of MoEngage Dashboard.
+var sdkVersion = "2"; // Replace this value with the version of Web SDK that you intend to use. It is recommended to use the format x (major)
+!function(e,n,i,t,a,r,o,d){if(!moeDataCenter||!moeDataCenter.match(/^dc_[0-9]+$/gm))return console.error("Data center has not been passed correctly. Please follow the SDK installation instruction carefully.");var s=e[a]=e[a]||[];if(s.initialized||s.initialised>0)return console.error("MoEngage Web SDK initialized multiple times. Please integrate the Web SDK only once!"),!1;s.invoked=0;e.moengage_object=a;var l={},g=function n(i){return function(){for(var n=arguments.length,t=Array(n),a=0;a<n;a++)t[a]=arguments[a];(e.moengage_q=e.moengage_q||[]).push({f:i,a:t})}},u=["track_event","add_user_attribute","add_first_name","add_last_name","add_email","add_mobile","add_user_name","add_gender","add_birthday","destroy_session","add_unique_user_id","update_unique_user_id","moe_events","call_web_push","track","location_type_attribute","setLogLevel","setDebugLevel","handle_page_change","identifyUser","getUserIdentities","trackEvent","trackPageView","track_page_view","setUserAttribute","setFirstName","setLastName","setEmailId","setMobileNumber","setUserName","setGender","setBirthDate","logoutUser","callWebPush","handlePageChange","enableSdk","disableSdk","enableDataTracking","disableDataTracking"],m={onsite:["getData","registerCallback","getSelfHandledOSM"]};for(var c in u)l[u[c]]=g(u[c]);for(var v in m)for(var f in m[v])null==l[v]&&(l[v]={}),l[v][m[v][f]]=g(v+"."+m[v][f]);r=n.createElement(i),o=n.getElementsByTagName("head")[0],r.async=1,r.src=t,o.appendChild(r),e.moe=e.moe||function(){return(s.invoked=s.invoked+1,s.invoked>1)?(console.error("MoEngage Web SDK initialized multiple times. Please integrate the Web SDK only once!"),!1):(d=arguments.length<=0?void 0:arguments[0],l)},r.addEventListener("load",function(){if(d)return e[a]=e.moe(d),(e[a]&&(e[a].initialised=e[a].initialised+1||1)),!0}),r.addEventListener("error",function(){return console.error("Moengage Web SDK loading failed."),!1})}(window,document,"script","https://cdn.moengage.com/release/"+moeDataCenter+"/versions/"+sdkVersion+"/moe_webSdk.min.latest.js","Moengage");
+
+      Moengage = moe({
+        appId: moeAppID,
+        env: 'TEST',
+        logLevel: 1
+        });
+</script>
+```
+
+
+```javascript With Portfolio wrap
+<script type="text/javascript">
+var moeDataCenter = "{DC}"; // Replace "DC" with the actual Data center value from the above table
+var moeAppID = "{WorkspaceID}"; // Replace "WorkspaceID" available in the settings page of MoEngage Dashboard.
+var sdkVersion = "2"; // Replace this value with the version of Web SDK that you intend to use. It is recommended to use the format x (major)
+!function(e,n,i,t,a,r,o,d){if(!moeDataCenter||!moeDataCenter.match(/^dc_[0-9]+$/gm))return console.error("Data center has not been passed correctly. Please follow the SDK installation instruction carefully.");var s=e[a]=e[a]||[];if(s.initialized||s.initialised>0)return console.error("MoEngage Web SDK initialized multiple times. Please integrate the Web SDK only once!"),!1;s.invoked=0;e.moengage_object=a;var l={},g=function n(i){return function(){for(var n=arguments.length,t=Array(n),a=0;a<n;a++)t[a]=arguments[a];(e.moengage_q=e.moengage_q||[]).push({f:i,a:t})}},u=["track_event","add_user_attribute","add_first_name","add_last_name","add_email","add_mobile","add_user_name","add_gender","add_birthday","destroy_session","add_unique_user_id","update_unique_user_id","moe_events","call_web_push","track","location_type_attribute","setLogLevel","setDebugLevel","handle_page_change","identifyUser","getUserIdentities","trackEvent","trackPageView","track_page_view","setUserAttribute","setFirstName","setLastName","setEmailId","setMobileNumber","setUserName","setGender","setBirthDate","logoutUser","callWebPush","handlePageChange","enableSdk","disableSdk","enableDataTracking","disableDataTracking"],m={onsite:["getData","registerCallback","getSelfHandledOSM"]};for(var c in u)l[u[c]]=g(u[c]);for(var v in m)for(var f in m[v])null==l[v]&&(l[v]={}),l[v][m[v][f]]=g(v+"."+m[v][f]);r=n.createElement(i),o=n.getElementsByTagName("head")[0],r.async=1,r.src=t,o.appendChild(r),e.moe=e.moe||function(){return(s.invoked=s.invoked+1,s.invoked>1)?(console.error("MoEngage Web SDK initialized multiple times. Please integrate the Web SDK only once!"),!1):(d=arguments.length<=0?void 0:arguments[0],l)},r.addEventListener("load",function(){if(d)return e[a]=e.moe(d),(e[a]&&(e[a].initialised=e[a].initialised+1||1)),!0}),r.addEventListener("error",function(){return console.error("Moengage Web SDK loading failed."),!1})}(window,document,"script","https://cdn.moengage.com/release/"+moeDataCenter+"/versions/"+sdkVersion+"/moe_webSdk.min.latest.js","Moengage");
+
+      Moengage = moe({
+        appId: moeAppID,
+        projectId: 'your_projectId',
+        env: 'TEST',
+        logLevel: 1
+        });
+</script>
+```
+
+</CodeGroup>
+
+#### PRODUCTION または LIVE 統合
+
+本番環境またはライブ環境に統合するには:
+
+1. トラッキングが必要なすべてのページの `<head>` タグに、次のコードを挿入します。
+2. "APP ID" を、MoEngage ダッシュボードの設定ページで確認できる値に置き換えます。\
+   `Dashboard --> Settings --> App --> General` に移動し、APP ID をコピーします。
+3. sdkVersion の値を、使用する Web SDK のバージョンに置き換えます。x（メジャー）の形式を使用することをお勧めします。
+4. "DC" を上の表のデータセンターに置き換えます。
+5. ワークスペースで [_Portfolio_](https://www.moengage.com/docs/user-guide/settings/account/portfolio/portfolio) が有効になっている場合は、`projectId` キーと、その値としてプロジェクトの projectID を渡す必要があります。
+
+<CodeGroup>
+
+```javascript Without Portfolio wrap
+<script type="text/javascript">
+var moeDataCenter = "{DC}"; // Replace "DC" with the actual Data center value from the above table
+var moeAppID = "{WorkspaceID}"; // Replace "WorkspaceID" available in the settings page of MoEngage Dashboard.
+var sdkVersion = "2"; // Replace this value with the version of Web SDK that you intend to use. It is recommended to use the format x (major)
+!function(e,n,i,t,a,r,o,d){if(!moeDataCenter||!moeDataCenter.match(/^dc_[0-9]+$/gm))return console.error("Data center has not been passed correctly. Please follow the SDK installation instruction carefully.");var s=e[a]=e[a]||[];if(s.initialized||s.initialised>0)return console.error("MoEngage Web SDK initialized multiple times. Please integrate the Web SDK only once!"),!1;s.invoked=0;e.moengage_object=a;var l={},g=function n(i){return function(){for(var n=arguments.length,t=Array(n),a=0;a<n;a++)t[a]=arguments[a];(e.moengage_q=e.moengage_q||[]).push({f:i,a:t})}},u=["track_event","add_user_attribute","add_first_name","add_last_name","add_email","add_mobile","add_user_name","add_gender","add_birthday","destroy_session","add_unique_user_id","update_unique_user_id","moe_events","call_web_push","track","location_type_attribute","setLogLevel","setDebugLevel","handle_page_change","identifyUser","getUserIdentities","trackEvent","trackPageView","track_page_view","setUserAttribute","setFirstName","setLastName","setEmailId","setMobileNumber","setUserName","setGender","setBirthDate","logoutUser","callWebPush","handlePageChange","enableSdk","disableSdk","enableDataTracking","disableDataTracking"],m={onsite:["getData","registerCallback","getSelfHandledOSM"]};for(var c in u)l[u[c]]=g(u[c]);for(var v in m)for(var f in m[v])null==l[v]&&(l[v]={}),l[v][m[v][f]]=g(v+"."+m[v][f]);r=n.createElement(i),o=n.getElementsByTagName("head")[0],r.async=1,r.src=t,o.appendChild(r),e.moe=e.moe||function(){return(s.invoked=s.invoked+1,s.invoked>1)?(console.error("MoEngage Web SDK initialized multiple times. Please integrate the Web SDK only once!"),!1):(d=arguments.length<=0?void 0:arguments[0],l)},r.addEventListener("load",function(){if(d)return e[a]=e.moe(d),(e[a]&&(e[a].initialised=e[a].initialised+1||1)),!0}),r.addEventListener("error",function(){return console.error("Moengage Web SDK loading failed."),!1})}(window,document,"script","https://cdn.moengage.com/release/"+moeDataCenter+"/versions/"+sdkVersion+"/moe_webSdk.min.latest.js","Moengage");
+
+      Moengage = moe({
+        appId: moeAppID,
+        env: 'LIVE',
+        logLevel: 0
+        });
+</script>
+```
+
+
+```javascript With Portfolio wrap
+<script type="text/javascript">
+var moeDataCenter = "{DC}"; // Replace "DC" with the actual Data center value from the above table
+var moeAppID = "{WorkspaceID}"; // Replace "WorkspaceID" available in the settings page of MoEngage Dashboard.
+var sdkVersion = "2"; // Replace this value with the version of Web SDK that you intend to use. It is recommended to use the format x (major)
+!function(e,n,i,t,a,r,o,d){if(!moeDataCenter||!moeDataCenter.match(/^dc_[0-9]+$/gm))return console.error("Data center has not been passed correctly. Please follow the SDK installation instruction carefully.");var s=e[a]=e[a]||[];if(s.initialized||s.initialised>0)return console.error("MoEngage Web SDK initialized multiple times. Please integrate the Web SDK only once!"),!1;s.invoked=0;e.moengage_object=a;var l={},g=function n(i){return function(){for(var n=arguments.length,t=Array(n),a=0;a<n;a++)t[a]=arguments[a];(e.moengage_q=e.moengage_q||[]).push({f:i,a:t})}},u=["track_event","add_user_attribute","add_first_name","add_last_name","add_email","add_mobile","add_user_name","add_gender","add_birthday","destroy_session","add_unique_user_id","update_unique_user_id","moe_events","call_web_push","track","location_type_attribute","setLogLevel","setDebugLevel","handle_page_change","identifyUser","getUserIdentities","trackEvent","trackPageView","track_page_view","setUserAttribute","setFirstName","setLastName","setEmailId","setMobileNumber","setUserName","setGender","setBirthDate","logoutUser","callWebPush","handlePageChange","enableSdk","disableSdk","enableDataTracking","disableDataTracking"],m={onsite:["getData","registerCallback","getSelfHandledOSM"]};for(var c in u)l[u[c]]=g(u[c]);for(var v in m)for(var f in m[v])null==l[v]&&(l[v]={}),l[v][m[v][f]]=g(v+"."+m[v][f]);r=n.createElement(i),o=n.getElementsByTagName("head")[0],r.async=1,r.src=t,o.appendChild(r),e.moe=e.moe||function(){return(s.invoked=s.invoked+1,s.invoked>1)?(console.error("MoEngage Web SDK initialized multiple times. Please integrate the Web SDK only once!"),!1):(d=arguments.length<=0?void 0:arguments[0],l)},r.addEventListener("load",function(){if(d)return e[a]=e.moe(d),(e[a]&&(e[a].initialised=e[a].initialised+1||1)),!0}),r.addEventListener("error",function(){return console.error("Moengage Web SDK loading failed."),!1})}(window,document,"script","https://cdn.moengage.com/release/"+moeDataCenter+"/versions/"+sdkVersion+"/moe_webSdk.min.latest.js","Moengage");
+
+      Moengage = moe({
+        appId: moeAppID,
+        projectId: 'your_projectId',
+        env: 'LIVE',
+        logLevel: 0
+        });
+</script>
+```
+
+</CodeGroup>
+
+#### SDK のアップグレード
+
+コンテンツ配信ネットワークから MoEngage Web SDK を参照する場合、たとえば `https://cdn.moengage.com/release/{DC}/versions/{sdkVersion}/moe_webSdk.min.latest.js` で `sdkVersion = x` とすると（`sdkVersion = x` を使用して、メジャーリリースまでのバージョンのみを固定することが、デフォルトの推奨統合方法です）、ユーザーはサイトを更新したときに新機能とバグ修正を自動的に受け取ります。
+
+ただし、メジャーな変更をリリースする場合は、破壊的変更によって統合に影響が及ばないように、MoEngage Web SDK を手動でアップグレードしていただく必要があります。
+
+Web SDK のリリース履歴の全容については、[変更履歴](/ja/release-notes/sdks/web)で最新のリリース情報を確認できます。MoEngage Web SDK をアップグレードするには:
+
+- 統合スクリプト内の `sdkVersion` の値を変更して、MoEngage ライブラリのバージョンを更新します。
+- Web Push を統合している場合は、サイト上の Service Worker ファイル内の serviceworker CDN URL のバージョンを更新します。デフォルトでは、このファイルはサイトのルートディレクトリの `/serviceworker.js` にありますが、統合によっては場所がカスタマイズされている場合があります。`importScripts("https://cdn.moengage.com/release/{DC}/versions/[old-version-number]/serviceworker_cdn.min.latest.js");`
+- Web Personalization を統合している場合は、Web Personalization スクリプト内のバージョンを更新します- `https://cdn.moengage.com/release/{DC}/versions/[old-version-number]/moe_webSdk_webp.min.latest.js?appId={workspace-id}`
+
+<Warning>
+  正しく機能させるには、これら 3 つの統合を同じバージョン番号で更新する必要があります。NPM を使用している場合は、package.json ファイルにある @moengage/web-sdk 依存関係のバージョン番号を使用してください。
+</Warning>
+
+### 方法 2: NPM を使用する
+
+サイトで NPM または Yarn パッケージマネージャーを使用している場合は、[MoEngage NPM パッケージ](https://www.npmjs.com/package/@moengage/web-sdk)を依存関係として追加できます。
+
+<CodeGroup>
+
+```auto Add MoEngage NPM Package
+npm install --save @moengage/web-sdk
+# or, using yarn:
+# yarn add @moengage/web-sdk
+```
+
+</CodeGroup>
+
+インストールが完了したら、一般的な方法でライブラリを `import` または `require` できます。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+import moengage from "@moengage/web-sdk";
+
+// or, using `require`
+
+const moengage = require("@moengage/web-sdk");
+```
+
+</CodeGroup>
+
+次に、使用する前にすべてのページで設定を渡して初期化します。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+moengage.initialize({
+  appId: 'YOUR_WORKSPACE_ID',
+  env: 'LIVE',
+  logLevel: 0
+});
+```
+
+</CodeGroup>
+
+ここでは任意の設定を渡すことができます。例:
+
+- ワークスペースで [_Portfolio_](https://www.moengage.com/docs/user-guide/settings/account/portfolio/portfolio) が有効になっている場合は、`projectId` キーを渡す必要があります。
+- 特殊なプロジェクトの統合設定を変更したい場合は、次のスニペットのように渡します。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+moengage.initialize({
+  appId: 'YOUR_WORKSPACE_ID', 
+  projectId: 'your_projectId',
+  env: 'LIVE',
+  logLevel: 0
+});
+```
+
+</CodeGroup>
+
+その後、次のスニペットのように、MoEngage SDK の任意のメソッドを使用できます。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+moengage.setEmailId('abc@xyz.com')
+```
+
+</CodeGroup>
+
+ 
+
+<Info>
+  （パッケージマネージャーで指定されている @moengage/web-sdk のバージョンではなく）常に最新バージョンの Web SDK を使用したい場合は、設定で `useLatest` プロパティの値を `true` に設定して渡します。
+
+  `moengage.initialize({appId: 'YOUR_WORKSPACE_ID', useLatest: true});`
+</Info>
+
+<Info>
+  パッケージマネージャーで @moengage/web-sdk 依存関係のバージョンを変更することで、使用したい Web SDK のバージョンを使用できます。特定のバージョンまたはバージョン範囲の使用方法の詳細については、[こちら](https://docs.npmjs.com/cli/v10/configuring-npm/package-json#dependencies)を参照してください。
+</Info>
+
+## URL のホワイトリスト登録
+
+<Info>
+  すべての Web モジュールのオプションの手順
+</Info>
+
+Web サイトが外部エンドポイントをブロックするように設定されている場合、MoEngage へのすべてのネットワーク呼び出しは失敗します。\
+スムーズに統合するために、次のエンドポイントを必ずホワイトリストに登録してください。
+
+**script-src:**
+
+- https://cdn.moengage.com/
+- [https://app-cdn.moengage.com/](https://app-cdn.moengage.com)
+
+**image-src:**
+
+- https://moe-email-campaigns.s3.amazonaws.com/
+- https://image.moengage.com/
+- https://image-eu.moengage.com/
+- https://image-ap1.moengage.com/
+- https://image-04.moengage.com/
+- https://image-06.moengage.com/
+- https://image.moengage.com/all-campaign-images-moe-dc-100/
+
+**connect-src:**
+
+- https://sdk-01.moengage.com/
+- https://sdk-02.moengage.com/
+- https://sdk-03.moengage.com/
+- https://sdk-04.moengage.com/
+- https://sdk-06.moengage.com/
+
+**frame-src:**
+
+- https://cdn.moengage.com/
+
+**style-src:**
+
+- https://cdn.moengage.com/
+- [https://app-cdn.moengage.com/](https://app-cdn.moengage.com)
+- https://fonts.bunny.net/
+
+**font-src:**
+
+- https://fonts.bunny.net/
+
+URL をホワイトリストに登録しないと、**_`Refused to connect to https://\*\*\*.moengage.com/\*\*\*\* because it violates the following Content Security Policy directive.`_** というエラーが表示されます。
+
+詳細については、[コンテンツセキュリティポリシー](https://developer.mozilla.org/en-US/docs/Web/HTTP/CSP)を参照してください。
+
+## トラブルシューティング
+
+### 環境で SDK をデバッグできません。
+
+MoEngage SDK の初期化時に、`logLevel` が `1`（詳細な出力の場合は `2`）に設定されていることを確認してください。
+
+### Live 環境で SDK のログを確認するにはどうすればよいですか？
+
+MoEngage SDK の初期化時に、`logLevel` を 1 に設定します。
+
+### TEST 環境と LIVE 環境の違いは何ですか？
+
+MoEngage は、**TEST 環境**と呼ばれるステージング環境を提供しています。**LIVE 環境**には、本番 Web サイトからの実際のユーザー/顧客に関するデータが含まれます。
+
+MoEngage Web SDK は、`env` パラメーターを使用してデータを正しくルーティングします。
+
+- `env: 'TEST'`: データをテストダッシュボードにルーティングします。
+- `env: 'LIVE'`: データを本番ダッシュボードにルーティングします。
+
+選択した環境に関係なく、`logLevel` パラメーターを使用してログの詳細度を個別に制御できます。
+
+### MoEngage Web SDK は、ネイティブブラウザ API にパッチを適用するアプリケーションをサポートしていますか？
+
+はい。アプリケーションでネイティブブラウザ API にパッチを適用するフレームワークやライブラリ（Zone.js を使用する Angular アプリケーションなど）を使用している場合、SDK の一貫した動作を確保するために、MoEngage では Native Browser API Support を有効にすることを推奨しています。
+
+セットアップ手順については、[Native Browser API Support](/ja/developer-guide/web-sdk/web-sdk-integration/optional-integration/native-browser-api-support) を参照してください。

@@ -1,0 +1,130 @@
+---
+title: "キャンペーンでクーポンリストを使用する"
+description: "Jinja 参照を使用して MoEngage のメール、プッシュ、SMS キャンペーンに使い切りのクーポンコードを追加し、各受信者に固有のパーソナライズされたオファーを届けます。"
+---
+
+MoEngage にクーポンを追加したら、キャンペーンや Flows から送信するメッセージにクーポンを含めることができます。
+
+MoEngage は現在、次のメッセージングチャネルでのクーポン送信をサポートしています。
+
+| チャネル名 | キャンペーン経由で送信されるメッセージ | Flows 経由で送信されるメッセージ |
+| --- | --- | --- |
+| Mobile Push | はい | はい |
+| Web Push | はい | はい |
+| Email | はい | はい |
+| SMS | はい | はい |
+| WhatsApp | はい | はい |
+| Mobile In-App | はい | はい |
+
+以下に説明するプロセスに従って、キャンペーンにクーポンを追加できます。この記事では、クーポンベースのメールマーケティングキャンペーンを作成するプロセスを説明します。他のキャンペーンチャネルでも、同様の方法でクーポン参照を追加できます。
+
+<Info>
+以下の手順を実行する前に、キャンペーンで使用するクーポンリストを作成してください。キャンペーンで使用できるのはアクティブなクーポンリストのみです。[クーポンの作成](/ja/user-guide/content/coupons/add-coupons-to-moengage)方法を確認してください。
+</Info>
+
+MoEngage では、メールキャンペーンの作成は 3 つのステップで行います。
+
+1. Target users
+2. Content
+3. Schedule and goals
+
+クーポンリストの Jinja 参照は、2 番目のステップ 'Content' で追加します。これは、MoEngage のドラッグ＆ドロップメールエディターを使用する場合でも、独自のカスタム HTML テンプレートを使用する場合でも同様です。
+
+# クーポンを使用したメールキャンペーンの作成
+
+クーポンを使用したメールキャンペーンを作成するには、次の手順を実行します。
+
+1. 1. MoEngage のサイドバーメニューで、Engage メニュー項目 <img alt="Screenshot 2025-06-04 at 4.32.53 PM.png"  src="/images/moengage_15bde3.png"  /> にカーソルを合わせます。**Engage** メニューが表示されます。
+   2. **+ New Campaign** をクリックします。  
+       <img alt="1.png"  src="/images/moengage_3284e8.png"  />   
+      **Engage** メニューの **All Campaigns** をクリックし、All campaigns ページで **+ Create campaign** をクリックすることもできます。
+   3. **New Campaign** ダイアログボックスの **OUTBOUND** で、**Email** をクリックします。
+   4. **Periodic** キャンペーンをクリックします。他のメールキャンペーンタイプでも同じ手順に従うことができます。配信タイプの詳細については、[配信タイプ](/ja/user-guide/campaigns-and-channels/getting-started/introduction/delivery-types-moengage-channels)を参照してください。  
+       <img  src="/images/moengage_a4e402.png"  />
+   5. ステップ 1 の *Target users* で、キャンペーンの基本的な詳細を入力してオーディエンスを定義し、**Next** をクリックします。
+   6. ステップ 2 の *Content* で、件名やその他のキャンペーンの基本的な詳細を入力し、**Template Editor** セクションまで下にスクロールします。
+   7. **Drag and drop editor** を使用してコンテンツを作成する場合:
+      - 保存済みのテンプレート、空白のテンプレート、または事前構築済みテンプレートセクションのテンプレートから始め、必要に応じてカスタマイズします。
+      - ブランド要素、画像、テキストを追加してテンプレートをカスタマイズします。動的変数を使用してメールコンテンツをパーソナライズすることもできます。詳細については、[テンプレートエディターの使用方法](/ja/user-guide/campaigns-and-channels/email/create/create-content-with-the-drag-and-drop-editor)を参照してください。
+      - メール本文でクーポンコード参照を配置するテキストセクションを選択し、**New way to Personalize** をクリックします。 <img src="/images/moengage_6d3253.png" />
+      - Email Personalization ダイアログボックスの **Coupons** タブで、クーポンを取得するクーポンリストを検索します。  
+        リスト内のクーポン数がクーポンリスト設定で定義された不足しきい値を下回っている場合、アラートアイコンが表示されます。これは、キャンペーンを送信する前にオーディエンスサイズ、クーポン数を確認し、補充するよう促すものです。 <img src="/images/moengage_e04164.png" />
+      - クーポンリストを選択し、クーポンリストからクーポンを取得できなかった場合の動作を定義するフォールバックを選択します。**Do not send Email** を選択すると、クーポンコードのないメールは配信されなくなります。代わりに、静的なフォールバッククーポンコードを使用することもできます。
+      - **Done** をクリックします。これにより、メール本文の選択したテキストセクションに Jinja 参照が追加されます。  
+        パーソナライズスニペットをここに直接貼り付けることもできます。
+        - フォールバックなしのクーポンリストの Jinja 参照:
+
+          ```
+          {{Coupons.CouponListName['Black_Friday_Coupons']}}
+          ```
+        - *Do not send* フォールバックありのクーポンリストの Jinja 参照:  
+
+          ```
+          {{Coupons.CouponListName['Black_Friday_Coupons']|default('MOE_NOT_SEND')}
+          ```
+        - 静的なフォールバッククーポンコードありのクーポンリストの Jinja 参照:
+
+          ```
+          {{Coupons.CouponListName['Black_Friday_Coupons']|default('YOUR-STATIC-CODE')}}
+          ```
+      - さらに、メール本文内のクーポンコードを強調するスタイルを追加できます。 <img src="/images/moengage_07b705.png" />
+   8. **Drag and drop editor** を使用してコンテンツを作成する場合:
+      - 保存済みのテンプレート、空白のテンプレート、または事前構築済みテンプレートセクションのテンプレートから始め、必要に応じてカスタマイズします。
+      - ブランド要素、画像、テキストを追加してテンプレートをカスタマイズします。動的変数を使用してメールコンテンツをパーソナライズすることもできます。詳細については、[テンプレートエディターの使用方法](/ja/user-guide/campaigns-and-channels/email/create/create-content-with-the-drag-and-drop-editor)を参照してください。
+      - メール本文でクーポンコード参照を配置するテキストセクションを選択し、**New way to Personalize** をクリックします。 <img src="/images/moengage_6d3253.png" />
+      - Email Personalization ダイアログボックスの **Coupons** タブで、クーポンを取得するクーポンリストを検索します。  
+        リスト内のクーポン数がクーポンリスト設定で定義された不足しきい値を下回っている場合、アラートアイコンが表示されます。これは、キャンペーンを送信する前にオーディエンスサイズ、クーポン数を確認し、補充するよう促すものです。 <img src="/images/moengage_e04164.png" />
+      - クーポンリストを選択し、クーポンリストからクーポンを取得できなかった場合の動作を定義するフォールバックを選択します。**Do not send Email** を選択すると、クーポンコードのないメールは配信されなくなります。代わりに、静的なフォールバッククーポンコードを使用することもできます。
+      - **Done** をクリックします。これにより、メール本文の選択したテキストセクションに Jinja 参照が追加されます。  
+        パーソナライズスニペットをここに直接貼り付けることもできます。
+        - フォールバックなしのクーポンリストの Jinja 参照:
+
+          ```
+          {{Coupons.CouponListName['Black_Friday_Coupons']}}
+          ```
+        - *Do not send* フォールバックありのクーポンリストの Jinja 参照:  
+
+          ```
+          {{Coupons.CouponListName['Black_Friday_Coupons']|default('MOE_NOT_SEND')}
+          ```
+        - 静的なフォールバッククーポンコードありのクーポンリストの Jinja 参照:
+
+          ```
+          {{Coupons.CouponListName['Black_Friday_Coupons']|default('YOUR-STATIC-CODE')}}
+          ```
+      - さらに、メール本文内のクーポンコードを強調するスタイルを追加できます。 <img src="/images/moengage_07b705.png" />
+   9. **Custom HTML editor** を使用してコンテンツを作成する場合:
+      - - HTML コードをエディターに貼り付けるか、インポートします。
+        - クーポンコード参照を配置するテキストエリアを選択し、@ を入力します。
+        - Email Personalization ダイアログボックスの **Coupons** タブで、クーポンを取得するクーポンリストを検索します。  
+          リスト内のクーポン数がクーポンリスト設定で定義された不足しきい値を下回っている場合、アラートアイコンが表示されます。これは、キャンペーンを送信する前にオーディエンスサイズ、クーポン数を確認し、補充するよう促すものです。  
+           <img src="/images/moengage_e04164.png" />
+        - クーポンリストを選択し、クーポンリストからクーポンを取得できなかった場合の動作を定義するフォールバックを選択します。**Do not send Email** を選択すると、クーポンコードのないメールは配信されなくなります。代わりに、静的なフォールバッククーポンコードを使用することもできます。
+        - **Done** をクリックします。これにより、メール本文の選択したテキストセクションに Jinja 参照が追加されます。  
+          パーソナライズスニペットをここに直接貼り付けることもできます。
+          - フォールバックなしのクーポンリストの Jinja 参照:
+
+            ```
+            {{Coupons.CouponListName['Black_Friday_Coupons']}}
+            ```
+          - *Do not send* フォールバックありのクーポンリストの Jinja 参照:
+
+            ```
+            {{Coupons.CouponListName['Black_Friday_Coupons']|default('MOE_NOT_SEND')}
+            ```
+          - 静的なフォールバッククーポンコードありのクーポンリストの Jinja 参照:   
+
+            ```
+            {{Coupons.CouponListName['Black_Friday_Coupons']|default('YOUR-STATIC-CODE')}}
+            ```
+   10. 設定が完了したら、**Preview** をクリックして意図どおりに表示されることを確認します。 <img src="/images/moengage_4a454e.png" />
+   11. すべてのユーザーに向けてスケジュールする前に、テストキャンペーンを配信してエンドツーエンドの配信を確認することもできます。  
+        <img src="/images/moengage_fedf4b.png"  />
+   12. クーポンリストを使用したコンテンツの設定が完了したら、**Next** をクリックしてキャンペーン設定のステップ 3 *Schedule and Goals* に進みます。
+   13. 適切なスケジュールと目標を設定し、キャンペーンを公開します。
+
+<Info>
+- 使い切りクーポンを使用するキャンペーンでは、最大 100K PRM までのスロットリングを設定できます。
+- プレビューとテストでクーポンが無駄にならないように、プレビューセクションとテストキャンペーンでは、すべてのテストユーザーに対してクーポンリストからクーポンを 1 つだけロックします。
+- プレビューまたはテストキャンペーンで表示されたクーポンは、使用済みとしてマークされません。そのため、このクーポンはライブキャンペーンで配布可能なままとなります。
+</Info>

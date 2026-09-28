@@ -1,0 +1,67 @@
+---
+title: "AccuWeather"
+---
+
+## はじめに
+
+[AccuWeather](https://www.accuweather.com/) は、世界中で気象予報サービスを提供するメディア企業です。AccuWeather Enterprise Solutions は、極めて正確で地点ごとにカスタマイズされた悪天候警報、短期および長期の予報、応用気象情報を提供します。
+
+## MoEngage と AccuWeather
+
+MoEngage と AccuWeather の連携により、マーケティングキャンペーンを充実させてパーソナライズし、翻訳を自動化できます。ユーザーの位置情報と天気の最新情報をその場で取得し、パーソナライズされたキャンペーンをリアルタイムで送信できます。
+
+たとえば、E コマースブランドはユーザーの所在地で雨が降る可能性が高いことを検知し、傘の購入を促すメッセージを送信できます。
+
+![パーソナライズされた天気コンテンツを使用した MoEngage プッシュ通知のプレビュー](/images/partner_7265033963028.png)
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - AccuWeather アカウント
+  - AccuWeather の API キーへのアクセス権。互換性のある API キーについては、AccuWeather のアカウントマネージャーにお問い合わせください。詳細については、[AccuWeather API](https://apidev.accuweather.com/developers/) を参照してください。
+</Info>
+
+### 利用可能な API
+
+MoEngage キャンペーン内では、次の AccuWeather API を使用できます。
+
+| API | 説明 |
+| --- | --- |
+| [Locations](https://apidev.accuweather.com/developers/locationsAPIguide) | 目的の場所のロケーションキーを取得します。ロケーションキーを使用して、Forecast API または Current Conditions API から気象データを取得します。 |
+| [Forecast](https://apidev.accuweather.com/developers/forecastsAPIguide) | 特定の場所の予報情報を取得します。 |
+| [Current Conditions](https://apidev.accuweather.com/developers/currentConditionsAPIGuide) | 特定の場所の現在の気象状況データを取得します。 |
+| [Indices](https://apidev.accuweather.com/developers/indicesApiGuide) | 特定の場所の日次指数値を取得します。利用できる指数は場所によって異なります。 |
+| [Weather Alarms](https://apidev.accuweather.com/developers/weatheralarmsAPIguide) | 特定の場所の気象アラームを取得します。AccuWeather の気象アラームは日次予報を使用して判定され、予報が[特定のしきい値](https://apidev.accuweather.com/developers/weatheralarms)以上になった場合にアラームが発生します。 |
+| [Alerts](https://apidev.accuweather.com/developers/alertsApiGuide) | 政府の公式気象機関や世界有数の気象警報プロバイダーから悪天候警報を取得します。 |
+| [Imagery](https://apidev.accuweather.com/developers/imageryAPIguide) | レーダー画像および衛星画像を取得します。 |
+| [Tropical](https://apidev.accuweather.com/developers/tropicalAPIGuide) | 世界中の熱帯低気圧の現在位置、過去の位置、予報を取得します。 |
+| [Translations](https://apidev.accuweather.com/developers/translationsApiGuide) | 利用可能な言語のリストと、特定のフレーズグループの翻訳を取得します。 |
+
+### 手順
+
+以下の例では、ユーザーの郵便番号地域における現在の気象状況に基づいて、3 つのメッセージバリアントを示します。AccuWeather の _Locations_ API と _Current Conditions_ API を使用します。
+
+API 呼び出しは 2 回行います。1 回目でユーザーの位置情報を取得し、2 回目でその場所の現在の気象状況を取得します。
+
+1. キャンペーン作成のステップ 2 に進みます。
+2. AccuWeather の _Locations_ API を呼び出し、位置情報の詳細を `location_info` という新しい変数に格納します。`Key` は次のリクエストで使用されるため、便利な変数です。詳細については、[API レスポンスリファレンス](https://apidev.accuweather.com/developers/locationsAPIguide#Cities)を参照してください。
+   ```jinja wrap
+   {% set location_info = "https://api.accuweather.com/locations/v1/postalcodes/" + {{UserAttribute['zipcode']}} + "/search?q=" + {{UserAttribute['zipcode']}} + "&apikey=" + <your AccuWeather app key here> %}
+   ```
+   <Note>
+     `zipcode` ユーザー属性を取得していない場合は、代わりにユーザーの都市を使用できます。
+   </Note>
+3. `location_info` 変数を使用して AccuWeather の _Current Conditions_ API を呼び出し、結果を `local_weather` という新しい変数に格納します。詳細については、[API レスポンスリファレンス](https://apidev.accuweather.com/developers/currentConditionsAPIGuide#TopCities)を参照してください。
+   ```jinja wrap
+   {% set local_weather = "https://api.accuweather.com/currentconditions/v1/" + location_info[0].key + "?apikey=" + <your AccuWeather app key here> %}
+   ```
+4. 現地の天気に基づいてキャンペーンのコンテンツを定義します。例：
+   - 現地の天気が _Sunny_ の場合 → "Get a sunscreen"
+   - 現地の天気が _Rain_ の場合 → "Get an umbrella"
+   ![JINJA を使用して天気に基づく条件付きコンテンツをテンプレート化した MoEngage エディター](/images/partner_7266235330964.png)
+5. テンプレートで出力を表示するか、[パーソナライズドプレビュー](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/message-personalization/personalized-preview)を使用してプレビューします。
+   ![天気に基づくメッセージのレンダリング結果を示すパーソナライズドプレビュー](/images/partner_7266407892500.png)
+
+API レスポンスで `{{local_weather[0].WeatherText}}` に `Rain` が返された場合、ユーザーには "It's raining. Get an umbrella" というプッシュメッセージが届きます。

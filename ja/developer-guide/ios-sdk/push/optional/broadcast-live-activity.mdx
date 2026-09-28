@@ -1,0 +1,268 @@
+---
+title: "Broadcast Live Activity"
+description: "MoEngage Broadcast Live Activitiesを使用して、iPhoneのロック画面にリアルタイムのブロードキャスト更新を表示します。"
+---
+
+# 概要
+
+[iOS Live Activities](https://developer.apple.com/design/human-interface-guidelines/live-activities)は、アプリの最新データを、iPhoneのロック画面と[Dynamic Island](https://support.apple.com/en-in/guide/iphone/iph28f50d10d/ios)にリアルタイムのインタラクティブな更新として表示します。これにより、ユーザーはアプリを開かずにスポーツのスコア、注文ステータス、フライト情報などのイベントを追跡できるため、エンゲージメントとユーザーエクスペリエンスが大幅に向上します。
+
+<Info>
+  **情報**
+
+  Live Activitiesとプッシュ通知では、ユーザー許可のモデルが異なります。デフォルトでは、アプリのLive Activitiesは有効になっています。ユーザーはデバイスの設定で、アプリごとに個別に許可を管理できます。
+</Info>
+
+<Note>
+  **前提条件**
+
+  始める前に、プロジェクトとアカウントが正しく設定されていることを確認してください。
+
+  1. **Apple Developerアカウントの設定**:
+     - Apple Developerアカウントで、**Certificates**、**IDs & Profiles** \> **Identifiers** に移動し、アプリの識別子を選択します。
+     - **Capabilities** タブで、**Push Notifications** と **Broadcast Capability** のチェックボックスがオンになっていることを確認します。これは、Apple Push Notification service (APNs)がアクティビティの更新を配信するために必須です。
+       <Frame>
+         ![Liveact1](/images/liveact1.png)
+       </Frame>
+     - **APNs認証キー**: MoEngageがお客様に代わってプッシュ通知を送信することを承認するには、APNs認証キーを設定する必要があります。.p8ファイルをMoEngageダッシュボードにアップロードする詳細な手順については、APNs認証キーに関する[ドキュメント](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/apns-authentication-key)を参照してください。
+  2. **XcodeとiOSのバージョン**:
+     - **Xcode**: Xcode 14.1以降を使用してください。
+     - **iOSターゲット**: Live ActivityはiOS 18以降をターゲットにする必要があります。
+</Note>
+
+# Live Activityの実装
+
+このセクションでは、Xcodeプロジェクト内で必要なクライアント側のセットアップについて説明します。
+
+## ステップ1: Widget Extensionの追加
+
+1. Xcodeで、**File** \> **New** \> **Target** に移動します。
+2. **Widget Extension** を選択し、**Next** をクリックします。
+   <Frame>
+     ![La2](/images/la2.png)
+   </Frame>
+3. ウィジェットのプロダクト名を入力します。
+4. **Include Live Activities** チェックボックスをオンにします。
+   <Frame>
+     ![La3](/images/la3.png)
+   </Frame>
+5. **Finish** をクリックします。
+
+## ステップ2: アプリのInfo.plistの設定
+
+メインアプリのInfo.plistにLive Activitiesのサポートを追加します。
+
+<CodeGroup>
+
+```xml XML wrap
+<key>NSSupportsLiveActivities</key>
+<true/>
+```
+
+</CodeGroup>
+
+## ステップ3: MoEngageLiveActivityの統合
+
+<Info>
+  **情報**
+
+  MoEngageLiveActivityフレームワークを統合するには、適切なMoEngage-iOS-SDKバージョンを使用していることを確認してください。
+</Info>
+
+#### **Swift Package Managerを使用したインストール(推奨)**
+
+MoEngageLiveActivityフレームワークは、SDKバージョン10.02.1からSPMでサポートされています。統合するには、GitHubのURL [https://github.com/moengage/apple-sdk.git](https://github.com/moengage/apple-sdk.git) を使用し、ブランチをmasterまたは必要なバージョンに設定します。
+
+#### **CocoaPodを使用したインストール**
+
+<Info>
+  **情報**
+
+  CocoaPodsは非推奨になりつつあります。MoEngageでは、すべての新規統合にSwift Package Managerを使用することを推奨しています。CocoaPodsの詳細については、[CocoaPods統合ガイド](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic/integration-through-cocoa-pods)を参照してください。
+</Info>
+
+MoEngageLiveActivityフレームワークを統合するには、Podfileに次の依存関係を追加します。
+
+<CodeGroup>
+
+```ruby Ruby wrap
+target 'MoETest' do
+  use_frameworks!
+
+  # Pods for app target
+  pod 'MoEngage-iOS-SDK' # specify version constraint
+  pod 'MoEngage-iOS-SDK/LiveActivity'
+
+  target 'LiveActivity' do
+    use_frameworks!
+    inherit! :search_paths
+    # Pods for live activity extension target
+    pod 'MoEngage-iOS-SDK/LiveActivity'
+  end
+end
+```
+
+</CodeGroup>
+
+## ステップ4: Live Activityの属性の定義
+
+Widget Extension用に生成されたSwiftファイルで、Live Activityのデータ構造を定義します。
+
+1. ActivityAttributesを設定する: [ActivityAttributes](https://developer.apple.com/documentation/activitykit/activityattributes)に準拠する構造体を作成します。この構造体には次のものが含まれます。
+   - **静的データ**: 一度設定されると変更されない属性。
+   - **ContentState**: リアルタイムで更新される動的データ用のネストされた構造体。
+     <CodeGroup>
+     ```swift Swift wrap
+     import Foundation
+     import ActivityKit
+     import WidgetKit
+     import SwiftUI
+     struct FootballActivityAttributes: ActivityAttributes {
+         public struct ContentState: Codable, Hashable {
+             // Dynamic stateful properties about your activity go here!
+             var teamOneScore: Int
+             var teamTwoScore: Int
+         }
+         // Fixed non-changing properties about your activity go here!
+         var team1Name: String
+         var team2Name: String
+     }
+     ```
+     </CodeGroup>
+2. ActivityConfigurationを作成する際は、ActivityAttributesの型としてFootballActivityAttributesの代わりに _MoEngageActivityAttributes\<FootballActivityAttributes\>_ を使用します。
+3. moengageWidgetClickURL APIでディープリンクとウィジェットIDを設定して、ウィジェットのクリックをトラッキングします。
+   <CodeGroup>
+   ```swift Swift wrap
+   import ActivityKit
+   import WidgetKit
+   import SwiftUI
+   import MoEngageLiveActivity
+   struct FootballActivityWidget: Widget {
+       var body: some WidgetConfiguration {
+           ActivityConfiguration(for: MoEngageActivityAttributes<FootballActivityAttributes>.self) { context in
+               // Lock screen/banner UI goes here
+               VStack(spacing: 12) {
+                   // UI elements
+               }
+               .moengageWidgetClickURL(URL(string: "moeapp://game"), context: context, widgetId: 2)
+               
+           } dynamicIsland: { context in
+               DynamicIsland {
+                   // Expanded UI goes here
+               } compactLeading: {
+                   // Compact Leading UI goes here
+               } compactTrailing: {
+                   // Compact Trailing UI goes here
+               } minimal: {
+                   // Minimal UI goes here
+               }
+               .moengageWidgetClickURL(URL(string: "moeapp://game"), context: context, widgetId: 1)
+           }
+       }
+   }
+   ```
+   </CodeGroup>
+   <Info>
+     **情報** 
+     AppleのLive Activitiesの[前提条件と制限事項](https://developer.apple.com/documentation/activitykit/displaying-live-data-with-live-activities#Understand-constraints)はMoEngageのものとは異なるため、事前によく理解しておくことをMoEngageは推奨しています。
+   </Info>
+4. **Target Membershipを確認する**: ActivityAttributes構造体がメインアプリのターゲットからアクセスできるようにします。
+   1. ActivityAttributesを定義したSwiftファイルを選択します。
+   2. **File Inspector** を開きます(Option \+ Command \+ 1)。
+   3. **Target Membership** セクションで、メインアプリのターゲットのチェックボックスをオンにします。
+      <Frame>
+        ![La4](/images/la4.png)
+      </Frame>
+
+# Live Activityのライフサイクルの管理
+
+アプリの設定が完了したら、ローカルのアプリコードとMoEngage APIを組み合わせて、Live Activitiesを開始、更新、終了できます。
+
+## ステップ5: Live Activityキャンペーンの作成(1回限りのセットアップ)
+
+Live Activityを開始する前に、まずMoEngageプラットフォームで[キャンペーンを作成](https://www.moengage.com/docs/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns)する必要があります。この1回限りのAPI呼び出しで、ターゲットオーディエンスやコンバージョン目標などのキャンペーンのプロパティを定義します。
+
+作成に成功すると、APIはchannel\_idを返します。このIDは次の2つの理由で不可欠です。
+
+- ターゲットセグメントに対してリモートで開始するキャンペーンを識別します。
+- 元のターゲットセグメント外のユーザーが、アプリ内から(ボタンをタップするなどして)同じLive Activityをローカルで開始できるようにします。
+
+詳細については、[こちら](https://www.moengage.com/docs/api/create-campaigns/create-campaign)を参照してください。
+
+<Check>
+  **成功/開発者向け情報**
+
+  サーバーは、返されたchannel\_idとMoEngageメタデータを保存し、モバイルアプリで利用できるようにする必要があります。アプリがLive Activityをローカルで開始するには、このデータが必要です。
+</Check>
+
+## ステップ6: Live Activityの開始
+
+Live Activityのインスタンスは、プッシュを介してリモートで開始することも、アプリからローカルで開始することもできます。
+
+<Warning>
+  **Live Activityのトラッキングの検証**
+
+  - **初期化前のトラッキング。** Live Activityのトラッキングメソッドは、SDKが初期化された後にのみ呼び出す必要があります。それより前に呼び出すと、`DEBUG` ビルドでは致命的な例外がスローされ、アプリがクラッシュします。ReleaseビルドとTestFlightビルドでは、呼び出しは通知なく破棄され、ログに記録されます。
+  - **`trackStarted` の重複。** 同じLive Activityに対して `MoEngageSDKLiveActivity.trackStarted` を複数回呼び出すと、`DEBUG` ビルドでは致命的な例外がスローされます。ReleaseビルドとTestFlightビルドでは、重複した呼び出しは無視されます。
+  - アップグレード中にこれらの `DEBUG` 検証によってアプリがクラッシュする場合は、SDKを初期化する前に `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` を呼び出して一時的にオプトアウトしてください。問題が解決したら、この呼び出しを削除してください。
+</Warning>
+
+### Push-to-Start(リモート)
+
+プッシュ通知を使用して、定義したオーディエンスに対してアクティビティを開始します。詳細については、[こちら](https://www.moengage.com/docs/api/live-activities/start-broadcast-live-activity)を参照してください。
+
+### Click-to-Start(ローカル)
+
+ユーザーのアクションをトリガーとして、アプリ内からアクティビティを開始します。
+
+[createAttributes(withCampaign:completion:)](https://moengage.github.io/ios-api-reference/Enums/MoEngageSDKLiveActivity.html#/s:20MoEngageLiveActivity0ab7SDKLiveD0O16createAttributes12withCampaign4file0J2Id6method4line6column10completionyAC0I0Vy_xG_s12StaticStringVA2PS2uyAM6ResultVy_x_GSgScMYcct0D3Kit0dG0RzlFZ)または[createAttributes(withCampaign:) async](https://moengage.github.io/ios-api-reference/Enums/MoEngageSDKLiveActivity.html#/s:20MoEngageLiveActivity0ab7SDKLiveD0O16createAttributes12withCampaign4file0J2Id6method4line6columnAC0I0V6ResultVy_x_GSgALy_xG_s12StaticStringVA2SS2utYa0D3Kit0dG0RzlFZ) SDK APIを使用し、アプリケーションのActivityAttributesデータと必須のMoEngageメタデータ(サーバーから取得)を組み合わせてLive Activityのデータを取得します。Live Activityを開始するには、channel\_id(サーバーから取得)を指定してAppleのActivity.request()メソッドを使用します。これにより、ローカルで開始されたアクティビティがキャンペーンにリンクされます。
+
+<Info>
+  **情報**
+
+  Live Activityが開始されたら、[trackStarted(activity:)](https://moengage.github.io/ios-api-reference/Enums/MoEngageSDKLiveActivity.html#/s:20MoEngageLiveActivity0ab7SDKLiveD0O12trackStarted8activity4file0I2Id6method4line6columny0D3Kit0D0CyAA0abD10AttributesVyxGG_s12StaticStringVA2SS2utAK0dO0RzlFZ) APIを使用してLive Activity Startedイベントをトラッキングする必要があります。
+</Info>
+
+<CodeGroup>
+
+```swift Swift wrap
+import MoEngageLiveActivity
+
+guard #available(iOS 18, *) else { return }
+
+guard let result = await MoEngageSDKLiveActivity.createAttributes(
+    withCampaign: MoEngageSDKLiveActivity.Campaign(
+        campaignId: "Your Campaign Id", campaignName: "Your Campaign Name",
+        deliveryType: "Broadcast Live Activity",
+        attributeType: "\(FootballActivityAttributes.self)",
+        instanceId: "Your Instance Id",
+        appAttributes: FootballActivityAttributes(team1Name: "Chiefs", team2Name: "Bills"),
+        appContent: FootballActivityAttributes.ContentState(teamOneScore: 0, teamTwoScore: 0)
+    )
+) else { return }
+
+do {
+    let activity = try MoEngageActivity.request(
+        attributes: result.attributes,
+        content: .init(
+            state: result.content, staleDate: .distantFuture,
+            relevanceScore: 10
+        ),
+        pushType: .channel("Your channel Id"), style: .standard
+    )
+    // Track started event
+    MoEngageSDKLiveActivity.trackStarted(activity: activity)
+} catch {
+    // log error
+}
+```
+
+</CodeGroup>
+
+## ステップ7: Live Activityの更新
+
+プッシュ通知を使用して、定義したオーディエンスのアクティビティを更新します。詳細については、[こちら](https://www.moengage.com/docs/api/live-activities/update-broadcast-live-activity)を参照してください。
+
+## ステップ8: Live Activityの終了
+
+Live Activityは、ユーザーによる閉じる操作、システムのタイムアウト、またはサーバーからのコマンドによって終了します。詳細については、[こちら](https://www.moengage.com/docs/api/live-activities/end-broadcast-live-activity)を参照してください。

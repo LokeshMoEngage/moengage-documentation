@@ -1,0 +1,158 @@
+---
+title: "SDK の初期化"
+description: "Workspace ID とデータセンターを使用して、AppDelegate で MoEngage iOS SDK を初期化します。"
+---
+
+# MoEngage SDK の初期化
+
+まず、`App Target` の `Build Settings` に移動し、下の画像のように `Debug` セクションに **DEBUG** プリプロセッサマクロが定義されていることを確認します。存在しない場合は、`Debug` セクションに `DEBUG=1` と入力して追加します。
+
+![Sdkini](/images/sdkini.png)
+
+**Swift プロジェクトの場合**、画像のように、`App Target` の `Build Settings` で `Other Swift Flags` の `Debug` セクションに **-DDEBUG** が追加されていることを確認します。
+
+![Sdkini2](/images/sdkini2.png)
+
+- MoEngage アカウントで、ダッシュボードの左パネルにある **Settings** に移動します。General Settings の下に **Workspace ID** があります。MoEngageSDKConfig インスタンスで SDK を初期化する際に、この Workspace ID をデータセンターとともに指定します。以下のように [**_initializeDefaultTestInstance(\_:)_**](https://moengage.github.io/ios-api-reference/Classes/MoEngage.html#/c:@M@MoEngageSDK@objc\(cs\)MoEngage\(im\)initializeDefaultTestInstance:) と [**_initializeDefaultLiveInstance(\_:)_**](https://moengage.github.io/ios-api-reference/Classes/MoEngage.html#/c:@M@MoEngageSDK@objc\(cs\)MoEngage\(im\)initializeDefaultLiveInstance:) メソッドを使用します。
+
+<Note>
+ -  **iOS SDK [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) での破壊的変更:** SDK は、Debug、Release、TestFlight のすべてのビルド構成において、パブリック API を使用する前に初期化を行うことを強制するようになりました。SDK を初期化する前にパブリック API を呼び出すと、暗黙的に失敗するのではなく `fatalError` が発生します。他のすべての MoEngage API 呼び出しの前に、`initializeDefaultTestInstance(_:)` または `initializeDefaultLiveInstance(_:)` を呼び出してください。
+ -  iOS SDK [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) 以降、`initializeDefaultLiveInstance(_:)` は `Void` ではなく型付きのタスクオブジェクトを返します。上記のような直接呼び出しは変更なしでコンパイルされます。`.onSuccess { ... }` / `.onFailure { ... }` をチェーンするか、非同期の `result()` メソッドを呼び出すことで、呼び出しごとの成功または失敗を確認できます。
+</Note>
+
+  <CodeGroup>
+  ```swift Swift wrap
+  import MoEngageSDK
+   func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    
+        //Add your MoEngage Workspace ID and Data center.
+        let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
+        // MoEngage SDK Initialization
+        // Separate initialization methods for Dev and Prod initializations
+        #if DEBUG
+            MoEngage.sharedInstance.initializeDefaultTestInstance(sdkConfig)
+        #else
+           MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
+        #endif
+   
+    //Rest of the implementation of method
+    //-------
+    return true
+  }
+  ```
+  ```objective-c Objective C wrap
+  @import MoEngageSDK;
+  - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+       //TODO: Add your MoEngage Workspace ID and Data center.
+       MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter: DATA_CENTER];
+      
+  // MoEngage SDK Initialization
+      // Separate initialization methods for Dev and Prod initializations
+      #ifdef DEBUG
+           [[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
+      #else
+           [[MoEngage sharedInstance] initializeDefaultLiveInstance:sdkConfig];
+      #endif
+      
+    //Rest of the implementation of method
+    //-------
+  }
+  ```
+  </CodeGroup>
+- MoEngage アカウントで [portfolio](https://help.moengage.com/hc/en-us/articles/40394603054100-Portfolio) が複数のプロジェクトで構成されている場合は、MoEngageSDKConfig インスタンスで SDK を初期化する際に、該当する Project ID をデータセンターとともに指定します。以下のように [initializeDefaultTestInstance(\_:)](https://moengage.github.io/ios-api-reference/Classes/MoEngage.html#/c:@M@MoEngageSDK@objc\(cs\)MoEngage\(im\)initializeDefaultTestInstance:) と[ initializeDefaultLiveInstance(\_:)](https://moengage.github.io/ios-api-reference/Classes/MoEngage.html#/c:@M@MoEngageSDK@objc\(cs\)MoEngage\(im\)initializeDefaultLiveInstance:) メソッドを使用します。
+<Info>
+  - **`projectConfig` なしのポートフォリオ属性。** SDK の初期化時に空でない `projectId` を渡さずにポートフォリオ属性を設定すると、SDK は例外をスローし、`DEBUG` モードではアプリケーションがクラッシュします。ポートフォリオ属性を使用する場合は、`projectConfig` を指定する必要があります。
+</Info>
+  <CodeGroup>
+  ```swift Swift wrap
+  let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
+  sdkConfig.projectConfig = MoEngageProjectConfig(projectId: "YOUR_PROJECT_ID")
+  #if DEBUG
+  MoEngage.sharedInstance.initializeDefaultTestInstance(sdkConfig)
+  #else
+  MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
+  #endif
+  ```
+  ```objective-c Objective C wrap
+  MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter: DATA_CENTER];
+  sdkConfig.projectConfig = [[MoEngageProjectConfig alloc] initWithProjectId:@"YOUR_PROJECT_ID"];
+  #ifdef DEBUG
+  [[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
+  #else
+  [[MoEngage sharedInstance] initializeDefaultLiveInstance:sdkConfig];
+  #endif
+  ```
+  </CodeGroup>
+
+<Warning>
+  **初期化時の検証**
+
+  MoEngage iOS SDK は、初期化時に以下のチェックを実施します。いずれの場合も致命的な例外がスローされ、アプリがクラッシュします。これは、誤った統合が本番環境に紛れ込まないようにするためです。
+
+  - **空の Workspace ID。** 空の `appId` で `MoEngageSDKConfig` を初期化した場合。
+  - **SDK バージョンのダウングレード。** MoEngage iOS SDK を、アプリが以前にリリースされたときよりも低いバージョンにダウングレードすることはサポートされていません。SDK は初期化時にダウングレードを検出し、`DEBUG` ビルドではクラッシュします。
+  - **初期化前の API 呼び出し。** SDK の初期化前に MoEngage SDK API を呼び出すと、致命的な例外がスローされます。他の MoEngage API を呼び出す前に、`application(_:didFinishLaunchingWithOptions:)` で SDK を初期化してください。初期化メソッドが返った後は、任意の API を呼び出すことができます
+</Warning>
+
+
+以下は、ダッシュボードのホストに基づいて設定する必要がある各データセンターの詳細です
+
+| データセンター | ダッシュボードホスト |
+| :-- | :-- |
+| MoEngageDataCenter.data\_center\_01 | dashboard-01.moengage.com |
+| MoEngageDataCenter.data\_center\_02 | dashboard-02.moengage.com |
+| MoEngageDataCenter.data\_center\_03 | dashboard-03.moengage.com |
+| MoEngageDataCenter.data\_center\_04 | dashboard-04.moengage.com |
+| MoEngageDataCenter.data\_center\_05 | dashboard-05.moengage.com |
+| MoEngageDataCenter.data\_center\_06 | dashboard-06.moengage.com |
+
+設定可能な構成の詳細な一覧については、[API リファレンス](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html)を参照してください。
+
+<Note>
+  **注意**
+
+  **_data\_center\_06_** は MoEngage-iOS-SDK バージョン 9.17.3 以降で利用できます
+</Note>
+
+<Warning>
+  **重要**
+
+  初期化メソッドは必ず `applicationDidFinishLaunching(_:)` メソッド内で呼び出してください。起動時ではなく後の段階で SDK を初期化する場合は、[AppDelegate Swizzling](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#app-delegate-method-swizzling) に頼るのではなく、通知関連のすべてのメソッドを呼び出す必要があります。
+</Warning>
+
+# テスト/ライブ環境
+
+上記の初期化で説明したように、MoEngage SDK は `DEBUG` プリプロセッサマクロを使用して、ビルドが TEST 環境と LIVE 環境のどちらを対象としているかを判断します。そのため、ビルドを生成する際にはこの点に注意し、アプリのターゲットの **Build Configuration** が以下のように設定されていることを確認してください。
+
+- **開発**ビルドの場合: Build Configuration を **Debug** に設定する必要があります(データは **TEST** 環境でトラッキングされます)
+- **AdHoc ビルド/App Store** ビルドの場合: Build Configuration を **Release** に設定する必要があります(データは **LIVE** 環境でトラッキングされます)
+
+<Warning>
+  **Build Configuration が正しく設定されていない場合はどうなりますか?**
+
+  ビルド構成が正しく設定されていない場合、以下のことが起こる可能性があります。
+
+  - 開発ビルドのデータが LIVE 環境に表示される
+  - **または** AdHoc/本番ビルドのデータが TEST 環境に表示される
+  - デバイスにプッシュ通知を送信しようとすると **Bad Device Token** エラーが発生する
+</Warning>
+
+# Build Configuration の設定方法
+
+## Xcode からアプリを実行する場合の Build Configuration:
+
+アーカイブせずに Xcode から直接アプリを実行する場合は、Edit Scheme で App Target の **Run モード**のビルド構成が **Debug**(デフォルト設定)に設定されていることを確認してください。これにより、データが TEST 環境でトラッキングされるようになります。
+
+![Sdkini3](/images/sdkini3.png)
+
+## ビルドをエクスポートする場合の Build Configuration:
+
+ビルドをエクスポートする際は、正しい `Build Configuration` を設定してください。デフォルトでは、`Edit Scheme` の Archive セクションの `Build Configuration` は `Release` に設定されていますが、開発ビルドの場合はエクスポート前に必ず `Debug` に変更してください。Xcode プロジェクトでビルドの **Build Configuration** を設定するには、**App Target \> Edit Scheme \> Archive \> Build Configuration** に移動し、構成を **Debug/Release**(ビルドの種類に応じて)に設定します。以下の画像を参照してください。
+
+![Sdkini4](/images/sdkini4.png)
+
+# ダッシュボードでの環境の切り替え
+
+MoEngage ダッシュボードでは、アプリの[テスト環境とライブ環境](/ja/user-guide/getting-started/initial-setup/dashboard-overview#live-and-test-environments)を切り替えることができます。
+
+**TEST** 環境は開発およびテスト関連のすべての用途に使用され、**LIVE** 環境はアプリのユーザーベースに向けた App Store ビルドのすべてのキャンペーンの実行に使用されます。

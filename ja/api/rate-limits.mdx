@@ -1,0 +1,255 @@
+---
+title: "レート制限"
+description: "MoEngage REST API のレート制限とペイロードサイズの上限、使用状況の監視方法、および制限を超えた場合の動作について説明します。"
+keywords: ["rate limit", "API limits", "429", "RPM", "payload size", "throttling"]
+---
+
+MoEngage は、共有プラットフォームをすべてのお客様にとって高速かつ信頼性の高い状態に保つため、REST API にレート制限を適用しています。特定のエンドポイントで別途記載がない限り（クライアント単位またはコンシューマー単位のものもあります）、制限は**ワークスペース単位**で適用され、制限を超えたリクエストは `HTTP 429 Too Many Requests` レスポンスで拒否されます。
+
+以下の制限の多くはデフォルト値です。一部の制限は、正当な必要性に基づいてワークスペースごとに引き上げることができます。引き上げについては、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+
+<Note>
+  レート制限とペイロードの上限は、それぞれ独立した制御です。リクエストがレート制限内であっても [ペイロードサイズ](#payload-size-limits) を超えると拒否される場合があり、その逆もあります。各エンドポイントのリファレンスページに記載されている制限が正式な値であり、以下の表はそれらをまとめたものです。
+</Note>
+
+## エンドポイント別のレート制限
+
+エンドポイントは、API リファレンスのナビゲーションに合わせて製品領域ごとにグループ化されています。複数のエンドポイントが 1 つのプールを共有している場合、制限はそれらすべてにまたがって適用されます。
+
+### Data
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /customer/{app_id}` — Track User | 1 分あたり 10,000 件のユーザー更新 |
+| `POST /customers/export` — Get User | 1 分あたり 1,000 ユーザー、1 ペイロードあたり最大 20 ユーザー |
+| `POST /customer/merge` — Merge Users | 1 分あたり 1,000 件のユーザー更新、1 回の呼び出しあたり最大 50 ユーザー |
+| `POST /customer/delete` — Delete Users | 1 分あたり 5,000 リクエスト、1 リクエストあたり 1 ユーザー |
+| `POST /event/{Workspace_ID}` — Track Event | 1 分あたり 30,000 イベント |
+| `POST /device/{app_id}` — Track Device | 1 分あたり 10,000 件のデバイス更新 |
+| `POST /devices/manage` — Device Opt-out | 1 分あたり 1,000 リクエスト |
+| `POST /transition/{Workspace_ID}` — Bulk Import Users and Events | すべてのリクエスト合計で 1 分あたり 60,000 ユーザーおよび 60,000 イベント |
+
+### File imports
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /fileimports/trigger/{schedule_id}` — Trigger File Imports | `schedule_id` ごとに 5 分に 1 回（超えると `HTTP 400`） |
+| `POST /fileimports/import/status` — Import Details | 1 分あたり 50 リクエスト |
+| `POST /fileimports/import/run/history` — Import File Run History | 1 分あたり 50 リクエスト |
+
+### Business Events 
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /v5/business-events/triggers` — Trigger Business Event (V5) | キャンペーントリガー: 5 分あたり 10 回、1 時間あたり 50 回、1 日あたり 200 回。Flow トリガー: 1 時間あたり 3 回、1 日あたり 10 回 |
+| `GET /v5/business-events` — List Business Events | ワークスペースごとに 1 分あたり 60 リクエスト、1 時間あたり 1,000 リクエスト |
+| `POST /v5/business-events/search` — Search Business Events (V5) | ワークスペースごとに 1 分あたり 30 リクエスト、1 時間あたり 500 リクエスト |
+
+### テンプレートとコンテンツ
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST` / `GET` / `PUT /email-templates`, `PUT /bulk/email-templates` (V1) | ワークスペースごとに 1 分あたり 1,000 リクエスト（すべての V1 テンプレートエンドポイントの合計） |
+| `POST /custom-templates/email` — Create Email Template (V2) | 1 分あたり 100 リクエスト、チャネルあたり最大 10,000 テンプレート |
+| `PUT /custom-templates/email`, `POST /custom-templates/email/search` | 1 分あたり 100 リクエスト |
+| `POST /custom-templates/push` — Create Push Template | 1 分あたり 100 リクエスト |
+| `PUT /custom-templates/push`, `POST /custom-templates/push/search` | 1 分あたり 100 リクエスト |
+| `POST /custom-templates/sms` — Create SMS Template | 1 分あたり 100 リクエスト、チャネルあたり最大 100 テンプレート |
+| `PUT /custom-templates/sms`, `POST /custom-templates/sms/search` | 1 分あたり 100 リクエスト |
+| `POST /custom-templates/osm` — Create OSM Template | 1 分あたり 100 リクエスト、1 分あたり最大 100 テンプレート |
+| `PUT /custom-templates/osm`, `POST /custom-templates/osm/search` | 1 分あたり 100 リクエスト |
+
+### Content APIs
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `GET /v5/content-apis` — List Content APIs | ワークスペースごとに 1 分あたり 10 リクエスト、1 時間あたり 100 リクエスト |
+| `POST /v5/content-apis/{id}/test` — Test Content API | ワークスペースごとに 1 分あたり 10 リクエスト、1 時間あたり 100 リクエスト |
+
+### Locales
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `GET /v5/locales` — List Locales | ワークスペースごとに 1 分あたり 60 リクエスト、1 時間あたり 1,000 リクエスト |
+
+### Recommendations
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `GET /recommendations/{recommendations_id}` — Fetch Recommendation Details | 1 分あたり 1,000 レコメンデーション |
+| `POST /recommendations/{recommendations_id}/items` — Fetch Recommendation Results | 1 分あたり 10,000 レコメンデーション |
+
+### Coupons
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /coupon-list` — Create a Coupon List | 1 日あたり 100 クーポンリスト |
+| `GET /coupon-list` — Fetch All Coupon Lists | 1 日あたり 10,000 クーポンリスト |
+| `GET /coupon-list/{coupon_list_id}` — Fetch Coupon List Details | 1 日あたり 10,000 クーポンリスト |
+| `PATCH /coupon-list/{coupon_list_id}` — Update a Coupon List | 1 日あたり 100 クーポンリスト |
+| `PUT /coupon-list/{coupon_list_id}/activate` — Activate Coupon List | 1 日あたり 100 クーポンリスト |
+| `PUT /coupon-list/{coupon_list_id}/archive` — Archive a Coupon List | 1 日あたり 100 クーポンリスト |
+| `POST /coupon-list/{coupon_list_id}/files` — Upload a Coupon File | 1 分あたり 5 回または 1 日あたり 50 回 |
+| `GET /coupon-list/{coupon_list_id}/files` — Fetch All Coupon Files | 1 日あたり 10,000 クーポンファイル |
+| `GET /coupon-list/{coupon_list_id}/files/{coupon_file_id}` — Fetch a Coupon File | 1 日あたり 10,000 クーポンファイル |
+| `DELETE /coupon-list/{coupon_list_id}/files/{coupon_file_id}` — Delete a Coupon File | 1 分あたり 5 回または 1 日あたり 50 回 |
+| `POST /coupon-list/{coupon_list_id}/usage-report` — Generate Usage Report | 1 分あたり 5 回または 1 日あたり 50 回 |
+
+### Catalog
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /catalog` — Create Catalog | 1 分あたり 100 回または 1 時間あたり 1,000 回 |
+| `PATCH /catalog/{catalog_id}/attributes` — Add Attributes | 1 分あたり 100 回または 1 時間あたり 1,000 回 |
+| `POST /catalog/{catalog_id}/items` — Add Items | 1 分あたり 100 回または 1 時間あたり 1,000 回、1 リクエストあたり最大 50 アイテム |
+| `PATCH /catalog/{catalog_id}/items` — Update Items | 1 分あたり 100 回または 1 時間あたり 1,000 回、1 リクエストあたり最大 50 アイテム |
+| `POST /catalog/{catalog_id}/items/bulk-delete` — Delete Items | 1 分あたり 100 回または 1 時間あたり 1,000 回、1 リクエストあたり最大 50 アイテム |
+| `POST /catalog/{catalog_id}/items/search` — Get Items | 1 分あたり 100 回または 1 時間あたり 1,000 回、1 リクエストあたり最大 50 アイテム |
+
+### Flows
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /v5/flows/search` — Search Flows | ワークスペースごとに 1 秒あたり 10 回、1 分あたり 100 回、1 時間あたり 6,000 回 |
+| `GET /v5/flows/{flow_id}` — Get a Single Flow | ワークスペースごとに 1 秒あたり 10 回、1 分あたり 100 回、1 時間あたり 6,000 回 |
+| `GET /v5/flows/{flow_id}/versions/{version_id}` — Get a Flow Version | ワークスペースごとに 1 秒あたり 10 回、1 分あたり 100 回、1 時間あたり 6,000 回 |
+| `PATCH /v5/flows/{flow_id}/status` — Update Flow Status | ワークスペースごとに 1 秒あたり 10 回、1 分あたり 100 回、1 時間あたり 6,000 回 |
+
+### Offerings
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `GET /v5/offers` — List Offerings | コンシューマーごとに 1 分あたり 150 回、1 時間あたり 500 回、1 日あたり 1,000 回 |
+| `POST /v5/offers` — Create Offering | コンシューマーごとに 1 分あたり 100 回、1 時間あたり 300 回、1 日あたり 600 回 |
+| `PATCH /v5/offers/{offer_id}` — Update Offering | コンシューマーごとに 1 分あたり 100 回、1 時間あたり 300 回、1 日あたり 600 回 |
+| `GET /v5/offers/templates` — List Offer Templates | コンシューマーごとに 1 分あたり 150 回、1 時間あたり 500 回、1 日あたり 1,000 回 |
+
+### Campaigns (V5)
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /v5/campaigns` — Create Campaign Draft | クライアントごとに 1 分あたり 5 回、1 時間あたり 25 回、1 日あたり 100 回 |
+| `GET /v5/campaigns/{campaign_id}` — Get Campaign | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `PATCH /v5/campaigns/{campaign_id}` — Update Campaign | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /v5/campaigns/{campaign_id}/validate` — Validate Campaign | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `PATCH /v5/campaigns/{campaign_id}/status` — Update Campaign Status | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /v5/campaigns/search` — Search Campaigns | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /v5/campaigns/meta` — Get Campaign Meta | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /v5/campaigns/test` — Test Campaign | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+
+### Campaigns (Legacy)
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /campaigns` — Create Campaign | クライアントごとに 1 分あたり 5 回、1 時間あたり 25 回、1 日あたり 100 回 |
+| `PATCH /campaigns/{campaign_id}` — Update Campaign | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /campaigns/search` — Search Campaigns | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /campaigns/test` — Test Campaign | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /campaigns/meta` — Get Campaign Meta | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /campaigns/status` — Change Campaign Status | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /campaigns/{parent_campaign_id}/executions` — Get Child Campaigns | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /personalization/preview` — Personalized Preview | 1 分あたり 10,000 リクエスト |
+| `PUT /global-control-group/users` — Update Global Control Group | 1 分あたり 10 リクエスト |
+
+### キャンペーンレポートと統計
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /core-services/v1/campaign-stats` — Get Campaign Stats | ワークスペースごとに 1 分あたり 100 リクエスト |
+
+### Analytics
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /v5/analytics/behavior` — Register a Behavior Query | ワークスペースごとに 1 秒あたり 5 回、1 分あたり 20 回、1 時間あたり 350 回 |
+| `POST /v5/analytics/funnels` — Register a Funnels Query | ワークスペースごとに 1 秒あたり 5 回、1 分あたり 20 回、1 時間あたり 250 回 |
+| `POST /v5/analytics/retention` — Register a Retention Query | ワークスペースごとに 1 秒あたり 5 回、1 分あたり 10 回、1 時間あたり 50 回 |
+| `POST /v5/analytics/session-source` — Register a Session-Source Query | ワークスペースごとに 1 秒あたり 5 回、1 分あたり 20 回、1 時間あたり 50 回 |
+| `POST /v5/analytics/user-analysis` — Register a User Analysis Query | ワークスペースごとに 1 秒あたり 5 回、1 分あたり 15 回、1 時間あたり 100 回 |
+
+<Note>
+  Analytics クエリには、これらのレート制限とは別に、ワークスペースの月間フェアユースポリシー（FUP）のデータスキャンクォータも適用されます。クォータを使い切ると、請求サイクルの残りの期間、Analytics クエリは `HTTP 428` を返します。クォータを拡張するには、カスタマーサクセスマネージャーにお問い合わせください。
+</Note>
+
+### Segments
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /v2/custom-segments/file-segment` — Create File Segment | 1 時間あたり 10 回のファイルセグメント操作（作成／追加／削除の合計） |
+| `PUT /v2/custom-segments/file-segment/add-users`, `/remove-users` | 1 時間あたり 10 回のファイルセグメント操作の制限に含まれます |
+| `POST /v3/custom-segments` — Create Filter Segment | 1 分あたり 50 回、1 時間あたり 200 回、1 日あたり 1,000 回 |
+| `GET /v3/custom-segments` — List Segments | 1 分あたり 50 回、1 時間あたり 200 回、1 日あたり 1,000 回 |
+| `GET /v3/custom-segments/{id}` — Get Segment by ID | 1 分あたり 100 回、1 時間あたり 1,000 回、1 日あたり 4,000 回 |
+| `PATCH /v3/custom-segments/{id}` — Update Filter Segment | 1 分あたり 50 回、1 時間あたり 200 回、1 日あたり 1,000 回 |
+| `PATCH /v2/custom-segments/archive` — Archive Segment | 1 分あたり 50 回、1 時間あたり 200 回、1 日あたり 1,000 回 |
+| `PATCH /v2/custom-segments/unarchive` — Unarchive Segment | 1 分あたり 50 回、1 時間あたり 200 回、1 日あたり 1,000 回 |
+| `POST /v1/integrations/cohortsync` — Sync Cohort Members | 1 分あたり 300 リクエスト |
+
+<Note>
+  1 つのワークスペースで同時に保持できる**アクティブなセグメントは最大 1,000 件**です（ファイル、フィルター、カスタムの合計）。
+</Note>
+
+### Subscriptions
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /emails/v1.0/bulk-resubscribe` — Bulk Resubscribe Users | 1 分あたり 10 回、1 日あたり 14,400 回、1 リクエストあたり最大 100 件の受信者アドレス |
+| `PUT /v1.0/opt-in-management/user-preferences` — Update Email Opt-in Preferences | 1 分あたり 1,000 回、1 日あたり 360,000 回 |
+| `GET` / `PUT` / `POST /category-subscription/user-preferences` — Subscription Categories | 1 分あたり 100 回、1 日あたり 360,000 回（それぞれ） |
+
+### Push
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /transaction/sendpush` — Send Push Notification | 1 分あたり 10,000 リクエスト |
+| `POST /v2.1/transaction/sendpush` — Send Push Notification (V2.1) | 1 分あたり 10,000 リクエスト |
+
+### Cards
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /cards/fetch` — Fetch Cards for User | ワークスペースごとに 1 分あたり 50,000 リクエスト |
+| `DELETE /cards/delete` — Delete Cards for User | ワークスペースごとに 1 分あたり 50,000 リクエスト |
+
+### Inform
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /alerts/send` — Send Transactional Alert | 1 分あたり 10,000 リクエスト |
+
+### Live Activities
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /live-activity/broadcast/start` — Start Broadcast | ワークスペースごとに 1 分あたり 5 回 |
+| `POST /live-activity/broadcast/update` — Update Broadcast | ワークスペースごとに 1 分あたり 500 回、Live Activity ID ごとに 1 分あたり 5 回 |
+| `POST /live-activity/broadcast/end` — End Broadcast | ワークスペースごとに 1 分あたり 500 回、Live Activity ID ごとに 1 分あたり 5 回 |
+
+### Personalize
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /experiences/fetch` — Fetch Experience | ワークスペースごとに 1 分あたり 10,000 リクエスト（リクエストに応じて変更可能。追加費用が発生する場合があります） |
+
+### Message Archival
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /archival/view` — View Archived Message | 1 分あたり 1,000 リクエスト |
+
+## ペイロードサイズの制限
+
+ペイロードの上限は、レート制限とは独立して適用されます。上限を超えるリクエストは拒否されます。エンドポイントに応じて、通常は `HTTP 413`（ペイロードが大きすぎる）または `HTTP 400` が返されます。
+
+| API / エンドポイント | 最大ペイロード |
+| --- | --- |
+| Track User (`/customer/{app_id}`) | 1 リクエストあたり 128 KB |
+| Merge Users (`/customer/merge`) | 1 リクエストあたり 128 KB |
+| Cohort sync (`/v1/integrations/cohortsync`) | 1 リクエストあたり 128 KB |
+| GDPR / CCPA (`/opengdpr_requests/{appId}`) | 1 リクエストあたり 128 KB、1 ユーザーレコードあたり 100 KB |
+| Custom Segments — File | 1 ファイルあたり 150 MB |
+| Catalog API | 1 リクエストあたり 5 MB |
+| Recommendations API | 1 リクエストあたり 1 MB |
+| Live Activities (`/live-activity/broadcast/*`) | 1 リクエストあたり 5,120 バイト（iOS） |
+| Email bulk resubscribe (`/emails/v1.0/bulk-resubscribe`) | 1 リクエストあたり 100 件の受信者アドレス |
+

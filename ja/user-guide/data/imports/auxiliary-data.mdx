@@ -1,0 +1,183 @@
+---
+title: "Auxiliary Data"
+description: "キャンペーンのパーソナライズのために、一時的な補助データをS3、SFTP、またはCSV経由でMoEngageにインポートします。保持期間を設定できるプライマリキーマッピングモデルを使用します。"
+keywords: "auxiliary data, aux data, temporary data, personalization, primary key, retention, expiry, PGP encryption, aux_data_"
+---
+
+import UniversalImportFaqs from '/ja/snippets/imports-faq-universal.mdx';
+import PgpEncryption from '/ja/snippets/imports-pgp-encryption.mdx';
+
+# 概要
+
+Auxiliary Dataを使用すると、特定の期間のみ関連性があり、永続的に保存する必要のない補助的なユーザー情報 (期間限定のオファーや割引、週次コンテストのポイント、外部で生成されたレコメンデーションなど) をインポートできます。ファイル経由でインポートし、有効期間中はキャンペーンのパーソナライズに使用し、その後は自動的に期限切れになります。
+
+<Info>
+  アカウントでAuxiliary Dataを有効にするには、MoEngageのカスタマーサクセスマネージャー (CSM) またはMoEngageサポートチームにお問い合わせください。
+</Info>
+
+Auxiliary Dataは、他のすべてのインポートタイプとは大きく異なるモデルを使用します。
+
+- **プライマリキーマッピングのみ**: 1つの列をプライマリキーとして選択します。その他の列はすべて自動的に取り込まれ、列ごとのマッピングはありません。
+- **すべての値はStringとして保存**: Auxiliary DataはString型に強制的に型変換されます。Object、JSON、Array型はサポートされていません。
+- **有効期限の設定**: 各インポートには保持期間があり、その期間が過ぎるとデータは期限切れになります。
+
+<Note>
+  Auxiliary Dataはファイルベースのソース (S3、SFTP、CSV) でのみ利用できます。データウェアハウスインポートでは利用できません。
+</Note>
+
+## ユースケース
+
+Auxiliary Dataは次のユースケースをサポートします。
+
+- **動的なパーソナライズ**: クーポンの詳細、トランザクションデータ、アンケートデータ、コンテストデータをアップロードして、コミュニケーションを最適化します。
+- **ターゲットを絞ったエンゲージメント**: 顧客セグメントを永続的なプライマリデータとして保存せずに、ファイル経由でアップロードします。
+- **定期キャンペーンの自動更新**: 変化するキャンペーンコンテンツを定期的にアップロードし、自動的にトリガーします。
+- **カスタムレコメンデーション**: 社内または外部のエンジンからのレコメンデーションをアップロードします。
+- **レガシーデータの統合**: 複雑な連携なしに、レガシープラットフォームからデータを取り込みます。
+
+## サポートされているソース
+
+Auxiliary Dataは、**S3**、**SFTP**、**CSV** (手動アップロード) 経由でインポートできます。ファイルの準備については、下記の[命名規則](#file-preparation)を参照してください。
+
+# Auxiliary Dataをインポートする
+
+**エントリーポイント:** **Data** > **Data Imports** > **Import** > **Auxiliary Data**。ソース (S3、SFTP、またはCSV) を選択し、**Continue** をクリックします。
+
+<Info>
+  MoEngageは、過去60日間にインポートされたAuxiliary CSVファイルの履歴ログを保持します。それ以前にアップロードされたファイルはインポートログに表示されなくなりますが、そのデータは設定された保持期間の間保持されます。
+</Info>
+
+## ステップ1: ソースとフォーマットを設定する
+
+**Import name** を入力し、ソースの詳細を指定します。
+
+<Tabs>
+  <Tab title="S3">
+    | フィールド | 説明 |
+    | --- | --- |
+    | S3 bucket name | S3バケットの名前。 |
+    | S3 access key | MoEngageがバケットへの接続に使用するAccess Key ID。 |
+    | S3 secret key | そのAccess Key IDに対応するSecret Access Key。 |
+    | Region | バケットがホストされているリージョン。 |
+    | Folder Path | ファイルを格納しているフォルダーのパス。 |
+
+    詳細については、[ファイルインポートを設定する](/ja/user-guide/data/imports/setting-up-a-file-import)を参照してください。
+  </Tab>
+  <Tab title="SFTP">
+    | フィールド | 説明 |
+    | --- | --- |
+    | Username | MoEngageがSFTPサーバーへの接続に使用するユーザー名。 |
+    | Password | そのユーザー名のパスワード。 |
+    | Folder URL | ファイルを格納しているフォルダーのパス。 |
+
+    詳細については、[ファイルインポートを設定する](/ja/user-guide/data/imports/setting-up-a-file-import)を参照してください。
+  </Tab>
+  <Tab title="CSV">
+    コンピューターからCSVファイルを直接アップロードします。プライマリキーマッピング、Stringへの型変換、保持期間のモデルはS3およびSFTPと同じです。
+  </Tab>
+</Tabs>
+
+**ファイルの暗号化**: 暗号化されたファイルの場合は、**Is your file encrypted?** を選択し、**Decryption Key** (PGP秘密鍵)、**Signing Key** (PGP公開鍵)、**Key passphrase** (秘密鍵の暗号化に使用) を指定します。
+
+<Accordion title="PGP暗号化を設定する">
+  <PgpEncryption />
+</Accordion>
+
+**ファイル名の設定**: ファイル名のプレフィックスと日時フォーマットを `_` で区切って指定します。プレフィックスには英字、数字、アンダースコアを使用してください。デフォルトのプレフィックスは `aux_data_` です (例: `aux_data_20220131.csv`)。プレフィックスと時刻フォーマットを入力して **Fetch Files** をクリックし、ファイルを選択して上位5行をプレビューしてから、**Next** をクリックします。
+
+<Info>
+  - ファイル名は[命名規則](#file-preparation)に従う必要があります。
+  - 列名にスペースを含めることはできません。
+</Info>
+
+## ステップ2: データをMoEngage属性にマッピングする
+
+ドロップダウンから、各行に一意の値を含む列を **Primary key** として選択します。その他の列はすべて自動的に取り込まれます。
+
+<Warning>
+  すべてのAuxiliary Dataは **String** 型に強制的に型変換されます。
+</Warning>
+
+<Note>
+  MoEngageは、インポートの作成時に、選択したファイルに基づいて列スキーマを取得します。以降の定期実行ではこれらの列のみが取り込まれ、ファイルの構造は再読み込みされません。インポート作成後にファイルに追加された列は無視されます。新しい列を使用するには、新しいAuxiliary Dataインポートを作成してください。
+</Note>
+
+必要に応じて、**Send import status** をオンにし、最大 **10件のメール受信者** を選択します。**Next** をクリックします。
+
+## ステップ3: インポートのスケジュールと頻度
+
+インポートを実行するタイミングと頻度を選択します。
+
+- **One Time**: できるだけ早く実行するか、指定したタイムゾーン、開始日、送信時刻に実行します。
+- **Periodic**: 定期的なスケジュールで実行します。タイムゾーン、開始日、送信時刻を設定してから、周期を選択します。
+
+| 周期 | 繰り返しルール |
+| --- | --- |
+| Hourly | N時間ごとに繰り返します。 |
+| Daily | **Repeat every**: 実行間隔の日数。 |
+| Weekly | **Repeat every**: 実行間隔の週数。**Repeat on**: 実行する曜日 (例: 月曜日、水曜日、金曜日)。 |
+| Monthly | **Repeat every**: 実行間隔の月数。**Repeat on**: **Days of the month** (特定の日付。短い月にその日付が存在しない場合は月末日に実行されます) または **Days of the week** のいずれか。 |
+
+### データアクション (保持/有効期限)
+
+**Aux data expiry** (データが期限切れになるまでの保持期間) を設定します。選択可能な値: 1、2、7、15、30日、2か月、3か月、… 最大1年、および無期限の保持。
+
+- **One Time**: 任意の保持期間を選択できます。
+- **Periodic**: 保持期間は **インポートの周期より長く** 設定してください。たとえば、日次インポートで保持期間が30日の場合、1日目にインポートされたデータは、2日目のデータが到着した時点で残り29日の保持期間があります。
+
+**Done** をクリックしてインポートを実行します。
+
+**保持期間の編集**: インポートの保持期間は、Actions (3点リーダー) メニュー > **Edit** から編集できます。ただし、(1) データがまだ期限切れになっておらず、かつ (2) 定期インポートがまだMoEngageで実行・処理されていない場合に限ります。
+
+<Info>
+  Auxiliary Dataは、Email、SMS、Push、WhatsApp、In-App、Cards、Connectors、Web Personalizationで利用できます。
+</Info>
+
+# Auxiliary Dataインポートに対するアクション
+
+インポートの行の末尾にあるActionsアイコンから、次の操作を行えます。
+
+- **View Details**: 過去のインポート、スケジュールされた日時、ファイル名、ステータス、アップロードの成功/失敗件数を確認します。
+- **Edit**: インポート名とセグメント名を除くすべてのフィールドを編集します。
+- **Duplicate**: インポートを複製します。
+
+# ファイルの準備
+
+次の要件を満たすようにファイルを準備してください。
+
+- **ファイルタイプ**: CSV。列名にスペースを含めることはできません。
+- **命名**: `<prefix>_<date time format>.csv`、デフォルトのプレフィックスは `aux_data_`。サポートされている日時フォーマットについては、[サポートされている日時フォーマット](/ja/user-guide/data/imports/setting-up-a-file-import#supported-datetime-formats)を参照してください。
+
+# 制限
+
+Auxiliary Dataインポートには次の制限があります。
+
+- **ファイルサイズ**: Auxiliary Dataはソースのファイルサイズ制限に従います。S3/SFTPでは1ファイルあたり500 MB未満、手動アップロードではCSV 1ファイルあたり150 MB未満です。
+- **行数**: 1つのファイルは、1時間あたりの行数制限までサポートします。1時間あたりの行数制限を超えるファイルは拒否されます。
+
+**レート制限**: Auxiliary Dataには独自の独立したレート制限バケットがあります。
+
+| インポートタイプ | 1時間あたり | 1日あたり |
+| --- | --- | --- |
+| Auxiliary Data | 1.5M/hr | 25M/day |
+
+# インポート失敗時のポリシー
+
+失敗した実行は、最大再試行回数まで自動的に再試行されます。最後の再試行後、MoEngageはその実行を **FAILED** としてマークし、手動での再トリガーが必要になります。スケジュール自体は独立して継続されるため、失敗した実行が今後のスケジュール実行を妨げることはありません。
+
+# 次のステップ
+
+インポートが成功したら、そのデータを使用してキャンペーンをパーソナライズします。
+
+- [Auxiliary Dataを使用してEmailキャンペーンをパーソナライズする](/ja/user-guide/campaigns-and-channels/email/create/personalize-email-content)
+- [Auxiliary Dataを使用してSMSキャンペーンをパーソナライズする](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/personalize-sms-campaign)
+- [Auxiliary Dataを使用してPushキャンペーンをパーソナライズする](/ja/user-guide/campaigns-and-channels/mobile-push/create/personalize-push-campaigns)
+
+# インポートを管理する
+
+インポートの監視、インポートステータスの理解、手動またはAPI経由での実行のトリガーについては、Imports Overviewの[インポートの仕組み](/ja/user-guide/data/imports/overview-imports#how-imports-work)を参照してください。
+
+# よくある質問
+
+<UniversalImportFaqs />
+

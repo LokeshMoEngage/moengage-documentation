@@ -1,0 +1,240 @@
+---
+title: "iOS プッシュキャンペーン向けブロードキャスト Live Activities"
+description: "ユーザーがアプリを開かなくてもロック画面や Dynamic Island にリアルタイムの更新を表示する、iOS 向けのブロードキャスト Live Activities を作成します。"
+keywords: ["broadcast Live Activities", "Live Activity", "Lock Screen updates", "Dynamic Island", "PTS token", "push to start token", "Live Activity registration", "Live Activity analytics", "iOS real-time updates"]
+---
+
+# 概要
+
+MoEngage の Broadcast Live Activities 機能は、iPhone のロック画面と [Dynamic Island](https://support.apple.com/en-in/guide/iphone/iph28f50d10d/ios) にリアルタイムでインタラクティブな更新を表示し、スコアや注文ステータスなどのタイムリーな情報をアプリを開かずに届けることで、ユーザーエンゲージメントを向上させます。この機能により、マーケターはダイナミックなキャンペーンを作成し、一目で確認できる更新を通じてリテンションを高め、アプリ起動率を向上させることができます。
+
+このガイドでは、MoEngage Live Activities を使用して、マーケティング施策向けのリッチなリアルタイム体験を作成、管理、分析する方法について説明します。
+
+<img
+  src="/images/moengage_f50712.png"
+  alt="Flight_tracking__1_-removebg-preview.png"
+  style={{ width:"30%",display: 'inline-block' }}
+/>
+
+<img
+  src="/images/moengage_652ba0.png"
+  alt="Games-LA.png"
+  style={{ width:"28%",display: 'inline-block' }}
+/>
+
+<img
+  src="/images/moengage_ecf8b6.png"
+  alt="News-sensex (1).png"
+  style={{ width:"30%" , display: 'inline-block'}}
+/>
+
+MoEngage Live Activities は次のデバイスでサポートされています。
+
+- iOS
+- iPad OS
+- Watch OS
+
+<Tip>
+  - アプリが iOS 18 以降をサポートしている必要があります。iOS 18 未満のバージョンを実行しているデバイスでは、Live Activities はサポートされていません。
+  - Broadcast Live Activities を利用するには、アプリに MoEngage SDK バージョン 10.02.1 以降を統合する必要があります。
+  - Live Activities の送信を有効にするには、Apple の要件に従い、MoEngage アカウントで APNs (Apple Push Notification Service) 認証キー (.p8 ファイル) を設定する必要があります。
+  - アプリ開発者は、次のクライアント側ロジックを実装する必要があります。
+    - Broadcast Live Activity トークンのトラッキングを有効にします。詳細については、[こちら](https://moengage-sdk-docs.mintlify.app/developer-guide/ios-sdk/push/optional/broadcast-live-activity)を参照してください。
+    - アプリ内で Live Activity ウィジェットの UI と、それぞれ固有の attributes-type を定義します。この識別子は、MoEngage が更新の対象となる正しいウィジェットを特定するために不可欠です。詳細については、[こちら](https://moengage-sdk-docs.mintlify.app/developer-guide/ios-sdk/push/optional/broadcast-live-activity)を参照してください。
+</Tip>
+
+# ユースケース
+
+MoEngage Live Activities により、さまざまな革新的なリアルタイムマーケティングおよびエンゲージメントのシナリオが実現します。
+
+- **スポーツとライブイベント**: 試合のライブスコアを配信したり、コンサート中に分刻みの更新を提供したり、マラソン参加者のリアルタイムの進捗を表示したりできます。
+- **旅行とホスピタリティ**: ライブのフライト追跡情報、ゲート変更の即時アラート、タイムリーな搭乗案内でユーザーに最新情報を届けます。
+- **ニュースとメディア**: 速報ニュースの見出しを発生と同時に配信したり、進行中の重要なイベントのライブ更新を提供したりできます。
+- **ゲーム**: ライブのゲーム統計、現在のトーナメントの進捗、ゲーム内イベントのタイマーを表示して、ゲーム体験を向上させます。
+
+# Live Activities の仕組み
+
+Live Activities は、スポーツの試合など進行中のイベントの動的な更新を表示するリアルタイム機能です。システムはイベントベースの通知を配信し、ユーザーはロック画面や通知センターから直接試合の進行状況を追跡できます。
+
+### ユーザーインタラクションと UI
+
+- **オプトイン**: Live Activity は、ユーザーがアプリ内でアクションを実行したとき (例: **Follow** をタップしたとき) に開始できます。ただし、ほとんどのブロードキャスト Live Activities はサーバー呼び出しによってリモートで開始されます。
+- **表示**: アクティビティはロック画面と [Dynamic Island](https://support.apple.com/en-in/guide/iphone/iph28f50d10d/ios) に表示されます。Dynamic Island を長押しすると、ビューが展開されます。
+- **UI**: インターフェースはカスタマイズ可能で、テキスト、画像、進捗インジケーターによってリアルタイムで更新されます。
+
+### 権限
+
+Live Activities には、プッシュ通知とは別の権限があります。この権限は、ユーザーがアプリをインストールした時点でデフォルトでオンになっています。
+
+iOS は、特にアクションボタン付きの Live Activity が初めて表示される際に、Live Activities が引き続き関連性があるかどうかを定期的に確認します。このような場合、ユーザーにはオフにするオプションが表示されることがあります。
+
+エンドユーザーは、次の手順でこの設定を管理する必要があります。
+
+1. デバイスで **Settings** を開きます。
+2. 下にスクロールして \[アプリ名\] を選択します。
+3. **Live Activities** をタップします。
+4. 必要に応じて設定をオンまたはオフにします。
+
+<img
+  src="/images/moengage_83394c.png"
+  alt="image.png"
+  style={{ width:"26%" }}
+/>
+
+この設定を変更しても、他の通知設定には影響しません。
+
+### 例
+
+**シナリオ:**
+
+- **設定済みの Live Activity**: 試合期間中、リアルタイムの試合スコアとステータスの更新を表示します。
+- **評価**: システムは試合の進行状況とユーザーのインタラクションに基づいてライブ更新を送信します。ユーザーが Live Activity を閉じた場合、そのユーザーにはそれ以降の更新は表示されません。
+
+| 時刻 | 試合ステータス | ユーザーインタラクションのシナリオ | マーケターのアクション | キャンペーンのパフォーマンスステータス | ユーザーに表示される Live Activity |
+| --- | --- | --- | --- | --- | --- |
+| 午後 7:00 | 試合開始 | ユーザー A とユーザー B が最初から視聴を開始 | マーケターが試合開始時にアクティブユーザーに対して MoEngage Live Activity Start API をトリガーします。 | ユーザー A とユーザー B に対して Live Activity が開始 | Live Activity が開始 |
+| 午後 7:30 | ゴール | NA | マーケターが MoEngage Live Activity Update API を介して、更新されたスコアでゴールの更新をトリガーします。 | ユーザー A とユーザー B に対して Live Activity が継続 | すべてのユーザーにゴールの更新が表示 |
+| 午後 7:45 | 試合進行中 | ユーザー C が視聴を開始 | セッション開始時に、アプリがユーザー C に対して MoEngage Live Activity Start API をトリガーします。 | ユーザー C に対して Live Activity が開始 | ユーザー C に対して Live Activity が開始 |
+| 午後 8:00 | ハーフタイム | ユーザー B が Live Activity を閉じる | MoEngage はアクティブユーザーに対して Live Activities を継続します。 | ユーザー A とユーザー C に対して Live Activity が継続 | ユーザー A とユーザー C にハーフタイムの更新が表示 |
+| 午後 8:45 | 試合終了 | 残りの Live Activities が終了 | マーケターが MoEngage Live Activity End API を介して MoEngage Live Activity End イベントをトリガーします。 | ユーザー A とユーザー C に対して Live Activity が終了 | 最終スコアが表示 |
+
+# MoEngage Live Activities を使用するための手順
+
+このセクションでは、iOS のブロードキャストユースケース向けに MoEngage Live Activities を設定して活用する方法について詳しく説明します。マーケターはこれらの手順を理解することで、実装時に開発チームと効果的に連携し、成功するリアルタイムエンゲージメント戦略を計画できます。
+
+## ステップ 1: Live Activity の登録と PTS トークン管理 (iOS アプリ開発者のタスク)
+
+アプリケーション開発チームが最初に Live Activities を設定する必要があります。マーケターは、チームと効果的に連携するために、これらの技術仕様を包括的に理解しておく必要があります。
+
+1. **Live Activity トークントラッキングを有効にする**:\
+   アプリ開発者は、[Push-to-Start (PTS) トークンのトラッキングを有効にする](https://moengage-sdk-docs.mintlify.app/developer-guide/ios-sdk/push/optional/broadcast-live-activity)必要があります。これらのトークンは、API リクエストを通じて Live Activity を開始するための基盤となります。
+2. **トークン登録方法を選択する**:\
+   開発者には、PTS トークンの登録と管理について 2 つの選択肢があります。
+   - MoEngage SDK に PTS トークンの登録と更新を自動的に処理させる。
+   - PTS トークンの登録と管理のプロセスを独自に実装し、生成された PTS トークンを MoEngage SDK に渡す。
+3. **ウィジェットの attribute type を定義する**:\
+   アプリが提供する個別の Live Activity ウィジェット (例: `football-match-scores`、`flight-status-tracker`、`flash-sale-countdown`) ごとに、開発者は固有の attributes-type を割り当てる必要があります。これを API リクエストで使用して、目的のウィジェットで Live Activity を開始できます。
+
+<Info>
+  - MoEngage は、Live Activity の PTS トークンと権限ステータスをデバイス属性としてトラッキングします。
+  - MoEngage SDK は、Live Activity の権限ステータスをデバイス属性として自動的に監視・更新します。このチェックは、アプリがフォアグラウンドで開かれるたびに行われます。
+  - この権限ステータスが変更されると、"_Unsubscribed to Live activity_" や "_Subscribed to Live activity_" などのイベントがトリガーされます (初回の権限付与はデフォルトの状態であるため、"_Subscribed to Live activity_" はトリガーされません)。
+  - この機能はプッシュ通知の権限とは関連付けられておらず、デフォルトで付与されています。iOS システムは Live Activities の使用状況を定期的に確認し、ユーザーはいつでも無効にできます。
+</Info>
+
+## ステップ 2: API を介して Live Activities を送信する (開発者のタスク)
+
+アプリ側の前提となる設定が正常に実装されると、バックエンド開発チームは MoEngage Live Activity API を活用してユーザーにリアルタイムの更新を送信できるようになります。
+
+1. **キャンペーンを作成する**:\
+   [キャンペーン API](/ja/api/create-campaigns/create-campaign) を使用してキャンペーンを作成し、オーディエンス、コンバージョンゴールなどを定義します。APNS で Live Activity が正常に作成されると、レスポンスでチャネル ID が返されます。このチャネル ID を使用して、このオーディエンスに含まれないデバイスでローカルに Live Activity を開始できます。
+2. **Live Activity を開始する:**\
+   開発者は MoEngage に API リクエストを送信して、指定したオーディエンスセグメント内の対象となるすべての iOS デバイスで Live Activity を開始できます。このリクエストでは、対象の attributes-type (ウィジェット識別子)、静的コンテンツ、および動的コンテンツの初期セットを指定する必要があります。詳細については、[こちら](/ja/api/live-activities/start-broadcast-live-activity)を参照してください。
+3. **進行中の Live Activity を更新する:**\
+   アクティブな Live Activity を更新するには、開発者は event パラメータを update に設定し、対応するブロードキャスト Live Activity ID を指定して API リクエストを送信します。このリクエストには新しい動的コンテンツを含める必要があります。更新は、最初のブロードキャスト後に開始したデバイスを含め、Live Activity が有効になっているすべてのデバイスに配信されます。詳細については、[こちら](/ja/api/live-activities/update-broadcast-live-activity)を参照してください。
+4. **Live Activity を終了する:**\
+   Live Activity を停止するには、開発者は event パラメータを _end_ に設定し、_broadcast\_live\_activity\_id_ とともに API リクエストを送信します。Live Activities は、指定された dismissal date に達すると自動的に終了します。詳細については、[こちら](/ja/api/live-activities/end-broadcast-live-activity)を参照してください。
+
+## ステップ 3: アプリから Live Activities を管理する (アプリ開発者とユーザーインタラクション)
+
+API による管理に加えて、アプリでユーザーがデバイス上の Live Activities を直接コントロールできるようにすることもできます。
+
+1. **アプリから開始する:**\
+   開発者は、ユーザーが Live Activities をシームレスに開始できるアプリ内機能を実装できます。\
+   アプリケーションは、正しいチャネル ID (ステップ 2 のレスポンスから取得)、コンテンツ、および識別子を指定して、正確にアクティビティを開始する必要があります。\
+   アプリケーション内から Live Activity が正常に開始されると、MoEngage プラットフォームに _Live activity started on device_ イベントが記録されます。
+2. **アプリから閉じる:**\
+   ユーザーは、進行中または古くなった Live Activity をアプリから直接閉じることができます。この操作は、即時に実行するか、後で実行するようにスケジュールするかを設定できます。
+3. **デバイスでのエラー処理:**\
+   デバイスで Live Activity の開始に失敗した場合、MoEngage SDK は問題の診断に役立つローカライズされたエラーの説明を生成できます。
+
+## ステップ 4: MoEngage UI で Live Activity のパフォーマンスを分析する
+
+マーケターは、MoEngage UI で MoEngage Live Activities キャンペーンのパフォーマンスを効果的に追跡・分析できます。
+
+- **キャンペーン分析にアクセスする:**\
+  正常に開始された Broadcast Live Activities は、MoEngage UI 内でキャンペーンとして一覧表示されます。
+- **キャンペーンステータスを確認する**: Live Activity キャンペーンは、次のステータスで表示されます。
+  - **Active**: 作成時から定義された終了時刻または終了操作まで、キャンペーンが現在実行中であることを示します。
+  - **Expired**: 終了時刻に達した、API/アプリで明示的に終了された、またはタイムアウトしたことにより、Live Activity が終了したことを示します。
+    <Info>
+      MoEngage UI から、アクティブな Live Activity キャンペーンを手動で停止または一時停止することはできません。更新やアクティビティの終了などのすべての管理操作は、API またはアプリ自体からプログラムで実行されます。
+    </Info>
+- **キャンペーンの詳細を確認する:**\
+  キャンペーンの詳細ビューでは、他の MoEngage エンゲージメントキャンペーンと同様のインサイトが提供されます。次の情報にアクセスできます。
+  - **Campaign Info**: Live Activity の基本的な詳細と設定。
+  - **Timeline**: 開始リクエストとその後の更新のログ。
+  - **Scheduling**: API リクエストに基づく、Live Activity の開始または終了のスケジュールの詳細。
+  - **Conversion Goals**: キャンペーンに定義したコンバージョンゴールに対するパフォーマンス。
+  - **Broadcast Live Activity ID**: Live Activity の一意の識別子と、API リクエストからのその他の固定情報。
+- **主要なパフォーマンス指標を監視する**\
+  ダッシュボードの分析セクションには、Live Activity キャンペーンの重要なパフォーマンス統計が表示されます。
+  - **Attempted**: Live Activity の開始リクエストの合計数。
+  - **Sent**: APNS によって配信が正常に受け付けられたリクエストの数。
+  - **Delivered**: Live Activity が正常に開始された数。
+  - **Failed**: APNS エラーまたはその他の内部的な問題により失敗したリクエストの数。
+  - **Clicked**: アプリの起動につながった Live Activity へのユーザーインタラクションを表す、合計クリック数とユニーククリック数。
+  - **Conversions**: 標準のプッシュキャンペーンと同様にトラッキングされ、Live Activity を受信したユーザーに帰属する、合計コンバージョン数とユニークコンバージョン数。
+- **配信とエラーを分析する**\
+  次のようなウィジェットを使用して、キャンペーンのパフォーマンスについてより深いインサイトを得ることができます。
+  - **Delivery Funnel for Start**: 標準のプッシュ通知ファネルと同様に、配信フローを視覚化します。
+  - **Error breakdown for start**: プッシュのエラー内訳と同様に、開始失敗の理由を詳しく示します。
+  - **Click Breakdown**: キャンペーンのクリックイベントの内訳を、Widget ID と Click ID ごとにグループ化して表示します。
+- **キャンペーンをアーカイブする**\
+  Live Activity キャンペーンが完了したら、アーカイブしてアクティブなキャンペーンリストを整理できます。
+
+# FAQ
+
+<Accordion title="ユーザーが MoEngage Live Activities を表示するには、どのバージョンの iOS が必要ですか?">
+  MoEngage を通じて送信された Live Activities を表示するには、エンドユーザーのデバイスに iOS 18 以降のバージョンがインストールされている必要があります。
+</Accordion>
+
+<Accordion title="MoEngage UI から直接 Live Activities を作成、開始、停止、または更新できますか?">
+  いいえ、これらの操作は MoEngage UI では利用できません。Live Activities の開始、更新、終了は、バックエンドシステムからの API 呼び出し、またはモバイルアプリケーション内でユーザーやアプリのロジックによってプログラムで管理されます。MoEngage UI は、主に Live Activity キャンペーンの分析とパフォーマンスを確認するためのものです。
+</Accordion>
+
+<Accordion title="MoEngage は Live Activity ウィジェット用の構築済みテンプレートを提供していますか?">
+  MoEngage は、Live Activity ウィジェット自体を構築するためのすぐに使えるテンプレートや UI サポートを提供していません。ウィジェット UI の設計と実装は、アプリ開発者が行う必要があります。
+</Accordion>
+
+<Accordion title="MoEngage Live Activities で A/B テストはサポートされていますか?">
+  現在のバージョンでは、Live Activities の A/B テストはサポートされていません。これは、Locales、Global Control Group、Campaign Control Group、Frequency Capping (FC)、Do Not Disturb (DND)、Merlin AI ベースの最適化などの他の高度な機能にも当てはまります。
+</Accordion>
+
+<Accordion title="Live Activities の PTS トークンはどのように管理されますか?">
+  アプリ開発者は、MoEngage SDK に PTS トークンの登録と管理を自動的に行わせるか、このプロセスを独自に処理してからトークンを SDK に渡すことができます。PTS トークンはその後、MoEngage によってデバイス属性としてトラッキングされます。
+</Accordion>
+
+<Accordion title="分析で確認できる、MoEngage Live Activities でトラッキングされる主要なイベントは何ですか?">
+  MoEngage は Live Activities について、次のような主要なイベントをトラッキングします: _Live activity sent_ (アクティビティが APNS に正常に送信されたときにトリガー)、_Live activity started on device_ (アプリが Live Activity を開始したときにトリガー)、_Notification clicked iOS_ (アプリの起動につながった Live Activity へのユーザーインタラクション)。
+</Accordion>
+
+<Accordion title="PTS トークンを介して Live Activity が開始された場合、Live Activity received イベントがトラッキングされないのはなぜですか?">
+  PTS トークンを使用して開始された Live Activities では、_Notification received_ または _Live Activity received_ イベントを確実に生成できません。これは iOS システム固有の制限によるもので、Live Activity 拡張機能自体からのネットワークアクセスが許可されていないこと、Live Activity 拡張機能に共有コンテナへの書き込みアクセスが提供されていないこと、PTS による開始時に iOS システムからメインアプリへの直接のコールバックがないこと (コールバックは Apple の ActivityKit フレームワークにのみ行われます) が含まれます。
+</Accordion>
+
+<Accordion title="staleDate とは何ですか?">
+  staleDate は、システムがアクティビティのコンテンツを古いものとしてマークする時刻です。この時刻に達すると、UI をグレーアウトしたテキストや「Update needed」などのメッセージといった stale 状態に変更できます。アクティビティは表示されたままアクティブですが、情報が最新でない可能性があることを示します。
+</Accordion>
+
+<Accordion title="dismissDate とは何ですか?">
+  dismissDate は、オペレーティングシステムがロック画面と [Dynamic Island](https://support.apple.com/en-in/guide/iphone/iph28f50d10d/ios) から Live Activity を自動的に削除するように設定する時刻です。Live Activity は、次の場合にユーザーの画面から削除されます。
+
+  - ユーザーがスワイプして Live Activity を削除した場合。
+  - dismissDate に達した場合。デフォルトでは、システムは Live Activity の終了から 4 時間後、または Live Activity の開始から 12 時間後に削除します。
+</Accordion>
+
+<Accordion title="staleDate と dismissDate の違いは何ですか?">
+  staleDate はコンテンツが古いことを示すために UI の変更をトリガーするのに対し、dismissDate はアクティビティを完全に削除します。staleDate ではアクティビティは見た目が変わるだけで表示されたままですが、dismissDate ではアクティビティが終了して画面から削除されます。
+</Accordion>
+
+<Accordion title="Live Activity の合計ライフスパンはどれくらいですか?">
+  Live Activity は合計 12 時間実行されます。更新ありのアクティブ状態が最大 8 時間、終了後の更新なしの状態が最大 4 時間です。その後、システムによって自動的に削除されます。
+</Accordion>
+
+# 次のステップ
+
+- Live Activity サポートに関する SDK 統合ガイドと最新情報については、[MoEngage SDK ドキュメント](/ja/developer-guide/ios-sdk/push/optional/broadcast-live-activity)を参照してください。
+- API ガイドについては、[Broadcast Live Activties API ドキュメント](/ja/api/live-activities/live-activities-overview)を参照してください。
+
+以前 _Sherpa AI_ と呼ばれていたすべての MoEngage AI 製品は、現在 _Merlin AI_ と呼ばれています。

@@ -1,0 +1,355 @@
+---
+title: "Self-Handled オプトインの設定"
+description: "MoEngage の Self-Handled オプトインを使用して、ブラウザのプッシュ権限プロンプトを表示するタイミングと場所を制御します。"
+---
+
+Web SDK を使用して Self-Handled オプトインオプションを統合できます。MoEngage アプリで Self-Handled オプトインを選択する必要があります。
+
+詳細については、[Web Push 設定の構成](https://www.moengage.com/docs/user-guide/campaigns-and-channels/web-push/getting-started-with-web-push/configure-web-push-settings)を参照してください。
+
+## Self-Handled オプトイン
+
+特定のページや特定のアクションの後にのみ、ブラウザのオプトインを選択的に表示できる詳細設定です。プッシュ権限を表示するには、スクリプトから `Moengage.callWebPush()` 関数を呼び出す必要があります。
+
+<CodeGroup>
+
+```html HTML wrap
+<head>
+<script type="text/javascript">
+...
+// Moengage Initialization script here
+// Docs: https://www.moengage.com/docs/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration
+...
+// call to show the Chrome's push notification opt-in box.
+Moengage.callWebPush();
+</script>
+</head>
+```
+
+</CodeGroup>
+
+（必須）プッシュ権限を表示するには、スクリプトから `Moengage.callWebPush()` 関数を呼び出します。
+
+<CodeGroup>
+
+```html HTML wrap
+<head>
+<script type="text/javascript" src="https://cdn.moengage.com/webpush/moe_webSdk.min.latest.js>
+<script type="text/javascript">
+Moengage = moe(
+ {
+   appId: "YOUR_WORKSPACE_ID"
+  });
+///call to show the browser's native notification opt-in box.
+Moengage.callWebPush();
+</script>
+</head>
+```
+
+</CodeGroup>
+
+サンプルコードの詳細については、[サンプルコード](https://github.com/moengage/webSDK-sample/blob/master/self-handled-push.html)を参照してください。
+
+## カスタム Soft-Ask を使用した Self-Handled オプトイン
+
+Web サイト用にパーソナライズされた Soft-Ask を構築している場合、MoEngage では次の手順を推奨しています。
+
+![SOFTASK](/images/SOFTASK.png)
+
+### カスタム Soft Ask を有効にする
+
+1. MoEngage アプリで Self-Handled オプトインの設定が選択されていることを確認します。
+2. Web サイト用にパーソナライズされた Soft-Ask の HTML を作成します。
+3. HTML 内の次のクラス属性を必ずメモしておきます。
+   1. Soft-Ask の HTML 全体を囲む `parent div`
+   2. `Allow Button(s)`
+   3. `Block Button(s)`
+4. 親 div の **display** スタイル属性を **none** に設定します。
+
+<CodeGroup>
+
+```xml HTML
+<div class="moe-main-class" style="display:none;">... Soft-ask-html....<div>
+```
+
+</CodeGroup>
+
+5. すべてのページで、次のオブジェクト引数を指定して `Moengage.callWebPush( {...} )` を呼び出します。\
+   （2 番目のステップでメモした**クラス属性**を使用します）
+
+<CodeGroup>
+
+```xml HTML wrap
+{  
+    "soft_ask":true,
+    "main_class":"moe-main-class", //parent div enclosing the entire Soft-Ask-HTML
+    "allow_class":"moe-allow-class", //the Allow Button(s)
+    "block_class":"moe-block-class" //the Block Button(s)
+}
+```
+
+</CodeGroup>
+
+6. Soft Ask を表示するタイミングやその他すべての処理は SDK が行います。ユーザーの操作に対するコールバックが必要な場合は、[完全に機能するカスタム Soft-Ask](#fully-functional-custom-soft-ask) を参照してください。
+
+### カスタム Soft-Ask を有効にするための基本的なコードサンプル
+
+<CodeGroup>
+
+```xml HTML wrap
+...
+<script type="text/javascript">
+Moengage = moe(
+{
+    appId: "YOUR_WORKSPACE_ID"
+});
+///call the function callWebPush with this object argument to make your custom Soft-Ask visible
+Moengage.callWebPush({
+    "soft_ask":true,
+    "main_class":"moe-main-class",
+    "allow_class":"moe-allow-class",
+    "block_class":"moe-block-class"
+});
+</script>
+</head>
+<body>
+{/*  Your Custom Soft Ask Div  */}
+{/*  Don't forget to set the style-display of your main_class to none */}
+<div class="moe-main-class" style="display:none;">
+Recieve Notifications ?
+...
+<button class="moe-allow-class">YES</button>
+<button class="moe-block-class>NO</button>
+</div>
+</body>
+```
+
+</CodeGroup>
+
+### カスタム Soft-Ask API の詳細リファレンス
+
+`Moengage.callWebPush` 関数は、次のオブジェクトを引数として受け取ります。
+
+<CodeGroup>
+
+```xml HTML wrap
+*{  
+  "**soft_ask**":true,  
+  "**main_class**":"moe-main-class",  
+  "**allow_class**":"moe-allow-class",  
+  "**block_class**":"moe-block-class",  
+}*
+```
+
+</CodeGroup>
+
+| パラメーター | 説明 |
+| --- | --- |
+| soft\_ask | boolean（存在しない場合は false とみなされ、ハードアスクがトリガーされます） |
+| main\_class | string（Soft Ask の HTML のクラス名）   **main\_class** の **style-display** を最初に **none** に設定することを忘れないでください。 |
+| allow\_class | string（許可ボタンのクラス名） |
+| block\_class | string（ブロックボタンのクラス名） |
+
+<Info>
+  - soft\_ask フラグが true に設定されている場合、Soft Ask が表示され（main\_class が表示され）、ユーザーが Soft Ask を操作するのを待機し、操作されると対応するコールバックが実行されます。
+  - ハードアスクがブロックされている場合、再度プロンプトは表示されません。
+</Info>
+
+### MoEngage カスタム Soft-Ask API の利点
+
+- MoEngage SDK が Web プッシュをサポートしているブラウザがどれかわからないため、push\_token がないまま Soft Ask を表示してしまうことになります。
+- ユーザーがすでに必要な権限を付与していることがわからないため、不必要に Soft Ask を表示してしまう可能性があります。
+- ユーザーが最後に Soft Ask を閉じた時期がわからないため、（MoEngage ダッシュボードで）設定された optIn-reappear-time の経過後ではなく、次のページ読み込み時にすぐに Soft Ask を表示してしまい、ユーザーエクスペリエンスの低下につながります。
+
+Web サイト用にパーソナライズされた Soft-Ask を構築している場合は、カスタム Soft-Ask API を使用することを強くお勧めします。
+
+#### 完全に機能するカスタム Soft-Ask
+
+<CodeGroup>
+
+```xml HTML wrap
+...
+<script type="text/javascript">
+Moengage = moe(
+{
+  appId: "YOUR_WORKSPACE_ID"
+});
+///call the function callWebPush with this object argument to make your Custom Soft-Ask visible
+Moengage.callWebPush({
+    "soft_ask":true,
+    "main_class":"moe-main-class",
+    "allow_class":"moe-allow-class",
+    "block_class":"moe-block-class",
+});
+</script>
+
+</head>
+<body>
+{/*  Your Custom Soft Ask Div  */}
+<div class="moe-main-class" style="display:none;">
+<div class="moe-chrome-style-notification moe-chrome-style-notification-safari"
+data-rapid_height="50"><div class="moe-safari-notification-inner-wrapper"><div
+  class="moe-notification-image-wrapper-safari">
+  <img src="https://www.moengage.com/img/icon-web-push.png"></div>
+  <div class="moe-text-wrapper-safari">
+  <span class="moe-notification-title-safari">The website "Your Website"
+  would like to send you awesome offers!</span>
+  <p class="moe-notification-message-safari">Notifications can be turned
+  off anytime from browser settings.</p></div>
+  <div style="clear: both;">
+  <div class="moe-modal-branding"><span><a href="https://moengage.com"
+  target="_blank">Powered by </a></span><a href="https://moengage.com"
+  target="_blank" style="text-decoration: none;"><img src="https://cdn.moengage.com/images/logo-dark.png"></a>
+  </div>
+  <div class="moe-button-wrapper">
+  <button class="moe-chrome-style-notification-btn moe-btn-close moe-block-class">Don't
+  Allow</button>
+  <button class="moe-chrome-style-notification-btn moe-btn-allow moe-allow-class">Allow</button>
+  </div><div style="clear:both"></div></div>
+  </div></div></div>
+
+  {/*  Styles for the Custom Soft Ask created above  */}
+  <style>.moe-modal-branding img {vertical-align: bottom!important;width:
+  63px!important;height: 30px!important;padding-right: 2px!important;display: inline-block!important;margin-bottom:-9px;margin-left:-5px;}.moe-modal-branding
+  span a {text-decoration: none!important;color: #000!important;font-size: 10px!important;line-height:
+  1.2em!important;font-weight: 400!important;}.moe-modal-branding {float:left;font-size:
+  10px;margin-top: -2px;font-family: Arial!important;line-height: 1.2em!important;}.moe-chrome-style-notification-safari{width:422px;top:1px;left:calc(50%
+  - 211px);background-color:#FFFFFF;margin:0;padding:0}.moe-chrome-style-notification{box-shadow:0
+  0 4px #888;font-size:11px;font-weight:400;position:fixed;z-index:2147483647}.moe-safari-notification-inner-wrapper{margin:0;padding:0
+  20px 10px}.moe-notification-image-wrapper-safari{float:left;position:relative;margin:15px
+  15px 0 0!important;padding:0!important;display:inline-block}.moe-chrome-style-notification-safari
+  *{word-spacing:normal!important;letter-spacing:normal!important;font-family:"Open
+  Sans",sans-serif!important}.moe-text-wrapper-safari{position:relative!important;padding:10px
+  0 0!important;color:#000!important;text-align:left!important;margin:0!important;line-height:1.4em!important;display:inline-block!important;width:calc(100%
+  - 80px)!important}.moe-notification-title-safari{margin-bottom:5px;text-align:left;font-size:14px;font-weight:700;line-height:1.4em;color:#000;font-family:"Open
+  Sans",sans-serif}.moe-notification-message-safari{font-size:12px!important;line-height:1.4em!important;margin:10px
+  0!important;padding:0!important;text-align:left!important;font-family:"Open Sans",sans-serif!important}.moe-chrome-style-notification
+  .moe-button-wrapper{float:right!important;margin:0!important;padding:0!important}.moe-chrome-style-notification-safari
+  .moe-chrome-style-notification-btn.moe-btn-close{background:#FFF!important;color:#000!important;border-color:#CCC!important;margin-right:20px!important;width:100px!important}.moe-chrome-style-notification-safari
+  .moe-chrome-style-notification-btn{width:90px!important;height:26px!important;font-size:14px!important;cursor:pointer!important;line-height:1.1em!important;border-radius:4px!important;color:#fff!important;background:
+  linear-gradient(to bottom,#23bd9f,#12ac8e)!important;border: 1px solid #12ac8e!important;display:inline-block!important;font-weight:400!important;margin:0!important;padding:5px!important;text-transform:none!important;box-sizing:border-box!important;font-family:Arial!important;text-shadow:none!important;box-shadow:none!important;white-space:nowrap!important}.moe-notification-image-wrapper-safari
+  img{height:65px!important;width:65px!important}</style>
+  </body>
+```
+
+</CodeGroup>
+
+<Warning>
+  サイトの要素との干渉を避けるため、MoEngage では、レンダリングされるすべての Web ページで `Moengage.callWebPush()` 関数を呼び出すことを推奨しています。
+</Warning>
+
+### Soft Ask の例
+
+この例では、画面の左下に表示される「ベル」アイコンという別の Soft Ask を実装します。
+
+![Softaskexample](/images/softaskexample.png)
+
+必要な HTML は次のとおりです。
+
+<CodeGroup>
+
+```xml HTML wrap
+  ...
+  <head>
+  {/*  Your head elements */}
+  {/*  Initialize Moengage Web SDK here  */}
+  
+  {/*  CSS for soft ask  */}
+  <style>#subscription-floating-button{position: fixed; display: flex; justify-content:
+  center; align-items: center; left: 15px; bottom: 15px; width: 4em; height: 4em;
+  line-height: 6em; background-color: white; border-radius: 1000px; cursor: pointer;
+  box-shadow: 0 5px 20px rgba(0,0,0,.3);}#subscription-floating-button:before{content:
+  ""; position: absolute; left: 5px; top: 5px; bottom: 5px; right: 5px; border:
+  solid 2px #e54b4d; border-radius: 100%; opacity: .7;}#subscription-floating-button
+  img{max-width: 70%;}#subscription-floating-button #tooltip{position: absolute;
+  left: calc(100% + 15px); top: 50%; transform: translateY(-50%); line-height:
+  normal; white-space: nowrap; background-color: #000; color: white; font-family:
+  sans-serif; font-size: 14px; padding:.8em; border-radius: 5px; opacity: 0; -webkit-font-smoothing:
+  antialiased; transition: all .3s; pointer-events: none;}#subscription-floating-button
+  #tooltip:before{content: ""; position: absolute; width: 15px; height: 15px; background-color:
+  #000; left: -7px; top: 50%; margin-top: -8px; transform: rotate(45deg); user-select:
+  none;}#subscription-floating-button:hover img{animation: shake 0.82s cubic-bezier(.36,.07,.19,.97)
+  both;}#subscription-floating-button:hover #tooltip{opacity: 1;}@keyframes shake{10%,
+  90%{transform: rotate(-2deg);}20%, 80%{transform: rotate(3deg);}30%, 50%, 70%{transform:
+  rotate(-5deg);}40%, 60%{transform: rotate(5deg);}}</style>
+  </head>
+  <body>
+  
+  {/*  DIV for soft ask  */}
+  <div class="moe-main-class" style="display: none"> <div class="moe-allow-class"
+  id="subscription-floating-button"> <img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAwMAAAMDCAMAAADJ/DkRAAACQFBMVEUAAADlS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS03lS00b1kIHAAAAv3RSTlMAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyAhIiMkJSYnKCkqKywtLi8wMTIzNDU2Nzg5Ojs8PT4/QEFCQ0RFRkdJSktMTU5PUFFSVFVWV1hZW1xdXl9hYmNkZmdoaWtsbW9wcXN0dXd4eXt8fn+AgoOFhoiJi4yOj5GSlJWXmJqbnZ6goqOlpqiqq62vsLK0tbe5ury+wMHDxcfIyszOz9HT1dfZ2tze4OLk5ujp6+3v8fP19/n7/astjCAAABjdSURBVBgZ7cGJg51lffbx6zkzJ3vCHXaiIhANNgXyogio7LyurUtrtYciiAW1hkUgoi9K2YT6YEVRCRAo4Igh7JwQMckkM9e/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"
+  alt=""> <div id="tooltip">Subscribe to notifications</div></div></div>
+  
+  {/*  Call Moengage WEB SDK Method  */}
+  <script>
+  Moengage.callWebPush({
+  "soft_ask": true,
+  "main_class": "moe-main-class",
+  "allow_class": "moe-allow-class",
+  "block_class": "moe-block-class"
+  });
+  </script>
+  </body>
+```
+
+</CodeGroup>
+
+### Soft Ask を再表示するためのサンプルコード
+
+このサンプルコードでは、次の内容について説明します。
+
+- ユーザーが「許可しない」をクリックした場合
+
+1. localstorage（`MOE_DATA`）で `OPT_IN_SHOWN_TIME` を検索します。
+
+<CodeGroup>
+
+```xml HTML wrap
+var moeData = localStorage.getItem('MOE_DATA')
+moeData = JSON.parse(moeData)
+var optInShownTime = moeData.OPT_IN_SHOWN_TIME // it is epoch time in milliseconds
+```
+
+</CodeGroup>
+
+2. `softAskStatus` が `shown` または `dismissed` であるかを確認し、`optInShownTime` に基づいて Soft Ask を表示するかどうかを決定します。
+
+<CodeGroup>
+
+```xml HTML wrap
+var softAskStatus = moeData.OPT_IN_SHOWN_TIME // it can be one of these: shown, allowed, dismissed
+```
+
+</CodeGroup>
+
+## 次のステップ
+
+オプトインを設定した後、ユーザーが Web サイトにアクセスすると、オプトイン権限のリクエストを求めるプロンプトが表示されます。ユーザーがオプトインリクエストを承認すると、MoEngage のユーザープロファイルページで Web プッシュの到達可能性アイコンが緑色になります。詳細については、[ユーザーの到達可能性](https://www.moengage.com/docs/user-guide/segment/reachability/user-reachability)を参照してください。
+
+## トラブルシューティング
+
+### オプトインが表示されない
+
+次の手順に従ってください。
+
+1. MoEngage ダッシュボードでドメインタイプが `http` または `https` のどちらに設定されているかを確認し、それがアプリケーションのドメイン URL と同じであることを確認します。
+2. 他のプッシュ通知プロバイダーを使用しており、その serviceworker ファイルが MoEngage の serviceworker ファイルと重複している可能性があります。
+3. serviceworker ファイルを確認します。次のコードが含まれている必要があります。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+importScripts('https://cdn.moengage.com/webpush/releases/serviceworker_cdn.min.latest.js');
+```
+
+</CodeGroup>
+
+### プッシュのオプトインプロセスを変更するにはどうすればよいですか？
+
+プッシュのオプトインには 3 つのオプションがあります。詳細については、[Web Push 設定の構成](https://www.moengage.com/docs/user-guide/campaigns-and-channels/web-push/getting-started-with-web-push/configure-web-push-settings)を参照してください。
+
+### 通知権限のオプトインバナーまたはナッジをカスタマイズしたいです。
+
+時間（バナーまたはナッジを表示するまでの時間）、テキスト、フォント、フォントサイズをカスタマイズできます。詳細については、[Web Push 設定の構成](https://www.moengage.com/docs/user-guide/campaigns-and-channels/web-push/getting-started-with-web-push/configure-web-push-settings)を参照してください。
+
+さらにサポートが必要な場合は、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。

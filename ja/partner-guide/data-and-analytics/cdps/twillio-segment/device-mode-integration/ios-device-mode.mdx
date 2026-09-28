@@ -1,0 +1,236 @@
+---
+title: "iOS デバイスモード"
+---
+
+<Warning>
+  [analytics-ios](https://github.com/segmentio/analytics-ios) 上に構築されたこの SDK は、今後アップデートが提供されません。[analytics-swift](https://github.com/segmentio/analytics-swift) 上に構築された [MoEngage-Segment-Swift](https://github.com/moengage/MoEngage-Segment-Swift) SDK の使用を推奨します。詳細については、[MoEngage-Segment-Swift のドキュメント](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/device-mode-integration/ios-swift-device-mode)を参照してください。
+</Warning>
+
+# SDK のインストール
+
+MoEngage は、Cocoapods または Swift Package Manager を使用して Twilio Segment 経由で統合できます。
+
+## CocoaPod を使用したインストール
+
+- pod init コマンドで pod を初期化します。これにより、プロジェクトの podfile が作成されます。
+- 以下のように pod '**Segment-MoEngage**' を追加して podfile を更新します。
+  <CodeGroup>
+  ```ruby Ruby
+  use_frameworks!
+  pod 'Segment-MoEngage', '~> 7.1.0'
+  ```
+  </CodeGroup>
+- pod を更新します。- pod update
+
+## Swift Package Manager を使用したインストール
+
+**Segment-MoEngage** は、SDK バージョン 7.1.0 以降で SPM に対応しています。統合するには、次の GitHub URL を使用し、ブランチを master に、またはバージョンを 7.1.0 以上に設定します。[https://github.com/moengage/MoEngage-Segment-iOS.git](https://github.com/moengage/MoEngage-Segment-iOS.git)
+
+# Twilio Segment SDK のセットアップ
+
+App Delegate に移動し、Twilio Segment SDK をセットアップします。
+
+<CodeGroup>
+
+```objectivec Objective-C wrap
+#import <SEGMoEngageIntegrationFactory.h>
+#import <SEGMoEngageInitializer.h>
+#import <SEGAnalytics.h>
+ 
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    //Initialize SEGMoEngageInitializer
+    MOSDKConfig* sdkConfig = [[MOSDKConfig alloc] initWithAppID:@"YOUR Workspace ID"];
+    [SEGMoEngageInitializer initializeDefaultInstance:sdkConfig];
+    
+    // Add your configuration key from Twilio Segment
+    SEGAnalyticsConfiguration *config = [SEGAnalyticsConfiguration configurationWithWriteKey:@"configuration key"];
+    
+    // Add MoEngageIntegrationFactory. Without this data will not come to MoEngage.
+    [config use:[SEGMoEngageIntegrationFactory instance]];
+    [SEGAnalytics setupWithConfiguration:config];
+ }
+```
+
+```swift Swift wrap
+import Segment_MoEngage
+...
+func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+...
+   let sdkConfig = MOSDKConfig(withAppID:"YOUR Workspace ID")
+   SEGMoEngageInitializer.initializeDefaultInstance(sdkConfig)
+   
+   // Add your configuration key from Segment
+   let config = SEGAnalyticsConfiguration(writeKey:"configuration key")
+  
+   // Add MoEngageIntegrationFactory. Without this data will not come to MoEngage.
+   config.use(SEGMoEngageIntegrationFactory.instance())
+   SEGAnalytics.setup(with: config)
+...
+}
+```
+
+</CodeGroup>
+
+<Warning>
+  AppDelegate の `application:didFinishLaunchingWithOptions` メソッドで、MoEngage SDK のデータセンター/リージョンを別途設定してください。詳細については、[ドキュメント](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic/data-center)を参照してください。
+</Warning>
+
+<Warning>
+  Twilio Segment SDK のセットアップ時に、**\[config use:\[SEGMoEngageIntegrationFactory instance\]\]** の追加を忘れないでください。**これを行わないと、データは MoEngage に送信されません**。
+</Warning>
+
+# MoEngage のセットアップ
+
+MoEngage をセットアップするには、次の手順を実行します。
+
+1. MoEngage Dashboard \> Settings \> General に移動します。
+2. Workspace ID をコピーします。
+3. **Twilio** **Segment ダッシュボード**に移動し、**Integrations** に進んで **MoEngage** を選択します。
+4. MoEngage Integration を有効にします。
+5. MoEngage Settings に移動し、**ステップ 1** で取得した MoEngage Workspace ID を入力します。
+6. 変更を保存します。
+
+![64351a3-Screen\_Shot\_2018-09-20\_at\_11.25.31.png](/images/partner_27034995134868.png)
+
+これらの新しい設定がすべての既存ユーザーに反映されるまで、最大 1 時間かかります。新規ユーザーには即座に反映されます。Twilio Segment-MoEngage Integration はバンドル統合であり、クライアント側の統合が必要です。
+
+# ユーザー属性のトラッキング
+
+ユーザー属性とは、メールアドレス、ユーザー名、携帯電話番号、性別など、ユーザー固有の特性です。**identify** を使用すると、ユーザーとそのアクションを紐付け、ユーザーの特性を記録できます。これには、一意の User ID と、ユーザーについて把握している任意の traits が含まれます。
+
+<CodeGroup>
+
+```objectivec Objective-C wrap
+[[SEGAnalytics sharedAnalytics] identify:@"a user's id"
+                                traits:@{ @"email": @"a user's email address" }];
+```
+
+```swift Swift wrap
+SEGAnalytics.shared().identify("a user's id", traits: ["email": "a user's email address"])
+```
+
+</CodeGroup>
+
+詳細については、こちらの[リンク](https://segment.com/docs/sources/mobile/ios/#identify)を参照してください。
+
+# イベントのトラッキング
+
+イベントトラッキングは、アプリ内のユーザー行動をトラッキングするために使用します。**track** を使用すると、ユーザーが実行したアクションを記録できます。すべてのアクションは「イベント」をトリガーし、イベントには関連する属性を含めることもできます。
+
+<CodeGroup>
+
+```objectivec Objective-C wrap
+[[SEGAnalytics sharedAnalytics] track:@"Item Purchased"
+                           properties:@{ @"item": @"Sword of Heracles"}];
+```
+
+```swift Swift wrap
+SEGAnalytics.shared().track("Item Purchased", properties: ["item": "Sword of Heracles"])
+```
+
+</CodeGroup>
+
+データのトラッキングに必要な作業は以上です。詳細については、こちらの[リンク](https://segment.com/docs/sources/mobile/ios/#track)を参照してください。
+
+# ユーザーのリセット
+
+_reset_ メソッドは、現在のユーザーに関する SDK の内部ストアをクリアします。これは、ユーザーが時間の経過とともに異なる ID でログイン/ログアウトできるアプリで役立ちます。
+
+<CodeGroup>
+
+```objectivec Objective-C
+[[SEGAnalytics sharedAnalytics] reset];
+```
+
+```swift Swift
+SEGAnalytics.shared().reset()
+```
+
+</CodeGroup>
+
+詳細については、こちらの[リンク](https://segment.com/docs/sources/mobile/ios/#reset)を参照してください。
+
+# プッシュ通知
+
+プッシュ通知は、ユーザーのエンゲージメントを維持し、アプリに関する情報を届けるための優れた方法です。アプリにプッシュ通知を実装する際には、次のオプションがあります。
+
+## MoEngage によるプッシュ実装
+
+Twilio Segment SDK は現在、iOS10 から Apple によって導入された [UserNotifications](https://developer.apple.com/documentation/usernotifications) フレームワークをサポートしていないため、こちらがより推奨される実装方法です。MoEngage SDK を使用してモバイルアプリにプッシュ通知を実装するには、次のリンクを参照してください: [**プッシュ通知**](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/push-notifications)
+
+<Warning>
+  Twilio Segment による SDK の初期化に遅延があるため、[**AppDelegate Swizzling**](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial) は Twilio Segment Integration では確実に動作しません。そのため、プッシュ関連のすべてのコールバックで MoEngage SDK のメソッドを必ず呼び出してください。
+</Warning>
+
+## Twilio Segment によるプッシュ実装
+
+<Warning>
+  この方法では、通知のクリックによってアプリが起動された場合に、MoEngage SDK が通知を処理できないことが確認されています。これは、この特定のシナリオで Twilio Segment SDK が MoEngage SDK にペイロードを提供しないためです。そのため、プッシュ関連のコールバックで MoEngage SDK のメソッドを直接呼び出す最初の方法を使用することを強く推奨します。
+</Warning>
+
+1. こちらの[リンク](https://segment.com/docs/libraries/ios/#how-do-i-use-push-notifications-)の手順に従って、Twilio Segment SDK を使用してプッシュを登録します。
+2. アプリケーションの application:didReceiveRemoteNotification: メソッドに次のコードを追加します。
+
+<CodeGroup>
+
+```objectivec Objective-C
+[[SEGAnalytics sharedAnalytics] receivedRemoteNotification:userInfo];
+```
+
+```swift Swift
+SEGAnalytics.sharedAnalytics().receivedRemoteNotification(userInfo)
+```
+
+</CodeGroup>
+
+3. アプリに application:didReceiveRemoteNotification:fetchCompletionHandler: を統合している場合は、そのメソッドに次のコードを追加します。
+
+<CodeGroup>
+
+```objectivec Objective-C
+[[SEGAnalytics sharedAnalytics] receivedRemoteNotification:userInfo];
+```
+
+```swift Swift
+SEGAnalytics.sharedAnalytics().receivedRemoteNotification(userInfo)
+```
+
+</CodeGroup>
+
+4. handleActionWithIdentifier:forRemoteNotification: を実装している場合は、そのメソッドに次のコードを追加します。
+
+```objectivec wrap
+[[SEGAnalytics sharedAnalytics] handleActionWithIdentifier:identifier forRemoteNotification:userInfo];
+```
+
+# インストール/アップデートの区別:
+
+アプリがすでに App Store で公開されている状態で MoEngage を統合する場合があるため、アプリのアップデートが実際の UPDATE なのか INSTALL なのかを把握する必要があります。これらを区別するには、以下のいずれかのメソッドを使用します。
+
+<CodeGroup>
+
+```objectivec Objective-C
+//For new Install call following
+[[MoEngage sharedInstance]appStatus:AppStatusInstall]
+//For an app update call following
+[[MoEngage sharedInstance]appStatus:AppStatusUpdate];
+```
+
+```swift Swift
+//For new Install call following
+MoEngage.sharedInstance().appStatus(.install)
+//For an app update call following
+MoEngage.sharedInstance().appStatus(.update)
+```
+
+</CodeGroup>
+
+詳細については、次の[リンク](https://www.moengage.com/docs/developer-guide/ios-sdk/data-tracking/basic/install-update-differentiation)を参照してください。
+
+# InApp Native
+
+アプリ内メッセージングは、ユーザーのセグメントに送信できるカスタムビューで、カスタムメッセージの表示、新しいオファーの提供、特定のページへの誘導などに使用できます。アプリ内メッセージングの詳細とアプリケーションへの実装方法については、次のリンクを参照してください: [InApp NATIV](https://www.moengage.com/docs/developer-guide/ios-sdk/in-app-messages/in-app-nativ)
+
+<Info>
+  Twilio **Segment for iOS** の使用方法の詳細については、Twilio Segment が提供する[開発者ドキュメント](https://segment.com/docs/sources/mobile/ios/)を参照してください。
+</Info>

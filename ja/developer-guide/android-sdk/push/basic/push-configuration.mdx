@@ -1,0 +1,113 @@
+---
+title: "プッシュの設定"
+description: "MoEngage Android SDK のプッシュ通知のメタデータ、アイコン、Firebase の設定を構成します。"
+---
+
+# MoEngage アカウントの設定
+
+- [Firebase](https://firebase.google.com/docs/android/setup) アプリケーションを設定済みであることを確認してください。
+- MoEngage ダッシュボードで FCM の認証を設定します。詳細については、[FCM 認証](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/fcm-authentication)を参照してください。
+- Test 環境と Live 環境の両方にキーを追加してください。
+
+## プッシュ通知のメタデータの追加
+
+プッシュ通知を表示するには通知に関するメタデータが必要で、small icon と large icon の drawable は必須です。
+
+使用可能なすべてのオプションの API リファレンスの詳細については、[NotificationConfig](https://moengage.github.io/android-api-reference/core/com.moengage.core.config/-notification-config/index.html) を参照してください。
+
+[_configureNotificationMetaData()_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-notification-meta-data.html) を使用して、設定を SDK に渡します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+val moEngage = MoEngage.Builder(
+        application = this,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureNotificationMetaData(
+        NotificationConfig(
+            smallIcon = R.drawable.small_icon,
+            largeIcon = R.drawable.large_icon
+        )
+    )
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```Java Java wrap
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+プッシュ通知が機能するように、Application クラスの _onCreate()_ でメタデータを使用して SDK が初期化されていることを確認してください。
+
+<Info>
+  **通知アイコンのガイドライン**
+
+  - 通知の small icon は、正面から見たフラットなデザインで、透明な背景に白色である必要があります。
+  - 通知の large icon を設定していない場合は、-1 を渡すとシステムのデフォルトが使用されます。
+</Info>
+
+## 通知の Small Icon の密度とサイズ
+
+| 密度（dp） | サイズ（px） |
+| ------------ | --------- |
+| MDPI         | 24x24     |
+| HDPI         | 36x36     |
+| XHDPI        | 48x48     |
+| XXHDPI       | 72x72     |
+| XXXHDPI      | 96x96     |
+
+<Warning>
+  **重要**
+
+  small icon が設定されていることを確認してください。small icon が設定されていない場合、通知は表示されません。
+</Warning>
+
+## 通知のスタック（オプション）
+
+デフォルトでは、Android はアプリケーションからの古い通知を新しい通知に置き換えます。アプリからの複数の通知を通知ドロワーにスタックして表示したい場合は、この機能を有効にできます。
+
+通知のスタックを有効にするには、SDK の初期化時に `NotificationConfig` で `isMultipleNotificationInDrawerEnabled` を `true` に設定します。
+
+その他のオプションについては、[notification config](https://moengage.github.io/android-api-reference/core/com.moengage.core.config/-notification-config/index.html) を参照してください。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+val moEngage = MoEngage.Builder(
+        application = this,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureNotificationMetaData(
+        NotificationConfig(
+            smallIcon = R.drawable.small_icon,
+            largeIcon = R.drawable.large_icon,
+            notificationColor = R.color.notiColor,
+            isMultipleNotificationInDrawerEnabled = true
+        )
+    )
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```Java Java wrap
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon, R.color.notiColor, true))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+<Info>
+  通知に特定の色を設定する必要がない場合は、-1 を渡すとシステムのデフォルトが使用されます。
+</Info>

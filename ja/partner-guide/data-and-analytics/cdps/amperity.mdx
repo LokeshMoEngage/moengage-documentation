@@ -1,0 +1,313 @@
+---
+title: "Amperity"
+description: "ネイティブコネクターまたは S3 インポートを使用して、Amperity から MoEngage に顧客プロファイルとオーディエンスを同期し、パーソナライズされたキャンペーンに活用します。"
+---
+
+# はじめに
+
+[Amperity](https://amperity.com/) は、顧客データの価値を引き出すことでグローバルな消費者ブランドを支援するインテリジェントな顧客データプラットフォームです。Amperity は、データ管理、統合、分析、インサイト、アクティベーションにわたるインテリジェントな機能を提供します。
+
+_この連携は Amperity によって管理されています。_
+
+# MoEngage × Amperity
+
+MoEngage と Amperity の連携を使用すると、顧客の統合ビューを作成し、高度にパーソナライズされたキャンペーンを実施できます。この連携により、次のことが可能になります。
+
+- **顧客プロファイルの同期:** 顧客プロファイルとカスタム属性を Amperity から MoEngage にリアルタイムで直接送信します。
+- **顧客オーディエンスの同期:** Amperity でセグメントを構築し、ターゲットキャンペーンのために MoEngage にプッシュします。
+- **データ更新の管理:** MoEngage に送信される属性更新の頻度と範囲を制御します。
+
+<Info>
+  **すぐにターゲティングできるセグメント**
+
+  Amperity から同期されたデータはカスタムセグメントとして構築されるため、マーケターはより少ないステップでオーディエンスからキャンペーンへと移行できます。
+</Info>
+
+# 連携方法
+
+MoEngage は、Amperity と連携するための 2 つの方法をサポートしています。
+
+| 方法 | 仕組み | 最適な用途 |
+| --- | --- | --- |
+| **方法 1: ネイティブコネクター** _(推奨)_ | Amperity が Data API を介して MoEngage にデータを直接プッシュします。中間ストレージは不要です。 | リアルタイムまたはスケジュールされた同期、動的なコホートの更新。 |
+| **方法 2: S3 インポート** | Amperity が CSV ファイルを Amazon S3 バケットにエクスポートし、MoEngage が S3 Imports を介してインポートします。 | 過去データの一括読み込み、すでに S3 ベースのワークフローを使用しているチーム。 |
+
+# 方法 1: ネイティブコネクター _(推奨)_
+
+## 前提条件
+
+<Info>
+  **要件**
+
+  - 有効な [Amperity アカウント](https://amperity.com/)。
+  - **Settings \> Account \> APIs** にアクセスできる MoEngage アカウント。
+  - MoEngage の **Workspace ID**、**Data API Secret**、**Data Center**。
+</Info>
+
+## ステップ 1: MoEngage の設定詳細を収集する
+
+Amperity で宛先を設定する前に、MoEngage ワークスペースから以下の認証情報を収集します。
+
+| フィールド | 説明 |
+| --- | --- |
+| App ID | MoEngage の Workspace ID です。確認方法: <br /> 1. MoEngage ダッシュボードで、**Settings \> Account \> APIs** に移動します。 <br /> 2. **Workspace ID** (旧称 App ID) の値をコピーします。 |
+| API Key | MoEngage の Data API Secret キーです。確認方法: <br /> 1. MoEngage ダッシュボードで、**Settings \> Account \> APIs** に移動します。 <br /> 2. **API Keys** セクションの **Data** の値をコピーします。 |
+| Data Center | MoEngage のデータセンター番号です。詳細については、[MoEngage のデータセンター](/ja/user-guide/data/key-concepts/data-centers-in-moengage)を参照してください。 |
+
+## ステップ 2: Amperity で MoEngage を宛先として追加する
+
+1. Amperity ダッシュボードで、**Destinations \>\> Add Destination** に移動します。
+2. 利用可能なプラグインのリストから **MoEngage** を検索して選択します。
+
+![Amperity1](/images/Amperity1.png)
+
+3. **Select credential** ダイアログで、ドロップダウンから既存の認証情報を選択するか、**Create new credential** を選択して以下のフィールドに入力します。
+
+| フィールド | 説明 |
+| --- | --- |
+| Name | この認証情報を識別するためのラベル (例: _MoEngage Data API_)。 |
+| Description | 任意。認証情報の簡単な説明。 |
+| App ID | ステップ 1 で収集した App ID を入力します。 |
+| API Key | ステップ 1 で収集した Data API Secret キーを入力します。 |
+| Data Center | データセンターを選択します。 |
+
+![Amperity2 6](/images/amperity2-6.png)
+
+4. Amperity が MoEngage のレコードを照合するために使用する **User Identifier** を定義します。ワークスペースでのユーザーの識別方法に合った識別子を選択してください。
+
+![Amperity3 1](/images/amperity3-1.png)
+
+| 識別子 | 説明 |
+| --- | --- |
+| `customer_id` | 顧客が割り当てた一意の識別子 (例: UUID や内部ユーザー ID)。 |
+
+5. 宛先の設定を保存します。
+
+## ステップ 3: データテンプレートを追加する
+
+1. **Destinations** タブで、作成した MoEngage 宛先のメニューを開き、**Add Data Template** を選択します。
+2. 名前と説明を入力します。例:
+   - **Name:** MoEngage Audience Attributes
+   - **Description:** Send audience attributes to MoEngage.
+3. ビジネスユーザーのアクセス設定を確認し、すべての設定詳細を確認します。
+4. AmpIQ ユーザーがアクセスできるように、テンプレートが **Campaigns** で有効になっていることを確認します。
+5. データテンプレートを保存します。
+
+## ステップ 4: MoEngage にデータを送信する
+
+MoEngage を宛先として設定したら、Amperity の製品アクセスに応じて 2 つの方法でデータを送信できます。
+
+<Tabs>
+  <Tab title="Amp360 でクエリを同期する">
+    Amp360 ユーザーは、SQL クエリを作成し、オーケストレーションを設定して、スケジュールに従って結果を MoEngage に送信できます。
+
+    #### ステップ 1: Amperity でクエリを作成する
+
+    **Queries** セクションに移動し、MoEngage に送信する顧客属性を返す SQL クエリを作成します。ステップ 2 で選択したユーザー識別子フィールドを含めてください。
+
+    _クエリの例については、[Amperity Queries Reference](https://docs.amperity.com/amp360/queries_reference.html) を参照してください。_
+
+    #### ステップ 2: オーケストレーションを追加する
+
+    1. **Orchestrations** セクションに移動し、**Add Orchestration** をクリックします。
+    2. 作成した SQL クエリをデータソースとして選択します。
+    3. 宛先として **MoEngage** を選択します。
+    4. 実行頻度 (例: 毎日決まった時刻) を定義します。
+    5. オーケストレーションを保存します。
+
+    #### ステップ 3: オーケストレーションを実行する
+
+    オーケストレーションを手動でトリガーして、データの配信を検証します。確認できたら、スケジュールによる自動同期に任せます。
+
+    <Info>
+      古いデータを避けるため、Amperity のエクスポートスケジュールが MoEngage での後続処理の**前に**実行されるようにしてください。Amperity は前回の同期以降に変更された属性のみを送信するため、ペイロードを効率的に保つことができます。
+    </Info>
+  </Tab>
+  <Tab title="AmpIQ でオーディエンスを同期する">
+    AmpIQ ユーザーは、SQL を使用しないインターフェイスでセグメントを構築し、MoEngage にプッシュできます。Amperity はキャンペーンが実行されるたびにセグメントを MoEngage に自動的に再同期するため、MoEngage のコホートは動的に更新されます。
+
+    #### ステップ 1: Amperity でセグメントを構築する
+
+    Amperity の **Segment Editor** を使用し、ドロップダウンと選択リストでオーディエンスを定義します。MoEngage で更新するすべてのカスタム属性がセグメントに含まれていることを確認してください。
+
+    ![Moengagetest 2](/images/moengagetest-2.png)
+
+    #### ステップ 2: Amperity でキャンペーンを構築する
+
+    1. **Campaigns** セクションに移動し、**Create Campaign** をクリックします。
+    2. キャンペーンにわかりやすく一意の名前を付けます。
+    3. 作成したセグメントをターゲットオーディエンスとして選択します。
+    4. 必要に応じて、除外条件やサブオーディエンスを定義します。
+
+    ![Moengage Test 2 1](/images/moengage-test-2--1.png)
+
+    5. 宛先として **MoEngage** を選択します。
+    6. **Edit Campaign Attributes** パネルを使用して、送信する顧客属性を選択します。
+    7. キャンペーンのスケジュール (1 回または定期) を設定します。
+    8. キャンペーンを保存し、テストを実行します。
+
+    #### ステップ 3: キャンペーンを実行する
+
+    キャンペーンを手動で実行して、配信を検証します。確認できたら、定期スケジュールによって MoEngage のオーディエンスが自動的に更新されます。
+  </Tab>
+</Tabs>
+
+## データマッピング
+
+標準属性とカスタム属性の両方を Amperity から MoEngage に送信できます。データが MoEngage のユーザープロファイルに正しく取り込まれるように、Amperity の属性を MoEngage の正確な API キーにマッピングしてください。
+
+### 標準属性
+
+Amperity から標準属性を送信する場合は、正しいユーザープロファイルフィールドに解析されるように、以下の MoEngage API キーを使用します。
+
+- **ID:** `uid`
+- **名:** `u_fn`
+- **姓:** `u_ln`
+- **氏名:** `u_n`
+- **誕生日:** `u_bd` _(ISO 8601 形式。例: 2023-05-21T03:47:35Z)_
+- **メールアドレス:** `u_em`
+- **携帯電話番号:** `u_mb`
+- **性別:** `u_gd`
+
+### カスタム属性
+
+カスタム属性は、ブランドが定義するフィールド (例: ロイヤルティ階層、購入履歴、所在地) です。標準属性とは異なり、カスタム属性には自由に名前を付けることができますが、重複を避けるため、MoEngage ワークスペースですでに設定されている名前と完全に一致させる必要があります。例:
+
+- `loyalty_status`
+- `lifetime_value`
+- `last_purchase_date`
+- `city`
+- `state`
+
+<Warning>
+  **属性名の不一致を避ける**
+
+  Amperity からの属性名が MoEngage の既存の属性と一致しない場合、新しいカスタム属性が作成されます。たとえば、標準の `u_fn` キーの代わりに `firstname` を送信すると、新しい属性が作成されます。同期を実行する前に、必ず属性マッピングを確認してください。
+</Warning>
+
+### データポイント
+
+Amperity は同期間の変更をトラッキングします。前回の同期以降に更新された属性のみが MoEngage に送信されるため、不要なデータポイントの消費を最小限に抑え、ペイロードを効率的に保つことができます。カスタム属性は、MoEngage に一致するプライマリ識別子 (`customer_id`) を持つユーザーに対してのみ更新されます。
+
+# 方法 2: S3 インポート _(代替)_
+
+<Info>
+  ファイルベースのワークフローを希望する場合、またはすでに Amazon S3 経由でデータをルーティングしている場合は、この方法を使用してください。Amperity が CSV ファイルを S3 バケットにエクスポートし、MoEngage が S3 Imports 機能を介してインポートします。
+</Info>
+
+## 前提条件
+
+<Info>
+  **要件**
+
+  - MoEngage ワークスペースで [S3 Imports](/ja/user-guide/data/imports/setting-up-a-file-import) が有効になっていることを確認してください。
+</Info>
+
+## ステップ 1: Amperity で MoEngage の宛先を作成する
+
+1. Amperity ダッシュボードで、_Destinations_ \>\> _Add Destination_ に移動します。
+
+![](/images/partner_35061931705236.png)
+
+Amperity ダッシュボードで宛先を設定する際に選択する必要がある必須フィールドの一部を以下に示します。
+
+| フィールド | 説明 |
+| --- | --- |
+| Plugin | Amazon S3 を選択します。 |
+| Credential Type | Amperity がストレージに接続する方法を選択します。 |
+| Credential | この接続に使用する認証情報を選択するか、新規作成します。 |
+| S3 Prefix | フォルダパスとプレフィックスの形式を入力します。例: `registered_user_data_` |
+| File Format | csv |
+| Header | ファイルにヘッダー行を含めるようにしてください。 |
+
+Amperity で宛先として [Amazon S3 を追加する方法](https://docs.amperity.com/datagrid/destination_amazon_s3.html)をご覧ください。
+
+## ステップ 2: データテンプレートを追加する
+
+1. Amperity ダッシュボードで、_Destinations_ \>\> _Add Destination_ に移動します。
+
+![](/images/partner_35061917565972.png)
+
+Amperity ダッシュボードでエクスポートを設定する際に選択する必要がある必須フィールドの一部を以下に示します。
+
+| フィールド | 説明 |
+| --- | --- |
+| Plugin | Amazon S3 を選択します。 |
+| Credential Type | Amperity がストレージに接続する方法を選択します。 |
+| Credential | この接続に使用する認証情報を選択するか、新規作成します。 |
+| S3 Prefix | フォルダパスとプレフィックスの形式を入力します。例: `registered_user_data_` |
+| File Format | csv |
+| Filename template | `{{ group_name }}_{{now &#124; format:'ddmmyyyy'}}.csv` |
+| Compression | "None" が選択されていることを確認してください。 |
+| PGP Public Key | ファイルに使用する PGP 公開鍵を入力します。 |
+| Header | ファイルにヘッダー行を含めるようにしてください。 |
+| Visibility | この宛先が Campaigns で利用可能になっていることを確認してください。 |
+| File Settings | オーディエンスリストは個別のファイルとして送信する必要があります。 |
+
+## ステップ 3: MoEngage で新しいインポートを作成する
+
+[こちらの手順](/ja/user-guide/data/imports/setting-up-a-file-import)に従って、MoEngage で S3 Imports を設定します。
+
+### データマッピング
+
+MoEngage は、S3 の CSV 列から標準属性とカスタム属性の両方をインポートすることをサポートしています。マッピングのステップでは、以下をマッピングできます。
+
+- 名前
+- 生年月日
+- メールアドレス
+- 電話番号
+- その他の任意のカスタム属性
+
+### データ型
+
+サポートされているデータ型は次のとおりです。
+
+- Boolean
+- Datetime
+- Number
+- String
+
+## ステップ 4: S3 経由で MoEngage にデータを送信する
+
+Amperity からのデータを取得するように Amazon S3 バケットを設定したら、MoEngage にデータを送信する準備が整います。Amperity の製品アクセスに基づいて同期方法を選択してください。
+
+<Tabs>
+  <Tab title="Amp360 でクエリを同期する">
+    Amp360 では、クエリを作成し、結果を S3 バケットに送信するスケジュールを設定できます。その後、MoEngage がそのデータをインポートします。
+
+    #### ステップ 1: Amperity で新しいクエリを作成する
+
+    [こちらのガイド](https://docs.amperity.com/amp360/queries_reference.html)に従って、Amperity で新しいクエリを作成します。
+
+    #### ステップ 2: S3 バケットにデータを転送するオーケストレーションを追加する
+
+    オーケストレーションは、クエリ結果と宛先の関係を定義します。これには、クエリ結果の送信先の場所やオーケストレーションの実行頻度が含まれます。新しく作成した宛先をこのオーケストレーションに追加するには、[こちらのガイド](https://docs.amperity.com/amp360/destination_amazon_s3.html)をお読みください。
+
+    #### ステップ 3: オーケストレーションを実行する
+
+    オーケストレーションを手動で実行して、正しく動作することを検証します。確認できたら、スケジュールを設定します。
+
+    <Info>
+      古いデータの取り込みを避けるため、Amperity のエクスポートスケジュールは MoEngage の S3 インポートスケジュールの**前に**実行されるように設定してください。
+    </Info>
+  </Tab>
+  <Tab title="AmpIQ でオーディエンスを同期する">
+    AmpIQ を使用すると、Amperity でセグメントを作成し、MoEngage に送信できます。Amperity から S3 バケットにオーディエンスを送信する方法については、[こちらのガイド](https://docs.amperity.com/ampiq/destination_amazon_s3.html)で説明しています。
+
+    #### ステップ 1: Amperity でセグメントを構築する
+
+    Amperity の Segment Editor を使用し、一連のドロップダウンと選択リストで任意のオーディエンスを構築します。MoEngage で更新するカスタム属性を必ず含めてください。
+
+    #### ステップ 2: Amperity でキャンペーンを構築する
+
+    キャンペーンエディターを使用して、Amazon S3 にデータを送信するキャンペーンを構築します。セグメントを追加し、除外条件とサブオーディエンスを定義してから、キャンペーンデータを Amazon S3 に送信するように Amperity を設定します。
+
+    #### ステップ 3: キャンペーンを実行する
+
+    キャンペーンを実行して、Amazon S3 へのオーディエンスの送信を開始します。その後、MoEngage で関連するインポートを作成し、このユーザーセットに対して作成するセグメントを選択する必要があります。
+
+    #### ステップ 4: MoEngage で S3 インポートを作成する
+
+    MoEngage で S3 インポートを作成し、オーディエンスの同期先となるセグメントを選択 (または作成) します。同期が完了すると、MoEngage 内で選択したセグメントにすべてのユーザーが反映されます。
+  </Tab>
+</Tabs>

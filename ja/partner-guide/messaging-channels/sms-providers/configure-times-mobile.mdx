@@ -1,0 +1,68 @@
+---
+title: "Times Mobile の設定"
+---
+
+# はじめに
+
+[Times Mobile](https://timesmobile.in/)（Times Internet Limited の一部）は、SMS、Voice、Email、RCS、WhatsApp Business Messaging などのエンタープライズ向けコミュニケーションサービスを提供しています。MoEngage と Times Mobile の SMS 統合により、次の目的でエンドユーザーとコミュニケーションを取ることができます。
+
+- さまざまなカテゴリ（Promotional、Service Implicit、Service explicit）の一括 SMS 配信
+- リアルタイムの配信状況の更新
+
+さらに、安全な SMS プラットフォームを通じてパーソナライズされたテキストを送信することで、セールスおよびマーケティングのエンゲージメントを自動化することもできます。
+
+# 統合
+
+<Info>
+  - TIL の SMS アカウントと、それに対応する SMS Push API の詳細を保有している必要があります。
+  - アカウントのリージョンがインドの場合は、DLT 承認済みの詳細（テンプレートなど）を保有している必要があります。
+</Info>
+
+## Times Mobile をカスタム SMS コネクターとして設定する
+
+MoEngage ダッシュボードにログインします。
+
+1. Settings \> Channel \> SMS & Connectors に移動します。
+   <Frame>
+     ![Times Mobile](/images/times-mobile.png)
+   </Frame>
+2. _SMS Connector Config タブ_ をクリックします。
+3. _Custom Connecters_ の下で、_\+CREATE._ をクリックします。 <img src="/images/partner_22513369500052.png" />
+4. 次の詳細を追加します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **Sender Type** | Sender Type を選択します - TIL の SMS アカウントに応じて Promotional/Transactional を選択します。 |
+| **Connector Name** | SMS コネクターを一意に識別するためのコネクター名を入力します。例: "Times Mobile" |
+| **Sender Name** | 送信者名（DLT 承認済みヘッダー）を入力します |
+| **API URL** | TIL から提供された HTTP エンドポイントに応じて、**GET** または **POST** オプションを選択します。 <br />次に、TIL の SMS Push エンドポイント（GET/POST）をそれぞれの認証情報/詳細とともに入力します: TIL から提供された HTTP エンドポイントに応じて、**GET** または **POST** オプションを選択します。 <br />次に、TIL の SMS Push エンドポイント（GET/POST）をそれぞれの認証情報/詳細とともに入力します: <ul><li>GET API: <ul><li>エンドポイント: [https://bsms.timesapi.in/ct/api/v1/send?username=&password=&unicode=false&from=&to=Moesms\_destination&text=Moesms\_message&dltContentId=Moesms\_dltTemplateId&corelationid=Moesms\_campaignId](https://bsms.timesapi.in/ct/api/v1/send?username=&password=&unicode=false&from=&to=Moesms_destination&text=Moesms_message&dltContentId=Moesms_dltTemplateId&corelationid=Moesms_campaignId)</li><li>キーと値のペア: キーと値を入力します。</li></ul></li><li>POST API: <ul><li>エンドポイント: [https://bsms.timesapi.in/ct/api/v1/message](https://bsms.timesapi.in/ct/api/v1/message)</li><li>POST エンドポイントがサポートする JSON ペイロード構造を入力します。</li></ul></li></ul> |
+| **Parameter Details** | キーと値のペア / JSON パラメーターの詳細:<br /> <ul><li>username= \<\*\*\*\*\*\*\> \[TIL API ユーザー名\]</li><li>password= \<\*\*\*\*\*\*\> \[TIL API パスワード\]</li><li>unicode= \[通常の英語 SMS テキストの場合はデフォルトで "false"、Unicode SMS テキストの場合は "true"\]</li><li>from= \[DLT 承認済みヘッダー\]</li><li>to= `Moesms_message` \[SMS の送信先の携帯電話番号\]</li><li>text= `Moesms_destination` \[DLT 承認済みメッセージテキスト\]</li><li>dltContentId= `Moesms_dltTemplateId` \[メッセージテキストの DLT テンプレート ID\]</li><li>corelationid= `Moesms_campaignId` \[MoEngage キャンペーン ID のパラメーター\]</li></ul> |
+| **Headers** | POST エンドポイントの場合は、次のキーと値のペアを入力してください: <ol><li>Key: `Content-Type` \| Value: `application/json`</li><li>Key: `Accept` \| Value: `application/json`</li><li>Key: `Authorization` \| Value: `Basic`</li></ol> |
+| **配信トラッキング** | 配信トラッキングを行うには、「Custom Connector」を保存した後に編集します。次に「Map fields manually」オプションを選択し、次のマッピングを行います: <ul><li>Unique sent ID field: uuid</li><li>Unique delivery ID field \*: uuid</li><li>Delivery status field \*: status</li><li>Success values for delivery status \*: DELIVERY\_SUCCESS</li><li>Failure reason field \*: description<br />設定のために、SMS 配信トラッキング URL を Times と共有してください。</li></ul> |
+
+5. **Body Type**（POST の場合のみ）で「Raw」を選択し、JSON ペイロード構造全体を入力します。
+   <CodeGroup>
+   ```json JSON
+   {
+       "extra": {
+           "corelationid": "Moesms_campaignld",
+           "dltContentId": "Moesms_dltTemplateld"
+       },
+       "message": {
+           "recipient": "Moesms_destination",
+           "text": "Moesms_message"
+       },
+       "sender": "",
+       "unicode": "false"
+   }
+   ```
+   </CodeGroup>
+6. Save をクリックします。設定が追加されました。
+
+## トラブルシューティング
+
+テストメッセージの送信中や設定の保存中に問題が発生した場合は、次の手順に従ってください。
+
+- TIL のエンドポイントと各パラメーター/JSON 構造は大文字と小文字が区別されるため、正しく追加されていることを確認してください。
+- 問題が解決しない場合は、MoEngage にサポートリクエストを送信してエラーコードを取得してください。
+- MoEngage サポートチームからエラーコードを受け取ったら、TIL サポートチームに連絡して問題を解決してください。サポートメール: [support@timesmobile.in](mailto:support@timesmobile.in)

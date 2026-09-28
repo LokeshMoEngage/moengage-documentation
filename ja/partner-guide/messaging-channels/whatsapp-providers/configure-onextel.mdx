@@ -1,0 +1,85 @@
+---
+title: "OneXtel の設定"
+---
+
+# はじめに
+
+[OneXtel](https://www.onextel.com/) は、シームレスなエンドツーエンドのコミュニケーションソリューションを提供する大手 CPaaS（Communication Platform as a Service）プロバイダーです。同社の製品には、あらゆる規模の企業向けに最適化された SMS、Voice、WhatsApp、Chatbot、RCS、Email などのチャネルが含まれます。
+
+MoEngage は OneXtel とネイティブに連携しており、Flows やキャンペーンを通じて MoEngage からエンドユーザーに WhatsApp テンプレートを直接送信できます。これにより、自動メッセージやマーケティングキャンペーンのコミュニケーションチャネルとして WhatsApp を活用し、顧客エンゲージメントを高めることができます。
+
+<Info>
+  連携の前に、以下が揃っていることを確認してください。
+
+  - 有効な MoEngage アカウント
+  - WABA 番号（WhatsApp Business API 番号）
+</Info>
+
+## ステップ 1：Sender の設定
+
+OneXtel WhatsApp の Sender を設定するには、次の手順を実行します。
+
+### **ステップ 1.2 OneXtel から API キーを取得する**
+
+MoEngage を設定する前に、OneXtel ポータルで API キーを生成します。
+
+1. OneXtel ポータルアカウントにログインします。
+2. **API** セクションに移動します。
+3. **Show API Key** をクリックして、既存のキーを表示します。
+4. キーがない場合は、**Generate API Key** をクリックして新しいキーを作成します。
+   ![生成](/images/generate.png)
+
+### **ステップ 1.3 MoEngage で WhatsApp アウトバウンド Sender を設定する**
+
+MoEngage ダッシュボードで OneXtel の Sender を設定するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードで、**Settings** \> **WhatsApp** \> **Sender Configuration** に移動します。
+2. 左側のナビゲーションメニューで **OneXtel** をクリックし、**\+ Sender** をクリックします。
+3. Sender 設定ウィンドウで以下の詳細を入力します。
+   | **フィールド** | **必要な入力値／アクション** |
+   | --- | --- |
+   | **URL** | `https://mo.onexaura.com/moengage/whatsapp/outbound` を入力します。 |
+   | **WABA ID** | OneXtel ダッシュボードの **Channel** \> **WhatsApp** から取得します。 |
+   | **Authorization** | ステップ 1 で生成した API キーを貼り付けます。 |
+   | **WABA Number** | 登録済みの WhatsApp Business API 番号（OneXtel ダッシュボードから取得）を入力します。 |
+4. **Save** をクリックして設定を完了し、保存します。
+   ![保存](/images/save.png)
+   ![完了](/images/complete.png)
+
+## **ステップ 2：コールバックとインバウンドの設定**
+
+### **ステップ 2.1 OneXtel でコールバックを設定する**
+
+OneXtel で配信ステータストラッキング用のコールバックを設定するには、次の手順を実行します。
+
+1. OneXtel ダッシュボードで **Configuration** セクションに移動し、**Add New Callback** をクリックします。
+2. **Title** フィールドに適切なタイトルを入力します。
+3. **Channel** ドロップダウンリストで **WhatsApp** を選択し、**Callback Format Type** ドロップダウンで **MoEngage** を選択します。
+4. MoEngage の設定で使用したものと同じ API キーが選択されていることを確認します。
+5. **Request Configuration** セクションで、タイプとして **Delivery Notification** を選択し、HTTP Method として **POST** を選択します。
+6. **URL** フィールドに、MoEngage ダッシュボードからコピーしたコールバック URL を貼り付け、**Save** をクリックします。
+
+![URL](/images/url.png)
+
+### **ステップ 2.2 OneXtel でインバウンドメッセージとボタンクリックを設定する**
+
+顧客からのインバウンドメッセージとクイックリプライボタンのクリックイベントを受信するには、次の手順を実行します。
+
+1. OneXtel ダッシュボードで **Configuration** セクションに移動し、**Add New Callback** をクリックします。
+2. タイトルを入力し、チャネルとして **WhatsApp** を、コールバック形式タイプとして **MoEngage** を選択します。
+3. **Request Configuration** セクションで、タイプとして **Incoming** を選択し、HTTP Method として **POST** を選択します。
+4. **URL** フィールドに `https://mo.onexaura.com/moengage/whatsapp/inbound` を入力します。
+5. **Header** セクションまでスクロールし、次の属性を追加します。
+   - **Key**：`callback_url`
+   - **Value**：MoEngage ダッシュボードの Delivery Report（DLR）URL
+6. **Save** をクリックして設定を完了します。
+   ![設定](/images/configuration.png)
+   <Note>
+     **注：クイックリプライボタンのクリックのサポート** 
+     クイックリプライボタンのクリックをサポートするには、ステップ 4 で説明した手順と同じ手順を適用します。ただし、**Request Configuration** セクションで **Type** を **Button Click** に設定します（HTTP Method は **POST** のままです）。 
+     Inbound URL と Button Click URL は同一で、Header のキーと値も変わりません。
+   </Note>
+
+## 次のステップ
+
+テンプレートを追加したら、**Engage** \> **Campaigns** に移動して [WhatsApp キャンペーンを作成して開始](/ja/user-guide/campaigns-and-channels/whatsapp/create/create-a-whatsapp-campaign)します。

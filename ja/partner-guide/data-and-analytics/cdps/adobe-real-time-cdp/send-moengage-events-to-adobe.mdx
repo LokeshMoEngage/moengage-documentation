@@ -1,0 +1,477 @@
+---
+title: "MoEngage イベントを Adobe に送信する"
+---
+
+## はじめに
+
+この連携により、MoEngage Streams を介して MoEngage のキャンペーンイベントとユーザーアクションを Adobe Experience Platform の HTTP API にストリーミングし、Adobe Experience Platform (AEP) で統合された顧客プロファイルを作成できます。
+
+## 主な機能
+
+この連携により、次のことが可能になります。
+
+- MoEngage のキャンペーンイベント (メール開封、プッシュ通知、SMS 配信) をリアルタイムで送信する。
+- ユーザーアクションイベント (アプリイベント、カスタムイベント、行動データ) を MoEngage から AEP に送信する。
+- MoEngage のエンゲージメントデータを CRM、Web 解析、オフラインデータと組み合わせて、統合された顧客プロファイルを構築する。
+
+## アーキテクチャと Adobe Audience Manager の連携
+
+<Info icon="hub">
+  **Adobe Analytics ではなく AEP にストリーミングする理由**
+
+  この連携では、**AEP** を中心的な取り込みポイントとして使用します。データを Adobe Analytics に直接プッシュする従来の方法とは異なり、AEP へのストリーミングでは柔軟な **XDM (Experience Data Model)** 標準を使用します。
+
+  **Adobe Audience Manager (AAM) でこのデータを使用する方法:**
+
+  MoEngage のデータが AEP に取り込まれると、Real-Time Customer Profile が強化されます。その後、**Audience Manager Destination** を使用して、これらのセグメントを AAM と直接共有できます。これにより、AAM 内で MoEngage のオフライン/イベントデータと既存の Adobe Analytics の Web データを組み合わせて、高度なオーディエンスの統合を行うことができます。
+
+  実装の詳細については、Adobe の公式ドキュメントを参照してください: [**公式ガイド: Experience Platform Segment Sharing with Audience Manager →**](https://experienceleague.adobe.com/en/docs/audience-manager/user-guide/implementation-integration-guides/integration-experience-platform/aam-aep-audience-sharing)
+</Info>
+
+## ユースケース
+
+- **統合された顧客ビュー**: MoEngage のキャンペーンエンゲージメント (メール開封、プッシュクリック) を、Adobe Analytics の Web 行動や CRM のオフライン購入と組み合わせて、完全な顧客プロファイルを作成します。
+- **高度なセグメンテーション**: MoEngage のエンゲージメントデータと E コマースの取引データの両方を使用して、「過去 7 日間にプロモーションメールを開封したが購入していないユーザー」のようなセグメントを構築します。
+- **クロスチャネルのジャーニーオーケストレーション**: MoEngage キャンペーンへの非エンゲージメントに基づいて、Adobe Journey Optimizer のキャンペーンをトリガーします (例: メールを開封しなかった → 別のチャネルで SMS を送信)。
+- **キャンペーンパフォーマンス分析**: Data Lake で過去の MoEngage キャンペーンイベントをクエリして、パフォーマンスの傾向、A/B テストの結果、コホートの行動の経時変化を分析します。
+- **ID グラフの強化**: MoEngage のユーザー ID を Adobe ECID、CRM ID、メールアドレスと結び付けて、すべての顧客タッチポイントにわたって ID を解決します。
+
+<Warning icon="list-check">
+  **前提条件**
+
+  - Schemas、Datasets、Sources を管理する管理者権限を持つ Adobe Experience Platform。
+  - 既存の AEP の ID 名前空間と識別子についての理解。
+</Warning>
+
+<Info>
+  **連携のアプローチ**
+
+  - この連携では、AEP 環境を設定し、Streams を有効にするために特定の詳細を MoEngage と共有する必要があります。その後、MoEngage が AEP スキーマに一致する形式でイベントを送信するように Streams を設定します。
+  - MoEngage Streams は有料のアドオンです。
+</Info>
+
+## ステップ 1: ID 名前空間を特定する
+
+連携を設定する前に、MoEngage のデータを AEP の既存の顧客プロファイルと結び付けるために使用する ID 名前空間を特定します。
+
+### ステップ 1.1: 既存の ID 名前空間を確認する
+
+既存の ID 名前空間を確認するには、以下の手順を実行します。
+
+1. Adobe Experience Platform にログインします。
+2. **Identities** → **Browse** に移動します。
+3. 既存の ID 名前空間を確認します。
+4. プライマリ ID およびセカンダリ ID として使用する名前空間を特定します。
+
+### ID 名前空間の要件
+
+| ID タイプ | 要件 | 例 | 注意事項 |
+| --- | --- | --- | --- |
+| **プライマリ ID** | 必須 | CRM ID、Loyalty ID、Email | AEP の名前空間に存在している必要があります。**ID シンボル** (例: `lumaCrmId` ) を MoEngage と共有します。 |
+| **セカンダリ ID** | 任意 (推奨) | Email、Phone、Adobe ECID | 可能な場合は、Adobe の標準名前空間 (`Email`、`Phone`、`ECID`) を使用します。 |
+| **MoEngage User ID** | 推奨 | MoEngage User ID | MoEngage の内部ユーザー ID をトラッキングする場合は、シンボル `moengageUserId` を持つカスタム名前空間を作成します。 |
+
+<Info>
+  Streams のセットアップをリクエストする際は、以下の ID 名前空間の詳細を MoEngage と共有する必要があります。
+
+  - プライマリ ID シンボル: 例: lumaCrmId、loyaltyId
+  - セカンダリ ID シンボル: 例: Email、Phone
+  - MoEngage User ID シンボル (作成した場合): moengageUserId
+
+  MoEngage は、identityMap で MoEngage のユーザー属性をこれらの ID 名前空間にマッピングするように Streams を設定します。
+</Info>
+
+## ステップ 2: XDM スキーマを作成する
+
+XDM スキーマは、AEP における MoEngage イベントデータの構造を定義します。推奨されるスキーマ構造を使用するか、要件に基づいてカスタマイズできます。
+
+#### 推奨されるスキーマ構造を使用する (すぐに使用可能)
+
+MoEngage は、MoEngage Streams ですぐに使用できるサンプルスキーマ構造を提供しています。この構造を再現すれば、最小限の設定で連携が機能します。
+
+#### サンプルスキーマ構造
+
+次のフィールド構造を持つ XDM ExperienceEvent スキーマを作成します。
+
+| フィールドパス | タイプ |
+| --- | --- |
+| `_id` | String |
+| `timestamp` | DateTime |
+| `eventType` | String |
+| `eventMergeId` | String |
+| `producedBy` | String |
+| `identityMap` | Map |
+| `_{tenant}.source` | String |
+| `_{tenant}.eventName` | String |
+| `_{tenant}.eventCode` | String |
+| `_{tenant}.appName` | String |
+| `_{tenant}.campaignId` | String |
+| `_{tenant}.campaignName` | String |
+| `_{tenant}.campaignType` | String |
+| `_{tenant}.campaignChannel` | String |
+| `_{tenant}.eventAttributesJson` | Map |
+| `_{tenant}.userAttributesJson` | Map |
+| `_{tenant}.deviceAttributesJson` | Map |
+
+**注**: `_{tenant}` は、組織のテナント名前空間 (例: `_yourorgname`) を表します。
+
+### ステップ 2.2: AEP でスキーマを作成する
+
+AEP でスキーマを作成するには、以下の手順を実行します。
+
+1. **Schemas** → **Browse** に移動します。
+2. **Create schema** → **XDM ExperienceEvent** をクリックします。
+3. **Name** ボックスに **MoEngage Events** と入力します。
+4. 以下の標準フィールドグループが存在することを確認します。
+   - XDM ExperienceEvent
+   - IdentityMap
+5. **MoEngage Event Details** という名前のカスタムフィールドグループを作成します。
+6. 上の表に記載されているフィールドを、テナント名前空間の下に追加します。
+7. スキーマをプロファイルで有効にするには、**Profile** トグルをオンにします。
+8. **Save** をクリックします。\
+   <img src="/images/step2.2.png" alt="ステップ 2.2" />
+
+### ステップ 2.4: スキーマ JSON をダウンロードする
+
+スキーマを作成して保存したら、参照用にスキーマ JSON をダウンロードします。
+
+1. Schema Editor でスキーマを開きます。
+2. 右上隅にある **More** (三点) メニューをクリックします。
+3. **Copy schema structure** または **Download JSON** を選択します。
+4. このファイルを保存します。MoEngage サポートと連携する際に必要になる場合があります。
+
+### ステップ 2.5: スキーマの詳細を控える
+
+スキーマを作成したら、以下の詳細を控えておきます。
+
+- **Schema ID**: スキーマの詳細で確認できます (例: `https://ns.adobe.com/{TENANT}/schemas/{SCHEMA_ID}`)
+- **Tenant ID**: 組織のテナント名前空間 (例: `_yourorgname`)。
+
+## ステップ 3: データセットを作成する
+
+データセットには、XDM スキーマに準拠したデータが保存されます。データセットを作成するには、以下の手順を実行します。
+
+1. **Datasets** → **Browse** に移動します。
+2. **Create dataset from schema** をクリックします。
+3. 作成した `MoEngage Events` スキーマを選択します。
+4. 以下の情報でデータセットを設定します。
+   - **Name**: `MoEngage Event Data`
+   - **Description**: Campaign events and user actions from the MoEngage Streams API.
+5. **Finish** をクリックします。
+6. 新しいデータセットを開き、**Profile** トグルをオンにして Real-Time Customer Profile で有効にします。\
+   <img src="/images/step3.png" alt="ステップ 3" />
+
+**Dataset ID を保存する**: これは HTTP API の設定に必要です (データセットの詳細で確認できます。例: `690da33230e4cd0adff86e57`)。
+
+## ステップ 4: HTTP API ストリーミングソースを設定する
+
+HTTP API ソースは、AEP にデータを送信するためのストリーミングエンドポイントを提供します。
+
+### ステップ 4.1: 認証方法を選択する
+
+HTTP API ソース接続を作成する前に、次のいずれかの認証方法を選択します。
+
+1. 認証なし
+2. OAuth 2.0 認証
+
+### ステップ 4.2: HTTP API ソース接続を作成する
+
+HTTP API ソース接続を作成するには、以下の手順を実行します。
+
+1. **Sources** → **Catalog** に移動します。
+2. **Streaming** カテゴリで **HTTP API** を探します。
+3. **Add data** をクリックします。
+4. アカウントの詳細を設定します。
+   - **Account name**: MoEngage Streams Connection.
+   - **Description**: HTTP API endpoint for streaming MoEngage events.
+   - **Authentication**: 先ほど選択した方法を選択します。
+5. **Connect** to source をクリックします。 <img src="/images/step4.1.png" alt="ステップ 4.1" />
+
+### ステップ 4.3: OAuth 2.0 認証情報を設定する (選択した場合)
+
+前のステップで Authenticated を選択した場合は、Adobe Developer Console で OAuth 2.0 認証情報を設定し、以下の手順を実行する必要があります。
+
+### ステップ 4.4: サービスアカウント連携を作成する
+
+サービスアカウント連携を作成するには、以下の手順を実行します。
+
+1. [Adobe Developer Console](https://developer.adobe.com/console) に移動します。
+2. 組織を選択するか、新しいプロジェクトを作成します。
+3. **Add to Project** → **API** をクリックします。
+4. API リストから **Adobe Experience Platform** を選択します。
+5. 認証情報タイプとして **OAuth Server-to-Server** を選択します。
+6. 必要な製品プロファイルと権限を設定します。
+7. **Save configured API** をクリックします。
+
+#### OAuth 認証情報をコピーする
+
+連携を作成したら、Adobe Developer Console から以下の認証情報をコピーします。
+
+| 認証情報 | 確認場所 |
+| --- | --- |
+| **Client ID** | Developer Console → Your Project → Credentials → OAuth Server-to-Server |
+| **Client Secret** | Developer Console → Your Project → Credentials → OAuth Server-to-Server |
+| **Organization ID (IMS Org ID)** | Developer Console → Your Project → Overview |
+| **Technical Account ID** | Developer Console → Your Project → Credentials → OAuth Server-to-Server |
+| **Scopes** | Developer Console → Your Project → Credentials → OAuth Server-to-Server |
+
+### ステップ 4.5: データフローを設定する
+
+データフローを設定するには、以下の手順を実行します。
+
+1. データフローの設定で、以下の詳細を入力します。
+   - Dataflow name: `MoEngage Event Stream`.
+   - Description: Streams MoEngage campaign and user events to AEP.\
+     **注**: **XDM compatible** は選択しないでください。
+2. **Select dataset**: `MoEngage Event Data`
+3. **Next** をクリックしてマッピングに進みます。 <img src="/images/step-4.4.png" alt="ステップ 4.4" />
+
+<Info>
+  **XDM compatible モードの制限事項**
+
+  MoEngage は独自の形式でデータを送信し、マッピングインターフェイスを使用してそのデータを XDM スキーマ構造に変換するため、"XDM compatible" は選択しません。これにより、フィールドマッピングをより柔軟に制御できます。
+</Info>
+
+## ステップ 5: フィールドマッピングを設定する
+
+HTTP API ソースを作成すると、AEP にマッピングインターフェイスが表示され、MoEngage のフィールドを XDM スキーマにマッピングできます。フィールドマッピングに進む前に、スキーマ構造を MoEngage と共有するか、自分でテストペイロードを生成する必要があります。
+
+### ステップ 5.1: スキーマのサンプルを準備する
+
+スキーマ構造に基づいてサンプルペイロードを生成し、マッピング設定を検証します。
+
+1. ステップ 2 でダウンロードしたスキーマ JSON を使用して、以下を含むサンプルイベントペイロードを生成します。
+   - 必須の XDM フィールドすべて (`_id`、`timestamp`、`identityMap`)
+   - MoEngage データ用のカスタムテナントフィールド
+   - 設定した名前空間の ID マッピング
+2. **MoEngage と共有する**: このサンプルペイロードをスキーマ JSON とともに MoEngage サポートに送信します。サポートがスキーマ構造に適したマッピング CSV ファイルを生成します。
+
+![ステップ 5.1](/images/step-5.1-bindhu.png)
+
+<Info>
+  **MoEngage によるマッピング CSV の生成**
+
+  MoEngage サポートは、スキーマ構造と ID 名前空間の設定に合わせたカスタムマッピング CSV ファイルを作成します。これにより、MoEngage のイベントデータと AEP スキーマ間の正確なフィールドマッピングが保証されます。
+</Info>
+
+<Tabs>
+  <Tab title="(推奨) MoEngage が提供するマッピング CSV">
+    ### ステップ 5.2: MoEngage が提供するマッピング CSV ファイルを使用する (推奨)
+
+    本番環境へのデプロイでは、MoEngage サポートにマッピング CSV ファイルをリクエストします。
+
+    1. マッピングインターフェイスに、自動マッピングされないフィールドのエラーメッセージが表示されます。
+    2. ゴミ箱アイコンをクリックして、エラーの原因となっているフィールドを削除します。
+    3. MoEngage サポートに連絡し、以下を提供します。
+       - スキーマ JSON ファイル (ステップ 2 で取得)
+       - 必要なフィールドを含むサンプルイベントペイロード
+       - ID 名前空間のシンボル (プライマリおよびセカンダリ)
+       - テナント名前空間 (例: `_yourorgname`)
+    4. MoEngage が、スキーマに合わせたカスタムの `moengage-aep-mapping.csv` ファイルを生成します。
+    5. 受け取ったら、CSV に正しいマッピングが含まれていることを確認します。
+       - テナント名前空間がご自身のもの (例: `_yourorgname`) と一致している必要があります。
+       - ID 名前空間のシンボルが設定 (例: `lumaCrmId`、`Email`、`Phone`) と一致している必要があります。
+       - フィールドパスがスキーマ構造と一致している必要があります。
+    6. AEP のマッピングインターフェイスで **Import** をクリックし、CSV ファイルをアップロードします。
+    7. インポートされたマッピングを確認し、すべてのフィールドが正しくマッピングされていることを確認します。
+    8. **Next** をクリックして続行します。
+
+    <Warning>
+      **インポート前に確認する**
+
+      インポートする前に必ずマッピング CSV ファイルを確認し、以下を確認してください。
+
+      - テナント名前空間が AEP の組織と一致していること (`_exchangesandboxbravo` などのサンプル値はすべて置き換えてください)。
+      - ID シンボルが環境に対して正しいこと。
+      - タイムスタンプ変換とデータ変換の数式が含まれていること。
+    </Warning>
+  </Tab>
+  <Tab title="ローカルテスト用の手動マッピング">
+    ### ステップ 5:3 ローカルテスト用の手動マッピング
+
+    MoEngage サポートに依頼する前にローカルで連携をテストする場合は、以下のフィールドマッピングを手動で作成できます。
+
+    1. マッピングインターフェイスで、MoEngage のソースフィールドを XDM の宛先フィールドにマッピングします。
+    2. 設定する主なマッピング:
+       - **id** → `_id`
+       - **event\_uuid** → `eventMergeId`
+       - **数式を使用**: `dformat((time * 1000), "yyyy-MM-dd'T'HH:mm:ssX")` → `timestamp`
+       - **event\_code** → `eventType` (XDM イベントタイプ用のデコード数式を使用)
+       - **identities.**{yourPrimaryId} → `identityMap.{yourNamespace}[0].id` (`primary: true` を指定)
+       - `event_attributes`、`user_attributes`、`device_attributes` の追加フィールドをテナントフィールドにマッピングします
+    3. Postman でマッピングをテストし (ステップ 6)、データの取り込みを検証します。
+    4. 動作するマッピングをドキュメント用に CSV としてエクスポートします。
+    5. 検証後、本番環境の Streams 設定のために以下を MoEngage サポートに送信します。
+       - テスト済みのマッピング CSV
+       - 正常に動作したサンプルテストペイロード
+       - スキーマ JSON
+    6. **Next** をクリックして続行します。
+
+    <Warning>
+      **マッピングに関する重要な注意事項**
+
+      - **タイムスタンプの変換**: MoEngage は Unix タイムスタンプ (秒) を送信します。数式 `dformat((time * 1000), "yyyy-MM-dd'T'HH:mm:ssX")` を使用して ISO 8601 形式に変換します。
+      - **プライマリ ID**: `primary: true` を持つ ID が 1 つだけであることを確認してください。その他はすべて `primary: false` にする必要があります。
+      - **イベントタイプのマッピング**: デコード関数を使用して、MoEngage のイベントコードを標準の XDM イベントタイプにマッピングします (例: `MOE_EMAIL_SENT` → `directMarketing.emailSent`)。
+    </Warning>
+  </Tab>
+</Tabs>
+
+### データフローのセットアップを完了する
+
+データフローを設定すると、次のようなストリーミングエンドポイント URL が発行されます。
+
+```text Endpoint URL wrap
+https://dcs.adobedc.net/collection/{UNIQUE_COLLECTION_ID}
+```
+
+**この URL をコピーして保存してください** - Streams の設定のために MoEngage と共有する必要があります。
+
+<Warning>
+  **マッピングに関する重要な注意事項**
+
+  - **タイムスタンプの変換**: MoEngage は Unix タイムスタンプ (秒) を送信します。数式 `dformat((time * 1000), "yyyy-MM-dd'T'HH:mm:ssX")` を使用して ISO 8601 形式に変換します。
+  - **プライマリ ID**: `primary: true` を持つ ID が 1 つだけであることを確認してください。その他はすべて `primary: false` にする必要があります。
+  - **イベントタイプのマッピング**: デコード関数を使用して、MoEngage のイベントコードを標準の XDM イベントタイプにマッピングします (例: `MOE_EMAIL_SENT` → `directMarketing.emailSent`)。
+</Warning>
+
+## ステップ 6: Postman でテストする
+
+MoEngage Streams を有効にする前に、サンプルデータを使用してストリーミングエンドポイントをテストし、スキーマの検証とデータの取り込みが適切に行われることを確認します。
+
+### ステップ 6.1: テストペイロードを準備する
+
+MoEngage Streams の形式でテストペイロードを作成します。
+
+**テストペイロード JSON**
+
+```json
+{
+  "app_name": "Your App Name",
+  "source": "MOENGAGE",
+  "moe_request_id": "test_request_001",
+  "id": "test_event_001",
+  "time": 1731421200,
+  "event_uuid": "unique_event_id_001",
+  "event_source": "MOENGAGE",
+  "event_name": "Email Sent",
+  "event_code": "MOE_EMAIL_SENT",
+  "event_type": "CAMPAIGN_EVENT",
+  "identities": {
+    "externalId": "customer_123",
+    "moengageUserId": "moe_user_456",
+    "email": "test@example.com",
+    "phone": "+1234567890"
+  },
+  "event_attributes": {
+    "campaign_id": "camp_001",
+    "campaign_name": "Welcome Campaign",
+    "campaign_type": "Event Trigger",
+    "campaign_channel": "Email"
+  },
+  "user_attributes": {
+    "subscription_tier": "premium",
+    "preferred_language": "en"
+  },
+  "device_attributes": {
+    "platform": "iOS",
+    "os_version": "16.2"
+  }
+}
+```
+
+### ステップ 6.2: Postman でテストリクエストを送信する
+
+Postman でテストリクエストを送信するには、以下の手順を実行します。
+
+1. Postman を開き、新しい POST リクエストを作成します。
+2. **URL** ボックスに `{YOUR_STREAMING_ENDPOINT}?syncValidation=true` と入力します。
+3. ヘッダー `Content-Type: application/json` を追加します。
+4. テストペイロードを Body (RAW JSON) に貼り付けます。
+5. identities セクションを実際の ID 値で更新します。
+6. **Send** をクリックします。
+
+#### 想定されるレスポンス
+
+取り込みが成功すると、以下が返されます。
+
+**成功レスポンス JSON**
+
+```json
+{
+  "inletId": "{INLET_ID}",
+  "xactionId": "{TRANSACTION_ID}",
+  "receivedTimeMs": 1731421250000,
+  "synchronousValidation": {
+    "status": "pass"
+  }
+}
+```
+
+### ステップ 6.3: AEP でデータを確認する
+
+1. **Datasets** → **MoEngage Event Data** に移動します。
+2. **Preview dataset** をクリックします。
+3. テストイベントが正しいフィールド値で表示されていることを確認します。
+4. **Profiles** → **Browse** を確認して、プロファイルが作成または更新されたことを確認します。
+
+<Check>
+  **テストペイロードを保存する**
+
+  検証済みのテストペイロードは保管しておいてください。Streams のセットアップをリクエストする際に MoEngage と共有する必要があります。このペイロードは、AEP の設定で機能する正確な形式と ID マッピングを示すものです。
+</Check>
+
+## ステップ 7: Streams のセットアップのために MoEngage と詳細を共有する
+
+連携のテストが正常に完了したら、ワークスペースで Streams を有効にするために、以下の詳細を MoEngage に提供します。
+
+### MoEngage と共有する情報
+
+| 項目 | 説明 | 確認場所 |
+| --- | --- | --- |
+| **ストリーミングエンドポイント URL** | ステップ 4 で取得した HTTP API ストリーミング URL | Sources → HTTP API → Dataflow details |
+| **スキーマ JSON** | ステップ 2 でダウンロードしたスキーマ構造 | Schema Editor → Copy schema structure |
+| **プライマリ ID 名前空間シンボル** | プライマリ ID シンボル (例: `lumaCrmId`、`loyaltyId`) | Identities → Browse → Identity symbol 列 |
+| **セカンダリ ID 名前空間シンボル** | Email、Phone、またはその他のセカンダリ ID | Identities → Browse |
+| **MoEngage User ID 名前空間** | `moengageUserId` (作成した場合) | Identities → Browse |
+| **プライマリ ID のユーザー属性マッピング** | プライマリ ID の値を含む MoEngage のユーザー属性 | MoEngage のユーザープロファイル設定 |
+| **検証済みのテストペイロード** | Postman でのテストに合格したサンプルペイロード | ステップ 6 の Postman テスト |
+| **認証方法** | 認証なしまたは OAuth 2.0 | ステップ 4 の設定 |
+| **OAuth 2.0 認証情報** (OAuth 認証を使用する場合) | Adobe Developer Console から取得した完全な OAuth 認証情報 | Adobe Developer Console → Your Project → Credentials |
+| **テナント名前空間** | 組織のテナント ID (例: `_yourorgname`) | Schema editor → カスタムフィールドパス |
+
+### OAuth 2.0 認証情報の詳細 (OAuth を使用する場合)
+
+ステップ 4 で OAuth 2.0 認証を設定した場合は、以下の認証情報を MoEngage に提供します。
+
+| OAuth 認証情報 | 共有する値 | 形式の例 |
+| --- | --- | --- |
+| **Client ID** | Adobe Developer Console の OAuth Client ID | `abc123def456ghi789jkl012` |
+| **Client Secret** | Adobe Developer Console の OAuth Client Secret | `p8e-XYZ...ABC123` |
+| **Organization ID (IMS Org ID)** | Adobe の組織 ID | `1234567890ABCDEF@AdobeOrg` |
+| **Technical Account ID** | サービスアカウントの識別子 | `ABC123@techacct.adobe.com` |
+| **Scopes** | 付与された API 権限 (カンマ区切り) | `openid, AdobeID, read_organizations` |
+| **Token Endpoint** | Adobe IMS トークンエンドポイント URL | `https://ims-na1.adobelogin.com/ims/token/v3` |
+
+### 連携リクエストを送信する
+
+MoEngage のカスタマーサクセスマネージャーに連絡し、上記のすべての詳細を共有してください。MoEngage は以下を実施します。
+
+1. 設定とテストペイロードを確認します。
+2. スキーマ用のマッピング CSV ファイルを生成または検証します (提供されていない場合)。
+3. 正しい形式でデータを送信するように Streams を設定します。
+4. 名前空間の設定に基づいて ID マッピングを設定します。
+5. ワークスペースで Streams を有効にします。
+6. 連携が稼働を開始したらお知らせします。
+
+<Info>
+  **MoEngage Streams のドキュメント**
+
+  MoEngage Streams の設定と利用可能なイベントタイプの詳細については、[MoEngage Streams のドキュメント](https://developers.moengage.com/hc/en-us/articles/4952761690644-MoEngage-Streams)を参照してください。
+</Info>
+
+<Info icon="headset">
+  **お困りの場合**
+
+  この連携に関するサポートについては、MoEngage のカスタマーサクセスマネージャーにお問い合わせください。Adobe Experience Platform のサポートについては、[Adobe Experience League Community](https://experienceleaguecommunities.adobe.com/) にアクセスしてください。
+</Info>

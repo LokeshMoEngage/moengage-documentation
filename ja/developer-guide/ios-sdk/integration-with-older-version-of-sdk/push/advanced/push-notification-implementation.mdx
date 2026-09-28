@@ -1,0 +1,526 @@
+---
+title: "プッシュ通知の実装"
+description: "MoEngage を使用して、iOS アプリのターゲットと Notification Service Extension にプッシュ通知を実装します。"
+---
+
+<Check>
+プッシュ通知をテストする前に、[APNS 証明書/PEM ファイル](https://developers.moengage.com/hc/en-us/articles/4403944011028)に記載されているとおり、APNS 証明書を作成して MoEngage ダッシュボードにアップロードしていることを確認してください。
+</Check>
+
+# アプリターゲットの実装
+
+# 設定の変更
+
+## Capabilities タブの変更
+
+まず、**App Target** を選択し、**Capabilities** を選択して、以下の画像に示すように変更を行います。
+
+![Xcode でアプリターゲットの App Groups、Background Modes、Push Notifications の Capability を有効にした状態](/images/ios-legacy-push-notification-implementation-1.png)
+
+<Info>
+**App Group ID の推奨事項**
+
+MoEngage 用に、`group.{app bundle id}.moengage` という形式で別の App Group ID を設定することを推奨します。また、MoEngage を使用しているすべてのターゲットで同じ App Group ID が有効になっていることを確認してください。
+</Info>
+
+1. アプリターゲットで App Groups を **ON** にし、App Group ID のいずれかを有効にします。App Group ID がない場合は作成してください。App Group の名前は `group.{your_bundle_id}.MoEngage` とする必要があります。
+2. Background mode を **ON** にし、**Remote Notification** を設定/有効にします。
+3. アプリの **Push Notifications** Capability を **ON** にします。
+
+<Info>
+**Remote Notification** のバックグラウンドモードを有効にすると、ユーザーがプッシュ通知を無効にしているデバイスでもアンインストールをトラッキングできるようになります。
+</Info>
+
+## UserNotifications フレームワークの追加
+
+アプリのターゲットで、**Linked Frameworks and Libraries** に **UserNotifications** フレームワークを追加し、**Optional** に設定します。
+
+![Linked Frameworks and Libraries に Optional として追加された UserNotifications フレームワーク](/images/ios-legacy-push-notification-implementation-2.png)
+
+# アプリターゲットでのコードの変更
+
+## SDK への App Group ID の指定
+
+以下に示すように、SDK の初期化時に、**Capabilities** で選択した App Group ID を MOSDKConfig インスタンスに指定します。
+
+<CodeGroup>
+```swift Swift
+let sdkConfig = MOSDKConfig(withAppID: "MoEngage Workspace ID")
+sdkConfig.appGroupID = "App Group ID"
+```
+
+```objectivec Objective-C
+MOSDKConfig* sdkConfig = [[MOSDKConfig alloc] initWithAppID:"MoEngage Workspace ID"];
+sdkConfig.appGroupID = @"App Group ID";
+```
+
+</CodeGroup>
+
+## SDK での AppDelegate スウィズリング
+
+<Warning>
+**Segment と MoEngage の統合**
+
+Segment による SDK の初期化に遅延があるため、[Segment 統合](https://developers.moengage.com/hc/en-us/articles/4405093164692)では **AppDelegate スウィズリング**が確実に機能しないことに注意してください。そのため、プッシュ関連のすべてのコールバックで MoEngage SDK のメソッドを呼び出すようにしてください。
+</Warning>
+
+AppDelegate スウィズリングは、iOS アプリで AppDelegate クラスのメソッドをインターセプトするために使用されます。これにより、サードパーティのライブラリや SDK がアプリに統合され、開発者による手動のセットアップを必要とせずに、プッシュ通知やディープリンクなどの特定のシステムとのやり取りを処理できます。
+
+**デフォルトの動作**
+
+デフォルトでは、MoEngage SDK はプッシュ通知に関連するすべてのコールバックを取得するために **AppDelegate** クラスをスウィズリングし、さらに **UserNotificationCenter** のデリゲートメソッドにもメソッドスウィズリングを適用しています。これは SDK の統合を容易にするためのもので、[SDK バージョン 5.0.0](https://developers.moengage.com/hc/en-us/articles/4404198236564-Change-Log#v5-0-0-0-26) から導入されています。
+
+**MoEngage SDK での AppDelegate スウィズリングの無効化**
+
+MoEngage SDK にコールバックを暗黙的に処理させたくない場合は、AppDelegate スウィズリングを無効にする必要があります。スウィズリングを無効にするには、アプリの Info.plist ファイルに MoEngageAppDelegateProxyEnabled フラグを追加し、bool 値 NO に設定します。
+
+以下のセクションでは、プッシュ通知に関連するコールバックを受け取ったときに呼び出す SDK のメソッドを紹介しています。スウィズリングが有効な場合、そのほとんどは不要です。その旨は説明に記載しています。
+
+## プッシュ通知の登録
+
+UserNotificationCenter のデリゲートメソッドを実装しているクラスが `UNUserNotificationCenterDelegate` に準拠していることを確認し、さらに以下に示すように、アプリの起動後に `application:DidFinishLaunchingWithOptions:` で `UNUserNotificationCenterDelegate` を設定します。`(この例では、AppDelegate が UserNotificationCenter のデリゲートに設定されています)`：
+
+![AppDelegate で UNUserNotificationCenter のデリゲートを設定する](/images/ios-legacy-push-notification-implementation-3.png)
+
+以下に示すように、SDK の `registerForRemoteNotificationWithCategories:` を呼び出して、リモート通知の登録を開始します。
+
+<CodeGroup>
+```swift Swift
+MoEngage.sharedInstance().registerForRemoteNotification(withCategories: nil, withUserNotificationCenterDelegate: self)
+```
+
+```objectivec Objective-C
+[[MoEngage sharedInstance] registerForRemoteNotificationWithCategories:nil withUserNotificationCenterDelegate:self];
+```
+
+</CodeGroup>
+
+プッシュの登録後、以下のコールバックメソッドが呼び出されます。**スウィズリングを無効にしている場合は、** 以下に示すように、コールバックに対応する MoEngage SDK のメソッドを呼び出します。
+
+<CodeGroup>
+```swift Swift
+//Remote notification Registration callback methods
+func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+  //Call only if MoEngageAppDelegateProxyEnabled is NO
+  MoEngage.sharedInstance().setPushToken(deviceToken)
+}
+
+func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+  //Call only if MoEngageAppDelegateProxyEnabled is NO
+  MoEngage.sharedInstance().didFailToRegisterForPush()
+}
+```
+
+```objectivec Objective-C
+//Remote notification Registration callback methods
+- (void)application:(UIApplication*)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData*)deviceToken {
+  //Call only if MoEngageAppDelegateProxyEnabled is NO
+  [[MoEngage sharedInstance] setPushToken:deviceToken]
+}
+
+-(void)application:(UIApplication *)application didFailToRegisterForRemoteNotificationsWithError:(NSError *)error {
+  //Call only if MoEngageAppDelegateProxyEnabled is NO
+  [[MoEngage sharedInstance]didFailToRegisterForPush];
+}
+
+//This method is for getting the types of notifications that app may use 
+-(void)application:(UIApplication *)application didRegisterUserNotificationSettings:(UIUserNotificationSettings *)notificationSettings{
+  //Call only if MoEngageAppDelegateProxyEnabled is NO
+  [[MoEngage sharedInstance]didRegisterForUserNotificationSettings:notificationSettings];
+}
+```
+
+</CodeGroup>
+
+<Info>
+**通知アクション**
+
+通知アクションをサポートするために、カテゴリー（**UNNotificationCategory**）のセットを送信できます。通知アクションの詳細については、[こちら](https://developers.moengage.com/hc/en-us/articles/4403961980308)を参照してください。
+</Info>
+
+## プッシュ通知受信時のコールバックメソッド：
+
+以下は、プッシュ通知を受信したときにアプリが受け取るコールバックです。**スウィズリングを無効にしている場合は、** 以下に示すように、通知受信のコールバックで MoEngage SDK のメソッドの呼び出しを含めてください。
+
+<CodeGroup>
+```swift Swift
+// MARK:- UserNotifications Framework callback method
+@available(iOS 10.0, *)
+func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse,
+withCompletionHandler completionHandler: @escaping () -> Void) {
+    
+    //Call only if MoEngageAppDelegateProxyEnabled is NO
+    MoEngage.sharedInstance().userNotificationCenter(center, didReceive: response)
+    
+    //Custom Handling of notification if Any
+    let pushDictionary = response.notification.request.content.userInfo
+    print(pushDictionary)
+    
+    completionHandler();
+}
+
+@available(iOS 10.0, *)
+func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification,
+withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    
+    //This is to only to display Alert and enable notification sound
+    completionHandler([.sound,.alert])
+    
+}
+
+// MARK:- Remote notification received callback method for iOS versions below iOS10
+func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any]) {
+    
+    //Call only if MoEngageAppDelegateProxyEnabled is NO
+    MoEngage.sharedInstance().didReceieveNotificationinApplication(application, withInfo: userInfo)
+  
+}
+```
+
+```objectivec Objective-C
+// UserNotifications Framework Callback for iOS10 and above
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+didReceiveNotificationResponse:(UNNotificationResponse *)response
+         withCompletionHandler:(void (^)())completionHandler{
+    
+           //Call only if MoEngageAppDelegateProxyEnabled is NO       
+           [[MoEngage sharedInstance] userNotificationCenter:center didReceiveNotificationResponse:response];
+           
+           //Custom Handling of notification if Any  
+           completionHandler();
+}
+
+- (void)userNotificationCenter:(UNUserNotificationCenter *)center
+       willPresentNotification:(UNNotification *)notification
+         withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler{
+           
+           //This is to only to display Alert and enable notification sound
+           completionHandler((UNNotificationPresentationOptionSound
+                       | UNNotificationPresentationOptionAlert ));
+}
+
+//Remote notification received callback method for iOS versions below iOS10
+- (void) application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)userInfo {
+            
+  //Call only if MoEngageAppDelegateProxyEnabled is NO
+  [[MoEngage sharedInstance]didReceieveNotificationinApplication:application withInfo:userInfo];
+  
+}
+```
+
+</CodeGroup>
+
+メソッド ***userNotificationCenter:willPresentNotification:withCompletionHandler:*** は、アプリがフォアグラウンドで通知を受信したときに呼び出されます。ここでは、完了ハンドラーで、アプリが通知を受信したことをユーザーにどのように知らせるかを指定できます。
+
+メソッド ***userNotificationCenter:didReceiveNotificationResponse:withCompletionHandler*** は、アプリがユーザーからの応答を受け取ったときに呼び出されます。応答には、通知の**デフォルトのクリック**、通知の**閉じる操作**、または UNUserNotificationCategory を使用して実装されたその他の**カスタムアクション**があります。ここで、MoEngage クラスの ***userNotificationCenter:didReceiveNotificationResponse:*** を呼び出します。
+
+<Info>
+* ***userNotificationCenter:didReceiveNotificationResponse:withCompletionHandler*** が実装されている場合、ユーザーが通知をクリックしたときに呼び出されるのはこのメソッドのみです。そのため、iOS 10 では、カスタムハンドラーを application:didReceiveRemoteNotification: ではなくここに含めてください。
+* ディープリンクを実装する際は、アプリをホワイトリストに登録するために、Info.plist の **LSApplicationQueriesSchemes** 配列にアプリの URL スキームを追加していることを確認してください。これを行わないと、iOS 9 以降ではディープリンクが機能しません。
+</Info>
+
+# バッジリセットの無効化
+
+デフォルトでは、SDK はアプリを起動するたびに通知バッジの数を **0** に設定し、これによりデバイスの通知センターの通知も消去されます。アプリの起動後も通知を保持したい場合は、以下のメソッドを呼び出してバッジリセットを無効にします。
+
+<CodeGroup>
+```swift Swift
+MoEngage.sharedInstance().setDisableBadgeReset(true)
+```
+
+```objectivec Objective-C
+[[MoEngage sharedInstance] setDisableBadgeReset:true];
+```
+
+</CodeGroup>
+
+# 通知のカスタムサウンド
+
+アプリの通知にカスタムの着信音を設定できます。iOS プラットフォームは、カスタム通知音として .aiff、.caf、.wav ファイルをサポートしています。そのためには、着信音のサウンドファイルがアプリバンドルに含まれていることを確認してください。その後、以下に示すように、ダッシュボードでキャンペーンを作成する際に Notification Sound（Rich Content セクション内）にサウンドのファイル名を指定すると、機能するようになります。
+
+![キャンペーン作成フォームの Rich Content セクションにある Notification Sound フィールド](/images/ios-legacy-push-notification-implementation-4.png)
+
+# サイレントプッシュの処理
+
+アンインストールのトラッキング（[ダッシュボードの設定](https://help.moengage.com/hc/en-us/articles/360043026012-Uninstall-Tracking)でオプトインしている場合）には、サイレントプッシュを利用しています。そのために、当社のシステムはアプリのユーザーベース全体にサイレントプッシュを送信します。MoEngage からサイレントプッシュとして送信されるプッシュペイロードは、次のようになります。
+
+<CodeGroup>
+```json JSON
+{
+    "aps" : {
+        "content-available" : 1
+    },
+    "moengage" : {
+        "silentPush" : 1
+    }
+}
+```
+
+</CodeGroup>
+
+
+`moengage` 内の `silentPush` キーを確認し、これらのサイレントプッシュの場合のアプリの起動と通知受信のコールバックを処理するようにしてください。
+
+<Info>
+**サイレントプッシュのテスト**
+
+サイレントプッシュのフローをテストするには、[アンインストールのトラッキング](/ja/user-guide/settings/analytics/uninstall-tracking)を参照してください。
+</Info>
+
+# Notification Service Extension ターゲットの実装
+
+# プロジェクトに Notification Service Extension を追加する理由
+
+iOS 10 のリリース後、新しい `UserNotifications` および `UserNotificationsUI` フレームワークの導入により、通知は全面的に刷新されました。これに伴い Notification Service App Extension が導入され、次の用途に使用できます。
+
+1. **通知へのメディアサポートの追加：** iOS 10 以降、Apple は通知に画像、GIF、オーディオ、ビデオファイルを追加する機能を提供しており、これは Notification Service Extension を使用して実現できます。
+2. **Inbox 機能のサポート：** Notification Service Extension は、受信した通知を保存し、後で App Inbox に表示するためにも使用されます。
+3. **通知バッジ数の更新：** MoEngage は、Extension を利用して通知バッジ数を更新しており、通知ペイロードでバッジを送信しません。
+4. **通知インプレッションのトラッキング：** Notification Service Extension を使用して、デバイスが通知を受信したかどうかをトラッキングできます。
+
+# Notification Service Extension をセットアップするには、以下の手順に従ってください。
+
+## 1. Notification Service Extension ターゲットの作成：
+
+![Xcode で新しいターゲットを追加する際に Notification Service Extension テンプレートを選択する](/images/ios-legacy-push-notification-implementation-5.png)
+
+Extension ターゲットの名前と、使用するプログラミング言語を設定します：![Xcode で Notification Service Extension ターゲットに名前を付け、言語を選択する](/images/ios-legacy-push-notification-implementation-6.png)
+
+ターゲットが作成されたら、プロンプトが表示された際に Extension のスキームをアクティブにします。その後、Extension がプロジェクトに追加され、作成時に指定した Extension 名のクラスと、それに関連付けられた .plist ファイルが表示されます。
+
+## 2. Push Notification Capability の有効化
+
+次に、作成した Notification Service Extension で Push Notifications Capability が有効になっていることを確認します。
+
+![Notification Service Extension ターゲットで有効にした Push Notifications Capability](/images/ios-legacy-push-notification-implementation-7.png)
+
+## 3. Extension ターゲットへの UserNotifications フレームワークの追加：
+
+以下に示すように、Notification Service Extension ターゲットの `Linked Frameworks and Libraries` に `UserNotifications` フレームワークを追加します。
+
+![Notification Service Extension ターゲットに追加された UserNotifications フレームワーク](/images/ios-legacy-push-notification-implementation-8.png)
+
+## 4. Extension への MoEngageRichNotification フレームワークの統合：
+
+### CocoaPods を使用した統合
+
+CocoaPods を使用して統合するには、以下に示すように Notification Service Extension に **MoEngageRichNotification** pod を含め、pod update / install コマンドを実行します。
+
+<CodeGroup>
+``` Ruby
+target "NotificationServices" do
+	pod 'MoEngageRichNotification','~>6.2.0'
+end
+```
+
+</CodeGroup>
+
+### Swift Package Manager を使用した統合
+
+MoEngageRichNotification は、SDK バージョン 6.2.0 から SPM でサポートされています。統合するには、次の GitHub の URL リンクを使用し、ブランチを master に、またはバージョンを 6.2.0 以上に設定します。[https://github.com/moengage/MoEngage-iOS-RichNotification.git](https://github.com/moengage/MoEngage-iOS-RichNotification.git)
+
+<Info>
+**手動統合**
+
+* `MoEngageRichNotification` SDK をプロジェクトに手動で統合するには、こちらの[ドキュメント](https://developers.moengage.com/hc/en-us/articles/4404183451412)に従ってください。
+* `MoEngageRichNotification` をアプリターゲットの Embedded Binaries に追加し、Notification Service Extension ターゲットでリンクされていることを確認します。
+</Info>
+
+<Info>
+MORichNotification は、バージョン 6.0.0 から MoEngageRichNotification に名前が変更されました。Podfile と import 文をそれに応じて更新してください。
+</Info>
+
+## 5. Extension の App Group ID の設定：
+
+Notification Service Extension ターゲットで App Groups を ON にし、（上記の手順で）アプリターゲットに選択したものと同じ App Group ID を有効にします。
+
+![アプリターゲットと同じ App Group ID で Notification Service Extension の App Groups Capability を有効にした状態](/images/ios-legacy-push-notification-implementation-9.png)
+
+## 6. Notification Service Extension でのコードの変更：
+
+<CodeGroup>
+```swift Swift
+import UserNotifications
+// 1st Step
+import MoEngageRichNotification
+
+class NotificationService: UNNotificationServiceExtension {
+
+    var contentHandler: ((UNNotificationContent) -> Void)?
+    var bestAttemptContent: UNMutableNotificationContent?
+
+    override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
+    
+    	// 2nd Step	
+      MORichNotification.setAppGroupID(<Your AppGroupID>)
+    
+      self.contentHandler = contentHandler
+      bestAttemptContent = (request.content.mutableCopy() as? UNMutableNotificationContent)
+      
+      // 3rd Step
+      MORichNotification.handle(richNotificationRequest: request, withContentHandler: contentHandler)
+        
+    }
+    
+    override func serviceExtensionTimeWillExpire() {
+        // Called just before the extension will be terminated by the system.
+        // Use this as an opportunity to deliver your "best attempt" at modified content, otherwise the original push payload will be used.
+        if let contentHandler = contentHandler, let bestAttemptContent =  bestAttemptContent {
+            contentHandler(bestAttemptContent)
+        }
+    }
+
+}
+```
+
+```objectivec Objective-C
+#import "NotificationService.h"
+// 1st Step
+#import <MoEngageRichNotification/MoEngageRichNotification.h>
+
+@interface NotificationService ()
+
+@property (nonatomic, strong) void (^contentHandler)(UNNotificationContent *contentToDeliver);
+@property (nonatomic, strong) UNMutableNotificationContent *bestAttemptContent;
+
+@end
+
+@implementation NotificationService
+
+- (void)didReceiveNotificationRequest:(UNNotificationRequest *)request withContentHandler:(void (^)(UNNotificationContent * _Nonnull))contentHandler {
+    @try {
+      
+        // 2nd Step
+      	[MORichNotification setAppGroupID:<Your AppGroupID>];
+      
+        self.contentHandler = contentHandler;
+        self.bestAttemptContent = [request.content mutableCopy];
+				
+      	// 3rd Step
+       [MORichNotification handleWithRichNotificationRequest:request withContentHandler:contentHandler];
+    } @catch (NSException *exception) {
+        NSLog(@"MoEngage : exception : %@",exception);
+    }
+}
+
+/// Save the image to disk
+
+- (void)serviceExtensionTimeWillExpire {
+    // Called just before the extension will be terminated by the system.
+    // Use this as an opportunity to deliver your "best attempt" at modified content, otherwise the original push payload will be used.
+    self.contentHandler(self.bestAttemptContent);
+}
+
+@end
+```
+
+</CodeGroup>
+
+上記のコードを参照して、次の変更を行います。
+
+1. `MoEngageRichNotification` フレームワークをインポートします。
+2. `setAppGroupID:` メソッドを使用して、先ほど設定で選択した App Group ID を設定します。
+3. `handleRichNotificationRequest: withContentHandler:` メソッドを呼び出します。
+
+<Warning>
+**リッチ通知のメディアに関する重要な制限事項：**
+
+* リッチ通知でサポートされる添付ファイル（メディア）のサイズと形式の制限については、次の[リンク](https://developer.apple.com/reference/usernotifications/unnotificationattachment)を参照してください。
+* iOS 10 では、plist で明示的に指定しない限り HTTP の URL はサポートされません。Notification Service Extension の Info.plist に App Transport Security Settings Dictionary を含め、その中で Allow Arbitrary Loads を YES に設定する必要があります。
+</Warning>
+
+<Info>
+**画像のガイドライン**
+
+* ファイルサイズ：画像の添付ファイルの最大ファイルサイズは 10MB です。
+* サイズ：可能な最大サイズは 1038 x 1038 ピクセルです。1038 ピクセル未満であれば任意のサイズにできます。
+* 横向きと縦向き：iOS はどちらの向きもサポートしていますが、サイズによっては縦向きの画像が縦長に見えすぎる場合があるため、横向きの画像を使用することを推奨します。
+</Info>
+
+# テスト/ライブビルド
+
+* **TestFlight またはライブの App Store ビルド**でアプリをテストする場合は、adhoc または本番用の pem をダッシュボードにアップロードしてください。また、この場合はアカウントの **Live 環境**からプッシュ通知を送信する必要があります。
+* 開発ビルドの場合は、開発用または本番用の証明書をダッシュボードにアップロードできますが、Live 環境から開発ビルドにプッシュ通知を送信することはできないため、キャンペーンは必ず **Test 環境**で作成してください。
+
+# 通知ペイロード
+
+アプリに送信されるプッシュペイロードの例：
+
+<CodeGroup>
+```json iOS Push Payload
+{
+  "aps": {
+    "alert": {
+      "title": "Notification Title",
+      "subtitle": "Notification Subtitle",
+      "body": "Notification Body"
+    },
+    "badge": 1,
+    "sound": "default",
+    "category": "INVITE_CATEGORY",
+    "content-available": 1,
+    "mutable-content": 1
+  },
+  "app_extra": {
+    "moe_deeplink": "moeapp://screen/settings",
+    "screenName": "Screen Name",
+    "screenData": {
+      "key1": "val1",
+      "key2": "val2"
+    }
+  },
+  "moengage": {
+    "silentPush": 1,
+    "cid": "55f2ba15a4ab4104a287bf88",
+    "app_id": "DAO6UGZ73D9RTK8B5W96TPYN_DEBUG",
+    "moe_campaign_id": "55f2ba15a4ab4104a287bf88",
+    "moe_campaign_name": "Campaign Name",
+    "inbox_expiry": "1571905058",
+    "webUrl": "https://google.com",
+    "couponCode": "APP200",
+    "media-attachment": "https://image.moengage.com/testImg.png",
+    "media-type": "image"
+  }
+}
+```
+
+</CodeGroup>
+
+ペイロード内の各キーの説明：
+
+* **aps**：このキーは iOS が通知を表示するために使用します。この中には次のキーが含まれます。
+* **alert**：メッセージの内容。
+	+ **title**：通知のタイトルを示します。
+	+ **subtitle**：通知のサブタイトルを示します。
+	+ **body**：通知のメッセージ本文を示します。
+* **badge**：アプリアイコンの上に表示するバッジの数を示します。MoEngage プラットフォームでサポートされている値は 0/1 の 2 つのみです。値が 1 の場合、SDK はアプリアイコンのバッジの数をインクリメントし、0 の場合はバッジの数がリセットされ、アプリアイコンにバッジは表示されません。
+* **sound**：このキーは、通知を受信したときに再生するオーディオファイルのファイル名を示します。キャンペーンの作成時にファイル名が指定されていない場合、OS のデフォルトサウンドを再生するために、このキーには値 "default" が設定されます。
+* **category**：このキーは、通知に表示するアクションボタンのセットを OS が決定するために使用されます。また、同じカテゴリーは、Notification Content Extension ターゲットが存在する場合に、どのターゲットを表示するかを OS が決定するためにも使用されます。
+* **content-available**：このキーの値が 1 に設定されている場合、アプリがバックグラウンドにあると、バックグラウンドでアプリのコンテンツを更新するためのコールバック（`application:didReceiveRemoteNotification:fetchCompletionHandle`）を受け取ります。このキーは、バックグラウンドでプッシュ通知を処理する必要がある場合にのみ使用してください。デフォルトでは、このキーは設定されていません。
+* **mutable-content**：このキーは、すべてのキャンペーンでデフォルトで 1 に設定されています。これは、Notification Service Extension ターゲットが通知の受信時にコールバックを受け取り、MORichNotification で処理できるようにするためです。0 に設定すると、Extension ターゲットはコールバックを受け取りません。
+* **app\_extra**：このキーには、アプリ開発者が使用するキー（カスタムのキーと値のペアや、ナビゲーション用の screenName）が含まれます。
+* **moe\_deeplink**：このキーには、キャンペーンの作成時に指定された場合、ディープリンクの URL が含まれます。SDK はこのキーを処理し、ディープリンクの URL が有効であれば開こうとします。
+* **screenName**：このキーは、通知をクリックしたときにユーザーを移動させる画面名を示します。このナビゲーションは SDK によって行われるものではありません。このパラメーターに指定可能な値は、アプリ開発者がプロジェクトで定義する必要があるものです。キャンペーンの作成時に指定された場合、通知ペイロードに含まれます。`screenName` パラメーターの値を解析して取得し、指定された画面に移動する部分は、アプリ開発者が実装する必要があります。
+* **screenData**：これには、キャンペーンの作成時に入力したカスタムのキーと値のペアが含まれ、アプリ開発者が任意のユースケースに利用できます。
+* **moengage**：これには SDK が使用するキーが含まれます。当社は必要に応じてペイロードのこの部分の構造を更新する可能性があるため、アプリ開発者はペイロードのこの部分に変更を加えないでください。また、この部分の使用も避けてください（ただし、cid、media-attachment、media-type、app\_id は変更しません）。
+* **silentPush**：このキーは、MoEngage から送信されたサイレントプッシュに含まれ、`1` に設定されます。
+* **cid**：キャンペーンの一意の ID。
+* **app\_id**：キャンペーンが作成されたアカウントのワークスペース ID。
+* **moe\_campain\_id** および **moe\_campaign\_name**：通知関連イベントの属性をトラッキングするために分析モジュールで使用されます。
+* **inbox\_expiry**：このキーは、通知が App Inbox から削除されるタイムスタンプを示します。
+* **webUrl**：このキーには、キャンペーンの作成時に指定された場合、リッチランディングの URL が含まれます。SDK はこのキーを処理し、（有効な場合）SFSafariViewController のインスタンスで URL を開きます。プッシュ通知のクリック時にアプリ内で Web ページを開きたい場合は、リッチランディングアクションを使用してください。例：`webUrl` - [https://www.google.com](https://www.google.com/)。
+* **couponCode**：このキーには、キャンペーンの作成時に指定された場合、クーポンコードが含まれます。通知をクリックしたときにこのキーがプッシュペイロードに含まれていると、SDK はクーポンコードを含むアラートを表示し、ユーザーがクーポンを OS のクリップボードにコピーできるオプションを提供します。例：`couponCode` - APP200。
+* **media-attachment：** ペイロード内の media-attachment キーは、ダウンロード可能なメディアの URL を示します。
+* **media-type**：media-attachment で指定された URL に含まれるメディアの種類（image/audio/video）。
+
+<Warning>
+**ディープリンク用の有効な URL スキームの定義（LSApplicationQueriesSchemes）**
+
+**LSApplicationQueriesSchemes**（Array - iOS）は、アプリが UIApplication クラスの `canOpenURL:` メソッド（SDK で使用されています）で使用できるようにする URL スキームを指定します。アプリでディープリンクに使用する URL スキームごとに、Info.plist のこの配列に文字列として追加してください。詳細については、こちらの[リンク](https://developer.apple.com/library/content/documentation/General/Reference/InfoPlistKeyReference/Articles/LaunchServicesKeys.html#//apple_ref/doc/uid/TP40009250-SW14)を参照してください。
+</Warning>
+
+<Warning>
+**HTTP の URL**
+
+iOS 9 では、plist で明示的に指定しない限り HTTP の URL はサポートされません。Info.plist に **App Transport Security Settings** Dictionary を含め、その中で **Allow Arbitrary Loads** を **YES** に設定する必要があります。
+</Warning>

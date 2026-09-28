@@ -1,0 +1,67 @@
+---
+title: "PostHog"
+---
+
+## はじめに
+
+[PostHog](https://posthog.com/) は、ファネル、ヒートマップ、セッションレコーディングなど、一連のプロダクト分析ツールを単一のプラットフォームで提供しています。
+
+## MoEngage × PostHog
+
+MoEngage と PostHog の連携により、MoEngage でトラッキングしているイベントを PostHog ダッシュボードに転送し、ユーザー行動を総合的に分析できます。また、MoEngage の Connector Campaigns を使用してユーザーを PostHog に転送することもできます。
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - PostHog の[プロジェクト API キー](https://posthog.com/docs/api)を把握しておく必要があります。
+</Info>
+
+### MoEngage のイベントを PostHog に転送する
+
+MoEngage の Connector Campaigns を使用すると、ユーザーがアプリまたは Web サイトで何らかのアクションを実行したときに、イベントを PostHog に転送できます。
+
+MoEngage でコネクターキャンペーンを作成するには、以下の手順に従います。
+
+1. **Create Campaign** \> **Connectors** \> **Custom** に移動し、ニーズに最も適した配信タイプを選択します。この例では、**Event Triggered** を選択し、イベントとして **Purchased** を選択します。 <img src="/images/partner_20172577196436.png" alt="MoEngage のコネクターキャンペーン作成ページ" />
+2. キャンペーンのステップ 2 で、以下を行います。
+
+#### PostHog API を呼び出す
+
+イベントを Heap に送信するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして **POST** を選択します。
+- Headers:
+  - `Content-Type`: `application/json`
+- Webhook URL としてエンドポイントを追加します: `https://app.posthog.com/capture/` (US Cloud の場合) または `https://eu.posthog.com/capture/` (EU Cloud の場合)。
+- Body: **@** を入力してペイロードをパーソナライズします。
+  <CodeGroup>
+  ```json JSON
+  {
+      "event": "Purchase",
+      "api_key": "<ph_project_api_key>",
+      "distinct_id": "{{UserAttribute['Email (Standard)']}}",
+      "properties": {
+          "item_names": "{{EventAttribute['Item Names']}}",
+          "value": "{{EventAttribute['Value']}}"
+      }
+  }
+  ```
+  </CodeGroup>
+
+![PostHog ペイロードを使用したコネクターキャンペーンの Body 設定](/images/partner_20172568558740.png)
+
+- 詳細については、[PostHog API ドキュメント](https://posthog.com/docs/api/post-only-endpoints)を参照してください。
+
+#### リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整います。Create Connector Campaign のステップ 2 にある **Test** 機能を使用して、コネクターの設定をテストすることもできます。
+
+![コネクターキャンペーンリクエストのプレビュー](/images/partner_20172561610772.png)
+
+その後、キャンペーンを公開できます。
+
+### MoEngage のユーザーを PostHog に転送する
+
+MoEngage のユーザーを PostHog に転送する、または PostHog 上のユーザーのプロパティを更新するには、上記のとおり MoEngage Connector Campaign を設定し、[PostHog Identify API](https://posthog.com/docs/api/post-only-endpoints#identify) を使用して PostHog 内のユーザーを作成または更新します。

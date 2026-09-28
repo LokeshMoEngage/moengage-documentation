@@ -1,0 +1,91 @@
+---
+title: "カスタムアクションの処理"
+description: "iOS アプリで MoEngage のアプリ内メッセージからのディープリンクコールバックとカスタムアクションを処理します。"
+---
+
+## InApp でのディープリンクコールバック
+
+モバイルアプリ内の特定の場所やコンテンツにユーザーを直接移動させるために使用します。
+
+### デフォルトの処理
+
+デフォルトでは、SDK はディープリンクコールバックを AppDelegate/SceneDelegate のメソッドに渡します。
+
+アプリケーションが iOS 13 未満で実行されている場合、ディープリンクコールバックは AppDelegate のメソッドで受け取ります。
+
+<CodeGroup>
+
+```swift Swift wrap
+import UIKit
+
+// Custom Scheme Link
+func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+  
+  //Call only if MoEngageAppDelegateProxyEnabled is NO in Info.plist
+  MoEngageSDKAnalytics.sharedInstance.processURL(url) 
+}
+
+// Universal Links
+func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+  if userActivity.activityType == NSUserActivityTypeBrowsingWeb ,
+    let incomingURL = userActivity.webpageURL{
+    //Call only if MoEngageAppDelegateProxyEnabled is NO in Info.plist
+    MoEngageSDKAnalytics.sharedInstance.processURL(incomingURL) 
+  }
+  //rest of the implementation
+  return true
+}
+```
+
+
+```objective-c Objective C wrap
+// Custom Scheme Link
+- (BOOL)application:(UIApplication *)app openURL:(NSURL *)url options:(NSDictionary<uiapplicationopenurloptionskey,id> *)options {
+  
+  return  true;
+}
+
+// Universal Link
+- (BOOL)application:(UIApplication *)application continueUserActivity:(NSUserActivity *)userActivity restorationHandler:(void (^)(NSArray * _Nullable))restorationHandler {
+  
+  return true;
+}
+@end
+```
+
+</CodeGroup>
+
+アプリケーションが iOS 13 以上の場合、ディープリンクコールバックは以下の **_SceneDelegate_** メソッドで受け取ります。
+
+<CodeGroup>
+
+```swift Swift wrap
+import UIKit
+
+// Custom Scheme Link
+func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    let url = URLContexts.first?.url
+    MoEngageSDKAnalytics.sharedInstance.processURL(url)
+}
+
+// Universal Scheme Link
+func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+    if let url = userActivity.webpageURL {
+        MoEngageSDKAnalytics.sharedInstance.processURL(url)
+    }
+}
+```
+
+</CodeGroup>
+
+### カスタム処理
+
+[_MoEngageInAppNativeDelegate_](https://moengage.github.io/ios-api-reference/Protocols/MoEngageInAppNativeDelegate.html) でディープリンクコールバックを受け取るには、MoEngageSDKConfig オブジェクトの初期化時に [MoEngageInAppConfig(shouldProvideDeeplinkCallback: true)](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization) を渡してください。
+
+コールバックメソッドについては、[ドキュメント](/ja/developer-guide/ios-sdk/in-app-messages/in-app-nativ#non-intrusive-nudges)を参照してください。
+
+<Warning>
+  **SDK バージョン**
+
+  カスタムディープリンクコールバックは MoEngageInApp 6.00.0 以降でサポートされています。
+</Warning>

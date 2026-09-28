@@ -1,0 +1,222 @@
+---
+title: "Self Handled Cards"
+description: "MoEngage SDK を介してカードキャンペーンのデータを取得し、Web サイトでカスタムのカード UI を構築します。"
+---
+
+Self-handled cards を使用すると、MoEngage プラットフォームで Card キャンペーンを作成し、Web サイト内の任意の場所にカードを表示できます。SDK にはキャンペーンデータを取得するための API が用意されており、これを使用してカードのビューを作成できます。
+
+## SDK のインストール
+
+以下に示すように、SDK の [初期化](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration) スクリプトで Cards の設定を渡します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage = moe({
+    appId: moeAppID,
+    env: 'LIVE',
+  	logLevel: 0,
+    cards: {
+      enable: true
+    } 
+  });
+```
+
+</CodeGroup>
+
+Cards は独立したモジュールであり、コア SDK モジュールとは非同期に読み込まれます。そのため、ページの読み込み直後にはすぐに利用できない場合があります。
+
+このイベントリスナーを使用し、初期化が完了してから Cards API を呼び出してください。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+window.addEventListener('MOE_LIFECYCLE', event => {
+  if (event.detail.name === 'CARDS_INITIALIZED') {
+    // call the cards APIs here
+  }
+});
+```
+
+</CodeGroup>
+
+npm パッケージを使用している場合は、次のヘルパー関数を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+moengage.onCardsLoaded().then(function() {
+  // call the cards APIs here
+})
+```
+
+</CodeGroup>
+
+### Inbox オープン時に通知する
+
+Inbox を開くたびに、以下に示すように MoEngage に通知することで、データを同期し、Inbox オープンイベントをトラッキングできます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+   Moengage.cards.inboxOpened();
+</script>
+```
+
+</CodeGroup>
+
+### カテゴリを取得する
+
+カードが設定されているすべてのカテゴリを取得するには、getCardCategories() API を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+   Moengage.cards.getCardCategories().then(function(categories) {
+   	console.log(categories);
+   })
+</script>
+```
+
+</CodeGroup>
+
+さらに、すべてのカテゴリを包含する **All** カテゴリを設けることもできます。isAllCategoryEnabled() API を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+   Moengage.cards.isAllCategoryEnabled().then(function(enabled) {
+   	console.log(enabled); // boolean
+   })
+</script>
+```
+
+</CodeGroup>
+
+### カテゴリのカードを取得する
+
+特定のカテゴリで表示対象となるカードを取得するには、getCardsForCategory(categoryName) API を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+   Moengage.cards.getCardsForCategory('Announcement').then(function(cards) {
+   	console.log(cards); // list of cards
+   })
+</script>
+```
+
+</CodeGroup>
+
+カテゴリに関係なく表示対象となるすべてのカードを取得するには、以下に示すようにカテゴリ 'All' を渡します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+   Moengage.cards.getCardsForCategory('All').then(function(cards) {
+   	console.log(cards); // list of cards
+   })
+</script>
+```
+
+</CodeGroup>
+
+### カード情報を取得する
+
+カードとカテゴリを取得するために個別の API を使用する代わりに、\*getCardsInfo(cardID)\* API を使用してすべての情報を一度に取得できます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+   Moengage.cards.getCardsInfo('12345').then(function(card) {
+   	console.log(card); // card detail
+   })
+</script>
+```
+
+</CodeGroup>
+
+### サーバーからカードを更新する
+
+必要に応じて、fetchCards() API を使用して MoEngage サーバーからカードを更新します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+   Moengage.cards.fetchCards().then(function(cards) {
+   	console.log(cards); // card detail
+   })
+</script>
+```
+
+</CodeGroup>
+
+<Info>
+  `fetchCards()` の同期タイミングとレート制限の詳細については、[MoEngage SDK はいつカードデータを同期しますか？](/ja/user-guide/campaigns-and-channels/cards/faqs-cards/when-does-the-moengage-sdk-sync-card-data) を参照してください。
+</Info>
+
+### ウィジェットとウィジェット ID のマッピング
+
+カード内の各 UI 要素は、クリックトラッキング API に渡す識別子を持つウィジェットです。次の表は、ウィジェット識別子とそれが表す要素の対応を示しています。
+
+#### Basic Card/Illustration Card
+
+| ウィジェット ID | ウィジェットタイプ            | ウィジェット情報                |
+| --------- | ---------------------- | --------------------------------- |
+| 0         | Image (type: image)    | カード内の画像ウィジェットです。         |
+| 1         | Text (type: text)      | カードのヘッダーテキストです。         |
+| 2         | Text (type: text)      | カードのメッセージテキストです。        |
+| 3         | Button (type: button)  | カードの Call to Action（CTA）です。 |
+
+### カードの統計をトラッキングする
+
+カードの UI/表示はアプリケーションによって制御されるため、表示とクリックの統計をトラッキングするには、アプリケーションから SDK に通知する必要があります。
+
+#### インプレッション
+
+特定のカードが画面に表示されたときに、\*cardShown(cardID)\* API を呼び出します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+   Moengage.cards.cardShown('12345')
+</script>
+```
+
+</CodeGroup>
+
+#### クリック
+
+ユーザーがカードをクリックするたびに、_cardClicked(cardID, widgetID)_ API を呼び出し、クリックされた UI 要素のカードオブジェクトのウィジェット識別子を渡します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+   Moengage.cards.cardClicked('12345', 123)
+</script>
+```
+
+</CodeGroup>
+
+#### カードを削除する
+
+カードを削除するには、_deleteCard(cardID)_ API を呼び出します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+   Moengage.cards.deleteCard('12345')
+</script>
+```
+
+</CodeGroup>

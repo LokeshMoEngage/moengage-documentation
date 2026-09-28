@@ -1,0 +1,63 @@
+---
+title: "TrustSignal の設定"
+---
+
+# はじめに
+
+Trustsignal Ventures Private Limited は、SMS、Email、RCS、WhatsApp Business Messaging などのエンタープライズ向けコミュニケーションサービスを提供しています。MoEngage と Trustsignal の SMS 統合により、次の目的でエンドユーザーとコミュニケーションを取ることができます。
+
+- Promotional、Service Implicit、Service Explicit などのさまざまなカテゴリの一括 SMS 配信
+- リアルタイムの配信状況の更新
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  - Trustsignal の SMS アカウントと、それに対応する SMS Push API の詳細を保有している必要があります。
+  - DLT 承認済みの詳細を保有している必要があります。たとえば、アカウントのリージョンがインドの場合は、DLT 承認済みのテンプレートが必要です。
+</Info>
+
+# Trustsignal をカスタム SMS コネクターとして設定する
+
+1. MoEngage ダッシュボードにログインします。
+2. **Settings** \> **Channels** \> **SMS** に移動します。 <img src="/images/partner_37252389762068.png" alt="trust1.png" />
+3. **Sender Configuration** タブをクリックし、次に **SMS** タブをクリックします。 <img src="/images/partner_37252389762196.png" alt="trust2.png" />
+4. 右上の **\+ Add SMS Sender** をクリックします。
+5. **\+ Add custom service provider** をクリックします。\\
+   ![trustsignal.png](/images/partner_37252424957588.png)
+
+次の詳細を追加します。
+
+| フィールド | 説明 |
+| --- | --- |
+| Sender Type | Trustsignal の SMS アカウントに応じて、送信者タイプを選択します。Sender type は次のいずれかです: <ul><li>**Promotional**: ブランドに関する情報の送信、お得な情報の宣伝、ユーザーとのエンゲージメントに送信者を使用する場合は、このオプションを選択します。</li><li>**Transactional** : 取引に関するアラート、OTP、セキュリティ情報、またはトランザクションの性質を持つと分類できる情報の送信に送信者を使用する場合は、このオプションを選択します。</li></ul> |
+| Connector Name | SMS コネクターを一意に識別するためのコネクター名を入力します。例: "Trustsignal" |
+| Sender Name | 送信者名（DLT 承認済みヘッダー）を入力します。 |
+| API URL | POST オプションを選択します。POST API: <ul><li>エンドポイント: [https://sms.trustsignal.io/v1/sms/moengage](https://sms.trustsignal.io/v1/sms/moengage)</li><li>POST エンドポイントがサポートする JSON ペイロード構造を入力します。</li></ul> |
+| Parameter Details | キーと値のペア / JSON パラメーターの詳細: <ul><li>apikey=`******` \[Trustsignal ユーザーアカウントの APIKEY\]</li><li>sender\_id= \[DLT 承認済みヘッダー\]</li><li>to=`Moesms_destination` \[SMS の送信先の携帯電話番号（91 付き）\]</li><li>message=`Moesms_message` \[DLT 承認済みメッセージテキスト\]</li><li>template\_id=`Moesms_dltTemplateId` \[メッセージテキストの DLT テンプレート ID\]</li><li>route=\[transcational/promotional\]</li></ul> |
+| Headers | POST エンドポイントの場合は、次のキーと値のペアを入力します: <ul><li>Key: `Content-Type` \| Value: `application/json`</li><li>Key: `Authorization` \| Value: `Bearer <apikey>`</li></ul> |
+| 配信トラッキング | 配信トラッキングを行うには、カスタムコネクターを保存した後に編集します。Map fields manually オプションを選択し、次のマッピングを行います: <ul><li>Unique sent ID field: `results[0].transaction_id`</li><li>Unique delivery ID field \*: `transaction_id`</li><li>Delivery status field \*: `status`</li><li>Success values for delivery status \*: `delivered`</li><li>Failure reason field \*: `error`</li></ul> 設定のために、SMS 配信トラッキング URL を Trustsignal と共有します。 |
+
+7. Body Type（POST の場合のみ）で **Raw** を選択し、JSON ペイロード構造全体を入力します。
+   <CodeGroup>
+   ```json JSON
+   {
+       "to": [
+           "Moesms_destination"
+       ],
+       "route": "transactional",
+       "message": "Moesms_message",
+       "tempate_id": "Moesms_dltTemplateId",
+       "sender_id": "SENDERID"
+   }
+   ```
+   </CodeGroup>
+8. **Save** をクリックします。設定が追加されました。
+
+# トラブルシューティング
+
+テストメッセージの送信中や設定の保存中に問題が発生した場合は、次の手順を実行します。
+
+- MoEngage に[サポートリクエストを送信](/ja/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard)して、エラーコードを取得します。
+- MoEngage サポートチームからエラーコードを受け取ったら、[Trustsignal サポートチーム](https://care@trustsignal.io)に連絡して問題を解決します。

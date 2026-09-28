@@ -1,0 +1,182 @@
+---
+title: "TikTok Conversions"
+description: "イベントの重複排除を行いながら、MoEngageからTikTok Events APIにWebおよびオフラインのコンバージョンイベントを送信し、広告パフォーマンスを追跡して最適化します。"
+---
+
+# はじめに
+
+TikTok Conversions連携は、堅牢なサーバー間（S2S）フレームワークを通じてMoEngageとTikTokを結び付けます。広告ブロッカーやCookieの制限などのクライアント側の依存関係から脱却することで、高精度なデータストリームを確保します。これにより、最高水準のデータ信頼性、精密なアトリビューション、そして広告パフォーマンスの測定可能な向上が実現します。
+
+MoEngageは、TikTokに対して以下の個別のコネクタをサポートしています。
+
+- [**TikTok Web Conversions**](#integration-with-tiktok-web-conversions): MoEngage Web SDKで取得したWebサイトイベント（Add to CartやPurchaseなど）を送信する場合に使用します。
+- [**TikTok Offline Conversions**](#integration-with-tiktok-offline-conversions): 価値の高いオフラインのインタラクション（店舗での購入、CRMのリード、電話注文など）をTikTokに直接同期する場合に使用します。
+
+## ユースケース
+
+TikTok ConversionsをMoEngageと連携すると、イベントデータを同期して以下のユースケースに対応できます。
+
+- **オフライン行動のアトリビューション**: 実店舗でのアクティビティをデジタル広告費と結び付け、キャンペーンの総ROIを測定します。
+- **キャンペーン入札の最適化**: シグナルの強いコンバージョンデータを使用してTikTokの入札アルゴリズムを強化し、顧客獲得単価（CPA）を下げます。
+- **精密なターゲティング**: コンバージョンのインサイトを使用して、カートを放棄したユーザーに再エンゲージしたり、購入額の多い顧客に基づいて類似オーディエンスを構築したりします。
+- **データの回復力の維持**: ユーザーが厳格なプライバシー設定や広告ブロッカーを有効にしている場合でも、一貫したデータフローを維持します。
+
+<Info>
+  **前提条件**
+
+  いずれかのコネクタを設定する前に、TikTok For Businessアカウントから以下を用意してください。
+
+  - **TikTok Pixel ID**: Webイベントを追跡するための一意のID。
+  - **Offline Event Set ID**: オフラインイベントを追跡するための一意のID。
+  - **Access Token**: TikTok Events Managerの**Settings**タブで生成されます。
+  - **有効なMoEngageアカウント**: Connected Appsが有効になっていない場合は、MoEngage CSMにお問い合わせください。
+
+  Tiktok Ads ConversionsはConnected Channelsアドオンの一部です。アカウントで有効にするには、担当のMoEngage CSM（カスタマーサクセスマネージャー）にお問い合わせください
+</Info>
+
+# TikTok Web Conversionsとの連携
+
+### ステップ1: TikTokで認証情報を生成する
+
+TikTokで認証情報を生成するには、以下の手順を実行します。
+
+1. **TikTok Ads Manager**アカウントにログインします。
+2. 上部のナビゲーションバーで、**Tools** > **Events**をクリックします。
+3. **Connect data source**をクリックします。
+4. **Connect data source**ダイアログボックスで**Web**を選択し、**Next**をクリックします。**![Connect data sourceダイアログボックスでWebを選択し、Nextをクリックします](/images/partner_46198552482196.png)**
+5. **Add your website**ダイアログボックスで、URLを入力するか**Skip**をクリックします。![Add your websiteダイアログボックスで、URLを入力するかSkipをクリックします](/images/partner_46200085184532.png)
+6. **Choose a data connection method**ダイアログボックスで**Manual setup**を選択し、**Next**をクリックします。![Choose a data connection methodダイアログボックスでManual setupを選択し、Nextをクリックします](/images/partner_46200101344276.png)
+7. **Choose a manual connection method**ダイアログボックスで**TikTok Pixel + Events API**（推奨）をクリックし、**Next**をクリックします。![Choose a manual connection methodダイアログボックスでTikTok Pixel + Events API（推奨）をクリックし、](/images/partner_46200085186452.png)
+8. **Pixel Name**ボックスに名前を入力し、**Create**をクリックします。![Pixel Nameボックスに名前を入力し、Createをクリックします](/images/partner_46232924442644.png)
+9. Pixelが作成されたら、**Implement Events API**タブに移動して**Pixel ID**を確認します。
+10. **Generate access token**をクリックし、トークンをコピーします。![Generate access tokenをクリックし、トークンをコピーします](/images/partner_46232924443540.png)
+
+## ステップ2: App MarketplaceでTikTok Web Conversionsを接続する
+
+App MarketplaceでTikTok Web Conversionsを接続するには、以下の手順を実行します。
+
+1. MoEngage UIの左側のナビゲーションメニューで、**App marketplace**をクリックします。
+2. **App Marketplace**ページで、**TikTok Conversions**を検索します。
+3. **TikTok Conversions**タイルをクリックします。
+4. **TikTok Conversions**ページで、**Integrate**タブをクリックします。
+5.  ![下矢印キーをクリックし、TikTok Web Conversionsをクリックします](/images/partner_46197619715348.png)下矢印キーをクリックし、**TikTok Web Conversions**をクリックします。
+6. 以下の詳細を入力します。
+
+| フィールド | 必須 | 説明 |
+| --- | --- | --- |
+| **Connection name** | はい | この連携の一意の名前（例: TikTok_Web_Conversions）。 |
+| **Pixel Code** | はい | 一意のTikTok Pixel ID。 |
+| **Access Token** | はい | TikTok Events Managerで生成したトークン。 |
+
+7. **Connect**をクリックします。これで連携が承認されます。
+   ![Connectをクリックします。これで連携が承認されます](/images/partner_46197756949652.png)
+
+## ステップ3: TikTok Web Conversionsキャンペーンを作成する
+
+TikTok Web Conversionsキャンペーンを作成するには、以下の手順を実行します。
+
+1. MoEngageダッシュボードの左側のナビゲーションメニューで、**Engage**をクリックし、**Campaigns**をクリックします
+2. **All campaigns**ページで、**+ Create campaign**をクリックします。
+3. **Create campaign**ダイアログボックスの**Connected Apps**で、**TikTok Conversions**をクリックし、最も適切な配信タイプをクリックします。
+4. ステップ1（**Target Users**）で、オーディエンスを選択します。
+5. ステップ2（**Content**）で、コネクタ（**TikTok Web Conversions**）と作成した接続を選択します。
+6. **Conversion Goals**で、以下のフィールドを入力します。
+
+| フィールド | 必須 | 説明 |
+| --- | --- | --- |
+| **Event Type** | はい | 標準のイベント名（例: CompletePayment、AddToCart、ViewContent）。 |
+| **Event ID** | いいえ | 重複排除に使用される一意のID（例: `{{Event['uid']}}`）。 |
+| **TikTok Click ID** | いいえ | ttclidパラメーター（Webイベントと広告クリックの照合のために強く推奨されます）。 |
+| **Conversion Value** | いいえ | 取引の数値。 |
+| **Currency Code** | いいえ | ISO 4217通貨コード（例: USD、EUR）。 |
+| **External ID** | いいえ | MoEngage内に保存されている一意のシステムID。 |
+
+![External ID いいえ MoEngage内に保存されている一意のシステムID](/images/partner_46233230947860.png)
+
+7. これでキャンペーンをテストして送信する準備が整いました。*Test*機能を使用して、コネクタの設定をテストすることもできます。
+   ![テストユーザーがメッセージを正常に受信すれば、設定の準備は完了です](/images/partner_46233242735508.png)テストユーザーがメッセージを正常に受信すれば、設定の準備は完了です。
+8. キャンペーンを公開します。
+
+# TikTok Offline Conversionsとの連携
+
+### ステップ1: TikTokで認証情報を生成する
+
+TikTokで認証情報を生成するには、以下の手順を実行します。
+
+1. **TikTok Ads Manager**アカウントにログインします。
+2. 上部のナビゲーションバーで、**Tools** > **Events**をクリックします。
+3. **Connect data source**をクリックします。
+4. **Connect data source**ダイアログボックスで**Offline**を選択し、**Next**をクリックします。
+   **![Connect data sourceダイアログボックスでOfflineを選択し、Nextをクリックします](/images/partner_46233389751828.png)**
+5. **Create offline event set**ダイアログボックスで、以下の詳細を入力します。![Create offline event setダイアログボックスで、以下の詳細を入力します](/images/partner_46196389971092.png)
+   1. **Offline event set name**ボックスに、セットの名前を入力します。
+   2. **Description**ボックスに、オフラインイベントセットの説明を入力します。
+6. **Create**をクリックします。
+   ![Createをクリックします](/images/partner_46196389971092.png)
+7. イベントセットが作成されたら、イベントセットの詳細に表示される**ID**をコピーします。![イベントセットが作成されたら、イベントセットの詳細に表示されるIDをコピーします](/images/partner_46196404656404.png)
+8. イベントセットの**Settings**タブをクリックし、**Set Up Events API**セクションまでスクロールして、**Generate Access Token**をクリックします。
+   **![イベントセットのSettingsタブをクリックし、Set Up Events APIセクションまでスクロールして、Generate Access Tokenをクリックします](/images/partner_46196389972628.png)**
+
+## ステップ2: App MarketplaceでTikTok Offline Conversionsを接続する
+
+App MarketplaceでTikTok Offline Conversionsを接続するには、以下の手順を実行します。
+
+1. MoEngage UIの左側のナビゲーションメニューで、**App marketplace**をクリックします。
+2. **App Marketplace**ページで、**TikTok Conversions**を検索します。
+3. **TikTok Conversions**タイルをクリックします。
+4. **TikTok Conversions**ページで、**Integrate**タブをクリックします。
+5.  ![下矢印キーをクリックし、TikTok Offline Conversionsをクリックします](/images/partner_46197619715348.png)下矢印キーをクリックし、**TikTok Offline Conversions**をクリックします。
+6. 以下の詳細を入力します。
+
+| フィールド | 必須 | 説明 |
+| --- | --- | --- |
+| Connection name | はい | この連携の一意の名前（例: TikTok_Web_Conversions）。 |
+| Offline Event Set ID | はい | 一意のTikTok Pixel ID。 |
+| Access Token | はい | TikTok Events Managerで生成したトークン。 |
+
+7. **Connect**をクリックします。 
+   ![Connectをクリックします](/images/partner_46269453745300.png)
+   これで連携が承認されます。
+
+### ステップ2.2: TikTok Offline Conversionsキャンペーンを作成する
+
+TikTok Offline Conversionsキャンペーンを作成するには、以下の手順を実行します。
+
+1. MoEngage UIの左側のナビゲーションメニューで、**Engage**をクリックし、**Campaigns**をクリックします
+2. **All campaigns**ページで、**+ Create campaign**をクリックします。
+3. **Create campaign**ダイアログボックスの**Connected Apps**で、**TikTok Conversions**をクリックし、最も適切な配信タイプをクリックします。
+4. ステップ1（**Target Users**）で、オーディエンスを選択します。
+5. ステップ2（**Content**）で、コネクタ（**TikTok Offline Conversions**）と作成した接続を選択します。
+6. **Conversion Goals**で、以下のフィールドを入力します。
+
+| フィールド | 必須 | 説明 |
+| --- | --- | --- |
+| Event Type | はい | 標準のイベント名（CompletePaymentやAddToCartなど）。 |
+| Conversion Value | いいえ | 取引の数値。 |
+| Currency Code | いいえ | ISO 4217通貨コード（例: USD、EUR）。 |
+| Event ID | いいえ | 重複排除に使用される一意のID（例: `{{Event['uid']}}`）。 |
+| Order ID | いいえ | オフライン販売の特定の取引識別子。 |
+| Shop ID | いいえ | 実店舗またはデジタルショップの識別子。 |
+
+![Shop ID いいえ 実店舗またはデジタルショップの識別子](/images/partner_46197396399252.png)
+
+7. これでキャンペーンをテストして送信する準備が整いました。*Test*機能を使用して、コネクタの設定をテストすることもできます。
+   ![これでキャンペーンをテストして送信する準備が整いました。Test機能を使用して、コネクタの設定をテストすることもできます](/images/partner_46233242735508.png)
+   テストユーザーがメッセージを正常に受信すれば、設定は完了です。
+8. キャンペーンを公開します。
+
+<Info>
+  **情報**
+
+  **ベストプラクティス**:
+
+  - **重複排除**: TikTokが同じコンバージョンを複数回カウントしないように、常に一意の*Event ID*をマッピングしてください。
+  - **タイムリーなアップロード**: 最適な処理のため、Webイベントは取引から48時間以内、オフラインイベントは62日以内に送信してください。
+  - **データ品質**: TikTokで高い照合率を維持するため、MoEngageでEmailとPhoneのデータが正確に取得されていることを確認してください。
+  - **アトリビューション**: ttclid（*TikTok Click ID*）をマッピングすると、Webイベントのアトリビューションの精度が大幅に向上します。
+
+  **トラブルシューティング**:
+
+  - **照合率が低い**: Webイベントでttclidが正しく取得されているか、またはMoEngageでPIIフィールド（EmailまたはPhone）が利用可能かを確認してください。
+  - **イベントが表示されない**: Access Tokenの有効期限が切れていないことを確認し、*Pixel ID*がTikTok Ads Managerの設定と一致していることを確認してください。
+</Info>

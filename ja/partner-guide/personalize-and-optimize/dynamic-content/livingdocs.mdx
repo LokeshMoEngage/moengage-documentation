@@ -1,0 +1,92 @@
+---
+title: "Livingdocs"
+---
+
+## はじめに
+
+[Livingdocs](https://livingdocs.io/) は、さまざまなメディア企業で使用されている最新のデジタルコンテンツ作成・公開システムです。
+
+## MoEngage と Livingdocs
+
+MoEngage と Livingdocs の統合により、すべてのテンプレートを Livingdocs 内で編集・管理し、それらを MoEngage キャンペーンに動的に取り込んで、最新の記事を顧客に送信できます。
+
+## 統合
+
+<Info>
+  **前提条件**
+
+  - Livingdocs の [アクセストークン](https://docs.livingdocs.io/reference/public-api/get-started/#authorization)。
+</Info>
+
+### MoEngage キャンペーン内に Livingdocs テンプレートを埋め込む
+
+MoEngage の Content API を使用すると、Livingdocs からテンプレートの最新版を動的に取得して顧客に送信できます。
+
+#### ステップ 1: MoEngage Content API を設定する
+
+1. **Settings** \> **Advanced settings** \> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。 <img src="/images/partner_21979775680020.png" alt="Add content API ボタンが強調表示された MoEngage の Content API 画面" />
+2. エンドポイント URL に Livingdocs API を追加します。エンドポイントはユースケースによって異なります。 <img src="/images/partner_19878525089556.png" alt="Livingdocs のエンドポイント URL が入力された MoEngage の Content API 設定画面" /> テンプレートの HTML コンテンツの取得には、Livingdocs の [Composition API](https://docs.livingdocs.io/reference/public-api/composition-api/) を使用します。
+3. 次の URL を挿入します。
+   ```text
+   https://server.livingdocs.io/api/beta/composition/<document_id>
+   ```
+4. ドキュメント ID を確認するには、Livingdocs でドキュメントを開き、URL を確認します。 <img src="/images/partner_19878750341652.png" alt="ドキュメント ID が強調表示された Livingdocs エディターの URL" /> **Headers** に次を追加します。
+   - `Authorization`: `Bearer <your-access-token>`
+   - `Content-Type`: `application/json; charset=utf-8`
+   - `Accept`: `application/json`
+5. **Method** を `POST` に設定します。
+6. **Body** に次を入力します。
+   <CodeGroup>
+   ```json JSON
+   {
+     "fields": [
+       "systemdata",
+       "content",
+       "metadata",
+       "includes",
+       "html"
+     ],
+     "resolveIncludes": true
+   }
+   ```
+   </CodeGroup>
+7. **Save** をクリックし、成功のレスポンスが表示されたら **Done** をクリックします。
+
+<Tip>
+  キャンペーンで使用する前に、Content API の **Test** をクリックしてレスポンスを検証してください。
+</Tip>
+
+#### ステップ 2: MoEngage キャンペーン内にテンプレートを表示する
+
+MoEngage キャンペーンでこの Content API を使用するには、次の手順を実行します。
+
+1. キャンペーン作成のステップ 2 で、`@` と入力します。
+2. パーソナライゼーションのポップアップで、ステップ 1 で設定した Livingdocs Content API を選択します。
+3. [MoEngage Templating Language](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用します。
+   ```jinja JINJA wrap
+   {% set response = ContentApi.LivingdocsIntegration2({("params":{},"static_params":{},"dynamic_params":{},"request_body":{"fields":["systemdata","content","metadata","includes","html"],"resolveIncludes":"true"}})}) %}
+   {% for block in response.content[0].containers.main %}
+   {% if block.component == "free-html" %}
+   {{ block.content['free-html'].html }}
+   {% endif %}
+   {% endfor %}
+   ```
+   ![JINJA を使用して Livingdocs テンプレートを解析している MoEngage エディター](/images/partner_19879027390356.png)
+4. **Preview** タブをクリックすると、リアルタイムのパーソナライゼーションが適用されたキャンペーンを確認できます。 <img src="/images/partner_19879067572372.png" alt="キャンペーン内でレンダリングされた Livingdocs テンプレートを表示しているパーソナライズされたプレビュー" />
+
+### MoEngage キャンペーン内で動的ブロックを使用する
+
+動的なコードの一部を、複数の MoEngage キャンペーンやテンプレートで再利用したい場合があります。これは MoEngage のコンテンツブロックで実現できます。
+
+1. MoEngage ダッシュボードのサイドナビゲーションで、**Content** \> **Content Blocks** に移動します。
+2. **Create content block** をクリックします。
+3. コンテンツブロックを作成します。Plain text または HTML のいずれかを使用できます。 <img src="/images/partner_19879758142996.png" alt="タイプとコンテンツのオプションが表示された MoEngage のコンテンツブロックエディター" />
+4. 準備ができたら、ブロックのラベルをコピーします。これを Livingdocs のテンプレートエディター内に貼り付けます。
+
+次に、Livingdocs のテンプレートエディターに移動し、ブロックコードを貼り付けます。
+
+![MoEngage のコンテンツブロックコードが貼り付けられた Livingdocs テンプレートエディター](/images/partner_19879866340500.png)
+
+以上で完了です。コンテンツブロックは、コードの位置でテンプレートに自動的に挿入されます。
+
+![テンプレート内でレンダリングされた MoEngage コンテンツブロックを表示している Livingdocs のプレビュー](/images/partner_19879891001876.png)

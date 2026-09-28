@@ -1,0 +1,381 @@
+---
+title: "InApp NATIV"
+description: "プラットフォーム固有の設定を行い、MoEngage SDK を使用して Flutter アプリにアプリ内メッセージを表示します。"
+---
+
+アプリ内メッセージ（In-App Messaging）は、ユーザーのセグメントに送信して、カスタムメッセージを表示したり、新しいオファーを提示したり、特定のページへ誘導したりできるカスタムビューです。これらは MoEngage アカウントから作成できます。
+
+<img
+  src="/images/InAppNATIV1.png"
+  alt="In App NATIV1"
+  title="In App NATIV1"
+  style={{ width:"21%" }}
+/>
+
+## Android 依存関係のインストール
+
+### **InApp で画像と GIF を表示するための要件**
+
+InApp バージョン **7.0.0** 以降、SDK がアプリ内メッセージで画像や GIF を表示するには [Glide](https://bumptech.github.io/glide/) が必要です。**build.gradle** ファイルに以下の依存関係を追加する必要があります。
+
+<CodeGroup>
+
+```groovy Groovy
+dependencies {
+ ...
+ implementation("com.github.bumptech.glide:glide:4.16.0")
+}
+```
+
+</CodeGroup>
+
+ 
+
+<Info>
+  iOS では追加の依存関係のインストールは不要です。
+</Info>
+
+# InApp の表示
+
+<Note>
+  MoEngage は、メタ API 呼び出しによって対象となるアプリ内キャンペーンのリストを更新します。アクティブなセッション中は、アプリがバックグラウンドからフォアグラウンドに戻ったとき（最大で 15 分に 1 回）にリストが更新され、新しいセッションが開始されたとき、またはアプリが強制終了されて再起動されたときには即座に更新されます。
+</Note>
+
+画面上に InApp キャンペーンを表示するには、以下の API を呼び出します。リッチランディングナビゲーションでない限り、ユーザーが InApp をクリックしたときのリダイレクトはアプリ側で処理する必要があります。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.showInApp();
+```
+
+</CodeGroup>
+
+# Nudge の表示
+
+**_moengage_flutter_** **_バージョン 7.0.0_** 以降、MoEngage InApp SDK は非侵入型の Nudge の表示をサポートしています。この API は Android と iOS でのみサポートされています。リッチランディングナビゲーションでない限り、ユーザーが InApp をクリックしたときのリダイレクトはアプリ側で処理する必要があります。
+
+Nudge InApp キャンペーンを表示するには、`showNudge()` を呼び出します。
+
+<CodeGroup>
+
+```javascript Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+      
+_moengagePlugin.showNudge(); // Display Nudge on any available position
+_moengagePlugin.showNudge(position: MoEngageNudgePosition.top); // Display Nudge on the specific position
+```
+
+</CodeGroup>
+
+# InApp/Nudge のリダイレクトのデフォルト動作
+
+InApp または Nudge がクリックされた場合、MoEngage SDK が処理するのは **リッチランディングナビゲーション** のリダイレクトのみです。
+
+画面名およびディープリンクへのリダイレクトについては、アプリのコードでユーザーを適切な画面またはディープリンクにリダイレクトする必要があります。画面名およびディープリンクのリダイレクトを処理するには、InApp クリックのコールバックメソッドを実装する必要があります。MoEngage SDK は、InApp のペイロードをこのコールバックコードに渡すだけです。実装手順は、統合ガイドの InApp コールバックのセクションに記載されています。
+
+# セルフハンドル InApp
+
+セルフハンドル InApp は、SDK によってアプリケーションに配信されるメッセージであり、アプリケーションは SDK から配信されたペイロードを使用して UI を構築します。セルフハンドル InApp を取得するには、以下の API を使用します。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.getSelfHandledInApp();
+```
+
+</CodeGroup>
+
+セルフハンドルキャンペーンを取得するには、以下のようにコールバックを登録します。
+
+## 複数のセルフハンドル InApp
+
+<Info>
+  - この機能には、moengage_flutter バージョン **9.0.0** 以上が必要です。
+  - イベントトリガー型の複数のセルフハンドル InApp はサポートされていません。
+</Info>
+
+[_getSelfHandledInApps()_](https://pub.dev/documentation/moengage_flutter/latest/moengage_flutter/MoEngageFlutter/getSelfHandledInApps.html) を使用して、複数のセルフハンドルキャンペーンを取得します。MoEngage SDK は最大 5 件のキャンペーンを（キャンペーン作成時に設定されたキャンペーン優先度の順に）返します。この関数は、セルフハンドル InApp のデータを Future で返します。
+
+<CodeGroup>
+
+```Dart Dart
+
+import 'package:moengage_flutter/moengage_flutter.dart';
+MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.getSelfHandledInApps().then((campaignsData) {
+     // Show the Self Handled InApps
+}).catchError((e) {
+  // Error occurred while fetching the campaigns
+});
+```
+
+</CodeGroup>
+
+[SelfHandledInAppsData](https://pub.dev/documentation/moengage_flutter/latest/moengage_flutter/SelfHandledCampaignsData-class.html) 型のデータが返されます。
+
+### 複数のセルフハンドル InApp の統計のトラッキング
+
+_onCampaignsAvailable()_ コールバックメソッドは [_SelfHandledCampaignsData_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.model/-self-handled-campaigns-data/index.html) を返します。これには [_SelfHandledCampaignData_](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.model/-self-handled-campaign-data/index.html) オブジェクトのリストが含まれます。各 _SelfHandledCampaignData_ オブジェクトの統計は、以下の API を使用して個別にトラッキングする必要があります。
+
+### コンテキストに応じた複数のセルフハンドル InApp の取得
+
+コンテキストに応じた複数のセルフハンドル InApp を取得するには、\*[getSelfHandledInApps()](https://pub.dev/documentation/moengage_flutter/latest/moengage_flutter/MoEngageFlutter/getSelfHandledInApps.html)\* を呼び出す前に、[_setCurrentContext()_](https://pub.dev/documentation/moengage_flutter/latest/moengage_flutter/MoEngageFlutter/setCurrentContext.html) を使用して InApp のコンテキストを設定します。これにより、コンテキストありおよびコンテキストなしの InApp のリストが（キャンペーン作成時に設定されたキャンペーン優先度の順に）返されます。
+
+ 
+
+## セルフハンドル InApp の統計のトラッキング
+
+アプリ内メッセージの表示、クリック、閉じる操作はアプリケーションが制御するため、これらが発生するたびにアプリケーションは MoEngage SDK に通知する必要があります。SDK に通知するには、次のメソッドを呼び出します。セルフハンドル InApp のコールバックでアプリケーションに提供されたデータオブジェクトを、以下の API のパラメーターとして渡す必要があります。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+// call this method to notify campaign was shown.
+_moengagePlugin.selfHandledShown(message);
+// call this method to noftify campaign was clicked.
+_moengagePlugin.selfHandledClicked(message);
+// call this method to notify campaign was dismissed.
+_moengagePlugin.selfHandledDismissed(message);
+```
+
+</CodeGroup>
+
+# InApp コールバック
+
+InApp の表示、InApp のクリック、InApp の閉じる操作、およびセルフハンドル InApp の利用可能イベントに対するコールバックを提供しています。以下のように登録できます。
+
+<Warning>
+  コールバックは、show メソッドまたはトリガーイベントによって InApp が表示される前に登録する必要があります。これらのコールバックを設定した後に、プラグインの `initialise()` メソッドを呼び出すようにしてください。詳細については、[ドキュメント](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization)を参照してください。
+</Warning>
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+
+  void _onInAppClick(ClickData message) {
+    print("This is a inapp click callback from native to flutter. Payload " +
+        message.toString());
+  }
+
+  void _onInAppShown(InAppData message) {
+    print("This is a callback on inapp shown from native to flutter. Payload " +
+        message.toString());
+  }
+
+  void _onInAppDismiss(InAppData message) {
+    print("This is a callback on inapp dismiss from native to flutter. Payload " +
+        message.toString());
+  }
+
+  void _onInAppSelfHandle(SelfHandledCampaignData? message) {     
+      if (message == null) {
+      debugPrint('$tag _onInAppSelfHandle(): SelfHandled InApp Data is Null');
+      return; 
+      }
+    print("This is a callback on inapp self handle from native to flutter. Payload " +
+        message.toString());
+  }
+
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+//Register for callbacks
+_moengagePlugin.setInAppClickHandler(_onInAppClick);
+_moengagePlugin.setInAppShownCallbackHandler(_onInAppShown);
+_moengagePlugin.setInAppDismissedCallbackHandler(_onInAppDismiss);
+_moengagePlugin.setSelfHandledInAppHandler(_onInAppSelfHandle);
+
+//NOTE: set up callbacks before initialise()
+_moengagePlugin.initialise();
+```
+
+</CodeGroup>
+
+# コンテキスト InApp
+
+特定の画面で InApp キャンペーンを制限するだけでなく、アプリケーション内のユーザーのコンテキストに基づいて InApp を制限することもできます。アプリケーション内のユーザーのコンテキストを設定するには、以下のように _setCurrentContext()_ API を使用します。
+
+## コンテキストの設定
+
+_showInApp()_ を呼び出す前に、ウィジェットの _initState()_ メソッド内で以下のメソッドを呼び出してコンテキストを設定します。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.setCurrentContext(['C1', 'C2']);
+```
+
+</CodeGroup>
+
+## コンテキストのリセット
+
+ユーザーがそのコンテキストから離れたら、_resetCurrentContext()_ API を使用して既存のコンテキストをリセット/クリアします。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.resetCurrentContext();
+```
+
+</CodeGroup>
+
+コンテキスト InApp の詳細については、[トラブルシューティングと FAQ](/ja/developer-guide/android-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs) にあるビデオチュートリアルを参照してください。
+
+# InApp ペイロード
+
+InApp データは以下の形式で受信されます。
+
+<CodeGroup>
+
+```Dart Dart
+class InAppData {
+  /// Native platform from which the callback was triggered.
+  Platforms platform;
+  
+  //Account Data
+  AccountMeta accountMeta;
+  
+  ///In-App Campaign Data
+  CampaignData campaignData;
+}
+
+class CampaignData {
+  /// Unique identifier for each campaign.
+  String campaignId;
+  
+  ///Campaign Name
+  String campaignName;
+  ...
+}
+
+class ClickData {
+  /// Native platform from which the callback was triggered.
+  Platforms platform;
+
+  /// Account Data
+  AccountMeta accountMeta;
+
+  /// In-App Campaign Data
+  CampaignData campaignData;
+
+  /// Action data with type navigation/custom
+  Action action;
+}
+
+class NavigationAction extends Action {
+  /// Type of Navigation action.
+  /// Possible value deep_linking or screen
+  NavigationType navigationType;
+
+  /// Deeplink Url or the Screen Name used for the action.
+  String navigationUrl;
+
+  /// [Map] of Key-Value pairs entered on the MoEngage Platform for
+  /// navigation action of the campaign.
+  Map<String, dynamic> keyValuePairs;
+}
+
+class CustomAction extends Action {
+  ///Key-Value Pair entered on the MoEngage Platform during campaign creation.
+  Map<String, dynamic> keyValuePairs;
+}
+
+class SelfHandledCampaignData { 
+  /// Native platform from which the callback was triggered.
+  Platforms platform;
+  
+  /// Account Data
+  AccountMeta accountMeta;
+  
+  /// In-App Campaign Data
+  CampaignData campaignData;
+  
+  //Self handled data
+  SelfHandledCampaign campaign;
+}  
+
+class SelfHandledCampaign {
+  /// Self handled campaign payload.
+  String payload;
+
+  /// Interval after which in-app should be dismissed, unit - Seconds
+  int dismissInterval;
+
+  /// InApp Campaign Display Rules
+  Rules displayRules;
+}
+      
+class Rules {
+  /// Screen name on which the campaign should be shown.
+  @Deprecated('This field is deprecated and will be removed in future releases. Use [screenNames] instead')
+  String? screenName;
+
+  /// Context for which the campaign should be shown.
+  List context;
+
+  /// Screen Names on which the campaign can be shown.
+  /// @since 10.0.0
+  List screenNames;
+}
+```
+
+</CodeGroup>
+
+# 画面の向きの変更への対応
+
+<Info>
+  これは Android プラットフォームのみが対象です。
+</Info>
+
+SDK バージョン `4.1.0` 以降、InApp は縦向き（ポートレート）と横向き（ランドスケープ）の両方のモードでサポートされています。\
+SDK が InApp の表示を処理できるように、デバイスの向きが変更されたときに SDK に通知する必要があります。
+
+これには 2 つの方法があります。
+
+1. アプリの Android ネイティブ部分に API 呼び出しを追加する
+2. MoEngage プラグインの `onOrientationChanged()` を呼び出す
+
+## アプリの Android ネイティブ部分に API 呼び出しを追加する
+
+アプリの Activity クラスで **onConfigurationChanged()** API コールバックを受信したときに SDK に通知します。
+
+<CodeGroup>
+
+```Dart Dart
+public class MainActivity extends FlutterActivity {
+  ...
+  @Override
+  public void onConfigurationChanged(Configuration newConfig) {
+    super.onConfigurationChanged(newConfig);
+    MoEFlutterHelper.getInstance().onConfigurationChanged();
+    ...
+  }
+  ...
+}
+```
+
+</CodeGroup>
+
+## MoEngage プラグインの画面の向き変更 API を呼び出す
+
+画面の向きの変更を SDK に通知するには、以下の API を呼び出します。
+
+<CodeGroup>
+
+```Dart Dart
+_moengagePlugin.onOrientationChanged();
+```
+
+</CodeGroup>

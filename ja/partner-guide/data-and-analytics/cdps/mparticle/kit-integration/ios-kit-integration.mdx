@@ -1,0 +1,191 @@
+---
+title: "iOS Kit の統合"
+---
+
+MoEngage Kit の統合を開始する前に、mParticle iOS SDK を統合してください。詳細については、[開発者向けドキュメント](https://docs.mparticle.com/developers/sdk/ios/initialization)および [Kit 統合のドキュメント](https://docs.mparticle.com/developers/client-sdks/ios/kits/)を参照してください。mParticle iOS SDK がすでにアプリケーションに統合されている場合は、この手順をスキップしてください。
+
+# MoEngage Kit の統合
+
+## SDK のインストール
+
+### SPM を使用したインストール
+
+1. プロジェクトの設定 -\> Package Dependencies -\> Add Package に移動します。
+2. URL [https://github.com/moengage/mparticle-apple-integration-moengage.git](https://github.com/moengage/mparticle-apple-integration-moengage.git) を入力し、ブランチとして master または必要なバージョンを選択してパッケージをインストールします。
+3. **Add Package** をクリックします。
+4. アプリのターゲットに **mParticle-MoEngage** プロダクトを選択します。
+
+### CocoaPods を使用したインストール
+
+以下のように、アプリの **Podfile** に Kit の依存関係を追加します。
+
+<CodeGroup>
+
+```ruby Ruby
+pod 'mParticle-MoEngage','~> 1.0.0'
+```
+
+</CodeGroup>
+
+## MoEngage SDK の設定
+
+1. アプリの **Info.plist** で **MoEngageAppDelegateProxyEnabled** を **false** /**NO** に設定して、MoEngageSDK のメソッドスウィズリングを無効にします。
+2. 設定ページの Dashboard --\> Settings --\> Account --\> General から Workspace ID(以前の App ID)を取得し、mParticle Kit を初期化する前に、**_AppDelegate の didFinishLaunchingWithOptions_** コールバック \_\_ で MoEngage SDK を設定します。
+
+<CodeGroup>
+
+```swift Swift wrap
+import MoEngageSDK
+import mParticle_Apple_SDK
+import mParticle_MoEngage
+ 
+ func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    // Add your MoEngage Workspace ID and Data center.
+    let sdkConfig = MoEngageSDKConfig(appId: "YOUR WorkspaceID", dataCenter: DATA_CENTER)
+    // MoEngage SDK configuration
+    MoEngageConfigurator.configureDefaultInstance(sdkConfig: sdkConfig)
+ 
+    // Initialize mParticle
+    let mParticleOptions = MParticleOptions(key: "YOU MPARTICLE API KEY", secret: "YOUR MPARTICLE API SECRET")
+    MParticle.sharedInstance().start(with: mParticleOptions)
+ 
+    // Rest of the implementation of method
+    //-------
+    return true
+}
+```
+
+```objectivec Objective-C
+@import MoEngageSDK;
+@import mParticle_Apple_SDK;
+@import mParticle_MoEngage;
+ 
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+     // Add your MoEngage Workspace ID and Data center.
+     MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR Workspace ID" dataCenter: DATA_CENTER];
+    // MoEngage SDK configuration
+    [MoEngageConfigurator configureDefaultInstanceWithSdkConfig:sdkConfig];
+ 
+    // Initialize mParticle
+    MParticleOptions* mParticleOptions = [MParticleOptions optionsWithKey:@"YOU MPARTICLE API KEY" secret:@"YOUR MPARTICLE API SECRET"];
+    [[MParticle sharedInstance] startWithOptions:mParticleOptions];
+    
+    //Rest of the implementation of method
+    //-------
+}
+```
+
+</CodeGroup>
+
+# インストールとアップデートの区別:
+
+アプリがすでに App Store で公開されている状態で MoEngage を統合する場合があるため、アプリのアップデートが実際の **UPDATE** なのか **INSTALL** なのかを把握する必要があります。これらを区別するには、以下のいずれかのメソッドを使用します。
+
+<CodeGroup>
+
+```swift Swift
+//For Fresh Install of App
+MoEngageSDKAnalytics.sharedInstance.appStatus(.install)
+// For Existing user who has updated the app
+MoEngageSDKAnalytics.sharedInstance.appStatus(.update)
+```
+
+```objectivec Objective-C
+//For Fresh Install of App
+[[MoEngageSDKAnalytics sharedInstance]appStatus:MoEngageAppStatusInstall];
+// For Existing user who has updated the app
+[[MoEngageSDKAnalytics sharedInstance]appStatus:MoEngageAppStatusUpdate];
+```
+
+</CodeGroup>
+
+詳細については、次の[リンク](https://www.moengage.com/docs/developer-guide/ios-sdk/data-tracking/basic/install-update-differentiation)を参照してください。
+
+# プッシュ通知の処理
+
+### mParticle SDK を使用した設定
+
+mParticle SDK には、プッシュトークンの登録を処理し、mParticle SDK でプッシュ通知を受信する方法が用意されています。設定オプションについては、[プッシュ統合のドキュメント](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial)を参照してください。
+
+### MoEngage SDK またはアプリケーションを使用した設定
+
+MoEngage SDK で設定する場合、または独自に処理する場合は、[MoEngage のプッシュ統合のドキュメント](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial))を確認してください。
+
+MoEngage iOS SDK で提供される機能の詳細については、次のリンクを参照してください。
+
+- [プッシュ通知](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)
+- [ジオフェンス](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/location-triggered)
+- [アプリ内メッセージ](https://www.moengage.com/docs/developer-guide/android-sdk/in-app-messages/in-app-nativ)
+- [Notification Center](https://developers.moengage.com/hc/en-us/articles/4403893700756-Notification-Center-for-MoEngage-SDK-version-11-1-00-)
+- [高度な設定](https://www.moengage.com/docs/developer-guide/android-sdk/push/advanced/callbacks-and-customisation)
+- [API リファレンス](https://moengage.github.io/android-api-reference/index.html)
+- [コンプライアンス](https://www.moengage.com/docs/developer-guide/android-sdk/compliance/prepare-for-google-plays-data-disclosure-requirements)
+- [リリースノート](/ja/release-notes/sdks/android#14th-december-2023)
+
+# mParticle SDK の使用方法
+
+詳細な使用方法については、[開発者向けドキュメント](https://docs.mparticle.com/developers/client-sdks/ios/initialization/)を参照してください。
+
+## ユーザー管理
+
+ユーザー ID は、mParticle の IDSync フレームワークと MoEngage のユーザープロファイルの組み合わせによって管理されます。
+
+アプリケーションでユーザーの状態を管理するには、mParticle の開発者向け統合ドキュメントの [IDSync](https://docs.mparticle.com/developers/client-sdks/ios/idsync/) ドキュメントを確認してください。
+
+デフォルトでは、この連携により、次の主要な mParticle 識別子が追加のコードなしで MoEngage のユーザー属性に自動的にマッピングされます。
+
+- customerId
+- email
+- mobileNumber
+
+### 追加の識別子のマッピング
+
+その他の識別子(ソーシャルメディア ID、内部エイリアスなど)を同期するには、**_setMappingForIdentity(),_** メソッドを使用して明示的にマッピングする必要があります。これにより、mParticle の **_setIdentity_** API 呼び出しによって識別子が追加または更新されたときに、その変更が対応する MoEngage のユーザー属性に反映されます。
+
+#### 呼び出すタイミング
+
+この設定は、アプリの起動シーケンスの特定の時点で実行する必要があります。
+
+1. MoEngage SDK を初期化した**後**。
+2. mParticle の **_setIdentity_** API を初めて呼び出す**前**。
+
+このロジックを配置するのに最適な場所は、**UIApplicationDelegate の didFinishLaunchingWithOptions** コールバックです。
+
+<CodeGroup>
+
+```swift Swift
+// In your UIApplicationDelegate's didFinishLaunchingWithOptions callback
+// 1. Define the mappings
+let identities: [MPIdentity: String] = [:]
+//
+// 2. Set the Identity mapping for mParticle and MoEngage
+// Example Usage: setMapping(forIdentities: [.facebook: "u_fb"])
+//
+MoEngageConfigurator.setMapping(forIdentities: identities)
+```
+
+```objectivec Objective-C
+// In your UIApplicationDelegate's didFinishLaunchingWithOptions callback
+// 1. Define the mappings
+NSDictionary<mpidentity, nsstring="NSString"> *identities = @{};
+ 
+//
+// 2. Set the Identity mapping for mParticle and MoEngage
+// Example Usage: setMappingForIdentities:@{MPIdentityFacebook: @"u_fb"})
+//
+[MoEngageConfigurator setMappingForIdentities:identities];</mpidentity,>
+```
+
+</CodeGroup>
+
+## イベントトラッキング
+
+mParticle SDK からカスタムイベントとコマースイベントを追跡するには、[logEvent](https://docs.mparticle.com/developers/client-sdks/ios/event-tracking/) を使用します。mParticle SDK は、関連するプロファイルとともにイベントを MoEngage Kit に送信します(mParticle ダッシュボードで設定されている場合)。
+
+## ユーザー属性のトラッキング
+
+mParticle SDK には、ユーザー属性を設定するための [setUserAttributeList](https://docs.mparticle.com/developers/client-sdks/ios/users/) が用意されています。mParticle の標準属性とカスタム属性のどちらを設定しても、両方とも MoEngage Kit に渡され、MoEngage SDK で適切にマッピングされます。
+
+# サンプル実装
+
+サンプル実装については、[こちら](https://github.com/moengage/mparticle-apple-integration-moengage)の GitHub リポジトリを参照してください。

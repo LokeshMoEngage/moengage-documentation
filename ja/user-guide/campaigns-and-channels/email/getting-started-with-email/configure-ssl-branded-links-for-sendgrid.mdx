@@ -1,0 +1,105 @@
+---
+title: "SendGrid の SSL ブランドリンクの設定"
+description: "MoEngage で SendGrid の SSL ブランドリンクを設定し、メール内の URL に sendgrid.com ではなく自社ドメインを表示して、信頼性と配信性を高めます。"
+---
+
+# 概要
+
+MoEngage は、すべてのユーザーのデフォルトのメール送信者として SendGrid を使用しています。メール内のすべてのクリック可能なリンクはクリックトラッキングのために SendGrid ドメインに変換されますが、クリックは最終的にお客様の Web サイトにリダイレクトされます。つまり、ユーザーがクリックする前にリンクを確認すると、_yourdomain.com/some-landing-page_ ではなく _sendgrid.com/some-landing-page_ が表示されます。
+
+ブランドの一貫性を確保し信頼を築くには、リンクブランディングを選択してください。リンクブランディングではリンクが yourdomain.com として表示されるため、ブランドの認知度が高まり、Chrome や Safari などのブラウザによる"安全でないリンク"の警告を回避してメールの配信性が向上します。必須ではありませんが、SSL を使用したリンクブランディングの設定はメール設定のベストプラクティスです。リンクブランディングを設定するには、次の手順を実行します。
+
+1. [CNAME レコードを追加してリンクブランディングを設定・検証する](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-ssl-branded-links-for-sendgrid#set-up-link-branding-with-cnames)。
+2. [ドメインに SSL を設定する](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-ssl-branded-links-for-sendgrid#set-up-ssl-for-the-domain)。
+3. [SSL の設定を確認する](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-ssl-branded-links-for-sendgrid#verify-the-ssl-setup)。
+4. [MoEngage チームに連絡してリンクブランディングを完了する](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-ssl-branded-links-for-sendgrid#contact-the-moengage-team)。
+
+以下のセクションで、各手順について詳しく説明します。
+
+<iframe src="https://www.youtube.com/embed/S8E3bF8oH0U" title="YouTube 動画プレーヤー" frameborder="0" className="w-full aspect-video rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen />
+
+# CNAME を使用したリンクブランディングの設定
+
+MoEngage チームは、リンクブランディング用の CNAME レコードを含む、特定の DNS レコードを追加するためのドキュメントを提供します。これらのレコードを追加すると、リンクブランディングが設定されます。DNS レコードは次の例のようになります。
+
+![Screenshot 2024-03-18 at 9.13.54 AM.png](/images/moengage_55130b.png)
+
+この手順で終了した場合、リンクブランディングは HTTP で動作します。ブラウザがユーザーに対してお客様の Web サイトを安全でないと表示しないよう、必ず SSL を設定してください。
+
+次の手順は、ドメインに SSL を追加することです。
+
+# ドメインの SSL の設定
+
+この手順では、ドメインに SSL を設定し、このドメインへのリクエストを sendgrid.net に転送します。リクエストを sendgrid.net に転送する前に SSL を終端してください。リクエストの転送方法について詳しくは、手順 2 を参照してください。
+
+1. 他のドメインと同様に、lurl.example.com に SSL を設定します(ここで、lurl.example.com はお客様のドメインリンクのプレースホルダーです)。<img src="/images/moengage_686756.png" alt="Screenshot 2024-03-01 at 10.34.10 AM.png" />
+2. **_lurl.example.com_** へのすべてのリクエストを _sendgrid.net_ に転送します。リクエストは、独自の CDN、プロキシ、または API Gateway を使用して転送できます。
+
+- - [CloudFlare](https://docs.sendgrid.com/ui/sending-email/content-delivery-networks/using-cloudflare-as-your-content-delivery-network-cdn)、[CloudFront](https://support.sendgrid.com/hc/en-us/articles/4412701748891-How-to-configure-SSL-for-click-tracking-using-CloudFront)、[KeyCDN](https://docs.sendgrid.com/ui/sending-email/content-delivery-networks/using-keycdn-as-your-content-delivery-network-cdn)、[Fastly](https://docs.sendgrid.com/ui/sending-email/content-delivery-networks/using-fastly-as-your-content-delivery-network-cdn) などの CDN を使用して設定する場合は、それぞれのドキュメントを参照してください。
+  - AzureCDN を使用する場合は、CDN プロファイルの設定時に **Origin host header** に lurl.example.com を入力します。
+  - プロキシを使用している場合は、[こちら](https://docs.sendgrid.com/ui/account-and-settings/custom-ssl-configurations)で追加のヘルプを参照してください。
+  - API Gateway の設定はゲートウェイによって異なります。HTTP ホストヘッダーを lurl.example.com として、リクエストを SendGrid.net に転送するようにしてください。
+
+この時点で、DNS レコードは次の例のようになります。
+
+![Screenshot 2024-03-18 at 9.20.25 AM.png](/images/moengage_608818.png)
+
+SSL の設定中に、**_lurl.example.com_** の CNAME レコードを編集し、CDN、プロキシ、または API Gateway を指すようにします。
+
+<Info>
+  - _123456.example.com._ の CNAME は変更しないでください。引き続き _sendgrid.net_ を指している必要があります(注: 123456 は例であり、実装によって異なる場合があります。リンクブランディングの実装については、共有されたドキュメントを参照してください)。
+  - SSL の設定後にレコードを再検証しないでください。再検証するとリンクブランディングが機能しなくなります。
+</Info>
+
+# SSL の設定の確認
+
+SSL の設定が正しいことを確認するには、次の手順に従います。
+
+- 転送とプロキシの設定を確認するには、ターミナルで _dig_ コマンドを実行します。このコマンドにより、最初の CNAME が _sendgrid.net_ ではなくお客様の CDN で解決されることを確認できます。
+  - macOS X でのコマンド: `dig cname mail.domain.com`
+  - Windows のコマンドプロンプト(例: cmd.exe)でのコマンド例: `nslookup -q=CNAME example.com`
+- クエリの answer セクションまたは authority セクションに _sendgrid.net_ が表示される場合は、DNS の CNAME が _sendgrid.net_ を直接指しているのではなく、CDN、プロキシ、または API Gateway を指していることを再確認してください。
+- MoEngage チームがテスト用のリンクを提供します。このリンクをクリックすると、google.com に移動するはずです。この最終検証により、SSL が正しく設定され、リクエストが _sendgrid.net_ に正しく転送されていることを確認できます。
+
+SSL の設定が完了したら、MoEngage チームに連絡して次の手順について相談してください。
+
+# MoEngage チームへの連絡
+
+SSL を設定した後、MoEngage チームが最終確認の手順を実行し、SendGrid で SSL クリックトラッキングを有効にします。独自の SendGrid を使用している場合は、MoEngage のカスタマーサクセスマネージャー(CSM)またはサポートチームにお問い合わせください。
+
+# FAQ とトラブルシューティング
+
+### リンクブランディングとは何ですか？
+
+リンクブランディングについて詳しくは、[こちら](https://www.twilio.com/en-us/blog/insights/how-to-set-up-ssl-click-tracking)を参照してください。この記事では、リンクブランディングが必要な理由、SSL を設定する必要がある理由、リクエストを Sendgrid に転送する方法、および統合をテストするためのコンソールコマンドについて説明しています。
+
+### SSL の設定が必要なのはなぜですか？
+
+Chrome などの最新のブラウザは、HTTPS が有効になっていない Web ページ上の安全でないリンクに対して警告を表示します。詳しくは、[こちら](https://blog.google/products/chrome/milestone-chrome-security-marking-http-not-secure/)を参照してください。\
+Safari ブラウザは、デフォルトでは HTTP ページをまったく表示しない場合があります。そのため、ユーザーがメールのリンクをクリックする場合は、ドメインに SSL を設定することをお勧めします。一部の MoEngage のお客様から、HTTP の Web サイトでページの読み込みに問題が発生したとの報告がありました。その解決策として、MoEngage は必須の手順ではないものの、メール設定のベストプラクティスとして SSL の設定を推奨しています。ページが読み込まれないリスクと SSL を設定することを比較検討して、最終的に判断してください。
+
+### SSL 証明書を MoEngage と共有する必要がありますか？
+
+いいえ。プロキシ、CDN、または API Gateway で SSL を終端し、リクエストを sendgrid.net に転送してください。SSL 証明書を MoEngage と共有する必要はありません。
+
+### Nginx を使用してプロキシを設定するにはどうすればよいですか？
+
+ロードバランサーで lurl.example.com の SSL を終端し、リクエストを VM またはプロキシに転送した後、Nginx を使用して正しいホストヘッダーでリクエストを SendGrid に転送できます。Nginx の設定には、次のサンプルコードを使用できます。_lurl.example.com_ をお客様のドメインリンクに置き換えてください。
+
+```html Nginx Conf wrap
+server{
+server_name lurl.example.com
+location / {
+proxy_pass https://sendgrid.net
+proxy_set_header Host lurl.example.com
+}
+}
+```
+
+### Wrong Link Error
+
+Wrong Link Error は、転送されたリクエストの Host HTTP ヘッダーが lurl.example.com になっていない場合に発生します。
+
+CDN を使用している場合、一部の CDN は元のリクエストの Host ヘッダーを自動的に設定します。その場合、このヘッダーを追加するための操作は不要です。**Azure CDN** では、CDN の設定時に **Origin host header** に lurl.example.com を入力して、これを設定する必要があります。
+
+プロキシを使用する場合は、設定手順に記載されているとおり、この Host ヘッダーを明示的に lurl.example.com に設定する必要があります。

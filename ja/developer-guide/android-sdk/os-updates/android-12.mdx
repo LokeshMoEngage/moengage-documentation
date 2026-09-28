@@ -1,0 +1,128 @@
+---
+title: "Android 12"
+description: "MoEngage キャンペーンのプッシュ通知とディープリンクに影響する Android 12 の動作変更を確認します。"
+---
+
+Android 12 は、年次リリースサイクルで提供される Android オペレーティングシステムのメジャーバージョンアップデートです。主なリリースの変更点は、[Android 公式リリースノート](https://developer.android.com/about/versions/12/release-notes)に詳しく記載されています。
+
+以下は、MoEngage プラットフォームまたは MoEngage Android SDK に影響する主な動作変更です。
+
+ 変更点は 2 つに分かれています。1 つ目はすべてのアプリケーションに影響するもの、2 つ目は Android 12 をターゲットとするアプリケーションにのみ影響するものです。
+
+# 動作の変更: すべてのアプリ
+
+以下の動作変更は、**targetSdkVersion** に関係なく、Android 12 で実行されるすべてのアプリに適用されます。
+
+## Web インテントの解決
+
+Android 12（API レベル 31）以降では、汎用的な Web インテントは、アプリがその Web インテントに含まれる特定のドメインに対して承認されている場合にのみ、アプリ内の Activity に解決されます。アプリがそのドメインに対して承認されていない場合、Web インテントは代わりにユーザーのデフォルトブラウザアプリに解決されます。
+
+アプリは以下のいずれかの方法で承認を取得します。
+
+- [Android App Links](https://developer.android.com/about/versions/12/web-intent-resolution#android-app-links) を使用してドメインを検証する。
+- ユーザーがシステム設定で手動で[アプリをドメインに関連付ける](https://developer.android.com/about/versions/12/web-intent-resolution#request-user-associate-app-with-domain)。
+
+詳細については、[Android Web Intent のドキュメント](https://developer.android.com/about/versions/12/web-intent-resolution)を参照してください。
+
+## どのような影響がありますか？
+
+キャンペーン（Push/InApp/Cards）で **http(s)** ディープリンクを使用しており、それらのリンクがアプリケーションで [App Links](https://developer.android.com/training/app-links) として設定されていない場合、Android 12 を実行しているデバイスではユーザーがブラウザに遷移します。
+
+## 修正方法
+
+MoEngage では、アプリケーションで App Links を設定することをお勧めします。または、同じ Activity に対してアプリスキーマのディープリンク（例: **example://gizmos**）がアプリケーションですでに設定されている場合は、キャンペーンを編集してリンクを更新してください。
+
+# 動作の変更: Android 12 をターゲットとするアプリ
+
+以下の動作変更は、Android 12 以降をターゲットとするアプリ、つまり **targetSdkVersion** が API レベル 31 以上に設定されているアプリにのみ適用されます。
+
+## PendingIntent の可変性
+
+アプリが Android 12 をターゲットとする場合は、アプリが作成する各 [PendingIntent](https://developer.android.com/reference/android/app/PendingIntent) オブジェクトの可変性を指定してください。この追加要件により、アプリのセキュリティが向上します。
+
+詳細については、[Android リリースノート](https://developer.android.com/about/versions/12/behavior-changes-12#pending-intent-mutability)を参照してください。
+
+## どのような影響がありますか？
+
+アプリケーションの **targetSdkVersion** が 31 で、MoEngage SDK が最新バージョン（**11.4.00** 以降）に更新されていない場合、Android 12 デバイスではプッシュ通知が表示されません。
+
+## 修正方法
+
+**targetSdkVersion** を API レベル 31 に更新するとともに、最新の MoEngage SDK（**11.4.00** 以降）に更新してください。
+
+## カスタム通知
+
+Android 12 では、完全な[カスタム通知](https://developer.android.com/training/notify-user/custom-notification)の外観と動作が変更されます。以前のバージョンのカスタム通知は、通知領域全体を使用し、独自のレイアウトとスタイルを提供していました。その結果、ユーザーを混乱させるアンチパターンや、さまざまなデバイスでのレイアウト互換性の問題が発生していました。
+
+Android 12 をターゲットとするアプリでは、カスタムコンテンツビューを持つ通知は通知領域全体を使用しなくなり、代わりにシステム定義の標準テンプレートが適用されます。
+
+## どのような影響がありますか？
+
+アプリケーションの **targetSdkVersion** が 31 で、**rich-notification** のバージョンが **2.2.01** 以前の場合、Android 12 デバイスではテンプレートが切り詰められたり崩れたりして表示されます。
+
+## 修正方法
+
+rich-notification を最新バージョン（2.3.00 以降）に更新してください。MoEngage では、アプリケーションの **targetSdkVersion** が 31 で、デバイスが Android 12 を実行している場合、テンプレートを一時的に無効にしています。
+
+Android 12 の新しい仕様に対応したテンプレートの MoEngage サポートは、今後のリリースで提供される予定です。
+
+# バックアップと復元の変更点
+
+Android 12（API レベル 31）で実行され、それをターゲットとするアプリでは、バックアップと復元の機能が変更されています。Android のバックアップと復元には 2 つの形式があります。
+
+- **クラウドバックアップ:** ユーザーデータはユーザーの Google ドライブに保存され、そのデバイスまたは新しいデバイスでデータを復元するために使用されます。
+- **デバイス間（D2D）転送:** ユーザーデータは、ケーブルを使用してユーザーの古いデバイスから新しいデバイスに直接送信されます。
+
+データのバックアップと復元の方法の詳細については、[Back up user data with Auto Backup](https://developer.android.com/guide/topics/data/autobackup) および [Back up key-value pairs with Android Backup Service](https://developer.android.com/guide/topics/data/keyvaluebackup) を参照してください。
+
+## D2D 転送機能の変更点
+
+Android 12 以降で実行され、それをターゲットとするアプリの場合:
+
+- **android:allowBackup:"false"** を指定すると Google ドライブへのバックアップは無効になりますが、アプリの D2D 転送は無効になりません。
+- XML 設定メカニズムによる[インクルードおよび除外ルールの指定](https://developer.android.com/guide/topics/data/autobackup#IncludingFiles)は、Google ドライブのバックアップには引き続き影響しますが、D2D 転送には影響しなくなりました。D2D 転送のルールを指定するには、新しい設定形式を使用する必要があります。
+
+# 新しいインクルードおよび除外の形式
+
+Android 12 以降で実行され、それをターゲットとするアプリは、異なる XML 設定形式を使用します。新しい形式では、クラウドバックアップと D2D 転送に対してインクルードおよび除外ルールを個別に指定することで、Google ドライブのバックアップと D2D 転送を区別します。
+
+オプションで、新しい形式を使用してバックアップのルールを指定することもできます。その場合、古い設定は無視されます。
+
+<CodeGroup>
+
+```XML XML wrap
+<data-extraction-rules>
+  <cloud-backup [disableIfNoEncryptionCapabilities="true|false"]>
+    ...
+    <include domain=["file" | "database" | "sharedpref" | "external" |
+                        "root"] path="string"/>
+    ...
+    <exclude domain=["file" | "database" | "sharedpref" | "external" |
+                        "root"] path="string"/>
+    ...
+  </cloud-backup>
+  <device-transfer>
+    ...
+    <include domain=["file" | "database" | "sharedpref" | "external" |
+                        "root"] path="string"/>
+    ...
+    <exclude domain=["file" | "database" | "sharedpref" | "external" |
+                        "root"] path="string"/>
+    ...
+  </device-transfer>
+</data-extraction-rules>
+```
+
+</CodeGroup>
+
+## どのような影響がありますか？
+
+アプリケーションの **targetSdkVersion** が 31 の場合、バックアップには MoEngage SDK の識別子が含まれ、再インストール後に復元されます。識別子が復元されると、データが破損し、プッシュ通知でユーザーにリーチできなくなります。
+
+## 修正方法
+
+更新された形式で設定を追加してください。詳細については、[Exclude MoEngage Storage File from Auto Backup](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup) を参照してください。
+
+<Info>
+  SDK バージョンを更新する際は、追加モジュールの互換性を確認し、それに応じて更新してください。
+</Info>

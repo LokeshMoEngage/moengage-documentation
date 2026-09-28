@@ -1,0 +1,54 @@
+---
+title: "Android の Push 設定"
+description: "Firebase とプッシュトークンのセットアップを含め、Unity アプリで Android のプッシュ通知を設定します。"
+---
+
+## 基本設定
+
+Unity アプリケーションでプッシュ通知を使用するには、アプリケーションに Firebase を設定する必要があります。アプリケーションでプッシュ通知を設定するには、次のドキュメントを参照してください。
+
+- [プッシュ通知](/ja/developer-guide/android-sdk/push/basic/push-configuration)
+- [FCM の設定](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display)
+
+アプリケーションでプッシュトークンの登録とプッシュペイロードを処理している場合は、トークンとペイロードを SDK に渡すために、ネイティブの Android メソッド（上記のドキュメントに記載）を使用することを強くお勧めします。何らかの理由でトークンの登録と受信メッセージの処理を独自に行いたい場合は、以下の API を使用してプッシュトークンとペイロードを SDK に渡してください。
+
+また、[Firebase for Unity](https://firebase.google.com/docs/cloud-messaging/unity/client) がセットアップされていることを確認してください。
+
+<Info>
+  NotificationConfig には、小さいアイコンと大きいアイコンのアセットが必要です。Unity のバージョンに応じて、これらを **Assets/res** フォルダーに含めるか、Android Library Project または AAR に未加工のアセットとして含める必要があります。AAR の詳細については、[こちら](https://docs.unity3d.com/2023.1/Documentation/Manual/android-library-project-and-aar-plugins-introducing.html) を参照してください。
+</Info>
+
+## プッシュトークンを渡す
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.PassFcmPushToken()
+```
+
+</CodeGroup>
+
+## プッシュペイロードを渡す
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.PassFcmPushPayload()
+```
+
+</CodeGroup>
+
+<Warning>
+  プッシュペイロードを MoEngage SDK に渡す際は、Unity/C# API ではなく Android ネイティブ API を使用することを強くお勧めします。アプリケーションが強制終了状態にある場合、Unity Engine が初期化されない可能性があり、プッシュの到達率や配信率の低下につながります。
+</Warning>
+
+## プッシュ通知のカスタマイズ
+
+必要に応じて、アプリケーションはネイティブ Android コード（Java/Kotlin）を使用して通知の動作をカスタマイズできます。カスタマイズの詳細については、[高度な Push 設定](/ja/developer-guide/android-sdk/push/advanced/callbacks-and-customisation) のドキュメントを参照してください。上記のドキュメントに記載されているように **_PushMessageListener_** を拡張する代わりに、**_PluginPushCallback._** を拡張してください。
+
+Push Amp+、Push Templates、Geofence については、以下のドキュメントを参照してください。
+
+- [Push Templates](/ja/developer-guide/android-sdk/push/optional/push-templates)
+- [GeoFence Push](/ja/developer-guide/android-sdk/push/optional/location-triggered)

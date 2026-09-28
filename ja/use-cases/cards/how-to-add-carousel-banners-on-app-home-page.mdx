@@ -1,0 +1,501 @@
+---
+title: "アプリのホームページにカルーセルバナーを追加する方法"
+---
+
+# はじめに
+
+Web サイトのホームページにカルーセルバナーを配置することは、アプリユーザーとのエンゲージメントを高め、特定のオファーをプロモーションするための優れた方法です。
+
+この記事では、MoEngage Self-Handled Cards を使用して Android および iOS ネイティブアプリにバナーカルーセルを構築し、Card キャンペーンを作成して、これらのバナーカルーセルを通じてアプリ訪問者にターゲットを絞った Card を配信する方法を説明します。
+
+# 期待される結果
+
+ユーザーには、Web サイトのホームページにカルーセルバナーが表示されます。
+
+![Announcement Carousels.gif](/images/moengage_0c0c91.png)
+
+# 統合の手順
+
+MoEngage の self-handled Cards を使用すると、Card コンテンツの生のペイロードにアクセスできます。これらのペイロードを利用するコンポーネントをアプリ内に作成し、アプリに統合されたコンポーネントとして機能するデザインとレイアウトで Card コンテンツを表示できます。
+
+次の手順では、以下の内容について説明します。
+
+1. [Cards の統合](/ja/use-cases/cards/how-to-add-carousel-banners-on-app-home-page#step-1-cards-integration)
+2. [各カテゴリの Cards UI の作成](/ja/use-cases/cards/how-to-add-carousel-banners-on-app-home-page#step-2-guide-for-cards-ui-creation)
+3. [MoEngage Cards ペイロードの解析とカルーセル UI へのフィード](/ja/use-cases/cards/how-to-add-carousel-banners-on-app-home-page#step-3-parsing-moengage-cards-payload-and-feed-into-the-carousel-ui)
+4. [アナリティクスのトラッキング](/ja/use-cases/cards/how-to-add-carousel-banners-on-app-home-page#step-4-track-analytics)
+
+## ステップ 1: Cards の統合
+
+### Android の場合
+
+#### **Catalog を使用したインストール**
+
+Version Catalog を使用した統合が推奨される統合方法です。まだカタログを設定していない場合は、[Configure Version Catalog](https://developers.moengage.com/hc/en-us/articles/4407395989268) ドキュメントを参照して設定してください。カタログを設定したら、次に示すように _app/build.gradle_ ファイルに依存関係を追加します。
+
+build.gradle
+
+```json
+dependencies {
+    ...
+    implementation(moengage.cardsCore)
+}
+```
+
+または、[Artifact ID を使用したインストール](/ja/developer-guide/android-sdk/sdk-integration/advanced-or-optional/installing-sdk-using-artifact-id#core)で説明されているように、Artifact ID を使用して依存関係を追加することもできます。ただし、Artifact ID を使用したインストールでは、マッピングが正しくないとバージョンの不一致が発生する可能性があるため、Catalog ID を使用したインストールが推奨されます。
+
+詳細については、[Android ネイティブの Self Handled Cards](/ja/developer-guide/android-sdk/cards/self-handled-cards) を参照してください。
+
+### iOS の場合
+
+#### **CocoaPod を使用したインストール**
+
+次に示すように、podfile に依存関係を追加して MoEngageCards フレームワークを統合します。
+
+Ruby
+
+```ruby
+pod 'MoEngageCards','~> 4.0.0'
+```
+
+次に、` pod install` を実行してフレームワークをインストールします。
+
+詳細については、[iOS ネイティブの Self Handled Cards](/ja/developer-guide/ios-sdk/cards/self-handled-cards) を参照してください。
+
+## ステップ 2: Cards UI 作成ガイド
+
+self-handled cards を統合したので、次に Card ペイロードを利用してカードを表示する UI を構築します。例えば、このユースケースの構築では、Android には **SliderView**、iOS には **ImageSlider** を使用しました。これらは、ホームページ上で 3～4 秒ごと (設定可能) にスライドするカルーセル形式で表示されます。
+
+<Info>
+  **SliderView** と **ImageSlider** は、このユースケースで例としてのみ使用している外部ライブラリであり、MoEngage によってメンテナンスされているものではありません。信頼でき、ユースケースに最適なライブラリを使用することを強くお勧めします。
+</Info>
+
+**データを UI にレンダリングする際の注意点**:
+
+- UI のキャンペーン駆動のコンポーネントは、cards ペイロードに存在するコンポーネント (タイトル、メッセージ、アクション、画像など) と一致している必要があります。
+- ユーザーがどのカードの対象にもならない場合があります。そのような場合は、カルーセルウィジェットを削除するか、バックアップコンテンツを用意するよう対応してください。
+- ペイロード内のすべての要素について、null 値、キャンペーンからの構文エラー、画像アセットが時間内に取得されないなどの例外シナリオを確認してください。
+- 読み込みに時間がかかる可能性のあるアセットがある場合は、シームレスなユーザー体験のために暫定 UI の追加を検討してください。
+- キャンペーンで使用する画像のサイズが画像コンテナに収まるようにするか、UI で画像のスケーリングを処理するようにしてください。
+- テキスト (ヘッダーとメッセージ) は絵文字と HTML 形式 (書式設定、色など) をサポートしているため、Html.format() メソッドを使用して処理してください。
+- 最上部に固定する機能は "display\_control" に含まれており、UI へのレンダリング時に個別に処理する必要があります (構造についてはサンプルペイロードを参照してください)。
+- Illustration テンプレートと Basic テンプレートでは、ペイロードの構造が若干異なります。Basic テンプレートでは、image キーの null 値を考慮してください。
+
+## ステップ 3: MoEngage Cards ペイロードの解析とカルーセル UI へのフィード
+
+UI を構築したので、次に cards ペイロードを UI にフィードする構造に解析する方法を説明します。
+
+Cards には複数のカテゴリがあり、各カテゴリは次の 2 種類の Card で構成されています。
+
+- **Basic**
+- **Illustration**
+
+このドキュメントでは、Announcement タイプの **Illustration** Card カテゴリがカルーセル形式でどのように表示されるか、MoEngage SDK から受け取った Card データを解析する方法、および外部ライブラリを使用して作成したカルーセルレイアウトにデータをレンダリングする方法を説明します。
+
+### Android の場合
+
+Cards が設定されているすべてのカテゴリを取得するには、_getCardCategories()_ API を使用します。
+
+この例では、_getCardsForCategory()_ API を使用して、Announcement タイプに属する Cards を取得しています。
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin wrap
+    /*Announcement is one of the categories and this API is used to fetch the card's data that belongs to Announcement Category*/
+    MoECardHelper.getCardsForCategory(context, "Announcements")
+    ```
+  </Tab>
+  <Tab title="Java">
+    ```java wrap
+    /*Announcement is one of the categories and this API is used to fetch the card's data that belongs to Announcement Category*/
+    MoECardHelper.INSTANCE.getCardsForCategory(context, "Announcements");
+    ```
+  </Tab>
+</Tabs>
+
+上記の関数が NULL ではなくデータを返した場合、Card が正常に配信されたことを意味します。これを MoEngage SDK に通知するには、次の API を呼び出します。これは後でアナリティクスに役立ちます。
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin wrap
+    /*To notify SDK that the Card's data are successfully fetched using the function mentioned above. */
+    MoECardHelper.cardDelivered(context)
+    ```
+  </Tab>
+  <Tab title="Java">
+    ```java wrap
+    /*To notify SDK that the Card's data are successfully fetched using the function mentioned above. */
+    MoECardHelper.INSTANCE.cardDelivered(context);
+    ```
+  </Tab>
+</Tabs>
+
+上記の関数から Cards データを取得した後、次のコードスニペットに示すように、データを解析して詳細を抽出し、UI へのレンダリングに使用する Model クラスに格納する必要があります。
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin wrap
+    /*Card's data that is fetched based on category is given here as input and processed into CardModel.java class to store and use it later. */
+          override fun parseCardData(card: Card): CardModel {
+            var title: String
+            var description: String
+            val cardModel = CardModel()
+            cardModel.card = card
+            val container = card.template.containers[0]
+            cardModel.ctaAction = container.action
+            cardModel.container = container
+            //Getting the type of the Card Template
+            if (card.template.templateType == TemplateType.BASIC) cardModel.itemViewType =
+            Constants.CARD_BASIC else if (card.template.templateType == TemplateType.ILLUSTRATION) cardModel.itemViewType =
+            Constants.CARD_ILLUSTRATION
+            //Widget - is where the Image, Header, Body message, CTA are stored
+            // ID:0 - is Image
+            // ID:1 - is Text for Header
+            // ID:2 - is Text for Body
+            // ID:3 - is CTA button
+            for (widget in container.widgetList) {
+              cardModel.widget = widget
+              if (widget.id == 0 && widget.widgetType == WidgetType.IMAGE) {
+                //setImage
+                cardModel.imageFromUrl = widget.content
+              } else if (widget.id == 1 && widget.widgetType == WidgetType.TEXT) {
+                  title = widget.content
+                  cardModel.title = title
+                } else if (widget.id == 2 && widget.widgetType == WidgetType.TEXT) {
+                    if (widget.content.isEmpty()) {
+                      Log.e(Logger.TAG, " : Widget text missing will not show widget.")
+                      continue
+                    }
+                    description = widget.content
+                    cardModel.description = description
+                  } else if (widget.id == 3 && widget.widgetType == WidgetType.BUTTON) {
+                      if (!widget.content.isEmpty()) {
+                        cardModel.ctaName = widget.content
+                      }
+                    }
+            }
+            val backgroundColor = Objects.requireNonNull(container.style).backgroundColor
+            if (!backgroundColor.isEmpty()) {
+              cardModel.backgroundColor = backgroundColor
+            }
+          return cardModel
+        }
+    ```
+  </Tab>
+  <Tab title="Java">
+    ```java wrap
+    /*Card's data that is fetched based on category is given here as input and processed into CardModel.java class to store and use later. */
+          @Override
+          public CardModel parseCardData(Card card) {
+            String title, description;
+            CardModel cardModel = new CardModel();
+            cardModel.setCard(card);
+            Container container = card.getTemplate().getContainers().get(0);
+            cardModel.setCtaAction(container.getAction());
+            cardModel.setContainer(container);
+            //Getting the type of the Card Template
+            if (card.getTemplate().getTemplateType() == TemplateType.BASIC)
+            cardModel.setItemViewType(Constants.CARD_BASIC);
+            else if (card.getTemplate().getTemplateType() == TemplateType.ILLUSTRATION)
+            cardModel.setItemViewType(Constants.CARD_ILLUSTRATION);
+            //Widget - is where the Image, Header, Body message, CTA are stored
+            // ID:0 - is Image
+            // ID:1 - is Text for Header
+            // ID:2 - is Text for Body
+            // ID:3 - is CTA button
+            for (Widget widget : container.getWidgetList()) {
+              cardModel.setWidget(widget);
+              if (widget.getId() == 0 && widget.getWidgetType() == WidgetType.IMAGE) {
+                //setImage
+                cardModel.setImageFromUrl(widget.getContent());
+                  } else if (widget.getId() == 1 && widget.getWidgetType() == WidgetType.TEXT) {
+                      title = widget.getContent();
+                      cardModel.setTitle(title);
+                    } else if (widget.getId() == 2 && widget.getWidgetType() == WidgetType.TEXT) {
+                        if (widget.getContent().isEmpty()) {
+                          Log.e(TAG, " : Widget text missing will not show widget.");
+                          continue;
+                        }
+                      description = widget.getContent();
+                      cardModel.setDescription(description);
+                    } else if (widget.getId() == 3 && widget.getWidgetType() == WidgetType.BUTTON) {
+                        if(!widget.getContent().isEmpty()) {
+                          cardModel.setCtaName(widget.getContent());
+                        }
+                      }
+            }
+            String backgroundColor = Objects.requireNonNull(container.getStyle()).getBackgroundColor();
+            if (!backgroundColor.isEmpty()) {
+              cardModel.setBackgroundColor(backgroundColor);
+            }
+            return cardModel;
+          }
+    ```
+  </Tab>
+</Tabs>
+
+これらの解析された値は、次の Slider Adapter クラスファイルに示すように、UI にレンダリングするために SliderAdapter に送信されます。
+
+Cards が UI に正しくレンダリングされたら、Android SDK の [Self-handled Cards](/ja/developer-guide/android-sdk/cards/self-handled-cards#widget-and-widget-id-mapping) ドキュメントに記載されている API を呼び出して、その旨を MoEngage に通知できます。
+
+<img
+  src="/images/moengage_1ec18d.png"
+  alt="ステップ 3 android.png"
+  style={{ width:"63%" }}
+/>
+
+### iOS の場合
+
+Cards が設定されているすべてのカテゴリを取得するには、getCardsCategories API を使用します。Cards が設定されているすべてのカテゴリを取得するには、getCardsCategories API を使用します。
+
+
+Swift
+
+```swift wrap
+MoEngageSDKCards.sharedInstance.getCardsCategories { categories, accountMeta in
+      print("Fetched Cards Categories \(categories)")
+          for category in categories {
+              self.getCardData(category: category)
+          }
+      }
+```
+
+カテゴリに基づいて Card データを取得するには、次に示すように getCards API を使用します。
+
+Swift
+
+```swift wrap
+func getCardData(category: String) {
+      MoEngageSDKCards.sharedInstance.getCards(forCategory: category) { cards, accountMeta in
+      print("Fetched cards for given category")
+          if(category == "Announcements") {
+              var mSliderData = Array<NewCardModel>()
+              var mDataForAnnouncements = Array<MoEngageCardCampaign>()
+              mDataForAnnouncements = cards
+              for cardData in mDataForAnnouncements {
+                  var cardModel = NewCardModel()
+                  cardModel = parseData(cardData: cardData)
+                  mSliderData.append(cardModel)
+              }
+              var afUrlSource = [SDWebImageSource(urlString: "https://images.unsplash.com/photo-1432679963831-2dab49187847?w=1080")!]
+                  if(mSliderData.count > 0){
+                      for cardData in mSliderData {
+                          if(cardData.templateType == MoEngageCardTemplateType.illustration){
+                              afUrlSource.append(SDWebImageSource(urlString: cardData.imageFromUrl ?? "")!)
+                          }
+                            }
+                  if(afUrlSource.count > 1) {
+                      afUrlSource.remove(at: 0)
+                      self.slideshow.setImageInputs(afUrlSource)
+                  } else {
+                      self.slideshow.setImageInputs(self.localSource)
+                    }
+          } else {
+                self.slideshow.setImageInputs(self.localSource)
+            }
+      }
+}
+```
+
+上記の関数が NULL ではなくデータを返した場合、Card が正常に配信されたことを意味します。これを MoEngage SDK に通知するには、以下の API を呼び出します。これは後でアナリティクスに役立ちます。
+
+Swift
+
+```swift wrap
+MoEngageSDKCards.sharedInstance.cardDelivered(cardCampaign, forAppID: "YOUR APP ID")
+```
+
+上記の関数から Cards データを取得した後、次のコードスニペットに示すように、データを解析して詳細を抽出し、UI へのレンダリングに使用する Model クラスに格納する必要があります。
+
+Swift
+
+```swift wrap
+func parseData(cardData: MoEngageCardCampaign) -> NewCardModel {
+      let newCardModel = NewCardModel()
+      newCardModel.card = cardData
+      let container : MoEngageCardContainer = (cardData.templateData?.containers.first)!
+      newCardModel.container = container
+      newCardModel.ctaAction = container.actions
+      if(cardData.templateData?.type == MoEngageCardTemplateType.basic) {
+          newCardModel.itemViewType = "Basic"
+      } else {
+            newCardModel.itemViewType = "Illustration"
+        }
+      newCardModel.templateType = cardData.templateData?.type;
+      for widgetData in container.widgets {
+          newCardModel.widget = widgetData
+              if(widgetData.id == 0 && widgetData.type == MoEngageCardWidgetType.image) {
+                  newCardModel.imageFromUrl = widgetData.content
+              } else if(widgetData.id == 1 && widgetData.type == MoEngageCardWidgetType.text) {
+                    newCardModel.cardTitle = widgetData.content
+                } else if(widgetData.id == 2 && widgetData.type == MoEngageCardWidgetType.text) {
+                      if(widgetData.content.isEmpty) {
+                          print("Widget text missing will not show widget.")
+                          continue
+                      }
+                  newCardModel.cardDescription = widgetData.content
+                  } else if(widgetData.id == 3 && widgetData.type == MoEngageCardWidgetType.button) {
+                        if(!widgetData.content.isEmpty) {
+                            newCardModel.ctaAction = widgetData.actions
+                        }
+                    }
+          }
+      return newCardModel
+      }
+}
+```
+
+これらの解析された値は、UI にレンダリングするために ImageSlider に送信されます。
+
+Cards が UI に正しくレンダリングされたら、iOS SDK の [Self-handled Cards](/ja/developer-guide/ios-sdk/cards/self-handled-cards#track-statistics-for-cards) ドキュメントに記載されている API を呼び出して、その旨を MoEngage に通知できます。
+
+<img
+  src="/images/moengage_b392be.png"
+  alt="ステップ 3 iOS.png"
+  style={{ width:"57%" }}
+/>
+
+## ステップ 4: アナリティクスのトラッキング
+
+Cards が UI に正しくレンダリングされたら、Card のデータを取得する API を提供する MoEngage SDK を使用して、Cards の使用状況とアナリティクスをトラッキングできます。詳細については、次のドキュメントを参照してください。
+
+- [Android での Cards の統計のトラッキング](/ja/developer-guide/android-sdk/cards/self-handled-cards#track-statistics-for-cards)
+- [iOS での Cards の統計のトラッキング](/ja/developer-guide/ios-sdk/cards/self-handled-cards#track-statistics-for-cards)
+
+# キャンペーンのテスト
+
+カルーセル Cards の作成は、アプリケーション用の [Card キャンペーンの作成](/ja/user-guide/campaigns-and-channels/cards/create/create-a-card-campaign)と同様です。Cards を作成する際に、MoEngage ダッシュボードの **Create view** ステップに移動し、**Test Card** セクションまでスクロールします。テストユーザーのカスタム属性とその値を選択して、新しく作成した Card の出力をテストできます。
+
+## テスト前
+
+![テスト前.png](/images/moengage_ccec2d.png)
+
+## 期待される結果
+
+![Announcement Carousels.gif](/images/moengage_0c0c91.png)
+
+Test Card セクションでは、テストデバイスでキャンペーンを表示して、意図したメッセージが期待どおりに伝わっていることを確認できます。
+
+# 追加レイアウトの推奨事項
+
+このドキュメントでは、[Android の Auto Image Slider](https://www.geeksforgeeks.org/auto-image-slider-in-android-with-example/) と [iOS の Cocoapods の Image Slideshow](https://cocoapods.org/pods/ImageSlideshow) を使用してカルーセル Cards を作成する例を示しました。同じ方法を使用して、Basic または Illustration テンプレートで Cards を作成し、ペイロードを解析して、さまざまなライブラリでさまざまな UI レイアウトを構築できます。
+
+カルーセルの代わりに使用できるレイアウトの例をいくつか示します。
+
+<img
+  src="/images/moengage_035d51.png"
+  alt="promotions.png"
+  style={{ width:"44%" }}
+/>
+
+<img
+  src="/images/moengage_65fdea.png"
+  alt="updates.png"
+  style={{ width:"45%" }}
+/>
+
+<img
+  src="/images/moengage_c20564.png"
+  alt="others.png"
+  style={{ width:"45%" }}
+/>
+
+## サンプル Cards ペイロード
+
+上記のカルーセルのユースケースでコンテンツを解析した方法と同様に、Card ペイロードを UI 要素に解析することで、任意のレイアウトにデータを入力できます。カードのサンプルペイロードを次に示します。
+
+JSON
+
+```json wrap
+"cards": [
+            {
+                "id": "640g66767676hh56565656_F_T_CA_AB_0_P_0_L_0_android",
+                "platform": "android",
+                "created_at": 1686051528,
+                "updated_at": 1686051528,
+                "meta_data": {
+                    "cid": "647f136f28cd97f6106b86c4_F_T_CA_AB_0_P_0_L_0",
+                    "moe_card_id": "640g66767676hh56565656_F_T_CA_AB_0_P_0_L_0_android",
+                    "moe_campaign_name": "Demo Card Campaign",
+                    "moe_delivery_type": "Event Triggered",
+                    "moe_campaign_id": "647f136f28cd97f6106b86c4"
+                },
+                "template_data": {
+                    "type": "basic",
+                    "containers": [
+                        {
+                            "widgets": [
+                                {
+                                    "content": "https://image.moengage.com/apiqasanityreactmoengage/20230606110034350340RKQN5HScreenshot2023060614443597f7c44fa5c96f29b225c53b361750eadajpgcompapiqasanityreactmoengage.jpg",
+                                    "type": "image",
+                                    "id": 0
+                                },
+                                {
+                                    "content": "<div>john.doe@example.com</div>",
+                                    "type": "text",
+                                    "id": 1
+                                },
+                                {
+                                    "content": "<div>Sample</div>",
+                                    "type": "text",
+                                    "id": 2
+                                },
+                                {
+                                    "content": "<div>Click </div>",
+                                    "type": "button",
+                                    "id": 3,
+                                    "actions": [
+                                        {
+                                            "type": "deepLink",
+                                            "name": "navigate",
+                                            "value": "https://www.moengage.com",
+                                            "kvPairs": {}
+                                        }
+                                    ]
+                                }
+                            ],
+                            "style": {
+                                "bgColor": "#4e3db0"
+                            },
+                            "type": "basic",
+                            "id": 0,
+                            "actions": []
+                        }
+                    ]
+                },
+                "user_activity": {
+                    "is_clicked": false
+                },
+                "display_controls": {
+                    "is_pin": true,
+                    "expire_after_delivered": 2592000
+                },
+                "category": "Promotions"
+            }
+        ]
+    }
+}
+```
+
+## Card ペイロードへの追加キーの追加
+
+cards の標準ペイロードは、カードキャンペーンの詳細、有効期限の詳細、タイトル、メッセージ、画像、アクションで構成されています。
+
+受け取る cards ペイロードに追加データを含めたい場合は、カードキャンペーンの作成時に、以下に示すように、カードのプライマリアクションの一部としてキーと値のペアの形式で追加できます。
+
+![Screenshot 2024-05-14 at 2.37.41 PM.png](/images/moengage_f48b9d.png)
+
+これらのキーと値のペアは、Card ペイロードの action の下に含まれ、解析して self-handled cards UI で使用できます。
+
+# アプリ内のさまざまなウィジェットの配置
+
+上記の例では、Announcement Card カテゴリを使用して、ホームページのカルーセルウィジェットに追加するカードをフィルタリングしました。
+
+アプリの複数のセクション (同じページ内の複数のセクションを含む) に self-handled cards を実装する場合は、Card Categories を使用してセクションを区別することをお勧めします。これにより、[カテゴリのカードを取得する](/ja/developer-guide/android-sdk/cards/self-handled-cards#fetch-cards-for-categories)関数を使用して、そのセクションに関連するカードのみを取得できます。
+
+カードカテゴリを設定するには、[サポートチケットを作成](/ja/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard)してください。
+
+# まとめ
+
+このユースケースでは、MoEngage Self-Handled Cards を使用して Android および iOS ネイティブアプリにバナーカルーセルを構築し、Card キャンペーンを作成して、これらのバナーカルーセルを通じてアプリ訪問者にターゲットを絞った Card を配信する方法を学びました。
+

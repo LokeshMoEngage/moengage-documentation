@@ -1,0 +1,68 @@
+---
+title: "Flyy"
+description: "Connector キャンペーンと Flyy API を使用して MoEngage と Flyy の間でセグメントを同期し、ゲーミフィケーションのリターゲティングのためにセグメントへユーザーを追加または削除します。"
+---
+
+# 概要
+
+[Flyy ](https://www.theflyy.com/)は、ゲーミフィケーションをプラットフォームとして提供するサービスです。アプリや Web サイトで新規ユーザーを増やし、既存ユーザーを維持してエンゲージメントを高め、より多くの取引を促進するためのグロースツールを提供しています。
+
+# MoEngage × Flyy
+
+MoEngage と Flyy の統合により、MoEngage と Flyy の間でセグメントを同期し、的を絞ったリターゲティングでゲーミフィケーションの取り組みを強化できます。この統合は、MoEngage の [Connector キャンペーン](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign)と [Flyy API](https://api-docs.theflyy.com/#d75f96e1-7b1e-4ec2-9bab-2ada7a116eda) を使用して構築します。
+
+<Info>
+  - Flyy アカウントの管理者アクセス権があることを確認してください。
+  - MoEngage と Flyy の間の共通の識別子。2 つのプラットフォーム間でユーザーをマッピングするために推奨されます。
+</Info>
+
+MoEngage で Connector キャンペーンを作成するには、次の手順を実行します。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最も適した配信タイプを選択します。<img src="/images/partner_4678168106516.png" alt="Screenshot_2022-02-21_at_10.48.46_PM.png" />
+2. キャンペーンのステップ 2 で、次の操作を行います。
+
+### セグメントにユーザーを追加する
+
+- メソッドとして POST を選択します。
+- Webhook URL として次の URL を追加します: `https://partner-api.theflyy.com/v1/partner-id/user/{{UserAttribute['id']}}/add_segment`
+- Headers に次の内容を追加します。
+  - partner-key `{{partner-key}}`
+  - Content-Type: application/json
+
+![Screenshot\_2023-04-18\_at\_9.10.42\_PM.png](/images/partner_14962273433620.png)
+
+- Body では、セグメントの詳細を定義する必要があります。次の例を参考にペイロードを構成し、必要なフィールドを入力します。
+  <CodeGroup>
+  ```json JSON wrap
+  { "segment_title": {Segment-Name}, "segment_key": {segment-key} }
+  ```
+  </CodeGroup>
+
+### セグメントからユーザーを削除する
+
+- メソッドとして POST を選択します。
+- Webhook URL として次の URL を追加します: `https://partner-api.theflyy.com/v1/partner-id/user/{{UserAttribute['id']}}/remove_segment`
+- Headers に次の内容を追加します。
+  - partner-key `{{partner-key}}`
+  - Content-Type: application/json
+
+![Screenshot\_2023-04-18\_at\_9.10.51\_PM.png](/images/partner_14962326733844.png)
+
+- Body では、セグメントの詳細を定義する必要があります。次の例を参考にペイロードを構成し、必要なフィールドを入力します。
+  <CodeGroup>
+  ```json JSON
+  { "segment_title": {Segment-Name}, "segment_key": {segment-key} }
+  ```
+  </CodeGroup>
+
+## ステップ 3: リクエストをプレビューする
+
+3. この時点で、キャンペーンをテストして送信する準備が整っています。Connector キャンペーン作成のステップ 2 にあるテスト機能を使用して、コネクタの設定をテストすることもできます。<img src="/images/partner_4678362626196.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+
+その後、キャンペーンを公開できます。
+
+## 共通の識別子
+
+MoEngage と Flyy の間に共通の識別子がある場合は、それを `user_id` として使用することを推奨します。これにより、2 つのユーザーセットを統合できます。
+
+共通の識別子がない場合は、名前、メールアドレス、電話番号などの識別属性のセットを渡すことを推奨します。

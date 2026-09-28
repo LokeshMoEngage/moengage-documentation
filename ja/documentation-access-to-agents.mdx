@@ -1,0 +1,234 @@
+---
+title: "エージェント向けドキュメントアクセス"
+subtitle: "AI エージェントと LLM で MoEngage ドキュメントを活用する方法"
+description: "AI エージェント、LLM、自動化ツールに適した形式で MoEngage ドキュメントにアクセスします。"
+icon: "robot"
+mode: "default"
+---
+
+以下のオプションを使用すると、完全な HTML ページを読み込むよりも少ないオーバーヘッドで、AI コーディングアシスタントや言語モデルに MoEngage ドキュメントへのアクセスを提供できます。
+
+## クイックスタート
+
+- **AI コーディングアシスタント (Claude Code、Cursor など):** 最適な体験を得るには、[MoEngage Docs MCP サーバー](https://www.moengage.com/docs/mcp)を使用してください。アシスタントが IDE 内からドキュメントを検索および取得できるようになります。
+- **チャットインターフェイス (ChatGPT、Claude.ai):** 任意のドキュメントページの URL に `.md` を追加して会話で共有すると、サイト全体ではなくプレーンな Markdown を取得できます。
+- **プロジェクトルールとカスタム指示:** MoEngage の [llms.txt](https://www.moengage.com/docs/llms.txt) の URL を AI ツールのルールに追加すると、関連する MoEngage ページのインデックスを利用できるようになります。
+- **エージェントの機能:** [skill.md](https://www.moengage.com/docs/skill.md) の URL または `npx skills add https://www.moengage.com/docs` を使用すると、エージェントが MoEngage で何ができるのか、どのような入力や制約が適用されるのかを把握できます。
+
+## MCP サーバー
+
+[MoEngage Docs MCP サーバー](https://www.moengage.com/docs/mcp)は、Model Context Protocol を通じて、AI エージェントやコーディングアシスタントに MoEngage のドキュメントとリファレンスへの直接アクセスを提供します。Claude、Cursor、その他の MCP 対応クライアントなどのツールに MoEngage の知識を取り込むために使用します。
+
+MoEngage Docs MCP (Model Context Protocol) サーバーは、AI エージェントを MoEngage のドキュメントと開発者リソースに接続します。IDE または AI チャットで MoEngage Docs MCP サーバーを設定すると、MoEngage の統合に関するコンテキストに応じたサポートを受けられます。
+
+<Note>
+  Model Context Protocol の詳細については、[MCP のドキュメント](https://modelcontextprotocol.io/introduction)を参照してください。
+</Note>
+
+AI エージェントが MCP をサポートしている場合は、MoEngage Docs MCP サーバーを追加して、MoEngage の API と SDK にアクセスできるようにできます。MoEngage Docs MCP サーバーでは、次のことが可能です。
+
+- MoEngage の API、機能、実装に関する回答をすばやく得る
+- エディターを離れずにドキュメントを検索する
+- 一般的なユースケースのコードサンプルや推奨パターンを見つける
+- ドキュメントと SDK リファレンスを使用して問題をデバッグする
+- アプリを MoEngage と統合するコードを記述する
+- 誤ったドキュメントや古いドキュメントを MoEngage ドキュメントチームに報告する
+
+## インストール
+
+MoEngage Docs MCP サーバーを設定するには、任意のページのコンテキストメニューを使用して **Connect** をクリックします。
+
+<Frame>
+  ![Cursor コンテキスト 1](/images/cursor-context-1.png)
+</Frame>
+
+または、IDE や AI チャットプロバイダーを選択して、以下の手順に従うこともできます。
+
+<AccordionGroup>
+  <Accordion title="Cursor">
+    1. **Cursor** を開き、プロジェクトルートにある `.cursor` ディレクトリを開きます。存在しない場合は作成します。ここに Cursor のプロジェクト設定が保存されます。
+    2. `.cursor` 内の `mcp.json` ファイルを開きます。存在しない場合は作成します。このファイルには、プロジェクトの MCP サーバー設定が保存されます。
+    3. `mcp.json` に次の内容を追加します。
+
+       ```json mcp.json
+       {
+         "mcpServers": {
+           "MoEngage Docs": {
+             "url": "https://www.moengage.com/docs/mcp"
+           }
+         }
+       }
+       ```
+    4. ファイルを保存します。
+    5. Cursor を再起動します。
+  </Accordion>
+  <Accordion title="Claude Desktop (ローカル)">
+    <Note>
+      Claude Desktop は `npm` を使用して MoEngage Docs MCP サーバーを実行します。**Node.js** がインストールされている必要があります。詳細については、[Node.js のダウンロード](https://nodejs.org/en/download/)を参照してください。
+    </Note>
+    1. **Claude Desktop** を開きます。
+    2. **File \> Settings** (Windows) または **Settings** (macOS) に移動します。
+    3. **Developer** タブを開きます。
+    4. **Edit Config** をクリックします。
+    5. `claude_desktop_config.json` を開きます。このファイルは Claude Desktop の MCP サーバーを制御します。
+    6. `claude_desktop_config.json` に次の内容を追加します。
+
+       ```json claude_desktop_config.json
+       {
+         "mcpServers": {
+           "moengage-docs": {
+             "command": "npx",
+             "args": ["-y", "mcp-remote", "https://www.moengage.com/docs/mcp"]
+           }
+         }
+       }
+       ```
+    7. ファイルを保存します。
+    8. Claude Desktop を再起動します。
+  </Accordion>
+  <Accordion title="Claude Desktop (リモート)">
+    <Note>
+      Claude Desktop のリモート MCP は現在ベータ版です。
+    </Note>
+    ### Enterprise プランと Team プラン
+
+    1. **Claude Desktop** を開きます。
+    2. **Admin settings \> Connectors** に移動します。
+    3. セクションの一番下までスクロールします。
+    4. **Add custom connector** をクリックします。
+    5. 次の項目を入力します。
+       - **Name**: MoEngage Docs MCP
+       - **Remote MCP server URL**: `https://www.moengage.com/docs/mcp`
+    6. **Add** をクリックします。
+
+    ### Pro プランと Max プラン
+
+    1. **Claude Desktop** を開きます。
+    2. **Settings \> Connectors** に移動します。
+    3. セクションの一番下までスクロールします。
+    4. **Add custom connector** をクリックします。
+    5. 次の項目を入力します。
+       - **Name**: MoEngage Docs MCP
+       - **Remote MCP server URL**: `https://www.moengage.com/docs/mcp`
+    6. **Add** をクリックします。
+  </Accordion>
+  <Accordion title="Claude Code">
+    ターミナルで次のコマンドを実行します。
+
+    ```bash
+    claude mcp add --transport http MoEngage-docs https://www.moengage.com/docs/mcp
+    ```
+  </Accordion>
+  <Accordion title="VS Code">
+    1. 次の内容で `.vscode/mcp.json` ファイルを作成します。
+
+       ```json mcp.json
+       {
+         "servers": {
+           "MoEngage Docs": {
+             "type": "http",
+             "url": "https://www.moengage.com/docs/mcp"
+           }
+         }
+       }
+       ```
+    3. ファイルを保存します。
+    4. VS Code を再起動します。
+  </Accordion>
+</AccordionGroup>
+
+## 使用方法 (ツール)
+
+MoEngage Docs MCP は、次のツールを提供します。
+
+- **`search_mo_engage`** — MoEngage のドキュメントとナレッジベースを検索します。「認証方法」や「レート制限」など、広範なクエリや概念的なクエリに使用します。結果には、タイトルと関連ドキュメントへのリンクを含むコンテキストに応じたコンテンツが含まれます。
+- **`query_docs_filesystem_mo_engage`** — MoEngage のドキュメントページと OpenAPI 仕様を含む仮想化されたファイルシステムに対して、読み取り専用のシェル風コマンド (`rg`、`grep`、`find`、`tree`、`ls`、`cat`、`head`、`jq`、その他のテキストユーティリティ) を実行します。キーワードや正規表現の完全一致、ドキュメント構造の探索、パスを指定したページ全文の読み取りに使用します。お使いのマシンやネットワーク上では何も実行されません。このファイルシステムは、ドキュメントコンテンツに基づくインメモリのサンドボックスです。
+- **`submit_feedback`** — ドキュメントページの問題を MoEngage ドキュメントチームに報告します。ページの内容が誤っている、古い、わかりにくい、不完全である場合や、サンプルが動作しない場合に使用します。
+
+一般的なエージェントのワークフローでは、まず概念的な質問に `search_mo_engage` を使用し、次に `query_docs_filesystem_mo_engage` を使用してページ全体を読み取る (検索で返されたパスに `.mdx` を追加します) か、正確な正規表現検索を実行します。
+
+## プロンプトの例
+
+MCP サーバーに接続したら、AI アシスタントに自然な言葉で質問します。アシスタントは MoEngage のドキュメントを検索して出典付きで回答するため、ドキュメントサイトに切り替える必要はありません。
+
+<Tabs>
+  <Tab title="マーケターとプロダクトチーム">
+    Claude Desktop などのチャットクライアントを使用して、キャンペーン、セグメント、分析に関する回答を得られます。
+
+    - 「送信時間の最適化を使用したプッシュキャンペーンを設定するにはどうすればよいですか?」
+    - 「イベントトリガーキャンペーンと Flows の違いは何ですか? それぞれどのような場合に使用すべきですか?」
+    - 「過去 30 日間に購入したものの、それ以降アプリを開いていないユーザーのセグメントを作成するにはどうすればよいですか?」
+    - 「キャンペーンレポートでは、コンバージョンゴールはどのようにアトリビューションされますか?」
+    - 「前提条件を含めて、WhatsApp キャンペーンの設定手順を順を追って説明してください。」
+  </Tab>
+  <Tab title="開発者">
+    Claude Code や Cursor などの IDE アシスタントを使用して、コンテキストに応じた統合のサポートを受けられます。
+
+    - 「MoEngage のプッシュ通知を Android アプリに統合してください。最新の SDK セットアップ手順に従ってください。」
+    - 「イベントが MoEngage に表示されません。Web SDK のドキュメントを確認して、トラッキング呼び出しのデバッグを手伝ってください。」
+    - 「必要なヘッダーとペイロードを含む MoEngage Track User API のリクエストを作成してください。」
+    - 「Notification Service Extension のサポートが追加された iOS SDK のバージョンと、その変更内容を教えてください。」
+    - 「アプリ内メッセージについて、React Native と Flutter の SDK セットアップ手順を比較してください。」
+  </Tab>
+</Tabs>
+
+## ページごとの Markdown
+
+任意のドキュメントページの URL に `.md` を追加すると、そのページの Markdown 版を取得できます。HTML、ナビゲーション、スクリプトを含まないコンテンツのみを取得できるため、ページ全体よりも少ないトークンで済みます。
+
+たとえば、[API リファレンスの概要](/ja/api/introduction)を Markdown で取得するには、次の URL を使用します。
+
+```txt
+https://www.moengage.com/docs/api/introduction.md
+```
+
+## サイト全体のエンドポイント
+
+これらのエンドポイントは [llms.txt 標準](https://llmstxt.org/)に準拠しています。Markdown 形式のコンテンツを取得するために使用できます。
+
+| エンドポイント                                                        | 説明                                                             | サイズ   |
+| --------------------------------------------------------------- | ----------------------------------------------------------------------- | ------ |
+| [`/llms.txt`](https://www.moengage.com/docs/llms.txt)           | サイト全体の短い説明付きページインデックス                   | 可変 |
+| [`/llms-full.txt`](https://www.moengage.com/docs/llms-full.txt) | すべてのページの全コンテンツ。可能な場合はセクション単位のエンドポイントを使用してください | 大  |
+
+## skill.md
+
+`skill.md` ファイルは、AI エージェントが MoEngage で何ができるかを、構造化された機械可読な形式で記述したものです。機能、必要な入力、制約を明示することで、エージェントがより確実に製品を使用できるようにします。
+
+**URL:** https://www.moengage.com/docs/skill.md
+
+このファイルは [skill.md 仕様](https://agentskills.io/specification)に準拠しており、ドキュメントと同期されているため、エージェントは常に最新の MoEngage の機能と API に沿って動作できます。
+
+<Tip>
+  `llms.txt` と `skill.md` はどちらもエージェントが MoEngage のドキュメントを活用するのに役立ちますが、役割は異なります。
+
+  - **`llms.txt`** はディレクトリです。ドキュメントページを説明付きで一覧表示し、エージェントがどこを参照すればよいかを把握できるようにします。
+  - **`skill.md`** は機能の概要です。エージェントが製品で何を実現できるか、どのような入力が必要か、どのような制約が適用されるかを記述します。
+</Tip>
+
+### エージェントで skill.md を使用する
+
+エージェントは、[skills CLI](https://www.npmjs.com/package/skills) を使用して MoEngage の機能をコンテキストに読み込むことができます。
+
+```bash
+npx skills add https://www.moengage.com/docs
+```
+
+これにより、MoEngage のスキル記述がエージェントに追加され、エージェントはユーザーに代わってアクションを実行できるようになります (例: 統合に関する質問への回答や API の使用方法の提案)。
+
+<Tip>
+  独自の AI 環境で `skill.md` の URL または上記のコマンドを使用すると、MoEngage を使用する際により的確で正確なサポートを受けられます。
+</Tip>
+
+### skill.md の内容
+
+MoEngage の `skill.md` ファイルはドキュメントから生成され、通常は次の内容が含まれます。
+
+- **Metadata** — 製品名、説明、バージョン。
+- **Capabilities** — エージェントが MoEngage でできること (例: キャンペーン、セグメント、SDK の統合)。
+- **Skills** — 領域別 (API、SDK、データなど) にグループ化された具体的なアクション。
+- **Workflows** — 一般的なタスクの手順。
+- **Integration** — サポートされているツールとサービス。
+- **Context** — MoEngage のドキュメントと概念の概要。
+
+正確なスキーマとフィールドについては、[agentskills.io の仕様](https://agentskills.io/specification)を参照してください。

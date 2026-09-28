@@ -1,0 +1,247 @@
+---
+title: "4.x から 5.x への移行 (1 回限りの作業)"
+description: "更新されたレシーバーと API を使用して、MoEngage Android SDK の統合をバージョン 4.x から 5.x に移行します。"
+---
+
+<Info>
+  **過去の移行ガイド。** このページでは、GCM から FCM への移行以前の、MoEngage Android SDK 4.x から 5.x への移行について説明します。すでに SDK 5.x 以降を使用している場合は、このページをスキップしてください。代わりに、最新の [SDK の統合](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/configuring-build-settings)およびバージョン別の移行ガイドを使用してください。
+</Info>
+
+[こちら](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)に記載されているインストール手順に従ってください。
+
+5.x への移行に必要な変更は最小限ですが、一部の構造的な変更により、いくつかのコード行を削除する必要があります。これは、疎結合で統合しやすくするために必要な変更です。
+
+- Manifest の権限に変更はありません
+- 基本的な統合ポイントは同じです
+- レシーバーとサービスが変更されています
+- いくつかの API を非推奨にし、代替を提供しています
+- Inbox はメイン SDK から分離され、アドオンライブラリに追加されました
+
+Play Services 7.3 を使用している場合、**以下のレシーバーに変更はありません**。
+
+<CodeGroup>
+
+```XML XML wrap
+{/*  MOENGAGE RECEIVER FOR RECEIVING GCM BROADCAST MESSAGES  */}
+<receiver
+    android:name="com.moe.pushlibrary.PushGcmBroadcastReceiver"
+    android:permission="com.google.android.c2dm.permission.SEND" >
+    <intent-filter>
+        <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+        <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+
+        <category android:name="{YOUR_PACKAGE_NAME}" />
+    </intent-filter>
+</receiver>
+{/*  MOENGAGE RECEIVER FOR RECEIVING INSTALLATION INTENT  */}
+<receiver android:name="com.moe.pushlibrary.InstallReceiver" >
+    <intent-filter>
+        <action android:name="com.android.vending.INSTALL_REFERRER" />
+    </intent-filter>
+</receiver>
+```
+
+</CodeGroup>
+
+Google Play Services 7.5 を使用している場合
+
+<CodeGroup>
+
+```XML XML wrap
+<receiver
+    android:name="com.google.android.gms.gcm.GcmReceiver"
+    android:exported="true"
+    android:permission="com.google.android.c2dm.permission.SEND" >
+    <intent-filter>
+        <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+        <category android:name="{YOUR_PACKAGE_NAME}" />
+    </intent-filter>
+</receiver>
+<service
+    android:name="com.moengage.worker.MoEGCMListenerService"
+    android:exported="false" >
+    <intent-filter>
+        <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+        <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+    </intent-filter>
+</service>
+<service
+    android:name="com.moengage.receiver.MoEInstanceIDListener"
+    android:exported="false">
+    <intent-filter>
+        <action android:name="com.google.android.gms.iid.InstanceID"/>
+    </intent-filter>
+</service>
+```
+
+</CodeGroup>
+
+# 以下のレシーバーを削除する
+
+<CodeGroup>
+
+```Java Java wrap
+{/*  MOENGAGE RECEIVER FOR RECEIVING PACKAGE UPDATED INTENT  */}
+<receiver android:name="com.moe.pushlibrary.PushUpdateReceiver" >
+    <intent-filter>
+        <action android:name="android.intent.action.PACKAGE_REPLACED" />
+        <data
+            android:path="{YOUR_PACKAGE_NAME}"
+            android:scheme="package" />
+    </intent-filter>
+</receiver>
+{/*  MOENGAGE SERVICE PROCESSING GCM MESSAGES  */}
+<service android:name="com.moe.pushlibrary.PushGCMIntentService" />
+{/*  MOENGAGE RECEIVER FOR INTERNAL PURPOSE  */}
+<receiver android:name="com.moe.pushlibrary.PushGcmRegister" />
+{/*  MOENGAGE RECEIVER FOR TRIGGERING INTERACTION DATA SYNC  */}
+<receiver android:name="com.moe.pushlibrary.SendReport" />
+```
+
+</CodeGroup>
+
+# 以下のレシーバーを追加する
+
+<CodeGroup>
+
+```XML XML wrap
+<receiver android:name="com.moe.pushlibrary.AppUpdateReceiver" >
+    <intent-filter>
+        <action android:name="android.intent.action.PACKAGE_REPLACED" />
+        <data
+            android:path="{YOUR_PACKAGE_NAME}"
+            android:scheme="package" />
+    </intent-filter>
+</receiver>
+```
+
+</CodeGroup>
+
+# 以下のプロバイダーを追加する
+
+<CodeGroup>
+
+```XML XML wrap
+<provider
+    android:name="com.moe.pushlibrary.providers.MoEProvider"
+    android:authorities="{YOUR_PACKAGE_NAME}.moengage.provider"
+    android:exported="false" />
+```
+
+</CodeGroup>
+
+# 以下の \<meta\> タグを追加する
+
+<CodeGroup>
+
+```XML XML wrap
+{/*  MANDATORY FIELD: APP ID AS SEEN ON MOENGAGE DASHBOARD APP SETTINGS PAGE  */}
+<meta-data
+    android:name="APP_ID"
+    android:value="DAO6UGZ73DXXTK7BXX96TPXX" />
+{/*  MANDATORY FIELD: SENDER ID , i.e. THE PROJECT NUMBER AS MENTIONED ON GOOGLE CLOUD CONSOLE PROJECTS PAGE  */}
+<meta-data
+    android:name="SENDER_ID"
+    android:value="id:687214452899" />
+
+{/*  MANDATORY FIELD: THE NOTIFICATION SMALL ICON WHICH WILL BE USED TO SET TO NOTIFICATIONS POSTED  */}
+<meta-data
+    android:name="NOTIFICATION_ICON"
+    android:value="@drawable/ic_launcher" />
+{/*  MANDATORY FIELD: THE NOTIFICATION LARGE ICON WHICH WILL BE USED TO SET TO NOTIFICATIONS POSTED  */}
+<meta-data
+       android:name="NOTIFICATION_LARGE_ICON"
+       android:value="@drawable/large_icon" />
+{/*  OPTIONAL FIELD: THE NOTIFICATION TYPE WHICH WILL BE USED, SINGLE OR MULTIPLE. DEFAULT BEHAVIOR IS SINGLE  */}
+<meta-data
+    android:name="NOTIFICATION_TYPE"
+    android:value="@integer/notification_type_multiple" />
+{/*  OPTIONAL FIELD: THE NOTIFICATION TONE THAT WILL BE USED. IF NOT SET WILL PLAY THE DEFAULT SOUND  */}
+<meta-data
+    android:name="NOTIFICATION_TONE"
+    android:value="@raw/tring" />
+```
+
+</CodeGroup>
+
+# 以下のコードを削除する
+
+<CodeGroup>
+
+```Java Java wrap
+//Delete the INITIALISATION METHOD CALL. THIS IS DEPRECATED AND NOT REQUIRED ANY LONGER
+helper.initialize( GCM_SENDER_ID, MOE_APP_ID);
+//Delete the REGISTER METHOD CALL. THIS IS DEPRECATED AND NOT REQUIRED ANY LONGER
+helper.Register(R.drawable.ic_launcher);
+```
+
+</CodeGroup>
+
+# 以下のコードを追加する (オプション)
+
+画面の向きの変更をサポートする場合にのみ追加してください。
+
+<CodeGroup>
+
+```Java Java wrap
+/*
+ * (non-Javadoc)
+ * 
+ * @see android.app.Activity#onSaveInstanceState(android.os.Bundle)
+ */
+@Override
+protected void onSaveInstanceState(Bundle outState) {
+    super.onSaveInstanceState(outState);
+    mHelper.onSaveInstanceState(outState);
+}
+
+/*
+ * (non-Javadoc)
+ * 
+ * @see android.app.Activity#onRestoreInstanceState(android.os.Bundle)
+ */
+@Override
+protected void onRestoreInstanceState(Bundle savedInstanceState) {
+    super.onRestoreInstanceState(savedInstanceState);
+    mHelper.onRestoreInstanceState(savedInstanceState);
+}
+```
+
+</CodeGroup>
+
+# Inbox のユーザー
+
+以下を変更します。
+
+以前の宣言
+
+<CodeGroup>
+
+```XML XML wrap
+{/*  MOENGAGE INBOX ACTIVITY DECLARATION  */}
+<activity
+    android:name="com.moe.pushlibrary.activities.MoEInboxActivity"
+    android:label="@string/app_name" >
+</activity>
+```
+
+</CodeGroup>
+
+変更後
+
+<CodeGroup>
+
+```XML XML wrap
+<activity
+    android:name="com.moengage.addon.inbox.MoEInboxActivity"
+    android:label="@string/label_act_sec" >
+</activity>
+```
+
+</CodeGroup>
+
+# インストール/アップデートの区別を追加する
+
+[こちら](https://www.moengage.com/docs/developer-guide/android-sdk/data-tracking/basic/track-install-or-update)に記載されているとおりに、インストール/アップデートの区別を追加します。
+
+問題がある場合は、カスタマーサクセスマネージャーにお問い合わせください。サポートいたします。

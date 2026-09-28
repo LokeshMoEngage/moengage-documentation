@@ -1,0 +1,70 @@
+---
+title: "iOS プッシュ設定"
+description: "APNS 証明書や登録など、Capacitor アプリで iOS プッシュ通知を設定します。"
+---
+
+## APNS 証明書:
+
+まず、iOS でプッシュ通知を送信できるようにするために、APNS 証明書を作成してダッシュボードにアップロードする必要があります。以下の手順に従ってください。
+
+- [APNS 証明書を作成する](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+- [作成した証明書を .pem 形式に変換する](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+- [.pem ファイルを MoEngage ダッシュボードにアップロードする](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+
+## プロジェクトへのプッシュエンタイトルメントの追加:
+
+APNS 証明書をアップロードしたら、Xcode プロジェクトでプッシュエンタイトルメントを有効にします。そのためには、アプリのターゲットを選択し、Capabilities に移動します。ここで、以下に示すようにアプリの Push Notifications ケイパビリティを有効にします。
+
+![iOS プッシュ設定 1](/images/iOSPushConfiguration1.png)
+
+## アンインストールのトラッキング:
+
+アンインストールのトラッキングにはサイレントプッシュを使用します。すべてのユーザーのアンインストールをトラッキングするには、以下に示すように、アプリのケイパビリティで Remote Notification バックグラウンドモードを有効にします。
+
+<Frame>
+  ![iOS プッシュ設定 2](/images/iOSPushConfiguration2.png)
+</Frame>
+
+## プッシュ登録:
+
+その後、以下に示すようにプラグインの **registerForPush** メソッドを使用してプッシュ通知に登録する必要があります。
+
+<CodeGroup>
+
+```javascript TypeScript
+//This is only for iOS
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+MoECapacitorCore.registerForPush();
+```
+
+</CodeGroup>
+
+<Info>
+  **AppDelegate のリモート通知メソッドは呼び出されません**
+
+  プラグインがリモート通知関連のすべてのコールバックを受け取るため、AppDelegate ではそれらを一切受け取りません。そのため、代わりにプラグインが提供する通知のオブザーバーを追加する必要があります。
+</Info>
+
+## 仮プッシュ登録:
+
+<Info>
+  この機能は、プラグインのバージョン **_9.0.0_** からサポートされています。
+</Info>
+
+仮プッシュ通知に登録するには、以下に示すようにプラグインの `registerForProvisionalPush()` API を呼び出します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+MoECapacitorCore.registerForProvisionalPush({ appId: YOUR_WORKSPACE_ID });
+```
+
+</CodeGroup>
+
+## リッチプッシュとテンプレートのサポート:
+
+アプリでリッチプッシュ（通知内の画像/動画/音声）とテンプレートをサポートするには、ネイティブ iOS SDK のドキュメントを参照してください。
+
+- [リッチプッシュ](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#optional) 
+- [プッシュテンプレート](/ja/developer-guide/ios-sdk/push/optional/push-templates)

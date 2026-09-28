@@ -1,0 +1,106 @@
+---
+title: "Throttling"
+description: "1 分あたりのリクエスト数によるスロットリング制限を設定して、MoEngage のプッシュ、メール、SMS、WhatsApp、Webhook メッセージの送信レートを制御します。"
+---
+
+Throttling を使用すると、ユーザーにコミュニケーション (プッシュ通知、メール、SMS および RCS メッセージ、WhatsApp メッセージ、Webhook メッセージなど) を送信するレートを制御できます。これは、トラフィックを急増させるのではなく、サーバーの負荷を一定期間に分散させたい場合に役立ちます。MoEngage のチャネルごとに、1 分あたりに送信できる通知またはメッセージの数 (1 分あたりのリクエスト数) を定義できます。
+
+# サポートされているチャネルと配信タイプ
+
+| サポートされているチャネル | サポートされている配信タイプ |
+| --- | --- |
+| SMS | <ul><li>One-time</li><li>Periodic</li></ul> |
+| MMS | <ul><li>One-time</li><li>Periodic</li></ul> |
+| RCS | <ul><li>One-time</li><li>Periodic</li></ul> |
+| Email | <ul><li>One-time</li><li>Periodic</li></ul> |
+| Push | <ul><li>One-time</li><li>Periodic</li></ul> |
+| WhatsApp | <ul><li>One-time</li><li>Periodic</li></ul> |
+| Connector | <ul><li>One-time</li><li>Periodic</li></ul> |
+
+# ワークスペースレベルで Throttling を設定する
+
+ワークスペース (グローバル) レベルで Throttling を設定するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションで、**Settings** \> **Channels** \> **Delivery controls** \> **Throttling** をクリックします。
+2. **Campaign Throttling Limits** で、必要なチャネルのトグルをオンにします。
+3. スロットリング制限を目的の RPM に設定します。スロットリング値は、チャネルに指定された最小制限より低くすることも、最大制限より高くすることもできません。最小、最大、およびデフォルトのレートは、各チャネルの設定の下に表示されます。
+4. **Save** をクリックします。
+
+![Throttling.png](/images/moengage_a4c4db.png)
+
+# キャンペーンレベルで Throttling を設定する
+
+グローバルなスロットリング設定に加えて、スロットリングのオプションが利用可能な場合は、キャンペーン作成のステップ 3 **Schedule and goals** で、個々のキャンペーンに異なるスロットリング設定を構成できます。詳細については、[サポートされているチャネルと配信タイプ](/ja/user-guide/settings/channels/delivery-controls/throttling#supported-channels-and-delivery-types)を参照してください。
+
+下の画像に示すように、Delivery controls でキャンペーンレベルのスロットリングを設定できます。
+
+<Tabs>
+  <Tab title="Push">
+    ![Push\_DC.png](/images/moengage_b00b77.png)
+
+    <Info>
+      デフォルトの FCM API レート制限が 600,000 RPM に引き下げられたことに伴い、MoEngage は、単一のキャンペーンがプロジェクトの制限を超えないように、プッシュ通知の最大許容スロットル速度を 500,000 RPM に変更します。この変更は新規および既存のキャンペーンに適用されます。複数のキャンペーンが同時にトリガーされるため、引き続きドロップが発生する場合があります。詳細については、[Changes in Sending Speed with Private Key Configuration](/ja/developer-guide/android-sdk/push/basic/fcm-authentication) を参照してください。
+    </Info>
+  </Tab>
+  <Tab title="SMS、MMS、RCS">
+    ![Screenshot 2025-09-30 at 11.03.30 AM.png](/images/moengage_0de9ec.png)
+  </Tab>
+  <Tab title="Email">
+    ![Email\_DC.png](/images/moengage_7e71ab.png)
+  </Tab>
+  <Tab title="Whatsapp">
+    ![WhatsApp\_DC.png](/images/moengage_c97a9f.png)
+  </Tab>
+  <Tab title="Connector">
+    ![WhatsApp\_DC.png](/images/moengage_c97a9f.png)
+  </Tab>
+</Tabs>
+
+MoEngage は、キャンペーンレベルのスロットリングのデフォルト設定をグローバル設定から入力します。
+
+**例:**
+
+ワークスペース (グローバルレベル) で Push/SMS & RCS/Email/WhatsApp/Connector のスロットリングが有効になっている場合、キャンペーンレベルの **Request limit** フィールドにはデフォルトで同じスロットリング値が表示されます。
+
+ワークスペース (グローバルレベル) で Push/SMS & RCS/Email/WhatsApp/Connector のスロットリングが無効になっている場合、キャンペーンレベルの **Request limit** フィールドにはチャネルのデフォルトのスロットル値が入ります。すべてのチャネルの最小、デフォルト、最大のスロットリング値については、以下の表を参照してください。
+
+| チャネル | 1 分あたりのデフォルトのスロットリング値 (通知、メッセージ、またはメール) | 1 分あたりの最小スロットリング値 (通知、メッセージ、またはメール) | 1 分あたりの最大スロットリング値 (通知、メッセージ、またはメール) |
+| --- | --- | --- | --- |
+| Push | 100K | 60k | すべてのキャンペーンタイプで 500K。これはデフォルトの FCM の動作に基づく推奨最大値です。FCM がより高い制限を割り当てている場合は、500K を超える値を設定できます。 |
+| SMS & RCS | 60K | 1K | <ul><li>パーソナライズなしのキャンペーン - 200K</li><li>パーソナライズされたキャンペーン - 200K</li><li>レコメンデーションキャンペーン - 200K</li></ul> |
+| Email | 60K | 1K | <ul><li>パーソナライズなしのキャンペーン - 225K</li><li>パーソナライズされたキャンペーン - 225K</li><li>レコメンデーションキャンペーン - 225K</li></ul> |
+| WhatsApp | 60K | 1K | <ul><li>パーソナライズなしのキャンペーン - 200K</li><li>パーソナライズされたキャンペーン - 200K</li><li>レコメンデーションキャンペーン - 200K</li></ul> |
+| Webhook (Connector) | 60K | 1K | <ul><li>パーソナライズなしのキャンペーン - 200K</li><li>パーソナライズされたキャンペーン - 200K</li><li>レコメンデーションキャンペーン - 200K</li></ul> |
+
+ワークスペースレベル (グローバル) のスロットリングが有効か無効かにかかわらず、キャンペーンの設定時にスロットル速度を変更し、キャンペーンごとに異なるオプションを設定できます。ワークスペースレベルのスロットリングとキャンペーンレベルのスロットリングの値が異なる場合は、キャンペーンレベルのスロットリングが優先されて適用されます。
+
+# Merlin AI キャンペーンでの Throttling
+
+Merlin AI は MoEngage の社内 AI で、オーディエンスのさまざまなバリエーションを作成してその行動を分析することで、エンゲージメントの割合を予測します。詳細については、[こちら](/ja/user-guide/ai-and-intelligence/ab-testing/create-multivariate-testing/perform-user-distribution-dynamically-using-merlin-ai)を参照してください。
+
+Merlin AI キャンペーンは実行時間が長いため、スロットリングは適用されません。Push キャンペーンで Merlin AI を使用してユーザー配分を動的に実行するには、少なくとも 1 時間実行する必要があります。一方、Email キャンペーンでは少なくとも 2〜4 時間実行する必要があります。実行時間はチャネルによって異なる場合があり、A/B テストで提供されるオプションから選択できます。
+
+<Info>
+  Merlin AI は、Push、Email、In-app Messaging、On-site Messaging キャンペーンでのみ利用できます。
+</Info>
+
+# Best Time to Send (BTS) での Throttling
+
+[BTS](/ja/user-guide/ai-and-intelligence/timing/best-time-to-send) は、ユーザーのインタラクションを高めるために、規範的な時間枠を使用してコミュニケーションを送信します。BTS は、Push、SMS & RCS、Email キャンペーンを個別に分析し、(0〜24 時間の) バケットから最適な時間枠を予測することでこれを決定します。BTS では、特定の時間枠で送信すべきコミュニケーション数よりもスロットリングが優先されます。
+
+たとえば、BTS が午後 4 時から午後 5 時で、ユーザー数が 1,500 万人であるとします。しかし、スロットリングが 200K RPM に制限されているため、1 時間でコミュニケーションできるのは 1,200 万人の顧客のみです (200k X 60 分 = 1,200 万)。スロットリングが優先されるため、残りの 300 万人のユーザーには次の時間枠 (午後 6 時から午後 7 時) でコミュニケーションできます。
+
+# FAQ
+
+<AccordionGroup>
+  <Accordion title="キャンペーンに高いスロットリング制限を設定しましたが、送信に予想より時間がかかりました。なぜですか?">
+    設定したスロットリング RPM は、処理のためにリクエストが **送信 (submit)** されるレートを制御します。これはお客様が設定し、直接制御するものです。MoEngage が実際にそれらのリクエストを処理して送信するレートは別のレートであり、直接制御することは **できません**。
+
+    MoEngage は送信レートに追いつこうとしますが、実際の送信レートはそれより遅れる場合があります:
+
+    - **パーソナライズなしのキャンペーン** の場合、処理レートは通常、送信レートに近くなります。
+    - **パーソナライズされたキャンペーン** の場合、処理レートは送信レートの約 50% またはそれ以下になる場合があります。
+
+    その結果、高いスロットリング制限 (例: 250K RPM) を設定していても、キャンペーンを完全に送信するのにかかる実際の時間は予想より長くなる場合があり、追加で必要な時間を正確に予測する方法はありません。
+  </Accordion>
+</AccordionGroup>

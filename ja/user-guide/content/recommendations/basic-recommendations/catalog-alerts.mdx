@@ -1,0 +1,194 @@
+---
+title: "Catalog Alerts"
+description: "カタログの価格や在庫が変化したときに、タイムリーでパーソナライズされたキャンペーンをトリガーします。各ユーザーの最近のアクティビティに基づいて、値下げ、再入荷、残りわずかのアラートを送信します。"
+keywords: ["catalog alerts", "price drop", "back in stock", "selling fast", "business event trigger", "last interaction price"]
+---
+
+Catalog Alerts を使用すると、ユーザーが関心を持っているものが変化した瞬間にユーザーにリーチできます。たとえば、ウィッシュリストに追加したアイテムの値下げ、保存した商品の再入荷、売り切れ間近の人気チケットなどです。MoEngage はカタログの価格や数量の変化を監視し、その変化を各ユーザーの最近のアクティビティと照合して、キャンペーンで送信できるパーソナライズされたアイテムのリストを生成します。
+
+## ユースケース
+
+- ウィッシュリストやカート内のアイテムの**値下げ**をユーザーに通知します。
+- ユーザーが閲覧した商品が**再入荷**したことを伝えます。
+- 保存したアイテムが**急速に売り切れつつある**ことをユーザーに警告します。
+- 保存したフライトやチケットが**より安い価格で利用可能**になったときにユーザーにアラートを送信します。
+- 監視しているアイテムの価格が前回の訪問時から**上昇**したことをユーザーに知らせます。
+
+<Tip>
+  開始する前に、[ユーザーアクションをマッピング](/ja/user-guide/content/recommendations/getting-started/map-user-actions-settings)し、[カタログを追加](/ja/user-guide/content/recommendations/getting-started/catalogs)してください。
+</Tip>
+
+## Catalog Alerts の仕組み
+
+ユーザーがインタラクションした各アイテムについて、MoEngage は**現在のカタログ値**と、そのアイテムに対する**ユーザーの最後のインタラクション時点**の値を比較します。変化が設定したルール (たとえば、価格が 30% を超えて下落) を満たす場合、そのアイテムはレコメンデーションの対象になります。
+
+### 利用可能なルール
+
+検出したい変化を定義するには、次のいずれかのルールを選択します。
+
+| ルール | 値が次のように変化したときにトリガー |
+| --- | --- |
+| **Increased by** | 設定した量または割合以上に上昇した。 |
+| **Increased up to** | 設定した量または割合以下で上昇した。 |
+| **Increased between** | 設定した範囲内の量または割合で上昇した。 |
+| **Increased from 0** | ゼロから任意の正の値に上昇した。このルールは数量にのみ適用されます。 |
+| **Decreased by** | 設定した量または割合以上に下落した。 |
+| **Decreased up to** | 設定した量または割合以下で下落した。 |
+| **Decreased between** | 設定した範囲内の量または割合で下落した。 |
+
+### 変化の測定方法
+
+MoEngage は、最後にインタラクションした時点の価格に対する絶対的な変化と割合の変化の両方を測定します。
+
+```text Change formulas
+Change   = Current price − Last interacted price
+% Change = [(Current price − Last interacted price) ÷ Last interacted price] × 100
+```
+
+数量にも同じロジックが適用されます。
+
+## Catalog Alert レコメンデーションを作成する
+
+<Info>
+  Catalog Alert レコメンデーションを作成できるのは、**Admin**、**Manager**、**Marketer** ロールのみです。
+</Info>
+
+<Steps>
+  <Step title="Recommendations ページを開く">
+    サイドバーで **Content** にカーソルを合わせ、**Recommendations** をクリックします。
+
+    ![Content メニューの Recommendations](/images/moengage_ad8358.png)
+  </Step>
+  <Step title="新しいレコメンデーションを開始する">
+    **+ Create recommendation** をクリックします。**Select recommendation model** ステップが表示されます。
+
+    ![Recommendations ページの Create recommendation ボタン](/images/moengage_400609.png)
+  </Step>
+  <Step title="Catalog alerts モデルを選択する">
+    **Catalog alerts** をクリックし、**Next** をクリックします。**Create recommendation** ステップが表示されます。
+
+    ![Select recommendation model ステップの Catalog alerts モデル](/images/moengage_da5e47.png)
+  </Step>
+  <Step title="レコメンデーションに名前を付けてカタログを選択する">
+    **Recommendation name** と **Recommendation description** を入力し、アラートを適用する **Catalog** を選択します。
+
+    必要に応じて、**Trigger a business event** を選択すると、カタログの更新時にイベントをトリガーできます。[ビジネスイベントトリガー](#business-event-trigger)を参照してください。
+
+    <Info>
+      - ビジネスイベントは、ビジネストリガーキャンペーンを開始し、カタログの更新時にユーザーに即座にアラートを送信できます。
+      - **スケジュールされた URL** または**手動**フィードを使用するカタログで機能します。カタログが 1 日に複数回更新される場合、イベントはその日の**最初**の更新時にのみトリガーされます。
+      - ビジネスイベントは、API ベースのカタログでは利用**できません**。
+    </Info>
+  </Step>
+  <Step title="検出するカタログの変化を定義する">
+    **Generate recommendations based on catalog updates** で次の操作を行います。
+
+    1. **Select catalog attribute** で、監視する属性 (**price** または **quantity**) を選択します。
+    2. **Select operator**、**value**、**Select type** で、検出する変化を定義します (例: *decreased by 30 percent*)。
+    3. **Select compare to** で、比較対象のインタラクション値を選択します (例: *last interaction price*)。
+    4. 考慮する**マッピング済みユーザーアクション**と、除外するものを選択します (例: 過去 15 日間の *Added to Wishlist* を対象とし、同じ期間の *Product Purchased* を除外)。
+
+    ![Catalog Alert で選択および除外されたマッピング済みユーザーアクション](/images/moengage_a8c9e4.png)
+  </Step>
+  <Step title="結果をフィルタリングして並べ替える (任意)">
+    **Filter items by item attributes** をオンにして、カタログデータを使用して結果を絞り込みます (例: *quantity is greater than 0*)。
+
+    **Sort the filtered items** で、MoEngage 派生属性または任意の数値カタログ属性で結果を並べ替えます (例: **Price percent change** で高い順に並べ替え)。
+
+    ![価格の変化率でフィルタリングされたアイテムを並べ替え](/images/moengage_5b01c0.png)
+  </Step>
+  <Step title="レコメンデーションを作成する">
+    **Create** をクリックしてモデルを保存し、実行します。
+  </Step>
+</Steps>
+
+## 具体例
+
+この例では、MoEngage がユーザーのアクティビティから最終的な並べ替え済みのレコメンデーションリストを生成するまでの流れを示します。
+
+**レコメンデーションの設定:** **過去 15 日間に Added to Wishlist** されたアイテムについて *価格が 30% を超えて下落*。ただし、過去 15 日間にユーザーが **Purchased** したアイテムは除外します。
+
+**基準時刻:** 4 月 30 日 午後 12:00。
+
+{/* PLACEHOLDER — WORKED-EXAMPLE TIMELINE
+    Redraw as a horizontal timeline: user interactions -> catalog refresh -> comparison -> threshold -> sorted output. */}
+
+### ステップ 1: 過去 30 日間の John のアクティビティ
+
+| ユーザーアクション | アイテム ID | インタラクション時の価格 | インタラクション日時 |
+| --- | --- | --- | --- |
+| Added to Wishlist | P007 | $29.50 | 4 月 30 日 午前 7:45 |
+| Added to Wishlist | P006 | $15.00 | 4 月 28 日 午前 12:00 |
+| Added to Wishlist | P005 | $40.00 | 4 月 27 日 午後 11:55 |
+| Product Purchased | P004 | $48.80 | 4 月 21 日 午前 9:00 |
+| Added to Wishlist | P002 | $129.99 | 4 月 20 日 午前 11:10 |
+| Added to Wishlist | P004 | $50.00 | 4 月 18 日 午後 1:10 |
+| Added to Wishlist | P001 | $29.99 | 4 月 1 日 午後 5:30 |
+
+### ステップ 2: ユーザーアクションフィルターを適用する
+
+MoEngage は、**過去 15 日間に Added to Wishlist** され、その期間内に**購入されていない**アイテムのみを残します。複数のインタラクションがあるアイテムについては、**最新**のものを使用します。
+
+| アイテム ID | 残す? | 理由 |
+| --- | --- | --- |
+| P007 | はい | 0 日前にウィッシュリストに追加 |
+| P006 | はい | 2 日前にウィッシュリストに追加 |
+| P005 | はい | 3 日前にウィッシュリストに追加 |
+| P002 | はい | 最新のウィッシュリスト追加 (4 月 20 日) が 15 日以内 |
+| P004 | いいえ | 過去 15 日間に購入済み (除外) |
+| P001 | いいえ | 29 日前にウィッシュリストに追加 (15 日間の期間外) |
+
+**引き継がれるアンカーアイテム:** P007、P006、P005、P002。
+
+### ステップ 3: 現在のカタログ価格と比較する
+
+カタログの更新後、MoEngage は各アンカーアイテムの**最後のインタラクション時の価格**と**現在の価格**を比較します。
+
+| アイテム ID | タイトル | 最後のインタラクション時の価格 | 現在の価格 |
+| --- | --- | --- | --- |
+| P007 | USB-C to HDMI Adapter | $29.50 | $19.90 |
+| P006 | Desk Organizer with Pen Holder | $15.00 | $12.50 |
+| P005 | Blue Light Blocking Glasses | $40.00 | $25.00 |
+| P002 | Noise Cancelling Headphones | $129.99 | $99.00 |
+
+### ステップ 4: 変化率を計算する
+
+`% change = [(current price − last interacted price) ÷ last interacted price] × 100` を使用します。
+
+| アイテム ID | 最後のインタラクション時の価格 | 現在の価格 | 変化率 | 30% 下落ルールを満たす? |
+| --- | --- | --- | --- | --- |
+| P005 | $40.00 | $25.00 | −37.5% | はい |
+| P007 | $29.50 | $19.90 | −32.5% | はい |
+| P002 | $129.99 | $99.00 | −23.8% | いいえ |
+| P006 | $15.00 | $12.50 | −16.7% | いいえ |
+
+P002 と P006 は、下落幅が 30% を超えていないため除外されます。
+
+### ステップ 5: 最終リストを並べ替える
+
+MoEngage は、条件を満たすアイテムを変化率で並べ替え、下落幅が最も大きいものを先頭にします。
+
+| 順位 | アイテム ID | タイトル | 変化率 |
+| --- | --- | --- | --- |
+| 1 | P005 | Blue Light Blocking Glasses | −37.5% |
+| 2 | P007 | USB-C to HDMI Adapter | −32.5% |
+
+その後、設定したアイテム属性フィルターが適用され、このリストがさらに絞り込まれます。
+
+## ビジネスイベントトリガー
+
+ビジネスイベントトリガーは、毎日検出される**最初**のカタログの変化の後にイベントをトリガーするため、リアルタイムのアラートキャンペーンを自動化できます。
+
+イベント名は `Catalog_Alerts_{{Recommendation_Name}}` の形式になります。*PriceDropAlerts* という名前のレコメンデーションの場合、イベントは `Catalog_Alerts_PriceDropAlerts` になります。
+
+このイベントを使用して、[ビジネスイベントトリガーキャンペーン](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/business-event-triggered-campaigns)を実行します。カタログが 1 日に 2 回 (たとえば、午前 10:00 と午後 10:00) 更新される場合、イベントは最初の更新が成功した後にのみトリガーされます。ビジネスイベントとは関係なく、同じレコメンデーションで他の種類のキャンペーンを任意のスケジュールで実行することもできます。
+
+## キャンペーンのパーソナライズ
+
+Catalog Alerts を使用すると、パーソナライズに使用できる追加の属性 `{{last_interaction_price}}` が利用可能になります。現在の `{{price}}` と並べて配置することで、ユーザーに正確な差額を示し、クリックの可能性を高めることができます。
+
+|  |  |
+| --- | --- |
+| <img src="/images/moengage_013c6e.png" alt="現在の価格の横に最後のインタラクション時の価格を表示したキャンペーンのパーソナライズ" /> | <img src="/images/personali.png" alt="ユーザーに価格差が表示されたキャンペーンのプレビュー" /> |
+
+キャンペーンでこのレコメンデーションを使用する前に、実際のユーザー、ランダムサンプル、または特定のアイテムに対してテストしてください。詳細については、[Test a Recommendation](/ja/user-guide/content/recommendations/getting-started/test-a-recommendation) を参照してください。

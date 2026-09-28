@@ -1,0 +1,72 @@
+---
+title: "プッシュテンプレート"
+description: "MoEngage を使用して、タイマーやプログレスバーを備えたリッチプッシュ通知テンプレートを Android アプリに追加します。"
+---
+
+# SDK のインストール
+
+## BOM を使用したインストール
+
+BOM を使用した統合が推奨される統合方法です。[Install Using BOM](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) ドキュメントを参照してください。BOM を設定したら、以下のように _app/build.gradle_ ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```Groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:rich-notification")
+}
+```
+
+</CodeGroup>
+
+この依存関係にバージョン番号は不要です。BOM が管理します。
+
+ 
+
+# Timer with Progress Bar
+
+## 正確なアラームのスケジュール権限
+
+SDK はアラームを使用して、プログレスバーの進捗を定期的に更新します。Android 12 以降では、正確なアラームを使用するために追加の権限が必要です。詳細については、[ドキュメント](https://developer.android.com/training/scheduling/alarms#exact)を参照してください。Android 12 以降のデバイスで Timer with Progress Bar テンプレートをサポートするには、マニフェストファイルに以下の権限を追加します。
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+```
+
+</CodeGroup>
+
+ 
+
+Android 14 以降では、アラーム権限はデフォルトでオフになっています。そのため、タイマー通知を表示するには、マニフェストファイルに前述の行を追加するだけでなく、アラーム権限を明示的にリクエストする必要があります。権限がすでに付与されているかを確認し、必要に応じて以下の行を呼び出して、顧客からアラーム権限を取得します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+```
+
+```java Java wrap
+startActivity(new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM));
+```
+
+</CodeGroup>
+
+アプリケーションに `SCHEDULE_EXACT_ALARM` 権限がない場合、Timer with Progress Bar テンプレートは表示されません。代わりに、SDK は MoEngage ダッシュボードでキャンペーンに設定された**バックアップテンプレート**にフォールバックします。バックアップテンプレートは、Timer with Progress Bar キャンペーンの作成時に選択する代替の通知です。タイマーは表示されますがプログレスバーは省略されるため、通知を引き続き配信できます。
+
+## カスタマイズ
+
+SDK は、プログレスバーの背景色と進捗色のデフォルト値を定義しています。以下の SDK 定義のカラー属性の値を上書きすることで、アプリケーションのテーマに合わせてカスタマイズできます。
+
+ライトモードとダークモードでカスタムカラーを設定するには、それぞれ **res/values/colors.xml** と **res/values-night/colors.xml** の値を上書きします。
+
+<CodeGroup>
+
+```xml colors.xml wrap
+<color name="moe_rich_push_progress_bar_background_color">[YOUR_COLOR]</color>
+<color name="moe_rich_push_progress_bar_progress_color">[YOUR_COLOR]</color>
+```
+
+</CodeGroup>

@@ -1,0 +1,128 @@
+---
+title: "11.x.xx から 12.x.xx への更新"
+description: "更新されたビルド設定と、モジュール化された InApp および Push を備えた MoEngage Android SDK 12.x.xx に移行します。"
+---
+
+# 動作の変更
+
+* ビルド設定が以下のように更新されました
+	+ compileSdk 30
+	+ minSdk 21
+	+ targetSdk 30
+* SDK バージョン 12.0.00 以降、moe-android-sdk を依存関係として追加しても、以下の機能はデフォルトでは連携されません。これらの機能を使用している場合は、それぞれの連携ドキュメントを参照して依存関係を更新してください。
+	+ [InApp](https://www.moengage.com/docs/developer-guide/android-sdk/in-app-messages/in-app-nativ)
+	+ [Push Amplification](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/push-amplification)
+	+ [Device Trigger](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/device-triggered)
+* SDK を初期化する API は、App-id が null または空の場合に [*IllegalStateException*](https://developer.android.com/reference/java/lang/IllegalStateException) をスローするようになりました。
+
+## 外部ライブラリのバージョン更新
+
+* androidx.core:core 1.3.1 --> 1.6.0
+* androidx.appcompat:appcompat 1.2.0 --> 1.3.1
+* androidx.lifecycle:lifecycle-process 2.2.0 --> 2.4.0
+* com.google.firebase:firebase-messaging 22.0.0 --> 23.0.0
+* Kotlin Standard Library 1.4.20 --> 1.6.0
+
+# 削除された初期化 API の更新
+
+| 以前 | 現在 |
+| --- | --- |
+| MoEngage.Builder#optOutInAppOnActivity() | MoEngage.Builder#configureInApps   (InAppConfig) |
+| MoEngage.Builder#optOutNavBar() | MoEngage.Builder#configureInApps   (InAppConfig) |
+| MoEngage.Builder#optOutBackStackBuilder() | MoEngage.Builder#configureNotificationMetaData   (NotificationConfig) |
+| MoEngage.Builder#enableMultipleNotificationInDrawer() | MoEngage.Builder#configureNotificationMetaData   (NotificationConfig) |
+| MoEngage.Builder#setNotificationTone() | MoEngage.Builder#configureNotificationMetaData   (NotificationConfig) |
+| MoEngage.Builder#setNotificationColor() | MoEngage.Builder#configureNotificationMetaData   (NotificationConfig) |
+| MoEngage.Builder#setNotificationSmallIcon() | MoEngage.Builder#configureNotificationMetaData   (NotificationConfig) |
+| MoEngage.Builder#setNotificationLargeIcon() | MoEngage.Builder#configureNotificationMetaData   (NotificationConfig) |
+| MoEngage.Builder#optOutNotificationLargeIcon() | MoEngage.Builder#configureNotificationMetaData   (NotificationConfig) |
+| MoEngage.Builder#optOutTokenRegistration() | MoEngage.Builder#configureFcm   (FcmConfig) |
+| MoEngage.Builder#setSenderId() | sender id のサポートは削除されました |
+| MoEngage.Builder#configureMiPush(String, String, Boolean) | MoEngage.Builder#configureMiPush   (MiPushConfig) |
+| MoEngage.Builder#enablePushKitTokenRegistration() | MoEngage.Builder#configurePushKit   (PushKitConfig) |
+| MoEngage.Builder#enableLogsForSignedBuild() | MoEngage.Builder#configureLogs   (LogConfig) |
+| MoEngage.Builder#enableLogs() | MoEngage.Builder#configureLogs   (LogConfig) |
+| MoEngage.Builder#enableSegmentIntegration() | MoEngage.Builder#enablePartnerIntegration   (IntegrationPartner) |
+# core モジュールで削除されたメソッドの更新
+
+| 以前 | 現在 |
+| --- | --- |
+| MoECallbacks#addLogoutCompleteListener   (OnLogoutCompleteListener) | MoECoreHelper#addLogoutCompleteListener   (OnLogoutCompleteListener) |
+| MoECallbacks#removeLogoutListener   (OnLogoutCompleteListener) | MoECoreHelper#removeLogoutListener   (OnLogoutCompleteListener) |
+| MoECallbacks#addAppBackgroundListener   (AppBackgroundListener) | MoECoreHelper#addAppBackgroundListener   (AppBackgroundListener) |
+| MoECallbacks#removeAppBackgroundListener   (AppBackgroundListener) | MoECoreHelper#removeAppBackgroundListener   (AppBackgroundListener) |
+| MoEHelper#registerActivityLifecycle() | サポート終了 |
+| MoEHelper#unregisterLifecycleCallbacks() | サポート終了 |
+| MoEHelper#registerProcessLifecycleObserver() | サポート終了 |
+| MoEHelper#unRegisterProcessLifecycleObserver() | サポート終了 |
+| MoEHelper#trackEvent   (String, PayloadBuilder) | MoEAnalyticsHelper#trackEvent   (String, Properties) |
+| MoEHelper#syncInteractionDataNow() | MoECoreHelper#syncInteractionData() |
+| MoEHelper#setAppContext   (List) | MoEInAppHelper#setInAppContext   (Set) |
+| MoEngage#enableSdk(Context) | enableSdk(Context) または   MoESdkStateHelper#enableSdk(Context) |
+| MoEngage#disableSdk(Context) | disableSdk(Context) または   MoESdkStateHelper#disableSdk(Context) |
+| MoEngage#optOutDataTracking(Context, boolean) | enableDataTracking(Context)/disableDataTracking(Context)   または MoESdkStateHelper#enableDataTracking(Context)/   MoESdkStateHelper#disableDataTracking(Context) |
+| MoEngage#optOutPushNotification(Context, boolean) | サポート終了 |
+| MoEngage#optOutInAppNotification(Context, boolean) | サポート終了 |
+| MoEngage#initialise(MoEngage, Boolean) | MoEngage#initialiseDefaultIstance   (MoEngage, SdkState) |
+| MoEngage#initialise(MoEngage) | MoEngage#initialiseDefaultIstance   (MoEngage) |
+# Push の変更点
+
+* 通知音のサポートが終了しました
+* [*NotificationPayload*](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.model/-notification-payload/index.html) が使いやすいように再構成されました。
+* 削除または置き換えられたメソッド
+
+| 以前 | 現在 |
+| --- | --- |
+| PushMessageListener#onHandleRedirection() | PushMessageListener#onNotificationClick() |
+| MoEPushHelper#setMessageListener   (PushMessageListener) | MoEPushHelper#registerMessageListener   (PushMessageListener) |
+## Firebase Messaging の変更点
+
+*FirebaseEventListener* は削除されました。代わりに以下のコールバックを使用してください
+
+* [*TokenAvailableListener*](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.listener/-token-available-listener/index.html) - プッシュトークンが生成されるたびにトークンを取得します。
+* [*NonMoEngagePushListener*](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase.listener/-non-mo-engage-push-listener/index.html) - MoEngage サーバー以外からのプッシュを受信するたびにコールバックを取得します。
+* *MoEFireHelper* から以下のメソッドが削除されました
+	+ setEventListener(FirebaseEventListener)
+	+ addEventListener(FirebaseEventListener)
+
+代わりに、TokenAvailableListener と NonMoEngagePushListener を追加するために提供されているメソッドを使用してください。
+
+## HMS Push Kit の変更点
+
+*PushKitEventListener* は削除されました。代わりに以下のコールバックを使用してください
+
+* [*TokenAvailableListener*](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.listener/-token-available-listener/index.html) - プッシュトークンが生成されるたびにトークンを取得します。
+* [*NonMoEngagePushListener*](https://moengage.github.io/android-api-reference/hms-pushkit/com.moengage.hms.pushkit.listener/-non-mo-engage-push-listener/index.html) - MoEngage サーバー以外からのプッシュを受信するたびにコールバックを取得します。
+* *MoEPushKitHelper* から以下のメソッドが削除されました
+	+ setEventListener(PushKitEventListener)
+	+ addEventListener(PushKitEventListener)
+
+リスナーの設定方法の詳細については、[Configuring HMS Push Kit](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/push-amp-plus/configuring-hms-push-kit) のドキュメントを参照してください。
+
+# InApp の変更点
+
+InAppMessageListener は削除されました。代わりに以下のコールバックを使用してください
+
+* *OnClickActionListener* - アプリ内メッセージのクリックコールバック用です。
+* [*SelfHandledAvailableListener*](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.listeners/-self-handled-available-listener/index.html) - Self handled キャンペーンが利用可能になったときのコールバック用です。
+* [*InAppLifeCycleListener*](https://moengage.github.io/android-api-reference/inapp/com.moengage.inapp.listeners/-in-app-life-cycle-listener/index.html) - 表示、閉じるなどのアプリ内メッセージのライフサイクルコールバック用です。
+
+リスナーの設定方法の詳細については、[InApp](https://www.moengage.com/docs/developer-guide/android-sdk/in-app-messages/in-app-nativ) のドキュメントを参照してください。
+
+*MoEInAppHelper* から削除されたメソッド
+
+| 以前 | 現在 |
+| --- | --- |
+| MoEInAppHelper#getSelfHandledInApp(Context) | MoEInAppHelper#getSelfHandledInApp(Context, SelfHandledAvailableListener) |
+# Inbox の変更点
+
+以下はメソッドシグネチャの変更点です
+
+| 以前 | 現在 |
+| --- | --- |
+| OnMessagesAvailableListener#onMessagesAvailable   (List) | OnMessagesAvailableListener#onMessagesAvailable   (InboxData) |
+| UnClickedCountListener#onCountAvailable   (Long) | UnClickedCountListener#onCountAvailable   (UnClickedCountData) |
+| MoEInboxHelper#fetchMessagesByTag()   の戻り値: List | MoEInboxHelper#fetchMessagesByTag()   の戻り値: InboxData |
+| MoEInboxHelper#fetchAllMessages()   の戻り値: List | MoEInboxHelper#fetchAllMessages()   の戻り値: InboxData |
+| MoEInboxHelper#getUnClickedMessagesCount()   の戻り値: Long | MoEInboxHelper#fetchAllMessages()   の戻り値: UnClickedCountData |
+| OnMessageClickListener#onMessageClick   (InboxMessage) | OnMessageClickListener#onMessageClick   (MessageClickData) |

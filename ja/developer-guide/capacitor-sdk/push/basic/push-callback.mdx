@@ -1,0 +1,179 @@
+---
+title: "プッシュコールバック"
+description: "MoEngage Capacitor SDK で、プッシュトークンの生成と通知クリックイベントのリスナーを設定します。"
+---
+
+# プッシュコールバックの設定
+
+MoEngage プラグインは、プッシュイベントのリスナーを提供しています。これらのイベントは、iOS と Android の両方のプラットフォームに共通のトリガーです。リスナーを設定するには、以下のコードを参照してください。
+
+<Warning>
+  これらのコールバックを受け取るには、プラグインの **initialize()** メソッドを呼び出していることを確認してください。詳細については、[Capacitor コンポーネントの初期化](/ja/developer-guide/capacitor-sdk/sdk-integration/basic/sdk-installation/framework-dependency)を参照してください。
+</Warning>
+
+## プッシュトークン生成オブザーバー
+
+以下に示すように、**pushTokenGenerated** をリッスンするリスナーを追加します。
+
+<CodeGroup>
+
+```typescript TypeScript
+import { MoECapacitorCore, MoEPushTokenData } from 'capacitor-moengage-core'
+MoECapacitorCore.addListener("pushTokenGenerated", (data: MoEPushTokenData) => {
+ console.log(" Received callback 'pushTokenGenerated',  data: " + JSON.stringify(data))
+});
+```
+
+</CodeGroup>
+
+## 通知クリックオブザーバー
+
+以下に示すように、**pushClicked** をリッスンするリスナーを追加します。
+
+<CodeGroup>
+
+```typescript TypeScript
+import { MoECapacitorCore, MoEPushCampaignData } from 'capacitor-moengage-core'
+MoECapacitorCore.addListener("pushClicked", (data: MoEPushCampaignData) => {
+ console.log(" Received callback 'pushClicked',  data: " + JSON.stringify(data))
+});
+```
+
+</CodeGroup>
+
+# ペイロード
+
+コールバックで受け取る PushToken は、次の定義を持つ **MoEPushTokenData** インスタンスです。
+
+<CodeGroup>
+
+```typescript TypeScript
+/**
+ * Push token object
+ */
+ export interface MoEPushTokenData {
+    /**
+     * Platform type
+     */
+    platform: MoEPlatform;
+    /**
+     * Type of push service
+     */
+    pushService: MoEPushService;
+    /**
+     * Push Token
+     */
+    token: String;
+}
+export declare enum MoEPlatform {
+    iOS = "iOS",
+    ANDROID = "android"
+}
+
+export declare enum MoEPushService {
+    APNS = 0,
+    FCM = 1,
+    MI_PUSH = 2,
+    PUSH_KIT = 3
+}
+```
+
+</CodeGroup>
+
+コールバックで受け取る NotificationPayload は、次の定義を持つ **MoEPushCampaignData** インスタンスです。
+
+<CodeGroup>
+
+```typescript TypeScript
+/**
+ * Push event data
+ */
+export interface MoEPushCampaignData {
+    /**
+     * Account information
+     */
+    accountMeta: MoEAccountMeta;
+    /**
+     * Push campaign object
+     */
+    pushCampaign: MoEPushCampaign;
+    /**
+     * Platform data
+     */
+    platform: MoEPlatform;
+}
+
+/**
+* Account Object
+*/
+export interface MoEAccountMeta {
+    /**
+     * Account identifier
+     */
+    appId: string;
+}
+      
+export interface MoEPushCampaign {
+    /**
+     * Is the click action a defualt action
+     */
+    isDefaultAction: boolean;
+    /**
+     * Clicked Action data
+     */
+    clickedAction: Map<String, object>;
+    /**
+     * Key-Value Pair entered on the MoEngage Platform during campaign creation.
+     */
+    payload: Map<String, object>;
+}
+
+export declare enum MoEPlatform {
+    iOS = "iOS",
+    ANDROID = "android"
+}
+```
+
+</CodeGroup>
+
+`clickedAction` マップのペイロード構造
+
+<CodeGroup>
+
+```json JSON
+{
+  "clickedAction": {
+    "type": "navigation/customAction",
+    "payload": {
+      "type": "screenName/deepLink/richLanding",
+      "value": "",
+      "kvPair": {
+        "key1": "value1",
+        "key2": "value2",
+        ...
+      }
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+`platform` - コールバックがトリガーされたネイティブプラットフォームです。指定可能な値 - `android`、`ios`\
+`isDefaultAction` - このキーは Android プラットフォームにのみ存在します。ユーザーがデフォルトのコンテンツをクリックしたかどうかを示すブール値です。ユーザーがデフォルトのコンテンツをクリックした場合は true、それ以外の場合は false です。\
+`clickedAction` - 通知クリック時に実行されるアクションです。\
+`clickedAction.type` - クリックアクションのタイプです。指定可能な値は `navigation` と `customAction` です。現在、`customAction` は Android でのみサポートされています。\
+`clickAction.payload` - クリックされたアクションのアクションペイロードです。\
+`clickedAction.payload.type` - 定義されたナビゲーションアクションのタイプです。指定可能な値は `screenName`、`deepLink`、`richLanding` です。現在、iOS の場合、リッチランディングとディープリンクの URL は SDK によって内部で処理され、このコールバックには渡されないため、iOS の場合に指定可能な値は `screenName` のみです。\
+`clickAction.value` - ナビゲーションアクションまたはカスタムペイロードに入力された値です。\
+`clickAction.kvPair` - MoEngage プラットフォームで入力されたカスタムのキーと値のペアです。\
+`payload` - キャンペーンペイロード全体です。
+
+## Android のペイロード
+
+ユーザーが通知のデフォルトのコンテンツをクリックした場合、キーと値のペアとキャンペーンペイロードは `payload` キー内にあります。ユーザーがアクションボタンまたはプッシュテンプレートのアクションをクリックした場合、アクションペイロードは `clickedAction` 内にあります。\
+`isDefaultAction` キーを使用してユーザーがデフォルトのコンテンツをクリックしたかどうかを確認し、それに応じてペイロードを解析できます。
+
+## iOS のペイロード
+
+iOS の場合、クリックされたアクションに関するキーと値のペアは常に `clickedAction` プロパティで受け取ります。iOS の通知ペイロードの構造については、こちらの [/developer-guide/ios-sdk/push/advanced/custom-notification-handling#notification-payload] を参照してください。

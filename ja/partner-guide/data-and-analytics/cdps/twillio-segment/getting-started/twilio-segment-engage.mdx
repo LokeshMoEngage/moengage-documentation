@@ -1,0 +1,98 @@
+---
+title: "Twilio Segment Engage"
+---
+
+# はじめに
+
+<Info>
+  Twilio Segment 統合は現在、[Unified Identity (Identity Resolution)](https://moengage-user-guide.mintlify.app/user-guide/data/user-data/unified-identity-identity-resolution) および [Portfolio](https://moengage-user-guide.mintlify.app/user-guide/settings/account/portfolio/portfolio) をサポートしていません。
+</Info>
+
+[Twilio Segment ](https://segment.com/) は、顧客データの収集、クレンジング、アクティベーションを支援するカスタマーデータプラットフォームです。
+
+この記事では、MoEngage と Twilio Segment Engage（旧 Segment Personas）の連携の概要を説明し、統合を有効にするための手順を順を追って紹介します。
+
+# 対象範囲
+
+MoEngage と Twilio Segment の統合により、Twilio Segment に組み込まれたオーディエンスビルダーである [Engage](https://segment.com/docs/personas/) を使用して、さまざまなソースからすでに収集したデータに基づいてユーザーのセグメントを作成できます。これらのユーザーにはユーザー属性またはカスタムイベントが割り当てられ、それらを使用して MoEngage のキャンペーンや Flows で使用する MoEngage セグメントを作成できます。
+
+# 統合
+
+<Info>
+  - MoEngage と Segment のログイン認証情報。
+  - Segment アカウントで Segment Engage が有効になっている必要があります。これは、Segment ダッシュボードのサイドバーから Engage に移動することで確認できます。
+</Info>
+
+[Computed traits](https://segment.com/docs/personas/computed-traits/) と[オーディエンス](https://segment.com/docs/personas/audiences/)は、カスタム属性またはカスタムイベントとして MoEngage に送信できます。
+
+- _identify_ コールを使用して送信された traits とオーディエンスは、MoEngage で値が _True_ の _Tracked Custom Attributes_ として表示されます。
+- _track_ コールを使用して送信された traits とオーディエンスは、MoEngage で _Tracked User Events_ として表示されます。
+
+computed trait/オーディエンスを MoEngage Destination に接続する際に、使用する方法を選択できます（両方を使用することもできます）。
+
+## 同期時間
+
+MoEngage × Segment Engage 連携のデフォルトの統合は **Real Time** です。ただし、一部のフィルターを使用すると、Persona がリアルタイム同期の対象外となります。これには、メッセージ送信時点でオーディエンスのサイズを制限する一部の時間ベースのフィルターが含まれます。
+
+## ステップ 1: Segment の computed trait/オーディエンスを作成する
+
+### Computed Trait
+
+1. Segment で、_Engage_ の _Computed Traits_ に移動します。
+2. _New Computed Trait_ をクリックします。
+3. computed trait またはオーディエンスを作成します。ページ上部の隅にある稲妻アイコンは、計算がリアルタイムで更新されるかどうかを示します。
+
+![](/images/partner_44425531631764.png)
+
+4. 次に、Destination として _MoEngage_ を選択します。
+
+![](/images/partner_44425508047380.png)
+
+5. _Review & Create_ をクリックしてプレビューします。\
+   _注:_ デフォルトでは、Segment はすべての過去データをクエリして、computed trait とオーディエンスの現在の値を設定します。このデータを除外するには、_Historical Backfill_ のチェックを外します。
+
+![](/images/partner_44425531632532.png)
+
+6. computed trait で、MoEngage へのデータの送信方法に応じて接続設定を調整します。
+
+### オーディエンス
+
+1. Segment で、_Engage_ の _Audience_ に移動します。
+2. New をクリックします。
+
+![Screenshot\_2022-04-27\_at\_12.22.46\_PM.png](/images/partner_5873711417108.png)
+
+3. オーディエンスを作成します。ページ上部の隅にある稲妻アイコンは、計算がリアルタイムで更新されるかどうかを示します。
+
+![Screenshot\_2022-04-27\_at\_12.25.56\_PM.png](/images/partner_5873719003924.png)
+
+4. 次に、Destination として _MoEngage_ を選択します。
+
+![](/images/partner_44425508048148.png)
+
+5. _Review & Create_ をクリックしてオーディエンスをプレビューします。\
+   _注:_ デフォルトでは、Segment はすべての過去データをクエリして、オーディエンスの現在の値を設定します。このデータを除外するには、_Historical Backfill_ のチェックを外します。
+
+![Screenshot\_2022-04-27\_at\_12.27.04\_PM.png](/images/partner_5873702066324.png)
+
+6. computed trait またはオーディエンスの設定で、MoEngage へのデータの送信方法に応じて接続設定を調整します。
+
+![Screenshot\_2022-04-27\_at\_12.26.38\_PM.png](/images/partner_5873748655892.png)
+
+## ステップ 2: MoEngage でユーザーをセグメント化する
+
+これらのユーザーのセグメントを作成するには、_Segments \>\> Create Segment_ に移動します。次に、使用したコールに応じて以下を行います。
+
+- **Identify**: _User Property_ を選択し、特定の属性を選択します。
+
+![Screenshot\_2022-04-27\_at\_12.55.14\_PM.png](/images/partner_5873977244052.png)
+
+- **Track**: _User Behaviour_ を選択し、特定のイベントを選択します。
+
+![Screenshot\_2022-04-27\_at\_12.45.55\_PM.png](/images/partner_5873934199572.png)
+
+# レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Segment データの取り込みを、ワークスペースあたり最大 500 リクエスト/秒（RPS）に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+Segment は通常、レート制限の発生を自動的に処理します。レート制限がデータフローにどのように影響するかについては、Segment のデフォルトの再試行ポリシーを参照してください。

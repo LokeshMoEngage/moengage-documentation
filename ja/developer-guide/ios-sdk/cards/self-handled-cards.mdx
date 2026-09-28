@@ -1,0 +1,247 @@
+---
+title: "セルフハンドルカード"
+description: "MoEngageのセルフハンドルカードSDKとAPIを使用して、iOSアプリでカスタムカードビューを構築します。"
+---
+
+セルフハンドルカードを使用すると、MoEngageプラットフォームでカードキャンペーンを作成し、アプリケーション内の任意の場所にカードを柔軟に表示できます。SDKはキャンペーンのデータを取得するAPIを提供しており、カード用の独自のカスタムビューを作成できます。
+
+# SDKのインストール
+
+## Swift Package Managerを使用したインストール
+
+MoEngageCardsは、SDKバージョン3.2.0からSPMでサポートされています。統合するには、次のGitHub URLリンクを使用し、ブランチをmasterに、またはバージョンを4.0.0以上に設定してください。https://github.com/moengage/MoEngage-iOS-Cards.git
+
+## CocoaPodを使用したインストール
+
+<Info>
+  **情報**
+
+  CocoaPodsは非推奨になりつつあります。MoEngageでは、すべての新規統合にSwift Package Managerを使用することを推奨しています。CocoaPodsの詳細については、[CocoaPods統合ガイド](/ja/developer-guide/ios-sdk/sdk-integration/basic/integration-through-cocoa-pods)を参照してください。
+</Info>
+
+以下のように、podfileに依存関係を追加してMoEngageCardsフレームワークを統合します。
+
+<CodeGroup>
+
+```ruby Ruby
+pod 'MoEngage-iOS-SDK/Cards',
+```
+
+</CodeGroup>
+
+次に、`pod install` を実行してフレームワークをインストールします。
+
+## 手動統合
+
+<Info>
+  **手動統合**
+
+  `MoEngageCards` SDKをプロジェクトに手動で統合するには、この[ドキュメント](/ja/developer-guide/ios-sdk/manual-integration/manual-integration)に従ってください。
+</Info>
+
+## セクション読み込み時の通知
+
+カードは、別の画面または画面の一部のセクションに表示できます。カードの画面/セクションが読み込まれたら、次を呼び出します：[_onCardSectionLoaded()_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc(cs)MoEngageSDKCards(im)onCardSectionLoadedForAppID:withCompletion)
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.onCardSectionLoaded(forAppID: "YOUR_WORKSPACE_ID") { data in
+    print("Card section loaded, hasUpdates: \(data?.hasUpdates ?? false)")
+}
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKCards sharedInstance] onCardSectionLoadedForAppID:@"YOUR_WORKSPACE_ID"
+                                                withCompletion:^(MoEngageCardSyncCompleteData * _Nullable data) {
+    NSLog(@"Card section loaded, hasUpdates: %d", data.hasUpdates);
+}];
+```
+
+</CodeGroup>
+
+以下のAPIを使用してカードのデータを取得し、独自のUIを構築します。
+
+## カテゴリーの取得
+
+カードが設定されているすべてのカテゴリーを取得するには、次のAPIを使用します：[_getCardsCategories(forAppID:withCompletionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)getCardsCategoriesForAppID:withCompletionBlock:)
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.getCardsCategories { categories, accountMeta in
+    print("Fetched Cards Categories \(categories)")
+}
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKCards sharedInstance] getCardsCategoriesForAppID:@"YOUR_WORKSPACE_ID" withCompletionBlock:^(NSArray * _Nonnull, MoEngageAccountMeta * _Nullable) {
+    NSLog(@"Fetched Cards Categories");
+}];
+```
+
+</CodeGroup>
+
+## カテゴリーのカードの取得
+
+特定のカテゴリーで表示対象となるカードを取得するには、次のAPIを使用します：[_getCards(forCategory:forAppID:withCompletionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)getCardsForCategory:forAppID:withCompletionBlock:)
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.getCards(forCategory: "CATEGORY") { cards, accountMeta in
+    print("Fetched cards for given category")
+}
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKCards sharedInstance] getCardsForCategory:@"CATEGORY" forAppID:@"YOUR_WORKSPACE_ID" withCompletionBlock:^(NSArray * _Nonnull, MoEngageAccountMeta * _Nullable) {
+    NSLog(@"Fetched cards for given category");
+}];
+```
+
+</CodeGroup>
+
+カードとカテゴリーを取得するために個別のAPIを使用する代わりに、[_getCardsData(forAppID:withCompletionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)getCardsDataForAppID:withCompletionBlock:) メソッドを使用してすべての情報を一度に取得できます。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.getCardsData { cardsData, accountMeta in
+    print("Cards category \(cardsData?.cardCategories)")
+    print("Cards Data \(cardsData?.cards)")
+}
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKCards sharedInstance] getCardsDataForAppID:@"YOUR_WORKSPACE_ID" withCompletionBlock:^(MoEngageCardsData * _Nullable, MoEngageAccountMeta * _Nullable) {
+    NSLog(@"Cards category %@", cardsData.cardCategories);
+    NSLog(@"Cards Data %@", cardsData.cards);
+}];
+```
+
+</CodeGroup>
+
+## ウィジェットとウィジェットIDのマッピング
+
+カード内の各UI要素は、クリックトラッキングAPIに渡す識別子を持つ [_MoEngageCardWidget_](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardWidget.html) です。以下の表は、ウィジェット識別子とそれが表す要素の対応を示しています。
+
+### ベーシックカード/イラストレーションカード
+
+| ウィジェットID | ウィジェットタイプ                            | ウィジェット情報                |
+| --------- | -------------------------------------- | --------------------------------- |
+| 0         | Image (MoEngageCardWidgetType.image)   | カード内の画像ウィジェット。         |
+| 1         | Text (MoEngageCardWidgetType.text)     | カードのヘッダーテキスト。         |
+| 2         | Text (MoEngageCardWidgetType.text)     | カードのメッセージテキスト。        |
+| 3         | Button (MoEngageCardWidgetType.button) | カードのコールトゥアクション（CTA）。 |
+
+## カードの統計のトラッキング
+
+カードのUI/表示はアプリケーションによって制御されるため、配信、表示、クリックの統計をトラッキングするには、アプリケーションからSDKに通知する必要があります。
+
+### 配信
+
+アプリケーションのカードセクションへの配信をトラッキングするには、アプリケーションのカードセクションが読み込まれたときに、[_MoEngageCardCampaign_](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardCampaign.html) のインスタンスを渡して API [_cardDelivered(\_:forAppID:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)cardDelivered:forAppID:) を使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.cardDelivered(cardCampaign, forAppID: "YOUR_WORKSPACE_ID")    
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKCards sharedInstance] cardDelivered:cardCamapigns forAppID:@"YOUR_WORKSPACE_ID"];    
+```
+
+</CodeGroup>
+
+### インプレッション
+
+特定のカードが画面に表示されたときに、メソッド [_cardShown(\_:forAppID:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)cardShown:forAppID:) を呼び出します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.cardShown(cardCampaign, forAppID: "YOUR_WORKSPACE_ID")
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKCards sharedInstance] cardShown:cardCamapign forAppID:@"YOUR_WORKSPACE_ID"];    
+```
+
+</CodeGroup>
+
+### クリック
+
+ユーザーがカードをクリックするたびに、メソッド [_cardClicked(\_:withWidgetID:forAppID:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)cardClicked:withWidgetID:forAppID:) を呼び出します。カードオブジェクトとともに、クリックされたUI要素のウィジェット識別子も渡す必要があります。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.cardClicked(cardCampaign, withWidgetID: widgetID);
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKCards sharedInstance] cardClicked:cardCamapigns withWidgetID:widgetID forAppID:@"YOUR_WORKSPACE_ID"];    
+```
+
+</CodeGroup>
+
+## カードの削除
+
+カードを削除するには、[MoEngageCardCampaign](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardCampaign.html) の配列をパラメーターとして渡して、メソッド [deleteCards(\_:forAppID:andCompletionBlock:)](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)deleteCards:forAppID:andCompletionBlock:) を呼び出します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.deleteCards([cards]) { isDeleted, accountMeta in
+    print("Card deletion was \(isDeleted)")
+}
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKCards sharedInstance] deleteCards:[cardCamapigns] forAppID:nil andCompletionBlock:^(BOOL isDeleted, MoEngageAccountMeta * _Nullable accountMeta) {
+    NSLog(@"Card deletion was %d", isDeleted);
+}];
+```
+
+</CodeGroup>
+
+上記のAPIには、削除するカードのリストを受け取るオーバーロードメソッドがあります。
+
+## サーバーからのカードの更新
+
+必要に応じてMoEngageサーバーからカードを更新するには、[_fetchCards(forAppID:withCompletion:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)fetchCardsForAppID:withCompletion:) APIを使用します。コールバックでは [_MoEngageCardData_](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardData.html) が提供され、_cards_ プロパティに更新された [_MoEngageCardCampaign_](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardCampaign.html)、_accountMeta_ にアカウントのメタデータ [_MoEngageAccountMeta_](https://moengage.github.io/ios-api-reference/Classes/MoEngageAccountMeta.html) が含まれます。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.fetchCards { data in
+    print("Refreshed cards: \(data?.cards) for account \(data?.accountMeta)")
+}
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKCards sharedInstance] fetchCardsForAppID:nil withCompletion:^(MoEngageCardData * _Nullable data) {
+    NSLog(@"Refreshed cards: %@ for account %@", data.cards, data.accountMeta);
+}];
+```
+
+</CodeGroup>
+
+<Info>
+  **注**
+
+  - SDKは、アプリケーションがフォアグラウンドになるたびに、MoEngageサーバーからカードを自動的に更新/取得します。
+  - このAPIにはFUP（公正利用ポリシー）があり、上限を超えた場合は既存のカード、つまりデバイスのローカルストレージにあるカードがコールバックで渡されます。
+  - `fetchCards()` の同期タイミングとレート制限の詳細については、[MoEngage SDKはいつカードデータを同期しますか？](/ja/user-guide/campaigns-and-channels/cards/faqs-cards/when-does-the-moengage-sdk-sync-card-data)を参照してください。
+</Info>

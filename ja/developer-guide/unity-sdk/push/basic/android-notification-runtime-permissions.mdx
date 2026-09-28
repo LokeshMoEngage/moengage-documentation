@@ -1,0 +1,94 @@
+---
+title: "Android 通知のランタイム権限"
+description: "MoEngage SDK を使用して、Unity アプリで Android 13 の通知ランタイム権限を処理します。"
+---
+
+<Info>
+  これは Plugin バージョン **3.0.0** 以降でサポートされています。
+</Info>
+
+Android 13（API レベル 33）以降では、アプリから [非免除](https://developer.android.com/develop/ui/views/notifications/notification-permission#exemptions)（フォアグラウンドサービス（FGS）を含む）通知を送信するための [ランタイム権限](https://developer.android.com/guide/topics/permissions/overview#runtime) [POST_NOTIFICATIONS](https://developer.android.com/reference/android/Manifest.permission#POST_NOTIFICATIONS) がサポートされています。この変更により、ユーザーは自分にとって最も重要な通知に集中できるようになります。
+
+詳細については、[公式ドキュメント](https://developer.android.com/develop/ui/views/notifications/notification-permission) を参照してください。
+
+アプリケーションが Android 13 で実行されている場合、ユーザーに通知を表示するには、アプリケーションがユーザーに通知権限をリクエストする必要があります。
+
+MoEngage SDK を統合するアプリケーションでは、次の対応が必要です。
+
+- ユーザーからの権限リクエストへの応答を SDK に通知する。
+- アプリケーションが（MoEngage の統合前に）すでにプッシュ権限をリクエストしている場合は、MoEngage が通知表示用の通知チャネルをセットアップできるようにする。
+
+## 権限の結果を SDK に通知する
+
+アプリケーションがユーザーに通知権限をリクエストしたら、以下の API を使用してユーザーの応答を SDK に通知します。_通知権限の処理を MoEngage SDK に任せる場合は、この手順は無視してください。_
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.PushPermissionResponseAndroid(isGranted)
+```
+
+</CodeGroup>
+
+## 通知チャネルのセットアップ
+
+アプリケーションがすでにユーザーから通知権限を取得している場合は、以下の API を呼び出して、プッシュ通知を表示するための通知チャネルをセットアップします。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.SetupNotificationChannelsAndroid()
+```
+
+</CodeGroup>
+
+## 通知権限の処理を MoEngage SDK に任せる
+
+MoEngage SDK には、エンドユーザーに権限リクエストを表示したり、通知を有効にするためにユーザーを設定画面に移動させたりするためのヘルパー API が用意されています。
+
+ユーザーに権限リクエストダイアログを表示するには、以下の API を使用します。
+
+以下の API を使用すると、SDK は応答のトラッキングや、上記の必要な通知チャネルのセットアップなどを自動的に行います。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.RequestPushPermissionAndroid()
+```
+
+</CodeGroup>
+
+## 通知設定に移動する（状況に応じて/オプション）
+
+デバイス上のアプリケーションの通知設定にユーザーを移動させるには、以下の API を使用します。
+
+_注意_：Android 8（API レベル 26）未満では、ユーザーはアプリケーションのアプリ情報画面に移動します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.NavigateToSettingsAndroid()
+```
+
+</CodeGroup>
+
+## 権限リクエスト回数を更新する
+
+アプリケーションがユーザーに通知権限をリクエストしたら、リクエストの試行回数を SDK に更新します。
+
+### SDK が権限の試行回数を必要とする理由
+
+SDK は、権限リクエストが試行された回数を正確にトラッキングするために試行回数を必要とします。ユーザーが権限リクエストを 2 回拒否すると、アプリケーション/SDK はそれ以上権限をリクエストできなくなります。つまり、権限をリクエストしても、ユーザーにリクエストダイアログが表示されることなく自動的に拒否されます。SDK ではユーザーが権限を拒否した回数を確実に把握できないため、試行回数に基づいて権限リクエストの呼び出しを最適化しています。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.UpdatePushPermissionRequestCountAndroid(count)
+```
+
+</CodeGroup>

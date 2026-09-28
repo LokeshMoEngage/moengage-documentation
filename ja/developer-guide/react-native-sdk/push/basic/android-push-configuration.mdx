@@ -1,0 +1,96 @@
+---
+title: "Android プッシュ設定"
+description: "MoEngage と Firebase を使用して、React Native アプリの Android プッシュ通知をセットアップおよび設定します。"
+---
+
+# 基本セットアップ
+
+MoEngage を使用して Android デバイスでプッシュ通知を有効にするには、このセクションで説明する基本セットアップに従ってください。
+
+<iframe src="https://www.youtube.com/embed/FElqisySsak" title="YouTube 動画プレーヤー" frameborder="0" className="w-full aspect-video rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen />
+
+- **MoEngage ダッシュボードでの FCM セットアップ -** FCM 認証は、Android デバイスにインストールされたアプリへのプッシュ通知の送信を有効にするための方法です。[こちらの記事](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)に記載されている方法を使用して、MoEngage が Firebase サービスにアクセスできるよう認証してください。
+- **プッシュ通知用のメタデータの追加 -** [こちらの記事](/ja/developer-guide/components-for-sdk/push-notification/android-push-configuration-for-hybrid-applications)で説明されている方法を使用して、スモールアイコンとラージアイコンの drawable や、プッシュ通知を処理するためのその他のオプションを設定します。
+- **Android 通知のランタイム権限** - アプリケーションが Android 13 で実行されている場合、ユーザーに通知を表示するには、ユーザーに通知権限をリクエストする必要があります。権限リクエストを処理するには、[こちらの記事](/ja/developer-guide/components-for-sdk/push-notification/android-push-configuration-for-hybrid-applications#adding-metadata-for-push-notification)で説明されている方法を参照してください。
+- **プッシュの登録と受信** - React Native アプリケーションでプッシュ通知を使用するには、Firebase を設定する必要があります。Firebase の設定手順は、統合方法によって異なります。ベストプラクティスが適切に組み込まれているため、MoEngage はプッシュの処理を MoEngage SDK に任せることをお勧めします。アプリレベルでプッシュを処理することも可能です。いずれの場合も、該当する以下のセクションを確認し、統合手順を完了してください。
+
+<Tabs>
+  <Tab title="MoEngage にプッシュを処理させる（推奨）">
+    **メッセージングサービスの追加**\
+    MoEngage SDK が通知を表示するには、Manifest ファイルにメッセージングサービスを追加する必要があります。[こちら](/ja/developer-guide/react-native-sdk/push/basic/android-push-configuration#passing-push-token)のドキュメントを参照してください。
+
+    **トークン登録時のコールバック（任意）**\
+    新しいトークンが登録または更新されるたびにコールバックを受け取るには、[こちら](/ja/developer-guide/react-native-sdk/push/basic/android-push-configuration#passing-push-payload)の方法を参照してください。
+
+    **通知クリック時のコールバック**
+
+    プッシュがクリックされるたびにコールバックを受け取り、リダイレクトをカスタム処理するには、[こちらの記事](/ja/developer-guide/react-native-sdk/push/basic/android-push-configuration#customizing-push-notification)の方法を使用してください。
+  </Tab>
+  <Tab title="Android ネイティブでプッシュを処理する">
+    **MoEngage の登録をオプトアウトする方法**\
+    MoEngage SDK はプッシュトークンの登録を試みます。アプリケーション側でプッシュを処理するため、[こちらの記事](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#how-to-opt-out-of-moengage-push-token-registration)の方法を使用して、SDK によるトークン登録をオプトアウトする必要があります。
+
+    **MoEngage SDK へのプッシュトークンの受け渡し** - FCM からプッシュトークンを受け取った後、[こちらの記事](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display)の方法を使用してプッシュトークンを MoEngage SDK に渡し、MoEngage プラットフォームに設定します。
+
+    **MoEngage SDK へのプッシュペイロードの受け渡し** - アプリでプッシュペイロードを受け取った後、[こちらの記事](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#passing-the-push-payload-to-the-moengage-sdk)の方法を使用して、デバイスにプッシュ通知を表示します。
+  </Tab>
+  <Tab title="React Native でプッシュを処理する（非推奨）">
+    <Warning>
+      MoEngage は、プッシュペイロードを MoEngage SDK に渡す際に、React-Native/Javascript API ではなく Android ネイティブ API を使用することをお勧めします。アプリケーションが強制終了されている場合や、通知が高優先度で送信されていない場合、React-Native エンジンが初期化されないことがあります。
+    </Warning>
+    - [MoEngage SDK へのプッシュトークンの受け渡し](/ja/developer-guide/react-native-sdk/push/basic/android-push-configuration)
+    - [MoEngage SDK へのプッシュペイロードの受け渡し](/ja/developer-guide/react-native-sdk/push/basic/android-push-configuration)
+    - [コールバックとカスタマイズ](/ja/developer-guide/react-native-sdk/push/basic/android-push-configuration)
+
+    **通知クリック時のコールバック -** MoEngage の React Native プラグインでは、[こちらの記事](/ja/developer-guide/react-native-sdk/push/basic/push-callback)の方法で、プッシュのクリック時にコールバックをオプションで受け取ることができます。
+  </Tab>
+</Tabs>
+
+# プッシュ用の React-Native メソッド
+
+_プッシュトークンの登録と表示を MoEngage に任せる場合、または Android ネイティブメソッドを使用してトークンとペイロードを MoEngage SDK に渡す場合は、このセクションを完全にスキップできます。_
+
+MoEngage SDK の React Native メソッドを使用してトークンとペイロードを MoEngage SDK に渡したい場合は、以下をお読みください。
+
+<Warning>
+  MoEngage は、プッシュペイロードを MoEngage SDK に渡す際に、React-Native/Javascript API ではなく Android ネイティブ API を使用することをお勧めします。アプリケーションが強制終了されている場合や、通知が高優先度で送信されていない場合、React-Native エンジンが初期化されないことがあります。 
+</Warning>
+
+## プッシュトークンの受け渡し
+
+<CodeGroup>
+
+```javascript JavaScript
+const ReactMoE = require('react-native-moengage')
+// pass the push token as a string
+ReactMoE.passFcmPushToken("")
+```
+
+</CodeGroup>
+
+## プッシュペイロードの受け渡し
+
+<CodeGroup>
+
+```javascript JavaScript
+const ReactMoE = require('react-native-moengage')
+// pass the push payload as a JSONObject from FCM. Note only the data payload needs to be passed to SDK.
+ReactMoE.passFcmPushPayload({})
+```
+
+</CodeGroup>
+
+<Warning>
+  MoEngage は、プッシュペイロードを MoEngage SDK に渡す際に、React-Native/Javascript API ではなく Android ネイティブ API を使用することをお勧めします。アプリケーションが強制終了されている場合や、通知が高優先度で送信されていない場合、React-Native エンジンが初期化されないことがあります。
+</Warning>
+
+## プッシュ通知のカスタマイズ
+
+必要に応じて、アプリケーションはネイティブ Android コード（Java/Kotlin）を使用して通知の動作をカスタマイズできます。カスタマイズの詳細については、[高度なプッシュ設定](/ja/developer-guide/android-sdk/push/advanced/callbacks-and-customisation)のドキュメントを参照してください。上記のドキュメントに記載されている **_PushMessageListener_** を拡張する代わりに、**_PluginPushCallback_** を拡張してください。
+
+Push Amp+、プッシュテンプレート、ジオフェンスについては、以下のドキュメントを参照してください。
+
+- [Push Amplification](/ja/developer-guide/android-sdk/push/optional/push-amplification)
+- [Push Amp Plus](/ja/developer-guide/android-sdk/push/optional/push-amp-plus/push-amp-plus-integration)
+- [プッシュテンプレート](/ja/developer-guide/android-sdk/push/optional/push-templates)
+- [ジオフェンスプッシュ](/ja/developer-guide/android-sdk/push/optional/location-triggered)

@@ -1,0 +1,252 @@
+---
+title: "Sarvam - AI アウトバウンド音声通話"
+description: "Sarvam のフルマネージド音声エージェントプラットフォームを使用して、MoEngage キャンペーンから AI 駆動の多言語アウトバウンド音声通話をトリガーします。"
+keywords: ["sarvam", "sarvam conversations", "outbound voice call", "voice agent", "connected apps", "make outbound call", "indic languages"]
+---
+
+[Sarvam AI](https://www.sarvam.ai/) は、インドのフルスタック AI 企業です。同社の会話型プラットフォームである Sarvam Conversations は、英語およびインドの諸言語で話し、聞き、推論する AI 音声エージェントを提供しています。
+
+MoEngage と Sarvam の統合により、カート放棄などのリアルタイムのユーザーイベントや、EMI の支払期日が近いことを知らせるリマインダーなどのスケジュール送信をきっかけに、MoEngage キャンペーンから AI 駆動のアウトバウンド電話を直接トリガーできます。MoEngage が Sarvam の Instant Outbound API にリクエストを送信すると、Sarvam が電話を発信し、顧客の希望する言語で双方向の会話を行います。
+
+## Outbound Voice Call × MoEngage
+
+この統合により、電話通信や会話型 AI のインフラストラクチャを構築することなく、プッシュ、SMS、メール、WhatsApp に加えて、会話型音声をエンゲージメントチャネルとして追加できます。
+
+この統合により、次のことが可能になります。
+
+- キャンペーンイベントが発生した瞬間に、アウトバウンドの AI 音声通話をトリガーします。
+- 会話を開始する言語を選択し、顧客の応答に応じてエージェントが通話中に言語を切り替えられるようにします。
+- MoEngage のパーソナライゼーション属性を使用して、キャンペーンで設定したコンテキスト（顧客名、カートの金額、注文 ID、支払額、割引コード、またはエージェントに必要なその他のフィールド）を各通話とともに渡します。
+- Initial Bot Message を使用して、エージェントの最初の一言をユーザーごとにパーソナライズします。
+- クローズドループのジャーニーオーケストレーションのために、各通話の結果を、通話時間や会話中に取得したデータとともに Webhook で受信します。
+
+## ユースケース
+
+Sarvam と MoEngage を統合すると、次のユースケースに対応できます。
+
+- **カート放棄のフォローアップ**: カートの内容と金額に言及し、商品に関する質問に答え、割引コードを適用して、買い物客の購入完了を支援する通話をトリガーします。
+- **EMI と支払いのリマインダー**: EMI の支払期日前や支払い失敗後に通話をトリガーし、顧客に支払額を知らせて支払い完了まで案内します。
+- **更新とリテンション**: サブスクリプションや保険契約の更新前に通話をトリガーし、顧客に特典をリマインドして、必要に応じてリテンション特典を提示します。
+- **配達確認と注文の問題解決**: 配達時間帯の確認、遅延の通知、注文に関する問題の対話的な解決を行う通話をトリガーします。
+- **ウィンバックのアウトリーチ**: 離脱した顧客に対し、希望する言語でパーソナライズされたオファーを伝える会話型の通話をトリガーします。
+
+## 前提条件
+
+<Info>
+  統合を設定するには、次のものを用意してください。
+
+  - **Sarvam アカウント**: 有効な Sarvam の組織とワークスペース。Organization ID と Workspace ID を控えておいてください。
+  - **API キー**: Sarvam ダッシュボードで生成したワークスペースの API キー。MoEngage からのリクエストの認証に使用されます。
+  - **公開済みの音声エージェント**: ユースケースに合わせて Sarvam プラットフォーム上で構築・公開したエージェント。その App ID、App Version、およびエージェントが想定するエージェント変数の一覧（例: `customer_name` や `cart_value`）が必要です。
+  - **電話通信の接続**: Sarvam ワークスペースで設定された電話通信プロバイダーの接続と、規制に準拠したアウトバウンド発信者番号。Connection ID と Agent Phone Number を控えておいてください。
+  - **MoEngage 内のユーザーの電話番号**: E.164 形式（例: `+919876543210`）の携帯電話番号を保持するユーザー属性。
+</Info>
+
+## ステップ 1: Sarvam ワークスペースと音声エージェントを設定する
+
+MoEngage でアプリを接続する前に、Sarvam ダッシュボードで次の手順を実行します。
+
+1. **認証情報を生成する**: Sarvam ワークスペースの設定で、Organization ID と Workspace ID を控え、API キーを生成します。これら 3 つの値は、MoEngage がトリガーするすべての通話の認証に使用されます。
+
+   ![Workspace ID と Organization ID、および Create API Key ボタンを含む Manage API Keys テーブルを示す Sarvam の Settings ページ](/images/sarvam-api-key.png)
+
+2. **電話通信を設定する**: Sarvam のオンボーディングで、電話通信プロバイダーを接続し、顧客に表示されるアウトバウンド発信者番号を登録します。これにより、次のステップで使用する Connection ID と Agent Phone Number が生成されます。
+
+   ![利用可能な番号をリージョンと月額料金とともに一覧表示する Sarvam の Buy a phone number ダイアログ](/images/sarvam-buy-number.png)
+
+3. **エージェントを構築して公開する**: 会話設計、サポートする言語、反論への対応などを含め、ユースケースに合わせた音声エージェントを作成します。会話のパーソナライズに使用するエージェント変数（例: `customer_name`、`cart_value`、`discount_code`、`preferred_language`）を定義します。公開すると App ID と App Version が生成されます。
+
+   ![エージェントの挨拶、指示、パーソナライゼーションに使用される変数を示す Sarvam のエージェントビルダー](/images/sarvam-agent-builder.png)
+
+発信者番号が、インドにおける DLT 登録など、適用される電気通信規制に準拠していることを確認してください。バージョン管理により、後からエージェントを編集しても公開中のキャンペーンには影響しません。技術的な詳細については、[Sarvam のドキュメント](https://docs.sarvam.ai/)を参照してください。
+
+### 各値の確認場所
+
+MoEngage の接続フォームで求められるすべての値は、Sarvam ダッシュボードで確認できます。次の表は、各値の取得場所を示しています。
+
+| 値 | Sarvam ダッシュボードでの確認場所 | 形式と例 |
+| --- | --- | --- |
+| Organization ID | ワークスペースの設定。ワークスペースを開いているときのダッシュボードの URL や、ワークスペースが行うすべての API リクエストのパスでも確認できます。 | UUID。例: `019f3b1a-9e97-707b-…` |
+| Workspace ID | ワークスペースの設定（Organization ID と同じ場所）。 | UUID。例: `019f3b1a-9e9d-7e38-…` |
+| API Key | **Workspace settings > API keys > Generate**。キーは生成時に一度だけ表示されます。すぐにコピーしてシークレットマネージャーに保存してください。キーを紛失した場合は、キーを取り消して新しいキーを生成し、MoEngage の接続を更新します。 | シークレット文字列。パスワードと同様に扱ってください |
+| App ID | 公開後のエージェントのページ（Sarvam ドキュメントの **Build > Creating an Agent** を参照）。公開済みの各エージェントには固有の App ID があります。 | 名前が接頭に付いた識別子。例: `CartRecover-fb7d1564-bef6` |
+| App Version | エージェントのページに、公開ごとに割り当てられるバージョン番号として表示されます。Playground で検証したバージョンを使用してください。新しい下書きはこれに影響しません。 | 整数。例: `3` |
+| Connection ID | **Deploy > Phone Numbers** の、オンボーディング中に作成された電話通信の接続。1 つの接続で複数の発信者番号を扱えます。 | 識別子。例: `Moengage-ex-156baeff-e262` |
+| Agent Phone Number | **Deploy > Phone Numbers** の、接続の下に一覧表示されます。自社ブランド用に登録され、現地の規制に準拠した番号を使用してください。 | E.164。例: `+918045695073` |
+
+![登録済みの発信者番号とそのステータスを一覧表示する Sarvam の Phone Numbers ページ](/images/sarvam-phone-numbers.png)
+
+<Tip>
+  エージェントを MoEngage に統合する前に、Sarvam Playground（**Playground > Test Your Agent**）とテスト番号（**Deploy > Test Numbers**）を使用して、許可リストに登録された番号へのテスト通話を含め、エンドツーエンドで検証できます。
+</Tip>
+
+## ステップ 2: MoEngage でアプリを接続する
+
+App Marketplace で Sarvam を接続するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、**App Marketplace** をクリックします。
+2. **App Marketplace** ページで **Sarvam** を検索します。
+3. **Sarvam** タイルをクリックします。
+4. **Sarvam** ページで **Integrate** タブをクリックします。
+5. **\+ Add integration** をクリックします。
+6. **Connection details** で、次の詳細を入力します。フォームでは、これらのフィールドが **Authentication** と **Agent & Connection Configuration** にグループ化されています。
+
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | **Connection name** | はい | この接続を識別するための名前（例: Sarvam Outbound call）。 |
+   | **API Key** | はい | Sarvam ワークスペースで生成した API キー。MoEngage はすべてのリクエストで、これを `X-API-Key` ヘッダーとして送信します。 |
+   | **Organization ID** | はい | Sarvam の組織識別子（例: `019f3b1a-9e97-…`）。 |
+   | **Workspace ID** | はい | Sarvam のワークスペース識別子（例: `019f3b1a-9e9d-…`）。 |
+   | **App ID** | はい | この接続がトリガーする、公開済みの Sarvam エージェントの識別子（例: `CartRecover-fb7d1564-bef6`）。 |
+   | **App Version** | はい | 使用するエージェントの公開バージョン（例: `3`）。 |
+   | **Connection ID** | はい | 通話の発信に使用する Sarvam の電話通信の接続（例: `Moengage-ex-156baeff-e262`）。 |
+   | **Agent Phone Number** | はい | 顧客に表示される、E.164 形式のアウトバウンド発信者番号（例: `+918045695073`）。 |
+
+7. **Test** をクリックして接続を検証します。
+
+   ![接続名、認証、接続設定のフィールドを示す Sarvam の接続詳細フォーム](/images/sarvam-connection-details.png)
+
+<Note>
+  - 接続の詳細への変更が反映されるまでに最大 15 分かかります。
+  - 接続は 1 つのエージェント（App ID）と 1 つの発信者番号に紐づけられます。別のエージェント（たとえば、カート回復エージェントとは別の EMI リマインダーエージェント）でキャンペーンを実行するには、そのエージェントの詳細を使用して追加の接続を作成してください。
+</Note>
+
+## ステップ 3: キャンペーンを設定する
+
+Sarvam のアウトバウンド音声通話キャンペーンを作成するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで **Engage** をクリックし、次に **Campaigns** をクリックします。
+2. **All campaigns** ページで **\+ Create campaign** をクリックします。
+3. **Create campaign** ダイアログボックスの **Connected Apps** で **Sarvam** をクリックし、最も適した配信タイプをクリックします。
+4. ステップ 1（**Target users**）で、オーディエンスを選択し、トリガーイベントを定義します（例: 30 分の遅延を設定した `cart_abandoned`、有効な携帯電話番号を持つユーザーに限定）。
+5. ステップ 2（**Content**）で、コネクター（**Make Outbound Call**）と作成した接続を選択します。
+6. **Content** で、次のフィールドを設定します。
+
+   | セクション | フィールド | 必須 | 説明 |
+   | --- | --- | --- | --- |
+   | Call Targeting & Overrides | **User Phone Number** | はい | E.164 形式の顧客の携帯電話番号。`@` を入力すると、ユーザー属性からパーソナライズできます（例: `{{UserAttribute['Mobile Number']}}`）。 |
+   | Call Targeting & Overrides | **Initial Language** | いいえ | エージェントが会話を開始する言語（例: English や Hindi）。顧客が別のサポート対象言語で応答した場合、エージェントは通話中に言語を切り替えることができます。 |
+   | Call Targeting & Overrides | **Initial Bot Message** | いいえ | エージェントの最初の一言。パーソナライゼーションをサポートします（例: `Hello {{UserAttribute['First Name']}}, welcome to Digital Fortress`）。このフィールドを空のままにすると、エージェントは公開済みのデフォルトの挨拶を使用します。 |
+   | Context Payload | **Agent Variables** | いいえ | 会話のコンテキストとしてエージェントに渡されるキーと値のペア。キーは公開済みエージェントで定義された変数と一致している必要があり、値は静的な値でもパーソナライズされた値でも構いません（例: `cart_value` を `{{UserAttribute['cart_value']}}` にマッピング、または `discount_code` を `COUP10` に設定）。行を追加するには **New KV Pair** をクリックします。 |
+   | Callback Configuration | **Callback URL** | いいえ | 通話完了後に通話結果を受信する HTTPS エンドポイント。このフィールドを空のままにすると、通話は発信されますが、結果は返されません。 |
+   | Callback Configuration | **Callback Details** | いいえ | コールバックとともに送信され、結果のペイロードでそのまま返されるキーと値のペア。結果を MoEngage のユーザーやキャンペーンと関連付けるために使用します（例: `customer_id` をユーザー識別子にマッピング）。行を追加するには **New KV Pair** をクリックします。 |
+
+   ![Make Outbound Call コネクター、通話ターゲティングとオーバーライドのフィールド、エージェント変数、コールバック設定を示すキャンペーンの Content ステップ](/images/sarvam-campaign-content.png)
+
+7. ステップ 3（**Schedule and Goals**）で、エンゲージメントポリシーに従って、DND 時間や頻度上限などの配信制御を設定します。
+8. キャンペーンを公開します。
+
+Sarvam は、MoEngage がリクエストを送信するとすぐに電話を発信します。One Time キャンペーンと Periodic キャンペーンでは、通話は送信時刻に発信されるため、許容される通話時間帯内の送信時刻を選択してください。
+
+<Note>
+  公開済みエージェントが想定するすべてのエージェント変数をマッピングしてください。マッピングされていない変数は、エージェントのデフォルト値にフォールバックします。空の値は空白のコンテキストとしてエージェントに渡されるため、`@` で入力した属性名が、値が入力されたユーザー属性またはイベント属性に解決されることを確認してください。
+</Note>
+
+## ステップ 4: テストと検証
+
+統合が想定どおりに動作することを確認するには、次の手順を実行します。
+
+1. Sarvam アプリの **Integrate** タブで、作成した接続の **Test** をクリックします。テストが成功すると、API Key、Organization ID、Workspace ID が Sarvam ワークスペースに正しく解決されることが確認できます。
+2. キャンペーンの **Content** ステップの **Test Campaign** セクションで、**Email ID** などの識別子タイプを選択し、自分が管理する携帯電話番号を持つテストユーザーの識別子を入力して、**Test** をクリックします。
+
+   ![識別子タイプのドロップダウン、識別子フィールド、Test ボタンを示す Test Campaign セクション](/images/sarvam-test-campaign.png)
+
+3. リクエストが `attempt_id` とともに HTTP 200 を返すことを確認します。これは、MoEngage のリクエストが受け付けられ、電話が発信されていることを意味します。
+4. 電話に出て、会話を確認します。エージェントは、設定した Initial Language で、パーソナライズされた Initial Bot Message から会話を開始し、名前、カートの金額、割引コードなどのマッピングされたエージェント変数に言及します。
+5. 通話終了後、設定した Callback URL に結果が配信されたことを確認します。
+6. 結果がカスタムイベントとして MoEngage に書き戻される場合は、そのイベントがテストユーザーのアクティビティタイムラインに表示され、ジャーニーの条件やコンバージョンゴールで使用できることを確認します。
+
+テストキャンペーンでは頻度上限が無視されるため、ユーザーがキャンペーンの上限に達している場合でも、テスト送信は指定した番号に届きます。
+
+結果のペイロードには、通話ステータス（`connected`、`no_answer`、`busy`、`failed`）、通話時間、会話中に取得された `final_agent_variables`、トランスクリプトと録音を取得するための `interaction_id`、および設定した Callback Details が含まれます。Callback Details はそのまま返されるため、結果を MoEngage のユーザーと関連付けることができます。結果を `voice_call_outcome` などのカスタムイベントとして書き戻すには、[Track Event](/ja/api/event/track-event) API を使用します。
+
+## 通話結果とジャーニーオーケストレーション
+
+完了した各通話では、通話がつながったかどうか、通話時間、失敗した理由、エージェントが取得したデータを示す結果が生成されます。これらの結果をイベントとして MoEngage に取り込むと、それに基づいてジャーニーを分岐させることができます。たとえば、通話がつながり購入意欲が高い場合は割引 SMS を抑制し、通話に応答がなかった場合は WhatsApp にフォールバックできます。
+
+各リクエストでは発信が 1 回だけ試行されるため、再試行は MoEngage でオーケストレーションします。結果イベントに基づいて分岐する Flow を構築します。`voice_call_outcome` の `status` が `no_answer` または `busy` の場合は、一定時間待機してから再度通話アクションをトリガーします。試行回数を制限するには、頻度上限またはフローの終了条件を使用します。
+
+## リファレンス: Sarvam が送信する結果 Webhook
+
+通話完了後、Sarvam はキャンペーンで設定された Callback URL に POST を 1 回送信します。正式なスキーマについては、[Sarvam API リファレンス](https://docs.sarvam.ai/)の Webhook Payload ページを参照してください。
+
+この結果の配信先は次から選択できます。
+
+- **MoEngage へ**: MoEngage で結果を受信するには、MoEngage サポートに連絡して、Connected Sources を利用した専用エンドポイントを取得してください。そのエンドポイントをキャンペーンの Callback URL として入力します。
+- **独自のエンドポイントへ**: 自社のシステムで結果を処理するには、HTTPS エンドポイントをキャンペーンの Callback URL として入力します。
+
+```json Outcome Webhook Payload
+{
+  "attempt_id": "att_8f3a2c…",
+  "status": "connected",
+  "channel_info": {
+    "channel_type": "v2v",
+    "channel_provider": "exotel",
+    "agent_phone_number": "+918045695073"
+  },
+  "duration": 94,
+  "interaction_id": "int_…",
+  "failure_reason": null,
+  "final_agent_variables": {},
+  "webhook_config": {
+    "url": "…",
+    "metadata": {
+      "customer_id": "<moengage user id>",
+      "moe_campaign_id": "<campaign id>"
+    }
+  },
+  "interaction_transcript": [
+    { "role": "agent", "en_text": "…" },
+    { "role": "user", "en_text": "…" }
+  ]
+}
+```
+
+このペイロードでは、`status` は `connected`、`no_answer`、`busy`、`failed` のいずれかです。`duration` フィールドの単位は秒で、通話がつながらなかった場合、`duration`、`interaction_id`、`final_agent_variables`、`interaction_transcript` は `null` になります。
+
+結果を MoEngage のイベントにマッピングする際には、次のフィールドが特に重要です。
+
+| フィールド | 用途 |
+| --- | --- |
+| `webhook_config.metadata` | リクエストで渡されたとおりの MoEngage のユーザー ID とキャンペーン参照を保持します。このユーザーに対してイベントを解決します。 |
+| `status` | イベントの主要な属性です。`connected`、`no_answer`、`busy`、`failed` の間でジャーニーの分岐を制御します。 |
+| `duration`、`failure_reason` | 分析やコンプライアンスレビュー（受信拒否登録簿に登録された番号など）のための補助的な属性です。 |
+| `final_agent_variables` | コールバックの希望や購入意欲など、エージェントが取得したデータです。フォローアップジャーニーにとって最も豊富なシグナルです。 |
+| `interaction_id` | より詳細なレビューが必要な場合に、Sarvam Analytics API を介して完全なトランスクリプトと録音を取得するためのキーです。 |
+
+<Note>
+  Webhook のペイロードにはイベントのタイムスタンプが含まれません。結果を MoEngage の Data API に転送する際は、取り込み時に ISO 8601 形式で `current_time` を付与してください。
+</Note>
+
+## トラブルシューティング
+
+次の表は、よくある問題とその解決方法を示しています。
+
+| 症状 | 考えられる原因 | 解決方法 |
+| --- | --- | --- |
+| 接続テストが失敗する。 | API キーが無効または取り消されているか、Organization ID と Workspace ID が一致していません。 | Sarvam ワークスペースの設定でキーを再生成し、3 つの認証情報の値をすべて再入力します。ID は長い UUID であるため、完全にコピーされていることを確認してください。 |
+| キャンペーンの送信で HTTP 422 が返される。 | リクエストの検証に失敗しました。多くの場合、電話番号が欠落しているか形式が正しくないことが原因です。 | ユーザーの携帯電話番号属性が解決され、国番号付きでスペースを含まない E.164 形式であることを確認します。App ID と App Version が公開済みのものとして存在することを確認します。 |
+| HTTP 200 が返されるが、電話がかかってこない。 | 通話は試行されましたが、電話通信レイヤーで失敗しました。 | 結果 Webhook の `failure_reason` を確認します。一般的な原因には、DND や NDNC の登録簿に登録された番号や、プロバイダー側のエラーなどがあります。DND に登録されたユーザーをセグメントから除外することを検討してください。 |
+| エージェントが空白の名前や誤ったコンテキストで会話を開始する。 | パーソナライゼーショントークンが空の値に解決されたか、エージェント変数のキーが公開済みエージェントの変数名と一致していません。 | 各エージェント変数のキーをエージェントの変数一覧（**Build > Managing Variables**）と照合し、マッピングされたユーザー属性またはイベント属性にオーディエンスの値が入力されていることを確認します。 |
+| 通話は行われるが、結果を受信できない。 | Callback URL が空か、到達できないか、POST を拒否しています。 | キャンペーンで Callback URL フィールドが入力されており、HTTPS で公開アクセス可能で、2xx レスポンスを返すことを確認します。このフィールドが空の場合、仕様上、通話は発信のみ（fire-and-forget）となります。 |
+| 通話で誤った会話バージョンが使用される。 | 接続の App Version が古い公開バージョンを指しています。 | 接続の詳細の App Version を、検証済みのバージョンに更新します。接続の詳細の変更が反映されるまでに数分かかる場合があります。 |
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="1 つの MoEngage ワークスペースで複数の Sarvam エージェントを使用できますか？">
+    はい。各接続は 1 つのエージェントと 1 つの発信者番号に紐づけられるため、エージェントごとに 1 つの接続（例: Sarvam Cart Recovery と Sarvam EMI Reminder）を作成し、各キャンペーンの作成時に適切な接続を選択してください。
+  </Accordion>
+
+  <Accordion title="どの言語がサポートされていますか？">
+    通話で利用できる言語は、Sarvam プラットフォーム上の公開済みエージェントの設定によって定義されます。Initial Language で開始言語を選択し、顧客がエージェントのサポートする別の言語で応答した場合、エージェントは通話中に言語を切り替えることができます。
+  </Accordion>
+
+  <Accordion title="MoEngage の配信制御は音声にも適用されますか？">
+    はい。リクエストを送信するタイミングは MoEngage が決定するため、DND 時間、頻度上限、クワイエットアワー、セグメント除外などのキャンペーンレベルの制御はすべて、Sarvam がトリガーされる前に適用されます。Sarvam はリクエストを受信するとすぐに電話を発信するため、通話時間帯のポリシーは MoEngage 側で設定してください。
+  </Accordion>
+
+  <Accordion title="Sarvam は応答のなかった通話を再試行しますか？">
+    いいえ。すべてのキャンペーンタイプで、1 つのリクエストにつき 1 回の通話試行が行われ、`no_answer` や `busy` を含む結果が Webhook で報告されます。再試行は、[通話結果とジャーニーオーケストレーション](#call-outcomes-and-journey-orchestration)の説明に従って MoEngage Flow でオーケストレーションしてください。
+  </Accordion>
+</AccordionGroup>

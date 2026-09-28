@@ -1,0 +1,140 @@
+---
+title: "Yotpo"
+description: "MoEngage の Content API と Yotpo の REST API を使用して、星評価、トップレビュー、UGC、ロイヤルティポイントをメールやプッシュのキャンペーンに動的に表示します。"
+---
+
+# 概要
+
+[Yotpo](https://www.yotpo.com/) は、e コマース事業者向けのクラウドベースのコンテンツマーケティングプラットフォームです。ユーザー生成コンテンツを収集し、そのコンテンツを活用してブランドを構築し、顧客体験を管理できます。
+
+# MoEngage × Yotpo
+
+MoEngage と Yotpo の統合により、メールやプッシュなどのさまざまなチャネルにわたる MoEngage キャンペーン内で、Content API を使用して星評価、トップレビュー、ユーザー生成コンテンツ (UGC)、顧客ロイヤルティデータを動的に表示できます。
+
+# 統合
+
+<Info>
+  - Yotpo API を使用するアクセス権があることを確認してください。
+  - Yotpo のレビュー API キーを用意してください。[詳細はこちら](https://support.yotpo.com/docs/finding-your-yotpo-app-key-and-secret-key)
+  - Yotpo のロイヤルティ API キーを用意してください。[詳細はこちら](https://support.yotpo.com/docs/finding-your-loyalty-referrals-api-key-and-guid)
+</Info>
+
+## MoEngage Content API を設定する
+
+Yotpo の REST API を使用して、パーソナライズされたコンテンツをキャンペーンに挿入します。これは、Yotpo の REST API エンドポイントを MoEngage の Content API に追加することで実現できます。
+
+次の手順を実行します。
+
+1. **Settings** -\> **Advanced settings** -\> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。
+
+![ContentAPI\_Navogation.png](/images/partner_21979592722196.png)
+
+2. エンドポイント URL に Yotpo API を追加します。エンドポイントはユースケースによって異なります。
+
+![](/images/partner_19269568444180.png)
+
+3. 「Save」をクリックし、成功のレスポンスが表示されたら「Done」をクリックします。
+4. 注 - API をテストすることもできます。API をテストするには、Content API のアクションメニューから「Test」をクリックします。API のレスポンスを確認して検証できます。
+
+## 顧客のロイヤルティポイントを表示する
+
+![](/images/partner_19290494694676.png)
+
+顧客のロイヤルティポイントを表示するには、Yotpo の [Fetch Customer Details API](https://loyaltyapi.yotpo.com/reference/fetch-customer-details) を使用します。
+
+Content API の設定時に、次の URL を挿入します。
+
+`https://loyalty.yotpo.com/api/v2/customers`
+
+URL Parameters に次の内容を追加します。
+
+1. `customer_email`: @ を入力してパーソナライズし、MoEngage から該当するユーザー属性を選択します。
+
+Headers に次の内容を追加します。
+
+1. `x-guid`: Yotpo ロイヤルティ管理画面の「Settings」セクションにあるグローバル一意識別子です。[詳細はこちら](https://loyaltyapi.yotpo.com/reference/authentication)
+2. `x-api-key`: アカウントの API キーは、Yotpo ロイヤルティ管理画面の「Settings」セクションで確認できます。[詳細はこちら](https://loyaltyapi.yotpo.com/reference/authentication)
+
+MoEngage キャンペーンでこの API を使用するには、次の手順を実行します。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 1 で設定した Yotpo Bottom Line を選択できます。
+3. [MoEngage テンプレート言語](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。
+
+![](/images/partner_19290615846676.png)
+
+4. Preview タブをクリックすると、リアルタイムのパーソナライゼーションでキャンペーンを確認できます。
+
+![](/images/partner_19290773945748.png)
+
+## 商品のユーザー生成コンテンツ (UGC) を表示する
+
+![](/images/partner_19290182185492.png)
+
+顧客がアップロードした商品の最新の画像を表示するには、Yotpo の [Product Images API](https://apidocs.yotpo.com/reference/product-images) を使用します。
+
+Content API の設定時に、次の URL を挿入します。
+
+`https://api.yotpo.com/v1/widget/{app_key}/albums/product/{product_id}`
+
+`{app_key}` を Yotpo のレビュー API キーに置き換えます。商品 ID は Yotpo ダッシュボードから取得できます。
+
+MoEngage キャンペーンでこの API を使用するには、次の手順を実行します。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 1 で設定した Yotpo Bottom Line を選択できます。
+3. [MoEngage テンプレート言語](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。
+
+![](/images/partner_19290867667860.png)
+
+4. Preview タブをクリックすると、リアルタイムのパーソナライゼーションでキャンペーンを確認できます。
+
+![](/images/partner_19290395256980.png)
+
+## 商品の星評価とレビュー数を表示する
+
+![](/images/partner_19272748625044.png)
+
+商品の星評価またはレビュー数を表示するには、Yotpo の [Retrieve bottom line API](https://apidocs.yotpo.com/reference/get-bottom-line-total-reviews-and-average-score) を使用します。
+
+Content API の設定時に、次の URL を挿入します。
+
+`https://api.yotpo.com/products/{app_key}/{product_id}/bottomline`
+
+`{app_key}` を Yotpo のレビュー API キーに置き換えます。商品 ID は Yotpo ダッシュボードから取得できます。
+
+MoEngage キャンペーンでこの API を使用するには、次の手順を実行します。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 1 で設定した Yotpo Bottom Line を選択できます。
+3. [MoEngage テンプレート言語](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。
+
+![](/images/partner_19273094162836.png)
+
+4. Preview タブをクリックすると、リアルタイムのパーソナライゼーションでキャンペーンを確認できます。
+
+![](/images/partner_19273146581908.png)
+
+## 商品の最新の 5 つ星レビューを表示する
+
+![](/images/partner_19273255557268.png)
+
+商品の最新の 5 つ星レビューを表示するには、Yotpo の [Retrieve reviews for a product API](https://apidocs.yotpo.com/reference/retrieve-reviews-for-a-product) を使用します。
+
+Content API の設定時に、次の URL を挿入します。
+
+`https://api.yotpo.com/v1/widget/{app_key}/products/{product_id}/reviews.json?per_page=50&star=5&sort=votes_up`
+
+`{app_key}` を Yotpo のレビュー API キーに置き換えます。商品 ID は Yotpo ダッシュボードから取得できます。
+
+MoEngage キャンペーンでこの API を使用するには、次の手順を実行します。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 1 で設定した Yotpo Bottom Line を選択できます。
+3. [MoEngage テンプレート言語](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。
+
+![](/images/partner_19290134928404.png)
+
+4. Preview タブをクリックすると、リアルタイムのパーソナライゼーションでキャンペーンを確認できます。
+
+![](/images/partner_19290138815892.png)

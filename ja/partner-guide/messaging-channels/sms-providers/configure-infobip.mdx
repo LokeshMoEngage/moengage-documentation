@@ -1,0 +1,81 @@
+---
+title: "Infobip の設定"
+---
+
+# はじめに
+
+Infobip は、ブランドが大規模に顧客との有意義な関係を築くのを支援するオムニチャネルエンゲージメントプラットフォームです。高度なカスタマーエンゲージメント、認証、セキュリティ、サポート、リテンションのための幅広いソリューション、メッセージングチャネル、ツールを提供しています。
+
+<Info>
+**前提条件**
+Infobip のダッシュボードにアクセスでき、Infobip アカウントの API キーを用意していることを確認してください。
+</Info>
+
+# Infobip をカスタム SMS コネクター (サービスプロバイダー) として設定する
+
+この記事では、MoEngage ダッシュボードで Infobip をカスタムコネクターとして設定する方法について説明します。
+
+MoEngage ダッシュボードにログインし、次の手順に従います。
+
+1. **Settings** -> **Channel** -> **SMS** -> **Sender Configuration** に移動します。
+2. 右上隅にある **+Add custom service provider** をクリックします。
+3. **Sender Details** 画面で次の詳細を追加します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **Mark as default** | このトグルをオンにすると、設定中のサービスプロバイダーのデフォルト送信者としてこの送信者がマークされます。デフォルトとしてマークすると、キャンペーン作成時に別の送信者を選択しない限り、MoEngage からのすべての SMS キャンペーンの送信にこの送信者が使用されます。 |
+| **Service provider name** | このフィールドは MoEngage ダッシュボードで設定するサービスプロバイダーを識別するもので、一意である必要があります。ここにサービスプロバイダーの名前を入力します。 |
+| **Sender name** | このフィールドは、キャンペーンやアラートの作成時に使用できる、読みやすい送信者名を識別します。 |
+| **Sender type** | 送信者タイプは **Promotional** または **Transactional** のいずれかです。ブランドに関する情報の送信、お得な情報のプロモーション、またはユーザーとのエンゲージメントに送信者を使用する場合は、Sender type として Promotional を選択します。取引に関するアラート、OTP、セキュリティ情報、またはトランザクションとして分類できる情報の送信に送信者を使用する場合は、Sender type として Transactional を選択します。 |
+
+4. 次の詳細を追加して Webhook を設定します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **API URL** | このフィールドには、送信者に API リクエストを送信する際に使用する URL の情報が含まれます。この情報は送信者の API ドキュメントから取得できます。ここに送信者の API エンドポイントを入力します。Infobip の API URL は _[https://yr8qyp.api.infobip.com/sms/2/text/advanced](https://yr8qyp.api.infobip.com/sms/2/text/advanced)_ です。 |
+| **Method** | HTTP メソッドとして **POST** を選択します。 |
+| **URL Parameters** | このオプションを使用して、API に渡す URL パラメーターをキーと値のペアとして追加します。この情報は送信者の API ドキュメントから取得できます。たとえば、API URL の呼び出しで GET メソッドを使用する場合、API Key や Authorization などのすべてのパラメーターが URL パラメーターとして渡されます。 |
+| **Headers** | このオプションを使用して、API に渡すリクエストヘッダーをキーと値のペアとして追加します。この情報は送信者の API ドキュメントから取得できます。Authorization ヘッダーを追加します。 |
+
+**Body Type** Body Type として **JSON** を選択し、次の詳細を追加します。
+
+```json
+{
+    "messages": [
+        {
+            "destinations": [
+                {
+                    "to": "Moesms_destination"
+                }
+            ],
+            "from": "SENDER ID",
+            "text": "Moesms_message",
+            "intermediateReport": "True",
+            "regional": {
+                "indiaDlt": {
+                    "principalEntityId": "XXXXXXXXXX",
+                    "contentTemplateId": "Moesms_dltTemplateId"
+                }
+            },
+            "notifyContentType": "application/json",
+            "notifyUrl": "YourMoEngageAccountURL"
+        }
+    ]
+}
+```
+
+Infobip および MoEngage のアカウントに基づいて、Sender_ID と YourMoEngageAccountURL の値を変更してください。
+
+5. **テスト SMS を送信** して、設定を確認します。
+6. **Save** をクリックして、送信者設定を保存します。
+7. MoEngage ダッシュボードで送信者を作成した後、配信トラッキングを設定できます。配信トラッキングの詳細については、[カスタムコネクターの配信トラッキング](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-custom-connector-for-sms) を参照してください。
+8. 配信トラッキングのレスポンスの属性は、手動または自動でマッピングできます。
+
+![Infobip_NewUI_PG_DT.png](/images/partner_21970648326804.png)
+
+# 次のステップ
+
+* [SMS キャンペーン作成のスタートガイド](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/create-an-sms-campaign) を使用して SMS キャンペーンを作成します。
+* [SMS のフリークエンシーキャップ](/ja/user-guide/settings/channels/delivery-controls/frequency-capping) を設定します。
+* [現在のサービスプロバイダー](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-an-sms-sender) を設定します。
+* [キャンペーン分析の詳細はこちら。](/ja/user-guide/campaigns-and-channels/connectors/analyze/connector-campaign-analytics)

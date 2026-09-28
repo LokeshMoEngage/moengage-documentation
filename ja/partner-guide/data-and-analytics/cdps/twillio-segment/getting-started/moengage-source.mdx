@@ -1,0 +1,186 @@
+---
+title: "MoEngage Source"
+description: "MoEngage Source を使用して MoEngage のキャンペーンインタラクションイベントを Twilio Segment に転送し、ダウンストリームの分析や統合データのアクティベーションに活用します。"
+keywords: ["Twilio Segment", "MoEngage Source", "campaign interaction events", "CDP", "data forwarding", "Streams"]
+---
+
+# はじめに
+
+[Segment](https://segment.com/) は、顧客データの収集、クレンジング、アクティベーションを支援するカスタマーデータプラットフォームです。
+
+Segment の MoEngage Source を使用すると、MoEngage 上のすべてのキャンペーンインタラクションイベントを Segment に転送し、さらなる処理や分析を行うことができます。
+
+## MoEngage Source を使用するメリット
+
+- すべての顧客データを 1 か所に送信することで、チームのエンゲージメントとマーケティングの取り組みを進化させることができます。
+- MoEngage のデータを、すでに Segment に流れているイベントデータと組み合わせることができます。
+- MoEngage Source を使用すると、これらのイベントを Destination やウェアハウスに転送できます。
+- エンゲージメントとマーケティングの取り組みに関する包括的なレポートを取得できます。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  - MoEngage と Segment のログイン認証情報。
+  - Segment へのエクスポートには、アドオンである MoEngage Streams を使用します。
+</Info>
+
+## ステップ 1: Segment で新しい MoEngage Source を追加する
+
+1. ワークスペースの [Sources カタログページ](https://app.segment.com/goto-my-workspace/sources/catalog)で、**Add Source** をクリックします。
+2. Sources カタログで「MoEngage」を検索し、MoEngage を選択して **Add Source** をクリックします。
+3. 次の画面で、Source に**ニックネーム**を付け、その他の設定を行います。
+   - ニックネームは Segment アプリ内のラベルとして使用され、Segment はウェアハウス内に関連するスキーマ名を作成します。ニックネームは任意の名前にできますが、ソース自体を表し、環境を区別できる名前（例: `MoEngage_Prod`、`MoEngage_Staging`、`MoEngage_Dev`）を使用することを推奨します。
+4. **Add Source** をクリックして設定を保存します。
+5. Segment UI から **Write key** をコピーします。このキーは MoEngage App Marketplace で入力する必要があります。<img src="/images/partner_12663037922964.png" alt="SegmentSource.png" />
+
+## ステップ 2: MoEngage で接続の詳細を入力する
+
+![Marketplace.png](/images/partner_12662074940692.png)
+
+1. MoEngage Dashboard > App Marketplace に移動し、Segment を検索して **Add Integration** をクリックします。
+2. 接続に名前を付け、**Write Key** を入力して、Segment Region を選択します。\
+   注: リージョンをまたぐデータは許可されていないため、MoEngage App Marketplace で選択したリージョンが Segment Workspace Region と異なる場合、Segment はイベントを破棄します。
+3. Segment に戻り、MoEngage ソースで **Add Destinations** をクリックして、MoEngage のデータを受信する Destination を追加します。
+
+## イベント
+
+以下の表は、MoEngage が Segment に送信するイベントの一覧です。これらのイベントは、ウェアハウスではテーブルとして、その他の Destination では通常のイベントとして表示されます。
+
+| 名前 | 説明 | カテゴリ | 関連するチャネル/プラットフォーム |
+| --- | --- | --- | --- |
+| App/Site Opened | アプリまたは Web サイトでユーザーセッションが開始されたときにトラッキングされます。また、ユーザーの Last Active Time と App/Site Open Time の差が 30 分を超える場合にのみトラッキングされます。 | Lifecycle | Android, iOS, Web |
+| Viewed Web Page | ユーザーが Web ページにアクセスしたときにトラッキングされます。イベント属性としてページ URL を選択すると、特定のページにアクセスしたユーザー数を確認できます。また、「Drop-off capture」Smart Trigger Web Push の設定にも使用できます。 | Lifecycle | Web |
+| App Exit | アプリがバックグラウンドに移行するたびにトラッキングされます。 | Lifecycle | Android, iOS |
+| User Logout | ユーザーがアプリ/サイトからログアウトしたとき、またはユーザーがリセットされたときにトラッキングされます。 | Lifecycle | Android, iOS, Web |
+| Push ID Register Android | MoEngage システムが Android デバイスのプッシュ ID を登録したときにトラッキングされます。属性 registered_by にステータスが含まれます。 | Lifecycle | Android |
+| User Merged | 既知のユーザーに MoEngage のユーザーオブジェクトがマージされるたびに、そのユーザーについてトラッキングされます。 | Lifecycle | User Merging |
+| App Update | ユーザーがアプリをアップデートしたときにトラッキングされます。 | Lifecycle | Android, iOS |
+| Install | ユーザーがデバイスにアプリをインストールしたときにトラッキングされます。 | Acquisition | Android, iOS |
+| Device ReInstall | デバイスで再インストールが検出されたときにトラッキングされます。 | Uninstall | Android, iOS |
+| Device Uninstall | ユーザーがデバイスからアプリをアンインストールしたときにトラッキングされます。 | Uninstall | Android, iOS |
+| User ReInstall | MoEngage で識別済みのユーザーについて再インストールが検出されたときにトラッキングされます。 | Uninstall | Android, iOS |
+| Accepted Web Push Soft-ask | 2 ステップのプッシュオプトインメカニズムの一環として、ユーザーが Web サイトでプッシュ許可の Soft-ask を承諾したときにトラッキングされます。 | Reachability | Web |
+| Closed Web Push Soft-ask | 2 ステップのプッシュオプトインメカニズムの一環として、ユーザーが Web サイトでプッシュ許可の Soft-ask を閉じたときにトラッキングされます。 | Reachability | Web |
+| Denied Web Push Subscription | ユーザーが Web でのプッシュ通知の受信を拒否したときにトラッキングされます。 | Reachability | Web |
+| Dismissed Web Push Subscription | ユーザーがプッシュ購読のプロンプトを閉じたときにトラッキングされます。 | Reachability | Web |
+| Overlay clicked in 1-click HTTP subscription | HTTP プッシュ購読フローの一環として、ユーザーが Web サイトで購読メッセージをクリックしたときにトラッキングされます。 | Reachability | Web |
+| Overlay shown in 1-click HTTP subscription | HTTP プッシュ購読フローの一環として、ユーザーが Web サイトで購読メッセージを表示したときにトラッキングされます。 | Reachability | Web |
+| Reachability Push Android | ユーザーが少なくとも 1 台の Android デバイスでリーチ可能な場合、Reachability Push Android は True（200）になります。 | Reachability | Android |
+| Reachability Push iOS | ユーザーが少なくとも 1 台の iOS デバイスでリーチ可能な場合、Reachability Push iOS は True（200）になります。 | Reachability | iOS |
+| Reachability Push Web | ユーザーが少なくとも 1 台の Web デバイスでリーチ可能な場合、Reachability Push Web は True（200）になります。 | Reachability | Web |
+| Subscribed to Web Push | ユーザーが Web プッシュ通知を購読したときにトラッキングされます。日別の購読者数の確認や、「Welcome」Smart Trigger Web Push の設定に使用できます。 | Reachability | Web |
+| Unsubscribed from Web Push | ユーザーが Web サイト/Chrome の設定から直接購読を解除したとき、または GCM がプッシュトークンが無効であることを通知したときにトラッキングされます。 | Reachability | Web |
+| Viewed Web Push Soft-ask | 2 ステップのプッシュオプトインメカニズムの一環として、ユーザーが Web サイトでプッシュ許可の Soft-ask を表示したときにトラッキングされます。 | Reachability | Web |
+| Allowed Web Push Subscription | ユーザーが Web でのプッシュ通知の受信を許可したときにトラッキングされます。 | Campaign Activity | Web |
+| Displayed Web Push Subscription | ユーザーに Hard ask が表示されたとき。 | Campaign Activity | Web |
+| Onsite Message Template clicked | オンサイトメッセージングのテンプレートがクリックされたとき。 | Campaign Activity | Web |
+| Onsite Message Template shown | オンサイトメッセージングのテンプレートが読み込まれたとき。 | Campaign Activity | Web |
+| Onsite Message Template closed | オンサイトメッセージングのテンプレートが閉じられたとき。 | Campaign Activity | Web |
+| Onsite Message Template auto dismiss | キャンペーン作成時に指定した時間が経過した後、オンサイトメッセージングのテンプレートが自動的に閉じたとき。 | Campaign Activity | Web |
+| Card Clicked | ユーザーが App Inbox でカードをクリックしたときにトラッキングされます。 | Campaign Activity | Android, iOS |
+| Card Delivered | ユーザーが Inbox を開いた後、カードが App Inbox に配信されたときにトラッキングされます。 | Campaign Activity | Android, iOS |
+| Card Sent | カード通知がユーザーに送信されたときにトラッキングされますが、通知が App Inbox に配信されたかどうかは示しません。 | Campaign Activity | Android, iOS |
+| Card Viewed | ユーザーが App Inbox でカードを表示したとき、またはカードまでスクロールしたときにトラッキングされます。 | Campaign Activity | Android, iOS |
+| Connector Sent | コネクターが正常に送信されたときにトラッキングされます。 | Campaign Activity | Connector |
+| Email Bounced | システムがハードバウンスしたメールを検出したときにトラッキングされます。通常、メールアドレスが存在しない場合に発生します。 | Campaign Activity | Email |
+| Email Clicked | ユーザーがメール内のいずれかのリンクをクリックしたときにトラッキングされます。 | Campaign Activity | Email |
+| Email Complained | ユーザーがメールをスパムとしてマークしたときにトラッキングされます。 | Campaign Activity | Email |
+| Email Dropped | メールがドロップされたときにトラッキングされます。メールは、バウンスリスト、配信停止リスト、またはスパム報告リストに含まれている場合にドロップされます。 | Campaign Activity | Email |
+| Email Opened | ユーザーがメールを開封したときにトラッキングされます。 | Campaign Activity | Email |
+| Email Sent | システムがユーザーにメールを送信したときにトラッキングされます。 | Campaign Activity | Email |
+| Email Soft Bounced | システムがソフトバウンスしたメールを検出したときにトラッキングされます。通常、一時的な配信の問題がある場合に発生します。 | Campaign Activity | Email |
+| Email Unsubscribed | ユーザーがメールの受信を配信停止したときにトラッキングされます。 | Campaign Activity | Email |
+| Email Unsubscribe Drop | ユーザーが配信停止リストに含まれているためにメールがドロップされたときにトラッキングされます。これは SendGrid でトラッキングされます。 | Campaign Activity | Email |
+| Email Viewed in Browser | ユーザーがメール内の「ブラウザで表示」リンクをクリックしたときにトラッキングされます。 | Campaign Activity | Email |
+| Facebook Audience Synced | オーディエンスへの追加または削除リクエストに対して、Facebook API が 2xx レスポンスを返したときにトラッキングされます。 | Campaign Activity | Facebook |
+| In-App Clicked Android | ユーザーが Android デバイスでアプリ内メッセージをクリックしたときにトラッキングされます。 | Campaign Activity | Android |
+| In-App Clicked iOS | ユーザーが iOS デバイスでアプリ内メッセージをクリックしたときにトラッキングされます。 | Campaign Activity | iOS |
+| In-App Clicked Windows | ユーザーが Windows デバイスでアプリ内メッセージをクリックしたときにトラッキングされます。 | Campaign Activity | Windows |
+| In-App Closed Android | ユーザーが Android デバイスで閉じるボタンをクリックしてアプリ内メッセージを閉じたときにトラッキングされます。 | Campaign Activity | Android |
+| In-App Closed iOS | ユーザーが iOS デバイスで閉じるボタンをクリックしてアプリ内メッセージを閉じたときにトラッキングされます。 | Campaign Activity | iOS |
+| In-App Closed Windows | ユーザーが Windows デバイスで閉じるボタンをクリックしてアプリ内メッセージを閉じたときにトラッキングされます。 | Campaign Activity | Windows |
+| In-App Shown Android | Android デバイスでユーザーにアプリ内メッセージが表示されたときにトラッキングされます。 | Campaign Activity | Android |
+| In-App Shown iOS | iOS デバイスでユーザーにアプリ内メッセージが表示されたときにトラッキングされます。 | Campaign Activity | iOS |
+| In-App Shown Windows | Windows デバイスでユーザーにアプリ内メッセージが表示されたときにトラッキングされます。 | Campaign Activity | Windows |
+| Notification Clicked Android | ユーザーが Android デバイスで通知をクリックしたときにトラッキングされます。 | Campaign Activity | Android |
+| Notification Clicked iOS | ユーザーが iOS デバイスで通知をクリックしたときにトラッキングされます。 | Campaign Activity | iOS |
+| Notification Clicked Web | ユーザーがブラウザで通知をクリックしたときにトラッキングされます。 | Campaign Activity | Web |
+| Notification Clicked Windows | ユーザーが Windows デバイスで通知をクリックしたときにトラッキングされます。 | Campaign Activity | Windows |
+| Notification Dismissed iOS | ユーザーが iOS デバイスで通知を閉じたときにトラッキングされます。 | Campaign Activity | iOS |
+| Notification Received Android | ユーザーが Android デバイスで通知を受信したときにトラッキングされます。 | Campaign Activity | Android |
+| Notification Received iOS App Active | アプリがフォアグラウンドにある状態で、ユーザーが iOS で通知を受信したときにトラッキングされます。 | Campaign Activity | iOS |
+| Notification Received iOS | ユーザーが iOS デバイスで通知を受信したときにトラッキングされます。 | Campaign Activity | iOS |
+| Notification Received Web | ユーザーがブラウザで通知を受信したときにトラッキングされます。 | Campaign Activity | Web |
+| Notification Sent Windows | ユーザーが Windows デバイスで通知を受信したときにトラッキングされます。 | Campaign Activity | Windows |
+| Notification Sent iOS | ユーザーが iOS デバイスで通知を受信したときにトラッキングされます。 | Campaign Activity | iOS |
+| Notification Swiped Android | Android でユーザーがスワイプ操作によって通知を閉じたときにトラッキングされます。 | Campaign Activity | Android |
+| On-site Message Shown | オンサイトメッセージングキャンペーンがユーザーに表示されたときにトラッキングされます。 | Campaign Activity | Web |
+| On-site Message Clicked | オンサイトメッセージングキャンペーンがユーザーによってクリックされたときにトラッキングされます。 | Campaign Activity | Web |
+| On-site Message Closed | オンサイトメッセージングキャンペーンがユーザーによって閉じられたときにトラッキングされます。 | Campaign Activity | Web |
+| Push Preference Changed iOS | iOS デバイスのプッシュ設定が変更されたときにトラッキングされます。変更後のステータスが含まれます。 | Campaign Activity | iOS |
+| Web Personalization Message Shown | Web パーソナライゼーションキャンペーンがユーザーに表示されたときにトラッキングされます。 | Campaign Activity | Web |
+| Web Personalization Message Clicked | Web パーソナライゼーションキャンペーンがユーザーによってクリックされたときにトラッキングされます。 | Campaign Activity | Web |
+| Web Personalization Message Closed | Web パーソナライゼーションキャンペーンがユーザーによって閉じられたときにトラッキングされます。 | Campaign Activity | Web |
+| SMS Delivered | ユーザーに送信された SMS の配信確認をシステムが受信したときにトラッキングされます。 | Campaign Activity | SMS |
+| SMS Sent | システムがユーザーに SMS を送信したときにトラッキングされます。 | Campaign Activity | SMS |
+| SMS Clicked | ユーザーが SMS メッセージ本文内のいずれかのリンクをクリックしたときにトラッキングされます。 | Campaign Activity | SMS |
+| User Entered Flow | ユーザーがターゲットオーディエンスに該当し、Flow へのエントリー条件を満たしたときにトラッキングされます。 | Campaign Activity | Flows |
+| User Exited Flow | ユーザーが Flow の Stop Cell から離脱したときにトラッキングされます。 | Campaign Activity | Flows |
+| User removed from the campaign due to the control group | コントロールグループを定義してキャンペーンを送信する際に生成されます。 | Campaign Activity | Flows/Campaign Channels |
+| User added to the control group | グローバルコントロールグループの作成時に生成されます。 | Campaign Activity | Flows/Campaign Channels |
+| User removed from the control group | グローバルコントロールグループが更新されたとき、具体的にはグローバルコントロールグループの % が減らされたとき、またはグローバルコントロールグループがリフレッシュされたときに生成されます。 | Campaign Activity | Flows/Campaign Channels |
+| WhatsApp Message Clicked | ユーザーが WhatsApp メッセージを読んだときにトラッキングされます。既読確認を有効にしているユーザーのみが対象です。 | Campaign Activity | Flows/Campaign Channels |
+| WhatsApp Message Delivered | WhatsApp メッセージがユーザーに配信されたときにトラッキングされます。 | Campaign Activity | Flows/Campaign Channels |
+| WhatsApp Message Delivery Failed | プロバイダーがユーザーへの WhatsApp メッセージの送信/配信に失敗したときにトラッキングされます。 | Campaign Activity | Flows/Campaign Channels |
+| WhatsApp Message Read | ユーザーが WhatsApp メッセージを読んだときにトラッキングされます。既読確認を有効にしているユーザーのみが対象です。 | Campaign Activity | Flows/Campaign Channels |
+| WhatsApp Message Sent | WhatsApp メッセージがユーザーに送信されたときにトラッキングされます。 | Campaign Activity | Flows/Campaign Channels |
+| Custom Event | カスタムイベントは、お客様が定義するイベントです。 | - | - |
+
+## MoEngage イベントプロパティ
+
+以下の表は、上記のイベントに含まれるプロパティの一覧です。
+
+| 名前 | 説明 |
+| --- | --- |
+| App Version | このイベントがトラッキングされたモバイルアプリケーションのバージョンです。App Version はすべてのイベントでトラッキングされます。 |
+| SDK Version | このイベントがトラッキングされた MoEngage SDK のバージョンです。SDK Version はすべてのイベントでトラッキングされます。 |
+| Platform | このイベントがトラッキングされた OS 名です（例: Android、iOS、Web）。Platform はすべてのイベントでトラッキングされます。 |
+| Campaign Id | このイベントに関連付けられたキャンペーンの ID です。 |
+| Campaign Name | メッセージが属していたキャンペーンの名前を表します。 |
+| Campaign Type | メッセージが属していたキャンペーンの種類を表します。 |
+| Readable Campaign Id | メッセージが属していたキャンペーンの ID を表します。 |
+| Parent Campaign id | 定期キャンペーンが実行されたときにトラッキングされます。定期的に再実行される子インスタンスの親となる定期キャンペーンのキャンペーン ID を表します。 |
+| Parent Flow Id | ジャーニーキャンペーンが実行されたときにトラッキングされます。親ジャーニーキャンペーンの Flow ID を表します。 |
+| Parent Flow Name | ジャーニーキャンペーンが実行されたときにトラッキングされます。親ジャーニーキャンペーンの Flow 名を表します。 |
+| Locale Id | ローカライゼーションを使用してキャンペーンが送信されたときにトラッキングされます。メッセージロケールの ID を表します。 |
+| Locale Name | ローカライゼーションを使用してキャンペーンが送信されたときにトラッキングされます。メッセージロケールの名前を表します。 |
+| Variation Id | A/B テストを使用してキャンペーンが送信されたときにトラッキングされます。メッセージバリエーションの ID を表します。 |
+| URL | アプリ内キャンペーンで表示フィルターが選択されたときにトラッキングされます。 |
+| timestamp | イベント実行時のユーザーの時刻です。エポック時間で表されます。 |
+| First Session | MoEngage Web SDK でトラッキングされるすべてのイベントに対して生成されます。ユーザーの最初のセッションの場合にのみ値が True になります。 |
+| Logged In Status | MoEngage Web SDK でトラッキングされるすべてのイベントに対して生成されます。ユーザーがデバイスでログインしている場合、値は True になります。 |
+| Exit Reason | ユーザーが Flow から離脱したときにトラッキングされます。これは「User Exited Flow」イベントの属性としてトラッキングされます。 |
+
+Segment に転送できる属性については、MoEngage の [Derived Events & Attributes](https://moengage-user-guide.mintlify.app/user-guide/data/event-data/derived-events-and-attributes) を参照してください。
+
+# よくある質問
+
+<AccordionGroup>
+  <Accordion title="データの受信はいつ開始されますか？">
+    通常、アカウントで自動データエクスポートがセットアップされ、データが表示され始めるまでに最大 30 分かかります。
+  </Accordion>
+
+  <Accordion title="後から追加のイベントをエクスポートできますか？">
+    はい。後から新しいイベントをエクスポートする必要がある場合は、App Marketplace でいつでも設定を編集し、新しいイベントをエクスポートに追加できます。
+  </Accordion>
+
+  <Accordion title="Automated Data Exports を使用して過去のデータをエクスポートできますか？">
+    現時点では、Automated Data Exports を使用して過去のデータをエクスポートすることはできません。設定後は、エクスポートを有効にした時点からの各イベントのデータが表示されるようになります。
+  </Accordion>
+
+  <Accordion title="Automated Data Exports には料金がかかりますか？">
+    お使いの請求プランにこの機能がまだ含まれておらず、後から有効にする必要がある場合は、カスタマーサクセスマネージャーと協力して請求プランに含めてもらう必要があります。MoEngage が毎月データウェアハウス/パートナー/API に送信するデータ量によっては、追加料金が発生する場合があります。
+  </Accordion>
+</AccordionGroup>

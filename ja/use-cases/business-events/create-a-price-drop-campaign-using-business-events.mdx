@@ -1,0 +1,152 @@
+---
+title: "Business Events を使用して値下げキャンペーンを作成する"
+---
+
+# はじめに
+
+企業は、顧客が関心を示した商品の価格が下がったときに、値下げアラートを送信して顧客に通知します。これにより、お得な取引の可能性を強調し、特に以前にカートやウィッシュリストに追加したものの購入しなかった商品を思い出させることで、購入を促します。
+
+#### 値下げアラートを送信するメリット
+
+- **潜在的な購入者の再エンゲージメント**: 顧客が商品を閲覧したものの購入しなかった場合、値下げアラートでその商品を思い出させ、価格が下がった今こそ購入するよう促すことができます。
+- **販売コンバージョンの向上**: 値下げを顧客に通知することで、以前は価格が理由で購入をためらっていた顧客に購入を完了するよう促すことができます。購入意欲の高い顧客の「できるだけ良い価格で購入したい」という気持ちを活用することで、売上の増加につながります。
+- **カスタマーエクスペリエンスの向上**: 値下げアラートを提供することで、顧客の利益を考え、最良の取引を見つける手助けをする姿勢を示すことができます。
+- **カート放棄率の低減**: ショッピングカートに残された商品について、値下げアラートで顧客に購入の完了を促すことができます。
+- **緊急性の創出**: 期間限定の値下げを強調することで、顧客に早めの購入を促すことができます。
+
+このユースケースは、次の 3 つのステップで実現します。
+
+1. [ビジネスイベントを作成する](/ja/use-cases/business-events/create-a-price-drop-campaign-using-business-events#step-1-create-a-business-event)
+2. [Push キャンペーンを作成する](/ja/use-cases/business-events/create-a-price-drop-campaign-using-business-events#step-2-create-a-push-campaign)
+3. [ビジネスイベントをトリガーしてキャンペーンをトリガーする](/ja/use-cases/business-events/create-a-price-drop-campaign-using-business-events#step-3-trigger-the-campaign-by-triggering-the-business-event)
+
+# 期待される結果
+
+ユーザーは、カートに追加したものの購入しておらず、価格が下がった商品について、スマートフォンでプッシュ通知を受信します。
+
+![image-20231202-162336.png](/images/moengage_7f1c89.png)
+
+<Tip>
+  - アカウントで _Business Events_ 機能が有効になっているエンタープライズプランが必要です。
+  - 特定の商品に対する顧客の関心を追跡するイベントが MoEngage で利用可能である必要があります。例: _Product Added to Cart_。顧客が商品ページにアクセスしたり、商品をカートに追加したりしたときに、商品の名前または ID を含むイベントをトリガーできます。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - [Push チャネル](/ja/user-guide/campaigns-and-channels/mobile-push/getting-started-with-mobile-push)が設定されている必要があります。
+</Tip>
+
+# ステップ 1: ビジネスイベントを作成する
+
+このセクションでは、アカウント用の[ビジネスイベント](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/overview-business-events)を作成します。これにより、必要なすべての詳細を取得するためのイベントテンプレートを作成できます。MoEngage Business Event のパブリック API を使用できます。この例では、次の情報がビジネスイベントに含まれます。
+
+- イベント名: _Price Drop Alert_
+- イベントの属性とそのデータ型:
+  - **SKU ID**: string
+  - **Percentage Drop**: string
+  - **New Price**: float
+  - **Product Name**: string
+
+次の手順を実行します。
+
+1. 上記の情報を JSON 形式で記述し、Postman を使用して MoEngage に送信します。JSON
+   ```json
+   {
+   "event_name": "Price Drop Alert",
+   "event_attributes": [
+   {
+   "attribute_name": "SKU ID",
+   "attribute_data_type": "string"
+   },
+   {
+   "attribute_name": "Percentage Drop",
+   "attribute_data_type": "string"
+   },
+   {
+   "attribute_name": "New Price",
+   "attribute_data_type": "float"
+   },
+   {
+   "attribute_name": "Product Name",
+   "attribute_data_type": "string"
+   }
+   ],
+   "created_by": "john.doe@example.com"
+   }
+   ```
+2. 上記の JSON 形式の情報を使用し、ワークスペースが属する適切なデータセンターの認証情報を指定して API 呼び出しを行います。詳細については、[Create Business Event API](/ja/api/business-events/create-business-event) を参照してください。\
+   API 呼び出しが行われ、イベントが正常に作成されると、MoEngage は次のレスポンスを送信します。JSON
+   ```json
+   {
+   "message": "The business event has been created",
+   "_id": "{{Business Event ID}}"
+   }
+   ```
+3. イベントが正常に追加されたかどうかを確認するには、次の操作を行います。
+   1. MoEngage ダッシュボードで、Business Event Triggered Push キャンペーンに移動します。
+   2. **Select business event** リストでイベントを確認できます。_Price Drop Alert_ イベントが表示されます。 <img src="/images/moengage_20af85.png" alt="3.png" />
+
+# ステップ 2: Push キャンペーンを作成する
+
+このセクションでは、顧客がカートに追加したものの購入していない商品について、ビジネスイベントでトリガーされるプッシュ通知を使用して値下げアラートを作成します。
+
+## ステップ 2.1: ユーザーをターゲットにする
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. All campaigns ページで、**\+ Create campaign** をクリックします。
+3. **Outbound** で、**Push** \> **Business Event Triggered** をクリックします。 <img src="/images/moengage_282b60.png" alt="BUSINESSPUSH.png" /> \
+   キャンペーン定義の最初のステップである **Target users** に移動します。
+4. 名前とタグを指定してキャンペーンを定義します。次の詳細を入力します。
+   1. **Team**: 組織のアカウントでチームが有効になっている場合は、チームを選択します。詳細については、[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。
+   2. **Campaign name**: キャンペーンの名前を入力します。例: _Price Drop Alert_。
+   3. **Campaign tags**: 必要なキャンペーンタグを選択します。 <img src="/images/moengage_e61843.png" alt="5usecase1.png" />
+5. **Select business event** リストで、_Price Drop Alert_ イベントを選択します。 <img src="/images/moengage_20af85.png" alt="3.png" />
+6. **Target audience** セクションで、同じ SKU ID の商品をカートに追加したすべての顧客を特定するロジックを定義します。この例では、ターゲットオーディエンスは次のようになります。 \
+   <img src="/images/moengage_835717.png" alt="5usecase2.png" /> \
+   ビジネスイベントの属性がドロップダウンリストで利用できるようになりました。イベント属性の **Product ID** は、ビジネスイベントがトリガーされるたびに動的な値を持つことができ、ビジネスイベント属性 SKU ID に対する値がセグメンテーションクエリに自動的に代入されます。
+7. **Target Platforms** セクションで、**Android** を選択します。 <img src="/images/moengage_829a53.png" alt="5usecase3.png" />
+8. **Next** をクリックして、2 番目のステップである _Content_ に進みます。ここでは、Push キャンペーンのコンテンツを定義できます。
+
+## ステップ 2.2: コンテンツ
+
+1. 使用するテンプレートを選択します。この例では、**Basic notification** を選択します。 <img src="/images/moengage_a7e3fd.png" alt="4usecase8.png" />
+2. キャンペーンに必要なコンテンツを入力します。タイトル、メッセージ、サマリーは手動で入力することも、Merlin AI を使用して生成することもできます。詳細については、[Generate Push Messages with Merlin AI](/ja/user-guide/ai-and-intelligence/merlin-ai/merlin-ai-copywriter/generate-push-messages-with-merlin-ai) を参照してください。\
+   <img src="/images/moengage_461f77.png" alt="5.png" /> \
+   このようなコミュニケーションのコンテンツには、ビジネスイベントの属性から取得した値を含める必要があります。これは他のパーソナライゼーションと同様の方法で行えます。
+3. ユーザー名などの情報を使用して、メッセージにパーソナライゼーションを追加します。このようなパーソナライゼーションにより、メッセージがより文脈に沿ったものになり、ユーザーはつながりを感じることができます。これを行うには、次の操作を行います。
+   1. _@_ を入力します。
+   2. **Push Personalization** ダイアログボックスで、ユーザーのビジネスイベントまたはユーザープロパティから関連する属性を見つけます。 <img src="/images/moengage_0269eb.png" alt="9.png" />
+4. ディープリンクオプションを使用して、ユーザーがチケットの詳細を確認できるアプリまたはウェブサイトのページにユーザーを誘導します。
+   1. **Default click action** リストで、_Deeplinking_ を選択します。
+   2. **URL** フィールドに、関連する URL を入力します。
+5. **Next** をクリックして、3 番目のステップである **Schedule and goals** に進みます。ここでは、キャンペーンのスケジュールと目標を定義できます。
+
+## ステップ 2.3: スケジュールと目標
+
+1. 要件に基づいて、このキャンペーンの開始日時と終了日時、およびコンバージョン目標を定義します。
+2. 要件に基づいて配信設定を変更します。詳細については、[Create Push Campaigns](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns) を参照してください。 <img src="/images/moengage_c308d2.png" alt="10.png" />
+3. **Publish** をクリックします。
+
+# ステップ 3: ビジネスイベントをトリガーしてキャンペーンをトリガーする
+
+これで、コミュニケーションのトリガーを開始する準備が整いました。商品の値下げが検出されると、Trigger Business Event トリガーを使用してキャンペーンをトリガーできます。このイベントをいつ MoEngage に渡すかのロジックは、ビジネス要件に基づいてお客様側で決定します。
+
+ペイロードの例を次に示します。
+
+JSON
+
+```json
+{
+"event_name": "Price Drop Alert",
+"event_attributes":
+{
+"SKU ID": "SWUO478K",
+"Percentage Drop": "10%",
+"Current Stock Price":999,
+"Product Name":"Pro Series Shirt"
+},
+"triggered_by": "john.doe@example.com"
+}
+```
+
+# まとめ
+
+このユースケースでは、顧客がカートに追加したものの購入していない商品について、Push キャンペーンによる値下げアラートを作成しました。これを実現するために、MoEngage の Business Events を使用しました。
+
+キャンペーンを公開したので、MoEngage API を使用してテストできます。詳細については、[Business Event Triggered Campaigns](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/business-event-triggered-campaigns) を参照してください。

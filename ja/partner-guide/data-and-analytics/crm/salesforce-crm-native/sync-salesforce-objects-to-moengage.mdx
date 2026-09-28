@@ -1,0 +1,491 @@
+---
+title: "Salesforce オブジェクトを MoEngage に同期する"
+---
+
+
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - [Salesforce に MoEngage アプリをセットアップする](/ja/partner-guide/data-and-analytics/crm/salesforce-crm-native/setup-moengage-app-on-salesforce)の手順に従って、Salesforce AppExchange から MoEngage アプリをインストールして構成してください。
+</Info>
+
+## 対応範囲
+
+| コンテキスト | サポート状況 |
+| --- | --- |
+| 標準 Salesforce エンティティ（Contacts、Leads、Accounts、Opportunities など）をユーザーまたはイベントとして MoEngage に同期する | サポート対象 |
+| カスタム Salesforce オブジェクトをユーザーまたはイベントとして MoEngage に同期する | サポート対象 |
+| すべての標準 Salesforce フィールドタイプ（string、datetime、numeric、formula、Salesforce 標準の位置情報フィールドなどのオブジェクトタイプ）のサポート | サポート対象 |
+| 履歴データの同期を MoEngage に送信する | サポート対象 |
+| 新規レコード作成時またはレコード更新時のリアルタイムデータ同期 | サポート対象 |
+| データ同期のセットアップ中に MoEngage で新しい属性を作成する | サポート対象 |
+| リンクされたエンティティ（エンティティ間のリレーションシップ）を MoEngage に同期する | サポート対象外（リンクされたフィールドの ID のみが同期され、リンクされたオブジェクト全体は同期されません） |
+
+## 手順
+
+連携は大きく 2 つのステップに分かれています。
+
+1. **Connections**：Connection は MoEngage ワークスペースへの認可です。複数の MoEngage ワークスペースを 1 つの Salesforce インスタンスに接続できます。
+2. **Syncs**：Sync は、2 つのシステム間で特定のデータを送信するためにリアルタイムで実行されるジョブです。同期タイプ（MoEngage から Salesforce、または Salesforce から MoEngage）、同期するエンティティ、データマッピングが含まれます。
+
+その他の小さなセクションとして **Error logs** と **Exceptions** があり、同期の失敗をデバッグする際に役立ちます。
+
+### MoEngage アプリを起動する
+
+**App Launcher** をクリックし、_MoEngage_ と入力して **MoEngage App** を選択します。
+
+![MoEngage App が選択された Salesforce App Launcher](/images/partner_31258032459284.png)
+
+### ステップ 1：接続をセットアップする
+
+<Steps>
+  <Step title="新しい接続を追加する">
+    **Connections** \> **Add New Connection** をクリックします。
+
+    ![Add New Connection ボタンがハイライトされた MoEngage アプリの Connections タブ](/images/partner_31258016016532.png)
+  </Step>
+  <Step title="MoEngage ワークスペースの詳細を入力する">
+    ワークスペースの詳細を入力します。
+
+    ![ワークスペースの認証情報を含む MoEngage の Connection フォーム](/images/partner_31258016018196.png)
+
+    | フィールド名 | 値 |
+    | --- | --- |
+    | Connection Name | 接続の任意の名前（例：_MoEngage Prod_ や _MoEngage Workspace_）。 |
+    | Workspace ID | MoEngage アカウントの Workspace ID。**Settings** \> **Account** \> **APIs** \> **Workspace ID** で確認できます。 |
+    | Data Key | MoEngage アカウントの Data API Key。**Settings** \> **Account** \> **APIs** \> **Data Key** で確認できます。 |
+    | MoEngage Data Center | お使いの MoEngage データセンター。[詳細はこちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)。 |
+  </Step>
+  <Step title="接続を保存する">
+    **Save** をクリックします。
+  </Step>
+</Steps>
+
+### ステップ 2：同期をセットアップする
+
+このガイドでは、Salesforce の Contacts をユーザーとして MoEngage に同期する例を使用します。イベントの同期についても同様の手順で設定できます。
+
+#### Salesforce の Contacts をユーザーとして MoEngage に同期する
+
+<Steps>
+  <Step title="Map Fields を開く">
+    **Map Fields** をクリックします。
+
+    ![Map Fields アクションがハイライトされた MoEngage の Connections リスト](/images/map-fields1.png)
+  </Step>
+  <Step title="新しい同期を追加する">
+    **Add new sync** をクリックします。
+
+    ![Add new sync ボタンがハイライトされた MoEngage アプリの Syncs タブ](/images/partner_31258032476436.png)
+  </Step>
+  <Step title="同期の基本情報を入力する">
+    同期名、ソースオブジェクト、ターゲットを入力します。
+
+    ![新しい Salesforce から MoEngage への同期の基本情報フォーム](/images/mapfields3.png)
+  </Step>
+  <Step title="続行する">
+    **Next** をクリックします。
+  </Step>
+  <Step title="データマッピングを構成する">
+    2 つのシステム間のデータマッピングを構成します。
+
+    1. 2 つのシステム間の識別子を定義します。MoEngage の識別子名は **Customer ID** で、Contact オブジェクトの任意のフィールドにマッピングできます。 <img src="/images/mapfields4.png" alt="MoEngage の Customer ID が Salesforce の Contact フィールドにマッピングされた識別子マッピング画面" />
+    2. その他のフィールドのマッピングを設定します。MoEngage 属性（MoEngage ではユーザー属性として表示されます）を入力し、マッピング先の Salesforce フィールドを選択します。 <img src="/images/mapfields5.png" alt="MoEngage 属性が Salesforce の Contact フィールドにマッピングされたフィールドマッピングテーブル" />
+    3. **Save** をクリックします。
+  </Step>
+</Steps>
+
+新規作成または更新された Contacts が MoEngage ダッシュボードに表示されるようになります。
+
+<Note>
+  Salesforce オブジェクトの同期を初めてセットアップする場合、Salesforce にトリガーをデプロイするよう求められます。**Deploy** をクリックして続行します。
+
+  ![MoEngage Salesforce アプリの Deploy Sync Trigger 確認モーダル](/images/mapfields6.png)
+</Note>
+
+##### トリガーのデプロイ時のエラー
+
+最初のトリガーのデプロイが失敗する場合、多くは同期対象の Salesforce オブジェクト（例：Contact や Lead オブジェクトのルール）に設定されたカスタム入力規則が原因です。デプロイを成功させるには、システムがテストレコードを作成する必要があり、そのテストレコードが組織の入力規則を満たす必要があります。
+
+デプロイが失敗すると、テストデータの入力を求めるモーダルが表示されます。
+
+![サンプルのテストデータの入力を求める Salesforce トリガーのデプロイ失敗モーダル](/images/mapfields7.png)
+
+<Steps>
+  <Step title="スニペットを分析する">
+    システムは、その Salesforce オブジェクトの**最小限の必須フィールド**を含むコードスニペットをあらかじめ入力します。
+  </Step>
+  <Step title="カスタムフィールドを追加する">
+    入力規則で必要なその他のフィールドと、対応するサンプル値を追加するために、このスニペットを**修正する必要があります**。
+  </Step>
+</Steps>
+
+例：
+
+```apex
+Contact testRecord = new Contact(LastName='');
+```
+
+Salesforce 組織の Contact オブジェクトに、`LastName` の値と `Email` の正しい形式をチェックする入力規則トリガーがある場合は、サンプルの行を以下のように修正します。
+
+```apex wrap
+Contact testRecord = new Contact(LastName='John Doe', Email='john.doe@example.com');
+```
+
+完全なテストデータを指定することで、デプロイのテストクラスがすべてのカスタムロジックを確実に通過できます。入力規則を満たすようにスニペットを修正したら、**Update** をクリックし、同期トリガーを再デプロイします。
+
+#### 数式フィールド
+
+- Salesforce は、マッピングされた数式フィールドの基になるデータの変更を検出しません。
+- 数式の計算結果のみが変更された場合、同期はトリガーされません。
+
+<Tip>
+  数式フィールド自体ではなく、数式で使用されているソースフィールドをマッピングしてください。
+</Tip>
+
+#### 複合フィールド
+
+- 複合住所フィールドや位置情報フィールド（例：`MailingAddress`）は直接マッピングしないでください。
+- 代わりに、個々の構成要素をマッピングします。
+  - `MailingStreet`
+  - `MailingCity`
+  - `MailingState`
+  - `MailingPostalCode`
+  - `MailingCountry`
+- これにより、対応する MoEngage 属性との正確な同期が保証されます。
+
+### ステップ 3：MoEngage でプロファイルを表示する
+
+<Steps>
+  <Step title="セグメントを作成する">
+    **Segment** \> **Create Segment** に移動します。
+  </Step>
+  <Step title="ユーザーを検索する">
+    メール ID またはその他の識別子でユーザーを検索します。データは MoEngage に流れ込み、ユーザープロファイルに表示されます。
+  </Step>
+</Steps>
+
+## リアルタイム更新の同期
+
+デフォルトでは、新しい同期構成はリアルタイム更新が自動的に有効になります。同期対象の Salesforce オブジェクト内の既存レコードで、マッピングされたフィールドが変更されると、MoEngage への更新がトリガーされます。
+
+リアルタイム同期を無効にするには、同期の横にある **Deactivate** をクリックします。
+
+### フィールド変更の検出
+
+- リアルタイム同期は、マッピングされたオブジェクトのレコードが作成されたとき、または既存のレコードでマッピングされたフィールドが 1 つ以上変更されたときにトリガーされます。
+- マッピングされていないフィールドのみの更新では、MoEngage への同期はトリガーされません。
+
+## 履歴データの同期
+
+既存データの履歴同期はいつでもトリガーできます。これは MoEngage でデータをバックフィルしたい場合に便利です。
+
+### 履歴同期の実行
+
+<Steps>
+  <Step title="Sync をクリックする">
+    同期の行にある **Sync** ボタンをクリックします。
+
+    ![同期の行で Sync アクションがハイライトされた Syncs リスト](/images/historic-sync1.png)
+  </Step>
+  <Step title="バッチサイズを調整する（任意）">
+    Salesforce の設定に応じて、バッチサイズを変更できます。
+
+    ![履歴同期のバッチサイズ構成](/images/historic-sync2.png)
+
+    最適なバッチサイズは、MoEngage に同期するレコードあたりのフィールド数と、全体の同期量によって異なります。
+  </Step>
+  <Step title="履歴同期を開始する">
+    **Sync Historical Data** をクリックします。
+  </Step>
+</Steps>
+
+### 履歴同期のモニタリング
+
+履歴同期を開始した後は、同期構成の横に表示されるステータスを確認して進行状況を追跡します。
+
+![構成の横に同期ステータスが表示された履歴同期の行](/images/historicsync3.png)
+
+| ステータス | 説明 |
+| --- | --- |
+| Sync | このオブジェクトの履歴同期はまだ実行されていません。最初の同期前のデフォルトの状態です。 |
+| Sync Scheduled | 同期が開始され、Salesforce による処理を待つキューに入っています。 |
+| Sync Processing | 同期が開始され、データが MoEngage にアクティブに送信されています。 |
+| Sync Successful | 処理が完了し、すべてのレコードが正常に送信されました。MoEngage がこのデータを処理します。 |
+| Sync Partial Success | 処理は完了しましたが、一部のレコードの送信に失敗しました。詳細はエラーログを確認してください。 |
+| Sync Failed | 処理は完了しましたが、重大なエラーにより MoEngage にレコードが送信されませんでした。 |
+
+履歴同期の最新の進行状況を確認するには、**Sync Processing** ボタンをクリックします。対応する [Sync Queue](#sync-queues) レコードに移動し、詳細な進行状況と例外（ある場合）を確認できます。
+
+各履歴同期レコード（**Syncs** \> **All Syncs** \> 同期名を選択）には、以下のメタデータも含まれています。
+
+![履歴同期のメタデータフィールドを表示している同期詳細ページ](/images/historicsync4.png)
+
+| フィールド名 | 説明 |
+| --- | --- |
+| Last Sync Date Time | 最後の履歴同期が追加された時刻です。 |
+| Last Historic Sync Apex Batch Job ID | [Salesforce Apex ジョブ](https://help.salesforce.com/s/articleView?id=platform.code_apex_job.htm&language=en_US&type=5)の Batch Job ID です。この ID を使用して、最後の履歴同期で処理されたバッチ数のリアルタイムの進行状況を確認できます。 |
+| Last Historic Sync Batch Raw Job ID | 内部で生成された Salesforce Apex ジョブの完全な Job ID です。 |
+| Last Historic Sync Queue ID | この履歴同期の [Sync Queue](#sync-queues) ID です。 |
+| Last Historic Sync Queue Record | 最後の履歴同期の [Sync Queue](#sync-queues) レコードへのリンクです。関連する例外、失敗したレコード、この同期の全体的な進行状況を詳しく確認できます。 |
+| Last Historic Sync Status | この構成で最も直近に試行された同期のステータスです。遷移：Scheduled → Processing → Successful / Failed / Partial Success。 |
+
+以下の手順で、履歴同期の現在の進行状況をモニタリングすることもできます。
+
+<Steps>
+  <Step title="Salesforce Apex Flex Queue を確認する">
+    [Salesforce Apex Flex Queue](https://help.salesforce.com/s/articleView?id=platform.code_apex_flex_queue.htm&type=5) を開き、履歴同期が _Holding_ 状態になっていないことを確認します。Apex クラス `HistoricalSyncBatch` を検索します。この状態になっている場合は、バッチの順序を変更して MoEngage を優先させることができます。
+  </Step>
+  <Step title="バッチが開始されたことを確認する">
+    Flex Queue が空であるか、`HistoricalSyncBatch` Apex クラスのレコードがない場合、バッチの処理が開始されています。
+  </Step>
+  <Step title="Apex Jobs Queue を確認する">
+    [Apex Jobs Queue](https://help.salesforce.com/s/articleView?id=platform.code_apex_job.htm&language=en_US&type=5) を開き、`HistoricalSyncBatch` Apex クラスによって送信されたレコードを探します。関連する同期の **Last Historic Sync Apex Batch Job ID** を使用して検索することもできます。
+
+    ![HistoricalSyncBatch ジョブが進行中であることを示す Salesforce Apex Jobs Queue](/images/historicsync5.png)
+  </Step>
+</Steps>
+
+以下の列を確認します。
+
+| 列名 | 説明 |
+| --- | --- |
+| Status | 履歴同期のステータスです。`Processing` は同期が進行中であることを意味します。`Completed` は、すべてのレコードが処理のために MoEngage に送信されたことを意味します。これは完全な配信を保証するものではありません。MoEngage はさまざまな要因に基づいてレコードを拒否する場合があります。 |
+| Batches Processed | MoEngage に送信されたバッチ数です。これが _Total Batches_ より少ない場合、同期は進行中です。 |
+| Failures | MoEngage への送信に失敗したバッチ数です。 |
+| Apex Class | これが `HistoricalSyncBatch` であることを確認してください。 |
+
+#### 覚えておくべき重要なポイント
+
+- **エンティティタイプごとに 1 つの同期**：履歴同期は、**MoEngage のエンティティタイプごと**に一度に 1 つしか実行できません（Users に 1 つ、Events に 1 つ）。
+  - **例**：Salesforce の **Contacts** と **Leads** が両方とも MoEngage の **Users** にマッピングされ、Salesforce の **Opportunities** と **Deals** が MoEngage の **Events** にマッピングされているとします。**Contacts** の同期（User 同期）を開始した場合、最初の同期が完了するまで **Leads** の同期を開始することは**できません**。ただし、**Contacts** の同期の実行中でも、**Opportunities または Deals** は別のエンティティ（Events）にマッピングされているため、これらの同期は開始**できます**。
+- **手動での更新が必要**：同期ステータスは**自動的に更新されません**。最新のステータスを確認するには、**Refresh** アイコンをクリックするか、ページを手動で更新してください。
+- **最後の同期のステータス**：表示されるステータスは、常にその構成で**最も直近**に試行された同期の結果を反映しています。
+- **新しい同期の開始**：新しい履歴同期を開始できるのは、その構成で**最も直近**の同期のステータスが _Sync Scheduled_ または _Sync Processing_ でない場合のみです。
+
+## Sync Queue
+
+データを確実かつ効率的に同期するために、MoEngage アプリはすべての転送をインテリジェントな **Sync Queue** を通じて処理します。このシステムはパフォーマンスを自動的に最適化し、エラーを最小限に抑え、スマートなロジックを使用して失敗した試行を再試行します。
+
+すべての同期（履歴またはリアルタイム）はこのキューを通じて管理されます。Sync Queue にアクセスすると、スケジュール済み、アクティブ、完了済みまで、すべてのジョブのステータスをモニタリングできます。デフォルトでは、Sync Queue には **Real Time Syncs** と **Historical Syncs** の 2 つのビューが含まれています。
+
+<Accordion title="Sync Queue ビューの有効化">
+  Sync Queue を簡単に管理するために、これらのビューを有効にすることをおすすめします。Salesforce ダッシュボードから以下の手順を実行します。
+
+  <Steps>
+    <Step title="Setup を開く">
+      右上の**歯車アイコン**をクリックし、**Setup** を選択します。
+    </Step>
+    <Step title="Object Manager を開く">
+      **Setup** に移動し、**Object Manager** に移動します。
+    </Step>
+    <Step title="Sync Queue を開く">
+      **Sync Queue** を選択します。
+    </Step>
+    <Step title="Lightning Record Pages を開く">
+      **Lightning Record Pages** に移動してクリックします。
+    </Step>
+    <Step title="Sync Queue Record Page を開く">
+      **Sync Queue Record Page** をクリックし、次に **View** をクリックします。
+    </Step>
+    <Step title="ページを有効化する">
+      **Activation** をクリックします。
+    </Step>
+    <Step title="組織のデフォルトとして割り当てる">
+      **ORG DEFAULT** を選択し、**Assign as Org Default** をクリックします。
+    </Step>
+    <Step title="Desktop を選択する">
+      **Desktop** を選択し、**Next** をクリックします。
+    </Step>
+    <Step title="保存する">
+      割り当てを確認し、**Save** をクリックします。
+    </Step>
+  </Steps>
+</Accordion>
+
+各 Sync Queue レコードには、同期ステータスの確認に役立つ追加情報が含まれています。
+
+![Salesforce の Sync Queue レコード詳細ページ](/images/historicsync6.png)
+
+| フィールド名 | 説明 |
+| --- | --- |
+| Sync | 同期マッピングの名前（例：_Leads to MoE Users_）です。 |
+| Historical Sync Batch Size | バッチあたりに MoEngage に送信されるレコード数です。履歴同期の場合にのみ入力されます。 |
+| Status | 同期の現在のステータスです。 |
+| Number of retries | Salesforce がこのバッチまたはレコードの同期を試行した回数です。 |
+| Record Type | 同期の開始元のタイプです：**Historical Sync** または **Real-Time Sync**。 |
+| Sync Status | 同期構成の最後に確認されたステータスです。**Syncs** ページで無効化された場合、以降の同期はすべて処理されません。 |
+| Parent Sync Queue | このレコードが属する同期です。最初の試行で同期が失敗した場合に入力されることがよくあります。 |
+| Error Type | 同期中に発生したエラーのタイプです。 |
+| Last Processed Record Id | 履歴同期で最後に正常に同期されたレコードのレコード ID です。最後に成功したレコードから履歴同期を再開する場合に便利です。履歴同期の場合にのみ入力されます。 |
+
+各 Sync Queue レコードには、以下の関連レコードもあります。
+
+![失敗した Sync Queue と例外を表示している Sync Queue レコードの関連レコード](/images/historicsync7.png)
+
+### 失敗した Sync Queue
+
+以前に同期に失敗し、今後再試行されるレコードに対して作成される後続の Sync Queue レコードです。
+
+### 例外
+
+![Sync Queue レコードの個々の例外ログを表示している Exceptions 関連リスト](/images/historic-sync-8.png)
+
+特定のレコードが MoEngage への同期に失敗した理由を示す個々の例外ログが含まれています。また、MoEngage から受信したレコードのうち、Salesforce 内での更新に失敗したもののログも記録されます。各例外レコードには以下の情報があります。
+
+| フィールド名 | 説明 |
+| --- | --- |
+| Exception | この例外レコードの ID です。 |
+| Apex Class | 例外をトリガーした同期を示します（MoEngage へのリアルタイム/履歴同期、または Streams を介した MoEngage から Salesforce への同期）。 |
+| Sync Queue | このレコードを処理した親 Sync Queue へのリンクです。Salesforce から MoEngage への同期の場合にのみ入力されます。 |
+| Record Id | 同期に失敗したレコード（Contact、Lead など）の ID です。Record ID をクリックすると、Salesforce の対応するレコードに移動します。 |
+| Error Message | この例外で発生したエラーです。 |
+| MoEngage Error Message | この例外に対する MoEngage からの実際のレスポンスです。 |
+| Salesforce Error Message | インバウンド同期（MoEngage から Salesforce）中に Salesforce によってトリガーされたエラーです。 |
+
+### リアルタイム同期の仕組み
+
+#### 作成時
+
+- アクティブなマッピングがあるオブジェクトで新しいレコードが作成されると、MoEngage はそのオブジェクトのアクティブな接続ごとに 1 つの Sync Queue レコードを生成します。
+- 例：2 つの接続が Contact にマッピングされている場合、Contact レコードを 1 つ作成すると 2 つの Sync Queue レコードが生成され、両方とも MoEngage に送信されます。
+
+#### 更新時
+
+- Sync Queue レコードは、マッピングされたフィールドが 1 つ以上変更された場合にのみ作成されます。
+- マッピングされていないフィールドの更新では、Sync Queue レコードは作成されません。
+
+#### 処理
+
+- リアルタイム同期がトリガーされると、MoEngage はバックグラウンドで `MoEngageSyncQueueBatch` を実行し、保留中のリアルタイム同期を取得してまとめて処理します。
+- デフォルトのバッチサイズは **Sync Queue Batch Size**（デフォルト：`20`）から取得されます。
+- バッチの実行中に追加または更新された新しいレコードは、次の反復で処理されます。
+- Flex Queue がいっぱいの場合、処理は **Sync Queue Scheduler Time**（デフォルト：`5` 分）を使用して再スケジュールされます。
+- 「いっぱい」のしきい値は **Flex Queue Limit**（デフォルト：`50`）で構成できます。
+
+### 履歴同期
+
+- 履歴同期は、スケジュールされるとすぐに Sync Queue に追加されます。
+- Salesforce の Flex Queue がいっぱいの場合、履歴同期ジョブは **Historical Sync Scheduler Time**（デフォルト：`5` 分）で設定された遅延時間の後に再スケジュールされます。
+
+#### 処理
+
+- 履歴同期の一部のレコードが失敗した場合、関連する例外レコードと Sync Queue レコードが作成されます。
+- 各履歴同期について、Sync Queue レコードをクリックすると、失敗したレコードと関連する例外を確認できます。自動再試行ができない場合は、手動で再試行をトリガーすることもできます。
+
+#### エラー処理
+
+特定のエラーはバッチを中止させ、異なる再試行方法が必要になります。
+
+- Authentication Required → バッチが中止され、手動での再試行が必要です。
+- BlockedClient → バッチが中止され、手動での再試行が必要です。
+- Account Suspended → バッチが中止され、手動での再試行が必要です。
+- Unsupported Media Type → バッチが中止され、手動での再試行が必要です。
+- Server Error → バッチは中止されますが、自動的に再試行されます（再試行の上限内）。
+
+### 再試行
+
+- 各キュー項目では、最大 4 回の自動再試行（最初の試行を含む）が可能です。
+- 以下のエラーでは自動再試行は行われません（ユーザーによる対応が必要です）。
+  - Account Suspended
+  - Authentication Required
+  - BlockedClient
+  - MissingAttributeError — レコードに Customer ID の値がない場合に発生します。
+- ペイロードエラーが発生した場合、以下のいずれかになるまで、再試行ごとにバッチサイズが半分になります。
+  - バッチが成功する
+  - サイズが 1 になる
+
+### 手動再試行
+
+![Sync Queue レコードの Manual Retry ボタン](/images/historic-sync9.png)
+
+- リアルタイム同期の手動再試行は、現在の Sync Queue レコードにのみ適用されます。
+- MoEngage は明確な成功または失敗のレスポンスを返します。
+- **Retry** ボタンは、**MoEngage Admin Permission** セットを持つユーザーのみが使用できます。
+- Manual Retry オプションは、以下のすべての条件を満たした場合に表示されます。
+  - **条件 A**：Status = _Failed_ または _Partial Success_、Retries ≥ 4、かつ Sync Status = _Active_。
+  - **条件 B**：Error Type が `Account Suspended`、`Authentication Required`、`BlockedClient`、`MissingAttributeError` のいずれかである。
+
+#### 動作
+
+- **リアルタイム同期**：
+  - 即座に同期を試行します。
+  - 成功または失敗でレコードを更新します。
+  - 失敗した場合は **Retries** の回数を増やします。
+  - 再試行が失敗した場合は例外をログに記録します。
+  - リアルタイム同期の手動再試行は、現在の Sync Queue レコードでのみ機能し、成功または失敗のレスポンスを返します。
+- **履歴同期**：
+  - 履歴バッチジョブをスケジュールします。
+  - アクションを確認するために _Scheduled_ のレスポンスを表示します。
+
+### レート制限時の動作
+
+#### リアルタイム同期の動作
+
+1. 影響を受ける接続またはオブジェクトの処理が一時停止されます。
+2. 制限が解除されると、バックオフシーケンスの後に同期が自動的に再開されます。
+
+#### 履歴同期の動作
+
+1. 実行中のバッチは即座に中止されます。
+2. バックオフ再試行は 1 → 2 → 4 → 8 → 10 分のシーケンスに従います。
+3. 同じ接続またはオブジェクトに対する新しい履歴同期は、_Scheduled_ 状態のままになります。
+4. 構成された制限が解除されると、履歴同期の再試行回数は自動的に 0 にリセットされます。
+
+## 処理済み同期の削除
+
+### スケジュール
+
+- インストールまたはアップグレード時に、MoEngage は **Delete Processed Syncs** ジョブを毎日午前 1:00 に実行するよう自動的にスケジュールします。
+- このスケジュールは **Setup** \> **Scheduled Jobs** で調整できます。
+
+### 動作内容
+
+- **Record Deletion Interval**（デフォルト：`7` 日）より古い、成功した Sync Queue レコード（および関連する失敗したキューと例外）を削除します。
+- クリーンアップは **Last Modified Date** フィールドに基づいて行われます。
+
+### 管理者向けの注意：パッケージインストールの制限
+
+- パッケージングユーザーに、目的のコンテキストでスケジュールを実行するための完全なアクセス権がない場合、ジョブが正しく実行されないことがあります。
+- **解決策**：適切な権限で実行されるように、管理者ユーザーでジョブを再スケジュールしてください。
+
+<Accordion title="削除ジョブを再スケジュールする手順">
+  Salesforce ダッシュボードから以下の手順を実行します。
+
+  <Steps>
+    <Step title="Scheduled Jobs を開く">
+      **Setup** に移動し、**Quick Find** 検索バーに _Scheduled Jobs_ と入力します。
+    </Step>
+    <Step title="ジョブを開く">
+      結果から **Scheduled Jobs** をクリックします。
+    </Step>
+    <Step title="ジョブを管理する">
+      **Delete Processed Syncs** をクリックし、次に **Manage** をクリックします。
+    </Step>
+    <Step title="cron 式を更新する（任意）">
+      必要に応じて [cron 式](https://docs.oracle.com/cd/E12058_01/doc/doc.1014/e12030/cron_expressions.htm)を更新します。
+    </Step>
+    <Step title="ジョブを再スケジュールする">
+      **Reschedule Job** をクリックして、現在ログインしている管理者ユーザーで同じジョブを作成します。
+    </Step>
+  </Steps>
+</Accordion>
+
+<Note>
+  Salesforce 組織のデフォルト値は、[カスタム設定](/ja/partner-guide/data-and-analytics/crm/salesforce-crm-native/setup-moengage-app-on-salesforce#configuring-custom-settings)で構成することで変更できます。
+</Note>
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="データ同期にフィルターを適用できますか？">
+    いいえ。現在、データ同期にフィルターを追加することはできません。履歴同期では Salesforce 組織のすべてのレコードが取り込まれます。リアルタイム同期にはすべての新規作成と更新が含まれます。
+  </Accordion>
+
+  <Accordion title="リアルタイム同期を有効にするにはどうすればよいですか？">
+    同期が **Active** とマークされている限り、リアルタイム同期はデフォルトで有効になっています。リアルタイム同期をオフにするには、そのオブジェクトの同期を無効化してください。
+  </Accordion>
+</AccordionGroup>

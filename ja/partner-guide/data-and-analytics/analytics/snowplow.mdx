@@ -1,0 +1,133 @@
+---
+title: "Snowplow"
+---
+
+## はじめに
+
+[Snowplow](https://snowplow.io/) は、オープンソースのイベント分析プラットフォームです。Snowplow により、組織は信頼性の高いファーストパーティの顧客データを生成し、マーケティングと広告のパフォーマンスを向上させることができます。
+
+## MoEngage × Snowplow
+
+MoEngage と Snowplow の連携により、Web サイトにコードを記述することなく、GTM サーバーサイドタグ設定を介して Snowplow で取得したイベントを MoEngage に転送できます。MoEngage GTM Tag を使用すると、次のことが可能になります。
+
+- MoEngage に取り込むデータを制御する
+- Snowplow の属性を柔軟に選択し、MoEngage の属性に再マッピングする
+- イベントを使用して MoEngage のユーザー属性を更新する
+
+### ユースケース
+
+- Snowplow の行動データ収集を使用して動的なユーザーセグメントを作成する
+- Snowplow の豊富なデータポイントを活用し、オムニチャネルキャンペーンを使用して高度にパーソナライズされたカスタマーフローを作成する
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - Snowplow パイプラインがすでに設定されていることを確認してください。
+  - [Snowplow Client for GTM SS](https://docs.snowplow.io/docs/destinations/forwarding-events/google-tag-manager-server-side/snowplow-client-for-gtm-ss/) が設定された GTM Server Side がデプロイされていることを確認してください。
+  - テンプレートのインポートと新しいタグの追加の権限を持つ Google Tag Manager アカウントがあることを確認してください。
+</Info>
+
+MoEngage が構築した Google Tag Manager テンプレートを使用すると、Snowplow のイベントを GTM から MoEngage に転送できます。
+
+### ステップ 1: Snowplow 用 MoEngage GTM Tag をダウンロードしてインポートする
+
+![Snowplow 用 MoEngage GTM タグのエディタービュー](/images/partner_18905962277012.png)
+
+1. Snowplow 用 [MoEngage](https://raw.githubusercontent.com/moengage/snowplow-gtm-server-side-moengage-tag/master/template.tpl) GTM タグをダウンロードします (右クリックして保存)。
+2. タグを GTM ワークスペースにインポートするには、左側のメニューから **Templates** 画面に移動します。
+   ![Tag Templates セクションが表示された GTM の Templates 画面](/images/partner_18905947405076.png)
+3. **Tag Templates** で、**New** ボタン \> **Actions** メニュー (右上) \> **Import** をクリックします。ダウンロードした MoEngage タグファイルを選択します。
+4. 左側に MoEngage のロゴが表示されたら、**Save** をクリックします。
+
+### ステップ 2: MoEngage Tag を選択して設定する
+
+MoEngage Tag テンプレートを使用すると、Snowplow のイベントを転送し、MoEngage 内のカスタムユーザー属性と標準ユーザー属性を更新できます。
+
+1. GTM ダッシュボードで、**Tags** \> **New** をクリックします。
+2. **Tag Configuration** をクリックし、**Custom** で **MoEngage Tag** を探します。
+3. ニーズに応じてタグを設定します。
+
+![GTM の MoEngage Tag 設定画面](/images/partner_18905978222996.png)
+
+| プロパティ | 値 |
+| --- | --- |
+| **Select data center** | MoEngage のデータセンターリージョン (**DC\_X**): <ul><li>Dashboard-01 (DC-01)</li><li>Dashboard-02 (DC-02)</li><li>Dashboard-03 (DC-03)</li><li>Dashboard-04 (DC-04)</li></ul> |
+| **Workspace ID** | MoEngage アカウントの Workspace ID は、**Settings** \> **Account** \> **APIs** \> **Workspace ID** で確認できます。MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+| **App Key** | MoEngage アカウントの Data API キーは、**Settings** \> **Account** \> **APIs** \> **API keys** \> **Data** API settings で確認できます。 |
+
+#### ユーザー識別子
+
+![MoEngage Tag のユーザー識別子マッピングセクション](/images/partner_18905962291476.png)
+
+ここでは、MoEngage でユーザーを識別するためのユーザー識別子をマッピングする必要があります。この値は、複数の方法でマッピングできます。
+
+- **From Variable**: GTM 変数をユーザー識別子の値として使用する場合は、このオプションを選択します。
+- **From Event Property**: イベントプロパティからユーザー識別子を抽出する場合は、このオプションを選択します。ここに属性キー (例: `user_id`) を入力します。値はルートレベルのキーからのみ取得できる点に注意してください。ネストされたキーの値を抽出する場合は、GTM 変数を使用してから "From Variable" オプションを選択してください。
+
+#### Snowplow イベントマッピングオプション
+
+![MoEngage Tag の Snowplow Event Mapping Options セクション](/images/partner_18905439274772.png)
+
+ここでは、Snowplow のイベントを MoEngage に取り込むための設定をカスタマイズできます。[Snowplow Client for GTM SS](https://docs.snowplow.io/docs/destinations/forwarding-events/google-tag-manager-server-side/snowplow-client-for-gtm-ss/) によって収集された Snowplow イベントがサポートされています。
+
+| プロパティ | 値 |
+| --- | --- |
+| **Include all atomic properties** | すべての Snowplow アトミックプロパティを MoEngage のイベントオブジェクトの一部として含める場合は、このオプションをオンにします。 |
+| **Include Self Describing event** | Snowplow の Self Describing イベントをイベントオブジェクトに含める場合は、このオプションをオンにします。 |
+| **Include Snowplow Entities in event object** | ここでは、すべての Snowplow エンティティを MoEngage のイベントプロパティとして含めるか、選択したエンティティのみを含めるかを選択できます。 <ul><li>**All** — このオプションを選択すると、すべてのエンティティが含まれます。**Snowplow Entities to Add/Edit mapping** セクションで選択したエンティティをマッピングしたり、**Snowplow Entities to Exclude** セクションで個別のエンティティを除外対象としてマークしたりできます。</li><li>**None** — 自分で選択したエンティティのみを転送する場合は、このオプションを選択します。転送するエンティティは **Snowplow Entities to Add/Edit mapping** セクションで選択できます。</li></ul> |
+| **Snowplow Entities to Add/Edit mapping** | ここでは、特定の Snowplow エンティティを MoEngage のイベントプロパティまたはユーザー属性にマッピングできます。上記で "None" を選択した場合は、MoEngage に転送するエンティティを入力できます。 <br />"Entity Name" にキー名を入力し、このキーを MoEngage 内でイベント属性 (`event_object`) として含めるか、ユーザープロパティ (`user_attributes_object`) として含めるかを選択します。 <br />ユーザープロパティを選択した場合、そのユーザーのプロパティがそれに応じて更新されます。 <br />**注: すべての Snowplow エンティティ名には `x-sp-` をプレフィックスとして付ける必要があります。** <br />Apply to all versions: **True** に設定すると、エンティティの末尾からバージョン番号が削除されます。**False** に設定すると、末尾のバージョン番号を削除せずにエンティティがそのまま取り込まれます。 |
+| **Snowplow Entities to Exclude** | 上記で Snowplow Entities に "All" を選択した場合、MoEngage への転送から除外するエンティティを個別に選択できます。 <br />**注: すべての Snowplow エンティティ名には `x-sp-` をプレフィックスとして付ける必要があります。** <br />Apply to all versions: **True** に設定すると、エンティティの末尾からバージョン番号が削除されます。**False** に設定すると、末尾のバージョン番号を削除せずにエンティティがそのまま取り込まれます。 |
+
+#### 追加のイベントマッピングオプション
+
+![MoEngage Tag の Additional Event Mapping Options セクション](/images/partner_18905931700372.png)
+
+| プロパティ | 値 |
+| --- | --- |
+| **Include common event properties** | GTM の[共通イベントデータ](https://developers.google.com/tag-platform/tag-manager/server-side/common-event-data)に含まれるイベントプロパティを、MoEngage へのイベントプロパティとして自動的に含める場合は、このオプションを選択します。 |
+| **Additional Event Property Mapping Rules** | MoEngage 内でイベントプロパティとしてマッピングするキーを選択できます。 <br />**Add Row** をクリックして、新しいキーマッピングを追加します。 <br />**Event Property Key** にイベントデータオブジェクトのプロパティキーを指定し、**MoEngage Mapped Key** にマッピング先の名前を入力します。**MoEngage Mapped Key** フィールドを空白のままにすると、キー名は変更されません。 <br />これらのプロパティは、MoEngage のイベントプロパティとして保存されます。 |
+| **Include common user properties** | GTM の[共通イベントデータ](https://developers.google.com/tag-platform/tag-manager/server-side/common-event-data)に含まれる "user\_data" プロパティを、MoEngage へのユーザー属性として自動的に含める場合は、このオプションを選択します。 |
+| **Additional User Property Mapping Rules** | MoEngage 内でユーザー属性としてマッピングするキーを選択できます。**Add Row** をクリックして、新しいキーマッピングを追加します。 <br />**User Property Key** にイベントデータオブジェクトのプロパティキーを指定し、**MoEngage Mapped Key** にマッピング先の名前を入力します。**MoEngage Mapped Key** フィールドを空白のままにすると、キー名は変更されません。 <br />これらの属性により、MoEngage のユーザー属性が更新されます。 |
+
+#### 追加のイベントデータ
+
+![MoEngage Tag の Additional Event Data セクション](/images/partner_18905978236692.png)
+
+ネストされたオブジェクトや配列から値を抽出する場合は、そのための GTM 変数を作成し、このセクションで変数をイベント属性として直接使用できます。**Add Row** をクリックして、新しいイベント属性を追加します。
+
+| プロパティ | 値 |
+| --- | --- |
+| **Key** | イベント属性に追加するキーを指定します。 |
+| **Value** | このイベント属性の値を直接入力するか、GTM 変数を使用できます。 |
+
+#### 追加のユーザーデータ
+
+![MoEngage Tag の Additional User Data セクション](/images/partner_18906010566932.png)
+
+上記の方法を使用してネストされたオブジェクトや配列から値を抽出し、このセクションで変数をユーザー属性として直接使用することもできます。**Add Row** をクリックして、新しいユーザー属性を追加します。
+
+| プロパティ | 値 |
+| --- | --- |
+| **Key** | ユーザー属性に追加するキーを指定します。 |
+| **Value** | このユーザー属性の値を直接入力するか、GTM 変数を使用できます。 |
+
+#### 高度なイベント設定
+
+![MoEngage Tag の Advanced Event Settings セクション](/images/partner_18905947434132.png)
+
+このセクションでは、イベント名の変更やイベント時刻の変更を行うことができます。
+
+| プロパティ | 値 |
+| --- | --- |
+| **Event Name Override** | MoEngage に取り込まれるイベントの名前を変更する場合は、ここに新しいイベント名を入力します。空白のままにすると、共通イベントプロパティからイベント名が取得されます。 |
+| **Event time property** | イベント時刻 (ISO-8601 形式) を設定するクライアントイベントプロパティを指定します。現在時刻を使用する場合は空のままにします。 |
+
+### ステップ 3: トリガー条件を選択する
+
+![MoEngage Tag 設定の Triggering セクション](/images/partner_18905993851156.png)
+
+**Triggering** セクションでは、イベントをトリガーとして選択するか、要件に応じて新しいトリガーを作成できます。
+
+タグの設定が完了したら、**Save** をクリックします。タグをプレビューし、想定しているすべてのイベントが設定どおりに MoEngage に取り込まれているかを確認できます。

@@ -1,0 +1,102 @@
+---
+title: "LeadSquared"
+description: "Workflow Automation の Webhook を使用して、LeadSquared から MoEngage にリード、商談、営業活動を同期し、ナーチャリングキャンペーンやウィンバックキャンペーンをトリガーします。"
+---
+
+[LeadSquared](https://www.leadsquared.com/) は、企業がリードの獲得、リードナーチャリング、営業プロセスを一元化できる包括的なマーケティングオートメーションおよび CRM プラットフォームです。これにより、ユーザーとのやり取りを効果的に管理し、セールスパイプラインを追跡して、収益の成長を加速できます。
+
+## MoEngage × LeadsSquared
+
+MoEngage と LeadsSquared の統合により、シームレスなデータ同期を通じてマーケティングと営業の取り組みを強化できます。この統合により、次のことができます。
+
+- LeadsSquared から MoEngage にリード、商談などを同期する。
+- 通話やミーティングなどの営業活動を行動イベントとしてインポートする。
+- カスタムフィールドを取り込み、包括的なユーザープロファイリングを行う。
+
+## ユースケース
+
+LeadsSquared を MoEngage と統合すると、次のユースケースに対応できます。
+
+- **有望なリードを育成する**: LeadsSquared でのリードの作成やステージの進行に基づいて、パーソナライズされたナーチャリングキャンペーンを送信します。
+- **セールスパイプラインを加速する**: 商談ステージの変化に基づいて、商談を加速させるキャンペーンをトリガーします。
+- **失注した商談に再エンゲージする**: 商談が失注とマークされたときに、ターゲットを絞ったウィンバックキャンペーンを送信して、見込み顧客に再度エンゲージします。
+
+### 同期モジュール
+
+次の表は、各モジュールのデフォルトの同期タイプの概要です。
+
+| モジュール | MoEngage の同期タイプ |
+| --- | --- |
+| Contacts | ユーザー |
+| Opportunities | イベント |
+| Company | ユーザー |
+| Calls | イベント |
+| Meetings | イベント |
+| Tasks | イベント |
+| Custom Activities | イベント（カスタム） |
+
+<Info>
+  会社情報: Company モジュールもサポートされています。データを常に最新の状態に保つため、関連する会社情報はそれぞれ Lead レコードと Opportunity レコードとともに同期されます。
+</Info>
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  Workflow Automation 機能にアクセスして設定するために必要な権限を持つ LeadsSquared アカウントがあることを確認してください。
+</Info>
+
+## ステップ 1: MoEngage エンドポイントを取得する
+
+統合用の専用エンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストでは、MoEngage とパートナープラットフォームの間でユーザープロファイルを紐付けるために使用する共通の識別子を指定する必要があります。
+
+## ステップ 2: オートメーションルールを作成する
+
+オートメーションルールを設定するには、次の手順を実行します。
+
+1. LeadsSquared ダッシュボードで、**Workflow** \> **Automation** に移動します。
+2. **Create Automation** をクリックします。
+3. **Build from Scratch** を選択して、新しいワークフローを開始します。
+4. 次のユースケースに基づいて、オートメーションのトリガーを選択します。
+   - **Lead Create and Update**: リードが作成または更新されたときにトリガーされます。<img src="/images/partner_41520904524692.png" />
+   - **Opportunity Create and Update**: 商談が作成または更新されたときにトリガーされます。<img src="/images/partner_41520873231252.png" />
+   - **Activity Update on Lead/Opportunity**: リードまたは商談のアクティビティが変更されたときにトリガーされます。<img src="/images/partner_41520873232148.png" />
+
+## ステップ 3: Webhook アクションを設定する
+
+Webhook アクションを設定するには、次の手順を実行します。
+
+1. オートメーションワークフローで、**\+** アイコン <img src="/images/partner_41520873232788.png" /> をクリックしてアクションを追加します。
+2. **Choose Condition or Action** メニューが表示されます。
+3. **Action** セクションまでスクロールし、**Custom** カテゴリをクリックしてオプションを展開します。
+4. **Webhook** をクリックします。<img src="/images/partner_41520904527508.png" />
+   <br />
+   **Webhook** ダイアログボックスが表示されます。
+5. 次の詳細を入力します。
+
+| Webhook のセクション | 説明 |
+| --- | --- |
+| **Method** | **POST** |
+| **URL** | MoEngage から提供された専用の Webhook URL を次の形式で入力します。<br /><br />`https://api-0X.moengage.com/v1/partner/leadsquared/{events/users}/?configName={config_name}` |
+| **Custom Headers** | **Content-Type**: `application/json`<br /><br />**Headers**:<br />1. **Custom Headers** の横にある **\+ Add** をクリックします。<br />2. **Add Custom Header** ダイアログボックスが表示されます。<br />3. **Name \*** ボックスに **Authorization** と入力します。<br />4. **Value \*** ボックスに、生成した Basic トークンを入力します。詳細については、Authorization セクションを参照してください。<br />5. **Add** をクリックして、カスタムヘッダーを保存します。<br /><br /><img src="/images/partner_41520904528660.png" /><br /><br />**Authorization**:<br />オンラインの [Basic Auth Header Generator ツール](https://www.debugbear.com/basic-auth-header-generator)を使用して、Basic 認証トークンを生成します。ユーザー名として **Workspace ID** を、パスワードとして **Data API Key** を入力する必要があります。認証情報を確認するには、次の手順を実行します。<br /><br />1. MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。<br />2. **Workspace ID**（**旧 app id**）の下にある ID をコピーします。<br />3. **API keys** の下にある **Data** をコピーします。<br /><br />Basic 認証トークンは、**Workspace ID** と **Data** を組み合わせたものです。たとえば、Basic 認証トークンとして次の値を貼り付けます。<br />`Basic Qk5CR1NNNUR4eHh4eHhWQ1hSRFJEWTdSOlFsWHVoTHVaeHh4eHh4QWQrQnBYUEotNw==`<br /><br />**注**: トークンは余分なスペースを含めず、完全にコピーしてください。 |
+
+<br />
+
+![](/images/partner_41520873236116.png)
+
+**注**: 検証ステップでエラーが発生した場合は、MoEngage にお問い合わせください。
+
+<Info>
+  - **リアルタイムの更新**: MoEngage が常に最新の情報を受信できるように、オートメーション設定で **Evaluate on latest data** オプションを有効にします。
+  - **ペイロードの標準**: Webhook ペイロードの構造は、使用するトリガーによって決まります。詳細については、公式の [LeadSquared Automation Trigger ドキュメント](https://help.leadsquared.com/data-posted-by-automation-triggers/)を参照してください。
+  - **データエラーの防止**: 統合を有効にする前に、LeadSquared の具体的な設定、要件、サンプルデータを MoEngage サポートチームと共有することを強くお勧めします。これにより、不正確なデータや重複データの作成を防ぐことができます。
+</Info>
+
+## レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は LeadSquared データの取り込みを、ワークスペースごとに最大 500 リクエスト/秒（RPS）に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、LeadSquared のデフォルトの再試行ポリシーを参照してください。
+
+**再試行の上限到達**: LeadSquared がデータのバッチに対するすべての再試行を使い果たした場合は、LeadSquared サポートチームに連絡して、失敗したリクエストを再実行してもらう必要があります。

@@ -1,0 +1,71 @@
+---
+title: "iOS プッシュの設定"
+description: "APNs 認証キーまたは証明書を使用して、Flutter アプリで iOS プッシュ通知を設定します。"
+---
+
+# iOS でのプッシュの設定
+
+プッシュ通知を設定するには、次の 2 つの方法があります。
+
+## APNS 認証キー:
+
+iOS ユーザーにプッシュ通知を送信するには、アプリケーション用の APNs Auth Key ファイルを生成し、MoEngage ダッシュボードにアップロードする必要があります。Auth Key を生成するには、[こちらのリンク](/ja/developer-guide/ios-sdk/push/basic/apns-authentication-key)を参照してください。
+
+## APNS 証明書
+
+iOS でプッシュ通知を送信するには、まず APNS 証明書を作成してダッシュボードにアップロードする必要があります。次の手順に従ってください。
+
+- [APNS 証明書を作成する](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+- [作成された証明書を .pem 形式に変換する](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+- [.pem ファイルを MoEngage ダッシュボードにアップロードする](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+
+各手順のリンクに従って完了してください。
+
+## プロジェクトの Capability の変更
+
+APNS 証明書をアップロードしたら、Xcode プロジェクトで Push Entitlement を有効にします。そのためには、アプリターゲットを選択し、Capabilities に移動します。ここで、アプリの Push Notifications capability を有効にします。また、アンインストールのトラッキングにはサイレントプッシュを使用しています。すべてのユーザーのアンインストールをトラッキングするには、以下のようにアプリの capabilities で Remote Notification バックグラウンドモードを有効にしてください。
+
+## プッシュの登録
+
+その後、以下のようにプラグインの **registerForPushNotification()** メソッドを使用してプッシュ通知を登録する必要があります。
+
+<CodeGroup>
+
+```auto Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.registerForPushNotification();
+```
+
+</CodeGroup>
+
+## 仮プッシュ（Provisional Push）の登録:
+
+<Info>
+  この機能は、プラグインのバージョン **_9.0.0_** 以降でサポートされています。
+</Info>
+
+仮プッシュ通知を登録するには、以下のようにプラグインの [**_registerForProvisionalPush()_**](https://pub.dev/documentation/moengage_flutter/latest/moengage_flutter/MoEngageFlutter/registerForProvisionalPush.html) API を呼び出します。
+
+<CodeGroup>
+
+```auto Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.registerForProvisionalPush();
+```
+
+</CodeGroup>
+
+## リッチプッシュとテンプレートのサポート
+
+Flutter アプリでリッチプッシュ（通知内の画像/動画/音声）とテンプレートをサポートするには、iOS の Notification Service Extension と Content Extension をセットアップします。
+
+- [Service Extension と Content Extension の統合](developer-guide/flutter-sdk/push/basic/integrating-moengage-service-and-content-extension-in-ios/set-up-ios-notification-extensions-for-rich-push-and-impression-tracking)
+
+または、リッチプッシュとプッシュテンプレートを手動で統合することもできます。詳細については、以下のドキュメントを参照してください。
+
+- [リッチプッシュ](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial)
+- [プッシュテンプレート](/ja/developer-guide/ios-sdk/push/optional/push-templates)

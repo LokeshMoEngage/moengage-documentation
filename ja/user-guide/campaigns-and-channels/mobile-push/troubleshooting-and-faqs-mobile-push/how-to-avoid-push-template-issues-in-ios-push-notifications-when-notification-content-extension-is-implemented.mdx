@@ -1,0 +1,41 @@
+---
+title: "Notification Content Extension が実装されている場合に iOS プッシュ通知でプッシュテンプレートの問題を回避するには"
+description: "Notification Content Extension を実装してもプッシュテンプレートが正しくレンダリングされない場合は、MoEngage iOS の Info.plist、ストーリーボード、ビルド設定を確認してください。"
+keywords: ["push template not rendering", "Notification Content Extension implemented", "Info.plist", "storyboard", "build settings", "UNNotificationExtensionCategory"]
+---
+
+## 問題
+
+Notification Content Extension が実装されているにもかかわらず、プッシュテンプレート（カルーセル画像、背景色、フォントの色など）がプッシュ通知で正しく表示されません。
+
+## 手順
+
+次の手順を確認します。
+
+1. Notification Content Extension の Info.plist は次のようになっている必要があります。
+   ```swift Swift wrap
+   <key>NSExtensionAttributes<key>
+   <dict>
+   	<key>UNNotificationExtensionCategory<key>
+   	<string>MOE_PUSH_TEMPLATE</string>
+        <key>UNNotificationExtensionDefaultContentHidden</key>
+        <true/>
+        <key>UNNotificationExtensionInitialContentSizeRatio</key>
+        <real>1.2</real>
+        <key>UNNotificationExtensionUserInteractionEnabled</key>
+        <true/>
+   <dict>
+   ```
+2. Content Extension で **MainInterface.storyboard** を選択し、デフォルトのラベルを削除して、View の背景色を透明（clear）に設定します。 
+<img alt="main interface.png" src="/images/moengage_2ae942.png" />
+3. _メインアプリターゲットの Build Phases を確認します。_
+   - Embed App Extensions/Embed Foundation Extensions で、**Copy only when installing** が選択されていないことを確認します。
+   <img alt="copy install.png" src="/images/moengage_7f39a4.png" />
+4. _構成間で appGroupId を統一します。_
+   - プロジェクト内のすべてのスキームと構成（例：Debug/Release/QA/UAT）で **appGroupId** が一致していることを確認します。
+5. _ビルド構成を揃えます。_
+   - プロジェクトを実行またはアーカイブする際は、メインターゲット、Notification Service Extension、Notification Content Extension ターゲットの Build Configuration が同じスキーム/構成を指していることを確認します。
+   
+   <img alt="debug.png" src="/images/moengage_10faed.png" /> 
+   <img alt="target.png" src="/images/moengage_805a55.png" />
+   <img alt="duplicate.png" src="/images/moengage_a717f9.png" />

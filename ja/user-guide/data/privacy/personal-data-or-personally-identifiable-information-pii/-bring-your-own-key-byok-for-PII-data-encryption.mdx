@@ -1,0 +1,200 @@
+---
+title: "PII データ暗号化のための Bring Your Own Key (BYOK)"
+description: "Bring Your Own Key (BYOK) を使用すると、個人を特定できる情報（PII）の保護に使用するマスター暗号化キーを直接管理できます。"
+---
+
+# 概要
+
+デフォルトでは、MoEngage は個人を特定できる情報（PII）の保護に使用する暗号化キーを生成および管理します。**Bring Your Own Key (BYOK)** を使用すると、マスター暗号化キーを直接管理できます。これにより、MoEngage を含め誰も、お客様のキーを介さずにユーザーの PII にアクセスできなくなります。
+
+<Info>
+  **情報**
+
+  BYOK は [PII データ暗号化](https://www.moengage.com/docs/user-guide/data/privacy/personal-data-or-personally-identifiable-information-pii/pii-data-encryption)のアドオンです。MoEngage チームによる手動での有効化が必要です。開始するには、カスタマーサクセスマネージャーまたは [MoEngage サポート](https://help.moengage.com/hc/en-us/requests/new)にお問い合わせください。
+</Info>
+
+MoEngage は、次の BYOK バリアントをサポートしています。
+
+| バリアント | 仕組み | 最適な用途 |
+| :-- | :-- | :-- |
+| **Customer-Provided Key** | お客様が 256 ビットの AES キーを生成し、MoEngage と安全に共有します。MoEngage はそれをマスターキーとして MoEngage 独自の AWS KMS に保存します。 | AWS KMS のクロスアカウントアクセスを管理せずにキーの所有権を持ちたい組織。 |
+| **Cross-Account KMS** | マスターキーは完全にお客様自身の AWS KMS 内に保持されます。MoEngage は必要に応じて、ホワイトリストに登録された IAM ロールを通じてキーにアクセスします。 | キーが自社のクラウド環境から外に出ないことを求める、規制の厳しい業界（銀行、金融サービス、ヘルスケア）の組織。 |
+
+どちらのバリアントも、同じエンベロープ暗号化モデルを基盤としています。マスターキーが短期間有効なデータキーを保護し、そのデータキーが実際の PII フィールドを暗号化します。ほとんどのエンタープライズおよび規制対象のお客様には、マスターキーが AWS 環境から外に出ないことを保証できる **Cross-Account KMS** をお勧めします。
+
+# 仕組み
+
+MoEngage は、次の 2 層モデルであるエンベロープ暗号化を使用します。
+
+- **データキー:** 実際の PII フィールド（メールアドレスや電話番号など）を暗号化する一時的な AES-256-GCM キーです。
+- **マスターキー:** データキーを保護するために使用されるお客様のキーです。Cross-Account KMS では、お客様の AWS アカウント内に保持されます。Customer-Provided Key では、MoEngage がこれを MoEngage の AWS KMS に保存します。
+
+### データの取り込み
+
+ユーザーデータが MoEngage に到着すると、次の処理が行われます。
+
+1. MoEngage は、適切な KMS（AWS または MoEngage）からマスターキーを取得します。
+2. システムはデータキーを生成し、AES-256-GCM を使用して PII フィールドを暗号化します。
+3. MoEngage は、暗号化された PII と暗号化されたデータキーをデータベースにまとめて保存します。
+4. システムは平文のデータキーを直ちに破棄します。平文のデータキーが永続化されることはありません。
+
+システムはパフォーマンスのためにデータキーを最大 **30 分間**メモリにキャッシュし、その後は KMS から再度取得する必要があります。
+
+### キャンペーンの配信
+
+MoEngage が PII フィールドを使用するキャンペーンを送信すると、次の処理が行われます。
+
+1. MoEngage は、暗号化された PII と暗号化されたデータキーをストレージから取得します。
+2. MoEngage は（KMS を介して）マスターキーを呼び出し、データキーを復号します。
+3. データキーは、メッセージ配信の間のみ、メモリ内で PII を復号します。
+4. システムは、メッセージ送信後直ちに復号された PII とデータキーの両方を破棄します。
+
+<Warning>
+  **重要**
+
+  MoEngage は、メモリ内のキャンペーン実行コンテキスト以外で、お客様のマスターキーやユーザーの平文 PII を保存、ログ記録したり、永続的にアクセスしたりすることはありません。
+</Warning>
+
+# 前提条件
+
+<Note>
+  **前提条件**
+
+  開始する前に、次の要件を満たしていることを確認してください。
+
+  - ワークスペースで [**PII データ暗号化**](https://help.moengage.com/hc/en-us/articles/12844580781588-PII-Data-Encryption)を有効にします。
+  - 暗号化は一度有効にすると無効にできないこと、および過去のデータは遡って暗号化されないことについて、書面で承認します。
+  - **Customer-Provided Key** の場合: base64 文字列としてエンコードされた 256 ビットの AES キー（正確に 32 バイト）を用意します。
+  - **Cross-Account KMS** の場合、次の条件を満たしていることを確認します。
+    - AWS Key Management Service (KMS) にアクセスできる有効な AWS アカウント。
+    - カスタマー管理キー（CMK）を作成および管理する権限。
+    - Symmetric、Encrypt/Decrypt の用途、Origin: AWS\_KMS、Multi-Region: Disabled、State: Enabled として設定されたキー。
+</Note>
+
+# BYOK の設定
+
+BYOK を設定するには、選択したバリアントに応じて以下の手順に従ってください。
+
+<Tabs>
+  <Tab title="オプション A: Customer-Provided Key">
+    ## オプション A: Customer-Provided Key
+
+    **ステップ 1: キーを生成します。** base64 文字列としてエンコードされた 256 ビットの AES キーを生成するには、OpenSSL などのツールを使用します。次の例に示すように、キーは正確に 32 バイトである必要があります。
+
+    <Tabs>
+      <Tab title="OpenSSL">
+        ```bash
+        openssl rand -base64 32
+        ```
+      </Tab>
+    </Tabs>
+
+    **ステップ 2: キーを安全に共有します。** MoEngage とキーを共有するには、次の手順に従います。
+
+    1. [MoEngage サポート](https://help.moengage.com/hc/en-us/requests/new)にリクエストを送信します。
+    2. MoEngage SecOps が（Tresorit を介して）安全なアップロードリンクを提供します。
+    3. または、MoEngage の公開キーをリクエストし、マスターキーの暗号化バージョンを共有することもできます。
+
+    **ステップ 3: MoEngage による登録。** MoEngage はお客様のキーを AWS KMS に保存し、ワークスペースを登録します。処理が完了すると通知が届きます。
+  </Tab>
+  <Tab title="オプション B: Cross-Account KMS">
+    ## オプション B: Cross-Account KMS
+
+    **ステップ 1: AWS KMS で CMK を作成します。** マスターキーを作成するには、次の手順に従います。
+
+    1. AWS Management Console にサインインし、**Key Management Service (KMS)** に移動します。
+    2. **Create key** をクリックします。
+    3. キータイプとして **Symmetric**、キーの用途として **Encrypt and decrypt** を選択します。
+    4. ウィザードが完了したら、**Key ARN** を記録します。
+
+    **ステップ 2: MoEngage の IAM ロールをホワイトリストに登録します。** MoEngage がキーにアクセスできるようにするには、KMS キーポリシーに次のステートメントを追加します。`<MoEngage IAM Role ARN>` を下の表の値に置き換えてください。
+
+    <Tabs>
+      <Tab title="JSON ポリシー">
+        ```json
+        {
+          "Sid": "Allow MoEngage to access the key",
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "<MoEngage IAM Role ARN for your Data Center>"
+          },
+          "Action": [
+            "kms:Decrypt",
+            "kms:ReEncrypt*",
+            "kms:GenerateDataKey*",
+            "kms:DescribeKey"
+          ],
+          "Resource": "<Your KMS Key ARN>"
+        }
+        ```
+      </Tab>
+    </Tabs>
+
+    ご利用の MoEngage データセンターに対応する ARN を使用してください。
+
+    | データセンター | リージョン | MoEngage IAM Role ARN |
+    | :-- | :-- | :-- |
+    | DC01 | US East (N. Virginia) | `arn:aws:iam::612427630422:role/prod-us-east-1-c2-us-east-1-eks-worker-role` |
+    | DC02 | EU (Frankfurt) | `arn:aws:iam::612427630422:role/prod-eu-central-1-c2-eu-central-1-eks-worker-role` |
+    | DC03 | AP South (Mumbai) | `arn:aws:iam::612427630422:role/prod-ap-south-1-c1-ap-south-1-eks-worker-role` |
+    | DC04 | US East (Ohio) | `arn:aws:iam::612427630422:role/prod-us-east-2-c2-us-east-2-eks-worker-role` |
+    | DC05 | AP Southeast (Singapore) | `arn:aws:iam::163129101105:role/prod-ap-southeast-1-c2-ap-southeast-1-eks-worker-role` |
+    | DC06 | AP Southeast (Jakarta) | `arn:aws:iam::163129101105:role/prod-ap-southeast-3-dc06-ap-southeast-3-eks-worker-role` |
+
+    **ステップ 3: Key ARN を共有します。** [MoEngage サポート](https://help.moengage.com/hc/en-us/requests/new)にリクエストを送信し、KMS Key ARN を提供して登録を完了します。
+  </Tab>
+</Tabs>
+
+# MoEngage UI から PII 暗号化を有効にする
+
+属性の暗号化を有効にするには、次の手順を実行します。
+
+1. MoEngage のサイドバーメニューで、Settings メニュー項目 <img src="/images/PII1.png" alt="PII1" /> にカーソルを合わせます。**Settings Home** メニューが表示されます。
+2. **Data management** をクリックします。<img src="/images/PII2.png" alt="PII2" />
+3. **User attributes** または **Event** タブをクリックします。<img src="/images/PII3-2.png" alt="PII3 2" />
+4. 属性を見つけて **省略記号（⋯）** アイコンをクリックし、**Edit attribute** を選択します。
+5. **Encrypt attribute** トグルをオンにします。これにより、**Mask attribute** トグルも自動的にオンになります。
+6. **Save and Continue** をクリックします。
+
+<Warning>
+  **警告**
+
+  属性の暗号化を有効にすると、無効にすることはできません。MoEngage は有効化後に取り込まれたデータのみを暗号化し、過去のデータは暗号化されないままです。
+</Warning>
+
+# キーのローテーション
+
+キーのローテーションは手動のプロセスです。マス[AWS Management Console](https://aws.amazon.com/console/)ターキーをローテーションするには、[MoEngage サポート](https://help.moengage.com/hc/en-us/requests/new)にリクエストを送信し、新しいキーまたは ARN を提供してください。MoEngage は、新しいマスターキーを使用して保存されているすべてのデータキーを再暗号化します。
+
+# BYOK と MoEngage 管理キーの比較
+
+次の表は、利用可能なバリアントの機能を比較したものです。
+
+| 機能 | MoEngage-Managed | Customer-Provided | Cross-Account KMS |
+| :-- | :-- | :-- | :-- |
+| **キーの保存場所** | MoEngage AWS KMS | MoEngage AWS KMS | お客様の AWS KMS |
+| **監査証跡** | 内部 | 内部 | AWS CloudTrail |
+| **失効** | 該当なし | 直接は不可 | 可能（ポリシー経由） |
+
+# 制限事項
+
+BYOK 機能には次の制限事項があります。
+
+- サポートされているプロバイダーは AWS KMS のみです。Google Cloud KMS と Azure Key Vault は現在サポートされていません。
+- AWS KMS の自動ローテーションスケジュールはまだサポートされていません。ローテーションは手動のプロセスです。
+- フィールドレベルの暗号化にのみ適用されます。ディスクレベルおよびデータベースレベルの暗号化は別途管理されます。
+- BYOK はワークスペース全体の設定です。1 つのワークスペースで BYOK と MoEngage 管理キーを混在させることはできません。
+
+# よくある質問
+
+<Accordion title="MoEngage はマスターキーを保存しますか（Cross-Account KMS）？">
+  いいえ。マスターキーがお客様の AWS アカウントから外に出ることはありません。
+</Accordion>
+
+<Accordion title="アクセスを取り消すとどうなりますか？">
+  キャッシュの有効期限（30 分）が切れると、MoEngage は PII を復号できなくなります。
+</Accordion>
+
+<Accordion title="どの暗号化アルゴリズムが使用されていますか？">
+  MoEngage は AES-256-GCM を使用しています。
+</Accordion>

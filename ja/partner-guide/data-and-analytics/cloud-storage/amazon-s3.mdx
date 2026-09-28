@@ -1,0 +1,247 @@
+---
+title: "Amazon S3"
+description: "App Marketplace を通じて MoEngage と Amazon S3 の統合を設定し、自動化されたデータのインポートとエクスポートのためにファイルを転送します。"
+---
+
+[Amazon Simple Storage Service (Amazon S3)](https://aws.amazon.com/s3/) は、Amazon Web Services（AWS）プラットフォーム上のオブジェクトストレージサービスです。Amazon S3 を使用すると、構造化データや非構造化データを Web 上のどこからでも保存、整理、取得できます。
+
+# MoEngage × Amazon S3
+
+App Marketplace を使用して MoEngage を Amazon S3 と統合し、S3 バケットと MoEngage ワークスペースの間に直接接続を確立します。この接続を確立すると、MoEngage はこの一元化された接続を使用して、自動化されたデータのインポートとエクスポートのためにファイルを転送します。
+
+## ユースケース
+
+MoEngage と Amazon S3 の統合は、次のユースケースに役立ちます。
+
+- リアルタイムの行動セグメントを同期する。
+- ユーザーとイベントをインポートする。
+- キャンペーンのインタラクションイベントをエクスポートする。
+
+## メリット
+
+MoEngage との統合には、次のメリットがあります。
+
+### 統合にかかる時間の短縮
+
+- 外部の ETL（Extract, Transform, and Load）ツールが不要になります。
+- 複雑なデータパイプラインを 1 回限りの設定プロセスに置き換えます。
+- 開発チームや技術チームへの依存を最小限に抑えます。
+
+### データ処理の高速化
+
+- 大量のデータをほぼリアルタイムで処理およびクエリします。
+- MoEngage で手動の再設定を行わなくても、スキーマの更新が自動的に反映されます。
+- 従来の外部クラウドパイプラインと比べて、データ転送コストを削減します。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  Identity and Access Management（IAM）の管理者権限を持つ AWS アカウントがあることを確認してください。対象の Amazon S3 バケットについて、ロールの作成、バケットアクセスポリシーの管理、プログラムによるアクセス認証情報の生成ができる必要があります。
+</Info>
+
+MoEngage は複数の方法で Amazon S3 に接続します。
+
+## ステップ 1: 認証を設定する
+
+接続の使用方法に合った認証方法を選択します。クロスアカウントロール方式はインポートとエクスポートの両方をサポートし、長期的な認証情報を保存する必要がないため、MoEngage ではこの方式を推奨しています。
+
+<AccordionGroup>
+  <Accordion title="クロスアカウントロール（推奨）— インポートとエクスポートの両方をサポート">
+    この方式では、AWS アカウントに IAM ロールを 1 つ作成し、単一の MoEngage ロールがそれを引き受けられるようにします。MoEngage から次の 2 つの値が必要です。
+
+    - **MoEngage AWS Account ARN**: ロールが信頼する唯一の MoEngage ID です。
+    - **MoEngage External ID**: ワークスペースに固有の値で、`moe-external-xxxxxxxxxx` の形式です。
+
+    <Info>
+      **これらの値の確認場所**
+
+      MoEngage で、**Amazon S3** \> **Integrations** \> **Add Connection** に移動します。**MoEngage AWS Account ARN** とワークスペースの **MoEngage External ID** は、**Add Connection** フォームに表示されます（[ステップ 3: App Marketplace で Amazon S3 を接続する](#step-3-connect-amazon-s3-on-the-app-marketplace)を参照）。AWS を設定する前に、これらの値をコピーしてください。
+    </Info>
+
+    ![MoEngage AWS Account ARN と MoEngage External ID フィールドが強調表示された Add Connection フォーム](/images/s3-cross-1.png)
+
+    **クロスアカウントロールを作成する**
+
+    1. **AWS Management Console** にサインインし、**IAM** サービスを開きます。
+    2. 左側のナビゲーションで **Roles** を選択し、**Create role** をクリックします。
+    3. **Trusted entity type** で **Custom trust policy** を選択します。
+    4. **Custom trust policy** エディターに次の信頼ポリシーを貼り付け、プレースホルダーを App Marketplace の値に置き換えてから、**Next** をクリックします。信頼ポリシーは、誰がロールを引き受けられるかを定義します。
+       ```json
+       {
+         "Version": "2012-10-17",
+         "Statement": [
+           {
+             "Sid": "AllowMoEngageToAssume",
+             "Effect": "Allow",
+             "Principal": {
+               "AWS": "<<MoEngage AWS Account ARN>>"
+             },
+             "Action": "sts:AssumeRole",
+             "Condition": {
+               "StringEquals": {
+                 "sts:ExternalId": "<<MoEngage External ID>>"
+               }
+             }
+           }
+         ]
+       }
+       ```
+       `sts:ExternalId` 条件により、このロールの範囲はお使いのワークスペースのみに限定されます。この条件は変更または削除しないでください。
+    5. **Add permissions** 画面で **Next** をクリックします。バケットの権限は、後で [ステップ 2: 権限を付与する](#step-2-grant-permissions)でアタッチします。
+    6. **Name, review, and create** 画面で、必須のプレフィックス `moe-export-` で始まる **Role name** を入力します（例: `moe-export-moengage-s3`）。MoEngage はこのプレフィックスを持つロールのみを引き受けられるため、名前が `moe-export-` で始まらないロールは接続に失敗します。
+    7. **Create role** をクリックします。
+    8. 作成したロールを開き、その **Role ARN** をコピーします（例: `arn:aws:iam::111122223333:role/moe-export-moengage-s3`）。これは [ステップ 3](#step-3-connect-amazon-s3-on-the-app-marketplace) で **Add Connection** ページに貼り付けます。
+
+    ロールを作成したら、[ステップ 2: 権限を付与する](#step-2-grant-permissions)で説明されているバケット権限（Imports タブ、Exports タブ、またはその両方）をアタッチします。
+  </Accordion>
+
+  <Accordion title="アクセスキー [Imports] — インポートのみをサポート">
+    ロールの代わりに、バケットへの読み取りアクセス権を持つ AWS アクセスキーペアを指定します。
+
+    ![Access Key ID と Secret Access Key の入力フィールドが強調表示された Add Connection フォーム](/images/s3-cross-2.png)
+
+    1. AWS アカウントで **IAM user** を作成し（または既存のプログラム用ユーザーを使用し）、**Access Key ID** と **Secret Access Key** を生成します。
+    2. バケットへの読み取りアクセス権を付与する権限ポリシーをアタッチします（[ステップ 2: 権限を付与する](#step-2-grant-permissions) → **Imports** タブを参照）。
+    3. **Add Connection** ページで **Access Key ID** と **Secret Access Key** を入力します（[ステップ 3: App Marketplace で Amazon S3 を接続する](#step-3-connect-amazon-s3-on-the-app-marketplace)を参照）。
+
+    アクセスキーの認証情報は、インポートごとに入力するのではなく、再利用可能な S3 接続として MoEngage に一度だけ保存されます。接続を一度作成し（ステップ 3）、S3 インポートを設定する際にその接続を選択します。
+  </Accordion>
+
+  <Accordion title="IAM ポリシー [Exports] — エクスポートのみをサポート">
+    この方式では、S3 バケットポリシーを通じて MoEngage のエクスポートロールに直接アクセス権を付与します（MoEngage が引き受けるロールはありません）。MoEngage はこの方式ですべてのデータセンターにわたって単一のエクスポートロールを使用するため、データセンターごとの ARN 表は必要ありません。
+
+    ```text wrap
+    arn:aws:iam::612427630422:role/service-role/core_s3_export-role-e1qw8ulf
+    ```
+
+    1. **AWS Management Console** \> **S3** を開き、バケットを選択して、**Permissions** \> **Bucket policy** \> **Edit** に移動します。
+    2. 次のステートメントを追加します。`<INSERTPOLICYID>` と `<INSERTSID>` を任意の値（一意の識別子であれば何でも構いません）に、`your-bucket-name` をバケット名に置き換えます。MoEngage の **Principal** ARN は表示どおりに保持してください。
+
+    ```json wrap
+    {
+      "Version": "2012-10-17",
+      "Id": "<INSERTPOLICYID>",
+      "Statement": [
+        {
+          "Sid": "<INSERTSID>",
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "arn:aws:iam::612427630422:role/service-role/core_s3_export-role-e1qw8ulf"
+          },
+          "Action": "s3:PutObject",
+          "Resource": "arn:aws:s3::<INSERTBUCKETNAME>/*"
+        }
+      ]
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## ステップ 2: 権限を付与する
+
+データフローの方向に合った権限ポリシーをアタッチします。クロスアカウントロール方式とアクセスキー方式では、インラインポリシーとしてアタッチします。ロール（または IAM ユーザー）を開き \> **Permissions** タブ \> **Add permissions** \> **Create inline policy** \> **JSON** エディター \> ポリシーを貼り付け \> **Next** \> 名前を付け（例: `moe-s3-access`）\> **Create policy** の順に操作します。
+
+各例では、バケット名は `your-bucket-name` で、ファイルは `moengage/` フォルダーの下にあります。これらをお使いのバケット名とフォルダーパスに置き換えてください。
+
+<Note>
+  **バケット ARN とオブジェクト ARN の違い**
+
+  `ListBucket` などのバケットレベルのアクションでは、バケット ARN（`arn:aws:s3:::your-bucket-name`）を使用します。`GetObject` や `PutObject` などのオブジェクトレベルのアクションでは、オブジェクト ARN（`arn:aws:s3:::your-bucket-name/moengage/*`）を使用します。
+</Note>
+
+<Tabs>
+  <Tab title="インポート">
+    MoEngage には、ファイルを一覧表示して取得するための読み取りアクセス権が必要です。
+
+    ```json
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "MoEngageImportReadObjects",
+          "Effect": "Allow",
+          "Action": ["s3:GetObject"],
+          "Resource": "arn:aws:s3:::<INSERTBUCKETNAME>/*"
+        },
+        {
+          "Sid": "MoEngageImportListBucket",
+          "Effect": "Allow",
+          "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+          "Resource": "arn:aws:s3:::<INSERTBUCKETNAME>/*"
+        }
+      ]
+    }
+    ```
+
+    `s3:prefix` 条件は任意です。この条件は、`ListBucket` を `moengage/` フォルダーに制限します。バケット全体の一覧表示を許可するには、この条件を削除します。
+  </Tab>
+  <Tab title="エクスポート">
+    MoEngage には、ファイルを配信するための書き込みアクセス権が必要です。
+
+    ```json
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Sid": "MoEngageExportWriteObjects",
+          "Effect": "Allow",
+          "Action": ["s3:PutObject", "s3:AbortMultipartUpload"],
+          "Resource": "arn:aws:s3:::your-bucket-name/moengage/*"
+        },
+        {
+          "Sid": "MoEngageExportListBucket",
+          "Effect": "Allow",
+          "Action": ["s3:ListBucket", "s3:GetBucketLocation"],
+          "Resource": "arn:aws:s3:::<INSERTBUCKETNAME>/*"
+        }
+      ]
+    }
+    ```
+
+    <Note>
+      `s3:AbortMultipartUpload` は、5 MB を超えるアップロード（マルチパート）に必要です。これにより、大きなファイルの転送がタイムアウトまたはエラーになった場合に、MoEngage がバケット上の不完全なアップロードをクリーンアップできます。
+    </Note>
+
+    バケットで **SSE-KMS** 暗号化を使用している場合は、KMS キーに対する `kms:Decrypt`、`kms:GenerateDataKey`、`kms:ReEncrypt*`、`kms:DescribeKey` の権限も MoEngage のロールに付与する必要があります。[AWS Key Management Service を Amazon S3 と統合する](/ja/user-guide/data/exports/events/data-warehouse/s3-exports#integrate-aws-key-management-service-with-amazon-s3)を参照してください。
+  </Tab>
+</Tabs>
+
+## ステップ 3: App Marketplace で Amazon S3 を接続する
+
+MoEngage ダッシュボードで S3 バケットを接続するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**App marketplace** をクリックします。
+2. App Marketplace ページで **Amazon S3** を検索します。
+3. **Amazon S3** タイルをクリックします。
+   ![App Marketplace ページの Amazon S3 タイル](/images/s3-app-marketplace-tile.png)
+4. **Amazon S3** ページで **Integrate** タブに移動し、**\+Add Connection** をクリックします。
+5. **S3 connections** セクションで、次の設定を入力します。
+   | 適用対象 | フィールド | 必須 | 説明 |
+   | --- | --- | --- | --- |
+   |  | **Connection name** | はい | Amazon S3 接続を識別するための一意の名前を入力します。 |
+   |  | **Bucket name** | はい | Amazon S3 バケットの正確な名前を入力します。MoEngage はこの名前を使用してインポートとエクスポートをルーティングします。 |
+   |  | **Bucket region** | 任意 | ドロップダウンリストから、対象の S3 バケットをホストしている AWS リージョンを選択します。 |
+   |  | **Authentication method** | はい | MoEngage を Amazon S3 に接続するためのオプションを選択します。<ul><li>**Cross account role**: AWS アカウントの IAM ロールを引き受けることで、MoEngage がインポートとエクスポートのために S3 バケットにアクセスできるようにします。このオプションは長期的な認証情報の保存を不要にすることで、セキュリティを高めます。</li><li>**Access key \[Imports\]**: 静的なプログラム用 AWS 認証情報（Access Key ID と Secret Key）を使用してインポートを認証します。</li><li>**IAM Policy \[Exports\]**: リソースレベルの S3 バケットポリシーを使用して、MoEngage からの自動エクスポートを承認します。</li></ul> |
+   | **Cross account role** | **MoEngage AWS Account ARN** | 読み取り専用 | MoEngage の AWS アカウント ARN（`arn:aws:iam::582272135730:root`）を表示します。この値をコピーして、AWS ロールの信頼関係ポリシーを設定します。このフィールドは **Cross account role** をクリックした場合にのみ表示されます。 |
+   |  | **MoEngage External ID** | 読み取り専用 | MoEngage の外部セキュリティ ID（`moe-external-f82a6992-9c75-5d4c-f985-a0c3b8f3bcf2`）を表示します。この値をコピーして、AWS ロールの信頼関係ポリシーを設定します。このフィールドは **Cross account role** をクリックした場合にのみ表示されます。 |
+   |  | **Your AWS role ARN** | 条件付き | MoEngage との信頼関係が設定された AWS IAM ロールの Amazon リソースネーム（ARN）を入力します。このフィールドは **Cross account role** をクリックした場合にのみ必須です。_AWS ロール ARN を入力します_。 |
+   | **Access key \[Imports\]** | **Access Key ID** | 条件付き | AWS ユーザー用に生成されたプログラム用の Access Key ID を入力します。このフィールドは **Access key \[Imports\]** をクリックした場合にのみ必須です。_Access Key ID を入力します_。 |
+   |  | **Secret Key** | 条件付き | AWS ユーザー用に生成されたプログラム用のシークレットアクセスキーを入力します。このフィールドは **Access key \[Imports\]** をクリックした場合にのみ必須です。_Secret Key を入力します_。 |
+   | **IAM Policy \[Exports\]** | 認証情報は不要 | — | この方式は S3 エクスポート専用です。ここでは認証情報を入力しません。代わりに AWS アカウントで IAM ポリシーを設定すると、MoEngage はその権限を使用してエクスポート時にファイルを S3 バケットに配信します。バケットポリシーを設定するには、[ステップ 1: 認証を設定する](#step-1-set-up-authentication)の **IAM Policy \[Exports\]** 方式を参照してください。このフィールドは **IAM Policy \[Exports\]** をクリックした場合にのみ表示されます。 |
+6. **Test** をクリックして認証情報を検証し、**Connect** をクリックして Amazon S3 統合を有効にします。
+   ![Amazon S3 統合の Test ボタンと Connect ボタン](/images/s3-cross-4.png)
+   <Info>
+     設定の変更がアクティブなキャンペーンと接続に反映されるまで、最大 15 分かかる場合があります。
+   </Info>
+
+接続後、アクティブな統合を使用して、自動化されたインポートとエクスポートをスケジュールできます。
+
+## ユーザーとイベントをインポートする
+
+この接続を使用してユーザーデータとイベントデータのインポートを設定するには、[S3 データインポートガイド](/ja/user-guide/data/imports/setting-up-a-file-import)を参照してください。
+
+## イベントをエクスポートする
+
+キャンペーンのインタラクションログを Amazon S3 バケットにルーティングするには、[S3 データエクスポートガイド](/ja/user-guide/data/exports/events/data-warehouse/s3-exports)を使用して自動エクスポートを設定します。

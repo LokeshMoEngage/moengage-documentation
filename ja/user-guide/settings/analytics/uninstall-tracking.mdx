@@ -1,0 +1,46 @@
+---
+title: "アンインストールトラッキング"
+description: "MoEngageでAndroidのアンインストールトラッキングを有効にし、サイレントプッシュによるアンインストールの検出方法と、Device UnInstallイベントの解釈について説明します。"
+keywords: "uninstall tracking, silent push, device uninstall, FCM not registered, churn, uninstall analytics"
+---
+
+アンインストールトラッキングは、Androidアプリのアンインストールイベントを取得することで、ユーザーの離脱を把握するのに役立ちます。この設定を有効にすると、MoEngage Analyticsの **Uninstalls** ページにデータが入力され、ユーザーがアプリをアンインストールした時期が表示されます。アンインストール分析の詳細については、[アンインストール](/ja/user-guide/analyze/analytics/uninstall)を参照してください。
+
+<img
+  alt="選択した期間におけるアンインストールユーザー数の日次棒グラフを表示しているMoEngage AnalyticsのUninstallsページ"
+  src="/images/moengage_35a2db.png"
+/>
+
+## 前提条件
+
+Androidのアンインストールトラッキングを有効にする前に、アプリがAndroidのサイレントプッシュを処理できることを確認してください。[アプリケーションでプッシュの表示を処理している](/ja/developer-guide/android-sdk/push/advanced/push-display-handled-by-application)場合は、サイレントプッシュも処理できることを確認してください。
+
+アプリでテキストやロゴのない空白の通知が表示される場合、カスタムのプッシュ処理がサイレントプッシュを処理できていない可能性があります。アプリがサイレントプッシュを正しく処理できるようになるまで、アンインストールトラッキングをオフにしてください。
+
+## Androidアンインストールトラッキングの有効化
+
+アンインストールトラッキングを有効にするには、次の手順を実行します。
+
+1. MoEngageダッシュボードの左側のナビゲーションメニューで、**Settings** \> **Analytics** \> **Uninstall tracking** に移動します。
+2. Uninstall trackingページで、**Android Uninstall Tracking** トグルをオンにします。  
+    <img
+      alt="Android Uninstall Trackingトグルがオンになり、Test Android silent pushボタンが表示されているUninstall tracking設定ページ"
+      src="/images/moengage_acfeb0.png"
+    />
+3. **Test Android silent push** をクリックして、アプリがサイレントプッシュをユーザーに表示せずに処理できることを確認します。
+
+## MoEngageによるアンインストールの検出方法
+
+MoEngageは、ユーザーに関連付けられたすべてのデバイスに毎日サイレントプッシュ通知を送信し、その応答を取得します。Firebase Cloud Messaging(FCM)が明示的なアンインストールエラー(`Not Registered`)を返した場合、デバイスはアンインストール済みとしてマークされます。
+
+デバイスが登録解除されたことを明示的に示さないその他のエラーコードの場合、MoEngageはデバイスをアンインストール済みとしてマークせず、引き続きサイレントプッシュを送信します。
+
+ダッシュボードでアンインストールトラッキングがオフになっている場合、MoEngageはサイレントプッシュを送信してアンインストールを積極的に確認することはありません。ただし、プッシュキャンペーンメッセージの配信失敗は、引き続きアンインストールとして表示されます。
+
+<Info>
+  iOSのアンインストールトラッキングは、サイレントプッシュによる配信失敗の追跡をサポートしないiOS 15およびiOS 16の普及に伴い、2023年8月10日に廃止されました。iOSデバイスでは、通常のプッシュキャンペーンメッセージの配信失敗は、引き続きアンインストールとして表示されます。
+</Info>
+
+## アンインストールが検出されるタイミング
+
+ユーザープロファイルの **Device UnInstall** イベントに記録される日時は、MoEngageがアプリのアンインストールを**検出**した時刻であり、ユーザーがアンインストールした時刻ではありません。MoEngageは実際のアンインストール時刻を特定できません。

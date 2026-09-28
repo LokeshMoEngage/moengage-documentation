@@ -1,0 +1,162 @@
+---
+title: "Behamics Signals"
+description: "Behamics Signals を MoEngage と連携して、AI でスコアリングされた行動イベントを同期し、リアルタイムの意図データに基づいてコンテキストに応じたジャーニーをトリガーします。"
+keywords: ["Behamics", "Behamics Signals", "behavioral analytics", "MoEngage integration", "intent scoring", "cart abandonment", "rage click", "AI signals"]
+---
+
+## はじめに
+
+MoEngage のテクノロジーパートナーである [Behamics](https://behamics.com/) は、行動科学と AI を組み合わせて、e コマース事業者のカート放棄を最小限に抑え、商品の返品を削減する主要な収益最適化プラットフォームです。単純なバイナリイベントを取得する従来の分析ツールとは異なり、Behamics はすべてのユーザーセッションをリアルタイムで評価し、ファネル全体の行動パターンに基づいて意図スコアを割り当てます。
+
+## MoEngage × Behamics Signals
+
+[Behamics Signals](https://behamics.com/signals/) 製品は、レイジクリック、誤ったカートへの追加、持続的な商品への関心、迷いのシグナルなど、AI が検出したパターンを含む生の行動データを、優先順位付けされ意思決定にすぐに使えるイベントに変換します。
+
+Behamics Signals を MoEngage と連携すると、次のことが可能になります。
+
+- AI によってリアルタイムでスコアリングされた行動シグナルを、すべての意図メタデータを保持したまま、完全に構造化されたカスタムイベントとして MoEngage に同期する。
+- _rage\_click\_detected_ や _accidental\_add\_to\_cart_ などの Behamics イベントから、MoEngage のジャーニー、キャンペーン、自動化フローを直接トリガーする。
+- 各シグナルとともに送信される行動属性でユーザープロファイルを充実させ、手動でインポートすることなく CRM データを最新の状態に保つ。
+- 特定のシグナルタイプに基づいて MoEngage でユーザーをフィルタリングおよびセグメント化し、行動に応じて差別化されたマーケティングジャーニーを実現する。
+
+### ユースケース
+
+Behamics Signals を MoEngage と連携すると、次のユースケースに対応できます。
+
+- **高い意図を持つ放棄ユーザーのリカバリー**: 放棄が本当の迷いを示しているユーザーを特定し、ソーシャルプルーフや緊急性を訴えるメッセージなど、行動に基づいたナッジを含む MoEngage のフローをトリガーします。
+- **レイジクリックのリテンション**: UI に対するフラストレーションのシグナルを検出し、サポート指向のプッシュ通知やアプリ内メッセージを自動的にトリガーして支援を提供し、解約を防ぎます。
+- **精密な VIP セグメンテーション**: 高度な意図シグナルを MoEngage に同期し、何となく閲覧しているユーザーよりも、長期的な購入意図を本当に示しているユーザーを優先するロイヤルティセグメントを構築します。
+- **行動に基づくクロスセル**: AI が検出した特定の商品カテゴリへの関心を活用して、補完的な商品をおすすめするパーソナライズされたキャンペーンをトリガーします。
+- **返品の防止**: 検出された確信度の低い購入シグナルを使用して、MoEngage 経由でサイズガイドなどの購入前の安心感を与えるフローをトリガーし、返品率を低減します。
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  開始する前に、次の要件を満たしていることを確認してください。
+
+  - `customer_id` の詳細を持つ MoEngage アカウント。
+  - MoEngage の API 設定にアクセスするための適切な権限。
+  - 専用の MoEngage エンドポイント。
+</Info>
+
+### ステップ 1: MoEngage サポートに専用エンドポイントをリクエストする
+
+連携を開始するには、Behamics データの送信先をリクエストし、次の手順を実行する必要があります。
+
+1. MoEngage サポートに連絡し、`customer_id` を指定します。
+   **注**: この ID は、Behamics のイベントを MoEngage のユーザープロファイルに関連付けるためのプライマリのマージキーとして機能します。
+2. MoEngage サポートが専用の Webhook エンドポイント URL をプロビジョニングして返します。
+3. プラットフォームの設定のため、この URL を Behamics の担当者と共有します。
+
+### ステップ 2: 認証情報を取得する
+
+この連携では、HTTP リクエストヘッダーを介した Basic 認証を使用します。認証情報を確認するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、**Settings** \> **Account** \> **APIs** に移動します。
+2. **Workspace ID (earlier app id)** の下にある ID をコピーします。
+3. **API keys** セクションで、**Data** タイルにある API キーをコピーします。
+   <img
+     src="/images/api-keys.png"
+     alt="API キー"
+     width="643"
+     title="API キー"
+   />
+
+### ステップ 3: Basic 認証トークンを生成する
+
+Basic 認証トークンを生成するには、次の手順を実行します。
+
+1. オンラインの Basic Auth Header Generator ツールを開きます。
+2. **Workspace ID** をユーザー名として使用します。
+3. **Data API Key** をパスワードとして使用します。
+4. ツールによって `Basic {base64_encoded_credentials}` の形式の値が生成されます。
+   **例**: `Authorization: Basic bW9lbmdhZ2VfYXBwX2lkOmRhdGFfYXBpX2tleQ==`
+5. 送信 Webhook を保護するため、このトークンを Behamics チームと共有します。
+
+![Behamics](/images/Behamics.png)
+
+### HTML を使用して Behamics スニペットを挿入する
+
+ユーザージャーニーを適切に追跡するため、**Thank You** ページや **Order Confirmation** ページを含む、ショップのすべてのフロントエンドページに Behamics スニペットを挿入します。Behamics スニペットは、ショップの `<header>` セクションなど、早い段階で挿入することを推奨します。
+
+ショップのプラットフォームによって、スニペットを挿入する方法は複数あります。HTML を使用して Behamics スニペットを挿入するには、次の手順を実行します。
+
+1. ショップのソースコードディレクトリへの安全な接続を確保します。**File Manager**、**FTP アクセス**、**SSH アクセス**、またはプラットフォームの管理者アカウントを使用できます。
+2. ソースコードディレクトリにアクセスしたら、編集するヘッダー HTML ファイルを見つけます。
+3. テキストエディターでヘッダー HTML ファイルを開き、閉じタグ `</head>` の 1 行上に次の Behamics スニペットを貼り付けます。
+   <CodeGroup>
+   ```html HTML wrap
+   <script type="text/javascript" src="https://cdn.behamics.com/yourshopdomain/behamics.js"></script>
+   </head>
+   ```
+   </CodeGroup>
+   **注**: ヘッダー HTML ファイルが **Thank You** ページまたは **Order Confirmation** ページの一部である場合は、ステップ 4 をスキップできます。
+4. 別の **Thank You** ページまたは **Order Confirmation** ページにスニペットを挿入するには、ステップ 2 を繰り返してその特定のファイルを見つけ、同様に閉じタグ `</head>` の 1 行上に Behamics スニペットを貼り付ける必要があります。
+
+<Info>
+  **情報**
+
+  詳細については、Behamics サポートにお問い合わせください。
+</Info>
+
+### ペイロード構造
+
+Behamics は、JSON ペイロードを使用した HTTPS POST でイベントデータを送信します。標準的なペイロード構造は次のとおりです。
+
+<CodeGroup>
+
+```json JSON
+{
+  "customer_id": "user_98765",
+  "event_name": "Signal Session Scored",
+  "updated_at": "2026-02-20T16:16:50Z",
+  "page_name": "Summer Collection - Item 42",
+  "event_details": {
+    "session_score": 87,
+    "session_duration_seconds": 214,
+    "scored_at": "2026-02-20T16:16:50Z"
+  },
+  "first_name": "Jane",
+  "last_name": "Smith",
+  "email": "jane.smith@example.com",
+  "phone": "+15550109988",
+  "birthday": "1992-05-15",
+  "gender": "female",
+  "city": "San Francisco",
+  "state": "California",
+  "country": "USA",
+  "user_attributes": {
+    "loyalty_tier": "gold",
+    "signup_source": "marketing_email",
+    "preferences": ["outdoor", "running"]
+  }
+}
+```
+
+</CodeGroup>
+
+![Signals](/images/signals.png)
+
+<Info>
+  **情報**
+
+  - **一意のユーザー ID**: `customer_id` フィールドが唯一のマージキーです。Behamics で使用する識別子が MoEngage の `unique_user_id` と一致していることを確認してください。一致しない場合、重複したユーザープロファイルが作成されます。
+  - **ペイロードの更新**: ペイロードのフィールドや `user_attributes` のキーに変更がある場合は、MoEngage サポートと Behamics の担当者の両方に連絡してください。
+  - **一方向のデータフロー:** この連携は、Behamics から MoEngage への一方向のデータフローを提供します。現在の実装では双方向の同期はサポートされていません。
+</Info>
+
+### ベストプラクティス
+
+- **一貫した識別子**: プロファイルを正確に更新するため、常に MoEngage の `unique_user_id` を Behamics の `customer_id` として使用してください。
+- **ペイロードに関する連絡**: データ損失を防ぐため、Behamics の Webhook 設定を確定する前に、MoEngage サポートとカスタムマッピングを確認してください。
+- **安全な保管**: Base64 でエンコードされた Basic 認証トークンは安全な場所に保管し、権限のある Behamics の担当者とのみ共有してください。
+
+### レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Behamics データの取り込みを、ワークスペースごとに 1 秒あたり最大 500 リクエスト（RPS）に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、Behamics のデフォルトの再試行ポリシーを参照してください。
+
+**再試行の上限到達**: Behamics がデータのバッチに対するすべての再試行を使い切った場合、失敗したリクエストを再実行するには Behamics サポートチームに連絡する必要があります。

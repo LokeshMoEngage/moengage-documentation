@@ -1,0 +1,49 @@
+{/* PGP encryption setup for encrypted file imports (S3/SFTP). Reused on the File
+Import and Auxiliary Data pages, inline at the "Is your file encrypted?" step. */}
+
+PGP（Pretty Good Privacy）を使用すると、機密ファイルをインポートする前に暗号化できます。MoEngage は S3 および SFTP のファイルインポートで PGP 暗号化をサポートしています。
+
+**前提条件:**
+
+- **PGP キーペア**: 公開鍵（ファイルの暗号化用）と秘密鍵（復号用）。秘密鍵は決して共有しないでください。
+- **署名用キーペア**: 公開鍵（ファイルの署名用。MoEngage SFTP 統合で必須）と秘密鍵（署名の検証に内部で使用）。
+
+以下の手順では、PGP 標準の無料実装である [GnuPG](https://www.gnupg.org/index.html) を使用します。
+
+**ステップ 1. キーペアを生成する。** GnuPG などのツール（`gpg --full-generate-key`）を使用して PGP キーペアを生成し、RSA と 1024 ビットのキーサイズを選択します。
+
+<Info>
+  - MoEngage は、最大 1024 ビット長の RSA キーを使用したファイル暗号化をサポートしています。4096 ビットなどのより大きな RSA キーはサポートされておらず、復号時に失敗します。より小さな RSA キーサイズでキーペアを生成してください。
+  - 暗号化時には圧縮をオフにしてください。
+</Info>
+
+**ステップ 2. ファイルを暗号化する。** 公開鍵でファイルを暗号化し、S3 または SFTP フォルダにアップロードします。`--sign` オプションを指定すると、暗号化と同時にファイルに署名します。
+
+```bash
+gpg --encrypt --sign --armor --compress-algo none -r demo@example.com
+```
+
+**ステップ 3. MoEngage UI でキーを追加する。** インポートのセットアップ時に、**Decryption Key** フィールドに秘密鍵を、**Key Passphrase** フィールドにパスフレーズを入力します。
+
+**ステップ 4. ファイルを復号する。** 復号には、秘密鍵とそのパスフレーズが必要です。PGP ソフトウェアで暗号化されたファイルを選択し、パスフレーズを入力すると、暗号化されていないファイルが生成されます。Python ユーザーは [python-gnupg](https://pypi.org/project/python-gnupg/) パッケージを使用できます。
+
+```python
+import gnupg, os
+gpg = gnupg.GPG(gnupghome=os.path.expanduser('~'))
+gpg.encoding = 'utf-8'
+import_result = gpg.import_keys(key_data)
+gpg.trust_keys(import_result.fingerprints, "TRUST_ULTIMATE")
+with open(encrypted_file_path, 'rb') as file:
+    status = gpg.decrypt_file(file, passphrase="", output="/path/to/decrypted/file")
+print(status.ok)
+```
+
+**ステップ 5. ファイルの署名を検証する（任意）。** ファイルに署名した場合は、MoEngage ダッシュボードに署名用の公開鍵を追加します。MoEngage は S3 または SFTP フォルダ内のファイルの署名を検証します。プログラムで検証する場合、署名が一致すると `status.signature_id` に値が設定されます。
+
+```python
+if status.signature_id:  # populated when the signature is verified, otherwise None
+    print("signature verified")
+else:
+    print("not verified")
+```
+

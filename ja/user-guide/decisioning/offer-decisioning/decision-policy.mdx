@@ -1,0 +1,90 @@
+---
+title: "Decision Policyの作成"
+description: "MoEngageのDecision Policyが、適格性ルールとランキング戦略に基づいてユーザーに最も関連性の高いオファリングをランク付けし、選択する仕組みについて説明します。"
+---
+
+_Decision Policy_ は、ユーザーまたは特定のユーザーセグメントに表示する最も関連性の高いオファリングを選択し、ランク付けするルールベースのエンジンです。さまざまなオファリングをグループ化し、定義されたランキング戦略を適用することで、MoEngageが大量のオファリングの中から最適な少数のオファリングのみを提示し、効果を最大化します。Decision Policyでは以下を定義します。
+
+- **数量**: 特定の表示場所に対して返すオファリングの数。
+- **オファリングプール**: 選択元となるオファリングのコレクション。手動またはタグによって選択します。
+- **選択戦略**: プールから最終的なオファリングを選択するために使用するロジック。通常は優先度スコアに基づきます。
+- **フォールバックオファリング**: ユーザーがいずれのプライマリオファリングにも該当しない場合に表示する汎用的なバックアップオファリング。
+
+これらのポリシーは、事前に定義された基準に基づいて、指定された顧客に最適なオファリングをインテリジェントに選択するように設計されています。
+
+<Tip>
+  MoEngageダッシュボードでオファリングを作成済みであることを確認してください。詳細については、[Offerings](/ja/user-guide/decisioning/offer-decisioning/create-offerings)を参照してください。
+</Tip>
+
+# Decision Policyの作成
+
+MoEngageでDecision Policyを作成するには、次の手順を実行します。
+
+1. MoEngage UIの左側のナビゲーションメニューで、**Decisioning** をクリックし、**Decision Policy** をクリックします。
+2. Decision policiesページで、**\+** **Create Decision Policy** をクリックします。Create decision policyページが表示されます。 <img src="/images/moengage_651a8e.png" alt="deci po 2.png" />
+3. **Basic Details** セクションで、次のフィールドを使用してDecision Policyの基本情報を定義します。 <img src="/images/moengage_c5b4f1.png" alt="Screenshot 2025-06-30 at 12.17.05 PM.png" />
+   - **Name**: Decision Policyを識別・管理するための名前を入力します。
+   - **Description**: Decision Policyの目的の簡単な概要を入力します。
+4. MoEngageは、次の戦略を使用して各ユーザーに表示する最適なオファリングをランク付けし、選択します。
+   - **AI Auto optimize**: 機械学習を使用してオファリングを動的にランク付けするAI主導の戦略です。キャンペーン目標(コンバージョンやクリックなど)に対してどのオファリングが最も効果的かを予測し、最適な結果を得るためにランキングを継続的に調整します。
+   - **Offering priority**: この戦略では、オファリングの作成時に割り当てた優先度スコアに基づいてオファリングを選択し、順序付けします。優先度スコアは各オファリングに割り当てられる数値です。優先度スコアが高いほど優先度が高いことを示し、スコアが大きいオファリングから先に評価・選択されます。オファリングを作成または編集する際には、適切な優先度スコアを割り当ててください。 <img alt="new strategy - decisioning.png" src="/images/moengage_8b3f31.png" />
+   - **Custom formula**: この戦略では、複数のパラメーターから加重スコアを計算してオファリングをランク付けします。Custom formulaを選択すると、次の項目を含む **Assign weightage** セクションが表示されます。
+     - **Offering Performance**: Valueドロップダウンからパフォーマンス指標 **Engagement (CTR)** を選択し、重み(0~100%)を割り当てます。
+     - **Offering Priority**: 各オファリングに割り当てられた優先度の値を使用します。重み(0~100%)を割り当てます。
+     - **Offering Attributes**: **\+ Add offering attribute** をクリックして、**Settings** \> **Offer Decisioning** \> **Offering Attributes** で設定した属性を追加します。最大5つの属性を追加できます。各属性について、ドロップダウンから値を選択し、重み(0~100%)を割り当てます。\
+       すべてのパラメーターの重みの合計は、ちょうど100である必要があります。右下のTotal scoreインジケーターで現在の合計を確認できます。スコアの計算方法の詳細については、[Custom Formula Ranking Strategy](/ja/user-guide/decisioning/offer-decisioning/custom-formula-ranking-strategy)を参照してください。
+       <Frame>
+         ![Custom Formula](/images/custom-formula.png)
+       </Frame>
+5. **Primary & Fallback Offerings** セクションで、次のフィールドを使用してDecision Policyの出力を定義します。 <img src="/images/moengage_55f21d.png" alt="Screenshot 2025-06-30 at 12.19.19 PM.png" />
+   - **No. of offerings in output** リストで、ユーザーに表示するオファリングの数を選択します。ユーザーに表示するオファリングは最大10個まで選択できます。1つのDecision Policyは、出力を選択する前に最大50個のオファリングのプールを評価できます。
+     <Info>
+       MoEngageは、出力で指定されたオファリングの数に基づいてDecision Policyを選択します。
+       - 利用可能な適格オファリングが選択した数より少ない場合、Decision Policyはフォールバックオファリングから選択されます。
+       - フォールバックオファリングについては、MoEngageはセグメンテーションとキャッピングのルールを無視します。利用可能なフォールバックオファリングの数も指定した数より少ない場合、MoEngageはリクエストした数より少ないオファリングを表示します。
+       - 指定された "No. of offerings in output" を満たすだけの適格なプライマリオファリングまたはフォールバックオファリングが見つからない場合、MoEngageはリクエストした数より少ないオファリングを表示するか、適格なものがない場合はオファリングを表示しません。
+     </Info>
+   - **Primary Offerings** セクションで、オファリングを選択する方法を選びます。次のオプションを使用できます。
+     - **Manual selection**: 個々のオファリングを手動で選択する場合は、このオプションを選択します。**\+ Add primary offerings** をクリックし、**Active** および **Scheduled** のオファリングのリストからオファリングを選択します。
+       <img
+         alt="Screenshot 2025-06-30 at 12.24.02 PM.png"
+         src="/images/moengage_2c9e44.png"
+         style={{ width:"75%" }}
+       />
+     - **Dynamic selection (by tag)**: 割り当てられたタグに基づいてオファリングを選択する場合は、このオプションを選択します。**\+ Add tags** をクリックし、関連するタグを選択します。これらのタグが付与された新しいオファリングは自動的にこのDecision Policyに含まれるため、継続的な手動更新が不要になります。
+       <img
+         alt="Screenshot 2025-06-30 at 12.25.21 PM.png"
+         src="/images/moengage_56769a.png"
+         style={{ width:"79%" }}
+       />
+       <Info>
+         - 以前Decision Policyに含まれていたオファリングからタグを削除すると、そのオファリングはポリシーから自動的に削除されます。
+         - 非アクティブまたは期限切れのオファリングのみを含むタグは、Decision Policyのアクティブプールから自動的に除外されます。
+       </Info>
+   - **Fallback Offering(s)** セクションで、**\+ Add fallback offering(s)** をクリックしてフォールバックオファリングを選択します。フォールバックオファリングについては、MoEngageはセグメンテーションとキャッピングのルールを無視します。フォールバックオファリングはオファリングの優先度スコアに基づいて選択され、スコアの高いものから先に評価されます。\
+     フォールバックオファリングは、次の場合に2番目のオファリングとして使用できます。
+     - ユーザーがいずれのプライマリオファリングにも該当しない場合。
+     - 適格なプライマリオファリングの数が、指定した "No. of offerings in output" より少ない場合。 <img src="/images/moengage_862d69.png" alt="Screenshot 2025-06-30 at 12.35.27 PM.png" />
+6. **Create** をクリックします。
+
+## Decision Policyの一覧
+
+<img src="/images/decision-policies-listing-page.png" alt="All、Active、Draftsタブ、検索バー、作成日およびフィルターコントロール、Name、Status、Ranking strategy、No. of offerings、Created on、Actions列を含むポリシーテーブルが表示されたDecision policies一覧ページ" />
+
+Decision Policyを作成すると、**Decision policies** ページに表示されます。このページを使用して、すべてのポリシーを検索、フィルタリング、管理できます。
+
+### フィルター
+
+**More filters** をクリックしてリストを絞り込みます。次のフィルターを使用できます。
+
+- **Status**: ポリシーのステータスでフィルタリングします。
+- **Created by**: ポリシーを作成したユーザーでフィルタリングします。
+- **Ranking strategy**: ランキング方法でフィルタリングします。
+
+# キャンペーンでのDecision Policyの使用
+
+Decision Policyを作成して設定した後、MoEngage Personalizeキャンペーンに統合して、関連性の高いオファリングを動的に配信できます。詳細については、[Create Server-side Personalization Experience](/ja/user-guide/personalize/server-side-personalization/create-server-side-personalization-experience)を参照してください。
+
+<Info>
+  詳細については、[FAQs on Decision Policy](/ja/user-guide/decisioning/offer-decisioning/faqs-on-decision-policy)を参照してください。
+</Info>

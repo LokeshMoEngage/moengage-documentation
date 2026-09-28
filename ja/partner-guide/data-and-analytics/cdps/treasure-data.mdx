@@ -1,0 +1,114 @@
+---
+title: "Treasure Data"
+---
+
+## はじめに
+
+[Treasure Data](https://www.treasuredata.com/) は、複数のソースから情報を収集し、マーケティングスタック内のさまざまな場所にルーティングする顧客データプラットフォーム(CDP)です。
+
+## MoEngage × Treasure Data
+
+MoEngage と Treasure Data の双方向連携により、Treasure Data のジョブ結果を MoEngage に直接書き込むことができます。次のことが可能です。
+
+- Treasure Data から MoEngage にユーザーのアクションとイベントを転送する
+- MoEngage でユーザーを作成または更新する
+- MoEngage のキャンペーンインタラクションデータを Treasure Data に送り返す
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - Treasure Data で HTTP Webhook を作成する権限があることを確認してください。
+  - MoEngage ダッシュボードにアクセスできることを確認してください。
+</Info>
+
+### ユースケース
+
+1. Treasure Data の統合された顧客プロファイルを MoEngage に同期して、ターゲットセグメントを構築できます。Treasure Data は、ファーストパーティ Cookie データ、モバイル ID、CRM などのサードパーティシステムなど、さまざまなデータをサポートしています。
+2. MoEngage のキャンペーンインタラクションデータを Treasure Data に送り返すこともできます。
+
+<Note>
+  この連携は直接利用することはできません。有効にするには、カスタマーサクセスマネージャーにお問い合わせください。
+</Note>
+
+### ステップ 1: MoEngage のエンドポイントを取得する
+
+MoEngage のカスタマーサクセスマネージャーに相談して、Treasure Data 専用のエンドポイントを取得してください。ユーザーとイベントをインポートするための 2 つの個別のエンドポイントが提供されます。
+
+### ステップ 2: Treasure Data で MoEngage 接続を設定する
+
+提供された 2 つの URL のそれぞれについて、次の手順を繰り返します。
+
+1. Treasure Data ダッシュボードで、**Catalog** に移動します。
+   ![Treasure Data の Catalog ページ](/images/partner_26760984990740.png)
+2. **HTTP** を検索し、**Create Authentication** をクリックして、MoEngage のエンドポイントを入力します。
+
+#### MoEngage の宛先を設定する
+
+1. MoEngage のユーザー API エンドポイントを入力します。
+   ![Treasure Data での MoEngage 宛先の設定](/images/partner_35097946571412.png)
+2. **HTTPS** を選択し、次の詳細を入力します。
+   | フィールド | 説明 |
+   | --- | --- |
+   | **HTTPS** | このボックスをオンにします。 |
+   | **Host** | "/v1/partner/treasuredata/events/?configName=" より前の URL 部分を、_https://_ を除いて入力します。 |
+   | **Port** | 空白のままにします。 |
+   | **Basic auth username** | MoEngage アカウントの Workspace ID は、**Settings** \> **Account** \> **APIs** \> **Workspace ID** で確認できます。MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+   | **Basic auth password** | シークレットキーは Data API Key です。MoEngage アカウントの Data API Key は、**Settings** \> **Account** \> **APIs** \> **API Keys** \> **Data** で確認できます。 |
+3. **Continue** をクリックし、_moengage\_event\_sync_ または _moengage\_user\_sync_ として保存します。
+
+### ステップ 3: クエリを定義する
+
+Treasure Data ダッシュボードで、次の操作を行います。
+
+1. **Data Workbench** \> **Queries** に移動し、データをエクスポートするクエリを選択します。
+   ![Treasure Data の Data Workbench Queries ページ](/images/partner_26760949405332.png)
+2. このクエリを実行して結果セットを検証します。クエリに `customer_id` 列があることを確認してください。これは MoEngage でユーザーを識別するために使用されます。
+   注意: HIVE を使用してクエリを作成する場合、HIVE ではアンダースコアで始まる列やテーブルをバッククォートで囲む必要があります(例: _merge\_objects_)。
+3. **Export Results** を選択し、既存の連携認証を選択します。
+   ![Treasure Data の Export Results での連携の選択](/images/partner_26760984992148.png)
+4. MoEngage URL の "moengage.com" 以降の残りの部分を入力します。
+   ![Treasure Data のエクスポートでの MoEngage URL の設定](/images/partner_35097953628692.png)
+
+事前にフォーマットされたフィールド、クエリの例、パラメーターの詳細、Treasure Data でのクエリエクスポートジョブのスケジュール設定については、[こちら](https://docs.treasure.ai/int/web-server-and-http-put-endpoint-export-integration)をご覧ください。
+
+### ステップ 4: MoEngage でデータを検証する
+
+新しいユーザーを検索して、ユーザーとイベントが作成されていることを確認できます。
+
+## キャンペーンインタラクションデータを Treasure Data に送り返す
+
+Treasure Data のユーザーは、Connector Campaigns を介して [Postback APIs](https://docs.treasure.ai/products/customer-data-platform/integration-hub/streaming/postback-api) からデータを取り込むことができます。MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. **Create Campaign** \> **Connectors** \> **Custom** に移動し、ニーズに最も適した配信タイプを選択します。
+   ![MoEngage のコネクターキャンペーン作成ページ](/images/partner_35136318752788.png)
+2. キャンペーンのステップ 2 で、[Postback APIs](https://docs.treasure.ai/products/customer-data-platform/integration-hub/streaming/postback-api) に接続します。まず、Treasure Data ダッシュボードに移動して、Write-Only Keys を[生成](https://docs.treasure.ai/products/my-settings/getting-your-api-keys)します。
+   - **Method**: POST
+   - **URL**: `<treasure-data-base-url>/postback/v3/event/{database}/{table}` Treasure Data の Base URL は[こちら](https://api-docs.treasuredata.com/en/overview/aboutendpoints/#treasure-data-api-baseurls)から取得できます。お使いのリージョンの Postback サービス URL を探してください。
+   - **Headers**:
+     | キー | 説明 |
+     | --- | --- |
+     | **Content-Type** | このヘッダーを `application/json` に設定します。 |
+     | **X-TD-Write-Key** | Treasure Data の [Write-Only API Key](https://docs.treasure.ai/products/my-settings/getting-your-api-keys)。 |
+   - **Body**:
+     ```json
+     {
+         "col1": "val1",
+         "col2": "val2",
+         ...
+     }
+     ```
+
+注意事項:
+
+- 各列について `"key": "value"` のペアを渡す必要があります。key はテーブル内の列名です。
+- Treasure Data は現時点では一括操作をサポートしていません。
+
+### リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整っているはずです。Create Connector Campaign のステップ 2 で利用できる **Test** 機能を使用して、コネクターの設定をテストすることもできます。
+
+![コネクターキャンペーンのリクエストのプレビュー](/images/partner_35136318755220.png)
+
+キャンペーンを公開できます。

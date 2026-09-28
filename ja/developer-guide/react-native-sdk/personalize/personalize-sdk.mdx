@@ -1,0 +1,248 @@
+---
+title: "Personalize SDK"
+description: "React Native 向け MoEngage Personalize SDK を統合して、パーソナライズされたコンテンツの取得、オファリングキャンペーンの処理、パフォーマンスのトラッキングを行う方法を説明します。"
+---
+
+# 概要
+
+MoEngage Personalize SDK は、パーソナライズされたキャンペーンを配信するための安全なフレームワークを提供します。ユーザー ID と認証を内部で処理することで統合を簡素化し、API シークレットの管理や手動での HTTPS 呼び出しを不要にします。
+
+<Tip>
+  **前提条件**
+
+  パーソナライズされたエクスペリエンスを取得する前に、アプリケーション内でコアの MoEngage SDK を初期化していることを確認してください。詳細については、[React Native SDK の初期化](https://www.moengage.com/docs/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization)を参照してください。
+</Tip>
+
+# 全体の仕組み
+
+コードを書く前に、パーソナライゼーションのワークフローを構成する 3 つの要素を理解しておくと役立ちます。
+
+1. **ダッシュボードの設定:** マーケターが MoEngage ダッシュボードでエクスペリエンスキャンペーンを作成し、一意の `experienceKey`（例: `home_banner`）を割り当てます。また、ユーザーセグメントごとに返される特定の JSON ペイロードを設定します。
+2. **Meta 呼び出し:** アプリケーションが `fetchExperiencesMeta` を呼び出し、現在のユーザーに対してアクティブで利用可能なエクスペリエンスキーを確認します。
+3. **Fetch 呼び出し:** アプリケーションが特定のキーを指定して `fetchExperience` または `fetchExperiences` を呼び出し、実際のペイロードを取得します。SDK はステップ 2 で収集したメタデータを使用して、このリクエストを正確に解決して返します。
+
+<Info>
+  SDK は**生の** JSON のみを返します。開発者は、このペイロードを解析し、アプリケーション内で対応する UI を構築する必要があります。
+</Info>
+
+# MoEngage Personalization の統合
+
+MoEngage の Personalize SDK をプロジェクトに追加するには、以下のコマンドを使用します。
+
+```shellscript Shell
+npm install react-native-moengage-personalize
+```
+
+# 実装ワークフロー
+
+React Native 向けの Personalize ヘルパーは、動的でパーソナライズされたコンテンツの取得と操作を簡素化するように設計されています。以下に、ワークフローとコードのプレースホルダーの詳細を示します。
+
+## 1. Meta エクスペリエンスの取得
+
+特定のペイロードやエクスペリエンスを取得する前に、メタデータの呼び出しを実行する必要があります。メタデータを事前に取得することで、エクスペリエンスの取得を最適化できます。アプリ側では、メタデータを使用して現在の UI の状態に適したパーソナライズされたコンテンツを特定し、アプリケーション内のすべてのコンテンツではなく、関連するコンテンツのみを取得できます。
+
+<CodeGroup>
+
+```javascript React Native wrap
+import ReactMoEngagePersonalize, { ExperienceStatus } from "react-native-moengage-personalize";
+
+const personalize = new ReactMoEngagePersonalize("YOUR_WORKSPACE_ID");
+
+// Create an array with all possible statuses
+const status = [
+ExperienceStatus.ACTIVE,
+];
+
+personalize.fetchExperiencesMeta(status)
+.then(metadata => // add logic here to process the metadata)
+.catch(error => // add logic for fallback/error handling);
+```
+
+</CodeGroup>
+
+返されるオブジェクトは、キャンペーンの実行に必要なすべてのメタデータを含む [`ExperienceCampaignsMetadata` ](/ja/developer-guide/react-native-sdk/personalize/personalize-data-payload)オブジェクトを保持する Promise です。reject 時には、リクエストが失敗した具体的な理由を特定するための [`FailureReason`](/ja/developer-guide/react-native-sdk/personalize/personalize-data-payload) と任意のメッセージが含まれます。
+
+
+
+## 2. パーソナライズされたコンテンツの取得
+
+メタデータを取得したら、実際のパーソナライズされたペイロードを取得できます。単一のエクスペリエンスまたは複数のエクスペリエンスを同時に取得でき、コンテキストに応じたターゲティングも完全にサポートされています。
+
+<Info>
+  EXPERIENCE\_KEY は、MoEngage ダッシュボードでキャンペーンを作成する際にエクスペリエンスキャンペーンで使用される一意のキーです。このキーは、メタデータの取得に成功したときに返される `ExperienceCampaignsMetadata` の `ExperienceCampaignMeta` オブジェクトで確認できます。
+</Info>
+
+<CodeGroup>
+
+```javascript React Native wrap
+import ReactMoEngagePersonalize, { ExperienceStatus } from "react-native-moengage-personalize";
+
+const personalize = new ReactMoEngagePersonalize("YOUR_WORKSPACE_ID");
+// additional attributes you want to pass for the experience.
+const attributes = {};
+```
+
+</CodeGroup>
+
+### 単一のエクスペリエンスの取得
+
+- **単一のエクスペリエンス**: 単一のエクスペリエンスキーを使用して、単一のエクスペリエンスを取得します。
+
+<CodeGroup>
+
+```javascript React Native wrap
+
+personalize.fetchExperience(<experience_key>, attributes)
+.then(result => console.log("Single Experience:", result))
+.catch(error => console.error(error));
+```
+
+</CodeGroup>
+
+### 複数のエクスペリエンスの取得
+
+- **一括エクスペリエンス**: エクスペリエンスキーの配列を渡して、複数のエクスペリエンスを取得します。
+
+<CodeGroup>
+
+```javascript React Native wrap
+const experienceKeys = [<experience_key1>, <experience_key2>];
+personalize.fetchExperiences(experienceKeys, attributes)
+.then(result => console.log("Multiple Experiences:", result))
+.catch(error => console.error(error));
+```
+
+</CodeGroup>
+
+返されるオブジェクトは、キャンペーンの実行に必要なすべてのメタデータを含む [`ExperienceCampaignsResult`](/ja/developer-guide/react-native-sdk/personalize/personalize-data-payload) オブジェクトを保持する Promise です。reject 時には、リクエストが失敗した具体的な理由を特定するための [`FailureReason`](/ja/developer-guide/react-native-sdk/personalize/personalize-data-payload) と任意のメッセージが含まれます。
+
+ユースケース:
+
+**コンテキストに応じたターゲティング**: 取得時に属性のオブジェクト（例: `{"current_page": "home", "cart_value": "500"}`）を渡します。これにより、状態に応じたリアルタイムのコンテンツ配信が可能になります（例: カートの金額がしきい値を満たした場合に「送料無料」バナーを表示する）。
+
+## 3. エクスペリエンスの表示を SDK に通知する（インプレッションのトラッキング）
+
+_インプレッション_ とは、パーソナライズされたキャンペーンのペイロードが UI 上で正常にレンダリングされ、ユーザーに表示されていることを MoEngage SDK に通知するテレメトリーイベントです。
+
+キャンペーンのパフォーマンスを正確にトラッキングするには、アプリケーションがパーソナライズされたコンテンツを画面に表示した時点で、以下のメソッドを呼び出す必要があります。
+
+### 3a. エクスペリエンスキャンペーンについて SDK に通知する
+
+エクスペリエンスを含む UI 要素がレンダリングされたら、`experiencesShown()` メソッドを呼び出します。
+
+<CodeGroup>
+
+```javascript React Native wrap
+import ReactMoEngagePersonalize, { ExperienceCampaign } from "react-native-moengage-personalize";
+
+const personalize = new ReactMoEngagePersonalize("YOUR_WORKSPACE_ID");
+
+// campaigns is an array of ExperienceCampaign objects received from fetchExperiences
+// Pass the exact objects or payloads previously received from the fetchExperiences() method.
+const campaigns: ExperienceCampaign[] = [/* campaign objects */];
+
+personalize.experiencesShown(campaigns);
+```
+
+</CodeGroup>
+
+### 3b. オファリングキャンペーンについて SDK に通知する
+
+[オファリング](/ja/user-guide/decisioning/offer-decisioning/create-offerings)は、マーケターが MoEngage ダッシュボードで設定するパーソナライズされたコンテンツの独自のサブタイプです（動的な商品レコメンデーション、カタログ、ユニークなクーポンコードなど）。トラッキングを行う前に、アプリケーション内でオファリングのペイロードを処理する方法を理解しておくことが重要です。
+
+- オファリングの取得: `fetchExperience()` または `fetchExperiences()` メソッドを呼び出して、オファリングのペイロードを取得します。SDK はメタデータを処理し、`ExperienceCampaignsResult` オブジェクト内でペイロードを返します。
+- オファリングの識別: 返された JSON の構造を調べることで、オファリングを識別できます。オファリングのペイロードは、特定のカスタムオファリングキーの下にネストされた構造化データで構成されています。
+- オファリング UI の構築: SDK はこのオファリングデータを生の JSON としてのみ返します。開発者は、この JSON ペイロードを解析し、対応するビジュアル UI コンポーネントを画面上に構築するロジックを記述する必要があります。
+
+オファリング UI が構築され、ユーザーに正常にレンダリングされると、SDK はオファリング固有の属性を受け付ける専用のトラッキング関数を提供します。
+
+<CodeGroup>
+
+```javascript React Native wrap
+import ReactMoEngagePersonalize from "react-native-moengage-personalize";
+
+const personalize = new ReactMoEngagePersonalize("YOUR_WORKSPACE_ID");
+
+// object containing offering details for a specific offering campaign
+// Pass the exact objects or payloads previously received from the fetchExperiences() method.
+const offeringPayloads = [
+];
+
+personalize.offeringShown(offeringPayloads);
+```
+
+</CodeGroup>
+
+## 4. クリックのトラッキング
+
+### 4a. エクスペリエンスキャンペーンのクリックのトラッキング
+
+[オファリング](/ja/user-guide/decisioning/offer-decisioning/create-offerings)は、マーケターが MoEngage ダッシュボードで設定するパーソナライズされたコンテンツの独自のサブタイプです（動的な商品レコメンデーション、カタログ、ユニークなクーポンコードなど）。トラッキングを行う前に、アプリケーション内でオファリングのペイロードを処理する方法を理解しておくことが重要です。
+
+- オファリングの取得: `fetchExperience()` または `fetchExperiences()` メソッドを呼び出して、オファリングのペイロードを取得します。SDK はメタデータを処理し、`ExperienceCampaignsResult` オブジェクト内でペイロードを返します。
+- オファリングの識別: 返された JSON の構造を調べることで、オファリングを識別できます。オファリングのペイロードは、特定のカスタムオファリングキーの下にネストされた構造化データで構成されています。
+- オファリング UI の構築: SDK はこのオファリングデータを生の JSON としてのみ返します。開発者は、この JSON ペイロードを解析し、対応するビジュアル UI コンポーネントを画面上に構築するロジックを記述する必要があります。
+
+ユーザーが UI 要素を操作したときに「クリック」を記録するには、これらのメソッドを使用します。
+
+<CodeGroup>
+
+```javascript React Native wrap
+import ReactMoEngagePersonalize, { ExperienceCampaign } from "react-native-moengage-personalize";
+
+const personalize = new ReactMoEngagePersonalize("YOUR_WORKSPACE_ID");
+
+// campaign is an array of ExperienceCampaign objects
+// Pass the exact objects or payloads previously received from the fetchExperiences() method.
+const campaign: ExperienceCampaign = {/* campaign object */};
+
+personalize.experienceClicked(campaign);
+```
+
+</CodeGroup>
+
+### 4b. オファリングキャンペーンのクリックのトラッキング
+
+オファリングキャンペーンに含まれる特定のアイテム（商品レコメンデーションやクーポンなど）の操作の場合:
+
+<CodeGroup>
+
+```javascript React Native wrap
+import ReactMoEngagePersonalize, { ExperienceCampaign } from "react-native-moengage-personalize";
+
+const personalize = new ReactMoEngagePersonalize("YOUR_WORKSPACE_ID");
+
+const campaign: ExperienceCampaign = {/* campaign object */};
+
+// object containing offering details for a specific offering campaign
+// Pass the exact objects or payloads previously received from the fetchExperiences() method.
+const offeringPayloads = { };
+
+personalize.offeringClicked(campaign, offeringPayloads);
+```
+
+</CodeGroup>
+
+#### 例
+
+```JSON Sample Payload
+{
+  "custom_offering_key": {
+    // Expected offering payload in the function call.
+  }
+}
+```
+
+<Info>
+  これらのオファリング固有の関数は、キャンペーンにオファリングのペイロード（例: 特定のオファリングキーの下にネストされた、動的な商品レコメンデーション、カタログ、ユニークなクーポンコードを含む構造化 JSON データ）が含まれている場合にのみ使用できます。その他のすべてのエクスペリエンスデータについては、標準のエクスペリエンス表示/クリック関数を使用してください。
+</Info>
+
+# よくある質問
+
+<Accordion title="取得できるエクスペリエンスの数はいくつですか？">
+  1 回の呼び出しで最大 25 個のエクスペリエンスを取得できます。これを超えた場合、SDK は最も最近更新された 25 個のエクスペリエンスを返し、取得できなかったキーを通知します。
+</Accordion>
+
+<Accordion title="デバイスがオフラインで有効なキャッシュがない状態で取得リクエストが行われた場合はどうなりますか？">
+  SDK は、標準化されたエラーコード（例: NETWORK\_ERROR）とともに空のペイロードを返します。
+</Accordion>

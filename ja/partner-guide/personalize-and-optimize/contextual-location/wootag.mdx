@@ -1,0 +1,123 @@
+---
+title: "Wootag"
+description: "Wootag Business Events を使用して、天気、スポーツ、株価などのリアルタイムのコンテキストシグナルからパーソナライズされた MoEngage キャンペーンをトリガーします。"
+keywords: ["Wootag", "contextual signals", "business events", "moments", "MoEngage integration"]
+---
+
+[Wootag](https://www.wootag.com/) は、天気、スポーツのスコア、株価などのリアルタイムのコンテキストデータに基づいて、パーソナライズされた MoEngage キャンペーンをトリガーするシグナルオーケストレーションプラットフォームです。Wootag はライブフィードを監視し、特定の条件が満たされると MoEngage に Business Events を送信することで、関連性の高いコンテキストに即した顧客エンゲージメントを実現します。
+
+# MoEngage × Wootag
+
+この統合により、Wootag から MoEngage への自動データフローが実現し、動的なイベント属性を使用してパーソナライズできるキャンペーンがトリガーされます。
+
+## ユースケース
+
+Wootag を MoEngage と統合すると、次のユースケースに対応できます。
+
+- **リアルタイムのシグナル監視**: Wootag は、気温やスポーツのスコアなどのライブコンテキストシグナルを継続的に監視します。
+- **自動イベントトリガー**: ルール条件（例: 気温が 40°C を超える）が満たされると、MoEngage Business Events を自動的に送信します。
+- **動的パーソナライズ**: Jinja テンプレートを使用して、都市名やシグナル値などのイベントデータをキャンペーンコンテンツに直接挿入します。
+- **コンテキストに即したライフサイクルエンゲージメント**: ユーザーの現在の環境や関心に基づいて、関連性の高いオファーやアラートを配信します。
+
+## サポートされている Moment カテゴリー
+
+次の表は、Wootag を通じてキャンペーンのトリガーに使用できるシグナルカテゴリーを示しています。
+
+| Moment タイプ | 説明 |
+| --- | --- |
+| **Weather** | 気温、湿度、大気質、降雨などの現地の状況に基づいてキャンペーンをトリガーします。 |
+| **Sports & Stocks** | ライブのスポーツスコアや株価の変動に関するリアルタイムの最新情報でユーザーのエンゲージメントを高めます。 |
+| **Crypto & Forex** | デジタル通貨や外国為替レートを監視し、金融関連のアラートをトリガーします。 |
+| **Traffic & Commodities** | ライブの交通状況やコモディティ価格（例: 金属）を追跡し、コンテキストに即したトリガーに使用します。 |
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  - **MoEngage Business Events**: 作業を進める前に、MoEngage のカスタマーサクセスマネージャーにこの機能を有効にしてもらう必要があります。
+  - **アカウントへのアクセス**: MoEngage と Wootag の両方のダッシュボードに有効なログイン認証情報があることを確認してください。
+  - **Moment Rules**: Wootag の Moment Rule（Weather、Sports など）を少なくとも 1 つ設定しておく必要があります。
+</Info>
+
+## ステップ 1: MoEngage API 認証情報を取得する
+
+MoEngage API 認証情報を取得するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**Settings** \> **Account** \> **APIs** をクリックします。
+2. **APIs** ページで、次の認証情報をコピーします。
+   - **Workspace ID**（旧 App ID）: MoEngage ワークスペースの一意の識別子。
+   - **Event Key**: Campaign/Business Events API キー。
+3. ダッシュボードの URL からデータセンターコードを確認します。次の表は、データセンター名と URL を示しています。
+   | データセンター名 | ダッシュボード URL |
+   | --- | --- |
+   | DC-01 | `https://dashboard-01.moengage.com` |
+   | DC-02 | `https://dashboard-02.moengage.com` |
+   | DC-03 | `https://dashboard-03.moengage.com` |
+   | DC-04 | `https://dashboard-04.moengage.com` |
+   | DC-05 | `https://dashboard-05.moengage.com` |
+   | DC-06 | `https://dashboard-06.moengage.com` |
+   | 詳細については、[MoEngage のデータセンター](/ja/user-guide/data/key-concepts/data-centers-in-moengage)ガイドを参照してください。 |  |
+
+![Workspace ID と Data API Key フィールドが表示された MoEngage の APIs 設定ページ](/images/moengage-api-credentials.png)
+
+## ステップ 2: Wootag に MoEngage アプリをインストールする
+
+Wootag Apps Marketplace で MoEngage を接続してトリガーを有効にするには、次の手順を実行します。
+
+1. Wootag Apps ダッシュボードに移動してログインします。
+2. サイドバーの **Apps** アイコンをクリックし、**Moengage** タイルを見つけます。
+3. **Install** をクリックします。 <img src="/images/wootag-install-moengage.png" alt="MoEngage タイルが強調表示された Wootag Apps マーケットプレイス" />
+4. 認証情報フォームに次の詳細を入力します。
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | **Workspace ID** | はい | MoEngage ワークスペースの一意の識別子。 |
+   | **Event Key** | はい | Campaign/Business Events API キー。 |
+   | **Data Center** | はい | リストからデータセンター（例: DC-01）を選択します。 |
+5. **Proceed** をクリックします。成功メッセージが表示され、MoEngage のインストールが確認されます。 <img src="/images/wootag-moengage-credentials.png" alt="Workspace ID、Event Key、Data Center フィールドを含む Wootag の MoEngage 認証情報フォーム" />
+
+## ステップ 3: Wootag の Moment Rules を設定する
+
+MoEngage キャンペーンをトリガーするシグナル条件を定義します。
+
+1. 左側のサイドバーの **Rules** セクションに移動します。
+2. ルールを作成または編集します。ルール名を定義し、Moment タイプ（例: Weather）を選択します。
+3. トリガーを設定します。気温が 40°C を超えるなどの条件を選択し、都市を設定します。
+4. 属性をプレビューします。パーソナライズ用のイベントデータペイロードと Jinja 構文を確認します。
+5. JSON をコピーします。Preview モーダルを使用して、キャンペーン設定用のイベントデータ JSON をコピーします。
+
+詳細については、[Wootag プラットフォームのドキュメント](https://www.wootag.com/)を参照してください。
+
+<Warning>
+  **Business Events の有効化**
+
+  MoEngage のキャンペーン作成フローに Business Events が表示されない場合は、ワークスペースでこの機能が有効になっていない可能性があります。キャンペーンを実行する前に、MoEngage のカスタマーサクセスマネージャーに有効化を依頼してください。
+</Warning>
+
+## ステップ 4: MoEngage でキャンペーンを作成する
+
+Wootag は、コンテキストに即したライブの瞬間（極端な天候の変化、リアルタイムのスポーツ速報、市場の下落など）を捉え、トリガー用の Business Events として MoEngage に動的に転送します。ルールを設定した後、次の方法で MoEngage キャンペーンを設定して開始できます。
+
+- **Wootag から直接**: ネイティブのアクションツールを使用して、Wootag のインターフェース内で MoEngage キャンペーンをトリガーおよびプロビジョニングします。
+- **MoEngage 経由**: Wootag から送信されたイベントパラメーターを参照して、MoEngage の Campaign ダッシュボード内でイベントトリガー型キャンペーンを構築・管理します。
+
+トリガーを設定するには、次の手順を実行します。
+
+1. Wootag で、ルールの **Campaign** ドロップダウンをクリックし、**MoEngage** を選択します。 <img src="/images/wootag-campaign-dropdown.png" alt="Campaign ドロップダウンが開かれ MoEngage が選択された Wootag のルールリスト" />
+2. **Create MoEngage Campaign** をクリックして、新しいトリガー型キャンペーンを設定します。 <img src="/images/wootag-create-campaign.png" alt="Create MoEngage Campaign オプションが強調表示された Wootag の MoEngage Campaign モーダル" />
+3. 過剰なメッセージ送信を防ぐため、キャンペーン名、期間、トリガー間隔を入力します。
+4. MoEngage で **Campaigns** \> **Email/Push (Business Event Triggered)** に移動し、キャンペーンが存在することを確認します。
+5. Wootag によって作成された適切な Business Event（例: Lucknow）を選択します。
+6. **Content** セクションで、Jinja エディターを使用してイベントデータでメッセージをパーソナライズします。属性は `{{ BusinessEventAttribute['name'] }}` という構文で参照します。例:
+   ```text wrap
+   Alert: {{ BusinessEventAttribute['name'] }} detected in {{ BusinessEventAttribute['source'] }}.
+   ```
+7. セットアップをテストし、ルールが発動したときにユーザーが関連性の高いコンテキストメッセージを受信することを確認します。
+8. Wootag でカスタム属性のペイロードをプレビューし、JSON キーを確認します。
+9. キャンペーンを公開し、MoEngage で Business Event の分析を監視します。
+
+<Info>
+  **実行時のフロー**
+
+  ルールが満たされると（例: 気温が 40°C を超える）、Wootag は MoEngage の [Trigger Business Event API](/ja/api/business-events/trigger-business-event) を呼び出し、ライブのシグナルデータでパーソナライズされたプッシュ通知またはメールを配信します。高頻度のシグナルについては、レート制限（デフォルトは 1 日あたり 200 トリガー）をカスタマーサクセスマネージャーに確認してください。
+</Info>

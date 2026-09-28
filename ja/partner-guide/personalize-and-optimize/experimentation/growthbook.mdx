@@ -1,0 +1,133 @@
+---
+title: "Growthbook"
+---
+
+# はじめに
+
+[GrowthBook](https://www.growthbook.io/) は、フィーチャーフラグと A/B テストによって企業がデータドリブンな製品の意思決定を行えるよう支援するオープンソースのプラットフォームです。
+
+# MoEngage × Growthbook
+
+MoEngage と Growthbook の連携により、アプリやウェブサイトでフィーチャーフラグを使用して複数の A/B テストを実施し、Growthbook 上で MoEngage のイベントトラッキングを通じてそのパフォーマンスを追跡できます。
+
+# 連携
+
+<Info>
+  - アプリまたはウェブサイトに MoEngage SDK がインストールされていることを確認してください。
+  - アプリまたはウェブサイトに Growthbook SDK がインストールされていることを確認してください。
+  - アプリで [BigQuery Exports](https://www./user-guide/data/exports/events/data-warehouse/bigquery-exports) または [Redshift Exports](https://www.moengage.com/docs/user-guide/data/exports/events/data-warehouse/redshift-exports) のいずれかが有効になっていることを確認してください。
+</Info>
+
+## MoEngage で Growthbook のテストを追跡する
+
+テストを正常に実行して MoEngage で追跡するには、Growthbook SDK の `trackingCallback` 関数内で MoEngage SDK の `track_event()` 関数を呼び出す必要があります。
+
+**MoEngage のトラッキング**
+
+```javascript wrap
+const gb = new GrowthBook({
+    apiHost: "[https://cdn.growthbook.io](https://cdn.growthbook.io)",
+    clientKey: "sdk-abc123",
+    trackingCallback: (experiment, result) => {
+        // MoEngage SDK tracking
+        Moengage.track_event("GROWTHBOOK_EXPERIMENT_VIEWED", {
+            "experiment_id": experiment.key,
+            "variation_id": result.key
+        });
+    },
+});
+```
+
+Growthbook は iOS、Android、Web などの SDK を提供しています。複数のプラットフォームでイベントを追跡する方法の詳細については、[こちら](https://docs.growthbook.io/lib/)を参照してください。いずれのプラットフォームでも、Growthbook が提供するコールバックメソッド内で、対応する MoEngage SDK の適切なイベントトラッキングメソッドを呼び出す必要があります。
+
+このトラッキングを設定したら、テストを実行した後に MoEngage ダッシュボードにこれらのイベントが表示されます。
+
+## Growthbook で MoEngage をデータソースとして設定する
+
+Growthbook でテストのパフォーマンスを表示するには、MoEngage からデータウェアハウスにイベントをエクスポートする必要があります。MoEngage は現在、Redshift と BigQuery へのエクスポートをサポートしています。
+
+### BigQuery を介した MoEngage × Growthbook
+
+[BigQuery Exports](https://www./user-guide/data/exports/events/data-warehouse/bigquery-exports) のガイドに従って、MoEngage アプリのエクスポートを設定します。App marketplace で、エクスポートするイベントの 1 つとして `GROWTHBOOK_EXPERIMENT_VIEWED` を必ず選択してください。
+
+1. BigQuery データベースにデータが流れ始めたら、_Growthbook \>\> Metrics and Data (side menu) \>\> Data Sources_ に移動します。
+2. 「\+ Add Data Source」をクリックします。
+3. Event Sources のリストから「Use Custom Source」を選択します。<img src="/images/partner_18468236468884.png" />
+
+| フィールド | 説明 | 選択する値 |
+| --- | --- | --- |
+| Data Source Type | Data Source Type として「BigQuery」を選択します。 | BigQuery |
+| Display Name | このソースに識別しやすい名前を付けます。 | MoEngage |
+| Description | 空白のままにできます。 |  |
+
+その他の値の入力方法と Growthbook に付与する権限については、Growthbook の[ドキュメント](https://docs.growthbook.io/guide/bigquery)を参照してください。
+
+4. すべての情報を入力したら「Save」をクリックします。
+5. MoEngage の登録済みユーザーを追跡する場合は、識別子のタイプとして `user_id` を選択します。
+6. 「Experiment Assignment Queries」で、「Logged-in Users」のアクションメニューから Edit オプションをクリックします。<img src="/images/partner_18468331067668.png" />
+7. ポップアップで「Customise SQL」ボタンをクリックします。
+8. SQL を以下に置き換えます。
+
+**Logged-in Users クエリ**
+
+```sql wrap
+SELECT
+  event.uid as user_id,
+  event.event_time as timestamp,
+  event.event_attributes.experiment_id as experiment_id,
+  event.event_attributes.variation_id as variation_id
+FROM
+  `<your-dataset>`.`<your-schema>`.`<your-table-name>`
+WHERE
+  event.event_name = "GROWTHBOOK_EXPERIMENT_VIEWED"
+```
+
+`<your-dataset>`、`<your-schema>`、`<your-table-name>` を、MoEngage で BigQuery Exports を設定する際に使用した実際の名前に更新してください。
+
+9. クエリをテストして、テストに参加したユーザーのプレビューを確認できます。
+10. 結果に問題がなければ、Save をクリックしてこのカスタム SQL クエリを保存します。
+11. もう一度 Save をクリックして、Logged-in Users の Experiment Assignment Query を保存します。
+
+### Redshift を介した MoEngage × Growthbook
+
+[Redshift Exports](/ja/user-guide/data/exports/events/data-warehouse/bigquery-exports) のガイドに従って、MoEngage アプリのエクスポートを設定します。App marketplace で、エクスポートするイベントの 1 つとして `GROWTHBOOK_EXPERIMENT_VIEWED` を必ず選択してください。
+
+1. Redshift データベースにデータが流れ始めたら、_Growthbook \>\> Metrics and Data (side menu) \>\> Data Sources_ に移動します。
+2. 「\+ Add Data Source」をクリックします。
+3. Event Sources のリストから「Use Custom Source」を選択します。<img src="/images/partner_18468236468884.png" />
+
+| フィールド | 説明 | 選択する値 |
+| --- | --- | --- |
+| Data Source Type | Data Source Type として「Redshift」を選択します。 | Redshift |
+| Display Name | このソースに識別しやすい名前を付けます。 | MoEngage |
+| Description | 空白のままにできます。 |  |
+
+その他の値の入力方法と Growthbook に付与する権限については、Growthbook の[ドキュメント](https://docs.growthbook.io/warehouses/redshift)を参照してください。
+
+4. すべての情報を入力したら「Save」をクリックします。
+5. MoEngage の登録済みユーザーを追跡する場合は、識別子のタイプとして `user_id` を選択します。
+6. 「Experiment Assignment Queries」で、「Logged-in Users」のアクションメニューから Edit オプションをクリックします。<img src="/images/partner_18468331067668.png" />
+7. ポップアップで「Customise SQL」ボタンをクリックします。
+8. SQL を以下に置き換えます。
+
+**Logged-in Users クエリ**
+
+```sql wrap
+SELECT
+  uid as user_id,
+  event_time as timestamp,
+  event_attributes.experiment_id as experiment_id,
+  event_attributes.variation_id as variation_id
+FROM
+  <your-schema>.<your-table-name>
+WHERE
+  event_name = 'GROWTHBOOK_EXPERIMENT_VIEWED'
+```
+
+`<your-schema>` と `<your-table-name>` を、MoEngage で Redshift Exports を設定する際に使用した実際の名前に更新してください。
+
+1. クエリをテストして、テストに参加したユーザーのプレビューを確認できます。
+2. 結果に問題がなければ、Save をクリックしてこのカスタム SQL クエリを保存します。
+3. もう一度 Save をクリックして、Logged-in Users の Experiment Assignment Query を保存します。
+
+これで、アプリまたはウェブサイトでユーザーを追跡し、テストを実行する準備が整いました。Growthbook でさまざまな指標を作成して追跡できます。上記の SQL クエリテンプレートをベースとして使用し、要件に応じて BigQuery または Redshift テーブル上で他のクエリを作成してください。

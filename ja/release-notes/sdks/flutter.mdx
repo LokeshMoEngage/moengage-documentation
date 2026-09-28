@@ -1,0 +1,1648 @@
+---
+title: 'Flutter SDK'
+description: MoEngage Flutter SDK プラグインのリリース履歴をご覧ください。
+rss: true
+---
+
+<Info>
+  サポート対象の SDK バージョンと非推奨化のタイムラインについては、[SDK Deprecation Policy](/ja/developer-guide/sdk-lifecycle-and-policies/sdk-deprecation-policy) を参照してください。
+</Info>
+
+<Update label="1st September 2026" description="Core 11.0.0 · Cards 7.0.0 · Inbox 10.0.0 · Geofence 7.0.0 · Personalize 2.0.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>11.0.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>7.0.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.0.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>7.0.0</span>
+
+**Personalize** <span style={{ color: '#00C896', fontWeight: 'bold' }}>2.0.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Flutter**
+- Dart: 3.6.0
+- Flutter: 3.44.0
+
+**Android**
+- AGP: 9.1.1
+- Kotlin: 2.3.20
+- Compile SDK: 36
+- Gradle: 9.3.1
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 11.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- JWT 認証のサポートを追加しました。詳細については、[JWT Authentication](/ja/developer-guide/flutter-sdk/sdk-integration/advanced/jwt-authentication) を参照してください。
+- Movable Nudges を追加しました。ユーザーはアプリ内で Nudge の位置を移動できます。
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- **プラットフォーム要件を更新しました。** このプラグインには Dart 3.6.0 以上および Flutter 3.44.0 以上が必要です。先にツールチェーンをアップグレードしてください。アップグレードしない場合、依存関係の解決に失敗します。
+- **SDK の初期化が必須になりました。** 初期化前にアプリが他の MoEngage API を呼び出すと、ネイティブ SDK は即座に失敗するようになりました。Android では `IllegalStateException` がスローされ、iOS では `fatalError` が発生します。他の MoEngage API より前に `initialise()` を呼び出してください。
+- Android
+  - このプラグインは Android Gradle Plugin 9.1.1 と Kotlin 2.3.20 でビルドされています。プロジェクトを互換性のある AGP および Kotlin バージョンに更新してください。
+  - Compile SDK と Target SDK が 36 に変更されました。アプリの `build.gradle` で `compileSdk` と `targetSdk` を更新してください。
+  - 「Remind Later」および「Snooze」通知アクションを削除しました。これらのアクションを使用するキャンペーンでは表示されなくなり、通知がスヌーズタイマーで再投稿されることもなくなります。
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+- Android
+  - MoEngage SDK BOM 4.2.0 に更新しました。
+  - SDK の初期化時およびイベント処理時の ANR を削減しました。アプリ起動時やフォアグラウンドとバックグラウンドの切り替え時に、初期化ロックがメインスレッドを保持する時間が短くなりました。
+- iOS
+  - MoEngage-iOS-SDK を 11.0.0 に更新しました。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android
+  - アプリ起動時の通知チャネル設定が原因で発生していた ANR を修正しました。チャネル設定がメインスレッドをブロックしなくなりました。
+  - プッシュ通知の画像が部分的にしかレンダリングされない問題を修正しました。画像が完全にレンダリングされるようになりました。
+  - `source` がディープリンク URL に埋め込まれず、バンドルの extra として渡された場合に、プッシュのディープリンクで新しいセッションが開始されない問題を修正しました。この問題により、キャンペーンのアトリビューションが正しく行われていませんでした。
+  - アプリがマニフェストで `configChanges` を宣言していない場合に、回転やその他の構成変更時に HTML Nudge が消える問題を修正しました。
+  - 画面の向きの変更後に以前のキャンペーンが閉じられた場合に、`showInApp()` でキャンペーンが表示されない問題を修正しました。
+  - `SurfaceView` を使用する画面で、動画 Nudge がアプリ独自の動画コンテンツの背後にレンダリングされる問題を修正しました。
+  - 一部の OEM で HTML Nudge がシステムナビゲーションバーと重なる問題を修正しました。
+- iOS
+  - シーンベースのアプリで SDK に URL を渡す際に発生する可能性のあったデッドロックを修正しました。
+  - Nudge の表示チェックが現在の画面単位で正しく適用されるように修正しました。
+  - デバイスの向きの変更時に HTML の非割り込み型アプリ内メッセージが切り取られる問題を修正しました。
+  - コンテンツが表示領域を超えた場合に、下部に配置された Nudge が画面の上部にレンダリングされ、閉じるボタンに到達できなくなる問題を修正しました。
+  - ストレージ暗号化が有効な場合に、プッシュ受信インプレッションが失われる問題を修正しました。
+
+#### Cards 7.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- **プラットフォーム要件を更新しました。** このプラグインには Dart 3.6.0 以上および Flutter 3.44.0 以上が必要です。先にツールチェーンをアップグレードしてください。アップグレードしない場合、依存関係の解決に失敗します。
+- Android
+  - このプラグインは Android Gradle Plugin 9.1.1 と Kotlin 2.3.20 でビルドされています。プロジェクトを互換性のある AGP および Kotlin バージョンに更新してください。
+  - Compile SDK と Target SDK が 36 に変更されました。アプリの `build.gradle` で `compileSdk` と `targetSdk` を更新してください。
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+- Android
+  - MoEngage SDK BOM 4.2.0 に更新しました。
+- iOS
+  - MoEngage-iOS-SDK を 11.0.0 に更新しました。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android
+  - Cards 画面を開いている間、低速または不安定なネットワーク接続で発生するメモリリークを修正しました。
+
+#### Inbox 10.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- **プラットフォーム要件を更新しました。** このプラグインには Dart 3.6.0 以上および Flutter 3.44.0 以上が必要です。先にツールチェーンをアップグレードしてください。アップグレードしない場合、依存関係の解決に失敗します。
+- Android
+  - このプラグインは Android Gradle Plugin 9.1.1 と Kotlin 2.3.20 でビルドされています。プロジェクトを互換性のある AGP および Kotlin バージョンに更新してください。
+  - Compile SDK と Target SDK が 36 に変更されました。アプリの `build.gradle` で `compileSdk` と `targetSdk` を更新してください。
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+- Android
+  - MoEngage SDK BOM 4.2.0 に更新しました。
+- iOS
+  - MoEngage-iOS-SDK を 11.0.0 に更新しました。
+
+#### Geofence 7.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- **プラットフォーム要件を更新しました。** このプラグインには Dart 3.6.0 以上および Flutter 3.44.0 以上が必要です。先にツールチェーンをアップグレードしてください。アップグレードしない場合、依存関係の解決に失敗します。
+- Android
+  - このプラグインは Android Gradle Plugin 9.1.1 と Kotlin 2.3.20 でビルドされています。プロジェクトを互換性のある AGP および Kotlin バージョンに更新してください。
+  - Compile SDK と Target SDK が 36 に変更されました。アプリの `build.gradle` で `compileSdk` と `targetSdk` を更新してください。
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+- Android
+  - MoEngage SDK BOM 4.2.0 に更新しました。
+- iOS
+  - MoEngage-iOS-SDK を 11.0.0 に更新しました。
+
+#### Personalize 2.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- **プラットフォーム要件を更新しました。** このプラグインには Dart 3.6.0 以上および Flutter 3.44.0 以上が必要です。先にツールチェーンをアップグレードしてください。アップグレードしない場合、依存関係の解決に失敗します。
+- Android
+  - このプラグインは Android Gradle Plugin 9.1.1 と Kotlin 2.3.20 でビルドされています。プロジェクトを互換性のある AGP および Kotlin バージョンに更新してください。
+  - Compile SDK と Target SDK が 36 に変更されました。アプリの `build.gradle` で `compileSdk` と `targetSdk` を更新してください。
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+- Android
+  - MoEngage SDK BOM 4.2.0 に更新しました。
+- iOS
+  - MoEngage-iOS-SDK を 11.0.0 に更新しました。
+
+</Update>
+
+<Update label="13th August 2026" description="Core 10.9.0 · Cards 6.6.0 · Inbox 9.6.0 · Geofence 6.6.0 · Personalize 1.1.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.9.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.6.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.6.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.6.0</span>
+
+**Personalize** <span style={{ color: '#00C896', fontWeight: 'bold' }}>1.1.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.13.2
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.9
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 10.9.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+- Android: MoEngage SDK BOM 2.3.1 に更新しました
+- iOS: MoEngage-iOS-SDK を 10.14.0 に更新しました
+- Web: SDK の初期化と API 名を標準化しました。詳細については、[Standardizing Web SDK APIs for Cross-Platform Consistency](/ja/developer-guide/web-sdk/migration/standardizing-web-sdk-apis-for-cross-platform-consistency) を参照してください。
+
+#### Cards 6.6.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+- Android: MoEngage SDK BOM 2.3.1 に更新しました
+- iOS: MoEngage-iOS-SDK を 10.14.0 に更新しました
+
+#### Inbox 9.6.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+- Android: MoEngage SDK BOM 2.3.1 に更新しました
+- iOS: MoEngage-iOS-SDK を 10.14.0 に更新しました
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Inbox メッセージの取得時にアプリがフリーズする問題を修正しました。`fetchAllMessages()` を呼び出すと、メインスレッドが ANR を引き起こすほど長時間ブロックされることがありました。これは特に、保存されたメッセージが多いアカウントやローエンドデバイスで顕著でした。取得処理が UI を停止させることなく完了するようになりました。
+
+#### Geofence 6.6.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+- Android: MoEngage SDK BOM 2.3.1 に更新しました
+- iOS: MoEngage-iOS-SDK を 10.14.0 に更新しました
+
+#### Personalize 1.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+- Android: MoEngage SDK BOM 2.3.1 に更新しました
+- iOS: MoEngage-iOS-SDK を 10.14.0 に更新しました
+
+</Update>
+
+<Update label="17th June 2026" description="Core 10.8.0 · Cards 6.5.1 · Inbox 9.5.1 · Geofence 6.5.1 · Personalize 1.0.1">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.8.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.5.1</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.5.1</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.5.1</span>
+
+**Personalize** <span style={{ color: '#00C896', fontWeight: 'bold' }}>1.0.1</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.13.2
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.9
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 10.8.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: ログアウト完了リスナーのサポートを追加しました。
+- iOS: ログアウト完了リスナーのサポートを追加しました。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: ビルドツールチェーンの制限を解消し、推奨される JDK 17 を使用して SDK をコンパイルできるようにしました。厳密な JDK 19 への依存はなくなりました。
+
+#### Cards 6.5.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: ビルドツールチェーンの制限を解消し、推奨される JDK 17 を使用して SDK をコンパイルできるようにしました。厳密な JDK 19 への依存はなくなりました。
+
+#### Inbox 9.5.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: ビルドツールチェーンの制限を解消し、推奨される JDK 17 を使用して SDK をコンパイルできるようにしました。厳密な JDK 19 への依存はなくなりました。
+
+#### Geofence 6.5.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: ビルドツールチェーンの制限を解消し、推奨される JDK 17 を使用して SDK をコンパイルできるようにしました。厳密な JDK 19 への依存はなくなりました。
+
+#### Personalize 1.0.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: ビルドツールチェーンの制限を解消し、推奨される JDK 17 を使用して SDK をコンパイルできるようにしました。厳密な JDK 19 への依存はなくなりました。
+
+</Update>
+
+<Update label="7th May 2026" description="Core 10.7.0 · Cards 6.5.0 · Inbox 9.5.0 · Geofence 6.5.0 · Personalize 1.0.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.7.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.5.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.5.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.5.0</span>
+
+**Personalize** <span style={{ color: '#00C896', fontWeight: 'bold' }}>1.0.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.13.2
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.9
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 10.7.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: MoEngage SDK BOM 2.2.2 をサポート
+- iOS: MoEngage-iOS-SDK を 10.12.0 に更新
+
+#### Cards 6.5.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: MoEngage SDK BOM 2.2.2 をサポート
+- iOS: MoEngage-iOS-SDK を 10.12.0 に更新
+
+#### Inbox 9.5.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: MoEngage SDK BOM 2.2.2 をサポート
+- iOS: MoEngage-iOS-SDK を 10.12.0 に更新
+
+#### Geofence 6.5.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: MoEngage SDK BOM 2.2.2 をサポート
+- iOS: MoEngage-iOS-SDK を 10.12.0 に更新
+
+#### Personalize 1.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+MoEngage Personalize プラグインの初回リリースです。パーソナライズされたキャンペーンコンテンツを取得し、キャンペーンレベルおよびオファリングレベルでユーザーのインプレッションとクリックをトラッキングします。詳細については、[Personalize SDK](/ja/developer-guide/flutter-sdk/personalize/personalize-sdk) を参照してください。
+
+</Update>
+
+<Update label="15th April 2026" description="Core 10.6.0 · Cards 6.4.0 · Inbox 9.4.0 · Geofence 6.4.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.6.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.4.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.4.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.4.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.13.2
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.13
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 10.6.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- AGP を 8.7.3 から 8.13.2 に更新
+- Android: MoEngage SDK BOM 2.1.0 をサポート
+- iOS: MoEngage-iOS-SDK を 10.10.2 に更新
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- iOS: アプリがバックグラウンドで実行されている際のメモリリークを修正
+
+#### Cards 6.4.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- AGP を 8.7.3 から 8.13.2 に更新
+
+#### Inbox 9.4.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- AGP を 8.7.3 から 8.13.2 に更新
+
+#### Geofence 6.4.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- AGP を 8.7.3 から 8.13.2 に更新
+
+</Update>
+
+<Update label="11th February 2026" description="Core 10.5.0 · Cards 6.3.0 · Inbox 9.3.0 · Geofence 6.3.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.5.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.3.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.3.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.3.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.7.3
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.9
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 10.5.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: MoEngage SDK BOM [1.5.1](/ja/release-notes/sdks/android#4th-february-2026) をサポート
+- iOS: Swift/Objective-C コードを使用しない SDK 初期化のサポートを追加。MoEngage-iOS-SDK を [10.10.0](/ja/release-notes/sdks/ios#29th-january-2026) に更新
+
+#### Cards 6.3.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: MoEngage SDK BOM [1.5.1](/ja/release-notes/sdks/android#4th-february-2026) をサポート
+- iOS: MoEngage-iOS-SDK を [10.10.0](/ja/release-notes/sdks/ios#29th-january-2026) に更新
+
+#### Inbox 9.3.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: MoEngage SDK BOM [1.5.1](/ja/release-notes/sdks/android#4th-february-2026) をサポート
+- iOS: MoEngage-iOS-SDK を [10.10.0](/ja/release-notes/sdks/ios#29th-january-2026) に更新
+
+#### Geofence 6.3.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: MoEngage SDK BOM [1.5.1](/ja/release-notes/sdks/android#4th-february-2026) をサポート
+- iOS: MoEngage-iOS-SDK を [10.10.0](/ja/release-notes/sdks/ios#29th-january-2026) に更新
+
+</Update>
+
+<Update label="3rd February 2026" description="Core 10.4.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.4.0</span>
+
+**Cards:** 変更なし — v6.2.0
+
+**Inbox:** 変更なし — v9.2.0
+
+**Geofence:** 変更なし — v6.2.0
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.7.3
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.9
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 10.4.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Web: `enableDataTracking()` および `disableDataTracking()` メソッドを追加。WASM サポートを有効にするため、非推奨の `dart:js` パッケージを更新
+- Android: `MoEFireBaseMessagingService` をプラグインのマニフェストにバンドルし、FCM Push の統合手順を削減
+
+</Update>
+
+
+<Update label="19th November 2025" description="Core 10.3.0 · Cards 6.2.0 · Inbox 9.2.0 · Geofence 6.2.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.3.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.2.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.2.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.2.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.7.3
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.9
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 10.3.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: バージョン管理を改善するため、ネイティブ依存関係を BOM に移行。初期サポート BOM バージョンは 1.1.1
+- iOS: Swift Package Manager 統合のサポートを追加。MoEngage-iOS-SDK を [10.08.0](/ja/release-notes/sdks/ios#29th-october-2025) に更新
+
+#### Cards 6.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: ネイティブ依存関係を BOM に移行。初期サポート BOM バージョンは 1.1.1
+- iOS: SPM 統合のサポートを追加。MoEngage-iOS-SDK を [10.08.0](/ja/release-notes/sdks/ios#29th-october-2025) に更新
+
+#### Inbox 9.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: ネイティブ依存関係を BOM に移行。初期サポート BOM バージョンは 1.1.1
+- iOS: SPM 統合のサポートを追加。MoEngage-iOS-SDK を [10.08.0](/ja/release-notes/sdks/ios#29th-october-2025) に更新
+
+#### Geofence 6.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: ネイティブ依存関係を BOM に移行。初期サポート BOM バージョンは 1.1.1
+- iOS: SPM 統合のサポートを追加。MoEngage-iOS-SDK を [10.08.0](/ja/release-notes/sdks/ios#29th-october-2025) に更新
+
+</Update>
+
+<Update label="14th October 2025" description="Core 10.2.0 · Cards 6.1.1 · Inbox 9.1.1 · Geofence 6.1.1">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.2.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.1.1</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.1.1</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.1.1</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.7.3
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.9
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 10.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: moe-android-sdk を 14.03.05 に更新、inapp を 9.4.0 に更新
+- iOS: MoEngage-iOS-SDK を 10.07.1 に更新
+
+#### Cards 6.1.1
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: cards-core を 3.1.3 に更新
+- iOS: MoEngageCards を 5.01.5 に更新
+
+#### Inbox 9.1.1
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngageInbox を 3.01.2 に更新
+
+#### Geofence 6.1.1
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: geofence を 5.0.3 に更新
+
+</Update>
+
+<Update label="9th September 2025" description="Core 10.1.0 · Cards 6.1.0 · Inbox 9.1.0 · Geofence 6.1.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.1.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.1.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.1.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.1.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.7.3
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.9
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 10.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: moe-android-sdk を 14.03.03 に更新、inapp を 9.3.0 に更新
+- iOS: MoEngage-iOS-SDK を 10.05.0 に更新
+
+#### Cards 6.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: cards-core を 3.1.2 に更新
+- iOS: MoEngageCards を 5.01.4 に更新
+
+#### Inbox 9.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngageInbox を 3.01.1 に更新
+
+#### Geofence 6.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: geofence を 5.0.2 に更新
+- iOS: MoEngageGeofence を 6.00.2 に更新
+
+</Update>
+
+<Update label="18th July 2025" description="Core 10.0.1 · Cards 6.0.1">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.0.1</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.0.1</span>
+
+**Inbox:** 変更なし — v9.0.0
+
+**Geofence:** 変更なし — v6.0.0
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.7.3
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.9
+- Min SDK: 23
+
+</Card>
+</CardGroup>
+
+#### Core 10.0.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- プラットフォームインターフェースのバレルファイルで `platforms.dart` をエクスポート
+
+#### Cards 6.0.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- プラットフォームインターフェースのバレルファイルで `static_image_type.dart` をエクスポート
+
+</Update>
+
+<Update label="3rd July 2025" description="Core 10.0.0 · Cards 6.0.0 · Inbox 9.0.0 · Geofence 6.0.0 — メジャーリリース">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>10.0.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.0.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.0.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>6.0.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.7.3
+- Kotlin: 1.9.23
+- Compile SDK: 35
+- Gradle: 8.9
+- Min SDK: 23
+
+**互換性のある Android パッケージ**（バンドル済み — 手動での追加は不要）
+- moe-android-sdk: 14.02.02
+- inapp: 9.1.1
+- cards-core: 3.1.0
+- geofence: 5.0.1
+- inbox-core: 4.1.0
+- rich-notification: 6.1.0
+- MoE Android version catalog: 5.3.1
+
+</Card>
+</CardGroup>
+
+#### Core 10.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- InApp を表示するための新しいトリガー条件
+- プッシュ通知のグループ化と通知の置き換えをサポート
+- プッシュ通知での GIF をサポート
+- Push および InApp でのアクセシビリティをサポート
+- Android: moe-android-sdk を 14.02.02 に更新、inapp を 9.1.1 に更新
+- iOS: MoEngage-iOS-SDK を 10.02.1 に更新、MoEngageInApp を 7.01.1 に更新
+- Web: `enableSdk()` および `disableSdk()` メソッドによる SDK オプトアウトのサポートを追加
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- Android: Min SDK を 23 に更新、Compile SDK を 35 に更新
+- iOS: 最小デプロイメントターゲットを 13 に更新
+
+#### Cards 6.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Cards にアクセシビリティのサポートを追加
+- Android: cards-core を 3.1.0 に更新
+- iOS: MoEngageCards を 5.01.1 に更新
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- Android: Min SDK を 23 に更新、Compile SDK を 35 に更新
+- iOS: 最小デプロイメントターゲットを 13 に更新
+
+#### Inbox 9.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Push Inbox にアクセシビリティのサポートを追加
+- Android: inbox-core を 4.1.0 に更新
+- iOS: MoEngageInbox を 3.01.1 に更新
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- Android: Min SDK を 23 に更新、Compile SDK を 35 に更新
+- iOS: 最小デプロイメントターゲットを 13 に更新
+
+#### Geofence 6.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: geofence を 5.0.1 に更新
+- iOS: MoEngageGeofence を 6.00.1 に更新
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- Android: Min SDK を 23 に更新、Compile SDK を 35 に更新
+- iOS: 最小デプロイメントターゲットを 13 に更新
+
+</Update>
+
+<Update label="24th April 2025" description="Core 9.2.1 · Inbox 8.2.1">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.2.1</span>
+
+**Cards:** 変更なし — v5.2.0
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>8.2.1</span>
+
+**Geofence:** 変更なし — v5.2.0
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.7.3
+- Kotlin: 1.9.23
+- Compile SDK: 34
+- Gradle: 8.9
+
+</Card>
+</CardGroup>
+
+#### Core 9.2.1
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- 内部的な改善
+- Android: inapp を 8.8.1 に更新
+
+#### Inbox 8.2.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- `fetchAllMessages` API での ANR
+
+</Update>
+
+<Update label="25th March 2025" description="Core 9.2.0 · Cards 5.2.0 · Inbox 8.2.0 · Geofence 5.2.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.2.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>5.2.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>8.2.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>5.2.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.7.3
+- Kotlin: 1.9.23
+- Compile SDK: 34
+- Gradle: 8.9
+
+</Card>
+</CardGroup>
+
+#### Core 9.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- [Multi-User Identities](/ja/developer-guide/android-sdk/data-tracking/basic/track-user-attributes#multiple-identifiers) のサポートを追加
+- Android: AGP 8.7.3 以上のサポートを追加。moe-android-sdk を [13.06.00](/ja/release-notes/sdks/android#11th-march-2025) に更新、inapp を 8.8.0 に更新
+- iOS: MoEngage-iOS-SDK を 9.23.1 に更新。キーと値のペアがない場合に InApp のナビゲーションコールバックが受信されない問題を修正
+
+#### Cards 5.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: AGP 8.7.3 以上のサポートを追加。cards-core を 2.4.0 に更新
+
+#### Inbox 8.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: AGP 8.7.3 以上のサポートを追加。inbox-core を 3.3.0 に更新
+
+#### Geofence 5.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: AGP 8.7.3 以上のサポートを追加。geofence を 4.3.0 に更新
+
+</Update>
+
+<Update label="18th February 2025" description="Core 9.1.1 · Cards 5.1.1 · Inbox 8.1.1 · Geofence 5.1.1">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.1.1</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>5.1.1</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>8.1.1</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>5.1.1</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.4.0
+- Kotlin: 1.9.23
+- Compile SDK: 34
+- Gradle: 8.6
+
+</Card>
+</CardGroup>
+
+#### Core 9.1.1
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngage-iOS-SDK を 9.22.2 に更新
+
+#### Cards 5.1.1
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngageCards を 4.19.2 に更新
+
+#### Inbox 8.1.1
+
+- 内部的な改善
+
+#### Geofence 5.1.1
+
+- 内部的な改善
+
+</Update>
+
+<Update label="29th January 2025" description="Core 9.1.0 · Cards 5.1.0 · Inbox 8.1.0 · Geofence 5.1.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.1.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>5.1.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>8.1.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>5.1.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.4.0
+- Kotlin: 1.9.23
+- Compile SDK: 34
+- Gradle: 8.6
+
+</Card>
+</CardGroup>
+
+#### Core 9.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: moe-android-sdk を [13.05.02](/ja/release-notes/sdks/android#22nd-january-2025) に更新、inapp を 8.7.1 に更新
+- iOS: MoEngage-iOS-SDK を 9.22.1 に更新、MoEngageInApp を 6.04.0 に更新
+
+#### Cards 5.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: cards-core を 2.3.2 に更新
+- iOS: MoEngageCards を 4.19.1 に更新
+
+#### Inbox 8.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: inbox-core を 4.2.1 に更新
+- iOS: MoEngageInbox を 5.19.0 に更新
+
+#### Geofence 5.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: geofence を 4.2.1 に更新
+- iOS: MoEngageGeofence を 5.19.0 に更新
+
+</Update>
+
+
+<Update label="25th November 2024" description="Core 9.0.1 · Cards 5.0.2 · Inbox 8.0.2 · Geofence 5.0.2">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>9.0.1</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>5.0.2</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>8.0.2</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>5.0.2</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.4.0
+- Kotlin: 1.9.23
+- Compile SDK: 34
+- Gradle: 8.6
+
+</Card>
+</CardGroup>
+
+#### Core 9.0.1
+
+- 内部的な改善
+
+#### Cards 5.0.2
+
+- 内部的な改善
+
+#### Inbox 8.0.2
+
+- 内部的な改善
+
+#### Geofence 5.0.2
+
+- 内部的な改善
+
+</Update>
+
+<Update label="3rd October 2024" description="Cards 5.0.1 · Inbox 8.0.1 · Geofence 5.0.1">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core:** 変更なし — v9.0.0
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>5.0.1</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>8.0.1</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>5.0.1</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 8.4.0
+- Kotlin: 1.9.23
+- Compile SDK: 34
+- Gradle: 8.6
+
+</Card>
+</CardGroup>
+
+#### Cards 5.0.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- moengage_flutter 9.0.0 へのアップグレード時の依存関係の非互換性を修正
+
+#### Inbox 8.0.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- moengage_flutter 9.0.0 へのアップグレード時の依存関係の非互換性を修正
+
+#### Geofence 5.0.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- moengage_flutter 9.0.0 へのアップグレード時の依存関係の非互換性を修正
+
+</Update>
+
+<Update label="30th September 2024" description="Core 9.0.0 · Cards 5.0.0 · Inbox 8.0.0 · Geofence 5.0.0 — メジャーリリース">
+
+<Warning>
+**moengage_flutter** 9.0.0 および依存パッケージで問題が確認されました。9.0.0 にアップグレードする場合は、互換性の問題を回避するために次の最小バージョンを使用してください。
+- **moengage_geofence** → 5.0.1 以上
+- **moengage_inbox** → 8.0.1 以上
+- **moengage_cards** → 5.0.1 以上
+
+また、**Core 8.1.0**、**Geofence 4.1.0**、**Inbox 7.1.0** には意図しない破壊的変更が含まれている可能性があるため、これらのバージョンは使用しないでください。それぞれ **9.0.0**、**5.0.1**、**8.0.1** に直接アップグレードしてください。
+</Warning>
+
+#### Core 9.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- `getSelfHandledInApps()` による複数の Self-handled InApp のサポート
+- Android: moe-android-sdk と inapp がプラグインにバンドルされるようになりました（build.gradle から `com.moengage:moe-android-sdk` と `com.moengage:inapp` を削除してください）。moe-android-sdk を [13.05.00](/ja/release-notes/sdks/android#10th-september-2024) に更新、inapp を 8.6.0 に更新
+- iOS: Provisional Push のサポートを追加。MoEngage-iOS-SDK を 9.20.0 に更新
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- build.gradle から `com.moengage:moe-android-sdk` と `com.moengage:inapp` を削除してください。これらは自動的に含まれるようになりました
+
+#### Cards 5.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- 新しいユーザー属性の一意の ID が設定された際に Cards を取得
+- Android: cards-core がプラグインにバンドルされるようになりました。cards-core を 2.3.0 に更新
+- iOS: MoEngageCards を 4.18.0 に更新
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- build.gradle から `com.moengage:cards-core` を削除してください。自動的に含まれるようになりました
+- API 名の変更: `MoEngageCards.setAppOpenSyncListener()` → `MoEngageCards.setSyncCompleteListener()`
+
+#### Inbox 8.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: inbox-core がプラグインにバンドルされるようになりました。inbox-core を 3.2.0 に更新
+- iOS: MoEngageInbox を 2.18.0 に更新
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- build.gradle から `com.moengage:inbox-core` を削除してください。自動的に含まれるようになりました
+
+#### Geofence 5.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: geofence がプラグインにバンドルされるようになりました。geofence を 4.2.0 に更新
+- iOS: MoEngageGeofence を 5.18.0 に更新
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- build.gradle から `com.moengage:geofence` を削除してください。自動的に含まれるようになりました
+
+</Update>
+
+<Update label="7th August 2024" description="Core 8.0.0 · Cards 4.0.0 · Inbox 7.0.0 · Geofence 4.0.0">
+
+<Info>
+Core 8.0.0 に更新すると、iOS でのカスタムブール型ユーザー属性のトラッキングが **1/0** から **TRUE/FALSE** に変更されます。優先する形式は設定できます。詳細については、[ドキュメント](/ja/developer-guide/react-native-sdk/data-tracking/tracking-user-attributes-and-user-identity#custom-boolean-user-attribute)を参照してください。
+</Info>
+
+#### Core 8.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Core モジュールの依存関係で厳密なバージョン固定を実施
+- iOS: **TRUE/FALSE** および **0/1** 形式でのカスタムブール属性のトラッキングのサポートを追加
+
+#### Cards 4.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Cards モジュールの依存関係で厳密なバージョン固定を実施
+- iOS: 内部的な改善
+
+#### Inbox 7.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Inbox モジュールの依存関係で厳密なバージョン固定を実施
+- iOS: 内部的な改善
+
+#### Geofence 4.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Geofence モジュールの依存関係で厳密なバージョン固定を実施
+- iOS: 内部的な改善
+
+</Update>
+
+<Update label="31st July 2024" description="Core 7.2.0 · Cards 3.2.0 · Inbox 6.2.0 · Geofence 3.2.0">
+
+#### Core 7.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Core モジュールの依存関係で厳密なバージョン固定を実施
+- iOS: MoEngage-iOS-SDK を 9.18.0 に更新、MoEngageInApp を 6.01.0 に更新
+
+#### Cards 3.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Cards モジュールの依存関係で厳密なバージョン固定を実施
+- iOS: MoEngageCards を 4.17.0 に更新
+
+#### Inbox 6.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Inbox モジュールの依存関係で厳密なバージョン固定を実施
+- iOS: MoEngageInbox を 2.17.0 に更新
+
+#### Geofence 3.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Geofence モジュールの依存関係で厳密なバージョン固定を実施
+- iOS: MoEngageGeofence を 5.17.0 に更新
+
+</Update>
+
+<Update label="15th July 2024" description="Core 7.1.1 · Cards 3.1.1 · Inbox 6.1.1 · Geofence 3.1.1">
+
+#### Core 7.1.1
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: Android SDK 13.03.00 をサポート
+
+#### Cards 3.1.1
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: Android SDK 13.03.00 をサポート。cards-core を 2.1.0 に更新
+
+#### Inbox 6.1.1
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: Android SDK 13.03.00 をサポート。inbox-core を 3.1.0 に更新
+
+#### Geofence 3.1.1
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: Android SDK 13.03.00 をサポート。geofence を 4.1.0 に更新
+
+</Update>
+
+<Update label="3rd July 2024" description="Core 7.1.0 · Cards 3.1.0 · Inbox 6.1.0 · Geofence 3.1.0">
+
+#### Core 7.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- ユーザー属性での JSONObject 値のサポートを追加
+- SDK を特定の環境に強制するためのサポートを追加
+- 内部的な改善
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: MoEngage Android SDK 13.02.00 以上を使用した場合にイベント属性がトラッキングされない問題
+
+#### Cards 3.1.0
+- 内部的な改善
+
+#### Inbox 6.1.0
+- 内部的な改善
+
+#### Geofence 3.1.0
+- 内部的な改善
+- iOS: MoEngageGeofence を 5.16.0 に更新
+
+</Update>
+
+<Update label="18th June 2024" description="Core 7.0.1 · Inbox 6.0.1">
+
+#### Core 7.0.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: メインスレッドでアセットからプラグインバージョンにアクセスする際の ANR
+
+#### Inbox 6.0.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: メインスレッドでアセットからプラグインバージョンにアクセスする際の ANR
+
+</Update>
+
+<Update label="21st March 2024" description="Core 7.0.0 · Cards 3.0.0 · Inbox 6.0.0 · Geofence 3.0.0 — メジャーリリース">
+
+#### Core 7.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- 非割り込み型の Nudge InApp のサポートを追加
+- MI Push のサポートを削除
+- Android: Android SDK [13.00.00](/ja/release-notes/sdks/android#27th-february-2024) 以上をサポート。AGP 8.2.2 以上のサポートを追加
+- iOS: MoEngage-iOS-SDK を 9.16.0 以上に更新、MoEngageInApp を 4.15.0 以上に更新
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- `SelfHandledCampaignData` が nullable になりました: `setSelfHandledInAppHandler((SelfHandledCampaignData data))` → `setSelfHandledInAppHandler((SelfHandledCampaignData? data))`
+
+#### Cards 3.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- サポートされる moengage_flutter の最小バージョンを 7.0.0 に更新
+- Android: Android SDK 13.00.00 以上、AGP 8.2.2 以上、cards-core 2.0.0 以上をサポート
+- iOS: MoEngageCards を 4.15.0 に更新
+
+#### Inbox 6.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- サポートされる moengage_flutter の最小バージョンを 7.0.0 に更新
+- Android: Android SDK 13.00.00 以上、AGP 8.2.2 以上、inbox-core 3.0.0 以上をサポート
+- iOS: MoEngageInbox を 2.15.0 に更新
+
+#### Geofence 3.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- サポートされる moengage_flutter の最小バージョンを 7.0.0 に更新
+- Android: Android SDK 13.00.00 以上、AGP 8.2.2 以上、geofence 4.0.0 以上をサポート
+- iOS: MoEngageGeofence を 5.15.0 に更新
+
+</Update>
+
+<Update label="24th January 2024" description="Core 6.1.1">
+
+#### Core 6.1.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Web: Web SDK が統合されていない場合の `MoEngage undefined` エラー処理を修正
+
+</Update>
+
+
+<Update label="7th December 2023" description="Core 6.1.0 · Cards 2.1.0 · Inbox 5.1.0 · Geofence 2.1.0">
+
+#### Core 6.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- ユーザー属性での配列のサポートを追加
+- Android: Android SDK 12.10.01 以上、Google Policy Delete User API、AGP 8.0.2 以上をサポート。Kotlin を 1.7.10 に更新。バックグラウンド isolate（`FirebaseMessaging.onBackgroundMessage`）使用時のネイティブから Dart へのコールバックを修正
+- iOS: MoEngage-iOS-SDK を 9.14.0 に更新、MoEngageInApp を 4.13.0 に更新
+
+#### Cards 2.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: cards-core 1.6.0 以上、AGP 8.0.2 以上をサポート。Kotlin を 1.7.10 に更新。バックグラウンド isolate 使用時のネイティブから Dart へのコールバックを修正
+- iOS: MoEngageCards を 4.13.0 に更新
+
+#### Inbox 5.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: inbox-core 2.6.0 以上、AGP 8.0.2 以上をサポート。Kotlin を 1.7.10 に更新
+- iOS: MoEngageInbox を 2.13.0 に更新
+
+#### Geofence 2.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: geofence 3.4.0 以上、AGP 8.0.2 以上をサポート。Kotlin を 1.7.10 に更新
+- iOS: MoEngageGeofence を 5.13.0 に更新
+
+</Update>
+
+<Update label="13th September 2023" description="Core 6.0.0 · Cards 2.0.0 · Inbox 5.0.0 · Geofence 2.0.0 — Federated プラグイン">
+
+#### Core 6.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Federated プラグインの実装
+- Android: Android SDK 12.9.00 以上をサポート
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- import を次のように更新してください: `import 'package:moengage_flutter/moengage_flutter.dart';`
+
+#### Cards 2.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- Federated プラグインの実装。import を次のように更新してください: `import 'package:moengage_cards/moengage_cards.dart';`
+
+#### Inbox 5.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- Federated プラグインの実装。import を次のように更新してください: `import 'package:moengage_inbox/moengage_inbox.dart';`
+- Android: Android SDK 12.9.00 以上をサポート
+
+#### Geofence 2.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- Federated プラグインの実装。import を次のように更新してください: `import 'package:moengage_geofence/moengage_geofence.dart';`
+
+</Update>
+
+<Update label="26th July 2023" description="Core 5.5.1 · Inbox 4.5.1">
+
+#### Core 5.5.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: Self-Handled InApp の配信制御が機能しない問題
+
+#### Inbox 4.5.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- iOS: `fetchAllMessages` API のパース問題を修正
+
+</Update>
+
+<Update label="19th July 2023" description="Core 5.5.0 · Cards 1.0.0 · Inbox 4.5.0 · Geofence 1.6.0">
+
+#### Core 5.5.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: プラグインベースを ~>3.3.2 に更新
+- iOS: MoEngage-iOS-SDK を ~>9.10.0 に更新
+
+#### Cards 1.0.0 — 初回リリース
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Self-Handled Cards をサポートする初回リリース
+
+#### Inbox 4.5.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngageInbox を ~>2.8.0 に更新
+
+#### Geofence 1.6.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngageGeofence を ~>5.10.0 に更新
+
+</Update>
+
+<Update label="31st May 2023" description="Core 5.4.0 · Inbox 4.4.0 · Geofence 1.5.0">
+
+#### Core 5.4.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: Compile SDK を 33 に更新。フォアグラウンドでの Self-Handled プッシュ通知クリックをサポート。Android SDK 12.8.00 以上をサポート
+- iOS: MoEngage-iOS-SDK を 9.8.0 に更新
+
+#### Inbox 4.4.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: Target SDK と Compile SDK を 33 に更新
+- iOS: MoEngageInbox を ~>2.8.0 に更新
+
+#### Geofence 1.5.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: Target SDK と Compile SDK を 33 に更新
+- iOS: MoEngageGeofence を ~>5.8.0 に更新
+
+</Update>
+
+<Update label="16th May 2023" description="Core 5.3.1">
+
+#### Core 5.3.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: テスト InApp およびイベントトリガー型 InApp で Self-handled コールバックが機能しない問題
+
+</Update>
+
+<Update label="8th February 2023" description="Core 5.3.0 · Core 5.2.0 · Inbox 4.3.0 · Inbox 4.2.0 · Geofence 1.3.0 · Geofence 1.2.0">
+
+#### Core 5.3.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- セキュリティの改善: ログ出力の制御
+- Android: In-App を介した根拠説明付きの Android 13 プッシュ通知オプトイン。Device ID の有効化/無効化のサポート
+- iOS: MoEngage-iOS-SDK を ~>9.4.0 に更新
+
+#### Core 5.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngage-iOS-SDK を 9.2.0 に更新。初期化 API のシグネチャを更新（`MOSDKConfig` → `MoEngageSDKConfig`）
+
+#### Geofence 1.3.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- セキュリティの改善: ログ出力の制御
+- iOS: MoEngageGeofence を ~>5.4.0 に更新
+
+#### Geofence 1.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngageGeofence を 5.2.0 に更新
+
+#### Inbox 4.3.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- セキュリティの改善: ログ出力の制御
+- iOS: MoEngageInbox を ~>2.4.0 に更新
+
+#### Inbox 4.2.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngageInbox を 2.2.0 に更新
+
+</Update>
+
+<Update label="21st February 2023" description="Geofence 1.4.0">
+
+#### Geofence 1.4.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngageGeofence を 5.4.0 に更新。`stopGeofenceMonitoring()` API のサポートを追加
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- Android: `configureGeofence()` は非推奨になりました。代わりに `startGeofenceMonitoring()` と `stopGeofenceMonitoring()` を使用してください
+
+</Update>
+
+<Update label="4th November 2022" description="Core 5.1.1">
+
+#### Core 5.1.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- `enableAdIdTracking()` のタイプミスを修正
+
+</Update>
+
+<Update label="27th October 2022" description="Core 5.1.0 · Inbox 4.1.0 · Geofence 1.1.0">
+
+#### Core 5.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: Android 13 の通知権限、AGP 7.3.1 に対応。Compile SDK と Target SDK を 31 に更新。Android SDK 12.4.00 以上をサポート
+- iOS: `MoEngageSDKState` をサポートするよう初期化 API を更新
+
+#### Inbox 4.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: AGP を 7.3.1 に、Gradle を 7.4 に更新。Compile SDK と Target SDK を 31 に更新。Android SDK 12.4.00、Inbox Core 2.2.0 をサポート
+
+#### Geofence 1.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngageGeofence を ~>4.4.0 に更新
+
+</Update>
+
+<Update label="27th September 2022" description="Core 5.0.0 · Inbox 4.0.0 · Geofence 1.0.0 — メジャーリリース">
+
+#### Core 5.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android SDK 12.2.05 以上、iOS SDK 8.3.1 以上をサポート
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- `MoEngageFlutter()` → `MoEngageFlutter("YOUR_APP_ID")`
+- `optOutDataTracking(false)` → `enableDataTracking()`、`optOutDataTracking(true)` → `disableDataTracking()`
+- InApp モデル `InAppCampaign` を `InAppData`、`ClickData`、`SelfHandledCampaignData` に分割。`setUpInAppCallbacks` はタイプ別のリスナーに置き換え
+- Push モデルの名前を変更: `PushCampaign` → `PushCampaignData`。プッシュコールバックの名前を変更（`setUpPushCallbacks` → `setPushClickCallbackHandler`）
+- 削除された API: `selfHandledPrimaryClicked()`、`enableSDKLogs()`、`optOutInAppNotification()`、`optOutPushNotification()`、`startGeofenceMonitoring()`
+- Android: Min SDK 21、Target/Compile SDK 30。`MoEInitializer.initialize` → `MoEInitializer.initialiseDefaultInstance`
+- iOS: `MOFlutterInitializer` の名前を `MoEngageInitialize` に変更。従来の初期化メソッドを置き換え
+
+#### Inbox 4.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android SDK 12.2.05 以上、iOS SDK 8.3.1 以上をサポート
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- `MoEngageInbox()` → `MoEngageInbox("YOUR_APP_ID")`
+- Android: Min SDK 21、Target/Compile SDK 30
+
+#### Geofence 1.0.0 — 初回リリース
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS: MoEngageGeofence ~>4.3.0 を使用した初回リリース
+
+</Update>
+
+<Update label="29th July 2022" description="Core v4.2.0 · Inbox v3.2.0">
+
+#### Core v4.2.0
+
+- Flutter 3 をサポート
+- Google のユーザーデータポリシーに従ってデバイス識別子のトラッキングを更新 — 広告 ID はユーザーの同意後にのみトラッキング
+- Android: 11.6.02 以上をサポートするようネイティブ SDK を更新
+
+#### Inbox v3.2.0
+
+- Flutter 3 をサポート
+
+</Update>
+
+<Update label="6th September 2021" description="Core v4.1.0 · Inbox v3.1.0">
+
+#### Core v4.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- HTML InApp をサポート
+- Android: 11.4.00 以上をサポートするようネイティブ SDK を更新
+- iOS: MoEngage-iOS-SDK 7.1.0 以上をサポートするようネイティブ依存関係を更新
+
+#### Inbox v3.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- Android: 11.4.00 以上をサポートするようネイティブ SDK を更新
+
+</Update>
+
+<Update label="21st August 2021" description="Core v4.0.2">
+
+#### Core v4.0.2
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- Android: アプリケーションがバックグラウンドにあるときに SDK API を呼び出すとエラーがスローされる問題
+
+</Update>
+
+<Update label="15th June 2021" description="Core v4.0.1">
+
+#### Core v4.0.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- パースエラーによりプッシュクリックコールバックが失敗する問題
+
+</Update>
+
+<Update label="12th May 2021" description="Core v4.0.0 · Inbox v3.0.0">
+
+#### Core v4.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- null safety に移行（Dart 2.12 以上が必要）
+- Flutter の最小バージョンを 1.17.0 に引き上げ
+- Android: 11.2.00 以上をサポートするようネイティブ SDK を更新
+
+#### Inbox v3.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- null safety に移行（Dart 2.12 以上が必要）
+- Android: 11.2.00 以上をサポートするようネイティブ SDK を更新。ネイティブアーティファクトを `addon-inbox` から `inbox-core` に移行
+
+</Update>
+
+<Update label="28th April 2021" description="Core v3.0.1">
+
+#### Core v3.0.1
+
+- iOS: `MOFlutterInitializer` クラスに Objective-C のサポートを追加。PodSpec のデプロイメントターゲットを iOS 10.0 に設定
+
+</Update>
+
+<Update label="26th February 2021" description="Core v3.0.0 · Inbox v2.0.0">
+
+#### Core v3.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- プラグインが iOS 10.0 以上をサポート
+- Android: 11.0.04 以上をサポートするようネイティブ SDK を更新
+- iOS: MoEngage-iOS-SDK 7.x 以上をサポートするようネイティブ依存関係を更新
+- MoEngage SDK を有効化および無効化する Dart API
+- プッシュトークン生成イベントのコールバックを登録する Dart API
+
+#### Inbox v2.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- iOS SDK 7.x 以上、Android SDK 6.0.2 以上、Native Inbox SDK 6.0.2 以上をサポート
+
+</Update>
+
+<Update label="15th November 2020" description="Core v2.0.2 · Inbox v1.0.2">
+
+#### Core v2.0.2
+
+- Maven Central で公開されているバージョンを使用するよう Android の依存関係を更新
+
+#### Inbox v1.0.2
+
+- Maven Central で公開されているバージョンを使用するよう Android の依存関係を更新
+
+</Update>
+
+<Update label="7th December 2020" description="Core v2.0.2（Android コールバック）">
+
+#### Core v2.0.2
+
+- ネイティブ Android コールバックの拡張をサポート
+- ネイティブ Android SDK バージョン 10.5.00 以上が必要
+
+</Update>
+
+<Update label="30th December 2020" description="Web v0.0.1">
+
+#### Web v0.0.1
+
+- Flutter で MoEngage Web SDK をサポートする初回リリース
+
+</Update>
+
+<Update label="6th November 2020" description="Core v2.0.1 · Inbox v1.0.0">
+
+#### Core v2.0.1
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- `setAppStatus` が他のプラグインチャネルメソッドとともに内部的に呼び出されていた問題
+
+#### Inbox v1.0.0 — 初回リリース
+
+- 初回リリース
+- API: Fetch All Messages、Get Unclicked Count、Track Message Clicked、Delete Message
+
+</Update>
+
+<Update label="23rd October 2020" description="Core v2.0.0 — メジャーリリース">
+
+#### Core v2.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- In-App V3、Self-Handled In-App、Push Templates、Huawei Push Kit をサポート
+- Android: 10.4.03 以上をサポートするよう SDK を更新
+- iOS: 6.0.0 以上をサポートするよう SDK の依存関係を更新
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- `MoEProperties.addInteger/addString/addBoolean/addDouble/addLocation` → `MoEProperties.addAttribute`
+- `onPushClick(Map)` → `onPushClick(PushCampaign)`、`onInAppClick/onInAppShown(Map)` → 型付きモデルオブジェクト
+- `passPushToken(String)` → `passFCMPushToken(String)`、`passPushPayload(Map)` → `passFCMPushPayload(Map)`
+- Android: `MoEInitializer.initialize(MoEngage)` → `MoEInitializer.initialize(Context, MoEngage.Builder)`
+
+</Update>
+
+<Update label="10th February 2020" description="Core v1.1.0">
+
+#### Core v1.1.0
+
+- Android から FCM Push Token と FCM Push Payload を渡すための Dart API を追加
+
+</Update>
+
+<Update label="17th December 2019" description="Core v1.0.1">
+
+#### Core v1.0.1
+
+- サンプルと README を更新。ログ出力を改善
+
+</Update>
+
+<Update label="16th December 2019" description="Core v1.0.0 — 初回リリース">
+
+#### Core v1.0.0
+
+- MoEngage Flutter SDK の初回リリース
+
+</Update>

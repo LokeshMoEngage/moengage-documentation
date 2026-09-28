@@ -1,0 +1,323 @@
+---
+title: "リッチプッシュとインプレッショントラッキングのための iOS 通知拡張機能のセットアップ"
+description: "iOS でプッシュインプレッションのトラッキングとリッチメディア通知を有効にするために必要な設定です。この設定を省略すると、インプレッション指標が欠落し、リッチプッシュが失敗します。"
+---
+
+このガイドのすべての手順は Xcode で実行します。先に進む前に、Xcode で `ios/Runner.xcworkspace` を起動して iOS プロジェクトを開いてください。
+
+このガイドでは、MoEngage の Service Extension と Content Extension を iOS アプリケーションに統合する方法について説明します。これらの拡張機能により、通知インプレッションのトラッキング、リッチメディア（画像、GIF、動画）のサポート、リッチプッシュ通知テンプレートの使用が可能になります。
+
+## Service Extension と Content Extension の統合
+
+これらの拡張機能がない場合、MoEngage はプッシュインプレッションをトラッキングできず、[リッチメディア](https://www.moengage.com/docs/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/gifs-in-push-notifications)通知はプレーンテキストにフォールバックし、[リッチプッシュテンプレート](https://www.moengage.com/docs/user-guide/campaigns-and-channels/mobile-push/create/push-templates)はフォールバックテンプレートでレンダリングされます。
+
+| ユースケース | Service Extension（ステップ 2） | Content Extension（ステップ 3） | MoEngageRichNotification（ステップ 4） | Integrator Tool フラグ |
+| :-- | :-- | :-- | :-- | :-- |
+| プッシュインプレッションのトラッキング | ✅ 必須 | — | — | (default) |
+| プッシュでのリッチメディア（画像、GIF、動画） | ✅ 必須 | — | ✅ 必須 | (default) |
+| MoEngage リッチプッシュテンプレート（カルーセル） | ✅ 必須 | ✅ 必須 | ✅ 必須 | `--enable-push-notification-templates` |
+
+### ステップ 1: 前提条件
+
+先に進む前に、以下が揃っていることを確認してください。
+
+- Extension Integrator Tool を利用するには、MoEngage Flutter SDK バージョン [10.6.0](/ja/release-notes/sdks/flutter#core-10-6-0) 以上を使用していることを確認してください。
+- **SDK の初期化:** [ファイルベースの初期化](/ja/developer-guide/flutter-sdk/sdk-integration/sdk-initialization/file-based-initialization)を使用して MoEngage SDK を初期化します。
+  - **App Group の設定:** `AppGroupName` キー（例: `group.com.organization.app`）を使用して、設定内で App Group を定義します。
+    - この App Group を Xcode の **Signing & Capabilities** に追加します。
+      <Frame>
+        <img
+          src="/images/iOS-1.png"
+          alt="iOS 1"
+          title="iOS 1"
+          style={{ width:"79%" }}
+        />
+      </Frame>
+- 統合が完了すると、コード署名のためにキーチェーンへのアクセスを求められる場合があります。**常に許可** をクリックしてください。
+  <Frame>
+    <img
+      src="/images/keychain.png"
+      alt="キーチェーン"
+      title="キーチェーン"
+      style={{ width:"48%" }}
+      className="mr-auto"
+    />
+  </Frame>
+
+### ステップ 2: Service Extension の設定
+
+Service Extension は、通知インプレッションをトラッキングし、リッチメディアコンテンツをダウンロードします。
+
+1. [App Identifier を作成します](https://developer.apple.com/help/account/identifiers/register-an-app-id): `[appBundleId].[serviceExtensionName].` の形式を使用します。
+   1. `[appBundleId]` をアプリケーション固有のバンドル識別子に置き換えます。
+   2. `[serviceExtensionName]` を任意の名前（デフォルトは _MoEngageNotificationService_）に置き換えます。例 _:_ アプリのバンドル識別子が `com.org.app` で、拡張機能の名前が `NotificationService` の場合、識別子は `com.org.app.NotificationService` になります。
+
+<Info>
+  既存の Notification Service Extension がある場合は、それを再利用できます。新しく作成する必要はありません。[ステップ 5 の Run Script Phase](#step-5-integrate-the-extension-integrator-tool) を設定する際に、`--notification-service-extension-name` フラグを使用してその名前を渡してください。ツールは、カスタムコードを上書きすることなく、必要な MoEngage のロジックを挿入します。
+</Info>
+
+2. 手順 1 で作成した Service Extension の識別子を選択し、**Capabilities** タブを開いて [**App Groups**](https://developer.apple.com/help/account/identifiers/register-an-app-group) を追加します。`AppGroupName` キーと一致する名前を入力します。
+   <Frame>
+     <img
+       src="/images/Appgroup.png"
+       alt="App Group"
+       title="App Group"
+       style={{ width:"57%" }}
+       className="mr-auto"
+     />
+   </Frame>
+3. **プロビジョニングプロファイルの生成:** [Apple Developer Portal](https://developer.apple.com/account/resources/profiles/list) で、手順 1 で作成した識別子用の[新しいプロビジョニングプロファイルを作成](https://developer.apple.com/help/account/provisioning-profiles/create-an-app-store-provisioning-profile)し、ダウンロードします。Xcode でダウンロードするには、メニューバーの **Xcode** をクリックし、**Settings** を選択します。
+   <Frame>
+     <img
+       src="/images/Xcodessettings-2.png"
+       alt="Xcode の設定 2"
+       title="Xcode の設定 2"
+       style={{ width:"57%" }}
+     />
+   </Frame>
+4. **Apple Accounts** セクションに切り替え、Apple デベロッパーアカウントを選択します。Apple Accounts ページで **Download Manual Profiles** を選択します。
+   <Frame>
+     <img
+       src="/images/provisioningprofile-3.png"
+       alt="プロビジョニングプロファイル 3"
+       title="プロビジョニングプロファイル 3"
+       style={{ width:"60%" }}
+     />
+   </Frame>
+
+<Tip>
+  リッチプッシュテンプレートが不要な場合は、ステップ 3 と 4 をスキップして、[ステップ 5: Extension Integrator Tool の統合](#step-5-integrate-the-extension-integrator-tool)に直接進むことができます。
+</Tip>
+
+### ステップ 3: Content Extension の設定（オプション）
+
+Content Extension は、MoEngage のリッチプッシュ通知テンプレートを使用する場合にのみ必要です。
+
+1. [App Identifier を作成します](https://developer.apple.com/help/account/identifiers/register-an-app-id): `[appBundleId].[contentExtensionName].` の形式を使用します。
+   1. `[appBundleId]` をアプリケーション固有のバンドル識別子に置き換えます。
+   2. `[contentExtensionName]` を任意の名前（デフォルトは _MoEngageNotificationContent_）に置き換えます。例\_:\_ アプリのバンドル識別子が `com.org.app` で、拡張機能の名前が `NotificationContent` の場合、識別子は `com.org.app.NotificationContent` になります。
+2. Content Extension の識別子を選択し、**Capabilities** タブを開いて [**App Groups**](https://developer.apple.com/help/account/identifiers/register-an-app-group) を追加します。`AppGroupName` キーと一致する名前を入力します。
+   <Frame>
+     <img
+       src="/images/Appgroup.png"
+       alt="App Group"
+       title="App Group"
+       style={{ width:"57%" }}
+       className="mr-auto"
+     />
+   </Frame>
+3. **プロビジョニングプロファイルの生成:** [Apple Developer Portal](https://developer.apple.com/account/resources/profiles/list) で、手順 1 で作成した識別子用の[新しいプロビジョニングプロファイルを作成](https://developer.apple.com/help/account/provisioning-profiles/create-an-app-store-provisioning-profile)し、ダウンロードします。Xcode でダウンロードするには、メニューバーの **Xcode** をクリックし、**Settings** を選択します。
+   <Frame>
+     <img
+       src="/images/Xcodessettings-3.png"
+       alt="Xcode の設定 3"
+       title="Xcode の設定 3"
+       style={{ width:"50%" }}
+     />
+   </Frame>
+4. **Apple Accounts** セクションに切り替え、Apple デベロッパーアカウントを選択します。Apple Accounts ページで **Download Manual Profiles** を選択します。
+
+<Frame>
+  <img
+    src="/images/provisioningprofile-3.png"
+    alt="プロビジョニングプロファイル 3"
+    title="プロビジョニングプロファイル 3"
+    style={{ width:"60%" }}
+  />
+</Frame>
+
+### ステップ 4: MoEngageRichNotification の統合（オプション）
+
+次のいずれかのプッシュ通知機能をサポートする必要がある場合は、`MoEngageRichNotification` を統合します。
+
+- **リッチメディア** — 通知バナーに画像、GIF、動画を表示する
+- **リッチプッシュテンプレート** — カルーセルなどのインタラクティブな通知レイアウトをレンダリングする
+
+<Info>
+  ステップ 3 で説明した Content Extension を統合している場合、この手順は必須です。
+</Info>
+
+<Tabs>
+  <Tab title="Swift Package Manager (SPM)">
+    SPM を使用して `MoEngageRichNotification` をインストールするには、次の手順を実行します。
+
+    1. **File \> Add Package** に移動します。
+    2. リポジトリの URL を入力します。
+       - `https://github.com/moengage/apple-sdk.git`
+    3. **master** ブランチまたは特定のバージョンを選択し、**Add Package** を選択します。
+    4. パッケージのターゲットをアプリケーションに設定します。
+  </Tab>
+  <Tab title="CocoaPods">
+    <Warning>
+      **お知らせ** CocoaPods は非推奨になりつつあります。MoEngage では、すべての新規統合に Swift Package Manager を使用することをお勧めします。詳細については、[こちら](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration)を参照してください。
+    </Warning>
+
+    1. アプリターゲット内の `Podfile` に次の行を追加します。
+
+    <Info>
+      `moengage_flutter` パッケージには自動リンクによって既に `MoEngage-iOS-SDK` が含まれているため、`RichNotification` サブスペックを追加するだけで済みます。
+    </Info>
+
+    ```ruby lines wrap
+    pod 'MoEngage-iOS-SDK/RichNotification'
+    ```
+
+    2. pod install を実行します。
+
+    ```ruby lines wrap
+     pod repo update
+     pod install
+    ```
+  </Tab>
+</Tabs>
+
+### ステップ 5: Extension Integrator Tool の統合
+
+ビルドプロセスにカスタムスクリプトを追加して、拡張機能の設定を自動化します。
+
+1. Xcode でアプリケーションターゲットを選択し、**Build Phases** に移動して **\+** をクリックし、**New Run Script Phase** を追加します。
+<Frame>
+     <img
+       src="/images/newrunscriptphase.png"
+       alt="New Run Script Phase"
+       title="New Run Script Phase"
+       className="mr-auto"
+       style={{ width:"54%" }}
+     />
+</Frame>
+2. **Input Files** セクションに次のパスを追加します。
+
+- `$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)`
+- `$(INSTALL_DIR)/$(INFOPLIST_PATH)`
+
+<Frame>
+  <img
+    src="/images/path-1.png"
+    alt="パス 1"
+    title="パス 1"
+    style={{ width:"54%" }}
+    className="mr-auto"
+  />
+</Frame>
+
+3. 上の画像の **integrate\_extensions** を置き換えて、使用している依存関係マネージャーに応じたコマンドを入力します。
+
+<Info>
+  既にスクリプトフェーズを追加して入力ファイルを設定している場合は、以下で説明するように実行コマンドを更新するだけで済みます。
+</Info>
+
+<Tabs>
+  <Tab title="Swift Package Manager (SPM)">
+    ```bash Swift Package Manager (SPM) lines wrap
+    case "$ACTION" in
+      install) SPM_ROOT="$OBJROOT/../../../../.." ;;   # xcodebuild archive
+      *)       SPM_ROOT="$OBJROOT/../.." ;;            # build / run from Xcode
+    esac
+    "$SPM_ROOT/SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration" $OPTIONS
+    ```
+  </Tab>
+  <Tab title="CocoaPods">
+    ```bash CocoaPods lines wrap
+    ${PODS_ROOT}/MoEngageExtensionsIntegration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration $OPTIONS
+    ```
+  </Tab>
+</Tabs>
+
+#### 利用可能なオプション
+
+`$OPTIONS` を次の 1 つ以上に置き換えます。
+
+| オプション | 説明 |
+| :-- | :-- |
+| `--enable-push-notification-templates` | ステップ 3 の Content Extension を使用する場合に必須です。 |
+| `--notification-service-extension-name $CUSTOM_SERVICE_EXTENSION_NAME` | Service Extension のカスタム名を設定します。カスタムの Service Extension 実装からこのツールに移行する場合に使用します。（デフォルト: `MoEngageNotificationService`） |
+| `--notification-content-extension-name $CUSTOM_CONTENT_EXTENSION_NAME` | Content Extension のカスタム名を設定します。カスタムの Content Extension 実装からこのツールに移行する場合に使用します。（デフォルト: `MoEngageNotificationContent`） |
+
+### コマンドの例（SPM）
+
+`NotificationService` という名前の Service Extension と `NotificationContent` という名前の Content Extension を統合する場合、SPM の完全なコマンドは次のようになります。
+
+```bash Swift Package Manager (SPM) lines wrap
+case "$ACTION" in
+  install) SPM_ROOT="$OBJROOT/../../../../.." ;;   # xcodebuild archive
+  *)       SPM_ROOT="$OBJROOT/../.." ;;            # build / run from Xcode
+esac
+"$SPM_ROOT/SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration" --enable-push-notification-templates --notification-service-extension-name NotificationService --notification-content-extension-name NotificationContent
+```
+
+4. **サンドボックスの無効化:** アプリケーションターゲットの **Build Settings** で、**USER\_SCRIPT\_SANDBOXING** を **No** に設定します。
+   <Frame>
+     <img
+       src="/images/UserScriptsandboxing.png"
+       alt="User Script Sandboxing"
+       className="mr-auto"
+       title="User Script Sandboxing"
+     />
+   </Frame>
+
+## Extension Integrator Tool への移行
+
+既存の手動実装から Integrator Tool に移行するには、[こちら](/ja/developer-guide/flutter-sdk/push/basic/integrating-moengage-service-and-content-extension-in-ios/migrating-to-the-extension-integrator-tool)を参照してください。
+
+## トラブルシューティングと FAQ
+
+<AccordionGroup>
+  <Accordion title="Integrator Tool がエラーを返しました。どのように解決すればよいですか？">
+    詳細については、ビルドログを確認してください。
+
+    <Frame>
+      <img
+        src="/images/errorlogs.png"
+        alt="エラーログ"
+        title="エラーログ"
+        style={{ width:"79%" }}
+        className="mr-auto"
+      />
+    </Frame>
+
+    一般的な原因は次のとおりです。
+
+    - **統合の誤り:** セットアップが [Service Extension と Content Extension の統合](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial)ガイドに従っていません。
+    - **設定の欠落:** `Info.plist` に必要な MoEngage の設定オプションがありません。
+    - **App Group の不一致:** `Info.plist` で指定された `AppGroupName` が、Service Extension と Content Extension のバンドル識別子の capabilities、またはアプリケーションの entitlements に含まれていません。
+    - **環境の不一致:** プロビジョニングプロファイルが特定のビルド環境用に作成されていません（例: App Store ビルドの生成時に Development プロファイルを使用している）。
+    - **カスタムディレクトリの問題:** プロビジョニングプロファイルがデフォルトの Xcode ディレクトリに保存されていません。カスタムパスを渡すには、[追加の設定用ビルド設定](#troubleshooting-and-faqs)を使用してください。
+    - **証明書の問題:** プロビジョニングプロファイルの生成時に、証明書の設定が欠落しているか誤っています。
+    - **プロファイルの有効期限切れ:** プロビジョニングプロファイルの有効期限が切れています。プロファイルを再生成して再ダウンロードする必要があります。
+  </Accordion>
+
+  <Accordion title="Service Extension と Content Extension の両方を統合する必要がありますか？">
+    いいえ。Service Extension は、通知インプレッションのトラッキングとリッチメディア（画像/GIF/動画）のダウンロードに必須です。Content Extension は、MoEngage のインタラクティブな _リッチプッシュテンプレート_（カルーセルやカスタムボタンレイアウトなど）を使用する場合にのみ必要です。
+  </Accordion>
+
+  <Accordion title="「App Group」の設定が必須なのはなぜですか？">
+    iOS の拡張機能は、メインアプリケーションとは別のサンドボックスで実行されます。**App Group** は共有コンテナを作成し、メインアプリ内の MoEngage SDK が認証トークン、ユーザーデータ、ローカルストレージを拡張機能と共有できるようにします。これがないと、拡張機能はユーザーを検証したり、インプレッションを正しくトラッキングしたりできません。
+  </Accordion>
+
+  <Accordion title="Build Settings で「User Script Sandboxing」を無効にする必要があるのはなぜですか？">
+    **Extension Integrator Tool** は、標準の Xcode サンドボックス外のシステムフォルダーにあるプロジェクトのビルド成果物とプロビジョニングプロファイルにアクセスする必要があります。`ENABLE_USER_SCRIPT_SANDBOXING` が **Yes** に設定されていると、スクリプトがブロックされ、ビルドフェーズ中に「Permission Denied」エラーが発生します。
+  </Accordion>
+
+  <Accordion title="このツールで複数のビルド環境（Dev/Staging/Prod）を扱うにはどうすればよいですか？">
+    追加のビルド設定を使用して、ローカルビルドと CI ビルドの両方で Integrator Tool に特定の設定入力を提供できます。
+
+    - **`MOENGAGE_EXTENSION_PROFILES_SEARCH_PATHS`:** プロビジョニングプロファイルを検索する追加のフォルダーを指定するために使用します。デフォルトでは、ツールは標準の Xcode ディレクトリを検索します。
+      - `~/Library/Developer/Xcode/UserData/Provisioning Profiles`
+      - `~/Library/MobileDevice/Provisioning Profiles` プロビジョニングプロファイルがこれらのフォルダーにない場合は、このビルド設定で追加のパスを指定してください。
+    - **`MOENGAGE_NOTIFICATION_SERVICE_EXTENSION_PROFILE`:** Notification Service Extension のプロビジョニングプロファイルのファイル名を明示的に指定します。ツールはプロビジョニングプロファイルを検索する代わりに、このファイル名を使用します。プロファイルは上記のいずれかのフォルダーに存在する必要があります。ツールが正しいプロビジョニングプロファイルを選択できない場合に、このオプションを使用してください。
+    - **`MOENGAGE_NOTIFICATION_CONTENT_EXTENSION_PROFILE`:** Notification Content Extension のプロビジョニングプロファイルのファイル名を明示的に指定します。ツールはプロビジョニングプロファイルを検索する代わりに、このファイル名を使用します。プロファイルは上記のいずれかのフォルダーに存在する必要があります。ツールが正しいプロビジョニングプロファイルを選択できない場合に、このオプションを使用してください。
+  </Accordion>
+
+  <Accordion title="リッチメディアが通知に表示されません。何が問題ですか？">
+    これは通常、次の 3 つの技術的なギャップのいずれかに起因します。
+
+    1. **App Group の不一致:** `Info.plist` 内の `AppGroupName` の文字列が Entitlements ファイルと完全に一致していることを確認してください。
+    2. **ペイロードのタイムアウト:** iOS は拡張機能にメディアをダウンロードするための約 30 秒を与えます。アセットが大きすぎる場合やネットワークが遅い場合は、プレーンテキストにフォールバックします。
+  </Accordion>
+
+  <Accordion title="このツールはカスタムの Derived Data パスや CI/CD で動作しますか？">
+    はい。ステップ 5 のスニペットの `case "$ACTION"` ブロックはすべてのビルドアクションに対応しているため、記載どおりに使用してください。
+
+    CI 環境で、パスの解決を妨げるカスタムの Derived Data またはビルドディレクトリを使用している場合は、代わりに `moengage-extensions-integration` バイナリへの絶対パスを指定してください。
+  </Accordion>
+</AccordionGroup>

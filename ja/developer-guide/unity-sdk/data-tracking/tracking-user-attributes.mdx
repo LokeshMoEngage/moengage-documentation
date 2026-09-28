@@ -1,0 +1,254 @@
+---
+title: "ユーザー属性のトラッキング"
+description: "MoEngage Unity SDK を使用して、ユーザー属性をトラッキングし、ログインおよびログアウトの状態を管理します。"
+---
+
+import IdentifyUserNetworkFailure from '/ja/snippets/identify-user-network-failure.mdx';
+
+ユーザー属性とは、ユーザーについて把握している情報のことです。年齢や性別などの人口統計情報、プランなどのアカウント固有の情報、あるいはユーザーが特定の A/B テストのバリエーションを見たかどうかといった情報も含まれます。何を設定するかは自由です。基本的には、顧客のライフタイム全体を通じて参照できる顧客 ID です。
+
+# ログイン/ログアウトの実装
+
+- ユーザーがアプリにログインしたときに、ユーザー属性の Unique ID を設定することが重要です。
+- これにより、新しいユーザーを既存のユーザー（存在する場合）とマージし、不要なユーザーや古いユーザーの作成を防ぐことができます。
+- Unique ID の設定は、デバイス間、インストール/アンインストール間、およびすべてのプラットフォーム（iOS、Android、Windows、Web）間でユーザーを紐付けるために不可欠です。ユーザーが **ログイン** したらすぐに **USER_ATTRIBUTE_UNIQUE_ID** 属性を設定してください。Unique ID には、メール ID、ユーザー名（一意のもの）、データベース ID、またはバックエンドで生成された ID などを使用できます。
+- ログインしていないユーザーには設定しないでください。
+
+## ログイン
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.IdentifyUser("UNIQUE ID");
+```
+
+</CodeGroup>
+
+**注意：** UniqueID フィールドでは次の値は使用できません："unknown"、"guest"、"null"、"0"、"1"、"true"、"false"、"user_attribute_unique_id"、"(empty)"、"na"、"n/a"、""、"dummy_seller_code"、"user_id"、"id"、"customer_id"、"uid"、"userid"、"none"、"-2"、"-1"、"2"
+
+### 単一の ID を設定する
+
+単一のユーザー識別子を設定するには、`MoEngageClient.IdentifyUser()` を使用します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.IdentifyUser("UNIQUE_ID"); // Pass any unique value for your user
+```
+
+</CodeGroup>
+
+### 複数のユーザー ID を設定する
+
+複数のユーザー ID を一度に設定するには、ディクショナリを指定して `MoEngageClient.IdentifyUser()` を使用します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+
+var identities = new Dictionary<string, string> {
+    { "uniqueId", "UNIQUE_ID" },
+    { "email", "user@example.com" },
+    { "mobile", "+911234567890" }
+};
+MoEngageClient.IdentifyUser(identities);
+```
+
+</CodeGroup>
+
+<IdentifyUserNetworkFailure />
+
+詳細については、以下を参照してください。
+
+- [SDK の有効化/無効化](/ja/developer-guide/unity-sdk/compliance/compliance#enabledisable-sdk)
+- [データトラッキングのオプトアウト](/ja/developer-guide/unity-sdk/compliance/compliance#opt-out-of-data-tracking)
+
+## ログアウト
+
+ユーザーがアプリケーションからログアウトするたびに、アプリケーションは MoEngage SDK に通知する必要があります。SDK に通知するには、ユーザーがアプリケーションからログアウトするたびに API を呼び出します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.Logout();
+```
+
+</CodeGroup>
+
+アプリケーションがプッシュトークンを登録している場合は、ユーザーのログアウト後に新しいプッシュトークンを MoEngage SDK に渡す必要があります。プッシュトークンの受け渡しの詳細については、[Android SDK の Push 設定](/ja/developer-guide/android-sdk/push/basic/push-configuration) を参照してください。
+
+### ログアウト完了コールバック
+
+ログアウト完了時にコールバックを受け取るには、`MoECoreHelper.addLogoutCompleteListener()` を使用してリスナーを登録します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+
+MoEGameObject.LogoutCompleteCallback += LogoutCompleteCallback;
+
+public void LogoutCompleteCallback(object sender, LogoutCompleteData data) {
+    Debug.Log("LogoutCompleteCallback() : platform=" + data.platform + " appId=" + data.accountMeta.appId);
+}
+```
+
+</CodeGroup>
+
+<Info>
+  **ユーザー識別とセッション管理に関する SDK 関数の更新**
+
+  - **強制ログアウト：** MoEngage SDK は、デバイス上で新しいユーザーが検出されたときに、以前のユーザーを自動的にログアウトしなくなりました。Identity resolution が有効になっているワークスペースでは、データの破損を防ぐために、ログアウトを明示的に呼び出す必要があります。
+  - **SetUniqueID：** `identifyUser` 関数は複数の識別子をサポートしているため、ユーザー識別に `SetUniqueID` 関数を使用する必要はなくなりました。`SetUniqueID` は今後の SDK バージョンのリリースで削除される予定です。特にワークスペースで Identity resolution を使用している場合は、代わりに `identifyUser` を使用することが重要です。
+  - **SetAlias：** Identity resolution 機能が有効になっているワークスペースでは、MoEngage SDK は以前の識別子の値を保存します。`identifyUser` 関数を使用して新しい識別子の値をトラッキングすると、MoEngage SDK は識別子の値の変更を検出し、それに応じてレポートします。
+
+  ログアウトせずに `identifyUser` 関数を呼び出すと、既存のログインユーザーの ID が更新されます。
+</Info>
+
+異なる識別子名で `identifyUser()` を複数回呼び出すと、SDK はその識別子を既に設定されている識別子に追加します。
+
+## ユーザー属性の Unique Id を更新する
+
+ユーザー属性の Unique Id を更新するには、異なる値で _IdentifyUser()_ を使用するのではなく、_setAlias()_ メソッドを使用してください。新しい値で _IdentifyUser()_ メソッドを使用すると、MoEngage に意図しないユーザーが作成されます。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.SetAlias("Updated Unique Id");
+```
+
+</CodeGroup>
+
+<Warning>
+  Unique Identifier の更新には、**IdentifyUser()** ではなく必ず **SetAlias()** を使用してください。新しい値で **IdentifyUser()** を呼び出すと、現在のユーザーがリセットされ、システム内に意図しないユーザーが作成されます。
+</Warning>
+
+# ユーザー属性のトラッキング
+
+SDK には、名、姓、メール ID など、一般的にトラッキングされるユーザー属性をトラッキングするための API が用意されています。これらの属性をトラッキングするには、提供されているメソッドを使用してください。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+
+MoEngageClient.SetFirstName("First Name");
+MoEngageClient.SetLastName("Last Name");
+MoEngageClient.SetEmail("Email");
+MoEngageClient.SetPhoneNumber("Phone number");
+MoEngageClient.SetGender(MoEUserGender.MALE); // MoEUserGender.FEMALE
+MoEngageClient.SetUserLocation(new GeoLocation(23, 44));
+MoEngageClient.SetBirthdate("2020-01-02T08:26:21.170Z"); // ISO Format : yyyy-MM-dd'T'HH:mm:ss.fff'Z'
+```
+
+</CodeGroup>
+
+その他のユーザー属性を設定するには、汎用メソッド **SetUserAttribute(key, value)** を使用できます。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.SetUserAttribute(key, value);
+```
+
+</CodeGroup>
+
+## 日付をユーザー属性としてトラッキングする
+
+**ISO 日付**
+
+ISO 8601 文字列を使用して日付属性をトラッキングするには、`SetUserAttributeISODate()` を使用します。\
+日付形式：`yyyy-MM-dd'T'HH:mm:ss.fff'Z'`
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.SetUserAttributeISODate("userAttrDate", "2019-01-02T08:26:21.170Z");
+```
+
+</CodeGroup>
+
+**エポック時間**
+
+Unix エポックタイムスタンプ（ミリ秒）を使用して日付属性をトラッキングするには、`SetUserAttributeEpochTime()` を使用します。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.SetUserAttributeEpochTime("userAttrDate", 1546417581170L);
+```
+
+</CodeGroup>
+
+## 位置情報をユーザー属性としてトラッキングする
+
+位置情報をユーザー属性としてトラッキングするには、**_SetUserAttributeLocation()_** を使用します。この API は、属性名と座標を表す **_GeoLocation_** のインスタンスを入力として受け取ります。\
+例：
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+MoEngageClient.SetUserAttributeLocation("bangalore", new GeoLocation(23, 44));
+```
+
+</CodeGroup>
+
+## カスタムブール型ユーザー属性
+
+### iOS（オプション）
+
+MoEngage.unityPackage のバージョン 4.x.x 以降、カスタムブール属性のデフォルトのトラッキングは **_double(0/1)_** から **_bool(true/false_**) に変更されます。これを設定するには、以下に示すように MoGameObject スクリプトの **_should Track Boolean As Number_** 変数を有効にすると、ブール値を double としてトラッキングできます。デフォルトでは **_無効_** になっており、ブール値は true/false としてトラッキングされます。
+
+<Frame>
+  ![ユーザー属性のトラッキング](/images/TrackingUserAttributes.png)
+</Frame>
+
+ブール型ユーザー属性をトラッキングするには、以下のサンプルコードを参照してください。
+
+<CodeGroup>
+
+```c# c#
+using MoEngage;
+// If `should Track Boolean As Number` is passed as true then `boolean attribute True` will tracked with value 1 else true
+MoEngageClient.SetUserAttribute("boolean attribute true",true);
+    
+// If `should Track Boolean As Number` is passed as true then `boolean attribute false` will tracked with value 0 else false
+MoEngageClient.SetUserAttribute("boolean attribute false",false);
+```
+
+</CodeGroup>
+
+## ユーザー属性の予約キーワード
+
+以下は、ユーザー属性のトラッキング時に使用してはいけないキーの一覧です。
+
+- USER_ATTRIBUTE_UNIQUE_ID
+- USER_ATTRIBUTE_USER_EMAIL
+- USER_ATTRIBUTE_USER_MOBILE
+- USER_ATTRIBUTE_USER_NAME
+- USER_ATTRIBUTE_USER_GENDER
+- USER_ATTRIBUTE_USER_FIRST_NAME
+- USER_ATTRIBUTE_USER_LAST_NAME
+- USER_ATTRIBUTE_USER_BDAY
+- USER_ATTRIBUTE_NOTIFICATION_PREF
+- USER_ATTRIBUTE_OLD_ID
+- MOE_TIME_FORMAT
+- MOE_TIME_TIMEZONE
+- USER_ATTRIBUTE_DND_START_TIME
+- USER_ATTRIBUTE_DND_END_TIME
+- MOE_GAID
+- INSTALL
+- UPDATE
+- MOE_ISLAT
+- status
+- user_id
+- source

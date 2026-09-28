@@ -1,0 +1,82 @@
+---
+title: "ランディングページ上の複数の CTA のパフォーマンスを分析する方法"
+description: "一意の Widget ID を割り当てて、MoEngage ランディングページ内の個々のボタンや CTA のクリックを追跡し、クリックレベルの詳細な分析を行います。"
+---
+
+# はじめに
+
+ランディングページでのユーザーインタラクションを理解することは、コンバージョンを最適化するうえで重要です。MoEngage はデフォルトでランディングページのクリックデータを集計しますが、特に複数のボタンや Call-to-Action (CTA) がある場合は、より詳細なインサイトが必要になることがよくあります。この記事では、各ボタンに一意の識別子（Widget ID）を割り当てることで、単一のランディングページ内の個々のボタンのクリックを追跡する方法について説明します。
+
+#### メリット
+
+- **詳細なユーザーインタラクションのインサイト**: ページ全体の集計クリック数だけでなく、ユーザーがクリックしている特定のボタンや Call-to-Action (CTA) を正確に確認することで、ユーザー行動をより深く理解できます。
+- **効果的な CTA パフォーマンスの比較**: 一意の widget\_id に関連付けられたクリック数を分析することで、同じランディングページ上の異なるボタンのパフォーマンスを直接比較できます。
+- **パフォーマンスの高い要素の特定**: ユーザーの関心を引き、エンゲージメントを促進するうえで最も効果的な CTA を正確に特定し、最も効果のある要素に注力できます。
+- **データに基づくランディングページの最適化**: 特定のボタンのクリックデータを使用して、ランディングページのデザイン、レイアウト、コピーについて情報に基づいた意思決定を行い、最終的にページ全体のパフォーマンスとコンバージョン率を向上させます。
+- **コンバージョン戦略の改善**: ユーザーが好む特定のオファーや導線（ボタンのクリックで示される）を理解することで、マーケティングとコンバージョンの戦略全体を改善できます。
+
+# 期待される結果
+
+以下の手順を実装すると、MoEngage ランディングページ上の特定のボタンごとにクリックを区別して追跡できます。これにより、MoEngage Analytics で landing page clicked イベントに関連付けられた widget\_id 属性を使用して、ユーザーがどのボタンを操作しているかを正確に確認でき、ユーザー行動をより効果的に分析できます。
+
+<Tip>
+  - MoEngage の Landing Pages 機能にアクセスできることを確認してください。アクセスできない場合は、MoEngage の Customer Success Manager (CSM) またはサポートチームに連絡して、アカウントで有効にしてください。
+  - ボタンでクリック追跡を機能させるには、ボタンの設定で URL が割り当てられている必要があります。追跡するすべてのボタンに遷移先 URL が設定されていることを確認してください。
+</Tip>
+
+これは、主に次の 2 つのステップで実現します。
+
+- [ステップ 1: ボタンに一意の Widget ID を割り当てる](#step-1-assign-unique-widget-ids-to-buttons)
+- [ステップ 2: MoEngage Analytics でクリックを分析する](#step-2-analyze-clicks-in-moengage-analytics)
+
+# ステップ 1: ボタンに一意の Widget ID を割り当てる
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Content** をクリックし、**Landing pages** をクリックします。 <img alt="Screenshot 2025-04-07 at 2.41.43 PM.png" src="/images/moengage_785f19.png" />
+2. Landing pages ページで **Create landing page** をクリックします。
+3. 識別と管理を容易にするためにランディングページの名前を入力し、分類するための適切なタグを選択します。
+4. **Content** セクションで、事前にデザインされたテンプレートオプションから目的のテンプレートを選択します。 <img src="/images/moengage_de3200.png" alt="2025-04-07_14-47-01 (1).gif" />
+5. ランディングページエディターで、個別に追跡したい特定のボタンをクリックします。
+6. ボタンの設定パネルで、**Settings** アイコンをクリックします。 <img src="/images/moengage_b8c16c.png" alt="2025-04-07_15-00-57 (1).gif" />
+7. **Advanced** セクションをクリックします。
+8. **Custom Attributes** フィールドに _onclick_ 属性を追加する必要があります。次のように入力し、_'YOUR\_UNIQUE\_WIDGET\_ID'_ をその特定のボタンを表すわかりやすい ID（例: _'header\_apply\_now_', 'header\_apply\_now'）に置き換えます。\
+   `onclick: "Moengage.landingPages.trackClick(lp_context,'YOUR_UNIQUE_WIDGET_ID');"`
+   - **Apply Now** ボタンの例: `onclick: "Moengage.landingPages.trackClick(lp_context, 'apply_now');"`
+   - **Learn More** ボタンの例: `onclick: "Moengage.landingPages.trackClick(lp_context, 'learn_more_featureX');"` <img src="/images/moengage_9d810e.png" alt="2025-04-07_15-07-38 (1).gif" />
+
+   <Warning>
+   最初の引数には、必ず示されているとおりに `lp_context` を渡してください。手動で作成したオブジェクトに置き換えないでください。手動のオブジェクトで追跡されたクリックはユーザープロファイルには表示されますが、ランディングページの統計にはカウントされません。詳細については、[JavaScript Bridge for On-Site Messaging and Landing Pages](/ja/developer-guide/components-for-sdk/javascript-bridge/javascript-bridge-for-on-site-messaging-and-landing-pages) を参照してください。
+   </Warning>
+
+9. 個別のクリック追跡が必要なページ上のすべてのボタンについて、手順 5～8 を繰り返します。
+10. ランディングページの URL と設定を構成します。詳細については、[こちら](/ja/user-guide/content/landing-pages/create/create-a-landing-page)を参照してください。
+11. **Publish** をクリックしてランディングページを公開します。
+
+ユーザーが更新されたランディングページの操作を開始したら、MoEngage Analytics を使用してクリックを分析します。
+
+# ステップ 2: MoEngage Analytics でクリックを分析する
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Analyze** をクリックし、**Behaviour** をクリックします。
+2. **Events & filters** セクションで、_landing page clicked_ イベントを選択します。
+3. **\+ Attributes** をクリックして、イベント属性のフィルターを追加します。
+4. 属性リストから _landing page ID_ を選択し、ランディングページを選択します。
+5. 特定のボタンのクリックを表示するには、イベント属性 _widget\_id_ の別のフィルターを追加し、ステップ 1 でそのボタンに割り当てた一意の ID（例: _fashion_）を入力します。 <img src="/images/moengage_7e8b42.png" alt="2025-04-08_10-50-31.png" />
+6. **Filter users** セクションで **All users** を選択します。
+7. **Behavior Options** セクションで、**Analysis type** として _Total events_ を選択します。
+8. 分析する期間を選択します。 <img src="/images/moengage_544755.png" alt="Screenshot 2025-04-08 at 11.01.20 AM.png" />
+9. **Apply** をクリックします。
+10. レポートがチャートと表の形式で生成されます。そのランディングページ上の特定のボタンのクリック数が表示されます。 <img src="/images/moengage_293720.png" alt="Screenshot 2025-04-08 at 11.11.14 AM.png" />
+
+Behavior Analysis の詳細については、[こちら](/ja/user-guide/analyze/analytics/behavior/behavior-analysis)を参照してください。異なる _widget\_id_ の値を分析して、さまざまなボタンのパフォーマンスを比較できます。
+
+# 検証
+
+個々のボタンのクリック追跡が正しく機能していることを確認するには、次の手順を実行します。
+
+1. 公開したランディングページに自分でアクセスします。
+2. 一意の _widget\_id_ を設定したボタンをクリックします。
+3. MoEngage がイベントを処理するまで数分待ちます。
+4. [ステップ 2](#step-2-analyze-clicks-in-moengage-analytics) の手順に従って、定義した対応する _widget\_id_ 属性とともに landing page clicked イベントが表示されるかどうかを確認します。
+
+# まとめ
+
+この記事では、各ボタンに一意の _widget\_id_ を含むカスタム _onclick_ 属性を追加して、MoEngage ランディングページで個々のボタンの追跡を設定しました。この方法により、ユーザーインタラクションを詳細に分析でき、どの CTA が最も効果的かを把握して、ランディングページのデザインを最適化し、パフォーマンスを向上させることができます。

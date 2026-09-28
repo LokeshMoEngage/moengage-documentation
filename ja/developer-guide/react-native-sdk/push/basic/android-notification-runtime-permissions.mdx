@@ -1,0 +1,77 @@
+---
+title: "Android 通知のランタイム権限"
+description: "MoEngage SDK を使用して、React Native アプリで Android 13 の通知ランタイム権限を処理します。"
+---
+
+Android 13（API レベル 33）以降では、アプリから[除外対象外](https://developer.android.com/develop/ui/views/notifications/notification-permission#exemptions)（フォアグラウンドサービス（FGS）を含む）の通知を送信するための[ランタイム権限](https://developer.android.com/guide/topics/permissions/overview#runtime) [POST\_NOTIFICATIONS](https://developer.android.com/reference/android/Manifest.permission#POST_NOTIFICATIONS) がサポートされています。この変更により、ユーザーは自分にとって最も重要な通知に集中できるようになります。
+
+詳細については、[公式ドキュメント](https://developer.android.com/develop/ui/views/notifications/notification-permission)を参照してください。
+
+以下の API は、MoEngage コア Android SDK バージョン **12.3.01** 以降でサポートされています。
+
+アプリケーションが Android 13 で実行され、ユーザーに通知を表示したい場合は、ユーザーに通知権限をリクエストする必要があります。方法は 2 つあります。MoEngage に権限の処理を任せるか、独自のコードで通知権限を処理するかです。
+
+* MoEngage が通知権限を処理する場合
+	+ このページに記載されている 1 行のコードを呼び出すだけです。
+* 通知権限のロジックを自分で管理する場合
+	+ プッシュ通知の権限が付与されたら、MoEngage SDK に通知します。
+
+プッシュ通知の権限は MoEngage に処理を任せることをお勧めします。
+
+## MoEngage SDK に通知権限を処理させる
+
+MoEngage SDK には、エンドユーザーに権限リクエストを表示したり、通知を有効にするための設定画面にユーザーを移動させたりするヘルパー API が用意されています。
+
+ユーザーに権限リクエストダイアログを表示するには、以下の API を使用します。
+
+以下の API を使用すると、SDK は上記のとおり、応答の自動トラッキングや必要な通知チャネルのセットアップなどを行います。
+
+<CodeGroup>
+```java JavaScript
+import ReactMoE from 'react-native-moengage'
+ReactMoE.requestPushPermissionAndroid()
+```
+
+</CodeGroup>
+
+## 権限リクエストの結果を SDK に通知する
+
+アプリケーションがユーザーに通知権限をリクエストしたら、以下の API を使用してユーザーの応答を SDK に通知します。*MoEngage SDK に通知権限の処理を任せている場合は、この手順を省略してください。*
+
+<CodeGroup>
+```java JavaScript
+import ReactMoE from 'react-native-moengage'
+ReactMoE.pushPermissionResponseAndroid(true);
+```
+
+</CodeGroup>
+
+## 権限リクエスト回数の更新（任意）
+
+アプリケーションがユーザーに通知権限をリクエストしたら、リクエストの試行回数を SDK に通知します。 
+
+**SDK が権限リクエストの試行回数を必要とする理由**
+
+SDK は、権限リクエストが試行された回数を正確にトラッキングするために試行回数を必要とします。ユーザーが権限リクエストを 2 回拒否すると、アプリケーション/SDK はそれ以上権限をリクエストできなくなります。つまり、権限をリクエストしても、ユーザーにリクエストダイアログが表示されることなく自動的に拒否されます。SDK ではユーザーが権限を拒否した回数を確実に把握できないため、試行回数に基づいて権限リクエストの呼び出しを最適化しています。
+
+<CodeGroup>
+```java JavaScript
+import ReactMoE from 'react-native-moengage'
+ReactMoE.updatePushPermissionRequestCountAndroid(requestCount);
+```
+
+</CodeGroup>
+
+## 通知設定への移動（状況に応じて/任意）
+
+デバイス上のアプリケーションの通知設定にユーザーを移動させるには、以下の API を使用します。
+
+*注*: Android 8（API レベル 26）未満では、ユーザーはアプリケーションの「アプリ情報」画面に移動します。
+
+<CodeGroup>
+```java JavaScript
+import ReactMoE from 'react-native-moengage'
+ReactMoE.navigateToSettingsAndroid()
+```
+
+</CodeGroup>

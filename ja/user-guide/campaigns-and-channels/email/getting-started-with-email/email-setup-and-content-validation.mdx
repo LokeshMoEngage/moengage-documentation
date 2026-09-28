@@ -1,0 +1,166 @@
+---
+title: "メール設定とコンテンツの検証"
+description: "キャンペーンのテスト、認証の確認、SSL ブランドリンクのチェック、配信統計の確認によって、MoEngage のメール設定を検証します。"
+---
+
+メールの設定が完了したら、次の手順を実行してダッシュボードで行った設定を検証します。
+
+- [自分宛てにテストキャンペーンを公開する](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation#publish-a-test-campaign-to-yourself)
+- [コンプライアンスチェック](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation#compliance-check)
+- [SSL ブランドリンクの検証](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation#verify-ssl-branded-links)
+- [配信停止リンクのテスト](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation#test-the-unsubscribe-link)
+- [統計の検証](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation#stats-validation)
+
+## 自分宛てにテストキャンペーンを公開する
+
+メール設定を確認するためのテスト (認証テスト、配信停止リンクのテスト、統計の検証など) を実行するには、まず自分宛てにテストメールキャンペーンを公開する必要があります。以下の手順に従って、自分宛てにテストメールキャンペーンを送信します。
+
+1. MoEngage Dashboard で **Segment** \> **User Imports** に移動し、**Import Users** をクリックします。
+2. 自分のメールアドレスを含む CSV ファイルをアップロードします。
+   - @gmail.com または G-Suite でホストされているメールアドレスを含めてください。
+   - CSV ファイルをアップロードする際は、**Select user type** で **Anonymous users** を選択する必要があります。詳細については、[ユーザーデータのインポート](/ja/user-guide/data/imports/manual-uploads)を参照してください。  
+      <img alt="anonymous user.png" src="/images/moengage_097766.png" />
+   - **Map columns** で、**Email** 列を既存のプロファイル属性 **Email (Standard)** にマッピングする必要があります。  
+      <img alt="map email.png" src="/images/moengage_aa2c2c.png" />
+3. カスタムセグメントを作成し、**test\_email\_settings** として保存します。詳細については、[カスタムセグメント](/ja/user-guide/segment/create-segments/manage-segments)を参照してください。
+4. テストメールキャンペーンを作成し、上記で作成したカスタムセグメントに送信します。詳細については、[メールキャンペーンの作成](/ja/user-guide/campaigns-and-channels/email/create/create-an-email-campaign)を参照してください。
+   - メール本文には一般的な任意のコンテンツを含めることができますが、通常のリンクと配信停止リンクを必ず含めてください。
+   - 配信停止リンクには適切な置換タグを使用できます。**Unsubscribe Settings** セクションで配信停止オプションが **None** に設定されている場合、配信停止リンクは追加できません。
+
+## コンプライアンスチェック
+
+### ステップ 1: 自分宛てにテストキャンペーンを公開する
+
+自分宛てにテストキャンペーンを公開するには、上記の[セクション](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation#publish-a-test-campaign-to-yourself)を参照してください。
+
+### ステップ 2: テストメールのヘッダーを開く
+
+自分宛てに送信したテストメールキャンペーンを開き、次の画像のように **Show Original** をクリックします。
+
+<img alt="Auth 1.png" src="/images/moengage_5f807c.png" />
+
+### ステップ 3: コンプライアンスに必要なヘッダーを確認する
+
+表示された HTML ページで、コンプライアンスに必要な以下のヘッダーを探します。
+
+- **Authentication-Results** を検索します:  
+  - 結果に [SPF](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-glossary#spf)、[DKIM](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-glossary#dkim)、[DMARC](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-glossary#dmarc) が含まれている必要があります。
+  - 3 つすべて (SPF、DKIM、DMARC) の結果が PASS である必要があります。
+  - ドメインのなりすましを防ぐには、厳格な [DMARC](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-glossary#dmarc) を追加します。  
+
+    ``` text Code wrap
+    Authentication-Results: atlas-production.v2-mail-prod1-gq1.omega.yahoo.com;
+    dkim=pass header.i=@moenews.moengage.com header.s=pmt;
+    dkim=pass header.i=@sendgrid.info header.s=smtpapi;
+    spf=pass smtp.mailfrom=pmt.moenews.moengage.com;
+    dmarc=pass(p=REJECT,sp=REJECT) header.from=moenews.moengage.com;
+    ```
+    <Info>
+    まずは p=none; sp=none ポリシーから始めることができます。レポートを DMARC モニタリングツールに送信してください。モニタリングして認証を修正し、徐々に 100% 厳格な DMARC を適用していきます。
+    </Info>
+- **Received: from** を検索します
+
+  - IP とその正引き DNS が表示されます。
+  - Gmail は、有効な正引きおよび逆引き DNS のない IP から送信されたメールを拒否します。
+  - 同じ **Received: from** で、TLS のバージョンも確認できます。  
+
+    ``` text Code wrap
+    Received: from o1704.dba.appalerts.moengage.com (o1704.dba.appalerts.moengage.com [159.183.136.128])
+    by mx.google.com with ESMTPS id af79cd13be357-794b4bb4bb4si515498585a.305.2024.05.27.08.36.30
+    for <john.doe@example.com>
+    (Version=TLS1_3 cipher =TLS_AES_128_GCM_SHA256 bits=128/256);
+    ```
+- **List-Unsubscribe** を検索します:  
+  次の 2 つのヘッダーが表示される必要があります。
+  - **List-Unsubscribe: `<>`**
+    - HTTPS URL が含まれている必要があります。
+  - **List-Unsubscribe-Post: List-Unsubscribe=One-Click**
+    - これは静的で固定です。  
+
+      ``` text Code wrap
+      List-Unsubscribe: <mailto:unsubscribe@pmt.moenews.moengage.com?subject=https://link.moengage.com/ss/su/u001.RTpx4EJS3-0i5gtpC9vtzQ/46p/J0qQyBvRRTKjhs4UuGOTOg/um/h001.tuKCex1vFwY4ol0fZjDCDM0mCya9o04aOtlc0YJeIfE>,<https://link.moengage.com/lu/unsubscribe?oc=u001.5y6sKFQeHCQG7JHncsOumERtTWcPPtilX9ReiM5Pod4PrlY4NMFtC-6Cx4CSsG7OajrnrjuWS9Op-V-Lj3P0ZAr5FA0PgszKwHfIvy9Wf4mHnvOK5S2IsKem3HbsanLWdJRcbHCuBg0jF7BS5A-5IfCd5aSkqitXAiofUonUDxyfjHfn6nlwk7okVFXUWu-Et1n5vHH06Hb35K8MIvuKNQ>
+      List-Unsubscribe-Post: List-Unsubscribe=One-Click
+      ```
+
+## SSL ブランドリンクを検証する
+
+この検証は、リンクが保護されているかどうかを確認するために必要です。
+
+### ステップ 1: 自分宛てにテストキャンペーンを公開する
+
+自分宛てにテストキャンペーンを公開するには、上記の[セクション](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation#publish-a-test-campaign-to-yourself)を参照してください。
+
+### ステップ 2: 任意の URL/CTA ボタンにカーソルを合わせる
+
+- メールを開き、任意のリンクまたはボタンにカーソルを合わせます。
+- 左下に表示される URL がお使いのドメインである必要があります。
+- URL は HTTPS である必要があります (HTTPS が表示されるまでに数秒かかる場合があります)。
+  - または、URL をコピーして任意のテキストエディターに貼り付けることもできます。
+    - ドメインがお使いのドメインである必要があります。
+    - リンクが HTTPS で始まっている必要があります。
+
+<img alt="Link Branding.png" src="/images/moengage_e8a202.png" />
+
+### ステップ 3: クリックトラッキングを検証する
+
+クリックトラッキングを検証するには、メール本文内の任意のリンクをクリックします。
+
+- メールに追加した元の URL にリダイレクトされる必要があります。
+- メールキャンペーンの分析に *click event* が表示される必要があります。メールキャンペーンの分析の詳細については、[こちら](/ja/user-guide/campaigns-and-channels/email/analyze/email-analytics-and-info)を参照してください。
+- [ユーザープロファイル](/ja/user-guide/segment/reachability/user-reachability#user-profile)の **Activity** セクションに *click event* が表示される必要があります。
+
+## 配信停止リンクをテストする
+
+### ステップ 1: 自分宛てにテストキャンペーンを公開する
+
+自分宛てにテストキャンペーンを公開するには、上記の[セクション](#publish-a-test-campaign-to-yourself)を参照してください。
+
+### ステップ 2: 配信停止リンクをクリックする
+
+- メールを開き、配信停止リンクをクリックします。
+- 置換タグを使用した場合、配信停止リンクはメール本文内にある必要があります。それ以外の場合は、次の画像のようにメール本文の外側に表示されます。  
+   <img alt="Screenshot 2024-06-19 at 16.14.54.png" src="/images/moengage_449f84.png" />
+
+### ステップ 3: 配信停止ステータスと到達可能性を検証する
+
+- 配信停止リンクをクリックします。
+- ランディングページまたは配信停止フローが想定どおりに動作しているかを確認します。
+- MoEngage UI に戻り、次の点を確認します。
+  - 配信停止が[統計](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation#stats-validation)で追跡されていること。
+  - プロファイルの[到達可能性](/ja/user-guide/segment/reachability/user-reachability)が更新されていること。
+
+## 統計の検証
+
+### ステップ 1: 自分宛てにテストキャンペーンを公開する
+
+自分宛てにテストキャンペーンを公開するには、上記の[セクション](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation#publish-a-test-campaign-to-yourself)を参照してください。
+
+### ステップ 2: 受信したメールを操作する
+
+- メールを開きます。
+- メール本文内の任意のリンクをクリックします。
+- 配信停止リンクをクリックします。
+
+### ステップ 3: 統計を確認する
+
+イベントが想定どおりに反映されているかを確認します。キャンペーンの統計には次の項目が表示される必要があります。
+
+- Sent
+- Delivered
+- Open
+- Click
+- Unsubscribe
+
+<img alt="campign.png" src="/images/moengage_2d2be8.png" />
+
+統計とユーザープロファイルに反映されるまでに数分かかる場合があります。
+
+# メールを公開する前に実行する検証
+
+上記の手順を実行すると、設定後にメール設定をテストできます。メールが想定どおりに動作することを確認するために、キャンペーンを公開する前に以下の機能を使用することをお勧めします。
+
+## メールキャンペーンのコンテンツを確認する
+
+- **エディターでメールコンテンツをプレビューする:** [ドラッグアンドドロップ](/ja/user-guide/campaigns-and-channels/email/create/create-content-with-the-drag-and-drop-editor)エディターまたは[カスタム HTML エディター](/ja/user-guide/campaigns-and-channels/email/create/create-content-with-custom-html-editor)を使用してメールコンテンツを作成しながらプレビューします。この方法は、メールコンテンツのレンダリングの簡易チェックに使用します。メールはまだ送信されていないため、配信停止リンクや設定管理リンクの追加、開封/クリックトラッキングに関連する変更は行われない点に注意してください。
+- **Inbox Previews:** デバイス、メールクライアント、ウェブブラウザーのさまざまな組み合わせでメールコンテンツをプレビューします。この方法は、メール購読者が使用している組み合わせでメールが正しくレンダリングされるかを確認するために使用します。ここでもメールは送信されないため、リンクの追加やトラッキングに関連する変更は行われません。詳細については、[Inbox Previews](/ja/user-guide/campaigns-and-channels/email/create/inbox-previews)を参照してください。
+- **テストキャンペーン**: この方法では、実際にメールを送信してメールコンテンツを確認できます。メールが送信されるため、クリックと開封の統計、配信停止リンク、設定管理リンクがすべてこのメールに含まれます。この方法は、キャンペーンを公開する前に最終的なレンダリングチェックを行い、リンクのリダイレクトを検証するために使用します。

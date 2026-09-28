@@ -1,0 +1,610 @@
+---
+title: "データエクスポート用語集"
+description: "MoEngage のイベントエクスポートオプションのリファレンスガイドです。Streams、データウェアハウスの宛先、クラウドストレージへのエクスポート、サポートされているイベントタイプについて説明します。"
+---
+
+# はじめに
+
+MoEngage Event Exports を使用すると、さまざまなサードパーティツールにイベントを転送できます。次の機能を提供しています。
+
+1. **MoEngage Streams** - Streams を使用すると、MoEngage で利用可能なユーザーアクションやキャンペーンインタラクションイベントなどのイベントを、事前に定義した API エンドポイントにほぼリアルタイムで転送できます。
+2. **Data Warehouses** - MoEngage は、イベントをテーブルに直接転送する宛先として、複数のデータウェアハウスをサポートしています。サポート対象は次のとおりです。
+   1. [Amazon Redshift](/ja/user-guide/data/exports/events/data-warehouse/redshift-exports)
+   2. [Google BigQuery](/ja/user-guide/data/exports/events/data-warehouse/bigquery-exports) (GCS 経由)
+   3. [Snowflake](/ja/user-guide/data/exports/events/data-warehouse/snowflake-exports)
+3. **Cloud Storages** - MoEngage は、イベントを JSON ファイルとしてバケットに転送する宛先として、複数のクラウドストレージもサポートしています。
+   1. [Amazon S3](/ja/user-guide/data/exports/events/data-warehouse/s3-exports)
+   2. [Google Cloud Storages](/ja/user-guide/data/exports/events/data-warehouse/google-cloud-storage-gcs-exports)
+   3. [SFTP](https://partners.moengage.com/hc/en-us/articles/26763225201172-SFTP)
+
+# エクスポートスキーマ
+
+エクスポートスキーマは宛先のタイプによって異なります。各カテゴリ (Data Warehouse、Cloud Storages、API) には、さまざまな MoEngage イベントとユーザー定義イベントに対応する一貫したスキーマがあります。
+
+## Streams (API)
+
+MoEngage は、指定された API エンドポイントに Bulk API 呼び出しを行います。一般的な構造は次のとおりです。
+
+JSON
+
+```json wrap
+{
+  "app_name": "The name of your app.",
+  "source": "MOENGAGE",
+  "moe_request_id": "MoEngage unique request id for each request.",
+  "events": [
+    {
+      "event_name": "Name of your event",
+      "event_code": "Event code",
+      "event_uuid": "Unique code of this event. This helps in determining each unique event being captured by MoEngage.",
+      "event_time": "EPOCH_TIMESTAMP_OF_EVENT_TRIGGERED_TIME_IN_UTC",
+      "event_type": "CAMPAIGN_EVENT",
+      "event_source": "MOENGAGE",
+      "push_id": "Recipient device’s push token",
+      "email_id": "Recipient's email ID",
+      "mobile_number": "Recipient's mobile number",
+      "uid": "MoEngage Customer ID",
+      "event_attributes": {
+        "campaign_id": "ID of the campaign",
+        "campaign_name": "Name of the campaign",
+        "campaign_type": "Type of the campaign",
+        "campaign_channel": "Channel of the campaign"
+      },
+      "user_attributes": {
+        "moengage_user_id": "MoEngage Internal User ID"
+      },
+      "device_attributes": {
+        "moengage_device_id": "MoEngage Device ID"
+      }
+    }
+  ]
+}
+```
+
+### スキーマ
+
+|  |  |
+| --- | --- |
+| **キー名** | **説明** |
+| app\_name | MoEngage 上のアプリの名前。 |
+| source | このイベントが取得されたソース。 |
+| moe\_request\_id | 一意の MoEngage API リクエスト ID。 |
+| events | イベントオブジェクトの配列。 |
+
+### イベントオブジェクトスキーマ
+
+|  |  |
+| --- | --- |
+| **キー名** | **説明** |
+| event\_name | イベントの表示名。 |
+| event\_code | イベントコード、またはイベントの内部名。 |
+| event\_uuid | 取得されたイベントの一意のコード。 |
+| event\_time | イベントが取得されたときのエポックタイムスタンプ。 |
+| event\_type | イベントのタイプ: <ul><li>ACQUISITION</li><li>CAMPAIGN\_ACTIVITY</li><li>LIFECYCLE</li><li>REACHABILITY</li><li>UNINSTALL</li><li>USER\_ACTION\_EVENT</li></ul> |
+| source | このイベントが取得されたソース。 |
+| push\_id | 受信者のデバイスのプッシュトークン。この属性は、PUSH 関連のキャンペーンイベントでのみ送信されます。 |
+| email\_id | 受信者のメール ID。この属性は、EMAIL 関連のキャンペーンイベントでのみ送信されます。 |
+| mobile\_number | 受信者の携帯電話番号。この属性は、SMS 関連のキャンペーンイベントでのみ送信されます。 |
+| uid | MoEngage でユーザーを一意に識別するための MoEngage customer\_id。 |
+| event\_attributes | 次の形式のイベント属性オブジェクト:  <br />attribute\_name: value |
+| user\_attributes | 次の形式のユーザー属性オブジェクト:  <br />attribute\_name: value |
+| device\_attributes | 次の形式のデバイス属性オブジェクト:  <br />attribute\_name: value |
+
+#### **イベント属性オブジェクト**
+
+イベント属性は、エクスポートされるイベントによって異なる場合があります。どの属性がエクスポートされるかについては、以下のイベント定義を参照してください。
+
+#### **ユーザー属性オブジェクト**
+
+ユーザー属性は、設定によって異なる場合があります。どの属性がエクスポートされるかについては、以下のユーザープロパティの定義を参照してください。
+
+- moengage\_user\_id - この属性は常にエクスポートされます。これはユーザーの MoEngage 内部 ID です。
+
+#### **デバイス属性オブジェクト**
+
+デバイス属性は、設定によって異なる場合があります。どの属性がエクスポートされるかについては、以下のデバイスプロパティの定義を参照してください。
+
+- moengage\_device\_id - この属性は常にエクスポートされます。これはユーザーの内部デバイス ID です。
+
+## データウェアハウスの宛先
+
+MoEngage はデータウェアハウスに単一のテーブルを作成し、選択したすべてのイベントをそのテーブルにエクスポートします。
+
+### Amazon Redshift
+
+`moengage_events` という名前のテーブルを作成します。
+
+### Snowflake
+
+`moe_events_<table_creation_timestamp>` という名前のテーブルを作成します。
+
+### テーブル構造
+
+テーブルの全体的な構造は、すべてのイベントタイプで固定されています。エクスポートされる新しいユーザープロパティまたはイベント属性は、それぞれ `user_attributes` 列または `event_attributes` 列の一部になります。すべてのイベントは、分析しやすいように、イベント名やイベント時刻などの必要な情報をすべて含む単一のテーブルに格納されます。
+
+次の一般的なスキーマに従います。
+
+- _event\_attributes\__ で始まる列にはイベント属性が含まれます。その後に _event\_attributes\_campaign\_name_ のようにイベント属性名が続きます。
+- _user\_attributes\__ で始まる列にはユーザー属性が含まれます。その後に _user\_attributes\_moengage\_user\_id_ のようにユーザー属性名が続きます。
+- device\_attributes で始まる列にはデバイス属性が含まれます。その後に _device\_attributes\_moengage\_device\_id_ のようにデバイス属性名が続きます。
+- また、_event\_attributes_、_user\_attributes_、_device\_attributes_ という 3 つの JSON (または同等の) フィールドがあります。これらの各フィールドには、辞書形式の生の JSON フィールドが含まれます。
+
+|  |  |  |  |
+| --- | --- | --- | --- |
+| **キー名** | **型** | **説明** | **NULL** |
+| app\_name | character varying(256) | MoEngage 上のアプリの名前。 | NOT NULL |
+| device\_attributes | 次のいずれか: <ul><li>super</li><li>variant</li></ul> | JSON オブジェクト形式のデバイス属性の辞書:  <br />JSON  <br />`{ `<br />`"attribute": "value", `<br />`"attribute": "value" `<br />`}` | NULL |
+| device\_attributes\_  moengage\_device\_id | character varying(256) | ユーザーの内部デバイス ID です。 | NULL |
+| email\_address | character varying(256) | 受信者のメール ID。この属性は、EMAIL 関連のキャンペーンイベントでのみ送信されます。 | NULL |
+| event\_attributes | 次のいずれか: <ul><li>super</li><li>variant</li></ul> | JSON オブジェクト形式のイベント属性の辞書:  <br />JSON  <br />`{ `<br />`"attribute": "value", `<br />`"attribute": "value" `<br />`}` | NULL |
+| event\_attributes\_  app\_version | character varying(256) | 共通のイベント属性を参照してください。 | NULL |
+| event\_attributes\_  campaign\_channel | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
+| event\_attributes\_  campaign\_id | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
+| event\_attributes\_  campaign\_name | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
+| event\_attributes\_  campaign\_type | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
+| event\_attributes\_  first\_session | boolean | 共通のイベント属性を参照してください。 | NULL |
+| event\_attributes\_  locale\_id | character varying(256) | キャンペーンが Localization を使用して送信された場合に追跡されます。メッセージロケールの ID を表します。 | NULL |
+| event\_attributes\_  locale\_name | character varying(256) | キャンペーンが Localization を使用して送信された場合に追跡されます。メッセージロケールの名前を表します。 | NULL |
+| event\_attributes\_  logged\_in\_status | character varying(256) | 共通のイベント属性を参照してください。 | NULL |
+| event\_attributes\_  parent\_campaign\_id | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
+| event\_attributes\_  parent\_flow\_id | character varying(256) | フロー ID。キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
+| event\_attributes\_  parent\_flow\_name | character varying(256) | フローの名前。キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
+| event\_attributes\_  platform | character varying(256) | 共通のイベント属性を参照してください。 | NULL |
+| event\_attributes\_  readable\_campaign\_id | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
+| event\_attributes\_  sdk\_version | character varying(256) | 共通のイベント属性を参照してください。 | NULL |
+| event\_attributes\_  timestamp | 次のいずれか:   - bigint - timestamp\_ntz | 共通のイベント属性を参照してください。 | NULL |
+| event\_attributes\_  url | character varying(256) | アプリ内キャンペーンで表示フィルターが選択されている場合に追跡されます。 | NULL |
+| event\_attributes\_  variation\_id | character varying(256) | メッセージバリエーションの ID を表します。キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
+| event\_code | character varying(256) | イベントコード、またはイベントの内部名。 | NOT NULL |
+| event\_name | character varying(256) | イベントの表示名。 | NOT NULL |
+| event\_source | character varying(256) | このイベントが取得されたソース。 | NOT NULL |
+| event\_time | 次のいずれか: <ul><li>bigint</li><li>timestamp\_ntz</li></ul> | イベントが取得されたときのエポックタイムスタンプ。 | NOT NULL |
+| event\_type | character varying(256) | イベントのタイプ:   - ACQUISITION - CAMPAIGN\_ACTIVITY - LIFECYCLE - REACHABILITY - UNINSTALL - USER\_ACTION\_EVENT | NOT NULL |
+| event\_uuid | character varying(256) | 取得されたイベントの一意のコード。 | NOT NULL |
+| mobile\_number | character varying(256) | 受信者の携帯電話番号。この属性は、SMS 関連のキャンペーンイベントでのみ送信されます。 | NULL |
+| push\_id | character varying(256) | 受信者のデバイスのプッシュトークン。この属性は、プッシュ関連のキャンペーンイベントでのみ送信されます。 | NULL |
+| uid | character varying(256) | MoEngage でユーザーを一意に識別するための MoEngage customer\_id。 | NULL |
+| user\_attributes | 次のいずれか: <ul><li>super</li><li>variant</li></ul> | JSON オブジェクト形式のユーザー属性の辞書:  <br />JSON  <br />`{ `<br />`"attribute": "value", `<br />`"attribute": "value" `<br />`}` | NULL |
+| user\_attributes\_  moengage\_user\_id | character varying(256) | ユーザーの MoEngage 内部 ID です。 | NULL |
+
+### Google BigQuery (汎用)
+
+MoEngage は、BigQuery Transfer File サービスを使用して、GCS バケット経由で BigQuery テーブルにイベントをエクスポートします。BigQuery でイベント用のテーブルを作成するには、次の 2 つの方法があります。
+
+1. エクスポートされたファイルのスキーマを使用して、エクスポートされたイベント専用のテーブルを作成する。
+2. 汎用スキーマを持つテーブルを作成する。
+
+汎用スキーマを作成したいが、イベントがわからない場合は、次のスキーマを使用できます。
+
+JSON
+
+```json wrap
+[
+    {
+        "mode": "NULLABLE",
+        "name": "db_name",
+        "type": "STRING"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "export_hour",
+        "type": "INTEGER"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "export_day",
+        "type": "DATE"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "event",
+        "type": "JSON"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "app_name",
+        "type": "STRING"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "export_doc_id",
+        "type": "STRING"
+    }
+]
+```
+
+## クラウドストレージの宛先
+
+MoEngage は圧縮ファイルをクラウドストレージにエクスポートします。
+
+### 汎用エクスポートスキーマ
+
+- **ファイル形式:** .json.gz
+- 解凍された各ファイルには、JSON 形式の改行区切りのイベントが含まれます (各行が 1 つのイベントです)。
+- 各ファイルには複数のタイプのイベントが含まれる場合があります。イベントのタイプごとに 1 つのファイルを作成するわけではありません。
+- イベントの JSON 形式は次のとおりです。
+
+JSON
+
+```json wrap
+{
+    "app_name": "export_sample_files",
+    "export_hour": "13",
+    "export_doc_id": "63a186ac116xxxxb254fbb23",
+    "db_name": "export_sample_files",
+    "event": {
+        "email_id": "john.doe@example.com",
+        "uid": "user1",
+        "event_type": "CAMPAIGN_EVENT",
+        "event_code": "MOE_EMAIL_SENT",
+        "event_name": "Email Sent",
+        "user_attributes": {
+            "moengage_user_id": "6387301exxxxxx6c828aee2c"
+        },
+        "event_source": "MOENGAGE",
+        "event_attributes": {
+            "campaign_name": "Test email1",
+            "campaign_type": "GENERAL",
+            "moe_campaign_channel": "Email",
+            "moe_delivery_type": "One Time",
+            "campaign_id": "63918ad73bbxxxxxxb728ede",
+            "campaign_channel": "EMAIL"
+        },
+        "event_uuid": "ffbxxedc-4eb8-xxxx-xxxx-a0c87eaxxxxx",
+        "event_time": 1668600246,
+        "device_attributes": {
+            "moengage_device_id": "test_device_id"
+        }
+    },
+    "export_day": "2022-12-21"
+}
+```
+
+### スキーマ
+
+|  |  |
+| --- | --- |
+| **キー名** | **説明** |
+| app\_name | MoEngage 上のアプリの名前。 |
+| export\_hour | エクスポートが作成された時間。 |
+| export\_doc\_id | エクスポートのドキュメント ID。 |
+| db\_name | MoEngage 上のアプリの名前。 |
+| export\_day | エクスポートが作成された日。 |
+| event | イベントオブジェクト。 |
+
+### イベントオブジェクトスキーマ
+
+|  |  |
+| --- | --- |
+| **キー名** | **説明** |
+| event\_name | イベントの表示名。 |
+| event\_code | イベントコード、またはイベントの内部名。 |
+| event\_uuid | 取得されたイベントの一意のコード。 |
+| event\_time | イベントが取得されたときのエポックタイムスタンプ。 |
+| event\_type | イベントのタイプ: <ul><li>ACQUISITION</li><li>CAMPAIGN\_ACTIVITY</li><li>LIFECYCLE</li><li>REACHABILITY</li><li>UNINSTALL</li><li>USER\_ACTION\_EVENT</li></ul> |
+| event\_source | このイベントが取得されたソース。 |
+| push\_id | 受信者のデバイスのプッシュトークン。この属性は、PUSH 関連のキャンペーンイベントでのみ送信されます。 |
+| email\_id | 受信者のメール ID。この属性は、EMAIL 関連のキャンペーンイベントでのみ送信されます。 |
+| mobile\_number | 受信者の携帯電話番号。この属性は、SMS 関連のキャンペーンイベントでのみ送信されます。 |
+| uid | MoEngage でユーザーを一意に識別するための MoEngage customer\_id。 |
+| event\_attributes | 次の形式のイベント属性の辞書:  attribute\_name: value |
+| user\_attributes | 次の形式のユーザー属性の辞書:  attribute\_name: value |
+| device\_attributes | 次の形式のデバイス属性の辞書:  attribute\_name: value |
+
+#### **イベント属性オブジェクト**
+
+イベント属性は、エクスポートされるイベントによって異なる場合があります。どの属性がエクスポートされるかについては、以下のイベント定義を参照してください。
+
+#### **ユーザー属性オブジェクト**
+
+ユーザー属性は、設定によって異なる場合があります。どの属性がエクスポートされるかについては、以下のユーザープロパティの定義を参照してください。
+
+- moengage\_user\_id - この属性は常にエクスポートされます。これはユーザーの MoEngage 内部 ID です。
+
+#### **デバイス属性オブジェクト**
+
+デバイス属性は、設定によって異なる場合があります。どの属性がエクスポートされるかについては、以下のデバイスプロパティの定義を参照してください。
+
+- moengage\_device\_id - この属性は常にエクスポートされます。これはユーザーの内部デバイス ID です。
+
+### Amazon S3
+
+MoEngage は、S3 Exports の設定時に指定したフォルダ内に、事前に定義されたファイルパスを作成します。
+
+ファイルは次の場所に格納されます。
+
+_s3://\<your\_bucket\_name\>/\[\<folder\_path\>\_\]\<connection\_name\>/export\_day=`<DD-MM-YYYY>`/event\_exports\_\<export\_timestamp\>.json.gz_
+
+### Google Cloud Storage
+
+MoEngage は、GCS バケット内に事前に定義されたファイルパスを作成します。ファイルは次の場所に格納されます。
+
+_gs://\<your\_bucket\_name\>/event-exports/\<your\_app\_name\>/\<connection\_id\>/export\_day=YYYY-MM-DD/export\_hour=HH/`<file-name>`.json.gz_
+
+### SFTP
+
+MoEngage は、SFTP サーバー上に事前に定義されたファイルパスを作成します。ファイルは次の場所に格納されます。
+
+_sftp://\<your\_host\_name\>/\[\<folder\_path\>/\]\<connection\_name\>/export\_day=`<DD-MM-YYYY>`/event\_exports\_\<export\_timestamp\>.json.gz_
+
+# エクスポートされるイベント
+
+MoEngage が追跡するすべての属性は moe\_ で始まります。
+
+## ユーザー属性
+
+<Tabs>
+  <Tab title="ライフサイクル">
+    | **キー名** | **属性キー** | **説明** |
+    | --- | --- | --- |
+    | First Seen | cr\_tcr\_t | ユーザーが最初に確認された時刻。ユーザーが MoEngage システムで作成された時刻です。 |
+    | LTV | t\_rev | ユーザーのライフタイムバリュー。ユーザーが実行した _Conversion goal_ イベントに含まれる収益属性の合計です。LTV は、ユーザーがコンバージョン目標イベントを実行するたびに更新されます。  |
+    | Last Seen | u\_l\_a | ユーザーの直近の App/Site Open イベントの時刻。 |
+    | No. of Conversions | t\_trans | ユーザーが実行したコンバージョンイベントの数。コンバージョン目標は設定ページで変更できます。 |
+    | No. of Sessions | u\_s\_c | ユーザーのセッション数。ユーザーが App/Site Open イベントを実行した回数です。 |
+  </Tab>
+  <Tab title="獲得とアンインストール">
+    | **キー名** | **属性キー** | **説明** |
+    | --- | --- | --- |
+    | Campaign Name | campaign\_name | ユーザーがアプリをインストールするきっかけとなった広告キャンペーンの名前。 |
+    | Publisher Name | publisher\_name | ユーザーがアプリをインストールするきっかけとなったパブリッシャーの名前。 |
+    | Install Status | installed | ユーザーの現在のステータス。ユーザーのデバイスにアプリがインストールされているか、ユーザーがウェブデバイスでアクティブであるかを示します。 |
+    | Uninstall Time | uninstall\_time | ユーザーがアプリをアンインストールしたことをシステムが検出した時刻。 |
+    | Device ReInstall | moe\_d\_r\_ins | デバイスで再インストールが検出されたときに追跡されます。 |
+    | User ReInstall | moe\_u\_r\_ins | 識別済みのユーザーがアプリを再インストールしたときに追跡されます。 |
+  </Tab>
+  <Tab title="到達可能性とローカリゼーション">
+    | **キー名** | **属性キー** | **説明** |
+    | --- | --- | --- |
+    | Push Opt In Status (iOS) | PUSH\_PREFERENCE | iOS デバイスにおけるユーザーのプッシュ許可ステータス。 |
+    | Reachability Push Android | moe\_rsp\_android | Android プッシュ通知の到達可能性ステータスコード。 |
+    | Reachability Push iOS | moe\_rsp\_ios | ユーザーが少なくとも 1 台の iOS デバイスで到達可能な場合、Reachability Push iOS は True (200) になります。 |
+    | Reachability Push Web | moe\_rsp\_web | ユーザーが少なくとも 1 台のウェブデバイスで到達可能な場合、Reachability Push Web は True (200) になります。 |
+    | Web Push Subscription Page URL | Web Subscription URL | ユーザーがウェブプッシュを購読したウェブページの URL。ウェブサイト上のどこで購読が発生しているかを確認したり、購読者を分類してターゲットを絞った通知を送信したりするために使用します。 |
+    | Web Push Subscription Status | moe\_sub\_w | ユーザーのウェブプッシュ購読ステータス (True / False) を示します。購読者の総数や、一度購読した後に購読を解除したユーザーを確認するために使用します。 |
+    | Last Known City | moe\_ip\_city | この属性は、逆引き IP ルックアップを使用して導出された、ユーザーの最後の推定位置に基づいています。 |
+    | Last Known Country | moe\_ip\_country |  |
+    | Last Known Pincode/Zipcode | moe\_ip\_pin |  |
+    | Last Known State | moe\_ip\_subdivision |  |
+    | User TimeZone Offset (Mins) | moe\_dtzo | GMT を基準としたユーザーのタイムゾーンの差 (分単位)。 |
+  </Tab>
+  <Tab title="デバイスデータとメール抑制タイプ">
+    | **キー名** | **属性キー** | **説明** |
+    | --- | --- | --- |
+    | Hard Bounce | moe\_hard\_bounce | ユーザーへのメールがハードバウンスしたかどうかを示します。この値は、ユーザープロファイルのメール ID が変更されるたびにデフォルトの状態 (false) にリセットされます。 |
+    | Spam | moe\_spam | ユーザーがメールをスパムとして報告したかどうかを示します。 |
+    | Unsubscribe | moe\_unsubscribe | ユーザーがメールの購読を解除したかどうかを示します。 |
+    | Advertising Identifier | ADVERTISING\_IDENTIFIER | アプリがインストールされているデバイスの広告識別子。iOS と Windows でのみ利用できます。 |
+    | Browser Details | moe\_w\_ds | ウェブユーザーのブラウザの詳細 (プラットフォーム、ブラウザ、メーカーなど)。 |
+    | Google Advertising ID | MOE\_GAID | アプリがインストールされているデバイスの広告識別子。Android でのみ利用できます。 |
+    | Mobile User | moe\_mweb | ユーザーがモバイルでウェブサイトにアクセスしたかどうかを示します。 |
+  </Tab>
+  <Tab title="追跡される標準属性">
+    | **キー名** | **属性キー** | **説明** |
+    | --- | --- | --- |
+    | Birthday | u\_bd | ユーザーの生年月日。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | Creation Source | moe\_it | ユーザーが作成されたソースを示します。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | Email (Standard) | u\_em | ユーザーのメールアドレス。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | Email Unsubscribed Categories | moe\_em\_unsub\_categories | ユーザーが購読を解除したメールカテゴリのリストを示します。 |
+    | First Name | u\_fn | ユーザーの名。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | Gender | u\_gd | ユーザーの性別。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | ID | uid | アプリがユーザーに設定した一意の ID。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | Last Name | u\_ln | ユーザーの姓。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | Locale Country | LOCALE\_COUNTRY\_DISPLAY | デバイスのロケール設定から導出されたユーザーの国 (例: The United States)。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | Locale Language | LOCALE\_LANGUAGE\_DISPLAY | デバイスのロケール設定から導出されたユーザーの言語 (例: English)。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | Location | geo | ユーザーの緯度と経度。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | Mobile Number (Standard) | u\_mb | ユーザーの携帯電話番号。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | Name | u\_n | ユーザーのフルネーム。名前は MoEngage が提供し、値はクライアントが提供する標準属性です。 |
+    | SMS Subscription Status | moe\_sms\_subscription | ユーザーの SMS 購読ステータス。ユーザーの購読設定に基づいて SMS 購読ステータスが追跡される標準属性です。 |
+  </Tab>
+</Tabs>
+
+## デバイス属性
+
+これらは、ユーザーのデバイスデータから導出されるプロパティです。これらの属性は、エクスポートではユーザー属性の下に表示される点に注意してください。
+
+<Tabs>
+  <Tab title="iOS">
+    | **キー名** | **属性キー** | **説明** | **任意** |
+    | --- | --- | --- | --- |
+    | Advertising Identifier (iOS & Windows) | ADVERTISING\_IDENTIFIER | 広告の配信にのみ使用される、各デバイスに固有の英数字の文字列) - [IDFA](https://developer.apple.com/documentation/adsupport/asidentifiermanager/1614151-advertisingidentifier "https://developer.apple.com/documentation/adsupport/asidentifiermanager/1614151-advertisingidentifier") iOS バージョン 14.5 以降では、開発者が許可を求めた場合にのみ広告識別子が追跡されます。iOS 14.5 未満では自動的に追跡されます。 | はい |
+    | IDFV | device\_IDFV | アプリのベンダーに対してデバイスを一意に識別する英数字の文字列 - [IDFV (identifier for vendor)](https://developer.apple.com/documentation/uikit/uidevice/1620059-identifierforvendor "https://developer.apple.com/documentation/uikit/uidevice/1620059-identifierforvendor") | はい |
+    | OS Version | os\_ver | デバイスの現在の iOS バージョン | いいえ |
+    | Device Timezone | moe\_dtzo | デバイスのタイムゾーン | いいえ |
+    | model | MODEL |  | いいえ |
+  </Tab>
+  <Tab title="Android">
+    | **キー名** | **属性キー** | **説明** | **任意** |
+    | --- | --- | --- | --- |
+    | OS Version | OS\_VERSION | デバイスの現在の Android バージョン | はい |
+    | API level | OS\_API\_LEVEL | OS API レベル/API バージョン: Android API バージョン 16、20 など | いいえ |
+    | Manufacturer | manufacturer | デバイスのメーカー (例: Samsung) | はい |
+    | Google Advertising Identifier(GAID) | MOE\_GAID | デバイスの GAID | はい |
+    | Device Width | width | デバイスの幅 (ピクセル) | はい |
+    | Device Height | height | デバイスの高さ (ピクセル) | はい |
+    | Android Id | android\_id | -- | はい |
+    | Network Type | networkType | デバイスのネットワークタイプ (例: 3G、5G) | いいえ |
+    | Device Timezone | moe\_dtzo | デバイスのタイムゾーン (例: PST、IST、GMT) | いいえ |
+  </Tab>
+  <Tab title="Web">
+    | **キー名** | **属性キー** | **説明** | **任意** |
+    | --- | --- | --- | --- |
+    | os | os\_key | Web / MWeb | いいえ |
+    | os\_platform | os\_platform | ユーザーエージェント。ブラウザに関する情報です。 | いいえ |
+    | os\_ver |  | ブラウザ名 | いいえ |
+    | model | MODEL | ブラウザ名 | いいえ |
+    | device\_ts | device\_ts | デバイスのタイムスタンプ | いいえ |
+    | device\_tz | device\_tz | デバイスのタイムゾーン | いいえ |
+    | push\_id | push\_id | SDK によって生成されたプッシュトークン | いいえ |
+    | mi\_push\_id | mi\_push\_id | MI デバイスのプッシュ ID | いいえ |
+  </Tab>
+</Tabs>
+
+## MoEngage (標準) イベント
+
+MoEngage は、デフォルトでいくつかの標準イベントを追跡します。
+
+### 共通イベント属性
+
+これらの属性は、MoEngage が標準イベントを取得するときに自動的に追跡されます。
+
+<Tabs>
+  <Tab title="SDK イベント">
+    | **キー名** | **属性キー** | **説明** |
+    | --- | --- | --- |
+    | App Version | appVersion | このイベントが追跡されたアプリのバージョン。 |
+    | SDK Version | sdkVersion | このイベントが追跡された MoEngage SDK のバージョン。 |
+    | Platform | os | このイベントが追跡された OS。 |
+    | utm\_source | moe\_source | キャンペーンのソース (例: 検索エンジン、ニュースレター、MoEngage)。 |
+    | utm\_medium | moe\_source\_medium | キャンペーンのメディア (例: CPC、メール、プッシュ)。 |
+    | utm\_campaign | moe\_source\_campaign\_name | UTM キャンペーン名 (例: Summer sale) |
+    | utm\_id | moe\_source\_campaign\_id | UTM キャンペーン ID (例: 12DSW55) |
+    | utm\_content | moe\_source\_content | キャンペーンのコンテンツ情報 (例: logoclick) |
+    | utm\_term | moe\_source\_term | 有料検索に使用されたキーワード (例: red\+shirt) |
+    | First Session | moe\_first\_visit | <ul><li>MoEngage Web SDK で追跡されるすべてのイベントに対して生成されます。</li><li>値は、ユーザーの最初のセッションでのみ True になります。</li></ul> |
+    | Logged In Status | moe\_logged\_in\_status | <ul><li>MoEngage Web SDK で追跡されるすべてのイベントに対して生成されます。</li><li>ユーザーがデバイスでログインしている場合、値は True になります。</li></ul> |
+  </Tab>
+  <Tab title="キャンペーンイベント">
+    | **キー名** | **属性キー** | **説明** |
+    | --- | --- | --- |
+    | Campaign Id | campaign\_id | このイベントに関連付けられたキャンペーンの ID。 |
+    | Campaign Name | campaign\_name | メッセージが属していたキャンペーンの名前を表します。 |
+    | Campaign Channel | campaign\_channel | キャンペーン/メッセージが送信されたチャネルを表します。 |
+    | Campaign Type | campaign\_type | メッセージが属していたキャンペーンのタイプを表します。 |
+    | Campaign Tags | moe\_campaign\_tags | キャンペーンに付けられた 1 つ以上のタグのカンマ区切りの値を表します。 |
+    | Readable Campaign Id | moe\_campaign\_id | メッセージが属していたキャンペーンの ID を表します。 |
+    | Parent Campaign id | parent\_campaign\_id | 定期キャンペーンが実行されたときに追跡されます。子インスタンスが定期的に再実行される親の定期キャンペーンのキャンペーン ID を表します。 |
+    | Parent Flow Id | parent\_flow\_id | ジャーニーキャンペーンが実行されたときに追跡されます。親ジャーニーキャンペーンの Flow ID を表します。   - この属性は、Flows 関連のイベントでのみ送信されます。 |
+    | Parent Flow Name | parent\_flow\_name | ジャーニーキャンペーンが実行されたときに追跡されます。親ジャーニーキャンペーンのフロー名を表します。   - この属性は、Flows 関連のイベントでのみ送信されます。 |
+    | Locale Id | locale\_id | キャンペーンが Localization を使用して送信された場合に追跡されます。メッセージロケールの ID を表します。 |
+    | Locale Name | locale\_name | キャンペーンが Localization を使用して送信された場合に追跡されます。メッセージロケールの名前を表します。 |
+    | Variation Id | variation\_id | キャンペーンが A/B テストを使用して送信された場合に追跡されます。メッセージバリエーションの ID を表します。 |
+  </Tab>
+</Tabs>
+
+### 標準イベント
+
+これらのイベントは MoEngage によって自動的に追跡されます。
+
+<Tabs>
+  <Tab title="ライフサイクルイベント">
+    | **イベント名** | **イベントコード** | **説明** | **プラットフォーム** |
+    | --- | --- | --- | --- |
+    | App/Site Opened | MOE\_APP\_OPENED | アプリまたはウェブサイトでユーザーセッションが開始されたときに追跡されます。また、ユーザーの Last Active Time と App/Site Open Time の時間差が 30 分を超える場合にのみ追跡されます。 | Android, iOS, Web |
+    | Viewed Web Page | MOE\_PAGE\_VIEWED | ユーザーがウェブページを訪問したときに追跡されます。イベント属性としてページ URL を選択すると、特定のページを訪問したユーザー数を確認したり、Drop-off capture" イベントトリガー型ウェブプッシュを設定したりできます。 | Web |
+    | App Exit | MOE\_APP\_EXIT | アプリがバックグラウンドに移行するたびに追跡されます。 | Android, iOS |
+    | User Logout | MOE\_LOGOUT | ユーザーがアプリ/サイトからログアウトしたとき、またはユーザーがリセットされたときに追跡されます。 | Android, iOS, Web |
+    | Push ID Register Android | TOKEN\_EVENT | MoEngage システムが Android デバイスのプッシュ ID を登録したときに追跡されます。属性 registered\_by にステータスが含まれます。 | Android |
+    | User Merged | MOE\_USER\_MERGED | 既知のユーザーに MoEngage ユーザーオブジェクトがマージされるたびに、そのユーザーについて追跡されます。 | User Merging |
+    | App Update | UPDATE | ユーザーがアプリを更新したときに追跡されます。 | Android, iOS |
+  </Tab>
+  <Tab title="獲得とアンインストールのイベント">
+    | **イベント名** | **イベントコード** | **説明** | **プラットフォーム** |
+    | --- | --- | --- | --- |
+    | Install | INSTALL | ユーザーがデバイスにアプリをインストールしたときに追跡されます。 | Android, iOS |
+    | Device ReInstall | REINSTALL | デバイスで再インストールが検出されたときに追跡されます。 | Android, iOS |
+    | Device Uninstall | Device Uninstall | ユーザーがデバイスからアプリをアンインストールしたときに追跡されます。 | Android, iOS |
+    | User ReInstall | MOE\_USER\_REINSTALL | MoEngage で識別済みのユーザーについて再インストールが検出されたときに追跡されます。 | Android, iOS |
+  </Tab>
+  <Tab title="到達可能性イベント">
+    | **イベント名** | **イベントコード** | **説明** | **プラットフォーム** |
+    | --- | --- | --- | --- |
+    | Accepted Web Push Soft-ask | MOE\_WEB\_OPTIN\_ACCEPTED | 2 ステップのプッシュオプトインの仕組みの一部として、ユーザーがウェブサイト上のプッシュ許可のソフトアスクを承諾したときに追跡されます。 | Web |
+    | Closed Web Push Soft-ask | MOE\_WEB\_OPTIN\_CLOSED | 2 ステップのプッシュオプトインの仕組みの一部として、ユーザーがウェブサイト上のプッシュ許可のソフトアスクを閉じたときに追跡されます。 | Web |
+    | Denied Web Push Subscription | MOE\_OPT\_IN\_BLOCKED | ユーザーがウェブでのプッシュ通知の受信を拒否したときに追跡されます。 | Web |
+    | Dismissed Web Push Subscription | MOE\_OPT\_IN\_DISMISSED | ユーザーがプッシュ購読のプロンプトを閉じたときに追跡されます。 | Web |
+    | Overlay clicked in 1-click HTTP subscription | MOE\_HTTP\_OVERLAY\_CLICKED | HTTP プッシュ購読フローの一部として、ユーザーがウェブサイト上の購読メッセージをクリックしたときに追跡されます。 | Web |
+    | Overlay shown in 1-click HTTP subscription | MOE\_HTTP\_OVERLAY\_SHOWN | HTTP プッシュ購読フローの一部として、ユーザーがウェブサイト上の購読メッセージを表示したときに追跡されます。 | Web |
+    | Subscribed to Web Push | MOE\_USER\_SUBSCRIBED | ユーザーがウェブプッシュ通知を購読したときに追跡されます。日ごとの購読者数を確認したり、Welcome" イベントトリガー型ウェブプッシュを設定したりするために使用します。 | Web |
+    | Unsubscribed from Web Push | MOE\_WEB\_UNSUBSCRIBED | ユーザーがウェブサイト/Chrome の設定から直接購読を解除したとき、または GCM がプッシュトークンが無効であると通知したときに追跡されます。 | Web |
+    | Viewed Web Push Soft-ask | MOE\_WEB\_OPTIN\_BANNER\_LOAD | 2 ステップのプッシュオプトインの仕組みの一部として、ユーザーがウェブサイト上のプッシュ許可のソフトアスクを表示したときに追跡されます。 | Web |
+  </Tab>
+  <Tab title="キャンペーンアクティビティイベント">
+    | **イベント名** | **イベントコード** | **説明** | **プラットフォーム** |
+    | --- | --- | --- | --- |
+    | Allowed Web Push Subscription | MOE\_OPT\_IN\_ALLOWED | ユーザーがウェブでのプッシュ通知の受信を許可したときに追跡されます。 | Web |
+    | Displayed Web Push Subscription | MOE\_OPT\_IN\_SHOWN | ハードアスクがユーザーに表示されたとき。 | Web |
+    | Onsite Message Template clicked | MOE\_ONSITE\_MESSAGE\_CLICKED | オンサイトメッセージングのテンプレートがクリックされたとき。 | Web |
+    | Onsite Message Template shown | MOE\_IN\_APP\_SHOWN | オンサイトメッセージングのテンプレートが読み込まれたとき。 | Web |
+    | Card Clicked | MOE\_CARD\_CLICKED | ユーザーが App Inbox 内のカードをクリックしたときに追跡されます。 | Android, iOS |
+    | Card Delivered | MOE\_CARD\_DELIVERED | ユーザーが Inbox を開いた後、カードが App Inbox に配信されたときに追跡されます。 | Android, iOS |
+    | Card Sent | MOE\_CARD\_SENT | カード通知がユーザーに送信されたときに追跡されます。通知が App Inbox に配信されたかどうかは示しません。 | Android, iOS |
+    | Card Viewed | MOE\_CARD\_IMPRESSION | ユーザーが App Inbox でカードを表示したとき、またはカードまでスクロールしたときに追跡されます。 | Android, iOS |
+    | Connector Sent | WEBHOOK\_SENT | コネクタが正常に送信されたときに追跡されます。 | Connector |
+    | Email Bounced | MOE\_EMAIL\_HARD\_BOUNCE | メールがハードバウンスしたことをシステムが検出したときに追跡されます。通常、メールアドレスが存在しない場合に発生します。ユーザー ID に基づいて、ユーザーごとに一意に追跡されます。 | Email |
+    | Email Clicked | MOE\_EMAIL\_CLICK | ユーザーがメール内のいずれかのリンクをクリックしたときに追跡されます。 | Email |
+    | Email Complained | MOE\_EMAIL\_SPAM | ユーザーがメールをスパムとしてマークしたときに追跡されます。 | Email |
+    | Email Deferred | MOE\_EMAIL\_DEFERRED | 受信サーバーがメールメッセージの受け入れを遅延させたときに追跡されます。 | Email |
+    | Email Delivered | MOE\_EMAIL\_DELIVERED | メールがユーザーに配信されたときに追跡されます。 | Email |
+    | Email Dropped | MOE\_EMAIL\_DROP | メールがドロップされたときに追跡されます。メールは、バウンスリスト、購読解除リスト、またはスパム報告リストに含まれている場合にドロップされます。 | Email |
+    | Email Opened | MOE\_EMAIL\_OPEN | ユーザーがメールを開封したときに追跡されます。 | Email |
+    | Email Sent | MOE\_EMAIL\_SENT | システムがユーザーにメールを送信したときに追跡されます。 | Email |
+    | Email Soft Bounced | MOE\_EMAIL\_SOFT\_BOUNCE | メールがソフトバウンスしたことをシステムが検出したときに追跡されます。通常、一時的な配信の問題がある場合に発生します。ユーザー ID に基づいて、ユーザーごとに一意に追跡されます。 | Email |
+    | Email Subscription Category Updated | MOE\_EMAIL\_SUBSCRIPTION\_UPDATED | ユーザーがメール購読カテゴリの設定を更新したときに追跡されます。 | Email |
+    | Email Unsubscribed | MOE\_EMAIL\_UNSUBSCRIBE | ユーザーがメールの受信を購読解除したときに追跡されます。 | Email |
+    | Email Unsubscribe Drop | MOE\_EMAIL\_DROPPED\_UNSUBSCRIBE | ユーザーが購読解除リストに含まれているためにメールがドロップされたときに追跡されます。これは SendGrid で追跡されます。このイベントは現在 BETA 版です。 | Email |
+    | Email Viewed in Browser | MOE\_EMAIL\_VIB | ユーザーがメール内の「ブラウザで表示」リンクをクリックしたときに追跡されます。 | Email |
+    | Facebook Audience Synced | MOE\_FB\_AUDIENCE\_SYNC | オーディエンスへの追加または削除リクエストに対して Facebook API が 2xx レスポンスを返したときに追跡されます。 | Facebook |
+    | Google Ads Audience Synced | MOE\_GOOGLE\_ADS\_AUDIENCE\_SYNC | オーディエンスへの追加または削除リクエストに対して Google Ads API が 2xx レスポンスを返したときに追跡されます。 | Google Ads Audience |
+    | In-App Clicked Android | MOE\_IN\_APP\_CLICKED | ユーザーが Android デバイスでアプリ内メッセージをクリックしたときに追跡されます。 | Android |
+    | In-App Clicked iOS | iOS\_IN\_APP\_CLICKED | ユーザーが iOS デバイスでアプリ内メッセージをクリックしたときに追跡されます。 | iOS |
+    | In-App Clicked Windows | WINDOWS\_IN\_APP\_CLICKED | ユーザーが Windows デバイスでアプリ内メッセージをクリックしたときに追跡されます。 | Windows |
+    | In-App Closed Android | MOE\_IN\_APP\_DISMISSED | ユーザーが Android デバイスで閉じるボタンをクリックしてアプリ内メッセージを閉じたときに追跡されます。 | Android |
+    | In-App Closed iOS | iOS\_IN\_APP\_CLOSE\_CLICKED | ユーザーが iOS デバイスで閉じるボタンをクリックしてアプリ内メッセージを閉じたときに追跡されます。 | iOS |
+    | In-App Closed Windows | WINDOWS\_IN\_APP\_CLOSE\_CLICKED | ユーザーが Windows デバイスで閉じるボタンをクリックしてアプリ内メッセージを閉じたときに追跡されます。 | Windows |
+    | In-App Shown Android | MOE\_IN\_APP\_SHOWN | Android デバイスでアプリ内メッセージがユーザーに表示されたときに追跡されます。 | Android |
+    | In-App Shown iOS | iOS\_IN\_APP\_SHOWN | iOS デバイスでアプリ内メッセージがユーザーに表示されたときに追跡されます。 | iOS |
+    | In-App Shown Windows | WINDOWS\_IN\_APP\_SHOWN | Windows デバイスでアプリ内メッセージがユーザーに表示されたときに追跡されます。 | Windows |
+    | Notification Clicked Android | NOTIFICATION\_CLICKED\_MOE | ユーザーが Android デバイスで通知をクリックしたときに追跡されます。 | Android |
+    | Notification Clicked iOS | NOTIFICATION\_CLICKED\_IOS\_MOE | ユーザーが iOS デバイスで通知をクリックしたときに追跡されます。 | iOS |
+    | Notification Clicked Web | NOTIFICATION\_CLICKED\_WEB\_MOE | ユーザーがブラウザで通知をクリックしたときに追跡されます。 | Web |
+    | Notification Clicked Windows | NOTIFICATION\_CLICKED\_WINDOWS\_MOE | ユーザーが Windows デバイスで通知をクリックしたときに追跡されます。 | Windows |
+    | Notification Dismissed iOS | NOTIFICATION\_DISMISSED\_IOS\_MOE | ユーザーが iOS デバイスで通知を閉じたときに追跡されます。 | iOS |
+    | Notification Received Android | NOTIFICATION\_RECEIVED\_MOE | ユーザーが Android デバイスで通知を受信したときに追跡されます。 | Android |
+    | Notification Received iOS App Active | NOTIFICATION\_RECEIVED\_IOS\_APP\_ACTIVE | iOS でアプリがフォアグラウンドにあり、ユーザーが通知を受信したときに追跡されます。 | iOS |
+    | Notification Received iOS | NOTIFICATION\_RECEIVED\_MOE | ユーザーが iOS デバイスで通知を受信したときに追跡されます。 | iOS |
+    | Notification Received Web | NOTIFICATION\_RECEIVED\_WEB\_MOE | ユーザーがブラウザで通知を受信したときに追跡されます。 | Web |
+    | Notification Sent Windows |  | ユーザーが Windows デバイスで通知を受信したときに追跡されます。 | Windows |
+    | Notification Sent iOS | n\_i\_s | ユーザーが iOS デバイスで通知を受信したときに追跡されます。 | iOS |
+    | Notification Swiped Android | NOTIFICATION\_CLEARED\_MOE | Android でユーザーがスワイプ操作によって通知を閉じたときに追跡されます。 | Android |
+    | On-site Message Shown | MOE\_ONSITE\_MESSAGE\_SHOWN | オンサイトメッセージングキャンペーンがユーザーに表示されたときに追跡されます。 | Web |
+    | On-site Message Clicked | MOE\_ONSITE\_MESSAGE\_CLICKED | ユーザーがオンサイトメッセージングキャンペーンをクリックしたときに追跡されます。 | Web |
+    | On-site Message Closed | MOE\_ONSITE\_MESSAGE\_DISMISSED | ユーザーがオンサイトメッセージングキャンペーンを閉じたときに追跡されます。 | Web |
+    | Push Preference Changed iOS | MO\_PUSH\_PREFERENCE\_CHANGED | iOS デバイスのプッシュ設定が変更されたときに追跡されます。変更後のステータスが含まれます。 | iOS |
+    | Web Personalization Message Shown | MOE\_WEBP\_MESSAGE\_SHOWN | Web Personalization キャンペーンがユーザーに表示されたときに追跡されます。 | Web |
+    | Web Personalization Message Clicked | MOE\_WEBP\_MESSAGE\_CLICKED | ユーザーが Web Personalization キャンペーンをクリックしたときに追跡されます。 | Web |
+    | Web Personalization Message Closed | MOE\_WEBP\_MESSAGE\_DISMISSED | ユーザーが Web Personalization キャンペーンを閉じたときに追跡されます。 | Web |
+    | Web Personalization Message Delivered | MOE\_WEBP\_MESSAGE\_DELIVERED | Web Personalization キャンペーンがユーザーに配信されたときに追跡されます。 | Web |
+    | SMS Delivered | SMS\_DELIVERED | ユーザーに送信した SMS の配信確認をシステムが受信したときに追跡されます。 | SMS |
+    | SMS Delivery Failed | MOE\_SMS\_DELIVERY\_FAILED | ユーザーに送信した SMS の配信失敗の通知をシステムが受信したときに追跡されます。 | SMS |
+    | SMS Sent | SMS\_SENT | システムがユーザーに SMS を送信したときに追跡されます。 | SMS |
+    | SMS Clicked | MOE\_SMS\_CLICKED | ユーザーが SMS メッセージ本文内のいずれかのリンクをクリックしたときに追跡されます。 | SMS |
+    | User Entered Flow | USER\_ENTERED\_FLOW | ユーザーがターゲットオーディエンスに該当し、Flow へのエントリー条件を満たしたときに追跡されます。 | Flows |
+    | User Exited Flow | USER\_EXITED\_FLOW | ユーザーが Flow の Stop Cell から退出したときに追跡されます。 | Flows |
+    | WhatsApp Message Clicked | MOE\_WHATSAPP\_CLICKED | ユーザーが WhatsApp メッセージを読んだときに追跡されます。既読通知を有効にしているユーザーでのみ利用できます。 | Flows/Campaign Channels |
+    | WhatsApp Message Delivered | MOE\_WHATSAPP\_DELIVERED | WhatsApp メッセージがユーザーに配信されたときに追跡されます。 | Flows/Campaign Channels |
+    | WhatsApp Message Delivery Failed | MOE\_WHATSAPP\_DELIVERY\_FAILED | プロバイダーがユーザーへの WhatsApp メッセージの送信/配信に失敗したときに追跡されます。 | Flows/Campaign Channels |
+    | WhatsApp Message Read | MOE\_WHATSAPP\_READ | ユーザーが WhatsApp メッセージを読んだときに追跡されます。既読通知を有効にしているユーザーでのみ利用できます。 | Flows/Campaign Channels |
+    | WhatsApp Message Sent | MOE\_WHATSAPP\_SENT | WhatsApp メッセージがユーザーに送信されたときに追跡されます。 | Flows/Campaign Channels |
+  </Tab>
+  <Tab title="コントロールグループイベント">
+    | **イベント** | **スコープ** | **説明** |
+    | --- | --- | --- |
+    | `MOE_CAMPAIGN_CONTROL_GROUP` | Global Control Group | ユーザーが **Global Control Group** (GCG) に追加されたとき、つまり GCG が作成または更新されたときに発生します。 |
+    | `MOE_USER_REMOVED_FROM_CONTROL_GROUP` | Global Control Group | **Global Control Group** の更新に伴い、ユーザーがそこから削除されたときに発生します。 |
+    | `MOE_CAMPAIGN_USER_REMOVED_DUE_TO_CONTROL_GROUP` | GCG またはキャンペーン固有 | **キャンペーンの送信中**に、Global Control Group またはキャンペーン固有のコントロールグループのいずれかに属するユーザーがその送信から除外されたときに発生します。除外の原因となったコントロールグループ (GCG かキャンペーン固有か) を示す `control_type` 属性が含まれます。 |
+  </Tab>
+</Tabs>
+
+## ユーザー定義 (カスタム) イベント
+
+### 共通イベント属性
+
+これらの属性は、カスタム/ユーザー定義イベントを追跡するときに自動的に追跡されます。
+
+|  |  |  |
+| --- | --- | --- |
+| キー名 | 属性キー | 説明 |
+| App Version | appVersion | このイベントが追跡されたアプリのバージョン。 |
+| SDK Version | sdkVersion | このイベントが追跡された MoEngage SDK のバージョン。 |
+| MOE Event Category | moe\_event\_category | イベントカテゴリを表します   <br />- 例: Tracked User Events |

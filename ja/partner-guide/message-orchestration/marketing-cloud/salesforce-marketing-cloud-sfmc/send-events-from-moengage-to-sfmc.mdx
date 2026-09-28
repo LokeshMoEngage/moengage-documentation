@@ -1,0 +1,128 @@
+---
+title: "MoEngage から SFMC にイベントを送信する"
+description: "MoEngage Streams を使用してイベントデータを SFMC データエクステンションに送信し、Journey Builder でセグメンテーション、パーソナライゼーション、意思決定に使用します。"
+keywords: ["sfmc", "moengage streams", "campaign interaction", "data extension", "cloudpage", "automation studio"]
+---
+
+## インテグレーション
+
+<Info>
+  **前提条件**
+
+  - [SFMC で MoEngage アクティビティをセットアップする](/ja/partner-guide/message-orchestration/marketing-cloud/salesforce-marketing-cloud-sfmc/setup-moengage-activity)に記載されている手順に従って、Salesforce Marketing Cloud で MoEngage カスタムアクティビティをセットアップしてください。
+  - これは Streams アドオンの一部です。アカウントで有効にするには、担当の MoEngage CSM（カスタマーサクセスマネージャー）にお問い合わせください。
+</Info>
+
+### ステップ 1：SFMC で Streams をセットアップする
+
+SFMC で Streams をセットアップするには、次の手順を実行します。
+
+1. 「Homepage」に移動します。
+2. 「Web Studio」をクリックし、「CloudPages」をクリックします。
+
+   ![SFMC で Web Studio > CloudPages に移動する](/images/partner_43084946697620.png)
+
+3. 「CloudPages」をクリックし、「MoEngage Credentials」サブフォルダーをクリックして、最後に「MoEngage Workspace and Data Tracking Credentials」をクリックします。
+4. 「矢印」をクリックしてドロップダウンリストを開き、「Edit」をクリックします。
+
+   ![CloudPage のドロップダウンリストの Edit オプション](/images/partner_43084946698644.png)
+
+5. 「Page URL」をクリックして認証ページを開きます。
+
+   ![Page URL を開いて認証ページにアクセスする](/images/partner_43084946699924.png)
+
+6. 「Data Center」を選択し、MoEngage プラットフォームの「Workspace Name」、「Workspace ID」、「Data API Key」、「Campaign/Push API Key」を入力します。
+7. すべての詳細を入力したら、「Submit」をクリックします。
+
+   ![SFMC CloudPage で MoEngage ワークスペースの認証情報を送信する](/images/partner_43084969575828.png)
+
+8. 認証情報を送信すると、MoEngage で検証され、安全に暗号化されてから **Credentials Data Extension** に保存されます。
+9. CloudPage の後半部分では、**Data Tracking Credentials** を扱います。
+10. データトラッキング用の任意の **Username** と **Password** を入力してください。この情報は、MoEngage Streams に関するサポートチケットを作成する際に必要になります。
+
+    ![データトラッキング認証情報の Username と Password を入力する](/images/partner_43085147292308.png)
+
+11. 入力したパスワードは暗号化されて **Data Tracking Data Extension** に保存され、後でプレーンテキストとして取得できないため、必ず覚えておいてください。
+
+### ステップ 2：MoEngage で Streams をセットアップする
+
+MoEngage で[サポートチケット](/ja/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard)を作成するには、次の詳細を共有します。
+
+- **Username**：MoEngage アカウントに割り当てられた一意の識別子で、認証の目的で使用されます。
+- **Password**：**CloudPage** で入力した暗号化されていないパスワードです。セキュリティのためにパスワードは暗号化されて **Data Extension** に保存されますが、サポートチケットの作成時には暗号化されていないバージョンが必要です。
+- **URL**：公開されている MoEngage Campaign Tracking **CloudPage** の URL です。
+
+MoEngage サポートと共有する前に、すべての情報が正確であることを確認してください。
+
+### ステップ 3：SFMC で Streams Data Simplification Automation を有効化する
+
+このプロセスでは、MoEngage が送信する生のイベントデータを、SFMC のセグメンテーション、パーソナライゼーション、ジャーニー作成に使用できる構造化された形式に変換します。
+
+#### オートメーションの機能
+
+このオートメーションは、次の主要な機能を実行します。
+
+- Raw MoEngage Data Track データエクステンションから新しい行を読み取ります。
+- ネストされたイベントデータの JSON を解析して簡素化します。
+- 処理済みのレコードを最終的な MoEngage Data Track データエクステンションに書き込みます。
+- 以降の実行でデータの重複を防ぐため、元の生レコードを処理済みとしてマークします。
+
+#### 有効化の手順
+
+SFMC でデータ簡素化プロセスを有効にするには、次の手順を実行します。
+
+1. 「Automations」に移動し、「MoEngage-SFMC」フォルダーに移動します。
+
+   ![SFMC で Automations > MoEngage-SFMC フォルダーに移動する](/images/partner_43459030334996.png)
+
+2. Automations タブに移動し、指定された「MoEngage-SFMC」フォルダーを開きます。
+3. 「MoEngage Streams Data Simplification」という名前のオートメーションを見つけます。
+
+   <Note>
+     最適なパフォーマンスを確保し、SFMC リソースのスロットリングを回避するため、このオートメーションは 15 分に 1 回を超える頻度でスケジュールしないでください。一般的には、30 分ごとまたは 1 時間ごとのスケジュールをお勧めします。オンデマンドで実行することもできます。
+   </Note>
+
+   ![フォルダー内の MoEngage Streams Data Simplification オートメーション](/images/partner_43459000846868.png)
+
+### ステップ 4：設定を確認する
+
+設定を確認するには、次の手順を実行します。
+
+1. **MoEngage Tracking Credentials Data Extension** で、すべての必須フィールドが正しく入力されていることを確認します。
+2. MoEngage サポートチームが必要な認証情報を受け取り、キャンペーントラッキングのセットアップが完了していることを確認します。
+3. MoEngage Streams の設定後、**Event Name** が Streams の設定に含まれている場合、インタラクションデータは指定された **CloudPage** に送信されます。
+4. **Test MoEngage Data Track** データエクステンションがセットアップされ、**CloudPage** を介して **Streams** からテストトラッキングデータを受信できることを確認します。
+5. **MoEngage Streams Data Simplification** オートメーションが有効になっていることを確認します。
+6. **MoEngage Data Track Data Extension** が適切に設定され、アクセス可能であることを確認します。
+
+### ステップ 5：SFMC で Streams データを表示する
+
+このセクションでは、MoEngage から送信されたイベントが SFMC データエクステンション内で正常に処理されていることを検証する方法を説明します。
+
+#### 簡素化されたデータのターゲット：MoEngage Data Track DE（データエクステンション）
+
+このデータエクステンションには、MoEngage Streams Data Simplification オートメーションによって解析・処理された後の、簡素化されたバージョンのイベントデータが保存されます。このデータエクステンションを Journey Builder で使用して、パーソナライゼーションや意思決定などを行います。
+
+MoEngage Data Track データエクステンションにアクセスするには、次の手順を実行します。
+
+1. 「Data Extensions」に移動し、「MoEngage Data Track」フォルダーに移動します。
+
+   ![Data Extensions > MoEngage Data Track フォルダーに移動する](/images/partner_43459030335380.png)
+
+2. 「MoEngage Data Track」という名前のデータエクステンションフォルダーを見つけます。
+
+   ![MoEngage Data Track データエクステンションフォルダー](/images/partner_43459000847636.png)
+
+#### 生イベントの保存先：Test MoEngage Data Track DE（データエクステンション）
+
+このデータエクステンションには、JSON 形式で取得された MoEngage Streams の HTTP POST ペイロードから受信した生のイベントデータが、受信したとおりにそのまま保存されます。
+
+MoEngage Data Track データエクステンション（DE）をテストするには、次の手順を実行します。
+
+1. 「Data Extensions」に移動し、「MoEngage Data Track」を選択します。
+
+   ![テストのために Data Extensions > MoEngage Data Track に移動する](/images/partner_43459030335892.png)
+
+2. 「Test MoEngage Data Track」という名前のデータエクステンションフォルダーを見つけます。
+
+   ![Test MoEngage Data Track データエクステンションフォルダー](/images/partner_43459000848916.png)

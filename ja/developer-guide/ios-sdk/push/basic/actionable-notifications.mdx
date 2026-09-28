@@ -1,0 +1,88 @@
+---
+title: "アクション可能な通知"
+description: "MoEngage SDKを使用して、標準のiOSプッシュ通知にカスタムアクションボタンを追加します。"
+---
+
+アクション可能な通知を使用すると、標準のiOSプッシュ通知にカスタムアクションボタンを追加できます。また、ユーザーは通知に応じて関連するタスクをすばやく簡単に実行できます。
+
+# アクション可能な通知の実装方法
+
+## カテゴリーの定義
+
+MoEngage SDKでアクション可能な通知を使用するには、例に示すようにアクションを定義してカテゴリーにグループ化し、プッシュ通知の登録時にそれらをパラメーターとして渡す必要があります。
+
+<CodeGroup>
+
+```swift Swift wrap
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate{
+
+    var window: UIWindow?
+    
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+
+        //--- Rest of Implementation
+      
+        //For registering for remote notification
+        let categories = self.getCategories()
+        MoEngageSDKMessaging.sharedInstance.registerForRemoteNotification(withCategories: categories, andUserNotificationCenterDelegate:self)
+        
+        //--- Rest of Implementation
+        
+        return true
+    }
+    
+    //Example to define categories
+    //This method gives categories
+    func getCategories() -> Set<UNNotificationCategory>{
+        
+        let acceptAction = UNNotificationAction.init(identifier: "ACCEPT_IDENTIFIER", title: "Accept", options: .authenticationRequired)
+        let declineAction = UNNotificationAction.init(identifier: "DECLINE_IDENTIFIER", title: "Decline", options: .destructive)
+        let maybeAction = UNNotificationAction.init(identifier: "MAYBE_IDENTIFIER", title: "May Be", options: .foreground)
+        
+        let inviteCategory = UNNotificationCategory.init(identifier: "INVITE_CATEGORY", actions: [acceptAction,declineAction,maybeAction], intentIdentifiers: [], options: .customDismissAction)
+        let categoriesSet = Set.init([inviteCategory])
+        
+        return categoriesSet;
+    }
+}
+```
+
+
+```objective-c Objective C wrap
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOption
+{
+ ---------
+    
+    NSSet* categories = [self getNotificationCategories];
+  	[[MoEngageSDKMessaging sharedInstance] registerForRemoteNotificationWithCategories:categories andUserNotificationCenterDelegate:self];
+    }
+  
+ ---------
+    return YES;
+}
+
+//Example to define categories
+//This method gives categories 
+-(NSSet*)getNotificationCategories{
+
+    UNNotificationAction *acceptAction = [UNNotificationAction actionWithIdentifier:@"ACCEPT_IDENTIFIER" title:@"Accept" options:UNNotificationActionOptionAuthenticationRequired];
+    UNNotificationAction *declineAction = [UNNotificationAction actionWithIdentifier:@"DECLINE_IDENTIFIER" title:@"Decline" options:(UNNotificationActionOptionDestructive)];
+    UNNotificationAction *maybeAction = [UNNotificationAction actionWithIdentifier:@"MAYBE_IDENTIFIER" title:@"May Be" options:UNNotificationActionOptionNone];
+    
+    UNNotificationCategory* inviteCategory = [UNNotificationCategory categoryWithIdentifier:@"INVITE_CATEGORY"actions:@[acceptAction,maybeAction, declineAction,opt4Action] intentIdentifiers:@[] options:UNNotificationCategoryOptionNone];
+    
+    NSSet *categories = [NSSet setWithObjects:inviteCategory,nil];
+    
+    return categories;
+}
+```
+
+</CodeGroup>
+
+<Info>
+  **通知カテゴリー**
+
+  アプリのバージョン間でカテゴリー内にグループ化されたアクションを変更しないことをMoEngageは推奨しています。変更すると、アプリのバージョンによって同じカテゴリーでも異なるアクションがユーザーに表示されることになります。
+</Info>

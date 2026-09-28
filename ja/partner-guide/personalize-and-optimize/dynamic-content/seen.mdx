@@ -1,0 +1,132 @@
+---
+title: "Seen"
+description: "MoEngage を Seen と統合して、パーソナライズされた動画の生成を自動化し、固有の動画プレーヤーリンクとメール用サムネイルをユーザーに配信します。"
+---
+
+# はじめに
+
+[Seen](https://seen.io/) は、企業が顧客を中心とした動画を作成・構築し、より魅力的なエクスペリエンスを提供できるパーソナライズ動画プラットフォームです。Seen を使用すると、データを基に動画をデザインし、クラウドで大規模にパーソナライズして、最も効果的な場所に配信できます。
+
+<Note>
+  この統合は Seen によって構築・保守されています。サポートが必要な場合は、Seen のカスタマーサクセスマネージャーにお問い合わせください。
+</Note>
+
+# ユースケース
+
+Seen は、カスタマージャーニー全体にわたる動画パーソナライゼーションの自動化を提供します。一般的な用途には、オンボーディング、ロイヤルティ、サインアップとコンバージョン、ウィンバックと解約防止などがあります。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  - 統合を設定する前に、Seen プラットフォームでプロジェクトを作成して公開しておく必要があります。
+  - アカウントで MoEngage の Connectors と Flows が利用可能であることを確認してください。
+</Info>
+
+次の例では、動画生成のためにユーザーデータを Seen に送信し、配信用の固有の動画プレーヤーリンクとパーソナライズされたメール用サムネイルを MoEngage で受け取ります。この例では、MoEngage Flow の Connector ステップを使用して Seen にデータを送信し、Seen の Webhook を使用して結果をカスタムイベントとして MoEngage に送り返します。受け取ったデータは、メール、SMS、プッシュなどで使用できます。
+
+Seen で複数の動画キャンペーンを実施している場合は、このプロセスを繰り返して、それぞれのキャンペーンに MoEngage を接続します。
+
+## ステップ 1: Seen にデータを送信する
+
+1. **Engage** → **Flows** に移動し、MoEngage で新しい空の Flow を作成します。
+2. Flow に名前を付け、キャンバスに **Connector** ステップを追加して、次のように設定します。
+   | フィールド | 値 |
+   | --- | --- |
+   | Webhook URL | `https://next.seen.io/v1/projects/{project_id}/data` — プロジェクトのエンドポイントは、Seen プロジェクトの **Run** タブで確認できます。 |
+   | HTTP Method | POST |
+   | Body type | JSON |
+3. 以下のペイロードを出発点として使用します。Seen プロジェクトのパーソナライゼーションに合わせてフィールドを調整してください。
+   ```json wrap
+   {
+     "user_id": "{{UserAttribute['ID']|default('MOE_NOT_SEND')}}",
+     "first_name": "{{UserAttribute['First Name']|default('MOE_NOT_SEND')}}"
+   }
+   ```
+4. 次のリクエストヘッダーを追加します。
+   | ヘッダー | 値 |
+   | --- | --- |
+   | Authorization | `Bearer {token}` |
+   | Content-Type | `application/json` |
+   | API トークンは、Seen プラットフォームアカウントの **Settings** → **API** → **OAuth2** で作成できます。 |  |
+5. Connector ステップの下部にある **Test** セクションを使用して、特定のユーザーで Connector をテストします。
+6. すべてが意図したとおりに機能したら、Flow を有効化します。
+
+## ステップ 2: Seen プラットフォームで Webhook を設定する
+
+1. Seen プラットフォームでプロジェクトに移動します。
+2. **Run** タブを開き、**Add Webhook** をクリックします。
+3. 結果を MoEngage に送り返すように Webhook を設定します（完全な設定についてはステップ 3 を参照してください）。
+
+## ステップ 3: Seen からデータを受け取る
+
+まず、Seen がコールバックを認証できるように、MoEngage で認可設定を作成します。
+
+1. MoEngage で、**Settings** → **Advanced Settings** → **Authorization Configuration** に移動します。
+2. **\+ Add Auth Config** をクリックし、次のフィールドに入力します。
+   | フィールド | 値 |
+   | --- | --- |
+   | Name | Seen API |
+   | Token type | JWT |
+   | API URL | `https://next.seen.io/oauth2/token` |
+   | Method | POST |
+   | Body type | FORM |
+   | grant\_type | `client_credentials` |
+   | client\_id | `<YOUR_SEEN_CLIENT_ID>` |
+   | client\_secret | `<YOUR_SEEN_CLIENT_SECRET>` |
+   | Client ID と Client Secret は、Seen ワークスペースの **Settings** → **API** → **OAuth2** で確認できます。 |  |
+3. **Send test & continue** をクリックします。
+4. **Access token** フィールドで、`access_token` を選択します。
+5. **Decode Access Token** をクリックします。表示される有効期限フィールドに、`access_token.exp`（Unix Epoch）と入力します。
+6. **Preferred prefix** を `Bearer` に設定します。
+7. **Save** をクリックします。
+
+次に、Seen プラットフォームの Webhook エディターで、MoEngage に POST で送り返すように Webhook を設定します。
+
+| フィールド | 値 |
+| --- | --- |
+| URL | `https://api-01.moengage.com/v1/event/{YOUR_MOENGAGE_WORKSPACE_ID}` |
+| Authentication | Basic Auth（Username = MoEngage Workspace ID、Password = MoEngage Data API Key） |
+| Content-Type | `application/json` |
+
+<Note>
+  URL の `01` を、ご利用のワークスペースのデータセンター番号に置き換えてください。
+</Note>
+
+1. 以下のペイロードを Seen の Webhook 本文の出発点として使用します。**Player link** と **Email thumbnail link** を、Seen の Webhook エディターで利用可能な動的出力参照に置き換えます。
+   <CodeGroup>
+   ```json JSON wrap
+   {
+     "type": "event",
+     "customer_id": "user_id",
+     "actions": [
+       {
+         "action": "seen_video_generated",
+         "attributes": {
+           "seen_campaign": "onboarding",
+           "seen_player_link": "Player link",
+           "seen_email_thumbnail_link": "Email thumbnail link"
+         }
+       }
+     ]
+   }
+   ```
+   </CodeGroup>
+2. **Create** をクリックして Webhook を保存します。
+
+## ステップ 4: 統合を確認する
+
+1. MoEngage で、**Segment** → **Search Users** に移動し、テストユーザーの **Event Activity** を開きます。
+2. 次の属性が入力された `seen_video_generated` イベントが表示されることを確認します。
+   | 属性 | 説明 |
+   | --- | --- |
+   | `seen_player_link` | ユーザーのパーソナライズされた Seen 動画へのリンクです。 |
+   | `seen_email_thumbnail_link` | メールで使用するパーソナライズされた動画サムネイルです。 |
+
+確認が完了したら、これらの属性を任意の MoEngage キャンペーンで参照できます。
+
+```text wrap
+{{EventAttribute['seen_player_link']|default('MOE_NOT_SEND')}}
+{{EventAttribute['seen_email_thumbnail_link']|default('MOE_NOT_SEND')}}
+```

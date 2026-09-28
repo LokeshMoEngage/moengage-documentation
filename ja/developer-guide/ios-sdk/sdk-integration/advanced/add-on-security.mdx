@@ -1,0 +1,101 @@
+---
+title: "アドオンセキュリティ"
+description: "Keychain と暗号化ストレージを使用して、MoEngage iOS SDK がデバイスに保存するデータを暗号化します。"
+---
+
+# 暗号化ストレージ
+
+デフォルトでは、SDK がデバイスに保存するすべてのデータはアプリケーションのサンドボックス内にあります。これにより、他のアプリケーションがデータにアクセス(読み取りと書き込みの両方)することを防ぎます。コンプライアンス基準やその他のユースケースにより、SDK に保存されるデータをさらに暗号化したい場合があります。
+
+## Keychain の設定
+
+暗号化が期待どおりに動作するように、以下の手順に従って Keychain Sharing を設定します。
+
+1. 以下の手順で Xcode の Keychain Sharing を有効にします。
+
+   a. アプリのターゲットを選択し、**_Signing & Capabilities_** タブをクリックします。
+
+   b. **_Keychain Sharing_** Capability を有効にします。
+
+   <Frame>
+     ![Addonsecu1 1](/images/addonsecu1-1.png)
+   </Frame>
+2. Keychain グループ名を指定します
+
+   <Frame>
+     ![Addonsecu2](/images/addonsecu2.png)
+   </Frame>
+3. App ID Prefix と Keychain グループ名: Xcode は Keychain グループの先頭に自動的にチーム ID を付加します。これにより、グループが開発チーム固有のものになります。動作を確認するには、_.entitlements_ ファイルをクリックし、_Keychain Access Groups_ 配列の値を確認してください。
+
+   <Frame>
+     ![Addonsecu3](/images/addonsecu3.png)
+   </Frame>
+4. AppID を取得する: App ID Prefix(Team ID とも呼ばれます)は、Apple Developer アカウントに関連付けられた一意のテキスト識別子であり、アプリ間で Keychain やペーストボードのアイテムを共有できるようにします。
+
+   AppID が **_AB123CDE45_** の場合、Keychain グループ名は **_AB123CDE45.com.example.sharedItems_** となります。[**_MoEngageSDKConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html) オブジェクトの [**_keyChainConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)keyChainConfig) プロパティを介して、同じ Keychain グループ名を MoEngage SDK に渡してください。
+
+## Enabling Encryption
+
+SDK の初期化時に [**_MoEngageSDKConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html) の [**_storageConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)storageConfig) プロパティを設定することで、ストレージの暗号化を有効にできます。
+
+<CodeGroup>
+
+```swift Swift wrap
+let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: .data_center_01)
+  sdkConfig.storageConfig = MoEngageStorageConfig(encryptionConfig: MoEngageStorageEncryptionConfig(isEncryptionEnabled: true))
+  sdkConfig.keyChainConfig = MoEngageKeyChainConfig(groupName: "YOUR_KEYCHAIN_GROUP_NAME")
+```
+
+
+```objective-c Objective C wrap
+MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:MoEngageDataCenterData_center_01];      
+  sdkConfig.storageConfig = [[MoEngageStorageConfig alloc] initWithEncryptionConfig: [[MoEngageStorageEncryptionConfig alloc] initWithIsEncryptionEnabled:true]];
+  sdkConfig.keyChainConfig = [[MoEngageKeyChainConfig alloc] initWithGroupName:@"YOUR_KEYCHAIN_GROUP_NAME"];
+```
+
+</CodeGroup>
+
+<Note>
+  **注意**
+
+  ストレージの暗号化を有効にしてビルドを本番環境(App Store)にリリースした後は、暗号化を無効にしないでください。ビルドのリリース後に暗号化を無効にすると、ユーザーがアプリケーションを更新した際に MoEngage システムで新しいユーザーが作成されます。
+</Note>
+
+<Warning>
+  - ストレージの暗号化が有効な場合は、`MoEngageKeyChainConfig` に有効な Keychain グループを渡す必要があります。Keychain グループが指定されていない場合、またはアプリに対応する Keychain Sharing Capability が構成されていない場合、`DEBUG` ビルドでは SDK が致命的な例外をスローしてアプリがクラッシュします。リリースビルドでは、ストレージ暗号化の初期化に失敗し、SDK は暗号化されていないストレージにフォールバックします。
+  - アップグレード中にこれらの `DEBUG` 検証によってアプリがクラッシュする場合は、SDK を初期化する前に `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` を呼び出して一時的にオプトアウトしてください。問題が修正されたら、この呼び出しを削除してください。
+</Warning>
+
+# 暗号化されたネットワーク通信
+
+デフォルトでは、SDK から行われるすべてのリクエストに HTTPS プロトコルを使用しており、HTTPS はデフォルトでリクエストを暗号化します。MoEngage SDK は、HTTPS による暗号化に加えて、オプションでもう一層の暗号化を追加します。
+
+## Enabling Encryption
+
+SDK の初期化時に [**_MoEngageSDKConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html) の [**_networkConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)networkConfig) プロパティで暗号化設定を有効にできます。
+
+<CodeGroup>
+
+```swift Swift wrap
+let sdkConfig = MoEngageSDKConfig(appId: appId, dataCenter: .data_center_01)
+sdkConfig.networkConfig = MoEngageNetworkRequestConfig(dataSecurityConfig:  MoEngageNetworkDataSecurityConfig(isEncryptionEnabled: true, encryptionKeyDebug: "YOUR_TEST_ENVIRONMENT_ENCRYPTION_KEY", encryptionKeyRelease: "YOUR_LIVE_ENVIRONMENT_ENCRYPTION_KEY"))
+```
+
+
+```objective-c Objective C wrap
+MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:MoEngageDataCenterData_center_01];
+sdkConfig.networkConfig = [[MoEngageNetworkRequestConfig alloc] initWithDataSecurityConfig:[[MoEngageNetworkDataSecurityConfig alloc] initWithIsEncryptionEnabled:true encryptionKeyDebug:@"YOUR_TEST_ENVIRONMENT_ENCRYPTION_KEY" encryptionKeyRelease:@"YOUR_LIVE_ENVIRONMENT_ENCRYPTION_KEY"]];;
+```
+
+</CodeGroup>
+
+<Note>
+  **注意**
+
+  1. 暗号化されたネットワーク通信を使用する場合は、ストレージの暗号化も有効にすることを強く推奨します。
+  2. この機能を動作させるには、上記の依存関係を追加してフラグを有効にするだけでは不十分です。この機能を完全に有効にするには、MoEngage 側で追加の構成が必要です。この機能を使用する場合は、アカウントマネージャーまたは MoEngage サポートチームにお問い合わせください。
+</Note>
+
+<Warning>
+  ネットワーク暗号化が有効な場合(`isEncryptionEnabled: true`)、`encryptionKeyDebug` と `encryptionKeyRelease` の両方に空でない値を指定する必要があります。有効なビルド構成に空のキーを渡すと、`DEBUG` ビルドでは致命的な例外がスローされ、アプリがクラッシュします。リリースビルドでは、ネットワークリクエストは追加の暗号化レイヤーなしの標準 HTTPS にフォールバックします。
+</Warning>

@@ -1,0 +1,166 @@
+---
+title: "Telegram"
+description: "Telegram を MoEngage に接続し、Telegram Bot API を通じて Telegram のユーザー、グループ、チャネルにパーソナライズされたテキスト、写真、メディアのキャンペーンを送信します。"
+---
+
+[Telegram](https://telegram.org/) は、高速かつ安全で、デバイス間でのコミュニケーションを実現するように設計された、クラウドベースのインスタントメッセージングアプリケーションです。Telegram は、ブランドの次のような取り組みを支援します。
+
+- カスタムメディアとリダイレクト先を備えた、リッチでインタラクティブなプッシュアラートを配信する。
+- リアルタイムのカスタマーサポートアラートや取引レポートを自動化する。
+- ターゲットグループ、購読者リスト、パブリックチャネルに直接リーチする。
+
+# MoEngage \<\> Telegram
+
+MoEngage と Telegram の統合では、MoEngage Connectors を使用してキャンペーンを Telegram Bot API に接続します。ボットを接続することで、MoEngage のセグメンテーション、動的なパーソナライズ、行動トリガーを活用して、Telegram のユーザーやパブリックチャネルにカスタマイズされたメッセージを直接送信できます。
+
+## 構築済みコネクター
+
+MoEngage は、さまざまなメッセージング要件に対応する構築済みコネクターを提供しています。
+
+| コネクター | 説明 |
+| --- | --- |
+| **Send a message to a user or a channel** | MarkdownV2、HTML、Markdown の書式設定に対応したテキストメッセージを送信します。 |
+| **Send Photo Message** | キャプションとインラインの Call-to-Action (CTA) ボタン付きの写真を送信します。 |
+| **Send Photos & Videos** | キャプション付きのメディアグループを送信します。 |
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  - **Telegram ボット:** Telegram ボットを作成する必要があります。メッセージにはこのボットの ID が使用されるため、ユーザーには送信者としてボットの詳細が表示されます。公式の [Telegram Bot Creation Tutorial](https://core.telegram.org/bots/tutorial) を使用してボットを設定してください。
+  - **Bot Token:** [BotFather](https://t.me/BotFather) でボットを作成する際に取得する一意の認証トークンで、API リクエストの認証に使用します。
+  - **Telegram Chat ID:** メッセージのルーティングに必要な一意の送信先識別子です。これらはパブリックなユーザー名とは異なります。
+</Info>
+
+<Info>
+  パーソナライズされたキャンペーンを配信するには、受信者の識別子 (Telegram Chat ID) を MoEngage 内のユーザー属性として設定する必要があります。
+</Info>
+
+Telegram のルールでは、同意を得たユーザーにプロモーションメッセージとトランザクションメッセージを送信できます。ボットのメッセージを受信するには、ユーザーが次のいずれかの条件を満たす必要があります。
+
+- ユーザーが Telegram ボットとの会話を開始している。
+- ユーザーが Telegram ボットにメッセージを送信している (かつ、その後ボットをブロックしていない)。
+
+## ステップ 1: ユーザーの Telegram Chat ID を収集する
+
+Telegram 経由でメッセージを送信するには、ユーザーを識別してやり取りするために、ユーザー固有の Telegram Chat ID を収集する必要があります。Chat ID は Telegram によって生成される数値であり、ユーザーハンドルとは異なります。
+
+ユーザーがボットとやり取りした後、[Telegram getUpdates API](https://core.telegram.org/bots/api#getupdates) を通じてそのユーザーの Chat ID を取得できます。
+
+## ステップ 2: ユーザーの Telegram Chat ID を MoEngage に保存する
+
+Chat ID を取得したら、`telegram_chat_id` という名前のカスタムのトラッキング対象ユーザー属性として MoEngage に保存します。この属性は、次のいずれかの方法で書き込みます。
+
+- [User Data API](/ja/api/user/track-user) を介して属性を MoEngage に送信する。
+- [User Import ツール](/ja/user-guide/data/imports/manual-uploads)を使用して、ユーザーと Chat ID を含む CSV ファイルをアップロードする。
+
+## ステップ 3: Telegram を MoEngage と統合する
+
+MoEngage 内で Telegram コネクターを設定するには、次の手順を実行します。
+
+1. MoEngage Dashboard のナビゲーションバーで、**App marketplace** をクリックします。
+2. **Telegram** を検索し、**Telegram** タイルを選択します。
+3. Telegram ページで、**Integrate** タブに移動します。
+4. **\+ Add integration** の下矢印キーをクリックし、ドロップダウンリストから目的のコネクタータイプをクリックします。
+   ![Telegram の Add integration ドロップダウンリスト](/images/telegram-add-integration.png)
+5. 次の詳細を入力します。
+   | フィールド | 説明 |
+   | --- | --- |
+   | **Connection name** | 接続の一意の内部名です。 |
+   | **Bot Token** | 作成時に BotFather から提供される一意の認証情報です。 |
+6. **Connect** をクリックします。
+   ![Telegram 接続の Connect ボタン](/images/telegram-connect.png)
+
+## ステップ 4: MoEngage で Telegram メッセージを送信するキャンペーンを作成する
+
+Telegram キャンペーンを開始するには、次の手順を実行します。
+
+1. **Engage** \> **Campaigns** に移動し、**\+ Create campaign** をクリックします。
+2. キャンペーン設定ダイアログで、**Connected Apps** の下にある **Telegram** をクリックし、目的の配信タイプを選択します。
+3. **Select audience** で **Filter users by** をクリックします。**User property** タブで、`telegram_chat_id` 属性が存在するセグメントを定義します。
+4. キャンペーン作成画面のステップ 3 で、コネクターを選択してパラメーターを定義します。
+
+選択したコネクターに応じて、次の詳細を指定する必要があります。
+
+<Tabs>
+  <Tab title="ユーザーまたはチャネルにメッセージを送信">
+    このコネクターを使用して、プレーンテキストのメッセージを送信します。MarkdownV2、HTML、または従来の Markdown の書式設定を使用できます。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | **Chat ID** | はい | 受信者の Chat ID です。`{{UserAttribute['telegram_chat_id']}}` のようなパーソナライズタグをサポートしています。 |
+    | **Message Content** | はい | メッセージのテキストです (最大 4096 文字)。パーソナライズがサポートされています。 |
+    | **Formatting Style (Parse Mode)** | はい | テキストの書式の解析方法を決定します。**HTML**、**MarkdownV2**、**Markdown** のいずれかを選択します。 |
+  </Tab>
+  <Tab title="Send Photo Message">
+    このコネクターを使用して、画像メッセージの直下に配置されるインラインボタン (動的な CTA など) を伴った画像ペイロードを送信します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | **Chat ID** | はい | 受信者の Chat ID またはパブリックハンドルです。`{{UserAttribute['telegram_chat_id']}}` のようなパーソナライズタグをサポートしています。 |
+    | **Photo URL** | はい | 画像ファイルへの公開された安全な HTTPS リンクです (最大 10 MB)。このフィールドはパーソナライズをサポートしています。 |
+    | **Caption** | いいえ | 画像に添えるテキストの詳細です (最大 1024 文字)。パーソナライズをサポートしています。 |
+    | **Formatting Style (Parse Mode)** | はい | テキストの書式の解析方法を決定します。**HTML**、**MarkdownV2**、**Markdown** のいずれかを選択します。 |
+    | **CTA Buttons** | いいえ | 画像の下に表示されるインタラクティブなインラインボタンです。ボタンのテキストを Key に、リダイレクト URL を Value に入力します (最大 8 個のボタン、1 行に最大 2 個まで配置)。 |
+    | **Caption Position** | いいえ | テキストを **Above photo** と **Below photo** (デフォルト) のどちらに表示するかを決定します。 |
+    | **Hide as Spoiler** | いいえ | 受信者がメッセージをタップするまで、スポイラーの視覚的なオーバーレイで画像をぼかします。デフォルトは **No** です。 |
+    | **Silent Delivery** | いいえ | 受信者のデバイスで通知音を鳴らさずにキャンペーンを配信します。デフォルトは **No, notify normally** です。 |
+    | **Protect Content** | いいえ | Telegram 内で受信者が画像を保存、転送、またはスクリーンショットする機能を制限します。デフォルトは **No, allow sharing** です。 |
+
+    ![Telegram Send Photo Message コネクターの設定](/images/telegram-send-photo-1.png)
+
+    ![Telegram Send Photo Message のプレビュー](/images/telegram-send-photo-2.png)
+  </Tab>
+  <Tab title="写真と動画を送信">
+    このコネクターを使用して、最大 10 個のアセット (写真と動画) を含むメディアパッケージを、1 つの共通キャプションブロックとともにまとめて送信します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | **Chat ID** | はい | 送信先の Chat ID またはパブリックハンドルです。パーソナライズをサポートしています。 |
+    | **Media Content** | はい (少なくとも 1 つ) | 写真と動画の安全な HTTPS URL を指定します。アセットの合計数は 1～10 個である必要があります。<br />**注**: 写真または動画のアセットをキーと値のペアとして設定する場合、送信前にキーが破棄されることを確認してください。Telegram は値 (メディアの URL) のみを受信します。 |
+    | **Media Caption** | いいえ | メディアグループの最初のアイテムに紐付けられる共通のテキストブロックです (最大 1024 文字)。 |
+    | **Formatting Style (Parse Mode)** | はい | テキストの書式の解析方法を決定します。**HTML**、**MarkdownV2**、**Markdown** のいずれかを選択します。 |
+    | **Hide as Spoiler** | いいえ | タップされるまで、メディアグループ内のすべてのアイテムをぼかします。デフォルトは **No** です。 |
+    | **Silent Delivery** | いいえ | 通知音を鳴らさずにメディアグループを静かに送信します。デフォルトは **No, notify normally** です。 |
+    | **Protect Content** | いいえ | ユーザーがメディアグループ内のファイルを保存、スクリーンショット、転送することを防ぎます。デフォルトは **No, allow sharing** です。 |
+
+    ![Telegram Send Photos and Videos コネクターの設定](/images/telegram-send-media-1.png)
+
+    ![Telegram Send Photos and Videos のプレビュー](/images/telegram-send-media-2.png)
+
+    <Info>
+      インタラクティブな CTA ボタンは **Send Photo Message** コネクター専用です。Telegram の `sendMediaGroup` API の制限により、**Send Photos & Videos** コネクターではインラインボタンはサポートされていません。
+    </Info>
+  </Tab>
+</Tabs>
+
+5. これで、キャンペーンをテストしてオーディエンスに送信する準備が整いました。**Test** 機能を使用して、テストユーザーの Chat ID にサンプルペイロードを送信し、設定を確認します。
+6. キャンペーンを公開します。
+   ![Telegram キャンペーンの公開](/images/telegram-publish.png)
+
+## チャネルまたはグループに Telegram メッセージを送信する
+
+Telegram のパブリックチャネルまたは制限付きグループチャットにキャンペーンを配信するには、次の手順を実行します。
+
+1. チャネルまたはグループを表す仮想ユーザーレコードを MoEngage に作成します。このユーザープロファイルの `telegram_chat_id` 属性に、対象のグループ ID またはパブリックチャネル ID (例: `-100123456789` または `@mychannel`) を設定します。これらの ID の取得方法については、[こちらの詳細な Chat ID 取得ガイド](https://gist.github.com/nafiesl/4ad622f344cd1dc3bb1ecbe468ff9f8a)を参照してください。
+2. 特定のセグメントを作成して、この 1 つのユーザープロファイルを切り分けます。対象セグメントにユーザーが 1 人だけ含まれていることを確認してください。同じチャネル ID を持つ複数のユーザーをターゲットにすると、MoEngage は一致したプロファイルごとにチャネルへ重複したメッセージを送信します。
+3. キャンペーン作成画面のステップ 2 で、チャネルまたはグループの認証情報を使用して、対象の Telegram Chat ID を定義します。
+
+## 推奨されるコネクターの選択ロジック
+
+以下の表を使用して、メッセージのペイロードに応じて適切なコネクターを選択してください。
+
+| メッセージングのニーズ | 対象のコネクター | インタラクティブな CTA ボタンのサポート |
+| --- | --- | --- |
+| テキストコンテンツのみ | Send a message to a user or a channel | なし |
+| 任意のキャプションとリダイレクトリンク付きの単一の写真 | Send Photo Message | あり (最大 8 個のインラインボタン) |
+| 1 つのキャプション付きのメディアバンドル (最大 10 個の写真または動画の組み合わせ) | Send Photos & Videos | なし (Telegram API はメディアグループでのインラインボタンを制限しています) |
+
+## キャンペーン分析
+
+MoEngage は、メッセージングの試行と API レスポンスを追跡して、パフォーマンス分析を算出します。デフォルトでは、MoEngage は Telegram キャンペーンについて次の指標を追跡します。
+
+1. **Attempted:** フリークエンシーキャップ (FC) の制限を適用した後にキャンペーンの対象となり、MoEngage がメッセージの送信を開始したユーザーの数です。詳細については、[MoEngage Connected Apps Campaign Analytics ガイド](https://help.moengage.com/hc/en-us/articles/32006723784980-Connected-Apps-Campaign-Analytics)を参照してください。
+2. **Failed:** Telegram API がペイロードを拒否した件数、または MoEngage がコンテンツで使用されているパーソナライズ属性を解決できなかった件数です。
+3. **Successfully Sent:** Telegram サーバーによって受け付けられたメッセージの数です。Telegram API が HTTP ステータスコード 200 を返すと、MoEngage はこの指標をインクリメントします。

@@ -1,0 +1,419 @@
+---
+title: "メールの配信停止の処理"
+description: "MoEngage でグローバル配信停止、List-Unsubscribe、サブスクリプションカテゴリを使用して、コンプライアンスに準拠したメール配信停止を管理する方法を説明します。"
+---
+
+# 概要
+
+メールを使用するマーケターは、良好なドメインレピュテーションを維持し、規制を遵守するために、非トランザクションメールに _Unsubscribe_ リンクを設ける必要があります。配信停止したユーザーには、同様の性質の今後のコミュニケーションを送信しないようにする必要があります。
+
+<Note>
+  テストキャンペーンとプレビューキャンペーンでは、ユーザープロファイルデータは変更されません。テスト送信を行っても、プロファイルの配信停止ステータス（`moe_unsubscribe`）やその他のリーチャビリティ属性は更新されません。これらのフィールドを更新するのはライブキャンペーンのみです。配信停止フローを検証するには、小規模な社内セグメントを対象にライブキャンペーンを実行してください。
+</Note>
+
+MoEngage プラットフォームは、以下の種類のサブスクリプション管理を提供することで、マーケターが上記のルールを遵守できるよう支援します。
+
+- [グローバル配信停止](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/handle-unsubscribes-in-emails#global-unsubscribe)
+- [List-Unsubscribe](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/handle-unsubscribes-in-emails#list-unsubscribe)
+- [サブスクリプションカテゴリ](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/handle-unsubscribes-in-emails#subscription-categories)
+
+# 配信停止と抑制の違い
+
+配信停止はユーザーのアクションです。ユーザーが配信停止をクリックすると、MoEngage はそのプロファイルの標準の配信停止属性を `True` に設定します。抑制（Suppression）は、非トランザクションキャンペーンがユーザーに届かないようにするプラットフォーム側の結果であり、配信停止は抑制をトリガーする条件の 1 つにすぎません。
+
+抑制をトリガーする条件、ブランドによる抑制の管理方法、MoEngage がネイティブの抑制リストを保持しない理由など、詳しい比較については、Suppression Updates ページの[配信停止と抑制の違い](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/suppression-updates#unsubscribe-vs-suppression)を参照してください。
+
+# MoEngage メールにおけるサブスクリプション管理の種類
+
+## グローバル配信停止
+
+グローバル配信停止を使用すると、ユーザーはブランドまたはビジネスからのすべての非トランザクションメールの配信を停止できます。ユーザーがこのリンクをクリックすると、直接配信停止されるか、配信停止前に再確認を行うためのランディングページにリダイレクトされます。これはトランザクションメールや Inform 経由で送信されたメールには影響しません。これらのメールは、グローバル配信停止のステータスに関係なく引き続きユーザーに届きます。トランザクションを含むすべてのキャンペーンタイプをブロックする唯一のトリガーはバウンスです。
+
+## List-Unsubscribe
+
+List-Unsubscribe は、ISP が提供するワンクリックで配信停止できる方法です。メールヘッダーに含まれ、送信者のレピュテーション、送信量、エンゲージメントに応じて、メールボックスプロバイダーが受信者に表示するかどうかを決定します。以前はクライアントが従うことのできるベストプラクティスでしたが、2024 年以降は [Google と Yahoo](https://www.moengage.com/blog/upcoming-gmail-yahoo-email-deliverability-changes/) により、満たすべき必須のコンプライアンス要件となっています。
+
+## サブスクリプションカテゴリ
+
+サブスクリプションカテゴリを使用すると、ユーザーはコミュニケーションのカテゴリ単位で選択的に配信停止できます。たとえば、ニュースレター、製品アップデート、プロモーションのカテゴリでメールを送信しているとします。サブスクリプションカテゴリを使用すると、ユーザーは 1 つのページから、関心のあるカテゴリ・関心のないカテゴリを選択して購読または配信停止できます。
+
+つまり、サブスクリプションカテゴリはサブスクリプション管理のオプションの方法ですが、他の 2 つはメールマーケティングにおけるすべての大量メール送信者に義務付けられています。サブスクリプションカテゴリの詳細については、[こちら](https://moengage-user-guide.mintlify.app/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-subscription-categories#moengage-landing-page)をクリックしてください。
+
+# MoEngage 管理とカスタム管理（自己管理）の違い
+
+大まかに言うと、MoEngage ではマーケターが以下の方法でこれらを設定できます。
+
+- **MoEngage 管理:** このオプションでは、MoEngage の機能をシームレスに使用して、MoEngage 上でユーザーのサブスクリプションを取得・更新できます。他のシステム（サードパーティツールや社内システム）がある場合は、この情報を MoEngage からそれらのシステムに転送できます。
+- **自己管理、カスタム管理、またはなし:** このオプションでは、ブランド独自のユーザーサブスクリプション処理を呼び出すことができます。一般的に、ブランドが自社側でユーザーの設定を管理したい場合に使用されます。この場合、ブランドはユーザーのサブスクリプションを取得し、自社のシステムと MoEngage の両方を更新する必要があります。
+
+
+# 設定方法
+
+## グローバル配信停止
+
+<Tabs>
+  <Tab title="MoEngage 管理またはトラッキング">
+    MoEngage が標準で提供するすべての送信者、MoEngage と提携している送信者、または MoEngage のお客様が購入したカスタム送信者（Sendgrid、Amazon SES、Sparkpost、Mandrill）では、[こちら](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel)に記載されている _Unsubscribe Settings_ というオプションが提供されます。ここで _MoEngage Tracking_ を選択すると、ユーザーのリクエストに基づいて MoEngage がユーザーの配信停止を支援します。
+
+    ![Screenshot 2024-09-27 at 12.11.14 AM.png](/images/moengage_1d3b53.png)
+
+    オプションに記載されているとおり、デフォルトでメールの末尾に以下のテキストが挿入されます。
+
+    "If you do not wish to receive future emails, click here"
+
+    **_click here_** には、_Unsubscribe Page URL_ に指定された URL がハイパーリンクとして設定されます。これによりユーザーは直接配信停止され、必要に応じて再購読するための CTA（コールトゥアクション）が表示されます。
+
+    ユーザーが配信停止する理由を把握するためのアンケートなど、さらにカスタムの動作を追加したい場合は、_Unsubscribe Page URL_ に任意のカスタムページのリンクを指定して使用できます。
+  </Tab>
+  <Tab title="Sendgrid トラッキング">
+    Sendgrid 送信者の場合に限り、Sendgrid の標準機能を使用してグローバルレベルでサブスクリプションを管理する方法があります。設定するには、[こちら](https://www.twilio.com/docs/sendgrid/ui/sending-email/subscription-tracking#how-do-i-enable-subscription-tracking)に記載されている手順を実行してください。
+
+    これを設定すると、送信者（Sendgrid）はデフォルトでメールの末尾に以下のテキストを挿入します。
+
+    "If you'd Like to stop receiving these emails click here"
+
+    **_click here_** には SendGrid の配信停止 URL がハイパーリンクとして設定されます。ユーザーがこれをクリックすると、SendGrid は自動的にユーザーを配信停止し、SendGrid で Webhook が正しく設定されていれば、リアルタイムで MoEngage を更新します。
+  </Tab>
+  <Tab title="自己管理またはなし">
+    すべてのコネクタには、**MoEngage Tracking** オプションのほかに **None** があります。これを選択すると、MoEngage は、ユーザーが配信停止するためのリンクの追加とその処理の責任をお客様に委ねます。慎重に対応し、設定を MoEngage に反映してください。
+  </Tab>
+</Tabs>
+
+## List-Unsubscribe
+
+<Tabs>
+  <Tab title="MoEngage 管理">
+    使用している送信者に関係なく、[こちら](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/list-unsubscribe-email)に記載されている _One-click Unsubscribe_ というオプションが提供されます。ここで **MoEngage Managed** を選択すると、MoEngage の支援によりコンプライアンスに準拠し、ユーザーにワンクリックで配信停止できる方法を提供できます。
+  </Tab>
+  <Tab title="自己管理">
+    送信者に関係なく、**MoEngage Managed** オプションのほかに自己管理オプションがあります。これを選択すると、MoEngage は指定された URL とメール ID をメールヘッダーに追加し、ユーザーからのリクエストの処理の責任をお客様に委ねます。慎重に対応し、設定を MoEngage に反映してください。詳細については、[こちら](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/list-unsubscribe-email)をクリックしてください。
+  </Tab>
+</Tabs>
+
+## サブスクリプションカテゴリ
+
+MoEngage でサブスクリプションカテゴリを設定するには、以下の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**Settings** \> **Channel** \> **Email** に移動します。
+2. Email ページで **Subscription management** タブを選択し、**Subscription categories** タブを選択します。
+3. **Configure subscription categories** をクリックします。\
+   MoEngage が標準で提供するランディングページを使用してサブスクリプションカテゴリを設定することも、独自のカスタムランディングページを使用して定義することもできます。詳細については、[こちら](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-subscription-categories)をクリックしてください。
+
+<Info>
+  カスタムランディングページを使用している場合は、[こちら](https://www.moengage.com/docs/api/subscription-preferences/update-subscription-preferences)の API を使用して設定の変更を MoEngage に返すために必要な手順を実行してください。これにより、今後ユーザーが誤ったメールの対象となった場合に、MoEngage が必要な対応を行えます。
+</Info>
+
+# 提供されるサブスクリプションの種類に応じた MoEngage でのメール作成
+
+## グローバル配信停止
+
+前述のとおり、MoEngage Tracking または Sendgrid Tracking の場合、デフォルトのテキストが常にメールの末尾に追加されます。ただし、その位置はカスタマイズできます。
+
+<Tabs>
+  <Tab title="MoEngage 管理">
+    - ドラッグアンドドロップエディターで、送信者設定で構成された、MoEngage を通じて配信停止をトラッキングする配信停止リンクを挿入するには、以下の手順を実行します。
+
+    1. 配信停止リンクを挿入するテキストを選択します。
+    2. テキストエディターで、**Special links** \> **Frequently used** \> **MoE Tracking Unsubscribe Link** をクリックします。
+
+    ![Special links.gif](/images/moengage_bc282a.png)
+
+    - **ドラッグアンドドロップエディターの使用中にカスタムの配信停止リンクを挿入するには、以下の手順を実行します。**
+      1. エディターから HTML ブロックを必要な位置にドラッグアンドドロップします。
+      2. 以下の HTML コードを追加します。
+      ```html wrap
+      <a data-msys-unsubscribe="1" href= "https://www.abc.com/unsubscribe">Unsubscribe here </a> 
+      ```
+      ここで、`https://www.abc.com/unsubscribe` には使用する配信停止 URL を追加する必要があります。
+
+    <Info>
+      - これを正しく機能させるには、href 属性に常にプロトコル（HTTP または HTTPS）を含める必要があります。
+      - _Unsubscribe here_ のテキストは、サポートされている任意の言語の必要なテキストに置き換えることができます。
+    </Info>
+
+    <Warning>
+      href はエンコードせずに貼り付けてください。リンクに MoEngage のパーソナライゼーショントークンが含まれている場合は、URL エンコードしないでください。URL エンコードすると `{{` 区切り文字が `%7B%7B` に、`$` が `%24` に置き換えられ、デコード時に Jinja が解析できない `{{$` シーケンスになります。キャンペーンを保存または送信すると、`Error in parsing jinja template format. Error unexpected char u'$' at ...` のようなエラーが発生する場合があります。トークンは、エディターに用意されているマージタグまたはトークンオプションを使用して挿入してください。詳細については、[Jinja テンプレート言語](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language#escaping)を参照してください。
+    </Warning>
+
+    **カスタム HTML エディター**
+
+    以下の HTML コードを使用して、配信停止のテキストとリンクを任意の位置に配置します。
+
+    ```html wrap
+    <a data-msys-unsubscribe="1" href= "https://www.abc.com/unsubscribe">Unsubscribe here </a> 
+    ```
+
+    <Info>
+      - さらに HTML 属性や CSS 値を追加して、見た目を整えることもできます。
+      - また、リンクではなくテキストのみを変更したい場合は、同じコードに 1 つだけ小さな変更を加えます。
+      - href には設定で指定した値を使用します。
+    </Info>
+  </Tab>
+  <Tab title="Sendgrid トラッキング">
+    **MoEngage 管理の Sendgrid アカウント**
+
+    Sendgrid Tracking を使用している場合は、Sendgrid ダッシュボードで置換テキストを定義した後、そのテキストを使用できます。MoEngage 管理の Sendgrid アカウントを使用している場合、置換テキストは _\[unsubscribe\_here\]_ です。
+
+    **カスタム管理の Sendgrid アカウント**
+
+    独自の Sendgrid アカウントを使用している場合は、置換タグを設定できます。設定するには、以下の手順を実行します。
+
+    1. **Sendgrid** \> **Settings** \> **Tracking** \> **Suppression Tracking** に移動します。
+    2. 任意の置換タグを追加します。
+
+    これで、メール内の任意の場所にリンクを挿入し、その値として置換タグを入力することで追加できます。
+
+    <Info>
+      - Sendgrid は置換タグが見つかったすべての箇所をリンクに置き換えるため、定義する置換タグには注意してください。
+      - 置換タグは大文字と小文字が区別されます。
+    </Info>
+  </Tab>
+  <Tab title="なしまたはカスタムトラッキング">
+    前述のとおり、作成者またはマーケターが配信停止リンクを追加する必要があります。メール内の任意の場所にリンクを挿入することで追加できます。
+  </Tab>
+</Tabs>
+
+## List-Unsubscribe
+
+アプローチの種類（MoEngage 管理または自己管理）に関係なく、MoEngage はすべての非トランザクションメールのメールヘッダーに必要な情報を常に自動的に追加します。そのため、キャンペーンの作成時にカスタマイズや手動入力を行う必要はありません。
+
+## サブスクリプションカテゴリ
+
+### デフォルトのリンク位置
+
+使用するランディングページの種類に関係なく、MoEngage はデフォルトで以下のテキストを使用してメールの末尾にリンクを配置します。
+
+_Update your email preferences here to choose the category of emails you wish to receive._
+
+送信されるメールでは、上記テキストの _here_ にランディングページのリンクがハイパーリンクとして設定されます。
+
+### リンク位置のカスタマイズ
+
+以下の手順を使用して、ランディングページのリンクの位置をいつでもカスタマイズできます。
+
+<Tabs>
+  <Tab title="ドラッグアンドドロップエディター ">
+    ドラッグアンドドロップエディターでサブスクリプションカテゴリのランディングページのリンクを挿入するには、以下の手順を実行します。
+
+    1. ランディングページのリンクを挿入するテキストを選択します。
+    2. テキストエディターで、**Special links** \> **Frequently used** \> **Preference Management** をクリックします。
+
+    ![email preferences link..gif](/images/moengage_5f0516.png)
+  </Tab>
+  <Tab title="カスタム HTML エディター">
+    以下の HTML コードを使用して、配信停止のテキストとリンクを任意の位置に配置します。
+
+    ```html wrap
+    <a data-msys-managepref=”1” href= “https://api-0X.moengage.com">Manage your preference here</a>
+    ```
+
+    ここで、URL の _X_ は MoEngage のデータセンター（DC）を指します。MoEngage は各お客様を異なる DC でホストしています。[こちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)の DC と API エンドポイントのマッピングを参照して DC 番号（_X_ の値）を確認し、URL の _X_ の値を置き換えてください。
+  </Tab>
+</Tabs>
+
+### グローバル配信停止リンクではなくサブスクリプションカテゴリのリンクを表示する
+
+デフォルトでは、MoEngage は常にグローバル配信停止リンクと設定管理リンクの両方をメールの末尾に追加します。上記で定義した HTML コードを使用して、両方のリンクを任意の位置に配置できます。
+
+ただし、グローバル配信停止リンクを非表示にしてカテゴリへのリンクのみを表示したい場合は、以下の方法で実現できます。
+
+<Tabs>
+  <Tab title="ドラッグアンドドロップエディター">
+    1. エディターから HTML ブロックを必要な位置にドラッグアンドドロップします。
+    2. 以下の HTML コードを追加します。
+
+    ```html wrap
+
+    <div style="display: none;"><a data-msys-unsubscribe=”1” href= “https://api-0X.moengage.com">Manage your preference here</a></div>
+    ```
+
+    ここで、URL の _X_ は MoEngage のデータセンター（DC）を指します。MoEngage は各お客様を異なる DC でホストしています。[こちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)の DC と API エンドポイントのマッピングを参照して DC 番号（X の値）を確認し、URL の 'X' の値を置き換えてください。
+  </Tab>
+  <Tab title="カスタム HTML エディター">
+    以下の HTML コードを使用して、配信停止のテキストとリンクを任意の位置に配置します。
+
+    ```html wrap
+
+    <div style="display: none;"><a data-msys-unsubscribe=”1” href= “https://api-0X.moengage.com">Manage your preference here</a></div>
+    ```
+
+    ここで、URL の _X_ は MoEngage のデータセンター（DC）を指します。MoEngage は各お客様を異なる DC でホストしています。[こちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)の DC と API エンドポイントのマッピングを参照して DC 番号（X の値）を確認し、URL の 'X' の値を置き換えてください。
+  </Tab>
+</Tabs>
+
+# 配信停止の分析
+
+## グローバル配信停止または List-Unsubscribe
+
+ユーザーがメールに追加されたリンク（グローバル配信停止リンク）または ISP が提供するオプション（List-Unsubscribe オプション）を通じて配信停止すると、配信停止のトラッキングが _None_ でない場合、または[こちら](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/list-unsubscribe-email#how-to-configure-this-in-moengage)に記載されているとおりに List-Unsubscribe の処理を正しく設定している場合に、MoEngage は _Email Unsubscribed_ イベントをトリガーします。
+
+## サブスクリプションカテゴリ
+
+ユーザーが MoEngage から送信されたメールを通じて設定を変更すると、MoEngage システムは、キャンペーン、メールの件名、配信停止されたカテゴリなどの情報を含む _Email Subscription Category Updated_ イベントをトリガーします。
+
+上記のイベントを通じて、配信停止または設定を変更しているユーザーを分析できます。また、これらのイベントを使用して、サブスクリプションを変更したユーザーを検索し、ターゲットにすることもできます。
+
+<Info>
+  これは、MoEngage 管理のランディングページ、およびカスタムランディングページを使用していても[こちら](https://www.moengage.com/docs/api/subscription-preferences/update-subscription-preferences)に記載されているとおりに情報を MoEngage に返しているワークスペースに適用されます。
+</Info>
+
+# サブスクリプションステータスの更新
+
+## MoEngage からサードパーティシステムへの配信停止の更新
+
+### 全体レベルでの配信停止
+
+配信停止が _List-Unsubscribe_ と _Global Unsubscribe_ リンクのどちらで行われた場合でも、以下の手順を実行してステータスを渡すことができます。
+
+1. _Email Unsubscribed_ イベントの発生時にトリガーされ、サードパーティシステムのエンドポイントに API コールを行うイベントトリガー型のコネクタキャンペーンを作成します。コネクタキャンペーンの作成の詳細については、[こちら](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign)を参照してください。または
+2. MoEngage Streams を使用して、_Email Unsubscribed_ イベントを自社のシステムに渡すことができます。MoEngage Streams の詳細については、[こちら](https://www.moengage.com/docs/api/data/moengage-streams)をクリックしてください。
+
+### 設定の変更
+
+新しい設定値を渡すには、以下の手順を実行します。
+
+1. _Email Subscription Category Updated_ イベントの発生時にトリガーされ、サードパーティシステムのエンドポイントに API コールを行ってユーザーが配信停止したカテゴリを伝えるイベントトリガー型のコネクタキャンペーンを作成します。コネクタキャンペーンの作成の詳細については、[こちら](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign)を参照してください。または
+2. MoEngage Streams を使用して、_Email Subscription Category Updated_ イベントを自社のシステムに渡すことができます。MoEngage Streams の詳細については、[こちら](https://www.moengage.com/docs/api/data/moengage-streams)をクリックしてください。
+
+## サードパーティシステムから MoEngage への配信停止の更新
+
+### 全体レベルでの配信停止
+
+<Tabs>
+  <Tab title="API によるアプローチ">
+    ユーザーが（MoEngage ベースのメール以外の）他の場所で配信停止したためにそのユーザーを配信停止したい場合は、MoEngage Data API を使用して更新できます。これを行うには、以下の手順を実行します。
+
+    1. [こちら](https://www.moengage.com/docs/api/user/track-user)に記載されているとおりに Data API を呼び出します。
+    2. `moe_unsubscribe` を true に設定します。
+    3. ユースケースや設定に基づいて、他の属性に渡す値を確定します（任意）。
+  </Tab>
+  <Tab title="CSV アップロードによるアプローチ">
+    ユーザーが（MoEngage ベースのメール以外の）他の場所で配信停止したためにそのユーザーを配信停止したい場合は、MoEngage の[ユーザーインポート](/ja/user-guide/data/imports/manual-uploads)を使用して更新できます。これを行うには、以下の手順を実行します。
+
+    1. MoEngage でユーザーを識別するために使用するユーザー識別子と配信停止ステータスを 2 つの別々の列として含む CSV ファイルを用意します。
+    2. MoEngage ダッシュボードの左側のナビゲーションメニューで **Segment** をクリックし、**User Imports** をクリックします。
+    3. User Imports ページで **Import users** をクリックします。 <img src="/images/moengage_927572.png" alt="Screenshot 2024-09-28 at 12.04.11 AM.png" />
+    4. 次に、以下を実行します。
+       1. **Import name** ボックスに、インポートの一意の名前を入力します。
+       2. **Select user type** で **Registered users** を選択します。
+       3. **Select file** で **upload from the computer** をクリックして CSV ファイルをアップロードします。
+       4. **File preview** で **Preview** **file** をクリックします。
+       5. **Next** をクリックします。 <img src="/images/moengage_8ecdb9.png" alt="Screenshot 2024-09-28 at 12.06.02 AM.png" />
+       6. **User Identifier** フィールドが正しくマッピングされているか確認します。正しくない場合は、ユーザー識別子を含む列名を選択します。 <img src="/images/moengage_96214c.png" alt="Screenshot 2024-09-28 at 12.06.56 AM.png" />
+       7. 配信停止ステータスを含む列を _Unsubscribe_ ユーザー属性にマッピングします。 <img src="/images/moengage_59b85a.png" alt="Screenshot 2024-09-28 at 12.08.07 AM.png" />
+       8. **Next** をクリックし、**Schedule Import** をクリックします。 <img src="/images/moengage_7286da.png" alt="Screenshot 2024-09-28 at 12.08.48 AM.png" /> ファイルの処理後、ステータスがメールで送信されます。User imports ページでも確認できます。
+    5. 配信停止の値が更新されると、MoEngage は今後のすべてのキャンペーンからこれらのユーザーを除外します。
+
+    <Info>
+      自己管理の List-Unsubscribe 方式を使用していて、配信停止の情報を MoEngage に返したい場合は、[こちら](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/list-unsubscribe-email)を参照してください。
+    </Info>
+  </Tab>
+</Tabs>
+
+### 設定の変更
+
+#### カスタムランディングページを使用して MoEngage から送信されたキャンペーンによる設定の更新:
+
+カスタムランディングページを使用していて、ユーザーの設定を MoEngage に反映したい場合は、以下の手順を実行します。
+
+1. URL を解析して user\_id と cid パラメータを見つけます。
+2. [こちら](https://www.moengage.com/docs/api/subscription-preferences/update-subscription-preferences)に記載されている API を呼び出します。
+3. API の実行時に、保存した user\_id と cid をパラメータとして渡します。
+
+たとえば、カスタムランディングページへのリンクが [_https://www.abc.com/managepreference_](https://www.abc.com/managepreference) の場合、ユーザーがメールからこれをクリックすると、リンクは以下のようになります。
+
+```text wrap
+https://www.abc.com/managepreference?/?user_id=7XvJW2dj3iS.rYAt4pg5ASBQtaqAMFDw9e89vZCXx_RFfN3eL0wBG008oI6cpncOQV6ESg&cid=5FGZGcA8FRv3Id89JCCczQjwxq6ApEyAarYDje2mzfRQ_WG7VyyFEc0w4L3MA.31a7wzR64fi7lfq8Km0AaeO4paGVul.4HxixDYnoUp21xyUjGtfvnrHSR2G1reTpYPHHU.r3Ac9vE&app_key=UY_GHXBXyaHbiYnCoNOu7eS.u5yIrrN3noTBNZX5mNSL4KN5C5PZ3zcXBKCCxl9w3m0ukw
+```
+
+ここで、解析して user\_id を見つけることができます。この場合は以下のとおりです。
+
+```text wrap
+7XvJW2dj3iS.rYAt4pg5ASBQtaqAMFDw9e89vZCXx_RFfN3eL0wBG008oI6cpncOQV6ESg
+```
+
+cid は以下のとおりです。
+
+```text wrap
+5FGZGcA8FRv3Id89JCCczQjwxq6ApEyAarYDje2mzfRQ_WG7VyyFEc0w4L3MA.31a7wzR64fi7lfq8Km0AaeO4paGVul.4HxixDYnoUp21xyUjGtfvnrHSR2G1reTpYPHHU.r3Ac9vE
+```
+
+これらを API のトリガー時に渡します。
+
+<Info>
+  API を使用してユーザーの設定を更新する際、MoEngage でアーカイブまたは無効化されているカテゴリの値を受信した場合、そのカテゴリの設定は更新されません。また、変更がアーカイブ済みまたは無効化されたカテゴリのみを対象としていた場合は、イベントも発生しません。
+</Info>
+
+#### サードパーティシステムから MoEngage への設定の更新:
+
+<Tabs>
+  <Tab title="API によるアプローチ">
+    サードパーティシステムから MoEngage にユーザーの設定を更新するには、以下の手順を実行します。
+
+    1. サブスクリプションカテゴリを更新する [API](https://www.moengage.com/docs/api/subscription-preferences/update-subscription-preferences) を呼び出します。
+    2. ユーザーに対して変更したいカテゴリのステータスを、API ボディの **_data_** キーで渡します。
+    3. ユースケースや設定に基づいて、他の属性に渡す値を確定します（任意）。
+
+    <Info>
+      API を使用してユーザーの設定を更新する際、MoEngage でアーカイブまたは無効化されているカテゴリの値を受信した場合、そのカテゴリの設定は更新されません。
+    </Info>
+  </Tab>
+  <Tab title="CSV アップロードによるアプローチ">
+    CSV アップロードを使用してユーザーのサブスクリプションカテゴリをアップロードするには、以下の手順を実行します。
+
+    1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Segment** をクリックし、**User Imports** をクリックします。
+    2. User Imports ページで、右上の **Import users** をクリックします。 <img src="/images/moengage_be4392.png" />
+    3. **Import name** ボックスに、インポートの一意の名前を入力します。
+    4. **Select user type** で **Registered users** を選択します。
+    5. **Select file** で **upload from the computer** をクリックして CSV ファイルをアップロードします。CSV ファイルをアップロードする際は、以下の点に従ってください。アップロードする CSV ファイルでは:
+       1. 1 つの列を ID 用に確保します。これらは顧客を一意に識別するために使用する顧客 ID です。たとえば、顧客のメール ID などです。
+       2. 顧客を配信停止すべきサブスクリプションカテゴリの配列用に別の列を用意します。配信停止カテゴリは以下の形式で渡します: _\["abc"|"xyz"|"def"\]_。ここで _abc_、_xyz_、_def_ は配信停止カテゴリです。たとえば、マーケターとして、メール ID が [_john@gmail.com_](mailto:john@gmail.com) の _John_ という顧客を _unsubscategory1_ と _unsubscategory2_ から配信停止する必要があるとします。この場合、アップロードする CSV ファイルは以下の形式にする必要があります。\
+          [_john@gmail.com_](mailto:john@gmail.com)_, \["unsubscategory1"|"unsubscategory2"\]_。メール ID を 1 つの列に、\["unsubscategory1"|"unsubscategory2"\] をもう 1 つの列に追加します。 <img src="/images/moengage_981cfd.png" />
+    6. **File preview** で **Preview** **file** をクリックして、アップロードしたファイルをプレビューします。
+    7. **Next** をクリックします。 <img src="/images/moengage_16ec48.png" />
+    8. 次の画面では、CSV ファイルに基づいて **Required mapping** セクションにすべての値があらかじめ読み込まれます。必要に応じて値を変更することもできます。
+    9. **Map columns** で、**Identifier** 列（この例ではメール ID）を _ID_ に、**Email Unsubscribed Categories** 列を _Email Unsubscribe Categories_ 属性にマッピングします。カテゴリは _Array String_ 形式であらかじめ読み込まれます。 <img src="/images/moengage_64ad84.png" />
+    10. MoEngage アカウントに既に存在するユーザーのプロファイルのみを変更したい場合は、**Do not create new users** オプションを選択します。
+    11. アップロードした CSV ファイル内のユーザーをセグメントとして保存したい場合は、**Save as a file segment** トグルをオンにします。
+    12. **Send import status** トグルをオンにし、インポートステータスを送信するメール ID を選択して、**Next** をクリックします。
+
+    ![](/images/moengage_befb43.png)
+
+    13. 次の画面で、インポートの頻度を選択し、**Schedule import** をクリックします。
+
+    ![](/images/moengage_23a756.png)
+
+    14. ユーザーインポートは、_Successful_ の同期ステータスとともに User Imports ページに一覧表示されます。
+
+    これらの値が更新されると、MoEngage は同じサブスクリプションカテゴリを対象とする今後のすべてのキャンペーンからこれらのユーザーを除外します。
+  </Tab>
+</Tabs>
+
+## MoEngage および送信者でのユーザーの再購読
+
+以前に MoEngage プラットフォームと Sendgrid プラットフォームで配信停止したユーザーを、両方で同時に再購読させたい場合があります。MoEngage Resubscribe API は、MoEngage 上のユーザーの配信停止フラグを "false" にリセットし、SendGrid を呼び出して（配信停止したユーザーに関連付けられた）メールアドレスを抑制リストから削除します。
+
+これを行うには、以下の手順を実行します。
+
+1. 再購読させるメール ID のリストをまとめます。
+2. [こちら](https://www.moengage.com/docs/api/resubscribe/bulk-resubscribe-users)に記載されているとおりに MoEngage Resubscribe API を呼び出します。
+3. _update\_esp=true_ を設定し、メール ID のリストを _recipients key_ に _array_ として渡します。
+
+<Warning>
+  MoEngage またはメール送信者でユーザーを再購読させても、抑制条件が解除されるだけで、同意が回復するわけではありません。再購読したユーザーへの送信を再開する前に、Suppression Updates ページの[コンプライアンスに関する注意事項](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/suppression-updates#unsubscribe-vs-suppression)を参照してください。
+</Warning>
+
+# よくある質問
+
+<Accordion title="配信停止リンクをクリックした後にユーザーが遷移するランディングページをカスタマイズできますか？">
+  はい、配信停止リンクをクリックした後にユーザーが遷移するランディングページはカスタマイズできます。このオプションは **Sender Configuration** で利用できます。ユーザーが配信停止リンクをクリックすると、配信停止された後にこのランディングページに移動し、配信停止の理由を確認できます。
+</Accordion>
+
+<Accordion title="特に PII トークン化が有効になっている場合、送信者と MoEngage はどのように連携して、配信停止やメール送信を可能にするカスタム ID にどのメール ID が関連付けられているかを把握するのですか？">
+  この連携には以下のステップが含まれます。
+
+  - MoEngage はコンテンツ API を呼び出し、メール ID の代わりに MoEngage に保存されているトークンを渡します。
+  - レスポンスとして、クライアントシステムがメール ID を返します。
+  - MoEngage はペイロードを生成し、送信者にリクエストを送信します。
+  - この送信リクエストを記録するために、メール ID は暗号化されて保存されます。生のメール ID が MoEngage に保存されることはありません。
+</Accordion>

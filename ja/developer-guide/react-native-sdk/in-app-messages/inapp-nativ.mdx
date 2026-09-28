@@ -1,0 +1,383 @@
+---
+title: "InApp NATIV"
+description: "MoEngage SDK を使用して、React Native アプリでアプリ内メッセージを設定および表示します。"
+---
+
+アプリ内メッセージ（In-App Messaging）は、ユーザーのセグメントに送信して、カスタムメッセージを表示したり、新しいオファーを提供したり、特定のページに誘導したりできるカスタムビューです。アプリ内メッセージは MoEngage アカウントから作成できます。
+
+<img
+  src="/images/inapp-native-1.png"
+  alt="InApp Native 1"
+  style={{ width:"20%" }}
+  title="InApp Native 1"
+/>
+
+## Android 依存関係のインストール
+
+### InApp で画像と GIF を表示するための要件
+
+<Info>
+  InApp バージョン **7.0.0** 以降、SDK はアプリ内メッセージで画像や GIF を表示するために [Glide](https://bumptech.github.io/glide/) を必要とします。**_android/app/build.gradle_** ファイルに以下の依存関係を追加する必要があります。
+</Info>
+
+<CodeGroup>
+
+```gradle Groovy
+dependencies {
+ ...
+ implementation("com.github.bumptech.glide:glide:4.9.0")
+}
+```
+
+</CodeGroup>
+
+# アプリ内メッセージの表示
+
+<Note>
+  MoEngage は、meta API 呼び出しを通じて、対象となるアプリ内キャンペーンのリストを更新します。アクティブなセッション中は、アプリがバックグラウンドからフォアグラウンドに戻ったとき（最大 15 分に 1 回）にリストが更新されます。また、新しいセッションが開始されたとき、またはアプリが強制終了されて再起動されたときには、即座に更新されます。
+</Note>
+
+アプリ内で InApp を表示する必要がある箇所で、以下のように `showInApp()` を呼び出します。
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE from 'react-native-moengage'
+ReactMoE.showInApp()
+```
+
+</CodeGroup>
+
+# ナッジの表示
+
+**_react-native-moengage_** バージョン **9**\*\*.0.0\*\* 以降、MoEngage InApp SDK は非侵入型のナッジの表示をサポートしています。
+
+ナッジ InApp キャンペーンを表示するには、`showNudge()` を呼び出します。
+
+<CodeGroup>
+
+```javascript JavaScript
+import { ReactMoE, MoEngageNudgePosition } from "react-native-moengage";
+
+ReactMoE.showNudge() // Display Nudge on any available position
+ReactMoE.showNudge(MoEngageNudgePosition._NUDGE_POSITION) // Display Nudge on the specific position
+```
+
+</CodeGroup>
+
+# InApp/ナッジのリダイレクトのデフォルト動作
+
+InApp またはナッジがクリックされると、MoEngage SDK は**リッチランディングナビゲーションのみ**のリダイレクトを処理します。 
+
+画面名およびディープリンクのリダイレクトについては、アプリのコードでユーザーを適切な画面またはディープリンクにリダイレクトする必要があります。画面名とディープリンクのリダイレクトを処理するには、InApp クリックのコールバックメソッドを実装する必要があります。MoEngage SDK は、InApp のペイロードをこのコールバックコードに渡すだけです。実装手順は、統合の InApp コールバックのセクションに記載されています。
+
+# セルフハンドル InApp
+
+セルフハンドル InApp は、SDK が配信するものの、表示はアプリ側で処理する必要があるメッセージです。
+
+## 単一のセルフハンドル InApp
+
+セルフハンドル InApp を取得するには、以下のメソッドを呼び出します。
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE from 'react-native-moengage'
+ReactMoE.getSelfHandledInApp();
+```
+
+</CodeGroup>
+
+セルフハンドル InApp のペイロードはコールバックを介して返されます。以下のようにコールバックを登録します。
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE from 'react-native-moengage'/// selfHandledCampaignData is of type MoESelfHandledCampaignData
+ReactMoE.setEventListener("inAppCampaignSelfHandled", (selfHandledPayload) => {
+   if (selfHandledCampaignData && Object.keys(selfHandledPayload).length != 0) {
+     console.log("inAppCampaignSelfHandled", selfHandledCampaignData);
+   }
+});
+```
+
+</CodeGroup>
+
+## 複数のセルフハンドル InApp
+
+<Info>
+  - この機能は、プラグインのバージョン **_11.1.0_** 以降でサポートされています。
+</Info>
+
+_getSelfHandledInApps()_ を使用して、複数のセルフハンドルキャンペーンを取得します。 
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE from 'react-native-moengage'
+/// selfHandledCampaignsData is of type MoESelfHandledCampaignsData, which contains 
+/// a list of MoESelfHandledCampaignData data objects
+var selfHandledCampaignsData = await ReactMoE.getSelfHandledInApps();
+```
+
+</CodeGroup>
+
+### 複数のセルフハンドル InApp の統計のトラッキング
+
+_getSelfHandledInApps()_ メソッドは [_MoESelfHandledCampaignsData_](/ja/developer-guide/react-native-sdk/in-app-messages/inapp-nativ) を返します。これには [_MoESelfHandledCampaignData_](/ja/developer-guide/react-native-sdk/in-app-messages/inapp-nativ) オブジェクトのリストが含まれています。各 [_MoESelfHandledCampaignData_](/ja/developer-guide/react-native-sdk/in-app-messages/inapp-nativ) オブジェクトの統計は、以下の API を使用して個別にトラッキングする必要があります。
+
+### コンテキストに応じた複数のセルフハンドル InApp の取得
+
+コンテキストに応じた複数のセルフハンドル InApp を取得するには、\*getSelfHandledInApps()\* を呼び出す前に _setCurrentContext(_) を使用して InApp のコンテキストを設定します。これにより、コンテキストありおよびコンテキストなしの InApp のリストが（キャンペーン作成時に設定されたキャンペーンの優先度順に）返されます。
+
+# 統計のトラッキング
+
+セルフハンドル InApp の表示、クリック、閉じる操作はアプリケーションによって制御されるため、InApp が _表示_、_クリック_、または _閉じられた_ ときには、SDK に通知する必要があります。以下は、SDK に通知するために呼び出す必要があるメソッドです。セルフハンドル InApp のコールバックでアプリケーションに提供される _MoESelfHandledCampaignData_ オブジェクトのインスタンスであるキャンペーンオブジェクトを、以下の API のパラメーターとして渡す必要があります。
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE from 'react-native-moengage'
+ReactMoE.selfHandledShown(selfHandledCampaignData);
+ReactMoE.selfHandledClicked(selfHandledCampaignData);
+ReactMoE.selfHandledDismissed(selfHandledCampaignData);
+```
+
+</CodeGroup>
+
+# InApp コールバック
+
+<Warning>
+  コールバックは、show メソッドまたはトリガーイベントのいずれかによって InApp が表示される前に登録する必要があります。また、これらのコールバックを設定した後に、プラグインの `initialize()` メソッドを呼び出していることを確認してください。詳細については、[ドキュメント](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization)を参照してください。
+</Warning>
+
+InApp キャンペーンが表示、閉じる、またはクリックされるたびにコールバックが提供されます。以下のように登録できます。
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE from 'react-native-moengage'
+///inAppInfo is of type MoEInAppData
+ReactMoE.setEventListener("inAppCampaignShown", (inAppInfo) =>
+  console.log("inAppCampaignShown", inAppInfo)
+);
+///inAppInfo is of type MoEClickData
+ReactMoE.setEventListener("inAppCampaignClicked", (inAppInfo) =>
+  console.log("inAppCampaignClicked", inAppInfo)
+);
+///inAppInfo is of type MoEInAppData
+ReactMoE.setEventListener("inAppCampaignDismissed", (inAppInfo) =>
+  console.log("inAppCampaignDismissed", inAppInfo)
+);
+///inAppInfo is of type MoEClickData
+ReactMoE.setEventListener("inAppCampaignCustomAction", (inAppInfo) =>
+  console.log("inAppCampaignCustomAction", inAppInfo)
+);
+```
+
+</CodeGroup>
+
+| イベントタイプ                       | イベント名                |
+| -------------------------------- | ------------------------- |
+| InApp の表示                      | inAppCampaignShown        |
+| InApp のクリック                    | inAppCampaignClicked      |
+| InApp を閉じる                  | inAppCampaignDismissed    |
+| カスタムアクション付きの InApp クリック | inAppCampaignCustomAction |
+
+# コンテキスト InApp
+
+特定の画面/アクティビティで InApp キャンペーンを制限するだけでなく、アプリケーション内のユーザーのコンテキストに基づいて InApp を制限することもできます。アプリケーション内でユーザーのコンテキストを設定するには、以下のように _setCurrentContext()_ API を使用します。
+
+## コンテキストの設定
+
+_showInApp()_ を呼び出す前に、以下のメソッドを呼び出してコンテキストを設定します。
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE from 'react-native-moengage'// replace array elements with actual values.
+ReactMoE.setCurrentContext(['c1', 'c2', 'ce'])
+```
+
+</CodeGroup>
+
+## コンテキストのリセット
+
+ユーザーがそのコンテキストから離れる際は、_resetCurrentContext()_ API を使用して既存のコンテキストをリセット/クリアします。
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE from 'react-native-moengage'
+ReactMoE.resetCurrentContext();
+```
+
+</CodeGroup>
+
+コンテキスト InApp の詳細については、[トラブルシューティングとよくある質問](/ja/developer-guide/android-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs#how-to-use-contextual-inapps-in-react-nativ)にあるビデオチュートリアルを参照してください。
+
+# ペイロード構造
+
+<CodeGroup>
+
+```typescript TypeScript
+ class MoEInAppData {
+   /// account information
+   accountMeta: MoEAccountMeta;
+    
+   /// Platform on which callback is received
+   platform: MoEPlatform;
+    
+   ///InApp data
+   campaignData: MoECampaignData;
+ }
+  
+ class MoECampaignData {
+  /// Unique Campaign Identifier
+  campaignId: string;
+    
+  /// Campaign Name
+  campaignName: string;
+    
+  /// additional information associated with Campaign
+  context: MoECampaignContext;
+ }
+ 
+ class MoESelfHandledCampaignData {
+   ///InApp data
+   campaignData:MoECampaignData;
+    
+   /// account information
+   accountMeta: MoEAccountMeta;
+    
+   ///Platform on which callback is received
+   platform: MoEPlatform;
+    
+   ///SelfHandled data
+   campaign: MoESelfHandledCampaign
+ }
+    
+ class MoESelfHandledCampaign {
+    ///Campaign Content provided while creating campaign
+    payload: string;
+    
+    ///auto dismiss interval in seconds
+    dismissInterval: Number;
+    
+    /// DisplayRules for Campaign
+    displayRules: MoEInAppRules;
+ }
+ 
+ class MoEInAppRules {
+    /// Screenname for which InApp was configured to be shown.
+    /// @deprecated Use the 'screenNames' property instead.
+    screenName: string | null;
+
+    /// contexts for which InApp was configured to be shown.
+    contexts: Array<string>;
+
+    /// Screennames for which InApp was configured to be shown.
+    /// @since 12.0.0
+    screenNames: Array<string>;
+}
+      
+ class MoEClickData {
+    ///account information
+    accountMeta: MoEAccountMeta;
+    
+    ///Platform on which callback is received
+    platform: MoEPlatform;
+    
+    ///InApp Data
+    campaignData: MoECampaignData;
+    
+    ///InApp Click action
+    action: MoEAction;
+}
+    
+class MoEInAppCustomAction extends MoEAction{
+   /// Key-Value pairs configured with action
+   keyValuePair: Map<String, Object>;
+  
+   ///Click action type
+   actionType: MoEActionType;
+}
+  
+class MoEInAppNavigation extends MoEAction {
+  ///navigation action type screen/deeplink
+  navigationType: MoENavigationType;
+  
+  // ScreenName OR deeplink URL based on navigation type
+  navigationUrl: String;
+  
+  // Key-Value pairs configured with action
+  keyValuePair?: Map<String, Object>;
+  
+  ///Click action type
+  actionType :MoEActionType;
+
+// Model for Multiple SelfHandled Data
+class MoESelfHandledCampaignsData {
+    ///account information
+    accountMeta: MoEAccountMeta;
+
+    ///List of SelfHandled data
+    campaigns: Array<MoESelfHandledCampaignData>
+}
+```
+
+</CodeGroup>
+
+ 
+
+# 画面の向きの変更への対応
+
+<Info>
+  これは Android プラットフォームのみが対象です
+</Info>
+
+SDK バージョン `7.3.0` 以降、アプリ内メッセージは縦向きモードと横向きモードの両方でサポートされています。\
+SDK がアプリ内メッセージの表示を処理できるよう、デバイスの向きが変わったときに SDK に通知する必要があります。
+
+## アプリの Android ネイティブ部分に API 呼び出しを追加する
+
+アプリの Activity クラスで `onConfigurationChanged()` API コールバックを受け取ったときに、SDK に通知します。
+
+<CodeGroup>
+
+```java Java
+import android.content.res.Configuration;
+import androidx.annotation.NonNull;
+import com.facebook.react.ReactActivity;
+import com.moengage.react.MoEReactHelper;
+
+public class MainActivity extends ReactActivity {
+
+      /**
+       * Returns the name of the main component registered from JavaScript. This is used to schedule
+       * rendering of the component.
+       */
+      @Override
+      protected String getMainComponentName() {
+        return "SampleApp";
+      }
+      @Override public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        MoEReactHelper.getInstance().onConfigurationChanged();
+      }
+}
+```
+
+</CodeGroup>
+
+# ステータスバーの表示
+
+ステータスバーを表示するには、Android SDK の初期化時に次のコードスニペットを使用します。
+
+<CodeGroup>
+
+```java Java wrap
+.configureInApps(new InAppConfig(false))
+```
+
+</CodeGroup>

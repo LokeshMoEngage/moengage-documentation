@@ -1,0 +1,128 @@
+---
+title: "OneXtel の設定"
+---
+
+# はじめに
+
+OneXtel は、シームレスなエンドツーエンドのコミュニケーションソリューションを提供する、大手の Communication Platform as a Service（CPaaS）プロバイダーです。SMS、Voice、WhatsApp、Chatbot、Rich Communication Services（RCS）、Email などのチャネルを、あらゆる規模の企業向けに提供しています。
+
+<Info>
+  - 有効な OneXtel Aura アカウントと、関連する API キーを保有していることを確認してください。
+  - Entity ID と Sender ID が OneXtel アカウントに追加されていることを確認してください。
+  - 一括アップロードオプションを使用して、DLT 承認済みテンプレートを Aura アカウントに追加することをお勧めします。\
+    **注**: 新しいアカウントを作成する場合、または OneXtel アカウントに関するご質問やご不明点がある場合は、OneXtel サポートチーム（[support@onextel.com](mailto:support@onextel.com)）までお問い合わせください。
+</Info>
+
+# OneXtel をカスタム SMS コネクター（サービスプロバイダー）として設定する
+
+この記事では、OneXtel をカスタムコネクターとして設定する方法を説明します。
+
+MoEngage ダッシュボードにログインし、次の手順を実行します。
+
+1. **Settings** -\> **Channel** -\> **SMS** -\> **Sender configuration** に移動します。
+2. 右上の **\+ Add Sender** をクリックします。Add sender ページが表示されます。
+3. ステップ 1「Service Provider」で、**\+ Add custom service provider** をクリックします。Add Custom Connector sender ページが表示されます。
+4. ステップ 2「Sender Details」で次の詳細を追加します。
+
+| フィールド | 説明 |
+| --- | --- |
+| Mark as default | このトグルをオンにすると、設定中のサービスプロバイダーのデフォルト送信者としてこの送信者がマークされます。デフォルトに設定すると、キャンペーン作成時に別の送信者を選択しない限り、MoEngage から送信されるすべての SMS キャンペーンでこの送信者が使用されます。 |
+| Service provider name | このフィールドは MoEngage ダッシュボードで設定するサービスプロバイダーを識別するもので、一意である必要があります。「OneXtel」と入力します。 |
+| Sender name | このフィールドは、キャンペーンやアラートの作成時に使用できる、読みやすい送信者名を識別します。例: OneXtel SMS、Aura SMS。 |
+| Sender type | 送信者タイプを選択します。利用可能なオプションは次のとおりです: <ul><li>**Transactional** : 取引に関するアラート、OTP、セキュリティ情報、またはトランザクションの性質を持つと分類できる情報の送信に送信者を使用する場合は、このオプションを選択します。</li><li>**Promotional** : ブランドに関する情報の送信、お得な情報の宣伝、ユーザーとのエンゲージメントに送信者を使用する場合は、このオプションを選択します。</li></ul> |
+
+5. 次の詳細を追加して Webhook を設定します。
+   1. HTTP メソッドとして **GET** を使用する場合:
+
+| フィールド | 説明 |
+| --- | --- |
+| **API URL** | このフィールドには、Sender に API リクエストを送信する際に使用する URL の情報が含まれます。この情報は Sender の API ドキュメントで確認できます。ここに Sender の API エンドポイントを入力します。OneXtel の GET API URL は次のとおりです: <br />[https://api.onex-aura.com/api/sms](https://api.onex-aura.com/api/sms) |
+| **Method** | HTTP メソッドとして **GET** を選択します。 |
+| **URL Parameters** | このオプションを使用して、API に渡す URL パラメーターをキーと値のペアとして追加します。 <ul><li>key: API Key を入力します。</li><li>entityid: Entity ID を入力します。</li><li>from: SMS タイプに対応する Sender ID を入力します。</li><li>to: "Moesms\_destination" と入力します。</li><li>body: "Moesms\_message" と入力します。</li><li>templateid: "Moesms\_dltTemplateId" と入力します。</li></ul> |
+| **Headers** | この場合、Headers セクションは変更しません。 |
+
+2. HTTP メソッドとして **POST** を使用する場合:
+   | フィールド | 説明 |
+   | --- | --- |
+   | API URL | このフィールドには、Sender に API リクエストを送信する際に使用する URL の情報が含まれます。この情報は Sender の API ドキュメントで確認できます。ここに Sender の API エンドポイントを入力します。OneXtel の POST API URL は次のとおりです: [https://api.onex-aura.com/api/jsms](https://api.onex-aura.com/api/jsms) |
+   | Method | HTTP メソッドとして POST を選択します。 |
+   | URL parameters | この場合、URL parameters セクションは変更しません。 |
+   | Headers | OneXtel の POST API URL を入力すると、Content-Type に application/json が自動的に入力されます。 |
+   | Body type | Body type として **JSON** または **Raw** のいずれかを選択します。 |
+
+Body type として **JSON** を選択した場合は、次の表を参照してください。
+
+| キー | 値 |
+| --- | --- |
+| body | "Moesms\_message" と入力します。 |
+| entityid | Entity ID を入力します。 |
+| from | SMS タイプに対応する Sender ID を入力します。 |
+| key | API キーを入力します。 |
+| templateid | "Moesms\_dltTemplateId" と入力します。 |
+| to | "Moesms\_destination" と入力します。 |
+
+Body type として **Raw** を選択した場合は、次の JSON ボディを参照してください。
+
+<CodeGroup>
+
+```json JSON
+{
+    "key":"Enter API Key", 
+    "body":"Moesms_message", 
+    "to":"Moesms_destination", 
+    "from":"Enter Sender ID corresponding to the SMS type", 
+    "entityid":"Enter Entity ID", 
+    "templateid":"Moesms_dltTemplateId" 
+}
+```
+
+</CodeGroup>
+
+6. **Send test SMS** をクリックして設定を確認します。
+7. **Save** をクリックして送信者の設定を保存します。
+
+# SMS キャンペーンを作成する
+
+1. MoEngage ダッシュボードで **Segment** \> **Import Users** に移動し、受信者の詳細を追加します。
+2. 受信者を追加したら、MoEngage ダッシュボードで **Engage** \> **Campaigns** をクリックします。All campaigns ページが表示されます。
+3. **\+ Create campaign** をクリックします。
+4. **Outbound** の下で **SMS** をクリックし、要件に応じて SMS キャンペーンタイプとして One Time、Periodic、Event Triggered のいずれかを選択します。配信タイプの詳細については、[配信タイプ](/ja/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels)を参照してください。SMS 作成ページが表示されます。
+5. キャンペーン名を入力し、ユーザーリストからターゲットオーディエンスを選択します。**Next** をクリックします。
+6. DLT 承認済みのテンプレート ID とメッセージを入力します。画面の右側にメッセージのプレビューが表示されます。
+7. キャンペーンを公開する前にテストすることを強くお勧めします。Test Campaign セクションで電話番号を追加し、**Test** をクリックします。**Next** をクリックします。
+8. **Send campaign** セクションで次のいずれかを行います。
+   1. すぐに送信するには、**As soon as possible** を選択します。
+   2. 希望する日時に送信するには、**At specific date and time** を選択し、開始日と送信時刻を設定します。
+9. **Publish** をクリックします。
+
+# 配信トラッキング
+
+MoEngage ダッシュボードで送信者を作成した後、配信トラッキングを設定できます。配信トラッキングの詳細については、[カスタムコネクターの配信トラッキング](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-custom-connector-for-sms)を参照してください。
+
+<Info>
+  配信トラッキングを設定するには、OneXtel サポートチーム（[support@onextel.com](mailto:support@onextel.com)）宛てに、API キーと MoEngage の SMS 配信トラッキング URL（[https://api-01.moengage.com/sms/dlr/custom/1598820387](https://api-01.moengage.com/sms/dlr/custom/1598820387)）を記載したメールを送信してください。
+</Info>
+
+## OneXtel からのレスポンス例
+
+### 正常に送信されたメッセージの場合
+
+<Frame>
+  ![SMS 送信レスポンス](/images/sms-sent-response.png)
+</Frame>
+
+### 配信されたメッセージの場合
+
+<Frame>
+  ![SMS 配信レスポンス](/images/sms-delivery-response.png)
+</Frame>
+
+## 配信レスポンスのマッピング
+
+次のように、Delivery Response からフィールドを選択して、レスポンスマッピングフィールドに自動入力します。
+
+<Frame>
+  ![ID フィールド](/images/id-field.png)
+</Frame>
+
+**Save** をクリックして、カスタムコネクターの配信トラッキング設定を保存します。

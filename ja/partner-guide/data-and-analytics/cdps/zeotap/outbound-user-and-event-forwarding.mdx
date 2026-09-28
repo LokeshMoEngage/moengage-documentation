@@ -1,0 +1,97 @@
+---
+title: "アウトバウンド: ユーザーとイベントの転送"
+---
+
+# はじめに
+
+MoEngage と Zeotap の統合を使用すると、価値あるユーザーデータとイベントデータを Zeotap のプラットフォームから MoEngage に直接同期できます。この統合により、ユーザープロファイルを充実させ、セグメンテーションの強化やパーソナライズされたキャンペーンに活用できます。
+
+<Info>
+  Zeotap 統合は現在、[Unified Identity (Identity Resolution)](/ja/user-guide/data/user-data/unified-identity-identity-resolution) および [Portfolio](/ja/user-guide/settings/account/portfolio/portfolio) をサポートしていません。
+</Info>
+
+## サポートされているデータタイプ
+
+| タイプ | 詳細 |
+| --- | --- |
+| ユーザー ID | ユーザーは、一意の識別子を使用してプラットフォーム間で照合されます。現在、MoEngage は `customer_id` のみをサポートしています。 |
+| ユーザー属性 | Zeotap の標準またはカスタムのユーザー属性を、MoEngage の対応する属性に同期できます。これには、Name、First Name、その他のカスタムフィールドなどのデータが含まれます。 |
+
+# 統合
+
+<Info>
+  次のものがあることを確認してください。
+
+  - 有効な Zeotap アカウント。
+  - MoEngage ダッシュボードの設定へのアクセス権。
+</Info>
+
+## ステップ 1: MoEngage のエンドポイントを取得する
+
+MoEngage の API 認証情報を取得するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、**Settings** \> **Account** \> **APIs** に移動します。
+2. **API** ページで、次の認証情報をコピーします。
+   1. **Workspace ID**（**旧 app id**）の ID をコピーします。
+   2. **API keys** の **Data** をコピーします。
+   3. **Data Center**: ダッシュボードの URL からデータセンターコードを確認します。次の表に、データセンター名と URL を示します。
+
+| データセンター名 | ダッシュボード URL |
+| --- | --- |
+| DC-01 | [https://dashboard-01.moengage.com](https://dashboard-01.moengage.com) |
+| DC-02 | [https://dashboard-02.moengage.com](https://dashboard-02.moengage.com) |
+| DC-03 | [https://dashboard-03.moengage.com](https://dashboard-03.moengage.com) |
+| DC-04 | [https://dashboard-04.moengage.com](https://dashboard-04.moengage.com) |
+| DC-05 | [https://dashboard-05.moengage.com](https://dashboard-05.moengage.com) |
+| DC-06 | [https://dashboard-06.moengage.com](https://dashboard-06.moengage.com) |
+
+詳細については、[こちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage#list-of-data-centers)を参照してください。
+
+## ステップ 2: Zeotap で MoEngage Destination を作成する
+
+Zeotap で MoEngage Destination を作成するには、次の手順を実行します。
+
+1. Zeotap ダッシュボードにログインし、**Integrate** \> **Destinations** に移動します。
+2. **Destinations** ページで、右上の **\+ Create Destination** をクリックします。\\ <img src="/images/partner_41449957618836.png" />
+3. **All Destinations** の **Search for a** **Destination** ボックスに MoEngage と入力します。 <img src="/images/partner_41449957619988.png" />
+4. **MoEngage** タイルをクリックします。\
+   <img src="/images/partner_41449957620244.png" />\
+   Destination Details 設定ページが表示されます。
+5. **Destination** **Details** タブで、次の詳細を入力します。
+   1. **Destination Name** ボックスに、Destination の名前を入力します。
+   2. **API Key box** に、MoEngage の API キーを入力します。
+   3. **Workspace ID** ボックスに、MoEngage アカウントの Workspace ID を入力します。
+   4. **Data Center** ボックスに、MoEngage のデータセンター番号を入力します。
+   5. **Next** をクリックします。これで、MoEngage Destination がジャーニーで有効になります。
+
+![](/images/partner_41449957621524.png)
+
+**Mapping** 設定ページが表示されます。
+
+6. 具体的なユースケースに応じて、MoEngage で実行するアクション（**Add Audience to segment**、**Send events to moengage**、**Sync User**）を選択します。たとえば、このユースケースではアクションは **Create User** で、Zeotap のデータを使用して新しいユーザープロファイルを作成するか、既存のユーザープロファイルを更新するよう MoEngage に指示します。
+7. **Choose your Action** のドロップダウンリストで、**Create User** を選択します。
+8. **Map the Fields** で、Zeotap の **Catalogue Field** を MoEngage の対応する **Destination Field** にマッピングします。
+   - **Identifiers**: **Email Raw** フィールドを **Email/Customer ID**\* フィールドにマッピングします。これは必須フィールドです。
+   - **Attributes**: 必要な Zeotap のフィールドを、**Name** や **First Name** など、対応する MoEngage のフィールドにマッピングします。
+9. **Create Destination** をクリックして設定を保存します。\
+   **注**: 複数のユーザー識別子を同期するには、**\+Add Mapping** をクリックします。これにより、標準属性（Name など）や必要なカスタムフィールドをマッピングするための新しい行を作成できます。 <img src="/images/partner_41449991176340.png" />
+10. **Save Mapping** をクリックします。
+
+Destination を作成したら、Zeotap Journey アプリで新しい Destination をリンクして、ユーザーデータを MoEngage に送信できます。
+
+## ステップ 3: Zeotap Journey で Destination を有効にする
+
+Zeotap Journey で Destination を有効にするには、次の手順を実行します。
+
+1. Zeotap の **Orchestrate** セクションに移動し、Destination を追加する Journey（ワークフロー）を開きます。
+2. ワークフローキャンバスで **\+** アイコンをクリックして、新しいアクションを追加します。
+3. **Choose an action** メニューで、**Send to Destinations** をクリックします。 <img src="/images/partner_41449991176980.png" />
+4. **Search** ボックスに、先ほど作成した MoEngage Destination を入力します。\\ <img src="/images/partner_41449973238548.png" />
+5. **Destination Details** タブで、Destination の設定内容が自動的に入力された **API Key** と **Data Center** フィールドを確認します。
+6. **Save Destination** をクリックします。 <img src="/images/partner_41449991177748.png" />
+
+# レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Zeotap データの取り込みを、ワークスペースあたり最大 500 リクエスト/秒（RPS）に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。レート制限がデータフローにどのように影響するかについては、デフォルトの再試行ポリシーに関する Zeotap のドキュメントを参照してください。
+
+**再試行の上限到達**: Zeotap がデータのバッチに対するすべての再試行を使い切った場合は、Zeotap サポートチームに連絡して、失敗したリクエストを再実行してもらう必要があります。

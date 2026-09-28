@@ -1,0 +1,58 @@
+---
+title: "iOS プッシュ設定 "
+description: "APNS 証明書やプッシュ登録など、Cordova アプリで iOS プッシュ通知を設定します。"
+---
+
+# iOS でのプッシュ通知の設定
+
+## APNS 証明書
+
+iOS でプッシュ通知を送信するには、APNS 証明書を作成してダッシュボードにアップロードします。次の手順を完了してください。
+
+- [APNS 証明書を作成する](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+- [作成された証明書を .pem 形式に変換する](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+- [.pem ファイルを MoEngage ダッシュボードにアップロードする](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)
+
+## プロジェクトへのプッシュエンタイトルメントの追加
+
+APNS 証明書をアップロードしたら、Xcode プロジェクトでプッシュエンタイトルメントを有効にします。そのためには、アプリのターゲットを選択し、Capabilities に移動します。ここで、以下のようにアプリの Push Notifications ケイパビリティを有効にします。
+
+![I OS Push Configuration1 1](/images/iOSPushConfiguration1-1.png)
+
+## アンインストールのトラッキング
+
+アンインストールのトラッキングにはサイレントプッシュを使用します。すべてのユーザーのアンインストールをトラッキングするには、以下のようにアプリのケイパビリティで Remote Notification バックグラウンドモードを有効にします。
+
+![I OS Push Configuration2 1](/images/iOSPushConfiguration2-1.png)
+
+## プッシュ登録
+
+その後、以下のようにプラグインの **registerForPushNotification** メソッドを使用してプッシュ通知に登録する必要があります。
+
+<CodeGroup>
+
+```javascript JavaScript
+var moe = new MoECordova.init();
+moe.registerForPushNotification();
+```
+
+</CodeGroup>
+
+生成されたプッシュトークンは `onPushTokenGenerated` コールバックで受け取ります。
+
+<CodeGroup>
+
+```javascript JavaScript
+moe.on('onPushTokenGenerated', function (payloadInfo) {
+    console.log('pushToken generated' + JSON.stringify(payloadInfo)); 
+    });
+```
+
+</CodeGroup>
+
+## リッチプッシュとテンプレートのサポート：
+
+アプリでリッチプッシュ（通知内の画像/動画/音声）とテンプレートをサポートするには、ネイティブ iOS SDK のドキュメントを参照してください。
+
+- [リッチプッシュ](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#optional)
+- [プッシュテンプレート](/ja/developer-guide/ios-sdk/push/optional/push-templates)

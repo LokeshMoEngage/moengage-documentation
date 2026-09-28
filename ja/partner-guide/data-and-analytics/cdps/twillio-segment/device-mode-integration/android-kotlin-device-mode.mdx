@@ -1,0 +1,348 @@
+---
+title: "Android Kotlin デバイスモード"
+---
+
+すべての機能（プッシュ通知、アプリ内メッセージングなど）を有効にするには、Android アプリでいくつかの手順を実施する必要があります。
+
+# ビルド設定
+
+プロジェクトレベルの _build.gradle_ ファイルに _mavenCentral()_ リポジトリを追加します。
+
+```groovy build.gradle
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+ 
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+```
+
+# SDK のインストール
+
+## Catalog を使用したインストール
+
+Version Catalog を使用した統合が推奨される統合方法です。まだカタログを設定していない場合は、[Configure Version Catalog](https://developers.moengage.com/hc/en-us/articles/4407395989268-Installing-Version-Catalog) ドキュメントを参照してカタログを設定してください。カタログを設定したら、以下のように **_app/build.gradle_** ファイルに依存関係を追加します。
+
+```groovy build.gradle
+    dependencies {
+    	...
+    	implementation(moengage.moengageSegmentKotlinDestination)
+    }
+```
+
+または、以下のように依存関係を直接追加することもできます。
+
+## Artifact Id を使用したインストール
+
+![](https://img.shields.io/maven-central/v/com.moengage/moengage-segment-kotlin-destination)
+
+**_app/build.gradle_** ファイルに次の依存関係を追加します。
+
+```groovy build.gradle wrap
+    dependencies {
+    	...
+      implementation("com.moengage:moengage-segment-kotlin-destination:$sdkVersion")
+    }
+```
+
+**\$sdkVersion** を適切な SDK バージョンに置き換えてください。
+
+MoEngage SDK は、動作のために Google が提供する次の Jetpack ライブラリに依存しています。アプリケーションにまだ含まれていない場合は、必ず追加してください。
+
+```groovy build.gradle
+implementation("androidx.core:core:1.15.0")
+implementation("androidx.appcompat:appcompat:1.7.0")
+implementation("androidx.lifecycle:lifecycle-process:2.8.7")
+```
+
+ビルド設定および SDK が使用するその他のライブラリの詳細については、[Android SDK Configuration](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/advanced-or-optional/sdk-configuration) ドキュメントを参照してください。
+
+# Twilio Segment SDK への MoEngage の登録:
+
+依存関係を追加したら、Twilio Segment SDK に統合を登録する必要があります。そのためには、MoEngage 統合をインポートします。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.segment.analytics.kotlin.destinations.moengage.MoEngageDestination   
+```
+
+</CodeGroup>
+
+次の行を追加します。
+
+<CodeGroup>
+
+```kotlin Kotlin
+ 
+import com.segment.analytics.kotlin.android.Analytics
+import com.segment.analytics.kotlin.core.Analytics
+import com.segment.analytics.kotlin.destinations.moengage.MoEngageDestination
+...
+val analytics = Analytics("wtite_key", this)
+analytics.add(MoEngageDestination(this))
+...
+```
+
+</CodeGroup>
+
+# MoEngage SDK の初期化方法:
+
+設定ページ（Dashboard --\> Settings --\> Account --\> General）から Workspace ID（旧 App ID）を取得し、_Application_ クラスの _onCreate()_ で MoEngage SDK を初期化します。**_注: SDK は onCreate() 内のメインスレッドで初期化することを推奨します。ワーカースレッドを作成してそのスレッドで SDK を初期化しないでください。_**
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+ // this is the instance of the application class and "XXXXXXXXXXX" is the Workspace ID from the dashboard.
+ val moEngage = MoEngage.Builder(this, "XXXXXXXXXXX")
+     .enablePartnerIntegration(IntegrationPartner.SEGMENT)
+     .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+```java Java wrap
+ // this is the instance of the application class and "XXXXXXXXXXX" is the APP ID from the dashboard.
+ MoEngage moEngage = new MoEngage.Builder(this, "XXXXXXXXXXX")
+            .enablePartnerIntegration(IntegrationPartner.SEGMENT)
+                 .build(); 
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+# MoEngage ストレージファイルを自動バックアップから除外する
+
+Android の自動バックアップサービスは、Shared Preference ファイルやデータベースファイルなどを定期的にバックアップします。
+
+詳細については、[Auto Backup](https://developer.android.com/guide/topics/data/autobackup) を参照してください。
+
+このバックアップにより、MoEngage SDK の識別子がバックアップされ、再インストール後に復元されます。識別子が復元されると、データが破損し、プッシュ通知でユーザーにリーチできなくなります。
+
+バックアップの復元後にデータが破損しないように、MoEngage SDK のストレージファイルをバックアップ対象から除外してください。
+
+設定方法については、[Exclude MoEngage Storage File from Auto-Backup](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup) ドキュメントを参照してください。
+
+# インストール/アップデートの区別
+
+SDK では、ユーザーによるアプリケーションのアップデートかインストールかを判別するためのサポートが必要です。アプリ側で、アプリの _INSTALL_ と _UPDATE_ を区別するロジックを用意する必要があります。
+
+<CodeGroup>
+
+```kotlin Kotlin
+  //For Fresh Install of App
+  MoEAnalyticsHelper.setAppStatus(context, AppStatus.INSTALL)
+// For Existing user who has updated the app
+MoEAnalyticsHelper.setAppStatus(context, AppStatus.UPDATE)
+```
+
+```java Java
+//For Fresh Install of App
+ MoEAnalyticsHelper.INSTANCE.setAppStatus(context, AppStatus.INSTALL);
+ // For Existing user who has updated the app
+ MoEAnalyticsHelper.INSTANCE.setAppStatus(context, AppStatus.UPDATE);
+```
+
+</CodeGroup>
+
+# プッシュ通知の設定方法:
+
+FCM コンソールから Server Key をコピーし、MoEngage ダッシュボードに追加します（Server Key の場所がわからない場合は、[Getting FCM Server Key](/ja/developer-guide/partner-integrations/firebase/getting-fcm-server-key) を参照してください）。アップロードするには、MoEngage Dashboard --\> Settings --\> Channel --\> Push --\> Mobile Push --\> Android に移動し、Server Key とパッケージ名を追加します。
+
+<Warning>
+  キーは Test 環境と Live 環境の両方に必ず追加してください。
+</Warning>
+
+## プッシュ通知のメタデータの追加
+
+プッシュ通知を表示するには通知に関するメタデータが必要で、スモールアイコンとラージアイコンの drawable は必須です。
+
+設定を SDK に渡すには、_configureNotificationMetaData()_ を使用します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+ val moEngage = MoEngage.Builder(this, "XXXXXXXX")
+  .configureNotificationMetaData(NotificationConfig(R.drawable.small_icon, R.drawable.large_icon)) 
+  .enablePartnerIntegration(IntegrationPartner.SEGMENT)
+  .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+```java Java wrap
+MoEngage moEngage = new MoEngage.Builder(this, "XXXXXXXXXX")
+        .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon))
+        .enablePartnerIntegration(IntegrationPartner.SEGMENT)
+        .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+プッシュ通知が機能するように、Application クラスの _onCreate()_ で SDK がメタデータとともに初期化されていることを確認してください。
+
+<Info>
+  通知のスモールアイコンは、フラットで正面向きのデザインにし、透明な背景に白色で描く必要があります。
+</Info>
+
+## Firebase Cloud Messaging の設定
+
+プッシュ通知を表示するには、次の 2 つが重要です。
+
+1. プッシュの登録、つまりプッシュトークンの生成。
+2. Firebase Cloud Messaging（FCM）サービスからプッシュペイロードを受信し、デバイスに通知を表示すること。上記はアプリケーションまたは MoEngage SDK のいずれかで処理できます。上記の処理をアプリケーションと SDK のどちらで行うかに応じて、必要な設定があります。
+
+# アプリによるプッシュ登録と受信の処理
+
+デフォルトでは、MoEngage SDK はプッシュトークンの登録を試みます。アプリケーションでプッシュを処理する場合は、SDK のトークン登録をオプトアウトする必要があります。
+
+## MoEngage の登録をオプトアウトする方法
+
+MoEngage のトークン登録メカニズムをオプトアウトするには、以下のように _MoEngage.Builder_ で FCM を設定する際に、_configureFCM()_ API を使用してトークン登録を無効にします。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+val moEngage = MoEngage.Builder(this, "XXXXXXXX")
+    	.configureNotificationMetaData(NotificationConfig(R.drawable.small_icon, R.drawable.large_icon, R.color.notiColor, null, true, isBuildingBackStackEnabled = false, isLargeIconDisplayEnabled = true))
+    .configureFcm(FcmConfig(false))
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+```java Java wrap
+ MoEngage moEngage = new MoEngage.Builder(this, "XXXXXXXXXX")
+     .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon, R.color.notiColor, "sound", true, true, true))
+   	.configureFcm(new FcmConfig(false))
+   	.build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+## プッシュトークンを MoEngage SDK に渡す
+
+MoEngage プラットフォームがデバイスにプッシュ通知を送信できるように、アプリケーションは FCM から受け取ったプッシュトークンを MoEngage SDK に渡す必要があります。プッシュトークンを MoEngage SDK に渡すには、[passPushToken()](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/pass-push-token.html) API を使用します。
+
+<CodeGroup>
+
+```kotlin Kotlin
+MoEFireBaseHelper.getInstance().passPushToken(applicationContext,token)
+```
+
+```java Java wrap
+MoEFireBaseHelper.getInstance().passPushToken(getApplicationContext(), token);
+```
+
+</CodeGroup>
+
+<Info>
+  プッシュトークンが更新されたときと、アプリケーションのアップデート時には、必ずトークンを MoEngage SDK に渡してください。アプリケーションのアップデート時にトークンを渡すことは、MoEngage プラットフォームへの移行において重要です。
+</Info>
+
+## プッシュペイロードを MoEngage SDK に渡す
+
+プッシュペイロードを MoEngage SDK に渡すには、Firebase レシーバーの _onMessageReceived()_ から [_passPushPayload()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/pass-push-payload.html) API を呼び出します。ペイロードを MoEngage SDK に渡す前に、SDK が提供する [i _sFromMoengagePlatfrom()_](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase/-mo-e-push-helper/is-from-mo-engage-platform.html) ヘルパー API を使用して、ペイロードが MoEngage プラットフォームからのものかどうかを確認してください。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(remoteMessage.data)){
+    MoEFireBaseHelper.getInstance().passPushPayload(applicationContext, remoteMessage.data)
+ }else{
+    // your app's business logic to show notification
+ }
+```
+
+```java Java wrap
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(remoteMessage.getData())) {
+    MoEFireBaseHelper.getInstance().passPushPayload(getApplicationContext(), remoteMessage.getData());
+ }else{
+    // your app's business logic to show notification
+ }
+```
+
+</CodeGroup>
+
+# SDK によるプッシュ登録と受信の処理
+
+<Warning>
+  SDK でトークン登録を処理する場合は、firebase-messaging **23.0.0** 以降を使用してください。
+</Warning>
+
+マニフェストファイルに次のコードを追加します。
+
+```xml AndroidManifest.xml
+   <service android:name="com.moengage.firebase.MoEFireBaseMessagingService">
+   <intent-filter>
+    <action android:name="com.google.firebase.MESSAGING_EVENT" />
+   </intent-filter>
+  </service>
+```
+
+<Warning>
+  アプリケーションのマニフェストファイルには、インテントフィルター com.google.firebase.MESSAGING\_EVENT を持つサービスが常に 1 つだけ存在する必要があります。複数のサービスがある場合、最初のサービスのみがコールバックを受け取り、MoEngage SDK がプッシュペイロードを受け取れず、配信率が低下する可能性があります。
+</Warning>
+
+# コールバック
+
+これらのコールバックはアプリケーションがバックグラウンドにある場合でもトリガーされる可能性があるため、Application クラスの **_onCreate()_** にコールバックを追加することを推奨します。
+
+## トークンコールバック
+
+MoEngage SDK がプッシュ登録を処理する場合、新しいトークンが登録されたとき、またはトークンが更新されたときに、オプションでアプリケーションにコールバックを提供します。
+
+トークンコールバックを受け取るには、[_TokenAvailableListener_](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.listener/-token-available-listener/index.html) を実装し、_[MoEFireBaseHelper.getInstance().addTokenListener()](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/add-token-listener.html)_ を使用してコールバックを登録します。
+
+## MoEngage 以外のペイロード
+
+アプリケーションのマニフェストファイルで SDK が提供するレシーバーを使用している場合、MoEngage プラットフォーム以外のサーバーからプッシュペイロードを受信すると、SDK はコールバックを提供します。
+
+コールバックを受け取るには、[_NonMoEngagePushListener_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase.listener/-non-mo-engage-push-listener/index.html) を実装し、[_MoEFireBaseHelper.getInstance().addNonMoEngagePushListener_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/add-non-mo-engage-push-listener.html) を使用してコールバックを登録します。
+
+## Rich Landing Activity の宣言と設定:
+
+次のスニペットを追加し、`[PARENT_ACTIVITY_NAME]` を親アクティビティの名前に、`[ACTIVITY_NAME]` を Rich Landing Page の親となるアクティビティ名に置き換えます。
+
+<CodeGroup>
+
+```xml XML
+<activity
+    android:name="com.moe.pushlibrary.activities.MoEActivity"
+    android:label="[ACTIVITY_NAME]"
+    android:parentActivityName="[PARENT_ACTIVITY_NAME]" >
+ </activity>
+```
+
+</CodeGroup>
+
+これで、MoEngage からプッシュ通知を受信する準備が整いました。MoEngage Android SDK が提供する機能の詳細については、以下のリンクを参照してください。
+
+- [プッシュ通知](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)
+- [ジオフェンス](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/location-triggered)
+- [アプリ内メッセージング](https://www.moengage.com/docs/developer-guide/android-sdk/in-app-messages/in-app-nativ)
+- [通知センター](/ja/developer-guide/android-sdk/push/optional/notification-center)
+- [高度な設定](https://www.moengage.com/docs/developer-guide/android-sdk/push/advanced/callbacks-and-customisation)
+- [API リファレンス](https://moengage.github.io/android-api-reference/index.html)
+- [コンプライアンス](https://www.moengage.com/docs/developer-guide/android-sdk/compliance/prepare-for-google-plays-data-disclosure-requirements)
+- [リリースノート](/ja/release-notes/sdks/android#14th-december-2023)
+
+# Identify
+
+ユーザー固有の属性をトラッキングするには、[Identify](https://segment.com/docs/sources/mobile/android/#identify) を使用します。これは MoEngage での[ユーザー属性](https://www.moengage.com/docs/developer-guide/android-sdk/data-tracking/basic/track-user-attributes)のトラッキングに相当します。MoEngage は、Twilio Segment がサポートする traits とカスタム traits の両方をサポートしています。traits.id を設定すると、その値がそのユーザーの Unique ID として設定されます。
+
+# Track
+
+アプリ内のイベントとユーザー行動をトラッキングするには、[track](https://segment.com/docs/sources/mobile/android/#track) を使用します。これにより、関連するプロパティとともにイベントが MoEngage に送信されます。イベントのトラッキングは不可欠であり、ユーザーエンゲージメントのための Twilio セグメントの作成に役立ちます。
+
+# Reset
+
+アプリでユーザーがログアウトして新しい ID でログインできる場合は、Analytics クライアントの reset を呼び出す必要があります。
+
+# 実装サンプル
+
+実装サンプルについては、[こちら](https://github.com/moengage/moengage-segment-integration)の GitHub リポジトリを参照してください。

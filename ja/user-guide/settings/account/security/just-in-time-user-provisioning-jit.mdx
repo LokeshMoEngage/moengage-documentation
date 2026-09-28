@@ -1,0 +1,307 @@
+---
+title: "Just-in-Timeユーザープロビジョニング（JIT）"
+description: "Just-in-Time（JIT）プロビジョニングを使用して、MoEngageでのユーザー作成とロール管理を自動化します。初回ログイン時に、IDプロバイダーから直接ユーザーをプロビジョニングします。"
+keywords: ["JIT", "just-in-time provisioning", "SSO", "SAML", "Okta", "Azure", "identity provider", "user provisioning"]
+---
+
+<Note>
+  **Early Access**
+
+  Just-in-Timeユーザープロビジョニングは、Early Access機能です。アカウントで有効にするには、MoEngageのカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+</Note>
+
+# 概要
+
+<Note>
+  MoEngageは、IDプロバイダー経由で開始されたログイン（IdP-initiated login）に対してのみJITプロビジョニングをサポートしています。これにより、MoEngageは対象のワークスペースを正しく識別できます。
+</Note>
+
+Just-in-Timeユーザープロビジョニングを使用すると、MoEngageワークスペースでのユーザーの作成と管理を自動化できます。この機能は、ユーザーの初回ログイン時に、IDプロバイダーから直接ユーザーを作成します。
+
+<Tip>
+  **前提条件**
+
+  JITプロビジョニングを有効にする前に、ワークスペースでSSOが設定され、有効になっていることを確認してください。詳細については、[シングルサインオン（SSO）](/ja/user-guide/settings/account/security/single-sign-on-sso)を参照してください。
+</Tip>
+
+## 利点
+
+- **オンボーディングの迅速化**: 新しいチームメンバーは、手動の招待を待たずにすぐにMoEngageにアクセスできます。
+- **動的なロール割り当て**: IDプロバイダーからロールを自動的に割り当てたり更新したりできます（MoEngageで有効になっている場合）。
+- **一時的なアクセス**: ユーザーにセッションベースのアクセスを提供し、セッション終了後にユーザーを自動的に削除できます（MoEngageで有効になっている場合）。
+
+# Just-in-Timeユーザープロビジョニングにアクセスする
+
+1. MoEngageワークスペースの左側のナビゲーションメニューで、**Settings** \> **Account** \> **Security** \> **Login** に移動します。
+2. **Single Sign On (SSO) only** をクリックします。\
+   **注**: SSOが設定されていることを確認してください。詳細については、[SSOの設定方法](/ja/user-guide/settings/account/security/single-sign-on-sso)を参照してください。
+3. **Automate user provisioning** セクションまでスクロールします。
+   <Frame>
+     ![SecurityのLogin設定にあるAutomate user provisioningセクション](/images/jit-automate-user-provisioning-section.png)
+   </Frame>
+
+## アクセスに必要な権限
+
+次の表は、JITプロビジョニングへのアクセスと使用に必要な権限を示しています。
+
+| 権限コンポーネント | 権限名 | 詳細 |
+| --- | --- | --- |
+| Security Settings | Setup & Manage | ユーザープロビジョニングの表示、有効化、更新、無効化を行うことができます。 |
+
+## ステップ1: Just-in-Timeユーザープロビジョニングを有効にする
+
+1. **Automate user provisioning** トグルをオンにします。
+   <Frame>
+     ![オンになったAutomate user provisioningトグル](/images/jit-toggle-on.png)
+   </Frame>
+   \
+   **Configure provisioning method** ダイアログボックスが表示されます。
+2. 設定タイプとして **JIT Provisioning** を選択します。
+   <Frame>
+     ![JIT Provisioningが選択されたConfigure provisioning methodダイアログ](/images/jit-select-jit-provisioning.png)
+   </Frame>
+
+## ステップ2: 設定して保存する
+
+1. 次のフィールドを入力します。
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | Default role | はい | <ul><li>MoEngageにはフォールバックロールが必要です。ロールがIDプロバイダーから（SAMLアサーション呼び出しを介して）渡されない場合、またはロール値が含まれていない場合、ユーザーにはワークスペースにアクセスするためにこのデフォルトロールが割り当てられます。</li><li>すべてのデフォルトロールとカスタムロールを、デフォルトロールとして選択できます。</li></ul> |
+   | Update user's role | 任意 | オンにすると、各SAMLアサーション呼び出しでIDプロバイダーから受け取った値に基づいて、ワークスペース内のユーザーのロールが更新されます。<br /><br />**注**: オフの場合、IDプロバイダーから受け取ったユーザーのロールがワークスペース内のロールと異なると、ワークスペース内のロールを恒久的に変更することなく、その特定のセッションに限り、IDプロバイダーから受け取ったロールに基づいてユーザーにアクセスが許可されます。 |
+   | Delete user at the end of the session | 任意 | オンにすると、セッションの有効期限が切れたとき（ユーザーのログアウトや強制ログアウトなど）または24時間後のいずれか早い方で、ユーザーが削除され、そのワークスペースから除外されます。 |
+2. **Save** をクリックします。
+   <Frame>
+     ![Saveボタンが表示されたConfigure provisioning methodダイアログ](/images/jit-click-save.png)
+   </Frame>
+   \
+   **Save your configuration** ダイアログボックスが表示され、設定の確認を求められます。
+3. **Confirm** をクリックします。
+   <Frame>
+     ![Save your configuration確認ダイアログボックス](/images/jit-enable-confirm.png)
+   </Frame>
+   \
+   有効化が成功したことを示すメッセージが表示されます。
+
+# IDプロバイダー（IdP）の設定
+
+JITプロビジョニングは、次のIDプロバイダーをサポートしています。
+
+- Okta
+- Microsoft Azure
+- OneLogin
+- Just-in-Timeユーザープロビジョニングをサポートする任意のIDプロバイダー
+
+<Tabs>
+  <Tab title="Okta">
+    ## ステップ1: MoEngage SSOアプリケーションにロール属性を追加する
+
+    1. **Okta Admin Console** に移動します。
+    2. 左側のナビゲーションメニューで、**Directory** \> **Profile Editor** をクリックします。
+       <Frame>
+         ![DirectoryとProfile Editorが表示されたOktaの左側のナビゲーションメニュー](/images/jit-okta-directory-profile-editor.png)
+       </Frame>
+    3. **Profile Editor** ページで、作成したMoEngage SSOアプリケーションを選択するか、**Search for people, apps, and groups** ボックスを使用して検索します。
+       <Frame>
+         ![MoEngage SSOアプリケーションが選択されたOktaのProfile Editorページ](/images/jit-okta-profile-editor-select-app.png)
+       </Frame>
+    4. **Add Attribute** をクリックします。
+       <Frame>
+         ![Add Attributeボタンが表示されたOktaのProfile Editor](/images/jit-okta-add-attribute.png)
+       </Frame>
+       \
+       **Add Attribute** ダイアログボックスが表示されます。
+    5. **Data type** リストで、**string** を選択します。
+    6. **Display name** ボックスに、role と入力します。
+    7. **Variable name** ボックスに、role と入力します。
+    8. **Description** ボックスに、role と入力します。
+    9. **Save** をクリックします。
+
+    ## ステップ2: SAML属性ステートメントを設定する
+
+    1. **Applications** \> **Applications** に移動し、MoEngage SSOアプリケーションをクリックします。
+       <Frame>
+         ![MoEngage SSOアプリケーションが表示されたOktaのApplicationsページ](/images/jit-okta-applications.png)
+       </Frame>
+    2. **Sign On** タブをクリックし、**Attribute Statements (Optional)** セクションまで下にスクロールします。
+    3. **Show legacy configuration** をクリックしてセクションを展開します。
+    4. **Profile attribute statements** セクションの横にある **Edit** をクリックし、次の詳細を入力します。
+       | フィールド | 値 |
+       | --- | --- |
+       | Name | role |
+       | Name format | Basic |
+       | Value | appuser.role |
+    5. **Save** をクリックします。
+       <Frame>
+         ![保存された属性ステートメントが表示されたOktaのSign Onタブ](/images/jit-okta-save-attribute-statements.png)
+       </Frame>
+
+    ## ステップ3: ユーザーを割り当ててロールを定義する
+
+    1. **Applications** \> **Applications** に移動し、MoEngage SSOアプリケーションをクリックします。
+       <Frame>
+         ![MoEngage SSOアプリケーションが表示されたOktaのApplicationsページ](/images/jit-okta-applications.png)
+       </Frame>
+    2. **Assignments** タブで、**Assign** \> **Assign to People** をクリックします。
+       <Frame>
+         ![Assign to Peopleオプションが表示されたOktaのAssignmentsタブ](/images/jit-okta-assign-to-people.png)
+       </Frame>
+    3. **assignment attributes** モーダルで **Role** フィールドを見つけ、MoEngageワークスペースで定義されているとおりの正確なロール名（Admin、Manager、Marketer、またはカスタムロールなど）を入力します。
+    4. **Save and Go Back** をクリックし、**Done** をクリックします。
+       <Frame>
+         ![Save and Go Backオプションが表示されたOktaのassignment attributesモーダル](/images/jit-okta-save-and-go-back.png)
+       </Frame>
+    5. 既存のユーザーを更新するには、次の手順を実行します。
+       1. **Assignments** タブで、ユーザーの横にある鉛筆アイコン <img src="/images/jit-okta-pencil-icon.png" alt="鉛筆の編集アイコン" /> をクリックします。
+       2. ロールを編集し、**Save** をクリックします。
+          <Frame>
+            ![編集されたユーザーロールが表示されたOktaのAssignmentsタブ](/images/jit-okta-edit-role-save.png)
+          </Frame>
+
+    ## ステップ4: 検証
+
+    設定が完了したら、IDプロバイダー（IdP）を介してMoEngageにログインします。ロールが正しく渡されていることを確認するには、ACSペイロードを調べ、role属性に、IDプロバイダーで渡されMoEngageで定義されている想定どおりの値（Adminなど）が含まれていることを確認します。これにより、リダイレクト時にユーザーに適切なロールが割り当てられていることを確認できます。
+  </Tab>
+  <Tab title="Azure">
+    ## ステップ1: 属性とクレームを設定する
+
+    1. **Azure Admin Console** に移動します。
+    2. Azure servicesページで、**Microsoft Entra ID** をクリックします。
+       <Frame>
+         ![Microsoft Entra IDタイルが表示されたAzure servicesページ](/images/jit-azure-entra-id.png)
+       </Frame>
+    3. **Overview** ページで、左側のナビゲーションメニューに移動し、**Manage** \> **Enterprise applications** をクリックします。
+       <Frame>
+         ![Enterprise applicationsが表示されたMicrosoft Entra IDのナビゲーションメニュー](/images/jit-azure-enterprise-applications.png)
+       </Frame>
+    4. **Enterprise applications | All applications** ページで、リスト内のアプリケーションを見つけるか、**Search by application name or object ID** ボックスを使用して検索し、設定するアプリケーションを選択します。
+       <Frame>
+         ![アプリケーションが選択されたEnterprise applicationsのAll applicationsページ](/images/jit-azure-select-application.png)
+       </Frame>
+    5. 左側のナビゲーションメニューで **Single sign-on** をクリックし、**Attributes & Claims** セクションの **Edit** をクリックします。
+       <Frame>
+         ![Attributes and ClaimsセクションにEditオプションが表示されたSingle sign-onページ](/images/jit-azure-single-sign-on-edit.png)
+       </Frame>
+    6. **Attributes & Claims** ページで、**Add new claim** をクリックします。
+    7. **Manage claim** ページで、次の詳細を入力します。
+       | フィールド | 必須 | 値 |
+       | --- | --- | --- |
+       | Name | はい | 任意の値を入力できます（roleなど）。<br />**注**: クレーム名は一意である必要があります。 |
+       | Name format | 任意 | 空白のままにします。 |
+       | Source | はい | **Attribute** オプションを選択します（デフォルトで選択されています）。 |
+       | Source attribute | はい | ドロップダウンリストで **user.assignedroles** をクリックします。 |
+    8. **Save** をクリックします。
+       <Frame>
+         ![保存されたroleクレームが表示されたManage claimページ](/images/jit-azure-save-claim.png)
+       </Frame>
+    9. **Save** をクリックした後、Roleクレームが **Additional claims** リストに値 **user.assignedroles** で表示されていることを確認します。
+       <Frame>
+         ![Additional claimsリストにRoleクレームが表示されたAttributes and Claimsページ](/images/jit-azure-verify-role-claim.png)
+       </Frame>
+
+    ## ステップ2: ユーザーとロールを割り当てる
+
+    以下の手順に進む前に、SCIMドキュメントの[ロールの作成](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-5-role-creation)（ステップ5）に記載されている手順を実行してください。
+
+    1. **Enterprise applications | All applications** ページに戻り、**Users and groups** をクリックします。
+    2. **Add user/group** をクリックします。
+       <Frame>
+         ![Add user/groupオプションが表示されたUsers and groupsページ](/images/jit-azure-add-user-group.png)
+       </Frame>
+       \
+       **Add Assignment** ページが表示されます。
+    3. **Users** の下にある **None Selected** リンクをクリックします。右側に **Users** ダイアログボックスペインが表示されます。
+    4. 必要なユーザーのチェックボックス（Security Integrationなど）を選択し、**Select** をクリックします。
+       <Frame>
+         ![ユーザーが選択されたUsersダイアログボックスペイン](/images/jit-azure-select-user.png)
+       </Frame>
+    5. **Select a role** の下にある **None Selected** リンクをクリックします。右側に **Select a role** ダイアログボックスペインが表示されます。
+    6. **Enter role name to filter items** ボックスに適切なロール（AnalystやAdminなど）を入力し、**Select** をクリックします。
+       <Frame>
+         ![ロールが選択されたSelect a roleダイアログボックスペイン](/images/jit-azure-select-role.png)
+       </Frame>
+    7. **Add Assignment** ページの下部にある **Assign** をクリックします。
+       <Frame>
+         ![Assignボタンが表示されたAdd Assignmentページ](/images/jit-azure-assign.png)
+       </Frame>
+       \
+       Microsoft Entra IDでユーザーが正常に更新されると、Application assignment succeededメッセージが表示されます。
+
+    ## ステップ3: 検証
+
+    設定が完了したら、Microsoft My Appsポータル（[myapps.microsoft.com](https://myapps.microsoft.com)）で割り当てられたアプリケーションをクリックして、MoEngageにログインします。ログインフローにリダイレクトされます。ログインプロセス中にACSペイロードを調べ、role属性が存在し、想定どおりの値（Analystなど）が含まれていることを確認します。これにより、ロールが正しく渡され、ユーザーが初回ログイン時に適切なロールでMoEngageにプロビジョニングされていることを確認できます。
+  </Tab>
+</Tabs>
+
+# JITプロビジョニング設定の更新または無効化
+
+## 設定を更新する
+
+1. **Automate user provisioning** セクションに移動します。
+2. **Edit** をクリックします。
+   <Frame>
+     ![Editオプションが表示されたAutomate user provisioningセクション](/images/jit-edit-configuration.png)
+   </Frame>
+3. 必要に応じて設定を変更します。
+4. **Save** をクリックします。
+   <Frame>
+     ![Saveボタンが表示されたConfigure provisioning methodダイアログ](/images/jit-update-save.png)
+   </Frame>
+   \
+   **Save your configuration** ダイアログボックスが表示され、設定の確認を求められます。
+5. **Confirm** をクリックして変更を適用します。
+   <Frame>
+     ![Save your configuration確認ダイアログボックス](/images/jit-update-confirm.png)
+   </Frame>
+
+## 設定を無効にする
+
+1. **Automate user provisioning** セクションに移動します。
+2. **Automate user provisioning** トグルをオフにします。
+   <Frame>
+     ![オフになったAutomate user provisioningトグル](/images/jit-toggle-off.png)
+   </Frame>
+   \
+   **Disable user provisioning** ダイアログボックスが表示されます。
+3. **Confirm** をクリックします。
+   <Frame>
+     ![Disable user provisioning確認ダイアログボックス](/images/jit-disable-confirm.png)
+   </Frame>
+   \
+   操作を確認する **JIT provisioning disabled successfully** メッセージが表示されます。
+
+# セキュリティとログ
+
+- **2FAとファイアウォール**: 既存のファイアウォールルールは、Just-in-Timeユーザープロビジョニングによって作成されたユーザーにも適用されます。ワークスペースで2FAが強制されている場合、これらのユーザーはログイン時に2FAを設定し、2FAコードを入力する必要があります。
+- **監査ログ**: 有効化、無効化、更新の操作や、ユーザーの作成、削除、更新の操作を含むすべてのアクティビティは、監査ログのLogin settingsに記録されます。
+- **通知**: Just-in-Timeユーザープロビジョニングが有効化または無効化されたとき、またはJust-in-Timeユーザープロビジョニングによって新しいユーザーが作成されたときに、管理者にメール通知が送信されます。
+
+# よくある質問
+
+<Accordion title="SCIMが有効な状態でJust-in-Timeユーザープロビジョニングを有効にしようとするとどうなりますか？">
+  SCIMが有効な状態では、Just-in-Timeユーザープロビジョニングを有効にできません。先にSCIMを無効にする必要があります。
+</Accordion>
+
+<Accordion title="Delete user at the end of the sessionチェックボックスがオフの場合はどうなりますか？">
+  MoEngageは、ユーザーの初回サインイン時にユーザーを作成します。ユーザーは、アクセスが手動で取り消されるまでワークスペースでアクティブなままになります。詳細については、[アクセスの取り消し方法](/ja/user-guide/settings/account/team-management/manage-members)を参照してください。
+</Accordion>
+
+<Accordion title="Delete user at the end of the sessionチェックボックスがオンの場合はどうなりますか？">
+  MoEngageは、その特定のセッション用にユーザーを作成します。セッションが終了したとき、またはユーザー作成から24時間後のいずれか早い方で、システムが自動的にアクセスを取り消します。
+
+  **注**: このルールは、Just-in-Timeユーザープロビジョニングによって作成されたユーザーにのみ適用されます。
+</Accordion>
+
+<Accordion title="SCIMからJITに切り替えるとどうなりますか？">
+  SCIMによって作成されたユーザーは、ロール情報とともにワークスペースでアクティブなままになります。以降のロール更新には、JIT（ユーザーのロールを更新するオプションが選択されている場合）または **Team Management** \> **Members** ページ（ユーザーのロールを更新するオプションが選択されていない場合）を使用できます。アクセスを取り消すには、[アクセスの取り消し方法](/ja/user-guide/settings/account/team-management/manage-members)を参照してください。
+</Accordion>
+
+<Accordion title="SAMLアサーション呼び出しで、1人のユーザーに対して複数のロール値を受け取った場合はどうなりますか？">
+  SAMLアサーション呼び出しで複数の値を受け取った場合、MoEngageはリスト内の最初のロール値を参照します。
+</Accordion>
+
+<Accordion title="JITが設定されている状態で、Team Management > Membersページからユーザー管理操作を行うと、ユーザーはどうなりますか？">
+  - **Invite**: ユーザーがワークスペースに招待されます。
+  - **Update Role**: ユーザーのロールを更新できます。ただし、JIT設定でユーザーのロールを更新するオプションが選択されていない場合にのみ有効です。\
+    **注**: このオプションは、IDプロバイダーのJITアプリケーションには含まれていないもののSSOアプリケーションには含まれているユーザー、またはパスワードでログインする管理者（IDプロバイダーのどのアプリケーションにも含まれていない）のロール更新を容易にするために提供されています。
+  - **Revoke Access**: 同じページを使用して、ユーザーを削除したりアクセスを取り消したりできます。ただし、ユーザーがJITが設定されたIdPアプリケーションに含まれている場合、そのユーザーは再度ログインできます。
+</Accordion>

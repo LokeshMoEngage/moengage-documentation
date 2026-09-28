@@ -1,0 +1,71 @@
+---
+title: "カスタムプロキシドメイン - Android"
+description: "MoEngage SDK のトラフィックを独自のサブドメイン経由でルーティングし、Android で広告ブロッカーを回避します。"
+---
+
+プライバシーを重視する今日のデジタル環境では、多くのユーザーが広告ブロッカーやプライベート DNS サービスを利用しています。これらのツールは、分析プラットフォームやエンゲージメントプラットフォームを含む、既知のサードパーティドメインへのネットワークリクエストをブロックすることがよくあります。これらのリクエストがブロックされると、重要なデータの可視性が失われ、ユーザーがアプリ内メッセージやプッシュ通知を受け取れなくなる可能性があります。
+
+キャンペーンの確実な配信を実現するために、MoEngage は **Custom Proxy Domain** 機能を提供しています。これにより、MoEngage SDK のトラフィックを自社のプライマリドメインのサブドメイン (例: `data.yourcompany.com`) 経由でルーティングできます。トラフィックはファーストパーティの通信として扱われるため、一般的な広告ブロックリストを回避できます。
+
+## オンボーディングプロセス
+
+Custom Proxy Domain を設定するには、お客様のチームと MoEngage の間で 1 回限りの DNS 委任プロセスが必要です。
+
+<Info>
+  SDK コードを更新する前に、DNS 委任の設定を完了する必要があります。ドメインの選択と NS レコードの設定に関する詳細なガイドについては、[DNS 委任](https://www.moengage.com/docs/user-guide/getting-started/integration/custom-proxy-sub-domains)を参照してください。
+</Info>
+
+### ステップ 1: サブドメインを選択する
+
+短く、フィルターで一般的にフラグが付けられるキーワードを含まないサブドメインを選択します (たとえば、"tracking"、"ads"、"moengage" は避けてください)。
+
+### ステップ 2: DNS 委任をリクエストする
+
+MoEngage のカスタマーサクセスマネージャー (CSM) に連絡するか、[サポートチケットを発行](https://www.moengage.com/docs/user-guide/contact-support/raise-a-support-ticket-from-the-moengage-login-page)してリクエストを開始します。選択したサブドメインを伝えてください。
+
+### ステップ 3: NS レコードを設定する
+
+MoEngage から 4 つのネームサーバー (NS) レコードが提供されます。選択したサブドメインについて、これらのレコードを DNS プロバイダーの設定に追加する必要があります。
+
+## 実装
+
+DNS 委任が確認されたら、SDK の初期化ロジックを更新します。SDK は、すべての MoEngage エンドポイント (API 呼び出しと CDN アセット) を動的に書き換えて、カスタムプロキシドメインを使用するようにします。
+
+### MoEngage の設定を更新する
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.DomainConfig
+import com.moengage.core.config.NetworkRequestConfig
+
+val moEngage = MoEngage.Builder(application, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNetworkRequest(
+        NetworkRequestConfig(DomainConfig("CUSTOM_DOMAIN"))
+    )
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```java Java
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+import com.moengage.core.config.DomainConfig;
+import com.moengage.core.config.NetworkRequestConfig;
+
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNetworkRequest(new NetworkRequestConfig(new DomainConfig("CUSTOM_DOMAIN")))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+## ベストプラクティスと検証
+
+1. **ドメインの選択:** サブドメインの文字列は短く (5～8 文字) してください。
+2. **ネットワークログ:** リクエストがカスタムサブドメイン (例: `sdk-01.data.example.com`) で始まっていることを確認します。
+3. **アセットの読み込み:** キャンペーン内の画像が正しく読み込まれることを確認します。

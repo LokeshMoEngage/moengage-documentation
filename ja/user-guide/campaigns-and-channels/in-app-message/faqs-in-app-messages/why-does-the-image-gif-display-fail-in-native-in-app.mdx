@@ -1,0 +1,51 @@
+---
+title: "ネイティブ In-App で画像/GIF が表示されないのはなぜですか？"
+description: "MoEngage のネイティブ In-App キャンペーンで画像や GIF がレンダリングされない問題のトラブルシューティングを行います。"
+---
+
+## 問題
+
+Android Native や、Flutter、React Native などのハイブリッドフレームワークで GIF 依存関係がない場合、ネイティブ In-App で GIF が読み込まれません。
+
+## 説明
+
+- この問題は、In-App モジュールが画像や GIF の読み込みを Glide 画像ライブラリに完全に依存しているために発生します。
+- 次のメソッドを呼び出すだけでは、In-App メッセージの表示は完了しません。
+
+<Tabs>
+  <Tab title="Java">
+    ```java
+    MoEInAppHelper.getInstance().showInApp(context)
+    ```
+  </Tab>
+</Tabs>
+
+- このメソッドを呼び出すと、次のエラーが発生します。
+
+`Library support not found: Image and gif require Glide library.`
+
+<Frame>
+  ![1 2](/images/1-2.png)
+</Frame>
+
+## 解決策
+
+- In-App モジュールで画像や GIF が確実に表示されるようにするには、アプリレベルの build.gradle ファイルをアプリケーションのビルド依存関係に組み込みます。
+
+<Tabs>
+  <Tab title="Groovy">
+    ```groovy
+    build.gradle (:app)
+    dependencies {
+      implementation 'com.github.bumptech.glide:glide:4.16.0'
+    } 
+    ```
+  </Tab>
+</Tabs>
+
+- 依存関係を追加した後、Gradle ファイルを同期してアプリを再ビルドします。
+- これで Glide が組み込まれ、画像や GIF を含む In-App メッセージが正しく表示されるようになります。   
+
+<Frame>
+  ![2 2](/images/2-2.png)
+</Frame>

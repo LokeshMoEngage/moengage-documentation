@@ -1,0 +1,176 @@
+---
+title: "Open Analytics 用のリーチャビリティクエリ"
+description: "MoEngage Open Analytics で users base テーブルを使用して、プッシュ、メール、SMS の各チャネルにおけるユーザーのリーチャビリティを計算する SQL クエリを紹介します。"
+---
+
+MoEngage Open Analytics は、MoEngage データウェアハウスのデータに直接アクセスする機能を提供します。SQL クエリを使用して、MoEngage に存在するあらゆるデータにアクセスできます。
+
+このドキュメントでは、プラットフォーム上でリーチ可能なユーザーを導き出すために使用するリーチャビリティクエリを紹介します。
+
+ここで使用するテーブルと属性は次のとおりです。
+
+- `users_base_table` - このテーブルには最新のすべてのユーザー属性が含まれます。このテーブルは毎日更新されます。
+- `string_uid_125` - ユーザーテーブル内のアプリまたはサイトユーザーに対してクライアントが定義した ID。
+- `user_id` - ユーザーテーブル内のアプリまたはサイトユーザーに対して MoEngage が定義した ID。
+
+[リーチャビリティについてはこちら](/ja/user-guide/segment/reachability/user-reachability)をご覧ください。[MoEngage Open Analytics の詳細についてはこちら](/ja/user-guide/analyze/custom-analysis/open-analytics)をご覧ください。
+
+## プッシュのリーチャビリティ
+
+プッシュのリーチャビリティに使用するユーザー属性は次のとおりです。
+
+- Android - `double_moe_rsp_android_144`
+- iOS - `double_moe_rsp_ios_157`
+- Web - `double_moe_rsp_web_107`
+
+これらのフラグの値が '200' の場合、そのユーザーはリーチ可能と見なされます。
+
+プッシュ通知でリーチ可能なユーザー数を取得するクエリ。
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+COUNT(user_id) AS Usercount
+FROM
+account_name.users_base_table
+WHERE
+(double_moe_rsp_android_144 = 200 OR double_moe_rsp_ios_157 = 200 OR double_moe_rsp_web_107 = 200)
+```
+
+</CodeGroup>
+
+iOS でプッシュ通知がリーチ可能なユーザーの ID、MoEngage ID、メールアドレスを取得するクエリ。
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+string_uid_125 AS ID,
+user_id AS MoEID,
+string_u_em_157 AS email
+FROM
+account_name.users_base_table
+WHERE
+double_moe_rsp_ios_157 = 200
+```
+
+</CodeGroup>
+
+
+iOS と Web の両方でプッシュ通知がリーチ可能なユーザーの ID、MoEngage ID、メールアドレスを取得するクエリ。
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+string_uid_125 AS ID,
+user_id AS MoEID,
+string_u_em_157 AS email
+FROM
+account_name.users_base_table
+WHERE
+double_moe_rsp_ios_157 = 200 AND double_moe_rsp_ios_157 = 200
+```
+
+</CodeGroup>
+
+
+上記のクエリでは、iOS と Web の両方のプラットフォームでリーチ可能な共通のユーザーが得られます。iOS と Web のいずれか少なくとも 1 つのプラットフォームでリーチ可能なユーザーを取得するには、**OR** を **AND** に置き換えます。
+
+## メールのリーチャビリティ
+
+メールのリーチャビリティに使用するユーザー属性は次のとおりです。
+
+- `string_u_em_157` - ユーザーのメールアドレス
+- `bool_moe_hard_bounce_200` - ハードバウンス
+- `bool_moe_spam_104` - スパム
+- `bool_moe_unsubscribe_128` - 配信停止
+
+ユーザーがメールでリーチ可能であるための条件は次のとおりです。
+
+- メールアドレスが存在し、有効であること（メールアドレスに '@' が含まれていること）
+- ハードバウンス、スパム、配信停止がすべて false であること。
+
+メールでリーチ可能なユーザー数を取得するクエリ。
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+COUNT(user_id) AS Usercount
+FROM
+account_name.users_base_table
+WHERE
+string_u_em_157 LIKE '%@%'
+AND
+bool_moe_hard_bounce_200 = 'false' AND bool_moe_spam_104 = 'false' AND bool_moe_unsubscribe_128 = 'false'
+```
+
+</CodeGroup>
+
+
+メールでリーチ可能なユーザーの ID、MoEngage ID、メールアドレスを取得するクエリ。
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+uid_M03C_0_s AS ID,
+user_id AS MoEID,
+string_u_em_157 AS email
+FROM
+account_name.users_base_table
+WHERE
+string_uid_125 LIKE '%@%'
+AND bool_moe_hard_bounce_200 = 'false' AND bool_moe_spam_104 = 'false' AND bool_moe_unsubscribe_128 = 'false'
+```
+
+</CodeGroup>
+
+
+必要に応じて、メールアドレスを検証するための追加のチェックを使用できます。ここでは、メールアドレスに '@' が含まれているかどうかのみを確認しています。
+
+## SMS のリーチャビリティ
+
+SMS のリーチャビリティに使用するユーザー属性は次のとおりです。
+
+- `string_u_mb_971` - ユーザーの携帯電話番号
+
+ユーザーが SMS でリーチ可能であるためには、携帯電話番号が存在し、有効である必要があります。
+
+SMS でリーチ可能なユーザー数を取得するクエリ。
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+COUNT(doc_id) AS Usercount
+FROM
+account_name.usertable
+WHERE
+string_u_mb_971 IS NOT NULL
+```
+
+</CodeGroup>
+
+
+SMS でリーチ可能なユーザーの ID、MoEngage ID、携帯電話番号を取得するクエリ。
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT
+string_uid_125 AS ID,
+user_id AS MoEID,
+string_u_mb_971 AS MobileNumber
+FROM
+account_name.usertable
+WHERE
+string_u_mb_971 IS NOT NULL
+```
+
+</CodeGroup>
+
+
+必要に応じて、携帯電話番号を検証するための追加のチェックを使用できます。ここでは、ユーザーの携帯電話番号の値が存在するかどうかのみを確認しています。

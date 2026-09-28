@@ -1,0 +1,194 @@
+---
+title: "Lokalise"
+---
+
+## はじめに
+
+Lokalise は、アジャイルなチームが多言語コンテンツを効率的に管理できるように設計された翻訳管理プラットフォームです。
+
+## MoEngage × Lokalise
+
+MoEngage と Lokalise の連携により、手動で翻訳を調整することなく、キャンペーン全体でリアルタイムにローカライズされたコンテンツを配信できます。この連携により、以下のことができます。
+
+- Lokalise を通じてすべてのキャンペーンコンテンツの翻訳を自動的に取得し、高品質なローカライズ体験をユーザーに提供します。
+- Lokalise が翻訳ワークフローを効率化するため、チームはキャンペーン戦略と顧客エンゲージメントに集中できます。
+
+## 主な機能
+
+この連携により、以下のことができます。
+
+- **リアルタイムの翻訳管理**: Lokalise から MoEngage に翻訳をリアルタイムで自動的に同期します。
+- **多言語サポート**: 1 回の設定で、複数の言語でキャンペーンを同時に展開できます。
+- **動的コンテンツ配信**: 言語ベースのユーザー属性を使用して、言語固有のコンテンツを自動的に配信します。
+- **AWS S3 連携**: 翻訳ファイルの管理に安全なクラウドストレージを活用します。
+- **テンプレートベースの翻訳キー**: Lokalise で一度作成すれば、すべてのキャンペーンで再利用できます。
+- **ローカリゼーションワークフローの簡素化**: 翻訳ファイルの手動管理が不要になり、市場投入までの時間を短縮できます。
+
+## ユースケース
+
+Lokalise を MoEngage と連携すると、以下のユースケースに対応できます。
+
+- **グローバルキャンペーンのローカリゼーション**: 1 つのキャンペーンテンプレートを 20 か国以上に展開し、言語固有のコンテンツを自動的に配信します。各ユーザーは希望する言語でコンテンツを自動的に受け取るため、言語ごとに個別のキャンペーンを作成する必要がありません。
+- **リアルタイムのコンテンツ更新**: Lokalise で製品説明、プロモーションメッセージ、キャンペーンコピーを更新すると、その変更が MoEngage キャンペーンにすぐに反映されます。キャンペーンを再作成または再公開する必要はなく、翻訳は即座に更新されます。
+- **多言語カスタマーサポート**: ユーザープロファイルに保存された言語設定に基づいて、ローカライズされたサポートメッセージ、オンボーディングコンテンツ、FAQ の回答を顧客の母国語で配信します。
+- **規制市場へのコンプライアンス**: 各言語と地域に合わせて、法的に必要な翻訳済みコンテンツと規約を自動的に配信することで、地域のマーケティング規制へのコンプライアンスを確保します。
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  開始する前に、以下を用意してください。
+
+  - 翻訳プロジェクトへのアクセス権がある有効な Lokalise アカウント。
+  - Settings > API Keys にアクセスする権限がある MoEngage アカウント。
+  
+</Info>
+
+### ワークフローのアーキテクチャ
+
+![MoEngage-Lokalise-MoEngage のフローを示す連携アーキテクチャ図](/images/integration-architecture.png)
+
+この連携では、テンプレートを MoEngage から Lokalise に移動して翻訳し、すぐに使用できる言語別のテンプレートとして MoEngage に戻します。動的タグと HTML の書式はすべてのステップで保持されるため、翻訳済みテンプレートは MoEngage に戻った時点ですぐに使用できます。
+
+### チャネルのサポート
+
+<Info>
+  翻訳のサポートは、以下のチャネルで作成されたテンプレートに限定されます。
+</Info>
+
+| チャネル | 翻訳のサポート |
+| --- | --- |
+| Email | サポート対象 ✅ |
+| Push（API で作成されたテンプレート） | サポート対象 ✅ |
+| In-app | サポート対象 ✅ |
+| On-site messages (OSM) | サポート対象外 ❌ |
+| SMS | サポート対象 ✅ |
+
+このプロセスを設定するには、以下の手順を実行します。
+
+- [ステップ 1: Lokalise を MoEngage に接続する](#step-1-connect-lokalise-to-moengage)
+- [ステップ 2: MoEngage でテンプレートを作成して保存する](#step-2-create-and-save-your-template-in-moengage)
+- [ステップ 3: テンプレートを Lokalise にインポートする](#step-3-import-the-template-into-lokalise)
+- [ステップ 4: Lokalise でコンテンツを翻訳する](#step-4-translate-content-in-lokalise)
+- [ステップ 5: 翻訳済みテンプレートを MoEngage にエクスポートする](#step-5-export-translated-templates-back-to-moengage)
+- [ステップ 6: 多言語キャンペーンを開始する](#step-6-launch-multilingual-campaigns)
+
+### ステップ 1: Lokalise を MoEngage に接続する
+
+1. Lokalise で **New Project** をクリックし、**Marketing and support** を選択します。
+2. プロジェクトを設定します。
+   - **Project name**: わかりやすい名前を入力します（例: `MoEngage Campaign Translations`）
+   - **Base language**: 翻訳元の言語（例: 英語）
+   - **Target languages**: 必要なすべての言語を追加します（例: スペイン語、フランス語、ドイツ語）
+   - **Content integration**: **MoEngage** を選択します
+3. **Create project** をクリックします。
+
+![プロジェクト名、基本言語、ターゲット言語、MoEngage のコンテンツ連携が表示された Lokalise の Create project ダイアログ](/images/lokalise-create-project.png)
+
+4. MoEngage で **Settings > API Keys** に移動します。ページ上部に表示される **Workspace ID** をコピーします。
+5. **Data APIs** のスコープで **+ Create new key** をクリックします（または既存のキーを再利用します）。これが **Data API Key** です。
+6. **Custom templates** スコープを含む 2 つ目のキーを作成（または再利用）します。これが **Template API Key** で、Lokalise がテンプレートの読み取りと書き込みに使用します。
+
+<Tip>
+  MoEngage ではキーに「Data」や「Template」というラベルは付きません。キーを作成するときにスコープと名前を選択します。後で区別しやすいように、`Lokalise - Data API` や `Lokalise - Template API` のような名前を付けてください。
+</Tip>
+
+7. **Region** を確認します。これはダッシュボード URL に含まれる数字です（例: `dashboard-01.moengage.com` → リージョン `01`）。
+8. Lokalise に戻り、**MoEngage app** を開いて 4 つの認証情報（Data API Key、Workspace ID、Template API Key、Region）をすべて貼り付け、**Authorize** をクリックします。
+
+![Data API Key、Workspace ID、Template API Key、Region のフィールドがある Lokalise の認証フォーム](/images/lokalise-authorize-connection.png)
+
+9. **Integration successful** が表示され、MoEngage が接続済みの連携として表示されることを確認します。
+
+---
+
+### ステップ 2: MoEngage でテンプレートを作成して保存する
+
+1. **Campaigns > Email**（または **Push**）に移動し、通常どおりテンプレートを作成します。件名、本文、CTA、`{{first_name}}` などのパーソナライゼーションタグを含めます。
+2. 明確でわかりやすい名前を使用します（例: `Black_Friday_2025_Promo`）。
+
+<Warning>
+  翻訳済みテンプレートの名前は後から編集できません。この名前から自動的に生成されるため、最初に正しく設定してください。
+</Warning>
+
+3. **テンプレートを保存します**。下書きは同期されません。
+
+![テンプレートの詳細とステータスが表示された MoEngage のテンプレートプレビューパネル](/images/moengage-template-preview.png)
+
+テンプレートは、通常 1〜2 分以内に Lokalise の **Ready for import** リストに自動的に同期されます。
+
+---
+
+### ステップ 3: テンプレートを Lokalise にインポートする
+
+1. Lokalise で **Content management > Ready for import** を開きます。保存された MoEngage テンプレートがここに自動的に表示されます。
+
+![同期されたテンプレートが表示された Ready for import タブのある Lokalise の Content management 画面](/images/lokalise-ready-for-import.png)
+
+2. 1 つ以上のテンプレートを選択し、**Import from MoEngage** をクリックします。
+3. インポートする基本言語とターゲット言語を選択し、確定します。
+
+![言語選択ドロップダウンが表示された Lokalise のインポートダイアログ](/images/lokalise-import-languages.png)
+
+内部的には、Lokalise はテンプレートを翻訳可能なセグメントに分割し、動的タグ（`{{first_name}}` など）をロックして誤って編集されないようにします。
+
+---
+
+### ステップ 4: Lokalise でコンテンツを翻訳する
+
+1. **Editor** を開き、テンプレートを選択して、ターゲット言語を選択します。
+2. 各セグメントを翻訳します。Lokalise は過去の作業に基づく翻訳メモリの候補を表示します。用語の一貫性を保つために候補を採用してください。
+
+![翻訳メモリの候補とともに翻訳の入力が表示された Lokalise の Editor](/images/lokalise-translation-editor.png)
+
+3. 必要に応じて、翻訳を完了としてマークする前に、正確性、ブランドボイス、文化的な適合性を確認するレビュアーを割り当てます。
+
+<Tip>
+  動的タグは正確に保持し（`{first_name}` や `{{firstName}}` ではなく `{{first_name}}`）、HTML タグもそのまま維持してください。プッシュ通知の場合は、翻訳後のコピーを元の文字数に近づけてください。iOS は約 120 文字、Android は約 240 文字で切り詰められます。
+</Tip>
+
+---
+
+### ステップ 5: 翻訳済みテンプレートを MoEngage にエクスポートする
+
+1. **Content management** で **Imported** タブを開き、完了した翻訳を選択します。
+2. **Export to MoEngage** をクリックします。
+3. 言語ピッカーで、エクスポートするターゲット言語のみをオンにします。元のテンプレートの複製が作成されないように、**基本言語のチェックを外してください**。
+
+![ターゲット言語が選択され、基本言語のチェックが外された Lokalise のエクスポートダイアログ](/images/lokalise-export-languages.png)
+
+4. **Export to MoEngage** をクリックします。
+
+MoEngage は言語ごとに 1 つのテンプレートを自動的に作成し、`[Template_Name]_[Language_Code]` という名前を付けます（例: `Black_Friday_2025_Promo_ES`、`_FR`、`_DE`）。
+
+![自動生成された言語別テンプレートが表示された MoEngage のテンプレートライブラリ](/images/moengage-language-variants.png)
+
+<Tip>
+  アカウントでテンプレート管理が有効になっていない場合は、代わりに **Email Campaign > Content > Custom HTML templates > API templates** で翻訳済みテンプレートを確認してください。
+</Tip>
+
+---
+
+### ステップ 6: 多言語キャンペーンを開始する
+
+1. ロケール（例: `user_language` や `locale` のユーザー属性）でオーディエンスをセグメント化します。
+2. 言語ごとに 1 つのキャンペーンバリアントを作成し、それぞれ対応する翻訳済みテンプレートを指定します。
+3. 各言語のネイティブスピーカーにテストメールを送信し、表示とタグの置換を確認します。
+4. 開始します。各セグメントは、同じスケジュールでそれぞれの言語のキャンペーンを受け取ります。
+
+---
+
+## トラブルシューティング
+
+### テンプレートが Lokalise の「Ready for import」に表示されない
+
+テンプレートが下書きではなく保存済みであること、およびメール、プッシュ、アプリ内、SMS のいずれかのテンプレートであることを確認してください。オンサイトメッセージはまだサポートされていません。同期には 2〜3 分かかる場合があります。それ以上経過している場合は、連携を再認証し、API の認証情報が引き続き有効であることを確認してください。
+
+### 翻訳後に動的タグが壊れる
+
+翻訳者がタグの構文を変更していないか確認してください。タグは `{first_name}` や `{{firstName}}` ではなく、正確に `{{first_name}}` のままである必要があります。Lokalise でセグメントを修正し、再エクスポートしてください。
+
+### MoEngage で基本言語のテンプレートが重複する
+
+これは、エクスポート時に基本言語のチェックが外されていない場合に発生します。MoEngage で重複を手動で削除し、ターゲット言語のみを選択して再エクスポートしてください。

@@ -1,0 +1,153 @@
+---
+title: "Shopify ストアでカート放棄を減らす方法"
+---
+
+# はじめに
+
+カート放棄キャンペーンの送信は、e コマースマーケターにとって非常に効果的な戦略です。その主な理由は、当初コンバージョンに至らなかった潜在的な売上に直接アプローチできるためです。このようなキャンペーンのメリットには、失われた売上の回復、コンバージョン率の向上、顧客行動に関するインサイトの獲得、顧客とのインタラクションのパーソナライズ、顧客ロイヤルティの強化などがあります。これらの戦略は、チェックアウトプロセスの最適化に役立つだけでなく、顧客エンゲージメントとリテンション全体の向上にも大きな役割を果たします。
+
+迅速かつシームレスな Shopify 統合により、カタログとユーザーインタラクションのデータをわずか数分で簡単にインポートできます。これにより、最初から効果的なカート回復キャンペーンを開始できます。
+
+この記事では、カートに 1 つまたは複数の商品を放棄したユーザーをターゲットとする Push キャンペーンを作成します。MoEngage Recommendations を使用して、これらのユーザーにパーソナライズされたメッセージを送信し、類似商品のリストをレコメンドします。
+
+# 期待される結果
+
+ユーザーのスマートフォンには、カート放棄から 30 分後に、カートに追加したが購入しなかったアイテムでパーソナライズされたコンテンツを含むプッシュ通知が届きます。
+
+![](/images/moengage_2d6827.png)
+
+<Tip>
+  - ユーザーが商品を検索する、商品をカートに追加する、商品をウィッシュリストに追加する、購入を完了するといったアクションと、プラットフォーム、商品名、カテゴリー、ブランド、価格など各アクションに関連する情報をトラッキングするイベント。イベントのトラッキング方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。手順は使用している SDK によって異なる場合があります。
+  - 上記でトラッキングしたイベントと、対応する MoEngage イベントとのマッピング。このマッピングにより、アクションを理解してレコメンデーションモデルを実行し、モデルにクエリを発行して期待される出力を作成できます。詳細については、[Map User Actions Settings](/ja/user-guide/content/recommendations/getting-started/map-user-actions-settings) を参照してください。
+  - 利用可能な商品のリストと、タイトル、カテゴリー、ブランド、価格など関連するすべての情報を含むカタログとそれに対応するフィード。最新の情報を維持できるよう、フィードを適切な間隔で更新するように設定してください。詳細については、[Catalogs](/ja/user-guide/content/recommendations/getting-started/catalogs) を参照してください。
+  - Push、Email、SMS、WhatsApp など 1 つ以上のチャネルの設定。
+</Tip>
+
+# Shopify 統合
+
+Shopify と MoEngage の統合により、MoEngage Web SDK をブランドの Shopify ストアにシームレスに統合し、ユーザーのイベントとデータをトラッキングできます。この統合により、リアルタイムのデータ同期を有効にし、パーソナライズされたレコメンデーションを提供し、クロスチャネルエンゲージメントを活用してコンバージョンを増やすことができます。
+
+MoEngage Web SDK を Shopify ストアと統合する方法については、[こちら](/ja/developer-guide/ecommerce-platforms/shopify/shopify-20)を参照してください。
+
+# レコメンデーションを作成する
+
+このセクションでは、カート放棄のレコメンデーションを作成します。
+
+## ユーザーアクションイベントをマッピングする
+
+ユーザーイベントを MoEngage の標準イベントにマッピングするには、次の手順を実行します。
+
+1. 左側のナビゲーションから **Content** \> **Recommendations** に移動します。Recommendations ページが表示されます。**Map user actions** をクリックして、標準イベントのマッピングページに移動します。
+2. "Added to Cart" ユーザーアクションバケットの **Actions** で **\+ Add event** をクリックします。Add Event ポップアップウィンドウが表示されます。
+3. **Event name** ドロップダウンリストから、イベント "Shopify - Add To Cart" を選択します。
+4. **Event Attribute** ドロップダウンリストから、一意のアイテム ID 属性としてイベント属性 "Variation ID" を選択します。
+5. **Add event** をクリックします。MoEngage Recommendations は、マッピング時刻以降に実行されたこのユーザーイベントと属性のペアをすべて取得し始めます。イベントのマッピング時刻は、バケットを展開して確認できます。
+
+![Mapping Users.gif](/images/moengage_a83ad7.png)
+
+## レコメンデーションセットを作成する
+
+このセクションでは、ユーザーのアクションに基づいてレコメンデーションを作成します。
+
+1. MoEngage ダッシュボードに移動し、左側のナビゲーションから **Content** \> **Recommendations** を選択します。Recommendations ページが表示されます。
+2. 右上の **\+ Create recommendation** をクリックします。最初のステップ "Select recommendation model" に移動します。
+   ![2.png](/images/moengage_d4cb14.png)
+3. **Filter by user action and item attributes** セクションで、**User Actions** モデルを選択します。
+4. **Next** をクリックします。2 番目のステップ "**Create recommendation**" に移動します。次の詳細を入力します。
+   - **Recommendation name**: レコメンデーションの名前を入力します。例: "AbandonedCart"。これはレコメンデーション用に指定されるプレースホルダー名となり、キャンペーンをパーソナライズする際に使用できます。
+   - **Recommendation Description**: レコメンデーションの説明を入力します。
+   - **Catalog**: プラットフォームで提供している商品のリストと関連するすべての情報を含むカタログを選択します。
+5. **Filter recommendations by user actions** セクションで、ユーザーがカートに追加したが購入していない商品を絞り込みます。
+   - **Item where user performed** ドロップダウンリストから "Added to Cart" を選択します。
+   - **Exclude** チェックボックスを選択します。
+   - **Exclude** の下の **Item where user performed** ドロップダウンリストから "Product Purchased" を選択します。
+     - **\+** **Filter** をクリックして、カートから商品を削除したユーザーのフィルターを追加します。
+       ![](/images/moengage_ff1f24.png)
+       このクエリにより、ユーザーがカートに追加した商品のリストが得られ、購入済みの商品やユーザーのカートから削除された商品は除外されます。
+6. **Create** をクリックして変更を保存し、レコメンデーションを作成します。Recommendations ページでは、ステータスが "Active" になります。
+
+レコメンデーションを作成したので、このレコメンデーションをキャンペーンで使用できます。
+
+# Push キャンペーンを作成する
+
+このセクションでは、ユーザーがカートに追加したが購入しなかった商品のレコメンデーションを含む Push キャンペーンを作成します。このキャンペーンは、カートへの追加から 30 分後に送信します。
+
+1. 左側のサイドバーで **Engage** \> **Campaigns** をクリックして **\+ Create campaign** をクリックするか、**\+ Create new** \> **Campaign** をクリックします。
+2. **Outbound** で、**Push** \> **Event Triggered** を選択します。
+   ![UC-61 Event triggered.png](/images/moengage_c5c8de.png)
+   キャンペーン定義の最初のステップ "Target users" に移動します。
+
+## ステップ 1: ターゲットユーザー
+
+1. 次の詳細を入力します。
+   - **Team**: 組織のアカウントでチームが有効になっている場合は、チームを選択します。詳細については、[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。例: "Demo team"。
+   - **Campaign name**: キャンペーンの名前を入力します。例: "Cart Reminder Campaign"。
+   - **Campaign tags**: 必要なキャンペーンタグを選択します。
+     <img
+       src="/images/moengage_43698a.png"
+       style={{ width:"50%" }}
+     />
+2. **Trigger Criteria** で条件を定義します。初期チェックとして、ユーザーがカートに追加したものと同じ商品を購入していない場合にのみ、コミュニケーションをトリガーする必要があります。つまり、トリガー条件を定義する際に、Linked Conditions を使用して動的なチェックを定義する必要があります。Linked Conditions の詳細については、[こちら](/ja/user-guide/flows-cross-channel-messaging/create/create-flows/linked-conditions)をクリックしてください。
+3. 上記の動的なチェックを定義するには、次の手順を実行します。
+   1. **IF user** セクションで、ドロップダウンから **`<Shopify - Add To Cart>`** を選択します。
+   2. **THEN trigger the message** で **With Delay** を選択し、要件に応じて遅延時間（例: 30 分）を定義します。これは、最初の条件が満たされた時点から、ユーザーが条件を満たすかどうかを評価する最大時間となります。\
+      **Select Condition** セクションは次のようになります。
+      ![](/images/moengage_c67b7b.png)
+4. **Target Audience** セクションで **All users** を選択します。
+   ![](/images/moengage_843920.png)
+5. **Target Platforms** セクションで、ユースケースに応じてプラットフォームを選択します。ユーザーをターゲットにしたいすべてのプラットフォームを選択してください。
+6. **Next** をクリックして 2 番目のステップ "Content" に移動し、Push キャンペーンのコンテンツを定義します。
+
+## ステップ 2: コンテンツ
+
+1. 使用するテンプレートを選択します。この例では **Basic notification** を選択します。 <img alt="image-20231129-213115 (1).png" src="/images/moengage_dd5828.png" />
+2. パーソナライズされた商品名の値とともに定義する、キャンペーンに必要なコンテンツを入力します。例:
+   - Message title
+   - Message
+   - Message summary
+3. パーソナライゼーションのプレースホルダーを定義するには、[定義した](/ja/use-cases/recommendations/how-to-use-recommendations-to-announce-price-drop)レコメンデーションによって生成された商品セットを選択します。Push Personalization ポップアップで "@" を入力し、作成したレコメンデーションの名前である "AbandonedCart" を検索します。 <img src="/images/moengage_dba897.png" />
+4. **Done** をクリックします。**Message** フィールドで、商品のパーソナライゼーションプレースホルダーを次の JINJA コードに置き換えます。
+   JINJA
+   ```ruby
+   {% if ProductSet.AbandonedCart%}
+   {% for product in ProductSet.AbandonedCart[0:1]%}
+   {{product.title}}
+   {% endfor %}
+   {% else %}
+   MOE_NOT_SEND
+   {% endif %}
+   ```
+5. 3 行目の `{{product.title}}` は、レコメンデーションから生成された商品セット内のカート商品のタイトルを指します。詳細については、[MoEngage Templating Language (JINJA)](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を参照してください。
+6. 上で選択した商品の画像を取得するには、次のコードを入力します。
+   JINJA
+   ```ruby
+   {% if ProductSet.AbandonedCart%}
+   {% for product in ProductSet.AbandonedCart[0:1]%}
+   {{product.image_link}}
+   {% endfor %}
+   {% else %}
+   MOE_NOT_SEND
+   {% endif %}
+   ```
+   コンテンツの設定は次のようになります。
+   ![](/images/moengage_a357d7.png)
+7. URL などの情報を入力したり、**Buttons** セクションでボタンを追加したり、**Advanced** セクションでクーポンを追加したりして、コンテンツをさらにパーソナライズします。
+   <Info>
+     商品を閲覧またはカートに追加し、かつ同じアイテムを購入したユーザーについては、キャンペーンに "Personalization Errors" が表示される場合があります。このキャンペーンは、ユーザーがカートに追加し、カート追加から 30 分以内にそのアイテムを購入しなかった場合にのみターゲットになります。
+   </Info>
+8. **Next** をクリックして 3 番目のステップ "Schedule and goals" に移動し、キャンペーンのスケジュールとゴールを定義します。
+
+## ステップ 3: スケジュールとゴール
+
+1. **Send campaign** セクションで、キャンペーンの開始日時と終了日時を定義します。
+   ![3.png](/images/moengage_03a1d0.png)
+2. **Conversion goals** セクションで、トラッキングしたいコンバージョンゴールを追加します。
+3. 要件に応じて **Delivery controls** と **Advanced** の設定を定義します。詳細については、[Create Push Campaigns](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns) を参照してください。
+   ![4.png](/images/moengage_dd4e0a.png)
+4. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、カートに 1 つまたは複数の商品を放棄したユーザーをターゲットとする Push キャンペーンを作成しました。その後、MoEngage Recommendations を使用して、これらのユーザーにパーソナライズされたメッセージを送信し、類似商品のリストをレコメンドしました。
+
+これらのレコメンデーションにより、カート放棄の回復率は確実に向上し、ユーザーのエンゲージメントを高めることができます。Recommendations の詳細については、[MoEngage Recommendations](/ja/user-guide/content/recommendations/getting-started/overview) スイートを参照してください。

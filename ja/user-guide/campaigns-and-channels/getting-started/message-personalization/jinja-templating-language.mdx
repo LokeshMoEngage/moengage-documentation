@@ -1,0 +1,889 @@
+---
+title: "Jinja テンプレート言語"
+description: "MoEngage の Jinja テンプレートを使いこなし、変数、フィルター、条件ロジック、ループ、高度なテンプレート機能でキャンペーンをパーソナライズします。"
+---
+
+MoEngage のテンプレート言語は、人気がありシンプルなテンプレート言語である Jinja をベースにしており、カスタマイズやパーソナライゼーションの要件を最大限にコントロールできます。
+
+<Info>
+  MoEngage は現在、Jinja バージョン 3.1 をサポートしています。
+</Info>
+
+## 変数
+
+変数は式にすることもでき、式を評価して新しい変数を生成します。二重波括弧で囲まれたものはすべて評価され、最終的なコンテンツに挿入されます。
+
+多くの場合、変数は属性の集合です。MoEngage のメールテンプレートでは、これらの属性にドット演算子を使用してアクセスできます。
+
+Jinja
+
+```text
+.
+```
+
+または添字表記を使用します。
+
+Jinja
+
+```text
+[]
+```
+
+変数を挿入するには、二重波括弧で囲みます。たとえば、_FirstName_ というラベルのユーザー属性を挿入するには、次のようにします。
+
+Jinja
+
+```text
+{{UserAttribute['First Name']}}
+```
+
+たとえば、_UserAttributes_ は現在のユーザーに属するすべての属性の集合です。属性 _FirstName_ の値を挿入する場合は、次のコードを使用します。
+
+Jinja
+
+```text
+Welcome, {{UserAttribute['First Name']}}
+```
+
+<Note>
+  - Jinja を使用する場合は、添字表記を使用することをお勧めします。
+  - 使用する定義済み属性にスペースが含まれている場合は、添字表記を使用する必要があります。例: `Welcome, {{UserAttribute['First Name']}}`
+</Note>
+
+## 式
+
+MoEngage では、基本的な式をあらゆる場所で使用できます。式を使用すると、数学演算、論理演算、その他の演算を行うことで、他の変数や式から変数を作成できます。
+
+式またはステートメントを使用するには、次のように囲みます。
+
+Jinja
+
+```text
+{% %}
+```
+
+## MoEngage のパーソナライゼーションオブジェクト
+
+MoEngage には、動的データでテンプレートをパーソナライズするために使用できる特別なオブジェクトがいくつか用意されています。
+
+### Product Set
+
+**Product Set** は、"Product Viewed" や "Added to Cart" などのユーザーのアクションに関連付けられた商品データの配列を指します。このデータをループ処理して、商品名、画像、価格、その他の属性を表示できます。
+
+### Recommendation
+
+**Recommendation** を使用すると、特定のユーザー向けに生成された商品レコメンデーションにアクセスできます。これにより、ユーザーの行動や協調フィルタリングに基づいて動的に提案されるアイテムでキャンペーンをパーソナライズできます。
+
+### Auxiliary Data
+
+**Auxiliary Data** を使用すると、キャンペーン送信時に、多くの場合 API トリガーを通じて、追加のコンテキストデータを渡すことができます。注文 ID、フライト番号、その他ユーザー属性やイベント属性として保存されていない情報などのトランザクションの詳細を含める場合に便利です。
+
+### Content API
+
+**Content API** を使用すると、テンプレート内で外部 API からライブのリアルタイムデータを直接取得できます。スポーツのライブスコア、株価、天気情報、リアルタイムの在庫レベルなど、頻繁に変化する動的コンテンツを含める場合に強力です。
+
+Product Set、Recommendation、Content API の使用方法を示す詳細なコード例と実践的なユースケースについては、Jinja のユースケースに関する記事を参照してください。
+
+### リテラル
+
+**リテラル** は最もシンプルな形式の式です。リテラルは文字列や数値などの値を表します。次のリテラルがあります。
+
+| リテラル | 説明 |
+| --- | --- |
+| “Hello World” | 2 つの二重引用符または単一引用符で囲まれたものはすべて文字列です。テンプレート内で文字列が必要な場合(関数呼び出しやフィルターの引数として、またはテンプレートを拡張・インクルードする場合など)に便利です。 |
+| 42 / 42.23 | 整数と浮動小数点数は、数値をそのまま記述するだけで作成されます。ドットがある場合は浮動小数点数、ない場合は整数になります。42 と 42.0 は異なる(それぞれ int と float)ことに注意してください。 |
+| `['list', 'of', 'objects']` | 2 つの角括弧で囲まれたものはすべてリストです。リストは、反復処理するシーケンシャルなデータを保存するのに便利です。たとえば、リストとタプルを for ループと組み合わせて、リンクのリストを簡単に作成できます: `<ul> {% for href, caption in [ ('index.html', 'Index'), ('about.html', 'About'), ('downloads.html', 'Downloads') ] %} <li><a href="{{ href }}"> {{ caption }} </a></li> {% endfor %} </ul>` |
+| `{'dictionary': 'of', 'key': 'and', 'value': 'pairs'}` | 辞書はキーと値を組み合わせたものです。キーは一意である必要があり、常に 1 つの値を持ちます。辞書を作成することはまれですが、他のソースからデータを読み込む際に使用されます。 |
+| true/false | true は常に真、false は常に偽です。 |
+
+### 算術演算
+
+MoEngage では値を使用した計算ができます。次の演算子がサポートされています。
+
+| 演算子 | 説明 |
+| --- | --- |
+| \+ | 2 つのオブジェクトを加算します。通常オブジェクトは数値ですが、両方が文字列またはリストの場合は、この方法で連結できます。 |
+| - | 1 つ目の数値から 2 つ目の数値を減算します。`{{ 3 - 2 }}` は 1 です。 |
+| / | 2 つの数値を除算します。戻り値は浮動小数点数になります。`{{ 1 / 2 }}` は `{{ 0.5 }}` です。 |
+| % | 整数除算の余りを計算します。`{{ 11 % 7 }}` は 4 です。 |
+| \* | 左オペランドに右オペランドを乗算します。`{{ 2 * 2 }}` は 4 を返します。 |
+
+### 比較
+
+| 演算子 | 説明 |
+| --- | --- |
+| == | 2 つのオブジェクトが等しいかどうかを比較します。 |
+| != | 2 つのオブジェクトが等しくないかどうかを比較します。 |
+| \> | 左辺が右辺より大きい場合に true になります。 |
+| \>= | 左辺が右辺以上の場合に true になります。 |
+| \< | 左辺が右辺より小さい場合に true になります。 |
+| \<= | 左辺が右辺以下の場合に true になります。 |
+
+### 論理演算
+
+if ステートメント、フィルタリング、if 式では、複数の式を組み合わせると便利な場合があります。
+
+| 演算子 | 説明 |
+| --- | --- |
+| and | 左右のオペランドがどちらも true の場合に true を返します。 |
+| or | 左右いずれかのオペランドが true の場合に true を返します。or はデフォルト値の処理にも使用できます。たとえば、次の例ではユーザーの名前が存在する場合は名前を返し、存在しない場合はユーザーのメールアドレスを返します。<br />`{{ UserAttribute['name'] or UserAttribute['email'] }}` |
+| not | ステートメントを否定します |
+| (expr) | 式をグループ化します。 |
+
+## 式のテスト
+
+テストを使用すると、変数を一般的な式に対してテストできます。変数または式をテストするには、変数の後に **is** とテスト名を追加します。
+
+たとえば、変数が定義されているかどうかを確認するには、"_name is defined_" とします。これにより、テンプレートの現在のコンテキストで name が定義されているかどうかに応じて true または false が返されます。
+
+テストは引数を受け取ることもできます。テストが引数を 1 つだけ取る場合は、括弧を省略できます。たとえば、次の 2 つの式は同じ処理を行います。
+
+Jinja
+
+```text
+{% if loop.index is divisibleby 3 %}
+{% if loop.index is divisibleby(3) %}
+```
+
+詳細については、[Jinja Pallets](https://jinja.palletsprojects.com/en/stable/templates/) を参照してください。
+
+## コメント
+
+テンプレート内の行の一部をコメントアウトするには、コメント構文を使用します。デフォルトでは `{# ... #}` に設定されています。デバッグのためにテンプレートの一部をコメントアウトしたり、他のテンプレート作成者や自分自身のために情報を追加したりする場合に便利です。
+
+Jinja
+
+```text
+{# note: commented-out template because we no longer use this
+{% for user in users %}
+...
+{% endfor %}
+#}
+```
+
+## 代入
+
+コードブロック内では、変数に値を代入することもできます。トップレベル(ブロック、マクロ、ループの外側)での代入は、トップレベルのマクロと同様にテンプレートからエクスポートされ、他のテンプレートからインポートできます。
+
+代入には set タグを使用し、複数のターゲットを指定できます。
+
+Jinja
+
+```text
+{% set navigation = [('index.html', 'Index'), ('about.html', 'About')] %}
+{% set key, value = call_something() %}
+```
+
+## 条件ステートメント、ループ
+
+- カスタム変数をループで使用することもできます。タグはテンプレートのロジックを制御し、条件ステートメント、ループ、マクロなどを実行できます。
+
+ループのサンプル
+
+```text wrap
+{% set products = [{‘name’: ‘Nike’, ‘href’: 'https://www.example.com/nike'}, {‘name’: ‘Adidas’, ‘href’: 'https://www.example.com/adidas'}] %}
+{% for product in products %} 
+<li><a href="{{ product.href }}">{{ product.name }}</a></li>
+{% endfor %}
+```
+
+条件のサンプル
+
+```text
+
+{% if products %}
+`<p>`The products are not empty.`</p>`
+{% else %}\
+`<p>`The products are empty.`</p>`
+{% endif %}
+```
+
+## エスケープ
+
+<Warning>
+  MoEngage のパーソナライゼーショントークンは、メール HTML にエンコードせずに挿入してください。トークン、またはトークンを含む href を URL エンコードしないでください。URL エンコードを行うと、`{{` 区切り文字が `%7B%7B` に、`$` が `%24` に置き換えられ、デコード時に Jinja が解析できない `{{$` シーケンスになります。キャンペーンを保存または送信すると、次のようなエラーが発生する場合があります。
+
+  `Error in parsing jinja template format. Error unexpected char u'$' at ...`
+
+  リンクにパーソナライゼーショントークンが含まれる場合は、手動で URL エンコードした値を href に貼り付けるのではなく、エディターで提供されるトークンまたはマージタグを使用して挿入してください。
+</Warning>
+
+MoEngage に、通常は変数やブロックとして処理される部分を無視させることが望ましい(あるいは必要な)場合があります。たとえば、デフォルトの構文で `{{` を変数の開始としてではなく、テンプレート内の生の文字列として使用したい場合は、工夫が必要です。
+
+リテラルの変数区切り文字を出力する最も簡単な方法は
+
+Jinja
+
+```text
+{{
+```
+
+変数式を使用することです。
+
+Jinja
+
+```text
+{{ '{{' }}
+```
+
+### HTML エスケープ
+
+テンプレートから HTML を生成する場合、変数に生成される HTML に影響する文字が含まれるリスクが常にあります。
+
+必要に応じて変数をエスケープするのはお客様の責任です。何をエスケープすべきでしょうか。次のいずれかの文字を含む可能性のある変数がある場合
+
+Jinja
+
+```text
+>, <, &, or "
+```
+
+変数に整形式で信頼できる HTML が含まれている場合を除き、エスケープする**必要があります**。エスケープは、変数を次の
+
+Jinja
+
+```text
+|e
+```
+
+フィルターに_パイプ_することで行います。
+
+Jinja
+
+```text
+{{UserAttribute['First Name']|e}}
+```
+
+<Note>
+  スタイル付きのメールまたはプッシュテンプレートでリッチ(Froala)エディターを使用して Jinja を記述する場合は、生の `>` / `<` 比較演算子を使用しないでください。リッチエディターはこれらを HTML エンコードするため、`TemplateSyntaxError` でテンプレートが壊れます。代わりに `!=` を使用するか、カスタム HTML/ソースビューで Jinja を記述してください。詳細については、[リッチエディターによる比較演算子のエンコード](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/common-personalization-errors-and-faqs#why-does-my-jinja-condition-throw-a-templatesyntaxerror-in-the-rich-editor)を参照してください。
+</Note>
+
+## 制御構造
+
+制御構造とは、プログラムのフローを制御するすべてのものを指します。
+
+- 条件分岐(つまり _if/elif/else_)
+- _for_ ループ
+- _マクロ_ と _ブロック_
+
+デフォルトの構文では、制御構造は次の
+
+Jinja
+
+```text
+{% ... %}
+```
+
+ブロック内に記述します。
+
+### For
+
+シーケンス内の各アイテムをループ処理します。たとえば、users という変数で提供されるユーザーのリストを表示するには、次のようにします。
+
+HTML
+
+```text
+
+<h1>Members</h1>
+<ul>
+{% for user in users %}
+ <li>{{ user.username|e }}</li>
+{% endfor %}
+</ul>
+```
+
+_for_ ループ内では、特別な _cycle_ ヘルパーを使用して、ループのたびに文字列や変数のリストを順番に切り替えることができます。
+
+Jinja
+
+```text
+{% for row in rows %}
+   <li class="{% cycle('odd', 'even') %}">{{ row }}</li>
+{% endfor %}
+```
+
+ループの外側で定義された変数はループ内から呼び出せますが、その逆はできません。
+
+<Note>
+  HTML テーブルの行を生成するためにループする場合、`{% for %}` ループは `<tbody>` 内の完全な `<tr>...</tr>` 行を囲む必要があります。個々のセルを囲むように `<table>` や `<tbody>` の直下に配置しないでください。ループタグを無効な位置に配置すると、テンプレートの保存時にメール HTML エディターによってタグが移動または削除され、テーブルの出力が壊れます。正しいパターンについては、[Jinja を使用した動的テーブル](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/common-personalization-errors-and-faqs#why-does-my-dynamically-generated-table-render-incorrectly-after-saving)を参照してください。
+</Note>
+
+### If
+
+最もシンプルな形式では、変数が定義されているか、空でないか、false でないかをテストするために使用できます。
+
+Jinja
+
+```text
+{% if UserAttribute['interests'] %}
+Your interests:
+<ul>
+{% for interest in UserAttribute['interests'] %}
+   <li>{{ interest|e }}</li>
+{% endfor %}
+</ul>
+{% endif %}
+```
+
+複数の分岐には、_elif_ と _else_ も使用できます。
+
+Jinja
+
+```text
+{% if UserAttribute['membership'] == 'Gold' %}
+You are a Gold member!
+{% elif UserAttribute['membership'] == 'Silver' %}
+You are a Silver member!
+{% else %}
+Please become a member today!
+{% endif %}
+```
+
+## デフォルト値の使用
+
+MoEngage のメールテンプレートでは、メッセージに null 値が含まれている場合、そのメッセージは送信されません。そのため、このような状況を避けるためにデフォルトのフォールバック値を割り当てる必要があります。次の例では、ユーザーの所在地がない場合、このメッセージは送信されません。
+
+Jinja
+
+```text
+Welcome to {{UserAttribute['Location']}}
+```
+
+このような状況でもメッセージが送信されるようにするには、値が null の場合に変数が返すデフォルトの_フォールバック_値を指定する必要があります。MoEngage のメールテンプレートでは、属性が null を返す状況に対処するためのオプションを提供するオーバーレイポップアップウィンドウが表示されます。
+
+![5d92aaf1-31be-4708-ba15-6695728879c7.png](/images/moengage_5965d8.png)
+
+属性値がない場合にメッセージが送信されないようにするには、変数が null の場合のフォールバック値を _Do not send_ に設定します。MoEngage のメールテンプレートでは、未送信メッセージを処理するためのオプションを含むオーバーレイポップアップウィンドウが表示されます。
+
+![Screenshot 2024-11-07 at 6.38.09 PM.png](/images/moengage_65bc1a.png)
+
+選択したオプションは、返される値に基づいてメッセージを送信する際に自動的に使用されます。デフォルト値が指定されている場合、パーソナライズされたメッセージは次のようになります。
+
+Jinja
+
+```text
+Welcome, {{UserAttribute['First name']|default('Guest')}}
+```
+
+または、次のように記述することもできます。
+
+Jinja
+
+```text
+{% set firstName = UserAttribute['First name'] %}
+{% if firstName %}
+Welcome, {{ firstName }}
+{% else %}
+Welcome!
+{% endif %}
+```
+
+属性の値が見つからない場合にメッセージを送信したくない場合は、次のように記述できます。
+
+Jinja
+
+```text
+Welcome, {{UserAttribute['First name']|default('MOE_NOT_SEND')}}
+```
+
+### カスタム JINJA エラーメッセージ
+
+`MOE_NOT_SEND` タグを使用して、Jinja テンプレートでカスタムエラーメッセージを定義できます。この機能により、ユーザーに対するコンテンツのパーソナライゼーションまたは配信条件が失敗した場合に、明確な理由を指定できます。
+
+キャンペーンの Analytics ページの **Error breakdown** セクションでは、MoEngage はコンテンツのパーソナライゼーションが失敗したすべてのユーザーを追跡します。定義したカスタムエラーメッセージと、キャンペーンのセグメンテーションに基づいてその特定のエラーをトリガーしたユーザー数がここに表示されます。
+
+#### 例 1:
+
+この例では、ユーザーの brand 属性が _Puma_ かどうかを確認します。brand 属性が一致しない場合、カスタムエラーメッセージが生成されます。
+
+Jinja
+
+```ruby
+{% if (UserAttribute['brand'] == 'Puma') %}
+Brand is Puma!
+{% else %}
+{% MOE_NOT_SEND("Brand name doesn't exist for user") %}
+{% endif %}
+```
+
+定義された条件に基づき、brand 属性が _Puma_ でない場合、カスタムエラー _Brand name doesn't exist for user_ が Analytics ページの **Error breakdown** セクションに表示されます。
+
+![image (4).png](/images/moengage_b66539.png)
+
+#### 例 2:
+
+この例では、条件ロジックを使用して名と姓が存在するかどうかを確認します。失敗のシナリオごとに異なるエラーメッセージを提供します。
+
+Jinja
+
+```ruby
+{% set has_first_name = UserAttribute['First Name'] and UserAttribute['First Name']|length > 0 %}
+{% set has_last_name = UserAttribute['Last Name'] and UserAttribute['Last Name']|length > 0 %}
+{% if has_first_name and has_last_name %}
+Hello {{UserAttribute['u_n']}} {{UserAttribute['u_ln']}}!
+{% elif has_first_name and not has_last_name %}
+{% MOE_NOT_SEND("Last Name doesn't exist for user") %}
+{% elif not has_first_name and has_last_name %}
+{% MOE_NOT_SEND("First Name doesn't exist for user") %}
+{% else %}
+{% MOE_NOT_SEND("Both First Name and Last Name doesn't exist for user") %}
+{% endif %}
+```
+
+例 2 には次のシナリオがあります。
+
+- 成功: 名と姓の両方が存在する場合、コンテンツが送信されます。
+- シナリオ 1: 姓がない場合、_Last Name doesn't exist for user_ エラーが表示されます。
+- シナリオ 2: 名がない場合、_First Name doesn't exist for user_ エラーが表示されます。
+- シナリオ 3: 名と姓の両方がない場合、_Both First Name and Last Name doesn't exist for user_ エラーが表示されます。
+
+![image (5).png](/images/moengage_4bffa4.png)
+
+このコードでは、ユーザーの名、姓、またはその両方がない場合、対応するカスタムエラー(たとえば "Last Name doesn't exist for user")が Analytics ページのエラー内訳セクションに表示されます。
+
+## Jinja フィルター(関数)
+
+Jinja でサポートされているグローバル関数の一部を次に示します。
+
+### 文字列フィルター
+
+プロパーケース/タイトルケースへの変換
+
+文字列をタイトルケースに変換できます。例:
+
+入力: joHn doE
+
+出力: John Doe
+
+Jinja
+
+```text
+{{UserAttribute['FirstName']|title}}
+```
+
+#### 先頭文字を大文字にする
+
+文字列内の各文の先頭文字を大文字にできます。例:
+
+入力: joHn doE. his age is 20.
+
+出力: John doe. His age is 20.
+
+Jinja
+
+```text
+{{UserAttribute['FirstName']|capitalize}}
+```
+
+#### 大文字
+
+文字列を大文字に変換できます。例:
+
+入力: joHn doE
+
+出力: JOHN DOE
+
+Jinja
+
+```text
+{{UserAttribute['FirstName']|upper}}
+```
+
+#### 小文字
+
+文字列を小文字に変換できます。例:
+
+入力: JoHn doE
+
+出力: john doe
+
+Jinja
+
+```text
+{{UserAttribute['FirstName']|lower}}
+```
+
+#### 文字列の置換
+
+文字列の一部を別の文字列に置き換えることができます。たとえば、joHn の "jo" を "ma" に置き換えてみましょう。
+
+入力: joHn doE
+
+出力: mahn doe
+
+Jinja
+
+```text
+{{UserAttribute['Mobile Number']|replace(“jo”,”ma”)}}
+```
+
+#### 文字列に部分文字列が含まれているかどうかの確認
+
+文字列に部分文字列が含まれているかどうかを確認できます。例:
+
+入力文字列: Click on me now!
+
+入力部分文字列: now
+
+出力: true block
+
+Jinja
+
+```text
+{% if "true" in UserAttribute['eligible'] %}
+true block
+{% elif "false" in UserAttribute['eligible'] %}
+false block
+{% endif %}
+```
+
+### 数値フィルター
+
+#### \+91 の追加
+
+携帯電話番号に "\+91" を追加できます。例:
+
+入力: 9991119991
+
+出力: \+919991119991
+
+Jinja
+
+```text
+{{“+91” + UserAttribute['Mobile Number']|default('NA')}}
+```
+
+#### 10 桁を考慮する
+
+携帯電話番号の 10 桁のみを考慮できます。例:
+
+入力: \+919991119991
+
+出力: 9991119991
+
+Jinja
+
+```text
+{{UserAttribute['Mobile Number'][-10:]|default('NA')}}
+```
+
+### 整数フィルター
+
+#### データのビット長
+
+符号と先頭のゼロを除き、整数を 2 進数で表すのに必要なビット数を返します。
+
+Jinja
+
+```text
+int.bit_length()
+```
+
+#### 複素数の共役
+
+複素数の共役を返します。複素数はサポートされていないため、int.conjugate() は数値そのものを返します。
+
+Jinja
+
+```text
+int.conjugate()
+```
+
+### 浮動小数点数フィルター
+
+#### 浮動小数点数が有限の整数かどうかの判定
+
+浮動小数点数インスタンスが整数値を持つ有限値の場合は True を、それ以外の場合は False を返します。
+
+Jinja
+
+```text
+<span">float.is_integer()</span">
+```
+
+#### 16 進数文字列
+
+16 進数文字列で表された浮動小数点数を返します。文字列の先頭と末尾に空白が含まれていても構いません。
+
+Jinja
+
+```text
+float.fromhex(string)
+```
+
+#### 複素数の共役
+
+複素数の共役を返します。複素数はサポートされていないため、float.conjugate() は数値そのものを返します。
+
+Jinja
+
+```text
+float.conjugate()
+```
+
+### リストフィルター
+
+#### アイテムの出現回数
+
+リスト内の指定されたアイテムの出現回数を返します。
+
+Jinja
+
+```text
+list.count(item)
+```
+
+#### リスト内の最小インデックス
+
+スライス s\[start:end\] 内で指定されたアイテムが見つかった、リスト内の最小インデックスを返します。オプションの引数 start と end は、スライス表記と同様に解釈されます。str.index() と同様です。
+
+インデックスがリスト内にない場合、list.index() はエラーをスローします。
+
+Jinja
+
+```text
+list.index(item[, start[, end]])
+```
+
+#### リスト内のインデックス位置にあるアイテムの削除
+
+リスト内のインデックス位置にあるアイテムを返し、リストからそのアイテムを削除します。インデックスが指定されていない場合は、リストの最後のアイテムを返して削除します。インデックスがリスト内にない場合、list.pop() はエラーをスローします。
+
+Jinja
+
+```text
+list.pop([index])
+```
+
+<Note>
+  MoEngage は現在、Jinja のその他すべての標準関数をサポートしています。Jinja の標準関数の詳細については、[List of Global Functions](https://jinja.palletsprojects.com/en/stable/templates/#list-of-global-functions) を参照してください。
+</Note>
+
+## カスタム関数
+
+### 日時関数とフォーマッター
+
+**Date Formatter** - 指定された日付を toFormat で指定された形式に変換します。
+
+```text
+Usage
+{{'14/10/2020'|dateFormatter('%m/%d/%Y')}}
+```
+
+**出力**: 10/14/2020
+
+**Date Difference** - 2 つの日付の差を返します。戻り値は正、ゼロ、または負になります。
+
+```text
+Usage
+{{'12/10/2020'|days('14/10/2020')}}
+```
+
+**出力**: 2
+
+**Today Function** - 指定された形式とタイムゾーンで現在の日付を返します。
+
+```text
+Usage (For a MM/DD/YYYY in EST Timezone) 
+{{'%m/%d/%Y'|today('EST')}}
+```
+
+**出力**: 05/23/2024
+
+**Date and Time Formatter Function** -
+
+日時のフォーマット - 指定された日付を指定の形式に変換します。
+
+```text wrap
+Method:
+
+dateTimeFormatter(toFormat='%Y-%m-%d %H:%M:%S %p')
+
+Usage
+{{ "2012-01-19 17:21:00 CST" |dateTimeFormatter(toFormat='%Y-%m-%d %H:%M:%S %p')}}
+```
+
+**出力**: 2012-01-19 05:21:00 PM
+
+タイムゾーンの変換 - 日時をそれぞれのタイムゾーンで表示し、定義された分数を時刻に加算します。
+
+```text
+Method:
+
+dateTimeFormatter(tzOffset=-330) dateTimeFormatter(timeZone='Asia/Kolkata')
+
+Usage 
+{{ "2012-01-19 17:21:00 CST" |dateTimeFormatter(tzOffset=-330)}}
+{{ "2012-01-19 17:21:00 CST" |dateTimeFormatter(timeZone='Asia/Kolkata')}}
+```
+
+**出力**:
+
+2012-01-19 11:51:00 AM
+
+2012-01-19 22:51:00 PM
+
+<Note>
+  - dateTimeFormatter フィルター内では、複数のメソッドを使用できます。たとえば、ユーザー属性を特定の形式とユーザーのタイムゾーンで表示するには、次のコードを使用できます。`{{UserAttribute['First Seen']|dateTimeFormatter(toFormat='%Y-%m-%d %H:%M', timeZone='Asia/Kolkata',tzOffset=UserAttribute['User Time Zone Offset (Mins)'])}}`
+  - timeZone メソッドと tzOffset メソッドの両方を使用した場合、順序に関係なく tzOffset が優先されます。tzOffset の値が利用できない場合、または -1000 の場合は、timeZone メソッドが使用されます。
+</Note>
+
+**一般的な日時フォーマットコード**
+
+上記の `toFormat` および関連パラメーターでは、標準の `strftime` 形式のフォーマットコードを使用します。最もよく使用されるコードを以下に示します。完全なリストについては、[Python's strftime and strptime format codes](https://docs.python.org/3/library/datetime.html#strftime-and-strptime-format-codes) を参照してください。
+
+| コード | 意味 | 例 |
+| --- | --- | --- |
+| `%Y` | 4 桁の年 | 2026 |
+| `%m` | 月(01～12) | 08 |
+| `%d` | 日(01～31) | 03 |
+| `%H` | 時、24 時間形式(00～23) | 14 |
+| `%I` | 時、12 時間形式(01～12) | 02 |
+| `%M` | 分(00～59) | 05 |
+| `%S` | 秒(00～59) | 30 |
+| `%p` | AM/PM | PM |
+| `%b` / `%B` | 月、短縮名/完全名 | Aug / August |
+| `%a` / `%A` | 曜日、短縮名/完全名 | Mon / Monday |
+
+### 取り消し線テキスト
+
+テキストに取り消し線を付けることができます。たとえば、商品の旧価格を取り消し線付きで表示したい場合に使用します。
+
+**入力**: Price USD 100
+
+**出力**: Price USD ~~100~~
+
+Jinja
+
+```text
+Price USD <s>{{100}}</s>
+```
+
+### コンテンツのブレーク
+
+アイテムのリストをループ処理し、ループの実行を正確に制御できます。continue を使用すると、完全には処理したくない特定のアイテムをスキップでき、break を使用すると、特定の条件が満たされた時点でループ全体を途中で停止できます。
+
+たとえば、ホームページに最近の記事を表示する場合、`continue` で "draft" の記事をスキップし、`break` で最初の "featured" 記事の後にリストを停止することで、ページが長くなりすぎるのを防ぐことができます。
+
+Jinja
+
+```text
+{% for item in my_list %}
+BEFORE: {{ item }}
+{% if item == continue_condition %}
+SKIPPING (simulating continue)
+{% continue %}
+{% endif %}
+{% if item == stop_condition %}
+BREAKING
+{% break %}
+{% endif %}
+AFTER: {{ item }}
+{% endfor %}
+```
+
+入力
+
+```text
+{
+"my_list": [
+"apple",
+"continue_value",
+"banana",
+"stop_value",
+"cherry",
+"date"
+],
+"continue_condition": "continue_value",
+"stop_condition": "stop_value"
+}
+```
+
+出力
+
+```text
+BEFORE: apple
+AFTER: apple
+BEFORE: continue_value
+SKIPPING (simulating continue)
+BEFORE: banana
+AFTER: banana
+BEFORE: stop_value
+BREAKING
+```
+
+- "stop\_value" が検出されると、`{% break %}` ステートメントによってループが停止し、"cherry" と "date" は処理されません。
+- "continue\_value" が検出されると、`{% continue %}` ステートメントによって、その反復におけるループブロック内の残りのコードの実行がスキップされます。
+
+## 暗号化と復号
+
+### SHA 256 暗号化
+
+Jinja は、次の 2 つの方法で SHA 256 暗号化をサポートするようになりました。
+
+**シークレットキーを使用した SHA256** - シークレットキーを使用して SHA256 で文字列を暗号化します
+
+```text wrap
+Usage (where 6ABC89W3XY9W is secret key)
+{{UserEmail|convertToSHA256('6ABC89P3FXYW')}}
+
+Example
+Say you want to encrypt User's Email ID on MoEngage using SHA256
+{%set UserEmail=UserAttribute['Email']%}{{UserEmail|convertToSHA256('6ABC89P3FXYW')}}
+```
+
+**シークレットキーを使用しない SHA256** - SHA256 で文字列を暗号化します
+
+```text wrap
+Usage
+{{UserEmail|convertToSHA256NoSalt()}}
+
+Example
+Say you want to encrypt User's Email ID on MoEngage using SHA256
+{%set UserEmail=UserAttribute['Email']%}{{UserEmail|convertToSHA256NoSalt()}}
+```
+
+### Base64 エンコード
+
+Base64 エンコードを使用して文字列を暗号化します。
+
+```text
+Usage
+{{UserEmail|base64encode}}
+```
+
+### Base64 デコード
+
+Base64 デコードを使用して文字列を暗号化します。
+
+```text
+Usage
+{{UserEmail|base64decode}}
+```
+
+### URL エンコード
+
+URL エンコードを使用して文字列を暗号化します。
+
+```text
+Usage
+{{UserEmail|urlencode}}
+```
+
+### URL デコード
+
+URL デコードを使用して文字列を暗号化します。
+
+```text
+Usage
+{{UserEmail|urldecode}}
+```
+
+## その他の演算子
+
+次の演算子は非常に便利ですが、他の 2 つのカテゴリのいずれにも当てはまりません。
+
+| 演算子 | 説明 |
+| --- | --- |
+| in | シーケンス/マッピングの包含テストを実行します。左オペランドが右オペランドに含まれている場合に true を返します。たとえば、`{{ 1 in [1, 2, 3] }}` は true を返します。 |
+| is | 式のテストを実行します。 |

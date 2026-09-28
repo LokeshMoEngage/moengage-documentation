@@ -1,0 +1,94 @@
+---
+title: "ユーザーが特定の場所に入ったときにメッセージを送信する"
+---
+
+# はじめに
+
+マーケターとして、私たちは位置情報に基づくコミュニケーション (_ジオフェンシング_ とも呼ばれます) を活用して、ユーザーに効果的にエンゲージし、望ましいアクションを促したいと考えています。店舗から特定の半径内にいるユーザーをターゲットにすることで、来店してウィッシュリストやカート内の商品を見てもらうよう促したり、店舗限定のお得な情報を知らせたりできます。同様に、旅行やホスピタリティのアプリケーションでは、ユーザーが新しい都市に入ったときに、近くのホテル、タクシーサービス、ツアーパッケージの予約など、関連するオファーで働きかけることができます。
+
+#### 位置情報に基づくコミュニケーションのメリット
+
+- **関連性とエンゲージメントの向上**: ユーザーの位置に基づいてメッセージやオファーを配信することで、キャンペーンの関連性と魅力が高まり、クリックスルー率とコンバージョン率の向上につながります。
+- **ターゲットを絞ったマーケティング**: 位置データにより、企業は適切なタイミングと場所で適切な人にリーチでき、マーケティング活動の効果を最大化し、無駄な支出を削減できます。
+- **店舗への来店数の増加**: 位置情報に基づくキャンペーンは、近くの店舗への来店や地域のイベントへの参加を顧客に促し、来店数と売上を増加させることができます。
+- **パーソナライズされた体験**: 顧客の位置を把握することで、企業はマーケティングメッセージやオファーをパーソナライズし、より顧客に合わせた魅力的な体験を生み出せます。
+- **顧客維持率の向上**: 位置情報に基づくキャンペーンは、位置に基づいた関連性の高いオファーや情報を提供することで、企業が顧客の記憶に残り続け、リピートを促すのに役立ちます。
+
+このユースケースは、ユーザーが店舗から 5 km 以内にいるときにオファーを送信する [Push キャンペーンを作成する](/ja/use-cases/push/message-users-when-they-enter-a-location#create-a-push-campaign)ことで実現します。
+
+# 期待される結果
+
+ユーザーは、定義された場所に入ったときに、スマートフォンでプッシュ通知を受け取ります。
+
+<img
+  src="/images/moengage_943ef6.png"
+  alt="1.png"
+  style={{ width:"62%" }}
+/>
+
+<Tip>
+  - プラットフォームが MoEngage Android または iOS SDK と統合されている必要があります。詳細については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - ユーザーがアイテムをカートに追加するアクションと、プラットフォーム、追加された商品の ID、名前、価格などの関連情報を追跡するイベントが MoEngage で使用可能である必要があります。この例では、イベントを _Added to Cart_ と名付けます。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - [Geofence](/ja/developer-guide/android-sdk/push/optional/location-triggered) がアカウントに統合されている必要があります。
+  - [Push チャネル](/ja/user-guide/campaigns-and-channels/mobile-push/getting-started-with-mobile-push)が設定されている必要があります。
+</Tip>
+
+# Push キャンペーンの作成
+
+このセクションでは、ユーザーが定義された地域に入ったときにメッセージをトリガーする Push キャンペーンを作成します。
+
+## ステップ 1: ユーザーのターゲティング
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. All campaigns ページで **\+ Create campaign** をクリックします。
+3. **Outbound** の下で **Push** \> **Location Triggered** をクリックします。<img src="/images/moengage_5bfdcc.png" alt="locationtriggu.png" /> \
+   キャンペーンを定義する最初のステップ **Target users** に移動します。
+4. キャンペーンの名前とタグを定義します。次の詳細を入力します。
+   1. **Team**: 組織のアカウントで Teams が有効になっている場合は、チームを選択します。詳細については、[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。
+   2. **Campaign name**: キャンペーンの名前を入力します。たとえば、_Location Triggered Offers_ です。
+   3. **Campaign tags**: 必要なキャンペーンタグを選択します。<img src="/images/moengage_0743cc.png" alt="11usecase1.png" />
+5. Geofence を定義します。定義する際に、ユーザーがこの地域に入ったとき、出たとき、または一定時間滞在したとき (Android のみ可能) に表示するかどうかを決定できます。
+   1. **Geofence** セクションで **\+ Add Geofence** をクリックします。<img src="/images/moengage_bb6259.png" alt="4usecase2.png" />
+   2. Add Geofence ページの **Geofence name** フィールドに、Geofence の名前を入力します。たとえば、_Disneyland\_Park_ です。
+   3. **Send notification when** リストで、コミュニケーションを表示するタイミングを選択します。この例では、_User enters the Geofence_ を選択します。
+   4. **Notification responsiveness (only android)** リストで、応答性を _5 Minutes_ に定義します。これは基本的に、ユーザーが定義された地域に入ったかどうかを MoEngage が確認する頻度です。<img src="/images/moengage_a21f57.png" alt="11usecase2.png" />
+   5. **Search for a place** 検索バーで、店舗の場所を検索します。この例では、_Disneyland Park, Anaheim, CA, USA_ を選択します。
+   6. 地図の下で半径を定義します。<img src="/images/moengage_d6154c.png" alt="4usecase4.png" />
+6. **Done** をクリックして Geofence を追加します。これによりフェンスが追加され、最初に **\+ Add Geofence** ボタンが表示されていた Geofence セクションで確認できます。<img src="/images/moengage_93dc7d.png" alt="5.png" />
+7. 複数のフェンスを追加する場合は、もう一度 **\+ Add Geofence** をクリックし、上記の手順を繰り返します。フェンスの内容を編集する場合は、編集アイコンをクリックして必要な変更を行います。<img src="/images/moengage_cb36b0.png" alt="4usecase5.png" />
+8. **Target audience** セクションで **Filter users by** をクリックし、**User behavior** タブをクリックします。
+9. 次に示すように、条件 _Has Not Executed_ を選択し、過去 30 日間の _Added to Cart_ イベントを選択します。<img src="/images/moengage_221e79.png" alt="11usecase3.png" />
+10. **Target Platforms** セクションで **Android** を選択します。<img src="/images/moengage_693216.png" alt="11usecase4.png" />
+11. **Next** をクリックして 2 番目のステップ **Content** に移動し、Push キャンペーンのコンテンツを定義します。
+
+## ステップ 2: コンテンツ
+
+1. 使用するテンプレートを選択します。この例では、**Basic notification** を選択します。<img src="/images/moengage_af4c49.png" alt="11usecase5.png" />
+2. キャンペーンに必要なコンテンツを入力します。タイトル、メッセージ、サマリーは手動で入力することも、Merlin AI を使用して生成することもできます。詳細については、[Generate Push Messages with Merlin AI](/ja/user-guide/ai-and-intelligence/merlin-ai/merlin-ai-copywriter/generate-push-messages-with-merlin-ai) を参照してください。<img src="/images/moengage_5cd8e0.png" alt="11usecase6.png" />
+3. ユーザーの名前などの情報を使用して、メッセージにパーソナライゼーションを追加します。このようなパーソナライゼーションにより、メッセージがより状況に即したものになり、ユーザーはつながりを感じられます。これを行うには、次の手順に従います。
+   1. _@_ と入力します。
+   2. **Push Personalization** ダイアログボックスで、Email、Google Advertising ID (Android)、first name などのユーザー属性を見つけます。<img src="/images/moengage_40fd4b.png" alt="9.png" /> first name をクリックすると、メッセージの内容は次のようになります。<img src="/images/moengage_6f79b8.png" alt="11usecase7.png" />
+4. すべてのユーザーが現在地から店舗を見つけられるわけではありません。そのため、次のいずれかを実行できます。
+   - ディープリンクオプションから店舗へのリンクを追加します。
+     1. **Default click action** リストで _Deeplinking_ を選択します。
+     2. **URL** フィールドに店舗へのリンクを入力します。<img src="/images/moengage_dc35b0.png" alt="11.png" />
+   - 店舗にリンクするアクションボタンを追加します。
+     1. **Buttons** セクションを展開し、**\+ Action button** をクリックします。<img src="/images/moengage_e406ac.png" alt="4usecase9.png" />
+     2. **Button name** フィールドに、ボタンの名前を入力します。たとえば、_Take me there_ です。
+     3. **Click action** リストで _Deeplinking_ を選択します。
+     4. **URL** フィールドに店舗へのリンクを入力します。<img src="/images/moengage_7faf28.png" alt="11usecase8.png" />
+5. **Next** をクリックして 3 番目のステップ **Schedule and goals** に移動し、キャンペーンのスケジュールと目標を定義します。
+
+## ステップ 3: スケジュールと目標
+
+位置情報トリガーキャンペーンは、常にできるだけ早く公開されます。ただし、特定の時間ルールに基づいてメッセージを表示するタイミングを制御できます。
+
+1. **Time bound for Geofences** セクションで **Limited period** オプションを選択します。
+2. **\+ Another time bound** をクリックしてルールを追加します。<img src="/images/moengage_ad3d3b.png" alt="11usecase9.png" />
+3. **Conversion goals** セクションで、追跡したい目標を追加します。
+4. 要件に基づいて **Delivery controls** と **Advanced** の設定を定義します。詳細については、[Create Push Campaigns](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns) を参照してください。<img src="/images/moengage_276b99.png" alt="14.png" />
+5. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、ユーザーが店舗から 5 km 以内にいるときにオファーで働きかける効果的な Push キャンペーンを作成しました。

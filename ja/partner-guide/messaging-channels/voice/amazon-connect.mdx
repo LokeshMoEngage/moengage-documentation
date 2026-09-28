@@ -1,0 +1,253 @@
+---
+title: "Amazon Connect"
+---
+
+[Amazon Connect](https://aws.amazon.com/connect/) は、大規模なカスタマーサービスの提供を可能にするオムニチャネルのクラウドコンタクトセンターサービスです。MoEngage と Amazon Connect の統合により、コンタクトセンターの顧客とのやり取りデータを MoEngage に直接シームレスに同期でき、すべてのチャネルでリアルタイムのパーソナライゼーションとエンゲージメントが可能になります。
+
+この統合では、[ AWS Lambda](https://aws.amazon.com/lambda/) を使用してコンタクトフロー中に顧客データを取得し、[ Data API](https://developers.moengage.com/hc/en-us/articles/4413167462804-Track-User) を使用して MoEngage のユーザープロファイルを自動的に作成または更新します。
+
+## Amazon Connect × MoEngage
+
+MoEngage と Amazon Connect の統合により、企業はシームレスなデータ同期を通じて顧客エンゲージメントのプロセスを自動化できます。
+
+この統合により、次のことが可能になります。
+
+- 新しい顧客がサポートセンターに問い合わせた際に、MoEngage のユーザープロファイルを自動的に作成します。
+- 行動ベースのセグメンテーションのために、カスタマーサービスでのやり取りをイベントとしてトラッキングします。
+- コンタクトセンターでの結果に基づいて、パーソナライズされたキャンペーンをトリガーします。
+- コンタクトセンターのデータとマーケティングデータを統合し、包括的な顧客インサイトを得ます。
+
+## ユースケース
+
+Amazon Connect と MoEngage を統合すると、次の主なユースケースに対応できます。
+
+- **リアルタイムのユーザープロファイル作成** : 見込み顧客が初めてサポート窓口に電話をかけると、その電話番号と通話中に収集された情報（名前、メールアドレス、問い合わせの種類など）が自動的に MoEngage に送信され、新しいユーザープロファイルが作成されます。これにより、ナーチャリングキャンペーンへの即時登録が可能になります。
+- **イベントトラッキングとセグメンテーション** : カスタマーサービスでのすべてのやり取りは、キュー名、エージェント ID、通話時間、解決ステータスなどの詳細とともに、MoEngage にイベントとして記録されます。これにより、サポート履歴に基づくセグメンテーション（例:「過去 30 日間に請求についてサポートに問い合わせたユーザー」）が可能になります。
+- **VIP 顧客のプロファイル拡充** : 通話中に特定された高価値の顧客に特別な属性（例: customer\_segment: "VIP"）をタグ付けすることで、プレミアムなエンゲージメントキャンペーンや優先サポートワークフローに自動的に登録できます。
+
+## 前提条件
+
+<Info>
+  統合を設定するには、次のものを用意してください。
+
+  - 管理者アクセス権を持つ、有効な Amazon Connect インスタンス。
+  - 関数を作成する権限を持つ AWS Lambda へのアクセス。
+  - MoEngage API 認証情報。
+
+  MoEngage API 認証情報を確認するには、次の手順を実行します。
+
+  1. MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。
+  2. **Workspace ID**（**以前の app id**）の下にある ID をコピーします。
+  3. **API keys** の下にある **Data** をコピーします。
+  4. データセンター ID は MoEngage への登録時に割り当てられます。データセンター ID はダッシュボードの URL から確認できます。たとえば、ダッシュボードの URL が [https://dashboard-04.moengage.com/v4/#/auth](https://dashboard-04.moengage.com/v4/#/auth) の場合、データセンターはデータセンター 04 で、データセンター ID は DC-04 です。詳細については、[MoEngage のデータセンター](/ja/user-guide/data/key-concepts/data-centers-in-moengage#list-of-data-centers)を参照してください。
+</Info>
+
+## ステップ 1: AWS Lambda の設定
+
+まず、Amazon Connect からデータを受け取り、顧客固有の MoEngage App ID と API Key を使用して MoEngage API（Customer API や Event API など）に送信する Lambda 関数を作成します。
+
+### ステップ 1.1: Lambda 関数を作成する
+
+Lambda 関数を作成するには、次の手順を実行します。
+
+1. **AWS Lambda Console** に移動し、**Create function** をクリックします。
+2. **Author from scratch** を選択します。
+3. 関数を設定します。
+   1. **Function name** : わかりやすい名前を入力します（例: MoEngage-Connect-Handler）。
+   2. **Runtime** : 目的のランタイムを選択します。ここでは例として Python 3.11 を使用します。\
+      詳細については、[Lambda デベロッパーガイド](https://docs.aws.amazon.com/lambda/latest/dg/welcome.html)を参照してください。
+4. **Create function** をクリックします。
+
+![](/images/partner_42986479974036.png)
+
+### ステップ 1.2: コードと依存関係を追加する
+
+コードと依存関係を追加するには、次の手順を実行します。
+
+1. **コードを追加する** : **Code** タブに移動し、関数のコードを貼り付けます。このコードは、Connect からの受信イベントを読み取り、API 用の JSON ペイロードを構築して送信する必要があります。当社のテストに基づく本番環境対応の例については、`moengage_lambda_handler.py` ファイルを参照してください。
+2. **依存関係（レイヤー）を追加する** : コードで Lambda に含まれていないライブラリ（Python の requests など）が必要な場合は、それらを追加します。
+   1. **Lambda function** ページの **Layers** セクションまでスクロールし、**Add a layer** をクリックします。
+   2. **AWS layers** を選択し、事前構築済みのレイヤーを選択します（例: `AWSSDKPandas-Python311` には `requests` ライブラリが含まれています）。
+3. **デプロイする** : **Deploy** をクリックして、コードとレイヤーの変更を保存します。
+
+### ステップ 1.3: Lambda の権限を設定して ARN をコピーする
+
+Lambda の権限を設定して ARN をコピーするには、次の手順を実行します。
+
+1. **権限を付与する** : 関数には、Amazon Connect からの呼び出しを許可するリソースベースのポリシーが必要です。
+   1. **Configuration** \>**Permissions** タブに移動します。
+   2. **Resource-based policy** までスクロールし、**Add permissions** をクリックします。
+   3. **AWS service** を選択します。**Service** リストに Amazon Connect がない場合は、**Other** を選択します。
+   4. 次のフィールドに入力します。
+      1. **Statement ID** : `Connect-Allow-Invoke`（この権限ルールの一意の識別子です。この名前は、Connect による Lambda 関数の呼び出しを許可するというステートメントの目的を明確に表しています）
+      2. **Principal** : `connect.amazonaws.com`（AWS における Amazon Connect サービスのサービスプリンシパル（公式の ID）です。Principal にこの値を設定することで、Amazon Connect サービスに Lambda 関数を操作する権限を明示的に付与します）。
+      3. **Source ARN** : Amazon Connect インスタンスの ARN（例: `arn:aws:connect:us-east-1:ACCOUNT_ID:instance/INSTANCE_ID`）。
+      4. **Action** : `lambda:InvokeFunction`
+   5. **Save** をクリックします。
+2. **ARN をコピーする** : ページ上部から Lambda 関数の ARN をコピーします。これは次のステップで必要になります。
+
+![](/images/partner_42986479975316.png)
+
+**Lambda 関数コードの例**
+
+- Data API を使用して顧客を作成する、提供のサンプルコードから始めることができます。このコードを特定の要件に合わせて変更するか、独自のコードを一から作成してください。**Code** タブで、既存のデフォルトコードをサンプルで上書きします。
+
+```python wrap
+import json
+import requests  # Requires a Lambda Layer (e.g., AWSSDKPandas-Python311)
+import base64
+import traceback
+from datetime import datetime
+# ===============================================
+# CONFIGURE YOUR MOENGAGE CREDENTIALS HERE
+# ===============================================
+# Find these in your MoEngage Dashboard: Settings -> Account -> APIs
+WORKSPACE_ID = "YOUR_WORKSPACE_ID"  # e.g., "OAPQQ2AMD01MJZQ2TYZX1YPG"
+DATA_API_KEY = "YOUR_DATA_API_KEY"  # From Settings → APIs → Data tile
+API_DC = "01"                      # Your data center (01, 02, 03, etc.)
+# -----------------------------------------------
+ 
+def lambda_handler(event, context):
+    """
+    Amazon Connect to MoEngage Data Sync Handler
+    This function processes contact data from Connect and sends it
+    to the MoEngage Customer API to create/update a user.
+    """
+    try:
+        # Log incoming event for debugging
+        print(f"[INFO] Incoming Event: {json.dumps(event, indent=2)}")
+        
+        # --- 1. Extract Data from Amazon Connect ---
+        details = event.get('Details', {})
+        contact_data = details.get('ContactData', {})
+        
+        # User-defined attributes come from the 'Set Contact Attributes' block
+        contact_attrs = contact_data.get('Attributes', {})
+        
+        # --- 2. Map Connect Data to Variables ---
+        
+        # Get user-defined attributes
+        customer_id = contact_attrs.get('customer_id', '')
+        email = contact_attrs.get('email', '')
+        first_name = contact_attrs.get('first_name', '')
+        
+        # Get system-defined attributes
+        phone = contact_data.get('CustomerEndpoint', {}).get('Address', '')
+        contact_id = contact_data.get('ContactId', '')
+        
+        # Use a fallback identifier if customer_id is not set
+        final_customer_id = customer_id or phone or email or contact_id
+        if not final_customer_id:
+            print("[ERROR] No customer_id, phone, or email found. Cannot sync user.")
+            return {'success': False, 'error': 'Missing Identifier'}
+ 
+        # --- 3. Prepare API Credentials ---
+        auth_string = f"{WORKSPACE_ID}:{DATA_API_KEY}"
+        BASIC_AUTH = base64.b64encode(auth_string.encode()).decode('utf-8')
+        
+        BASE_URL = f"https://api-{API_DC}.moengage.com/v1"
+        headers = {
+            'Authorization': f'Basic {BASIC_AUTH}',
+            'Content-Type': 'application/json'
+        }     
+        # --- 4. Build MoEngage User Payload ---
+        # This example sends data to the Customer API.
+        user_payload = {
+            "type": "customer",
+            "customer_id": final_customer_id,
+            "attributes": {
+                "first_name": first_name,
+                "email": email,
+                "mobile": phone,
+                "amazon_connect_contact_id": contact_id,
+                "source": "amazon_connect"
+            }
+        } 
+        # Remove any attributes that have empty values
+        user_payload["attributes"] = {k: v for k, v in user_payload["attributes"].items() if v}
+        
+        # --- 5. Send User Data to MoEngage ---
+        user_url = f"{BASE_URL}/customer/{WORKSPACE_ID}"
+        print(f"[INFO] Sending to MoEngage User API: {user_url}")
+        print(f"[INFO] User Payload: {json.dumps(user_payload, indent=2)}")
+        
+        response = requests.post(
+            user_url, 
+            json=user_payload, 
+            headers=headers, 
+            timeout=8 # Max 8-second timeout for Connect
+        )
+        
+        print(f"[INFO] MoEngage API Response: {response.status_code}")
+        print(f"[INFO] Response Body: {response.text}")
+ 
+        # Check for HTTP errors (e.g., 401, 404, 500)
+        response.raise_for_status() 
+        
+        # --- 6. Return Success to Amazon Connect ---
+        return {
+            'statusCode': response.status_code,
+            'success': True,
+            'customer_id': final_customer_id
+        }
+            
+    except requests.exceptions.RequestException as http_err:
+        print(f"[ERROR] HTTP Error: {str(http_err)}")
+        print(traceback.format_exc())
+        return {'success': False, 'error': f"HTTP Error: {str(http_err)}"}
+        
+    except Exception as e:
+        print(f"[ERROR] Unexpected Error: {str(e)}")
+        print(traceback.format_exc())
+        return {'success': False, 'error': f"General Error: {str(e)}"}
+```
+
+## ステップ 2: Amazon Connect の設定
+
+Amazon Connect を設定するには、次の手順を実行します。
+
+### ステップ 2.1: コンタクトフローを作成または変更する
+
+コンタクトフローを作成または変更するには、次の手順を実行します。
+
+1. **Amazon Connect** インスタンスにログインします。
+2. **Routing** \> **Flows** に移動します。
+3. **Create contact flow** をクリックするか、既存のフローを編集します。<img src="/images/partner_42986479976212.png" />
+4. フローに次のブロックを追加します。
+   1. **Set contact attributes ブロック** : このブロックは、MoEngage に送信する顧客データを取得します。
+   2. **Set contact attributes** ブロックをフローにドラッグします。
+   3. [属性](https://docs.aws.amazon.com/connect/latest/adminguide/connect-contact-attributes.html)を設定します。 <img src="/images/partner_42986510350612.png" />
+5. Invoke AWS Lambda Function ブロック:
+   1. **Invoke AWS Lambda function** ブロックをドラッグします。
+   2. ドロップダウンメニューから Lambda 関数を選択するか、AWS Lambda セクションから関数の ARN をコピーして貼り付けます。
+   3. **Function input parameters** は空のままにします（関数はすべてのコンタクトデータを自動的に受け取ります）。<img src="/images/partner_42986479976596.png" />
+6. フローを接続します。
+7. ブロックを接続します（**Entry Point** \> **Set contact attributes** \> **Invoke AWS Lambda function**（以降は既存のフローに続けます））。
+
+### ステップ 2.2: コンタクトフローを公開して割り当てる
+
+コンタクトフローを公開して割り当てるには、次の手順を実行します。
+
+1. **Save** をクリックして変更を保存します。
+2. **Publish** をクリックしてフローを有効化します。
+3. フローを電話番号またはキューに割り当てます。
+
+## ステップ 3: テストと検証
+
+### ステップ 3.1: Lambda の実行を確認する
+
+Lambda の実行を確認するには、次の手順を実行します。
+
+1. AWS Console で Lambda 関数に移動します。
+2. **Monitor** \>**View CloudWatch logs** に移動します。
+3. [最新のログ](https://docs.aws.amazon.com/lambda/latest/dg/monitoring-cloudwatchlogs.html)ストリームを開き、正常に実行されたことを確認します。
+   1. ユーザーペイロードに想定どおりのデータが含まれていることを確認します。
+   2. エラーメッセージがないことを確認します。
+
+### ステップ 3.1: MoEngage でデータを確認する
+
+#### MoEngage でデータを確認するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、**Segment** \>**User Search** をクリックします。
+2. 顧客 ID または電話番号を使用して、テスト顧客を検索します。
+3. ユーザープロファイルにコンタクトセンターの属性が含まれていることを確認します。

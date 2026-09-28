@@ -1,0 +1,135 @@
+---
+title: "レコメンデーションでアップセルを促進する方法"
+---
+
+# はじめに
+
+関連商品のアップセルは、リテンションと顧客生涯価値（CLV）を向上させる優れた方法です。業界を問わず、コンバージョン率の高いアップセルの例は数多くあります。
+
+- スマートフォン購入後の画面保護フィルムやケース
+- 航空券購入後の機内食やタクシー予約
+- 電子機器購入後の延長保証や設置サービス
+- 保険契約後の追加プラン
+
+この記事では、MoEngage Recommendations を活用して、適切なタイミングで適切なアップセル商品をレコメンドする方法を説明します。このユースケースは、次の手順で実現します。
+
+- "Similar items" モデルでレコメンデーションを作成します。
+- "Product Purchased" をエントリー条件とする Flow を作成します。
+- レコメンドされた商品を含むプッシュ通知を送信します。
+
+# 期待される結果
+
+以下は、関連商品のレコメンデーションを含む、ユーザーのスマートフォンに届くプッシュ通知です。
+
+<img
+  alt="1.png"
+  src="/images/moengage_a27d3e.png"
+  style={{ width:"65%" }}
+/>
+
+<Tip>
+  - ユーザーが商品を検索する、商品をカートに追加する、商品をウィッシュリストに追加する、購入を完了するといったアクションと、プラットフォーム、商品名、カテゴリー、ブランド、価格など各アクションに関連する情報をトラッキングするイベント。イベントのトラッキング方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。手順は使用している SDK によって異なる場合があります。
+  - 上記でトラッキングしたイベントと、対応する MoEngage イベントとのマッピング。このマッピングにより、アクションを理解してレコメンデーションモデルを実行し、モデルにクエリを発行して期待される出力を作成できます。詳細については、[Map User Actions Settings](/ja/user-guide/content/recommendations/getting-started/map-user-actions-settings) を参照してください。この例では、商品の検索または商品の閲覧というカスタムイベントを "Product Viewed" に、購入完了というカスタムイベントを "Product Purchased" にマッピングします。
+  - 利用可能な商品のリストと、タイトル、カテゴリー、ブランド、価格など関連するすべての情報を含むカタログとそれに対応するフィード。最新の情報を維持できるよう、フィードを適切な間隔で更新するように設定してください。詳細については、[Catalogs](/ja/user-guide/content/recommendations/getting-started/catalogs) を参照してください。
+  - Push、Email、SMS、WhatsApp など 1 つ以上のチャネルの設定。
+</Tip>
+
+# レコメンデーションを作成する
+
+このセクションでは、ユーザーのアクションに基づいてレコメンデーションを作成します。
+
+1. MoEngage ダッシュボードに移動し、左側のナビゲーションから **Content** \> **Recommendations** を選択します。Recommendations ページが表示されます。詳細については、[Creating User Action Recommendations](/ja/user-guide/content/recommendations/basic-recommendations/user-actions-model) を参照してください。
+2. 右上の **\+ Create recommendation** をクリックします。最初のステップ "Select recommendation model" に移動します。 <img src="/images/moengage_dbce18.png" alt="2.png" />
+3. **Predictive** で、**Frequently bought together items** カードをクリックします。このモデルはユーザーの過去の購入を考慮し、Merlin AI を利用して同じユーザーが他にどの商品を好むかを予測するため、今回のユースケースに適しています。
+4. **Next** をクリックします。2 番目のステップ "Create recommendation" に移動します。次の詳細を入力します。
+   - **Recommendation name**: レコメンデーションの名前を入力します。例: "BroughtTogetherItems"。この名前を使用して、このレコメンデーションモデルの出力を参照します。
+   - **Recommendation description**: レコメンデーションの説明を入力します。この説明は、モデルの目的を理解するのに役立ちます。
+   - **Catalog**: 提供しているすべての商品のリストと関連情報を含むカタログを選択します。 <img src="/images/moengage_2466c9.png" alt="3.png" />
+5. レコメンデーションモデルが提案を生成する基となるアクションを選択します。今回のユースケースでは、ユーザーがコンテンツを視聴するイベントがこの MoEngage 定義イベントにマッピングされているため、ここでは "Product Purchased" を選択します。マッピングされたユーザーアクションは、このセクションの **Map user action** ボタンから変更または確認できます。 <img src="/images/moengage_d49434.png" alt="4.png" />
+6. **Create** をクリックして変更を保存し、モデルを実行します。\
+   これには 24 時間かかります。モデルのステータスは Recommendations のホームページで確認できます。 <img src="/images/moengage_3bcad5.png" alt="5.png" /> Recommendation エンジンは、ユーザーの過去の購入に基づいて、ユーザーが好む可能性のある商品のセットを共有します。
+
+レコメンデーションを作成したので、次に関連商品についてユーザーにナッジする Flow を作成しましょう。
+
+# Flow を作成する
+
+このセクションでは、適切なタイミングで適切なアップセル商品を顧客にレコメンドする Flow を作成します。
+
+## Flow の詳細を追加する
+
+1. 左側のサイドバーで **Engage** \> **Flows** をクリックして **\+ Create flow** をクリックするか、**\+ Create new** をクリックしてから **Flow** をクリックします。
+2. **\+ Start with a blank canvas** をクリックします。最初のステップ "Details and goals" に移動します。
+3. 次の Flow の詳細を入力します。
+   - **Flow Name**: Flow 名を入力します。例: "Recommend Products"。
+   - **Flow tags**: 必要な Flow タグを選択します。
+4. **Conversion goal** セクションで **Exit on conversion** トグルをオンにし、"Product Purchased" イベントを実行してコンバージョンしたユーザーを退出させます。これはユーザーが商品を購入したときにトリガーされる、主要なコンバージョンゴールです。 <img src="/images/moengage_48b78f.png" alt="6.png" />
+5. **Next** をクリックして、2 番目のステップ "When will users enter the flow" に移動します。このステップでは、トリガー条件を指定して、ユーザーをいつ Flow に入れるかを定義します。この例では、イベントは "Product Purchased" です。
+6. **IF user** セクションで、ユーザーが商品を購入したときにトリガーされる "Product Purchased" イベントを選択します。 <img src="/images/moengage_cfb381.png" alt="7.png" />
+7. **Flow Schedule** セクションで、必要に応じて Flow の開始時刻と終了時刻を定義します。デフォルトでは、Flow は "As soon as possible" に開始し、終了しません。
+8. **Limit user entry into this flow** トグルをオンにして、ユーザーが Flow に入ることができる最大回数を定義します。このような制限を定義すると、ユーザーが繰り返し Flow に再エントリーすることを防ぎ、過剰なメッセージ送信を回避できるため、ユーザーエクスペリエンスの向上につながります。 <img src="/images/moengage_f59b32.png" alt="8.png" />
+9. **Next** をクリックして、3 番目のステップ "Who will enter the flow" に移動します。ここでは、Flow のターゲットオーディエンスとコントロールグループを選択します。
+10. **Audience** セクションで **All users** を選択します。 <img src="/images/moengage_1f0196.png" alt="9.png" />
+11. **Next** をクリックしてキャンバスセクションに移動し、ユーザーに通過させる Flow の構造を定義します。
+
+## Flow の構造を定義する
+
+1. **\+** アイコンをクリックします。ドロワーが表示され、**Actions** の中から Push、Email、SMS、WhatsApp などのアクションキャンペーンを選択してメッセージを送信できます。また、On-site または In-app チャネルでバナーを表示したり、Facebook または Google のリマーケティングを使用したりすることもできます。 <img src="/images/moengage_58bff3.png" alt="10.png" /> この例では、Push アクションを追加し、MoEngage の Merlin AI が予測したレコメンデーションを Flows で使用する方法を説明します。
+2. **Push** をクリックしてステージを追加します。ステージにマウスを合わせ、編集アイコンをクリックしてステージの定義を開始します。 <img src="/images/moengage_2e95b5.png" alt="11.png" />
+3. キャンペーン名を入力します。例: "Recommend Product"。
+4. ターゲットにするプラットフォームを選択します。この例では **Android** のみを選択します。
+5. 任意のテンプレートを選択します。この例では **Basic notification** を選択します。 <img src="/images/moengage_f499b7.png" alt="12.png" />
+6. 必要なコンテンツを入力します。タイトルを追加するか、Merlin AI を使用して生成できます。詳細については、[Generate Push Messages with Merlin AI](/ja/user-guide/ai-and-intelligence/merlin-ai/merlin-ai-copywriter/generate-push-messages-with-merlin-ai) を参照してください。
+7. メッセージを定義する際に、定義したレコメンデーションによって生成された商品セットを選択します。Push Personalization ポップアップで "@" を入力し、作成したレコメンデーションの名前である "BroughtTogetherItems" を検索します。 <img src="/images/moengage_e3a465.png" alt="13.png" />
+8. **Done** をクリックします。**Message** フィールドに次の JINJA コードが挿入されます。 <img src="/images/moengage_1fc6e4.png" alt="14.png" />
+9. コードを編集して各商品をループ処理し、最初の提案を表示するようにします。Recommendation エンジンからは確度の高い提案が先に返されるためです。確度が高いほど、商品はリストの上位に表示されます。最終的な JINJA コードは次のようになります。
+   <CodeGroup>
+   ```ruby JINJA
+   {% if ProductSet.BroughtTogetherItems%}
+   {% for product in ProductSet.BroughtTogetherItems[0:1]%}
+   {{product.product_name}} at {{product.price}}
+   {% endfor %}
+   {% else %}
+   MOE_NOT_SEND
+   {% endif %}
+   ```
+   </CodeGroup>
+   2 行目では、クエリ内の "\[0:1\]" の部分により、ループは 1 回だけ実行されます。上位 3 件を提案したい場合は、これを "\[0:3\]" のように変更します。3 行目の `{{product.product_name}}` 要素は、提案された商品の名前を出力します。詳細については、[MoEngage Templating Language (JINJA)](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を参照してください。
+10. 上で選択した商品の画像を取得するには、次のコードを入力します。
+    <CodeGroup>
+    ```ruby JINJA
+    {% if ProductSet.BroughtTogetherItems%}
+    {% for product in ProductSet.BroughtTogetherItems[0:1]%}
+    {{product.image_link}}
+    {% endfor %}
+    {% else %}
+    MOE_NOT_SEND
+    {% endif %}
+    ```
+    </CodeGroup>
+11. 該当商品のページまたはアプリのホーム画面に直接移動する URL を指定して、プッシュ通知にディープリンクを追加します。これにより、ユーザーが提案されたコンテンツにたどり着く前に離脱する可能性を低減できます。前者の場合の JINJA コードは次のとおりです。
+    <CodeGroup>
+    ```text JINJA
+    {% if ProductSet.BroughtTogetherItems%}
+    {% for product in ProductSet.BroughtTogetherItems[0:1]%}
+    {{product.product_url}}
+    {% endfor %}
+    {% else %}
+    MOE_NOT_SEND
+    {% endif %}
+    ```
+    </CodeGroup>
+    ![15.png](/images/moengage_db8408.png)
+12. ユーザーの名前や性別などの追加情報がある場合は、アクションキャンペーンの編集時にそれらを使用してメッセージをパーソナライズします。こうした詳細を含めることで、メッセージがよりコンテキストに沿ったものになり、ユーザーが親近感を持って商品を購入する可能性が高まります。詳細については、[Personalization in Flows](/ja/user-guide/flows-cross-channel-messaging/create/actions-in-flows/personalization-in-flows) を参照してください。
+13. **Done** をクリックして変更を保存します。
+14. アクションキャンペーンを定義した後、**Has done event** ステージを追加し、ドロップダウンリストから "Product Purchased" イベントまたはその他の目標を選択して、ユーザーがコンバージョンしたかどうかを確認します。
+15. **Keep evaluating for the next** トグルをオンにして、ユーザーがイベントを実行するまで待機する最大時間を定義します。適切と思われる任意の時間制限を選択できます。 <img src="/images/moengage_5d9788.png" alt="16.png" />
+16. ユーザーにナッジするためのアクションキャンペーンを必要な数だけ追加します。特に "Has done events" の Yes パスでは、Wait ステージを使用して 2 つのコミュニケーションの間に間隔を空け、ユーザーへの過剰な送信を避けてください。詳細については、[Add Controls to Flow](/ja/user-guide/flows-cross-channel-messaging/create/conditions-and-controls-in-flows/force-move-or-delay-users-in-flows) を参照してください。 <img src="/images/moengage_1f4542.png" alt="17.png" />
+17. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、MoEngage Recommendations を活用して、適切なタイミングで適切なアップセル商品をレコメンドしました。"Product Purchased" をエントリー条件とする Flow を作成し、レコメンドされた商品を含むプッシュ通知を送信しました。
+
+Recommendations を使用してこのユースケースのキャンペーンを公開したので、[MoEngage の Recommendations](/ja/user-guide/content/recommendations/advanced-recommendations/overview-advanced-recommendations) のその他の活用方法も確認してみましょう。
+
+以前 _Sherpa AI_ と呼ばれていたすべての MoEngage AI 製品は、現在 _Merlin AI_ と呼ばれています。

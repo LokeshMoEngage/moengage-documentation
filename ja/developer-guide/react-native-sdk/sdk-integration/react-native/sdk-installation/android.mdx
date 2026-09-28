@@ -1,0 +1,144 @@
+---
+title: "Android のビルド設定"
+description: "MoEngage React Native SDK 用に Android のビルド設定を行い、必要な依存関係を追加します。"
+keywords: ["Android", "AndroidX", "React Native", "build.gradle", "package.json", "feature modules"]
+---
+
+## 前提条件
+
+続行する前に、以下を確認してください。
+
+- プロジェクトに [`react-native-moengage`](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-installation/framework-dependency) パッケージをインストールしていること。
+- React Native `0.60` 以降を使用していること。それより古いバージョンは autolinking をサポートしていないため、ネイティブの手動リンクが必要です。
+- `android/build.gradle` の Android `compileSdkVersion` が `34` 以降であること。
+
+## ビルド設定の構成
+
+<Warning>
+  MoEngage SDK は `lifecycle-process` ライブラリに依存しており、このライブラリは `androidx.startup:startup-runtime` に依存しています。SDK の機能を正常に動作させるには、次の点に注意してください。
+
+  - `AndroidManifest.xml` から `InitializationProvider` コンポーネントを削除しないでください。
+  - `startup-runtime` を使用する他のイニシャライザーを追加する場合は、`lifecycle-process` のイニシャライザーも追加してください。
+  - イニシャライザーの追加手順については、[Lifecycle 2.4.0 のリリースノート](https://developer.android.com/jetpack/androidx/releases/lifecycle#2.4.0)を参照してください。
+</Warning>
+
+## AndroidX ライブラリの追加
+
+SDK は動作のためにいくつかの AndroidX ライブラリに依存しています。以下のいずれかの方法で追加してください。`package.json` でフラグを有効にする方法（推奨）か、`build.gradle` ファイルに依存関係を直接追加する方法のいずれかです。
+
+### package.json ファイルでの設定
+
+<Info>
+  - `includeAndroidXRequiredLibraries` を `true` に設定すると、SDK が使用する AndroidX ライブラリが依存関係として自動的に追加されます。
+  - **必要な AndroidX ライブラリ:** MoEngage SDK には、次のコア AndroidX 依存関係が必要です。
+    - `androidx.core:core`
+    - `androidx.appcompat:appcompat`
+    - `androidx.lifecycle:lifecycle-process`
+  - このフラグを有効にする前に、アプリケーションのネイティブ Android プロジェクト（`build.gradle`）に、これらのライブラリの互換バージョンがすでに含まれているかどうかを確認してください。含まれている場合は、再度取り込む必要がない場合があります。これにより、ビルドプロセス中のバージョンの競合や依存関係の重複エラーを防ぐことができます。
+</Info>
+
+ファイル — `package.json`
+
+<CodeGroup>
+
+```json JSON
+{
+    "moengage": {
+        "includeAndroidXRequiredLibraries": true
+    }
+}
+```
+
+</CodeGroup>
+
+### Gradle ファイルでの設定
+
+上記の `package.json` で `includeAndroidXRequiredLibraries: true` を設定した場合は、このセクションをスキップしてください。
+
+パス — `android/app/build.gradle`（Groovy のビルドスクリプトには `build.gradle`、Kotlin のビルドスクリプトには `build.gradle.kts` を使用します）。
+
+<CodeGroup>
+
+```groovy Groovy
+dependencies {
+    ...
+    implementation("androidx.core:core:1.9.0")
+    implementation("androidx.appcompat:appcompat:1.4.2")
+    implementation("androidx.lifecycle:lifecycle-process:2.7.0")
+}
+```
+
+```kotlin Kotlin
+dependencies {
+    ...
+    implementation("androidx.core:core:1.9.0")
+    implementation("androidx.appcompat:appcompat:1.4.2")
+    implementation("androidx.lifecycle:lifecycle-process:2.7.0")
+}
+```
+
+</CodeGroup>
+
+<Note>
+  記載のバージョン以上を使用してください。最新の安定版リリースについては、[Google Maven](https://maven.google.com) を確認してください。
+</Note>
+
+## ビルドの確認
+
+依存関係を追加したら、プロジェクトのルートから次のコマンドを実行して、MoEngage と AndroidX の依存関係が正しく解決されていることを確認します。
+
+<CodeGroup>
+
+```bash Bash
+cd android && ./gradlew :app:dependencies | grep moengage
+```
+
+</CodeGroup>
+
+コマンドが 1 つ以上の MoEngage のエントリを返した場合、依存関係はリンクされています。
+
+## 機能モジュール（オプション）
+
+機能要件に応じて MoEngage SDK のオプションモジュールを含めるには、用意されているフラグを使用します。デフォルトでは、これらのモジュールはプロジェクトに含まれていません。
+
+プロジェクトの `package.json` ファイルのルートに `moengage` キーを追加して、機能モジュールを設定します。フラグを `true` に設定すると、そのモジュールのネイティブ依存関係がダウンロードされてリンクされます。モジュールを除外するには、フラグを省略するか `false` に設定します。
+
+ファイル — `package.json`
+
+<CodeGroup>
+
+```json JSON
+{
+    "moengage": {
+        "richNotification": true,
+        "encryption": true,
+        "pushAmp": true,
+        "hmsPushkit": true,
+        "deviceTrigger": true
+    }
+}
+```
+
+</CodeGroup>
+
+次の表で各フラグについて説明します。
+
+| フラグ | 有効になる機能 |
+| --- | --- |
+| `richNotification` | プッシュテンプレート |
+| `encryption` | Add-On Security |
+| `pushAmp` | Push Amplification |
+| `hmsPushkit` | HMS PushKit |
+| `deviceTrigger` | デバイストリガーキャンペーン |
+
+### オプション機能フラグのドキュメント
+
+<Note>
+  以下のリンクは Android ネイティブ SDK について説明しています。React Native SDK でも動作は同等です。
+</Note>
+
+- [プッシュテンプレート](/ja/developer-guide/android-sdk/push/optional/push-templates)
+- [Add-On Security](/ja/developer-guide/android-sdk/sdk-integration/advanced-or-optional/add-on-security)
+- [Push Amplification](/ja/developer-guide/android-sdk/push/optional/push-amplification)
+- [HMS PushKit](/ja/developer-guide/android-sdk/push/optional/push-amp-plus/configuring-hms-push-kit)
+- [デバイストリガー](/ja/developer-guide/android-sdk/push/optional/device-triggered)

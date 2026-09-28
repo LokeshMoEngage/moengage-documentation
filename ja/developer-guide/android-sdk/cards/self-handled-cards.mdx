@@ -1,0 +1,244 @@
+---
+title: "Self Handled Cards"
+description: "MoEngage のセルフハンドル Cards SDK を使用して、Android アプリでカスタムカードビューを構築します。"
+---
+
+セルフハンドルカードを使用すると、MoEngage プラットフォームで Card キャンペーンを作成し、アプリケーション内の任意の場所にカードを表示できる柔軟性が得られます。SDK はキャンペーンのデータを取得する API を提供しており、そのデータを使用して独自のカードビューを作成できます。
+
+# SDK のインストール
+
+## BOM を使用したインストール
+
+BOM を使用した統合が推奨される統合方法です。[BOM を使用したインストール](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)のドキュメントを参照してください。BOM を構成したら、以下のように _app/build.gradle_ ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```kotlin build.gradle.kts wrap
+dependencies {
+    ...
+    implementation("com.moengage:cards-core")
+}
+```
+
+</CodeGroup>
+
+BOM を構成したら、アプリケーションに必要な特定の MoEngage モジュールを含めます。 \
+注: これらの依存関係にはバージョン番号は不要です。BOM がバージョンを自動的に管理します。
+
+# セルフハンドルカードの実装
+
+以下の API を使用してカードのデータを取得し、独自の UI を構築します。SDK はデータ取得のためにブロッキング API と非同期 API の両方を提供しています。このドキュメントではブロッキング API のみを記載しています。非同期 API については、[_MoECardHelper_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/index.html) の API リファレンスを参照してください。
+
+## セクションの読み込み/アンロード時の通知
+
+カードは、別の画面または画面の一部のセクションに表示できます。カードの画面/セクションが読み込まれたときに [_onCardSectionLoaded()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/on-card-section-loaded.html) を呼び出し、画面/セクションが表示されなくなったとき、またはバックグラウンドに移行するときに [_onCardSectionUnloaded()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/on-card-section-unloaded.html) を呼び出します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+// call on section or screen load
+MoECardHelper.onCardSectionLoaded(context,listener);
+// call when the section is no longer visible or going to background.
+MoECardHelper.onCardSectionUnloaded(context);
+```
+
+
+```Java Java
+// call on section or screen load
+MoECardHelper.INSTANCE.onCardSectionLoaded(context,listener);
+// call when the section is no longer visible or going to background.
+MoECardHelper.INSTANCE.onCardSectionUnloaded(context);
+```
+
+</CodeGroup>
+
+## カテゴリの取得
+
+カードが設定されているすべてのカテゴリを取得するには、[_getCardCategories()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/get-card-categories.html) API を使用します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECardHelper.getCardCategories(context)
+```
+
+
+```Java Java
+MoECardHelper.INSTANCE.getCardCategories(context);
+```
+
+</CodeGroup>
+
+さらに、オプションで他のカテゴリのスーパーセットのような **All** カテゴリを使用することもできます。[_isAllCategoryEnabled()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/is-all-category-enabled.html) API を使用してください。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECardHelper.isAllCategoryEnabled(context)
+```
+
+
+```Java Java
+MoECardHelper.INSTANCE.isAllCategoryEnabled(context);
+```
+
+</CodeGroup>
+
+## カテゴリごとのカードの取得
+
+特定のカテゴリで表示対象となるカードを取得するには、[_getCardsForCategory()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/get-cards-for-category.html) API を使用します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECardHelper.getCardsForCategory(context, "[YOUR_CATEGORY]")
+```
+
+
+```Java Java
+MoECardHelper.INSTANCE.getCardsForCategory(context, "[YOUR_CATEGORY]");
+```
+
+</CodeGroup>
+
+カテゴリに関係なく表示対象となるすべてのカードを取得するには、以下のようにカテゴリ **CARD_CATEGORY_ALL** を渡します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECardHelper.getCardsForCategory(context, CARDS_CATEGORY_ALL)
+```
+
+
+```Java Java
+MoECardHelper.INSTANCE.getCardsForCategory(context, MoECardsCoreConstants.CARDS_CATEGORY_ALL);
+```
+
+</CodeGroup>
+
+含まれるフィールドとデータの詳細については、[_Card_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core.model/-card/index.html) モデルのドキュメントを参照してください。
+
+カードとカテゴリを取得するために別々の API を使用する代わりに、[_getCardsInfo()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/get-cards-info.html) API を使用してすべての情報を一度に取得できます。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECardHelper.getCardsInfo(context)
+```
+
+
+```Java Java
+MoECardHelper.INSTANCE.getCardsInfo(context);
+```
+
+</CodeGroup>
+
+## ウィジェットとウィジェット ID のマッピング
+
+### Basic Card/Illustration Card
+
+| ウィジェット ID | ウィジェットタイプ                | ウィジェット情報                |
+| --------- | -------------------------- | --------------------------------- |
+| 0         | Image (WidgetType.IMAGE)   | カード内の画像ウィジェット。         |
+| 1         | Text (WidgetType.TEXT)     | カードのヘッダーテキスト。         |
+| 2         | Text (WidgetType.TEXT)     | カードのメッセージテキスト。        |
+| 3         | Button (WidgetType.Button) | カードの Call to Action (CTA)。 |
+
+## カードの統計情報のトラッキング
+
+カードの UI/表示はアプリケーションによって制御されるため、配信、表示、クリックの統計情報をトラッキングするには、アプリケーションから SDK に通知する必要があります。
+
+### 配信
+
+アプリケーションのカードセクションへの配信をトラッキングするには、アプリケーションのカードセクションが読み込まれたときに [_cardDelivered()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/card-delivered.html) API を呼び出します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECardHelper.cardDelivered(context)
+```
+
+
+```Java Java
+MoECardHelper.INSTANCE.cardDelivered(context);
+```
+
+</CodeGroup>
+
+### インプレッション
+
+特定のカードが画面に表示されたときに [_cardShown()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/card-shown.html) API を呼び出します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECardHelper.cardShown(context, card)
+```
+
+
+```Java Java
+MoECardHelper.INSTANCE.cardShown(context, card);
+```
+
+</CodeGroup>
+
+### クリック
+
+ユーザーがカードをクリックするたびに [_cardClicked()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/card-clicked.html) API を呼び出します。カードオブジェクトとともに、クリックされた UI 要素のウィジェット識別子も渡す必要があります。 
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECardHelper.cardClicked(context, card, widgetId)
+```
+
+
+```Java Java
+MoECardHelper.INSTANCE.cardClicked(context, card, widgetId);
+```
+
+</CodeGroup>
+
+## カードの削除
+
+カードを削除するには、[_deleteCard()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/delete-card.html) API を呼び出します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECardHelper.deleteCard(context, card)
+```
+
+
+```Java Java
+MoECardHelper.INSTANCE.deleteCard(context, card);
+```
+
+</CodeGroup>
+
+カードのリストを削除するには、[_deleteCards()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/delete-cards.html) API を使用します。
+
+## サーバーからのカードの更新
+
+必要に応じて、[_fetchCards()_](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/fetch-cards.html) API を使用して MoEngage サーバーからカードを更新します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECardHelper.fetchCards(Context, CardAvailableListener)
+```
+
+
+```Java Java
+MoECardHelper.INSTANCE.fetchCards(Context, CardAvailableListener);
+```
+
+</CodeGroup>
+
+<Info>
+  - SDK は、アプリケーションがフォアグラウンドに移行するたびに、MoEngage サーバーからカードを自動的に更新/取得します。
+  - この API には FUP (公正利用ポリシー) があり、上限を超えた場合は既存のカード、つまりデバイスのローカルストレージにあるカードがコールバックで渡されます。
+  - `fetchCards()` の同期タイミングとレート制限の詳細については、[MoEngage SDK はいつカードデータを同期しますか?](/ja/user-guide/campaigns-and-channels/cards/faqs-cards/when-does-the-moengage-sdk-sync-card-data) を参照してください。
+</Info>
+
+利用可能なヘルパー API の完全なガイドについては、[ドキュメント](https://moengage.github.io/android-api-reference/cards-core/com.moengage.cards.core/-mo-e-card-helper/index.html)を参照してください。

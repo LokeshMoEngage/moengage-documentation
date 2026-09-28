@@ -1,0 +1,431 @@
+---
+title: "fetchExperiences - MoEngage Personalize SDK"
+description: "現在のユーザー向けにパーソナライズされた Experience のペイロードを取得し、独自のフロントエンドコンポーネントを使用してレンダリングします。"
+---
+
+# 概要
+
+`fetchExperiences` は、MoEngage Personalize SDK のクライアント側メソッドです。実行時(通常はページ読み込み時またはコンポーネントのマウント時)に Experience キーのリストを指定して呼び出すと、MoEngage が現在のユーザー向けに解決したパーソナライズされたコンテンツが返されます。
+
+Experience キーは、Personalize API Experience 用に MoEngage ダッシュボードで構成される識別子です。各キーは、ホームページのバナー、カートのオファー枠、商品一覧のカードなど、Web サイト上の配置場所に対応します。MoEngage は現在のユーザーをアクティブな Experience と照合して評価し、ユーザーが対象となる Experience のみを返します。ユーザーに対して解決できなかった Experience は、構造化された理由コードとともに別の `failures` 配列で返されます。
+
+レンダリングレイヤーはお客様の Web サイトが担います。MoEngage は判定結果とコンテンツのペイロードを提供します。
+
+# fetchExperiences の実装
+
+## 前提条件
+
+### SDK のインストール
+
+1. Web サイトに Web SDK を統合するには、[こちらの記事](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)を参照してください。
+2. Web サイトに Personalize SDK を統合するには、[こちらの記事](/ja/developer-guide/personalize-sdk/sdk-integration/web-personalization-v2)を参照してください。
+
+### Personalize API Experience の作成
+
+Personalize API Experience を作成するには、[こちらの記事](https://www.moengage.com/docs/user-guide/personalize/server-side-personalization/create-server-side-personalization-experience)を参照してください。
+
+## 使用するタイミング
+
+Web サイトが独自のコンポーネントを使用してパーソナライズされたコンテンツをレンダリングし、MoEngage がコンテンツのペイロードと判定を提供する場合は、`fetchExperiences` を使用します。一般的なユースケースには、パーソナライズされたバナー、オファーカード、ロイヤルティモジュール、商品一覧のプロモーション、カートでのアップセル、動的なレコメンデーションブロックなどがあります。
+
+<Info>
+関連のないページコンポーネントから個別に実装するのではなく、一元化されたパーソナライゼーションレイヤーを通じて実装してください。これにより、サイト全体でのフォールバック動作、アトリビューション、Experience キーのガバナンスの管理が容易になります。
+</Info>
+
+## メソッドシグネチャ
+
+```javascript
+Moengage.personalize.fetchExperiences(experienceKeys, customAttributes?)
+```
+
+| パラメーター | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `experienceKeys` | `string[]` | 必須 | Experience キー文字列の配列。特定のキーを渡すと、それらの Experience のみが評価されます。`[]` を渡すと、すべてのアクティブな Experience が評価され、MoEngage は対象となる結果を最大 25 件返します。 |
+| `customAttributes` | `Object` | オプション | 実行時のオーディエンス判定に使用するキーと値のペア。不要な場合は完全に省略してください。空のオブジェクトは渡さないでください。 |
+
+このメソッドは、`experiences` と `failures` を含むレスポンスオブジェクトで解決される **Promise** を返します。
+
+## Experience の取得
+
+### 特定の Experience を取得する
+
+ページに固定の配置場所があり、リクエストする Experience キーが正確にわかっている場合に使用します。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script type="text/javascript">
+Moengage.personalize
+  .fetchExperiences(['homepage-banner', 'cart-offers', 'listing-promo'])
+  .then((result) => {
+    // result.experiences - resolved content keyed by experience key
+    // result.failures   - unresolved keys with structured reason codes
+  })
+  .catch((error) => {
+    // SDK, network, or initialization error - render fallback content
+  });
+</script>
+```
+
+</CodeGroup>
+
+### カスタム属性を使用して Experience を取得する
+
+MoEngage のオーディエンスがロケール、ページタイプ、国などの実行時の値をターゲティングに使用する場合は、カスタム属性を渡します。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script type="text/javascript">
+Moengage.personalize
+  .fetchExperiences(
+    ['homepage-banner', 'cart-offers'],
+    {
+      "page_type": "cart",
+      "locale": "en-US",
+      "country": "US"
+    }
+  )
+  .then((result) => {
+    // result.experiences
+    // result.failures
+  })
+  .catch((error) => {
+    // Render fallback content
+  });
+</script>
+```
+
+</CodeGroup>
+
+### 対象となるすべてのアクティブな Experience を取得する
+
+空の配列を渡すと、現在のユーザーがすべてのアクティブな Experience と照合して評価されます。MoEngage は対象となる結果を最大 25 件返します。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script type="text/javascript">
+Moengage.personalize
+  .fetchExperiences([])
+  .then((result) => {
+    // result.experiences - up to 25 eligible active experiences
+    // result.failures
+  })
+  .catch((error) => {
+    // Render fallback content
+  });
+</script>
+```
+
+</CodeGroup>
+
+<Warning>
+固定の配置場所には、明示的な Experience キーを使用してください。空の配列は、動的なオファーフィードやディスカバリー型のコンテンツエリアなど、返される Experience の動的なセットを処理できるようにフロントエンドが構築されている場合にのみ渡してください。空の配列モードでは、返された各 Experience をどこに配置するか、必要な配置場所の Experience が返されなかった場合にどうするか、利用可能な枠よりも多くの結果が返された場合にどう処理するかを、レンダリングロジックで判断する必要があります。
+</Warning>
+
+## 仕組み
+
+1. ページが MoEngage SDK を初期化し、ユーザーの ID と同意を確立します。
+2. コードが、関連する Experience キーと任意のカスタム属性を指定して `fetchExperiences` を呼び出します。
+3. MoEngage が、アクティブなキャンペーンと関連するセグメントルール、コントロールグループ、A/B バリアント、Decision Policy に照らしてユーザーを評価します。
+4. Promise が、`experiences` と `failures` を含むレスポンスオブジェクトで解決されます。
+5. コードが、解決された各 Experience のペイロードを読み取り、検証し、レンダリングします。
+6. コードが、`experience_context` と `offering_context`(レスポンスに含まれている場合)を MoEngage のインプレッションおよびクリックのトラッキング呼び出しに渡します。
+
+# レスポンス
+
+## レスポンスの構造
+
+解決されたレスポンスには、`experiences` と `failures` の 2 つのトップレベルキーが含まれます。両方が同じレスポンスに含まれる場合があり、1 回の呼び出しで、解決された Experience と失敗の両方が同時に返されることがあります。
+
+```json
+{
+  "experiences": {
+    "homepage-banner": {
+      "payload": {
+        "title":          { "value": "Dress Like You Mean It",          "data_type": "string" },
+        "imageURL":       { "value": "https://cdn.example.com/banner.jpg", "data_type": "string" },
+        "ctaText":        { "value": "Shop Men's Edit",                 "data_type": "string" },
+        "redirectionURL": { "value": "/collections/mens-fashion",       "data_type": "string" }
+      },
+      "experience_context": {
+        "cid":               "6a268ba7_F_T_WP_AB_2_P_0_AU_9",
+        "experience":        "Home Page Banner Update",
+        "moe_variation_id":  "2",
+        "audience_name":     "Category viewed - Mens Fashion",
+        "audience_id":       "9",
+        "moe_locale_id":     "0",
+        "type":              "Web Personalization",
+        "experience_type":   "API based Experience"
+      }
+    }
+  },
+  "failures": [
+    {
+      "code": "E003",
+      "msg":  "user not in segment",
+      "keys": ["cart-offers"]
+    }
+  ]
+}
+```
+
+## レスポンスフィールド
+
+| フィールド | 説明 |
+| --- | --- |
+| `experiences` | Experience キー文字列をキーとする、解決された Experience のマップ。ユーザーが対象となる Experience のみがここに表示されます。 |
+| `experiences.<key>` | 解決された Experience オブジェクト。ハイフンを含むキーにはブラケット表記を使用してください(例: `result.experiences['homepage-banner']`)。ドット表記(`result.experiences.homepage-banner`)では `-` が減算演算子として扱われ、原因の特定が難しい実行時エラーが発生します。 |
+| `payload` | MoEngage で Experience 用に構成されたコンテンツフィールドを含むオブジェクト。フィールド名はダッシュボードで構成したものと一致します。 |
+| `payload.<field>.value` | ペイロードフィールドの値。Experience の構成方法に応じて、タイトルや URL などの直接的なスカラー値、またはシリアル化された JSON 文字列になります。[ペイロード形式](#payload-formats)を参照してください。 |
+| `payload.<field>.data_type` | フィールドのデータ型。例: `string`。 |
+| `experience_context` | インプレッションとクリックのアトリビューションに使用されるキャンペーンレベルのメタデータ。**このオブジェクトはそのまま MoEngage のトラッキング呼び出しに渡してください。フィールドを変更、省略、または再構成しないでください。** 以下のフィールドは各値が何を表すかを説明していますが、いずれも実装側で変更しないでください。[Personalize API Experience イベントのトラッキング](/ja/developer-guide/personalize-sdk/sdk-integration/personalize-api-experience-events-tracking)を参照してください。 |
+| `experience_context.cid` | MoEngage がイベントを正しいキャンペーン、バリアント、オーディエンスに紐付けるために使用する複合インプレッション ID。 |
+| `experience_context.experience` | MoEngage で構成された Experience またはキャンペーンの名前。 |
+| `experience_context.moe_variation_id` | ユーザーが割り当てられている A/B バリエーション。 |
+| `experience_context.audience_name` | 一致したオーディエンスセグメントの名前。 |
+| `experience_context.audience_id` | 一致したオーディエンスセグメントの ID。 |
+| `experience_context.type` | Experience のチャネル。例: `Web Personalization`。 |
+| `experience_context.experience_type` | Experience の実装タイプ。例: `API based Experience`。 |
+| `failures` | 現在のユーザーに対して解決できなかった Experience キーの配列。[失敗の処理](#handling-failures)を参照してください。 |
+| `failures[].code` | 機械可読な失敗コード。 |
+| `failures[].msg` | 人が読める形式の失敗メッセージ。 |
+| `failures[].keys` | この失敗の影響を受けた Experience キー。 |
+
+## ペイロード形式
+
+ペイロードの形状は、MoEngage での Experience の構成方法によって異なります。形式は 2 種類あります。
+
+### 形式 1 - 直接的なフィールド値
+
+各コンテンツフィールドは、`payload` の下に個別のキーとして返されます。値は直接読み取ることができ、解析は不要です。
+
+```json
+{
+  "payload": {
+    "title":          { "value": "Dress Like You Mean It",          "data_type": "string" },
+    "imageURL":       { "value": "https://cdn.example.com/banner.jpg", "data_type": "string" },
+    "ctaText":        { "value": "Shop Men's Edit",                 "data_type": "string" },
+    "redirectionURL": { "value": "/collections/mens-fashion",       "data_type": "string" }
+  }
+}
+```
+
+オプショナルチェーンを使用して値を直接読み取ります。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script type="text/javascript">
+const experience = result.experiences?.['homepage-banner'];
+
+const title          = experience?.payload?.title?.value;
+const imageURL       = experience?.payload?.imageURL?.value;
+const ctaText        = experience?.payload?.ctaText?.value;
+const redirectionURL = experience?.payload?.redirectionURL?.value;
+</script>
+```
+
+</CodeGroup>
+
+<Info>
+ハイフンを含む Experience キーにはブラケット表記を使用してください(`result.experiences['homepage-banner']`)。ドット表記(`result.experiences.homepage-banner`)では `-` が減算演算子として扱われ、原因の特定が難しい実行時エラーが発生します。
+</Info>
+
+### 形式 2 - シリアル化された JSON オファー配列
+
+1 つのペイロードフィールドに、Decision Policy によって返されたランク付けされたオファーのリストを表す JSON エンコードされた文字列が含まれます。使用する前に `JSON.parse()` で解析してください。
+
+```json
+{
+  "payload": {
+    "promo_card": {
+      "value": "[{\"dp_offering_id\":\"...\",\"offering_content\":{\"payload\":{\"title\":\"Voucher Zone\",\"cTAText\":\"Explore\",\"imageURL\":\"https://...\"}}}]",
+      "data_type": "string"
+    }
+  }
+}
+```
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script type="text/javascript">
+const experience = result.experiences?.Homepage_offers_experience;
+const rawValue   = experience?.payload?.promo_card?.value;
+const offers     = JSON.parse(rawValue); // Array of ranked offer objects
+</script>
+```
+
+</CodeGroup>
+
+<Warning>
+すべてのペイロードフィールドに対して `JSON.parse()` を呼び出さないでください。シリアル化された JSON が含まれていることがわかっているフィールドのみを解析してください。タイトルや URL などのプレーンな文字列値に対して `JSON.parse()` を呼び出すと、エラーがスローされます。
+</Warning>
+
+## 失敗の処理
+
+Experience キーが `failures` に含まれている場合、その Experience は現在のユーザーに配信されていません。実装では、その配置場所を非表示にするか、デフォルトのコンテンツをレンダリングする必要があります。
+
+| コード | 理由 | 推奨される処理 |
+| --- | --- | --- |
+| `E001` | ユーザーがキャンペーンのコントロールグループに含まれている | 配置場所を非表示にするか、デフォルトのコンテンツを配信する |
+| `E002` | ユーザーがグローバルコントロールグループに含まれている | 配置場所を非表示にするか、デフォルトのコンテンツを配信する |
+| `E003` | ユーザーがセグメントに含まれていない | 配置場所を非表示にするか、デフォルトのコンテンツを配信する |
+| `E004` | 無効な Experience キー | 構成エラーとしてログに記録する |
+| `E005` | Experience キーの上限を超過した | 構成エラーとしてログに記録する |
+| `E006` | Experience がアクティブではない | 構成エラーとしてログに記録する |
+| `E007` | Experience の有効期限が切れている | 構成エラーとしてログに記録する |
+| `E008` | ユーザーのパーソナライズに失敗した | デフォルト/フォールバックのコンテンツを配信する |
+
+E001~E003 および E008 は、想定される実行時の状態です。E004~E007 は MoEngage の構成に問題があることを示しており、調査のためにログエントリーまたはアラートを発生させる必要があります。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script type="text/javascript">
+result.failures?.forEach(({ code, keys }) => {
+  keys.forEach((key) => {
+    if (['E004', 'E005', 'E006', 'E007'].includes(code)) {
+      console.error(`MoEngage config error [${code}] for experience: ${key}`);
+    } else {
+      renderDefault(key); // Suppress or show fallback content
+    }
+  });
+});
+</script>
+```
+
+</CodeGroup>
+
+# 実装例
+
+## 完全な例 - 直接的なフィールド値のペイロードを読み取る
+
+以下のクリックハンドラーでは、サンプルとして `attachClickHandler()` を使用しています。これを、お使いのフロントエンドフレームワークやコンポーネントライブラリで使用しているイベントバインディングパターンに置き換えてください。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script type="text/javascript">
+Moengage.personalize
+  .fetchExperiences(['homepage-banner'])
+  .then((result) => {
+
+    // Check if the experience was resolved
+    const experience = result.experiences?.['homepage-banner'];
+    if (!experience) {
+      renderDefault('homepage-banner');
+      return;
+    }
+
+    // Read payload field values directly
+    const banner = {
+      title:          experience.payload?.title?.value,
+      imageURL:       experience.payload?.imageURL?.value,
+      ctaText:        experience.payload?.ctaText?.value,
+      redirectionURL: experience.payload?.redirectionURL?.value
+    };
+
+    // Validate required fields before rendering
+    if (!banner.title || !banner.imageURL || !banner.ctaText || !banner.redirectionURL) {
+      renderDefault('homepage-banner');
+      return;
+    }
+
+    // Render using your own components
+    renderBanner(banner);
+
+    // Track experience impression — must be called for every resolved experience key.
+    // Pass experience_context exactly as returned in the response. Do not modify its fields.
+    Moengage.personalize.trackImpression(experience.experience_context);
+
+    // Track experience click when the user interacts with the rendered content.
+    // extraAttributes is optional — use it to pass additional context about the CTA clicked.
+    attachClickHandler(() => {
+      Moengage.personalize.trackClick(experience.experience_context, {
+        button_name: banner.ctaText
+      });
+    });
+  })
+  .catch(() => {
+    renderDefault('homepage-banner');
+  });
+</script>
+```
+
+</CodeGroup>
+
+## 完全な例 - シリアル化された JSON オファー配列のペイロードを読み取る
+
+Experience のペイロードにオファリングデータが含まれている場合(形式 2)、配列内の各オファーには独自の `offering_context` があります。表示された、または操作された各オファーについて、インプレッションとクリックをトラッキングします。
+
+メソッドの完全なリファレンスについては、[Offerings イベントのトラッキング](https://www.moengage.com/docs/developer-guide/personalize-sdk/sdk-integration/offerings-events-tracking)を参照してください。
+
+以下のクリックハンドラーでは、サンプルとして `attachClickHandler(offer, index)` を使用しています。これを、お使いのフロントエンドフレームワークやコンポーネントライブラリで使用しているイベントバインディングパターンに置き換えてください。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script type="text/javascript">
+Moengage.personalize
+  .fetchExperiences(['Homepage_offers_experience'])
+  .then((result) => {
+
+    const experience = result.experiences?.Homepage_offers_experience;
+    if (!experience) {
+      renderDefault('Homepage_offers_experience');
+      return;
+    }
+
+    // Parse the serialized JSON offer array
+    const offers = parseJsonArrayPayloadField(experience, 'promo_card');
+
+    if (!offers.length) {
+      renderDefault('Homepage_offers_experience');
+      return;
+    }
+
+    // Render each offer and track its impression.
+    // offering_context must be passed as-is from each offer object — do not modify its fields.
+    offers.forEach((offer, index) => {
+      renderOffer(offer.offering_content);
+      Moengage.personalize.offeringShown(offer.offering_context);
+
+      // On offer click — pass both offeringContext and experienceContext.
+      // Passing both means MoEngage automatically tracks the click for the offering
+      // AND the parent experience in a single call.
+      attachClickHandler(offer, index, () => {
+        Moengage.personalize.offeringClicked(
+          offer.offering_context,
+          experience.experience_context  // Optional — omit if tracking experience click separately
+        );
+      });
+    });
+
+    // Track experience impression — must be called once for the resolved experience key.
+    // Pass experience_context exactly as returned in the response. Do not modify its fields.
+    Moengage.personalize.trackImpression(experience.experience_context);
+  })
+  .catch(() => {
+    renderDefault('Homepage_offers_experience');
+  });
+</script>
+```
+
+</CodeGroup>
+
+
+## インプレッションとクリックのトラッキング
+
+解決された各 Experience とそのオファーをレンダリングした後、適切な MoEngage SDK のトラッキングメソッドを呼び出します。
+
+- 解決されたすべての Experience キーについて、レンダリング後に `Moengage.personalize.trackImpression(experience_context)` を呼び出します。
+- ユーザーがレンダリングされた Experience を操作したときは、`Moengage.personalize.trackClick(experience_context, extraAttributes)` を呼び出します。`extraAttributes` はオプションで、クリックされた CTA に関する追加のコンテキストを渡すために使用します。
+- オファリングデータを含む Experience については、レンダリングされた各オファーに対して `Moengage.personalize.offeringShown(offering_context)` を呼び出します。配列内の各オファーには独自の `offering_context` があります。そのまま渡し、オファー間でコンテキストを再利用しないでください。
+- オファーがクリックされたときは、`Moengage.personalize.offeringClicked(offering_context, experience_context)` を呼び出します。両方のコンテキストを渡すと、1 回の呼び出しでオファリングと親の Experience の両方のクリックがトラッキングされます。
+
+メソッドの完全なリファレンスについては、[Personalize API Experience イベントのトラッキング](https://www.moengage.com/docs/developer-guide/personalize-sdk/sdk-integration/personalize-api-experience-events-tracking)および [Offerings イベントのトラッキング](https://www.moengage.com/docs/developer-guide/personalize-sdk/sdk-integration/offerings-events-tracking)を参照してください。
+
+さらにサポートが必要な場合は、MoEngage のカスタマーサクセスマネージャー(CSM)またはサポートチームにお問い合わせください。

@@ -1,0 +1,222 @@
+---
+title: "MoEngage から Salesforce にデータを同期する"
+description: "MoEngage Streams を使用して、MoEngage のキャンペーンインタラクションイベントを Activities または任意の標準・カスタム Salesforce オブジェクトとして Salesforce に転送します。"
+keywords: ["salesforce", "moengage streams", "outbound integration", "activities", "events", "custom objects", "campaign interactions"]
+---
+
+## 連携
+
+<Info>
+**前提条件**
+
+- [Salesforce に MoEngage アプリをセットアップする](/ja/partner-guide/data-and-analytics/crm/salesforce-crm-native/setup-moengage-app-on-salesforce)の手順に従って、Salesforce に MoEngage Streams 接続アプリケーションをセットアップしてください。
+- これは Streams アドオンの一部です。お使いのアカウントで有効にするには、担当の MoEngage カスタマーサクセスマネージャー（CSM）にお問い合わせください。
+</Info>
+
+## 対応範囲
+
+| コンテキスト | サポート状況 |
+| --- | --- |
+| MoEngage のキャンペーンインタラクションイベントを Activities として Salesforce に同期する | サポート対象 |
+| MoEngage のキャンペーンインタラクションイベントを標準またはカスタムの Salesforce オブジェクトとして Salesforce に同期する | サポート対象 |
+| すべての標準 Salesforce フィールドタイプ（string、datetime、numeric、formula）のサポート | サポート対象 |
+
+## 手順
+
+### ステップ 1：MoEngage で Streams をセットアップする
+
+<Steps>
+<Step title="MoEngage App Marketplace を開く">
+**MoEngage App Marketplace** > **Salesforce CRM** に移動します。
+</Step>
+
+<Step title="Integrate をクリックする">
+**Integrate** をクリックします。
+
+<Frame>
+<img src="/images/partner_31258016008340.png" alt="Integrate ボタンがある MoEngage App Marketplace の Salesforce CRM の掲載ページ" />
+</Frame>
+</Step>
+
+<Step title="Salesforce アカウントの詳細を追加する">
+Salesforce アカウントの詳細（Secret ID、Secret Key）を入力します。
+</Step>
+
+<Step title="ユーザー属性とイベントを選択する">
+Salesforce に送信するユーザー属性とイベントを追加します。
+</Step>
+
+<Step title="接続する">
+**Connect** をクリックします。
+</Step>
+</Steps>
+
+<Info>
+**App Marketplace に Integrate タブがない場合**
+
+ダッシュボードに **Integrate** オプションが表示されない場合、ワークスペースで Streams が有効になっていません。有効にするには、以下の詳細を添えて MoEngage サポートチームまたは担当のカスタマーサクセスマネージャーにお問い合わせください。
+
+- Salesforce ドメイン
+- Salesforce Secret ID
+- Salesforce Secret Key
+- 同期するユーザー属性
+- Salesforce に送信するイベント
+</Info>
+
+### ステップ 2：Salesforce の MoEngage アプリで同期をセットアップする
+
+同期は以下のステップで構成されます。
+
+1. **Connections**：Connection は MoEngage ワークスペースへの認可です。複数の MoEngage ワークスペースを 1 つの Salesforce インスタンスに接続できます。
+2. **Syncs**：Sync は、2 つのシステム間で特定のデータを送信するためにリアルタイムで実行されるジョブです。同期タイプ（MoEngage から Salesforce、または Salesforce から MoEngage）、同期するエンティティ、データマッピングが含まれます。
+
+その他の小さなセクションとして **Error logs** と **Exceptions** があり、データ同期が機能しない場合のデバッグに役立ちます。
+
+#### MoEngage アプリを起動する
+
+**App Launcher** をクリックし、*MoEngage* と入力して **MoEngage App** を選択します。
+
+<Frame>
+<img src="/images/partner_31258032459284.png" alt="MoEngage App が選択された Salesforce App Launcher" />
+</Frame>
+
+#### 接続をセットアップする
+
+<Steps>
+<Step title="新しい接続を追加する">
+**Connections** > **Add New Connection** をクリックします。
+
+<Frame>
+<img src="/images/partner_31258016016532.png" alt="Add New Connection ボタンがある MoEngage の Connections タブ" />
+</Frame>
+</Step>
+
+<Step title="MoEngage ワークスペースの詳細を入力する">
+以下の詳細を入力します。
+
+<Frame>
+<img src="/images/partner_31258016018196.png" alt="ワークスペースの認証情報を含む MoEngage の Connection フォーム" />
+</Frame>
+
+| フィールド名 | 値 |
+| --- | --- |
+| Connection Name | 接続の任意の名前（例：*MoEngage Prod* や *MoEngage Workspace*）。 |
+| Workspace ID | MoEngage アカウントの Workspace ID。**Settings** > **Account** > **APIs** > **Workspace ID** で確認できます。 |
+| Data Key | MoEngage アカウントの Data API Key。**Settings** > **Account** > **APIs** > **Data Key** で確認できます。 |
+| MoEngage Data Center | お使いの MoEngage データセンター。[詳細はこちら](https://www.moengage.com/docs/user-guide/data/key-concepts/data-centers-in-moengage)。 |
+</Step>
+
+<Step title="接続を保存する">
+**Save** をクリックします。
+</Step>
+</Steps>
+
+#### 同期をセットアップする
+
+このガイドでは、MoEngage のキャンペーンインタラクションイベントを Activities として Salesforce に同期する例を使用します。他の Salesforce オブジェクトについても同様の手順で設定できます。
+
+##### MoEngage のキャンペーンインタラクションイベントを Activities として Salesforce に同期する
+
+<Steps>
+<Step title="Map Fields を開く">
+**Map Fields** をクリックします。
+
+<Frame>
+<img src="/images/partner_31258016019860.png" alt="Map Fields アクションがハイライトされた MoEngage の Connections リスト" />
+</Frame>
+</Step>
+
+<Step title="新しい同期を追加する">
+**Add new sync** をクリックします。
+
+<Frame>
+<img src="/images/partner_31258032476436.png" alt="Add new sync ボタンがある MoEngage アプリの Syncs タブ" />
+</Frame>
+</Step>
+
+<Step title="同期の基本情報を入力する">
+同期名、ソースイベント、ターゲットオブジェクトを入力します。
+
+<Frame>
+<img src="/images/partner_31258032478484.png" alt="新しい MoEngage から Salesforce への同期の基本情報フォーム" />
+</Frame>
+</Step>
+
+<Step title="続行する">
+**Next** をクリックします。
+</Step>
+
+<Step title="データマッピングを構成する">
+2 つのシステム間のデータマッピングを構成します。
+
+1. 2 つのシステム間の識別子を定義します。MoEngage の識別子名は **Customer ID** で、Activity オブジェクトの任意のフィールドにマッピングできます。
+2. その他のフィールドのマッピングを設定します。MoEngage 属性（MoEngage Streams のデータで渡されるもの）を入力し、その MoEngage 属性をマッピングする Salesforce フィールドを選択します。
+
+   <Frame>
+   <img src="/images/partner_31258016027156.png" alt="MoEngage 属性が Salesforce の Activity フィールドにマッピングされたフィールドマッピングテーブル" />
+   </Frame>
+
+   <Note>
+   Salesforce の Activity に関連する一部の必須フィールドは、マッピングページのマッピングセクションに表示されません。これらは手動で追加する必要があります。詳細は [FAQ](#frequently-asked-questions) を参照してください。
+   </Note>
+
+3. **Save** をクリックします。
+</Step>
+</Steps>
+
+##### ユーザー属性を Salesforce フィールドにマッピングする
+
+MoEngage App Marketplace で Streams を有効にする際に、Salesforce に同期する必要があるユーザー属性を選択できます。これらの属性には、マッピング内で以下の形式でアクセスできます。
+
+```text
+user_attributes.{user_attribute_name}
+```
+
+これを Salesforce の任意のフィールドにマッピングできます。
+
+<Frame>
+<img src="/images/partner_32262625306772.png" alt="user_attributes パスが Salesforce フィールドにマッピングされた MoEngage Salesforce アプリのマッピングページ" />
+</Frame>
+
+### ステップ 3：Salesforce でアクティビティを表示する
+
+コンタクトを開くと、MoEngage を通じて送信されたすべてのアクティビティを確認できます。
+
+<Frame>
+<img src="/images/partner_31258032483220.png" alt="アクティビティタイムラインに MoEngage のアクティビティが表示された Salesforce の Contact レコード" />
+</Frame>
+
+## よくある質問
+
+<AccordionGroup>
+<Accordion title="一部の標準 Salesforce フィールドが更新されないのはなぜですか？">
+`MailingAddress`、`BillingAddress`、位置情報タイプのフィールドなど、一部の Salesforce フィールドは書き込みできません。代わりに、これらのフィールドの個々の構成要素（例：郵送先の国、市区町村、請求先の国、番地、緯度、経度）にマッピングしてください。
+</Accordion>
+
+<Accordion title="標準 Salesforce オブジェクト（Activities/Events、Tasks、Account）の一部の必須フィールドがマッピング中に表示されないのはなぜですか？">
+  状況によっては、標準オブジェクトの必須フィールドが表示される **Mandatory** セクションに表示されないことがあります。フィールドが表示されない場合は、マッピングページの **Others** セクションで該当するフィールドが指定されていることを確認してください。
+
+  以下のセクションでは、Salesforce の標準エンティティごとに **Others** セクションに追加する必要があるフィールドを示します。
+
+  **Activity / Event**
+
+  | 以下のフィールドが利用できない場合 | *Others* セクションに追加が必要なフィールド |
+  | --- | --- |
+  | Start and end date | `AssignedTo`（または `NameID`）、`Subject`、`ActivityDate`、`Duration` |
+  | Activity Date Duration | `AssignedTo`（または `NameID`）、`Subject`、`Start Date`、`End Date` |
+  | Duration | `AssignedTo`（または `NameID`）、`Subject`、`ActivityDate`、`AllDayEvent`（イベントを終日イベントとしてマークするため） |
+
+  **Task**
+
+  | 以下のフィールドが利用できない場合 | *Others* セクションに追加が必要なフィールド |
+  | --- | --- |
+  | Subject | `Subject` |
+  | AssignedTo | `AssignedTo` |
+
+  **Account**
+
+  | 以下のフィールドが利用できない場合 | *Others* セクションに追加が必要なフィールド |
+  | --- | --- |
+  | Account Name（Salesforce インスタンスで Person Accounts が有効になっている場合にのみ該当） | `Account Name` |
+</Accordion>
+</AccordionGroup>

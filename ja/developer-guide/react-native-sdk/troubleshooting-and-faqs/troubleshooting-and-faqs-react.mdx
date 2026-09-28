@@ -1,0 +1,113 @@
+---
+title: "トラブルシューティングとよくある質問 - React Native"
+description: "プッシュ、コールバック、アプリ内メッセージ、iOS ビルド設定に関する MoEngage React Native SDK の一般的な問題の解決方法をご確認ください。"
+keywords: ["Unsupported Swift Architecture", "framework not found", "arm64", "ONLY_ACTIVE_ARCH", "MoEngageKMMConditionEvaluator", "MoEngageInitializer", "undeclared identifier", "Podfile post_install", "EXCLUDED_ARCHS"]
+---
+
+import MoeDebuggerActivityFaq from '/ja/snippets/moe-debugger-activity-hybrid-faq.mdx';
+
+# Android - バックグラウンドまたは強制終了状態で通知が動作しないのはなぜですか？
+
+Android ネイティブの Application クラスで、MoEngage SDK がメインスレッドで初期化されていることを確認してください。
+
+初期化のサンプルコード - [GitHub](https://github.com/moengage/React-Native/blob/master/SampleApp/android/app/src/main/java/com/moengage/sampleapp/MainApplication.java)
+
+# Android - バックグラウンドまたは強制終了状態でコールバックが動作しないのはなぜですか？
+
+MoEngage のコールバックは app.js または app.ts に登録する必要があり、設定後に MoEngage プラグインの initialize () メソッドを呼び出す必要があります。詳細については、[こちら](/ja/developer-guide/react-native-sdk/push/basic/push-callback#push-click-callback)をご覧ください。
+
+コールバックのサンプルコード - [GitHub](https://github.com/moengage/React-Native/blob/master/SampleApp/App.js)
+
+# Android - アプリ内メッセージ/ナッジのディープリンクが動作しないのはなぜですか？
+
+MoEngage SDK は、リッチランディングページを除き、デフォルトではアプリ内のリダイレクトを処理しません。こちらのドキュメントを参照してください。app.ts または app.js にアプリ内クリックのコールバックメソッドを実装し、コールバックを登録した後に moengage プラグインの initialise() メソッドを呼び出す必要があります。これらのコールバックでは、ナビゲーション情報を抽出し、必要に応じてリダイレクトを処理するコードを記述する必要があります。コールバックのドキュメントは[こちら](/ja/developer-guide/react-native-sdk/in-app-messages/inapp-nativ#inapp-callbacks)にあります。
+
+アプリ内メッセージ/ナッジのコールバックのサンプルコード - [GitHub](https://github.com/moengage/React-Native/blob/master/SampleApp/App.js)
+
+# Android - アプリ内メッセージ/ナッジのコールバックが動作しないのはなぜですか？
+
+アプリ内メッセージのコールバックを設定するには、[こちらのドキュメント](/ja/developer-guide/react-native-sdk/in-app-messages/inapp-nativ#inapp-callbacks)を参照してください。また、コールバックはアプリケーションの app.js または app.ts に登録する必要があり、設定後に MoEngage プラグインの initialize () メソッドを呼び出す必要があります。
+
+アプリ内メッセージ/ナッジのコールバックのサンプルコード - [GitHub](https://github.com/moengage/React-Native/blob/master/SampleApp/App.js)
+
+# Android - MoEDebuggerActivity とは何ですか？
+
+<MoeDebuggerActivityFaq sdk="React Native" />
+
+# iOS - 「Unsupported Swift Architecture」または「framework not found」でビルドが失敗するのはなぜですか？
+
+`Unsupported Swift Architecture`、`framework 'MoEngageKMMConditionEvaluator' not found`、`framework 'MoEngageRichNotification' not found` などのエラーは、通常、Xcode プロジェクトが `arm64` アーキテクチャを除外しているか、MoEngage iOS SDK が提供していないアーキテクチャ向けにビルドしていることを意味します。
+
+まず、`Podfile` の `post_install` フックに、`EXCLUDED_ARCHS` または `ONLY_ACTIVE_ARCH` を設定する行がないか確認します。このフックは `pod install` のたびに実行され、Xcode で設定した値を上書きします。すべての Pods ターゲットに正しい設定を適用するには、次のフックを使用します。
+
+<CodeGroup>
+
+```ruby Podfile
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['ONLY_ACTIVE_ARCH'] = 'YES'
+      config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = ''
+    end
+  end
+end
+```
+
+</CodeGroup>
+
+次に、`.xcodeproj` ではなく `ios/YourApp.xcworkspace` を Xcode で開きます。**Project Navigator** でアプリのプロジェクトを選択し、アプリのターゲット、Notification Service Extension、Content Extension を含むすべてのターゲットに次の設定を適用します。その後、**Pods** プロジェクトを選択し、そのターゲットにも同じ設定を繰り返します。
+
+- **Excluded Architectures（`EXCLUDED_ARCHS`）**: このリストから `arm64` を削除します。iPhone および iPad デバイスと Apple シリコンのシミュレーターには `arm64` が必要であり、MoEngage iOS SDK v10.x.x 以降は `arm64` スライスのみを提供しています。
+- **Build Active Architecture Only（`ONLY_ACTIVE_ARCH`）**: **Yes** に設定して、Xcode が選択したデバイスまたはシミュレーターのアーキテクチャ向けにのみビルドするようにします。
+- **Architectures（`ARCHS`）**: `ARCHS_STANDARD` に設定するか、リストに `arm64` を追加します。
+
+これらの設定を変更したら、Xcode で **Product > Clean Build Folder** を選択し、`ios` ディレクトリから `pod install` を実行して、再度ビルドします。
+
+<Warning>
+  `MoEngageKMMConditionEvaluator` を **Do Not Embed** に設定しないでください。これにより framework-not-found エラーは解消されますが、このフレームワークはトリガーベースのアプリ内メッセージとプッシュキャンペーンのトリガー条件を評価します。このフレームワークがないと、それらのキャンペーンは表示されません。
+</Warning>
+
+CI パイプラインでは `arm64` でビルドが失敗するものの、ローカルマシンの Xcode では成功する場合は、ビルドエージェントの Xcode バージョンを確認してください。ビルドエージェントでは古いバージョンが実行されていることがよくあります。エージェントを現在の安定版の Xcode に、少なくともローカルでビルドに使用しているバージョンに更新してください。
+
+Intel ベースの Mac の制限事項を含む、アーキテクチャ設定の完全な手順については、[アーキテクチャ互換性のためのプロジェクト設定](/ja/developer-guide/ios-sdk/sdk-integration/basic/Configuring-Project-for-Architecture-Compatibility)を参照してください。
+
+# iOS - 「Use of undeclared identifier 'MoEngageInitializer'」でビルドが失敗するのはなぜですか？
+
+このエラーは、`ios/YourApp/AppDelegate.m` または `AppDelegate.mm` 内の MoEngage のインポートが、`#if RCT_NEW_ARCH_ENABLED` ブロックの内側または後ろにある場合に発生します。アプリで React Native の新しいアーキテクチャを使用していない場合、この条件は false となり、コンパイラーはインポートをスキップするため、`MoEngageInitializer` が宣言されません。
+
+インポートを `#if RCT_NEW_ARCH_ENABLED` ブロックの上に移動します。
+
+<CodeGroup>
+
+```objectivec AppDelegate.mm
+#import "AppDelegate.h"
+#import <ReactNativeMoEngage/MoEngageInitializer.h>
+#import <MoEngageSDK/MoEngageSDK.h>
+
+#if RCT_NEW_ARCH_ENABLED
+// React Native new architecture imports
+#endif
+```
+
+</CodeGroup>
+
+# iOS - プラグインのアップグレード後に ReactNativeMoEngage ヘッダーが見つからないのはなぜですか？
+
+プラグインのアップグレード後に `'ReactNativeMoEngage/MoEngageInitializer.h' file not found` などのエラーが発生する一般的な原因は 2 つあります。
+
+- **プラグインのバージョン間でヘッダー名が変更された。** 古いプラグインバージョンでは `MOReactInitializer.h` を使用し、現在のバージョンでは `MoEngageInitializer.h` を使用します。`ios/YourApp/AppDelegate.m` または `AppDelegate.mm` のインポートを、インストールしたバージョンに合わせて更新してください。現在のインポートと初期化のコードについては、[iOS の初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/ios)を参照してください。
+- **ターゲットがヘッダーパスを解決できない。** `ReactNativeMoEngage` ターゲットの **Build Settings** で、**Header Search Paths** と **Library Search Paths** の両方に `$(inherited)` が含まれていることを確認し、ターゲットが CocoaPods によって生成されたパスを取得できるようにします。また、`pod install` を実行した後に、`ReactNativeMoEngage` Pod が `Pods` プロジェクトに表示されていることを確認してください。Pod が見つからない場合、インストール時にプラグインがリンクされていません。
+
+アップグレード後にプラグインを再リンクするには、プロジェクトのルートから次のコマンドを実行します。
+
+<CodeGroup>
+
+```shellscript Shell
+rm -rf ios/Pods ios/Podfile.lock
+npm install
+cd ios && pod install --repo-update
+```
+
+</CodeGroup>
+
+その後、Xcode でビルドフォルダをクリーンアップして、再度ビルドします。

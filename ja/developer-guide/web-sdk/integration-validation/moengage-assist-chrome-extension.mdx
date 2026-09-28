@@ -1,0 +1,219 @@
+---
+title: "MoEngage Assist Chrome 拡張機能"
+description: "MoEngage Assist Chrome 拡張機能をインストールして、Web SDK の統合のデバッグ、ライブイベントペイロードの検査、キャンペーンのトラブルシューティングを行います。"
+---
+
+# 概要
+
+MoEngage Assist Chrome 拡張機能は、開発者やマーケターが MoEngage Web SDK の統合と実装を監視し、トラブルシューティングできるように設計された専用のデバッグツールです。この拡張機能をインストールすると、ブラウザから直接 Web SDK の統合を検証およびデバッグできます。
+
+<Warning>
+ Web Assist の完全な互換性と機能を確保するには、Web SDK バージョン [2.74.00](/ja/release-notes/sdks/web#7th-may-2026) 以降が必要です。
+</Warning>
+
+この拡張機能を使用すると、次のことができます。
+
+- Service Worker の登録を確認する。
+- プッシュトークンの生成を確認する。
+- イベントのトラッキングをリアルタイムで検査する。
+- 実装上の問題をトラブルシューティングおよびデバッグする。
+- キャンペーンと関連機能にアクセスする。
+
+# インストール手順
+
+1. [Chrome ウェブストア](https://chromewebstore.google.com/)に移動します。
+2. [_MoEngage Assist_](https://chromewebstore.google.com/detail/dhggnkfnnoebbfofpimfehcklnekmbgi?utm_source=item-share-cb) を検索します。
+3. **Add to Chrome** を選択して拡張機能をインストールします。
+4. すばやくアクセスできるよう、拡張機能をブラウザのツールバーにピン留めします。
+
+<Info>
+   アクティブな Web ページに MoEngage Web SDK がインストールされていない場合、拡張機能には「SDK not found」の状態が表示されます。Web SDK の統合の詳細については、[Web SDK の統合](https://www.MoEngage.com/docs/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)を参照してください。
+</Info>
+
+# 拡張機能のタブ
+
+Web SDK が正常に統合されると、拡張機能は以下の 4 つのタブに運用データを表示します。
+
+## Issues
+
+**Issues** タブには、早急な対応が必要な重大な統合エラーや設定エラーが表示されます。
+
+表示されるエラーを並べ替えるには、**Filter by issue category** ドロップダウンメニューを使用します。カテゴリは次のとおりです。
+
+- **Setup:** 基本的な設定エラーを表示します (例: HTTP モードでの Web Push の失敗、Service Worker ファイルの欠落、ポリフィルが必要なサポート対象外の Promise など)。
+- **Track:** データ収集の異常を特定します (例: 属性値として空のオブジェクトを渡している、属性文字列が欠落している、通知タイトルが空白であるなど)。
+- **Info:** キャンペーン配信のエラーを示します (例: 受信されていない、または削除されたカード ID をトラッキングしようとしているなど)。
+
+各問題のカードには、状況に応じた情報と、解決方法のガイダンスを示す _Learn More_ リンクが表示されます。
+
+## Setup Info
+
+MoEngage ワークスペースの基本的な設定と環境の詳細を、ブラウザから直接検証できます。**Setup Info** タブには、Web SDK の実装の包括的な概要が、以下のセクションに分けて表示されます。
+
+<Frame>
+  ![Setupinfo](/images/Setupinfo.gif)
+</Frame>
+
+<Tabs>
+  <Tab title="基本情報">
+    ワークスペースの主要なメタデータと設定ステータスを表示します。これには以下が含まれます。
+
+    - **Data center:** データがホストされているリージョン。
+    - **App ID:** ワークスペースの一意の識別子。
+    - **Multi ID enabled:** Multi-ID トラッキング機能が有効かどうかを示します。
+    - **SPA mode enabled:** シングルページアプリケーションのトラッキングが有効かどうかを示します。
+    - **Shopify:** MoEngage が Shopify の Web サイトに統合されているかどうかを示します。
+    - **Billing type:** 有効なサブスクリプションモデル (_Subscriber based billing_) を示します。
+    - **Is sub domain shared?:** 設定が共有サブドメインをサポートしているかどうかを示します。
+    - **Settings last fetched:** 直近の SDK 設定の同期の相対的なタイムスタンプを表示します (例: _Just now_)。
+  </Tab>
+  <Tab title="Service Worker">
+    Web Push 通知の配信に不可欠な Service Worker の登録状況と動作状況を示します。
+
+    - **Status:** 現在の登録状態を示します (例: _Registered_)。
+    - **Service worker file:** Service Worker スクリプトがホストされている、定義済みのファイルパス。
+    - **Scope:** Service Worker が制御する URL ドメインのスコープを定義します。
+  </Tab>
+  <Tab title="Web Push オプトインの設定">
+    Web Push のプロンプトに関する具体的な設定と、現在のユーザーの許可状態の詳細を示します。
+
+    - **Opt-in type:** 設定されているプロンプトのフロー (例: _2-step_)。
+    - **Soft ask:** カスタムのブラウザプロンプトに対するユーザーの操作状況。
+    - **Hard ask:** ネイティブのブラウザ許可プロンプトに対するユーザーの操作状況。
+    - **Push token:** ユーザーが正常にサブスクライブしている場合、有効なデバイスのプッシュトークンを表示します。
+  </Tab>
+</Tabs>
+
+## Track
+
+**Track** タブでは、リアルタイムのデータ収集ペイロードを監視し、アクティブなセッションのイベントストリームを検証します。このタブは次の 2 つのサブタブに分かれています。
+
+- **Event**
+- **User**
+
+<Tabs>
+  <Tab title="Event">
+    現在のページでトラッキングされているライブの行動イベントとシステムイベントを監視します。
+
+    <Frame>
+      <img
+        src="/images/Trackpageview.gif"
+        alt="Trackpageview"
+        title="Trackpageview"
+        style={{ width:"47%" }}
+      />
+    </Frame>
+
+    - **検索とフィルター:** 専用の検索バーを使用して、特定のイベント名や属性でライブストリームをすばやくフィルタリングできます。
+    - **ステータスインジケーター:** 正常に取得されたイベントペイロードには、イベント名の横に緑色の **Tracked** バッジが表示されます。
+    - **ペイロードの検証:** トラッキングされたイベントを選択すると、そのペイロードが展開され、基になるキーと値のペアを検査できます。特定のイベントタイプ (On-site Messaging のインタラクションやページビューなど) に応じて、以下のような詳細なパラメーターを検証できます。
+      - **キャンペーンのメタデータ:** campaign\_id、campaign\_name、cid などの識別子。
+      - **実行プロパティ:** Variation ID、Locale Name、Locale ID、ターゲットとなる Campaign Tags などの設定の詳細。
+      - **ユーザーコンテキスト:** Logged In Status、First Visit、アクティブな URL など、イベント発生時に評価されたセッション固有のブール値と文字列。
+
+    **注意:** テスト中は関連するイベントを必ず展開し、カスタム属性とキャンペーンのトラッキング識別子が MoEngage のバックエンドに正しく渡されていることを確認してください。
+  </Tab>
+  <Tab title="User">
+    現在の Web ページにおけるアクティブなユーザーの包括的なセッションメタデータ、ID 解決の詳細、およびカスタム特性を表示します。
+
+    <Warning>
+      ローカルストレージを手動でクリアすると、MoEngage SDK のセッションがリセットされ、イベントのトラッキングが中断されます。localStorage をクリアする前に、必ず logoutUser() メソッドを使用してください。
+    </Warning>
+
+    <Frame>
+      <img
+        src="/images/Trackusergif.gif"
+        alt="Trackusergif"
+        title="Trackusergif"
+        style={{ width:"49%" }}
+      />
+    </Frame>
+
+    - **User identity:** MoEngage エコシステム内でユーザーに関連付けられているすべての識別情報を示します。
+    - **Device connection:** 接続されているデバイスとブラウザの詳細情報を表示します。
+      - **Device UID:** 現在のデバイスまたはブラウザインスタンスに対して生成された、一意の暗号化識別子。
+      - **Device added:** デバイスが MoEngage のバックエンドに正常に登録されているかどうかを確認します (例: _Yes_)。
+    - **Session details:** ユーザーのアクティブな閲覧期間に関する時間的および順序的なデータを提供します。
+      - **Session ID:** 現在のアクティブなセッションを表す一意の英数字の文字列。
+      - **Number of sessions:** 特定のデバイスにおける特定のユーザーに関連付けられたセッションの累計数 (例: _93_)。
+      - **Session started on:** 現在のセッションが開始された正確なローカルタイムスタンプ。
+      - **Session expires on:** 非アクティブ状態により現在のセッションが自動的に終了する予定のタイムスタンプ。
+    - **User attributes:** ユーザープロファイルに割り当てられた特定のユーザー属性を表示する折りたたみ可能なリスト。正常に記録された属性には、属性キーと、それに対応するマスクされた値またはマスクされていない値の横に、緑色の **Tracked** バッジが表示されます。
+  </Tab>
+</Tabs>
+
+## **Campaign**
+
+**Campaign** タブでは、現在のユーザーセッションを対象とするアクティブなキャンペーンをデバッグおよび検査できます。キャンペーンはチャネルタイプ別に分類されています。
+
+- OSM (On-Site Messaging)
+- Web Personalization
+- Cards
+
+**キャンペーンリスト:** キャンペーン名、ID、トリガー回数を示す、アクティブなキャンペーンの検索可能な一覧を提供します。**キャンペーンのプロパティ:** 特定のキャンペーンを選択すると、以下を含む包括的な実行の詳細が表示されます。
+
+- ステータス、テンプレートタイプ (例: POP\_UP)、有効期限、更新日時。
+- 優先度と動作の設定 (例: blocking、scrollable、sticky)。
+- キャンペーンの完全なペイロード。詳細な分析のために、クリップボードに直接コピーできます。
+  <Frame>
+    <img
+      src="/images/campaigntab.png"
+      alt="Campaigntab"
+      title="Campaigntab"
+      style={{ width:"27%" }}
+    />
+  </Frame>
+
+**キャンペーンの詳細**
+
+特定のキャンペーンカードを選択すると、詳細な分析ビューに移動します。この展開されたビューには、包括的な実行パラメーターと動作の設定が、以下のセクションに分けて表示されます。
+
+<Info>
+  - Campaign details パネル内の **View in Dashboard** リンクを選択すると、MoEngage ワークスペース内で特定のキャンペーンの設定を直接開くことができます。
+  - Web SDK の実装に特定のモジュールや機能が統合されていない場合、MoEngage Assist はトラブルシューティングに役立つ説明的なエラー状態を表示します。たとえば、OSM モジュールが欠落している場合、拡張機能には次のように表示されます: _"OSM not integrated. To start seeing campaigns, please integrate the OSM module on your website."_
+</Info>
+
+- **Campaign status:** 現在の適格性と配信メトリクスをトラッキングします。
+  - ページの適格性 (Page eligibility) と表示ステータス (Display status) を検証します。
+  - 現在の読み込みにおけるページビューのインプレッション合計と、累計インプレッションを表示します。
+    <Frame>
+      <img
+        src="/images/campaign-status.png"
+        alt="キャンペーンステータス"
+        title="キャンペーンステータス"
+        style={{ width:"39%" }}
+      />
+    </Frame>
+- **Campaign properties:** キャンペーンのセットアップで定義された主要な構造の設定とレンダリングの動作を示します。
+  - **メタデータ:** テンプレートタイプ (例: POP\_UP)、有効期限、更新日時、優先度が含まれます。
+  - **レンダリングルール:** Max show count、Auto dismiss after、Delay between same campaign、Blocking、Scrollable、Sticky フラグなど、具体的な UI/UX の制約の詳細を示します。
+    <Frame>
+      <img
+        src="/images/campaignproperties.gif"
+        alt="Campaignproperties"
+        title="Campaignproperties"
+        style={{ width:"31%" }}
+      />
+    </Frame>
+- **Trigger actions:** キャンペーンを実行するために必要な具体的な行動条件の詳細を示します。
+  - 評価されたプライマリイベント (例: MOE\_PAGE\_EXIT) を特定し、そのトリガーステータスを確認します。
+  - ルールの説明と、設定されたトリガーの遅延 (例: _Immediately_) を表示します。
+    <Frame>
+      <img
+        src="/images/Triggeractions.png"
+        alt="Triggeractions"
+        title="Triggeractions"
+        style={{ width:"54%" }}
+      />
+    </Frame>
+- **Frequency capping:** キャンペーン疲れを防ぐために設定された、グローバルおよびページレベルの制限を表示します。
+  - **ルール:** すべてのキャンペーンの最大表示回数 (例: _Max 3 Per day_) と、特定のページ読み込みに関する制約を示します。
+  - **デバイスのフリークエンシーデータ:** このセクションを展開すると、設定されたルールに対する特定のデバイスの実行回数を確認できます。直近 1 時間 (LH) と当日 (Date) の消費量の内訳が表示されます。
+    <Frame>
+      <img
+        src="/images/Frequency-capping.gif"
+        alt="フリークエンシーキャップ"
+        title="フリークエンシーキャップ"
+        style={{ width:"51%" }}
+      />
+    </Frame>

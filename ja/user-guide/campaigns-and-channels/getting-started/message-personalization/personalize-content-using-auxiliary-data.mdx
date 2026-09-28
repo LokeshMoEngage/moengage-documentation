@@ -1,0 +1,84 @@
+---
+title: "Auxiliary Data を使用したコンテンツのパーソナライズ"
+description: "Auxiliary Data ファイルをインポートし、機密性の高いユーザー情報を保存せずに MoEngage キャンペーンをパーソナライズします。銀行や金融のユースケースに最適です。"
+---
+
+# 概要
+
+<Tip>
+Auxiliary Data の利用を開始する前に、Auxiliary Data ファイルを設定する必要があります。詳細については、[Auxiliary Data](/ja/user-guide/data/imports/auxiliary-data) を参照してください。
+</Tip>
+
+パーソナライゼーションエディターで Auxiliary Data 属性を選択することで、Auxiliary Data を使用してキャンペーンコンテンツをパーソナライズできます。
+
+# Auxiliary Data を使用したパーソナライゼーションをサポートするチャネル
+
+| チャネル | パーソナライゼーションのサポート |
+| --- | --- |
+| Push | Yes |
+| Email | Yes |
+| SMS | Yes |
+| In-app Messaging | Yes |
+| On-site Messaging | Yes |
+| Cards | Yes |
+| Connector | Yes |
+| WhatsApp | Yes |
+| Facebook Audience | No |
+| Google Ads Audience | No |
+
+<Info>
+Auxiliary Data は、MoEngage キャンペーンのすべてのエディターでサポートされています。この記事では、メールキャンペーンを例に、Auxiliary Data を使用してコンテンツをパーソナライズする方法を説明します。
+</Info>
+
+# Auxiliary Data を使用したパーソナライズされたコンテンツの例
+
+銀行は多くの場合、クレジットカードの利用明細や請求サイクルの支払額について顧客にメールを送信します。*Auxiliary Data* 機能を使用すると、銀行は機密性の高い顧客情報を MoEngage に保存する必要がありません。ユーザー名、ID、名、クレジットカード番号の下 4 桁、支払額を含む Auxiliary Data ファイルをインポートして、顧客にキャンペーンを送信できます。
+
+次の例は、銀行がユーザーに送信した、Auxiliary Data を使用したパーソナライズされたメールのプレビューです。
+
+<img alt="Email.png"  src="/images/moengage_30be01.png"  />
+
+# サンプルインポートファイル
+
+**ファイル名: aux\_data\_cc\_due\_info\_list**
+
+|  |  |  |  |  |
+| --- | --- | --- | --- | --- |
+| User\_ID | First\_Name | Last\_Name | Last\_4\_Digits\_of\_CC | Amount\_Due |
+| JohnDoe | John | Doe | 1234 | 4318 |
+| JaneDoe | Jane | Doe | 5678 | 5617 |
+
+# Auxiliary Data を使用したキャンペーンコンテンツのパーソナライズ
+
+このセクションでは、メールキャンペーンを例に、この Auxiliary Data を使用してキャンペーンコンテンツをパーソナライズする方法を説明します。
+
+1. Auxiliary Data ファイルを MoEngage にインポートします。たとえば、サンプルインポートファイルの名前は **aux\_data\_cc\_due\_info\_list** です。詳細については、[Auxiliary Data のインポート](/ja/user-guide/data/imports/auxiliary-data)を参照してください。
+2. ファイルをインポートした後、メールキャンペーンを作成します。詳細については、[メールキャンペーンの作成](/ja/user-guide/campaigns-and-channels/email/create/create-an-email-campaign)を参照してください。
+3. ステップ 1 の "Target users" で、目的のキャンペーン名、コントロールグループ、ターゲットオーディエンスを使用してキャンペーンを設定します。
+4. ステップ 2 の "Content" で、**Custom HTML editor** タブをクリックし、テンプレートを選択します。
+5. **Sender Details** セクションで、**Sender Name**、**Preview Text**、**From email address**、**Reply-to mail address**、**Subject** の各フィールドを設定します。必要に応じて CC と Bcc を追加します。
+6. 必要に応じて、**Subject** フィールドと **Sender Name** フィールドをパーソナライズします。
+7. **Template editor** ボックスで、必要に応じてキャンペーンのコンテンツを追加します。
+8. インポートした Auxiliary Data ファイルから属性を追加するには、*@* と入力します。
+9. Email Personalization ポップアップウィンドウで、**Aux Data** タブをクリックします。
+10. **Aux data** リストで、必要な Auxiliary Data ファイルをクリックします。この例では、インポートした Auxiliary Data ファイル **aux\_data\_cc\_due\_info\_list** をクリックします。
+11. **Lookup value** リストで、インポート時にマッピングされた一意のユーザー識別子を検索して選択します。この例では、*ID* がインポートファイルの *User\_ID* フィールドにマッピングされる一意の識別子になります。
+12. **Attribute** リストで、パーソナライゼーションに使用する Auxiliary Data 属性をクリックします。たとえば、各ユーザーの支払額をパーソナライズするには、*Amount\_Due* 属性を選択します。
+13. **Done** をクリックします。次に示すように、Auxiliary Data の JINJA がフィールドまたはエディターに追加されます。  
+     <img alt="Personalization_using_Aux_Data.gif" src="/images/moengage_986863.png" />   
+    メールコンテンツのサンプルは次のとおりです。  
+    Dear `{% set aux_data_cc_due_info_listData = UserAttribute['uid']|getAuxData('aux_data_cc_due_info_list') %}``{{aux_data_cc_due_info_listData.First_Name|default('User')}}`,  
+      
+    Your credit card statement for the card number ending with `{% set aux_data_cc_due_info_listData = UserAttribute['uid']|getAuxData('aux_data_cc_due_info_list') %}``{{aux_data_cc_due_info_listData.Last_4_Digits_of_CC}}` is here.  
+      
+    Amount Due: `{% set aux_data_cc_due_info_listData = UserAttribute['uid']|getAuxData('aux_data_cc_due_info_list') %}``{{aux_data_cc_due_info_listData.Amount_Due}}`  
+      
+    View or download the attachment for the detailed statement.
+14. 特定のユーザーに対してパーソナライズされたメッセージがどのように表示されるかを確認したい場合は、プレビューできます。
+    1. **Template editor** の右上セクションで、**Preview** をクリックします。次に示すようにプレビュー画面が表示されます。  
+        <img alt="Aux Preview.gif" src="/images/moengage_6b7f17.png" />
+    2. **Personalized preview** タブをクリックします。
+    3. **Select user by** リストで、ユーザーのフィルターをクリックします。たとえば、ID です。
+    4. **User identifier value** ボックスに、ユーザーの一意の識別子を入力します。
+    5. **Fetch user data** をクリックしてから、**Refresh** をクリックします。パーソナライズされたメッセージのプレビューを確認できます。
+15. コンテンツのカスタマイズとパーソナライズが完了したら、ステップ 3 の "Schedule and goals" でキャンペーンの配信スケジュール情報を追加し、**Publish** をクリックしてターゲットセグメントにキャンペーンを送信します。

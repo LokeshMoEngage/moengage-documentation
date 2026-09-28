@@ -1,0 +1,122 @@
+---
+title: "プッシュ通知の更新"
+description: "同じキーで更新を送信することで通知ドロワー内の既存のプッシュ通知を置き換え、コンテンツを最新の状態に保ちながら煩雑さを軽減します。"
+keywords: ["notification update", "replace notification", "update existing notification", "same notification key", "overwrite notification", "notification drawer refresh"]
+---
+
+# 概要
+
+*Notification Update* 機能は、同じ *Update key* を持つ新しい通知を送信することで、ユーザーの通知ドロワー内の既存のプッシュ通知を更新します。この機能により、通知の関連性を保ち、煩雑さを防ぐことができます。
+
+# ユースケース
+
+この機能の主なユースケースは次のとおりです。
+
+- **注文の追跡**: 注文 ID を使用して最初の発送確認メッセージを上書きし、荷物の最新の配送状況をユーザーに通知します。
+- **E コマース**: ユーザーが併用できない複数のオファーの対象となっている場合、選択キーを使用できます。これにより、ユーザーには一度に 1 つの関連オファーのみが表示されるため、混乱を防ぎ、スムーズでわかりやすいショッピングエクスペリエンスを実現できます。
+- **メディアとエンターテインメント**: 最初の通知の後に、速報ニュースのアラートを確認済みの最新の詳細で更新できます。
+- **旅行とホスピタリティ**: 最初の搭乗リマインダー通知内で、フライトのゲート変更情報を直接更新できます。詳細については、[こちら](#example)を参照してください。
+- **ゲーム**: 最初のイベントリマインダーを上書きして、予定外のサーバーメンテナンスの更新をプレイヤーに通知します。
+
+# 通知の更新の仕組み
+
+<Tip>
+- Android デバイスで *Notification Update* 機能を使用するには、MoEngage Android SDK バージョン 14.00.00 以降を使用し、SDK の初期化時に `isMultipleNotificationInDrawerEnabled` が *true* に設定されていることを確認してください。
+- *Notification Update* 機能を使用するには、MoEngage iOS SDK バージョン 9.24.0 以降を使用していることを確認してください。
+</Tip>
+
+プッシュ通知を更新するには、次の手順を実行します。
+
+1. [Push キャンペーン作成](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns)の 2 番目のステップである **Content** で、**Advanced** タブを展開します。
+2. **Advanced** セクションの **Update key** フィールドに、一意の文字列値を入力します。
+   - このフィールドには 1 つの文字列を入力できます。
+   - パーソナライゼーションをサポートしています。
+   - MoEngage は、更新キーが 45 文字の制限を超えないように自動的に変更します。ラテン文字以外の文字、特殊文字、スペースを削除し、キーを ASCII 文字のみで構成されるようにします。
+   - この更新 ID は、関連するプッシュ通知を識別して更新するために使用されます。互いに更新し合うことを意図したすべてのプッシュ通知で、同じ更新 ID を使用してください。
+3. Push キャンペーン作成プロセスの残りのステップを完了し、キャンペーンを送信します。
+
+## 例
+
+*MoEngage Travels* という新しいアプリの Push キャンペーンを作成します。このアプリでは、ロンドン国際空港から出発する乗客に送信した最初の搭乗リマインダー通知内で、フライトのゲート情報を直接更新するプッシュ通知を送信したいと考えています。
+
+**シナリオ（フライト LH456 の出発）:**
+
+- 最初の搭乗リマインダー（出発 2 時間前に送信）:
+  - **Content**: *Reminder: Your flight LH456 to London departs at 3:00 PM from Gate D7. Please proceed to the gate.*
+  - **Update key**: flightlh456update
+- ゲート変更の更新（出発 1 時間前に送信）:
+  - **Content**: *Important Update: The departure gate for your flight LH456 to London has changed to Gate C2. Please proceed to the new gate.*
+  - **Update key**: flightlh456update
+
+### 結果
+
+MoEngage Travels アプリの Push キャンペーンにより、最初の搭乗リマインダー通知がフライト LH 456 の新しいゲート情報で正常に更新されました。同じ更新キー（flightlh456update）を使用することで、ゲート変更メッセージが最初の通知を更新し、乗客は重複なく正確でタイムリーな更新情報を受け取ることができます。
+
+| Android | iOS |
+| --- | --- |
+| <img alt="updateandroid.gif" src="/images/moengage_9e18ab.png" /> | <img alt="updateiOS.gif" src="/images/moengage_445fe5.png" /> |
+
+# デバイス上での動作
+
+## Android の場合
+
+- 更新の動作:
+  - 既存の通知（A）と同じ更新キーを持つ新しい通知（B）が届いた場合、B の送信時刻が A の送信時刻より後であれば、B が A を置き換えます。それ以外の場合、B は破棄されます。
+  - 同じ更新キーを持つ 2 つの通知が同時に届いた場合、最新の通知のみが表示されます。
+- *Notification Received* イベント: 更新キーの値が **Update Key** という名前のイベント属性として表示されます。
+- ユーザーエクスペリエンス:
+  - 通知が更新される際に、わずかなちらつきが発生する場合があります。
+  - 通知サウンド、アラート、チャネル設定は変更されません。
+  - Push Notification Center または Self-Handled Notification Center では通知は置き換えられませんが、更新キーと送信時刻はペイロードに含まれます。
+  - 通知の更新は、[Notification Grouping](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/push-notification-grouping) とは独立して動作します。
+
+## iOS の場合
+
+- 更新の動作: iOS は同じ更新キーを持つ通知を更新します。
+- *Notification Received* イベント: 更新キーの値が **Update Key** という名前のイベント属性として表示されます。
+- Push Notification Center または Self-Handled Notification Center では通知は置き換えられませんが、更新キーはペイロードに含まれます。
+- 通知の更新は、[Notification Grouping](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/push-notification-grouping) とは独立して動作します。
+
+# よくある質問
+
+<Accordion title="通知を置き換えると分析に影響しますか？">
+
+いいえ、通知を置き換えても分析には影響しません。置き換えられた通知のインプレッションは引き続きカウントされ、置き換えられた通知のクリックは最新のキャンペーンに帰属します。
+
+</Accordion>
+<Accordion title="Push 受信トレイ内の通知を置き換えることはできますか？">
+
+いいえ。Push 受信トレイと Self-handled 受信トレイはすべての通知を保持しますが、更新キーはペイロードに含まれます。
+
+</Accordion>
+<Accordion title="通知の更新はサウンドやアラートに影響しますか？">
+
+更新キーは、通知サウンド、アラート、チャネル設定には影響しません。
+
+</Accordion>
+<Accordion title="通知を更新するには特別な権限が必要ですか？">
+
+いいえ。通知の更新は標準のキャンペーン作成プロセスの一部であり、追加の権限は必要ありません。
+
+</Accordion>
+<Accordion title="通知の更新はキャンペーンのインタラクションに影響しますか？">
+
+はい。通知が置き換えられると、未配信の通知は FCM/APNS によって破棄されるため、キャンペーンのインプレッションが減少する可能性があります。ユーザーには一度に 1 件の通知のみが表示されるため、クリック数が減少する可能性があります。
+
+</Accordion>
+<Accordion title="すべての Push テンプレートで Notification Update 機能はサポートされていますか？">
+
+はい、*Notification Update* 機能はすべての Push テンプレートと互換性があります。たとえば、*Timer* テンプレートを使用する通知で、*Image Banner* テンプレートを使用する通知を置き換えることができます。
+
+</Accordion>
+<Accordion title="2 つのキャンペーンで異なる更新キーを使用したのに、通知ドロワーに通知が 1 件しか表示されないのはなぜですか？">
+
+これは、`isMultipleNotificationInDrawerEnabled` 設定が false に設定されているためです。この場合、グループキーや更新キーの設定に関係なく、最新の通知が以前の通知を置き換え、1 件の通知のみが表示されます。
+
+</Accordion>
+# ベストプラクティス
+
+- 意図しない通知の更新を防ぐため、一意の更新キーを使用してください。
+- 通知が期待どおりに動作することを確認するため、Push キャンペーンを開始する前にテストしてください。
+- 分析をモニタリングして、通知のパフォーマンスを追跡してください。
+- 通知のグループ化と組み合わせて、より整理されたユーザーエクスペリエンスを実現してください。

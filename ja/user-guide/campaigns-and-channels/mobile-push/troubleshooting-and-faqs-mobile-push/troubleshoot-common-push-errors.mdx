@@ -1,0 +1,78 @@
+---
+title: "一般的なプッシュエラーのトラブルシューティング"
+description: "期限切れのトークン、FCM、APNS、HMS の失敗など、一般的なプッシュ通知配信エラーとその原因および解決策をまとめたリファレンスガイドです。"
+keywords: ["push error codes", "delivery error reference", "expired token", "FCM errors", "APNS errors", "HMS errors", "internal errors", "platform errors"]
+---
+
+プッシュ通知の配信は、期限切れのトークンや大きすぎるメッセージなど、いくつかの要因によって失敗することがあります。このドキュメントでは、最も一般的なエラーとその原因について説明します。
+
+# 内部エラー
+
+内部システムでは、すべてのプラットフォームに送信されるプッシュ通知に影響するいくつかのエラーが生成されます。
+
+| エラー/代替エラー | 説明 | 対処法 |
+| --- | --- | --- |
+| MOE\_PFR Personalization Failed | このエラーは、プッシュのパーソナライゼーションが失敗し、フォールバックメッセージが定義されていない場合に発生します。システムはユーザーに通知を送信せず、Personalization Failed エラーとなります。 | すべてのユーザーが必要なパーソナライズ属性をすべて持っていることを確認してください。 |
+| Removed due to Minimum Delay | このエラーは、キャンペーンの最小遅延により、ユーザーが通知の受信対象から除外された場合に発生します。 | **Settings** \> **Deliverycontrols** \> **Minimum delay** で設定されている最小遅延を確認してください。 |
+| Not sent due to campaign level min delay | このエラーは、キャンペーンの最小遅延により、ユーザーが通知の受信対象から除外された場合に発生します。 | キャンペーンで設定されている最小遅延を確認してください。**Schedule and goals** \> **Delivery controls** \> **Minimum delay between two notifications** に移動して、キャンペーンで設定されている最小遅延を確認します。 |
+| Rejected because of DND | このエラーは、キャンペーンで設定された DND によりキャンペーンが拒否された場合に発生します。 | **Settings** \> **Delivery control** \> **Do not disturb** に移動して、Do Not Disturb モードがオンになっているかを確認してください。 |
+| Timer Duration Exceeded Limit | このエラーは、Timer テンプレートの期間が 12 時間を超えた場合に発生します。 | Timer テンプレートの期間が 12 時間未満であることを確認してください。 |
+| Removal of duplicate tokens | このエラーは、システムがユーザーのデバイスに関連付けられた重複するプッシュ通知トークンを特定して削除したことを示します。 | 対応は不要です。これは想定どおりの動作です。 |
+| Timer Duration Less Than 15 Minutes | このエラーは、Timer テンプレートの期間が 15 分未満の場合に発生します。 | Timer テンプレートの期間が 15 分を超えていることを確認してください。 |
+| Users removed due to Global Control Group | Global Control Group によりユーザーが除外されました。 | **Global Control Group** のトグルがオフになっていることを確認してください。 |
+| Users removed due to Campaign Control Group | Campaign Control Group によりユーザーが除外されました。 | **Campaign Control Group** のトグルがオフになっていることを確認してください。 |
+| Users removed due to campaign frequency limit | キャンペーンの **Limit Message** 設定で許可されている最大数のメッセージをすでに受信していたため、ユーザーが除外されました。 | 除外が意図しないものである場合は、キャンペーンの配信設定で **Limit Message** を見直すか無効にしてください。詳細については、[定期キャンペーンおよびトリガーキャンペーンのメッセージ制限](/ja/user-guide/settings/channels/delivery-controls/limit-messages-for-periodic-and-triggered-campaigns)を参照してください。 |
+
+# プラットフォームエラー
+
+MoEngage は、Android と iOS の通知をそれぞれ FCM と APNS サービスを使用して送信します。これらのサービスの使用中にエラーが発生した場合、通知が送信されないことがあります。参考として、一般的なエラーの一覧を以下に示します。
+
+<Warning>
+  - MoEngage は、FCM と APNS が返すレスポンスからプラットフォームエラーを取得します。
+  - FCM と APNS は不正確な原因を返すことがあるため、報告されたエラーが実際の問題を特定しているとは限りません。
+  - プラットフォームエラーは、確定的な診断としてではなく、統合の健全性を示す指標として使用してください。
+  - アプリビルドで異なる FCM 認証情報を使用しており認証情報の不一致が生じている場合、同じエラーがあるユーザーには影響し、別のユーザーには影響しないことがあります。
+</Warning>
+
+1. [Android - FCM/HMS](#android-firebase-cloud-messaging-fcm-and-huawei-messaging-service-hms-errors)
+2. [iOS](#ios-apple-push-notification-service-errors)
+
+## Android -  Firebase Cloud Messaging(FCM) and Huawei Messaging Service (HMS) Errors
+
+| エラー/代替エラー | 説明 | 対処法 |
+| --- | --- | --- |
+| Invalid Registration  <br />別名: <ul><li>InvalidRegistration</li></ul> | このエラーは、登録時に無効な FCM プッシュトークンが送信された場合に発生します。 | コードの実装を見直し、MoEPushKitHelper.getInstance().passPushToken() および MoEFirebase.getInstance().passPushToken() メソッドに渡されるトークンが正確であることを確認してください。 |
+| Not Registered    <br />別名: <ul><li>NotRegistered</li><li>Requested entity was not found</li><li>Theregistrationtokenis notavalidFCMregistrationtoken</li></ul> | このエラーは、次の理由により登録トークンが無効になった場合に発生します。 <ul><li>**トークンの有効期限切れ**: Google が登録トークンを更新し、古いトークンが無効になることがあります。</li><li>**アプリのアンインストール**: アプリケーションがデバイスから削除されています。</li></ul> | 古いトークンの有効期限が切れた場合、新しいトークンは Firebase または HMS サービスクラス（またはこのクラスを継承したクラス）の onNewToken() に渡されます。受け取ったトークンを、それぞれの MoEngage モジュール API（HMS トークンの場合は MoEPushKitHelper.getInstance().passPushToken()、Firebase トークンの場合は MoEFirebase.getInstance().passPushToken()）に渡してください。 <ul><li>FCM/HMS の統合を検証し、トークン登録とメッセージレシーバーが適切に設定されていることを確認してください。</li><li>ユーザーがアプリをアンインストールした場合、そのユーザーは NotRegistered としてマークされます。これは有効なシナリオとみなされます。</li></ul> |
+| FCM Message rate exceeded  <br />別名: <ul><li>Quotaexceededforquotametric</li><li>FCMMessagerateexceeded</li><li>Resourcehasbeenexhausted (egcheckquota)</li></ul> | この Firebase Cloud Messaging (FCM) エラーは、送信メッセージの量がアカウントのサービス容量を超えた場合に発生します。受信メッセージレートを管理するため、この容量を超えるリクエストは拒否されます。この状況は通常、多数のキャンペーンが同時に高速で開始された場合に発生します。 | FCM エラーを減らすには、次の対応を行います。 <ul><li>キャンペーンの送信速度を下げる。</li><li>ワンタイムキャンペーンと定期キャンペーンの間隔を空ける。</li><li>FCM にレート制限の引き上げをリクエストする。   <br />詳細については、[FCM 認証](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)を参照してください。</li></ul> |
+| FirebaseCloudMessaging  <br />別名: <ul><li>APIhasnotbeenusedinproject</li><li>FirebaseCloudMessaging</li></ul> | このエラーは、使用している FCM プロジェクトに Cloud Messaging へのアクセス権がない場合に発生します。 | Firebase プロジェクト/Google Cloud プロジェクトで Firebase Messaging / Google Cloud Messaging が有効になっているかを確認してください。FCM コンソールで、Firebase Cloud Services とは別に Firebase Cloud Messaging を有効にする必要がある場合があります。 |
+| Mismatch Sender Id  <br />別名: <ul><li>MismatchSenderId</li><li>SenderIdmismatch</li></ul> | このエラーは、登録された Sender ID が MoEngage に提供された Sender ID と一致しない場合に発生します。 | アプリのコードに追加された google-services.json ファイルと、MoEngage ダッシュボードに追加された service-account.json ファイルが、異なる 2 つの Firebase プロジェクトのものになっています。ファイル（アプリに追加された google-services.json と MoEngage コンソールに追加された service-account.json）が同じ Firebase プロジェクトのものであることを確認してください。 |
+| Message Too Big  <br />別名: <ul><li>Androidmessageistoobig</li><li>MessageTooBig</li><li>Requestcontainsaninvalidargument</li></ul> | このエラーは、メッセージペイロードのサイズ制限を超えた場合に発生します。 | Firebase Messaging には、メッセージサイズとキーと値のペア/ペイロードサイズに制限があります。ペイロードサイズを減らしてください（文字数制限 - 1000 文字、ペイロードサイズ制限 - 4096 バイト/4KB）。API からペイロードを送信する場合は、適切なキーがペイロードに追加されていることを確認してください。 |
+| Invalid FCM Auth Key  <br />別名: <ul><li>GCM AUTHENTICATION EXCEPTION</li><li>INVALID\_SERVER\_CREDS</li><li>GCMAuthenticationException</li><li>Authenticationbackendunknownerror</li><li>There is an error with your authentication</li></ul> | このエラーは、FCM 用にアップロードされた認証キーが無効または期限切れの場合に発生します。 | [FCM 認証](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)のドキュメントに記載されている手順に従って、新しいキーを生成してください。 |
+| Device Message Rate Exceeded | このエラーは、アカウント/プロジェクトへのメッセージレートが、デフォルトのレート制限である 1 分あたり 600,000 リクエストを超えた場合に発生します。 | キャンペーンの送信速度を下げるか、FCM でクォータを引き上げる必要があります。詳細については、[FCM 認証](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)を参照してください。 |
+| Push Amplification™ Plus targets were invalid | 通知の送信時に、Push Amplification™ Plus のトークンが無効であるか、見つかりません。 | PushAmp\+ の統合が適切に完了しているかを確認してください。PassPushToken に渡されたトークンが FCM ではなく PushAmp\+ サービス (HMS) のものであるかを確認してください。 |
+| Sender temporarily unavailable  <br />別名: <ul><li>Authenticationbackendunavailable</li><li>Failedtoestablishaconnection:HTTPSConnectionPool</li><li>GCE</li><li>Internal Error</li><li>Internal Server Error</li><li>Internal Server Error from FCM Service</li><li>Internalerrorencountered</li><li>Temporary Error from FCM Service</li><li>Theserviceiscurrentlyunavailable</li><li>Unexpected HTTP response with status: 502</li></ul> | このエラーは、送信者側のサーバーに問題があることを示します。サーバーがリクエストの処理中に内部エラーを起こしたか、一時的にオフラインになっている可能性があります。 | これは FCM からの一時的なエラーで、断続的に発生することがあります。お客様側での対応は不要です。 |
+| Response Decode Error | このエラーは、認識できない JSON 形式のために FCM のレスポンスを解析できなかった場合に発生します。 | これは FCM からの一時的なエラーで、断続的に発生することがあります。お客様側での対応は不要です。 |
+| HMS Message too big  <br />別名: <ul><li>Themessagebodysizeexceedsthedefaultvalue</li></ul> | このエラーは、HMS のメッセージペイロードのサイズ制限を超えた場合に発生します。 | Firebase Messaging には、メッセージサイズとキーと値のペア/ペイロードサイズに制限があります。ペイロードサイズを減らしてください（最大メッセージサイズは 4 KB です）。API からペイロードを送信する場合は、適切なキーがペイロードに追加されていることを確認してください。詳細については、[FAQs-Push Kit](https://developer.huawei.com/consumer/en/doc/HMSCore-Guides/faq-0000001050042183#section196822541234) を参照してください。 |
+| FCM Insufficient Permission  <br />別名: <ul><li>Permission'cloudmessaging messagescreate'deniedonresource</li></ul> | このエラーは、生成された FCM 秘密鍵に Cloud Messaging の作成権限がない場合に発生します。 | Firebase プロジェクト/Google Cloud プロジェクトで Firebase Messaging / Google Cloud Messaging が有効になっていること、および更新された JSON キーが MoEngage ダッシュボードに追加されていることを確認してください。詳細については、[FCM 認証](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)を参照してください。 |
+
+## iOS - Apple Push Notification Service Errors
+
+| エラー/代替エラー | 説明 | 対処法 |
+| --- | --- | --- |
+| Invalid payload size  PayloadTooLarge | このエラーは、メッセージに含まれるペイロードデータの合計サイズが APNS の制限である 4096 バイトを超えた場合に発生します。 | プッシュ通知の最大ペイロードサイズが 4096 バイト以内であることを確認してください。渡しているキーと値のペアの数を減らす必要がある場合があります。詳細については、APNS ドキュメントの [Generating a remote notification](https://developer.apple.com/documentation/usernotifications/generating-a-remote-notification) を参照してください。 |
+| Invalid token size | このエラーは、MoEngage に提供されたトークンが正しくない場合に発生します。 | 正しいプッシュトークンを MoEngage に渡す必要があります。詳細については、[プッシュ通知の実装](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial)を参照してください。 |
+| APNS Provider Certificate Expired | このエラーは、MoEngage ダッシュボードにアップロードされた APNS プロバイダー証明書の有効期限が切れた場合に発生します。 | 新しい PEM ファイルを作成して MoEngage にアップロードするか、APNS 認証キー方式に切り替えてください。Apple は、より優れた制御と管理の簡素化のために、AuthKey ベースの方式 (.p8) への移行を推奨しています。詳細については、[APNS Certificate/PEM file](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy) を参照してください。 |
+| APNs Client Connection Failed | このエラーは次の理由で発生します。 <ul><li>MoEngage ダッシュボード上の PEM ファイルに関連付けられた APNS 証明書が失効している。</li><li>Apple Developer アカウントで AuthKey が失効している。</li></ul> | <ul><li>新しい PEM ファイルまたは AuthKey を作成し、MoEngage ダッシュボードにアップロードしてください。</li><li>ファイアウォールのルールを確認し、必要な Apple サービスを適切なポートで許可してください。</li></ul> |
+| Device Token Not For Topic  <br />別名: <ul><li>DeviceTokenNotForTopic</li></ul> | このエラーは、MoEngage ダッシュボード上で誤った BundleId に関連付けられた PEM ファイルまたは AuthKey がアップロードされた場合に発生します。 | MoEngage ダッシュボードで、正しい Bundle Identifier が PEM ファイルまたは AuthKey (.p8 ファイル) に関連付けられていることを確認してください。 |
+| BadDeviceToken | このエラーは、MoEngage に提供された APNS Bundle ID が、トークンの登録に使用された Bundle ID と一致しない場合に発生します。また、プッシュ通知が誤った環境（開発環境と本番環境）に送信された場合にも発生します。 | 次の設定を確認してください。 <ul><li>**Debug 構成**: Developer 証明書と MoEngage の Test ダッシュボードを使用します。</li><li>**Release 構成**: Production または AdHoc 証明書と MoEngage の Live ダッシュボードを使用します。</li></ul> |
+| Invalid Provider Token  <br />別名: <ul><li>APNS Provider Certificate Revoked</li><li>APNS Provider Certificate Unknown</li><li>InvalidProviderToken</li></ul> | このエラーは次の場合に発生します。 <ul><li>AuthKey (.p8 ファイル) をアップロードする箇所で、誤った Team ID が指定されている。</li><li>AuthKey (.p8 ファイル) をアップロードする箇所で、誤った Key ID が指定されている。</li><li>Apple Developer Keys で AuthKey (.p8 ファイル) が失効し、新しいキーが生成されている。</li></ul> | 次の点を確認してください。 <ul><li>AuthKey (.p8 ファイル) を追加している場合は、Team ID が MoEngage ダッシュボードに追加されている。</li><li>MoEngage ダッシュボード上の AuthKey (.p8 ファイル) の ID を、認証キーを生成した関連する Apple Developer アカウントと照合して確認する。</li><li>Apple Developer アカウントで新しいキーを生成した場合は、それを MoEngage ダッシュボードにアップロードする。</li></ul> |
+| TopicDisallowed | このエラーは、トピックへのプッシュが許可されていない場合、または証明書/AuthKey の App Identifier Prefix とアプリの Bundle ID が一致しない場合に発生します。 | AuthKey (.p8 ファイル) とともに MoEngage ダッシュボードのプッシュ設定に追加された BundleIdentifier が、プッシュ通知をテストするアプリの BundleIdentifier と一致していることを確認してください。 |
+| Authorization Error  <br />別名: <ul><li>Forbidden</li><li>Bad Authorization</li></ul> | このエラーは、APNS の認証キーが無効または期限切れの場合に発生します。 | APNS でこのエラーが発生した場合は、新しい証明書をアップロードする必要があります。 |
+| Unregistered | このエラーは、次のようないくつかのシナリオで既存の登録トークンが無効になった場合に発生します。 <ul><li>登録トークンの有効期限が切れた場合（たとえば、Google が登録トークンを更新することを決定した場合や、iOS デバイスの APNS トークンの有効期限が切れた場合）。</li><li>デバイスからアンインストールされた場合。</li></ul> | <ul><li>デバイスで生成された最新のプッシュトークンが MoEngage と同期されていることを確認してください。</li><li>指定されたトピック（アプリの Bundle Identifier）に対してデバイストークンが非アクティブの場合、APNS サーバーは Unregistered エラーを返します。</li></ul> |
+| TooManyProviderTokenUpdates | このエラーは、プロバイダートークンの更新頻度が高すぎる場合に発生します。 | 1 人のユーザーに大量のプッシュ通知を送信しないようにしてください。 |
+| Sender temporarily unavailable  <br />別名: <ul><li>InternalServerError</li></ul> | このエラーは、送信者側のサーバーがリクエストの処理中に内部エラーを起こした場合、または一時的に利用できない場合に発生します。 | Apple Push Notification service (APNs) からの "InternalServerError" は、コードではなく Apple 側の問題を示しているため、Apple に報告してください。 |
+| ServiceUnavailable | このエラーは、サービスが利用できない場合に発生します。 | これは Apple からの一時的なエラーであり、お客様側での対応は不要です。 |
+
+<Info>
+  その他のエラーについては、MoEngage [カスタマーサポート](/ja/user-guide/contact-support/raise-a-support-ticket-from-the-moengage-login-page)にお問い合わせください。
+</Info>

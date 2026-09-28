@@ -1,0 +1,126 @@
+---
+title: "通信業界向けComputed Traits"
+description: "通信業界向けComputed Traitsのリファレンスです。各トレイトの計算方法、データソース、ビジネスユースケースを紹介します。"
+keywords: "computed traits, telecom, prepaid, recharge, data usage, roaming, VAS, churn, user attributes"
+---
+
+通信アプリは、あらゆる業界の中でも特に豊富な行動データを生成します。リチャージ、データ使用量、VASの有効化、ローミング、デバイスプロファイルなどです。Computed Traitsを使用すると、こうした生のアクティビティを、エンジニアリングのサポートやCSVアップロードなしで、セグメンテーション、パーソナライゼーション、Flowsの分岐に利用できるライブのユーザー属性に変換できます。
+
+このページはメニューとして構成されています。各行には、何を作成すべきか、どの計算方法を選ぶべきか、必要なイベントデータ、ビジネス上の成果、そして活用方法が記載されています。
+
+Computed Traitsを初めて使用する場合は、[Computed Traits - 概要](/ja/user-guide/data/computed-traits/computed-traits-overview)でComputed Traitsとは何か、各計算方法がどのように機能するかを確認し、[Computed Traitの作成](/ja/user-guide/data/computed-traits/create-a-computed-trait)で作成手順を確認してください。
+
+## Computed Traitsの仕組み
+
+このページのすべてのトレイトは、同じ4ステップのモデルに従います。このモデルを理解すれば、以下の表をひと目で読み取れるようになります。
+
+<Steps>
+  <Step title="イベントから始める" icon="database">
+    Recharge SuccessfulやDaily Usage Summaryなど、すでにトラッキングしているユーザー行動です。
+  </Step>
+  <Step title="計算方法を選択する" icon="calculator">
+    [Count、Aggregation、First/Last Value、またはSQL](/ja/user-guide/data/computed-traits/computed-traits-overview#methods-of-computations)です。
+  </Step>
+  <Step title="トレイトを取得する" icon="user-check">
+    Last Recharge Dateのように、自動的に更新されるライブ属性です。
+  </Step>
+  <Step title="有効化する" icon="rocket">
+    セグメンテーション、アナリティクス、Jinjaパーソナライゼーション、Flowsで使用します。
+  </Step>
+</Steps>
+
+トレイトが実行されると、MoEngageのどこでも使用できる標準のユーザー属性になります。トレイトから[セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments)を作成したり、[アナリティクス](/ja/user-guide/analyze/moengage-analytics/overview)でグループ化やフィルタリングを行ったり、[Jinjaパーソナライゼーション](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)でメッセージ本文に値を挿入したり、トレイトに基づいて[Flow](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows)を分岐させたりできます。
+
+<Tip>
+  **ここで紹介するトレイトのほとんどはノーコードで作成できます。** <Badge color="green">Count</Badge> <Badge color="green">Aggregation</Badge>および<Badge color="green">First/Last Value</Badge>の各方法ではSQLは不要です。<Badge color="purple">SQL</Badge>を使用するのは、複数のイベントを組み合わせた複合スコアや、引き換え率・完了率などの比率を算出する場合のみです。このページのノーコードトレイトはすべてご自身で作成できます。
+</Tip>
+
+## まずはここから
+
+最初に次の3つを作成してください。最も早く効果が得られ、キャンペーン間で最も再利用しやすいトレイトです。
+
+<CardGroup cols={3}>
+  <Card title="Last Recharge Date" icon="clock">
+    **Last Value** · 最もインパクトの大きい通信トレイトで、プリペイドのリテンション施策全般を可能にします。
+  </Card>
+  <Card title="Preferred Recharge Denomination" icon="sim-card">
+    **Last Value** · ホーム画面とSMSのパーソナライゼーションを大きく変えます。
+  </Card>
+  <Card title="Total Data Consumed" icon="gauge">
+    **Aggregation** · SQL不要で、プラン適合のレコメンデーションを実現します。
+  </Card>
+</CardGroup>
+
+## 目的別にトレイトを探す
+
+<Info>
+  これらの表に記載されているイベント名とプロパティ名は例です。アカウント内の実際の名前はアプリのデータトラッキング方法によって異なるため、ここに記載されている`Recharge Successful`という名前のイベントが存在しない場合があります。トレイトを作成する前に**Data**でトラッキング中のイベントとプロパティを確認し、不足しているものがあれば開発チームにトラッキングを依頼してください。トラッキングの仕組みについては、[イベントトラッキング完全ガイド](/ja/user-guide/data/event-data/a-complete-guide-to-event-tracking)を参照してください。
+</Info>
+
+### リチャージと更新
+
+すべてのプリペイドユーザーには、それぞれのリチャージのリズムがあります。それを把握すれば、すべてのリマインダーを適切なタイミングで届けられます。
+
+| Computed Trait | 計算方法 | データソース(イベント/プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Total Recharges Last 90 Days | Count | **イベント:** `Recharge Successful` | リチャージ頻度の高いユーザーと低いユーザーを区別し、VIP対応やオファーの強度に反映します。 | ヘビーユーザー向けにロイヤルティティアのプロモーションを実施し、低価値ユーザーをキャッシュバック中心のオファーから除外します。 |
+| Total Recharge Amount Lifetime | Aggregation (Sum) | **イベント:** `Recharge Successful`、**プロパティ:** `amount` | プリペイドにおけるウォレットシェアに相当する指標で、ユーザーを収益順にランク付けします。 | 高収益ユーザーをセグメント化してVIPローミングやデバイスのオファーを提供し、利益を損なうプロモーションから除外します。 |
+| Average Recharge Amount | Aggregation (Average) | **イベント:** `Recharge Successful`、**プロパティ:** `amount` | 過度なアップセルをせずに、適切なパック金額をレコメンドします。 | 各ユーザーの平均リチャージ額を基準に、アプリ内のパックカードをパーソナライズします。 |
+| Preferred Recharge Denomination | Last Value | **イベント:** `Recharge Successful`、**プロパティ:** `pack_type`(Voice、Data、Combo、Unlimited) | ユーザーが実際に購入しているパックを正確に表示し、手間を減らします。 | ホーム画面をパーソナライズし、リチャージ内容が事前入力されたディープリンク付きのSMSを送信します。 |
+| Last Recharge Date | Last Value | **イベント:** `Recharge Successful`、**プロパティ:** `timestamp` | 猶予期間や利用停止状態に入りそうなユーザーを検出します。 | 日付演算子を使ったセグメントを作成し、段階的なリマインダーシーケンス(3日前、1日前、期限当日、期限の3日後)を送信します。 |
+| Recharge Cycle (Days) | SQL Computation | `Recharge Successful`イベント間の平均間隔 | ユーザーごとのリチャージ周期で、プリペイドのリテンションにおけるマスタートレイトです。 | 各ユーザーのサイクル期間の90%の時点でリマインダーを送信するFlowを実行します。 |
+
+### データとプランの適合
+
+実際の使用量に合ったプランにユーザーをマッチングすることで、高額請求に関する苦情を減らし、自発的なアップグレードを促進します。
+
+| Computed Trait | 計算方法 | データソース(イベント/プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Average Daily Data Usage (GB) | Aggregation (Average) | **イベント:** `Daily Usage Summary`、**プロパティ:** `data_gb` | 適切なデータパックをレコメンドします。プランが合っていないユーザーは最も早く離脱します。 | 使用量がプランの1.5倍を超えた場合はパックのアップグレードオファーを、大幅に下回る場合はダウンセルの提案を送信します。 |
+| Total Data Consumed (30 Days) | Aggregation (Sum) | **イベント:** `Daily Usage Summary`、**プロパティ:** `data_gb` | プランのレコメンデーションを適切な規模にするための絶対使用量です。 | パック適合計算ツールのメールをこの値でパーソナライズします。 |
+| Data Overage Incidents | Count | **イベント:** `Data Limit Exceeded` | 超過を繰り返すユーザーは、アップグレードの有力候補、または離脱リスクです。 | 30日間に2回超過した後、無制限パックのオファーを送信し、データ以外のアップセルを除外します。 |
+| Streaming Data Ratio | SQL Computation | `Video Streaming GB` / `Total Data` | ストリーミング利用の多いユーザーを特定し、OTTバンドルのクロスセルに活用するための比率です。 | アプリ内でOTTバンドルのオファーを送信し、共同ブランドのパートナーシッププッシュを配信します。 |
+
+### VASとローミング
+
+付加価値サービス(VAS)とローミングはARPUを向上させます。これらのトレイトにより、どのユーザーが何に対して準備ができているかがわかります。
+
+| Computed Trait | 計算方法 | データソース(イベント/プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Total VAS Services Activated | Count | **イベント:** `VAS Activated` | VASの導入状況を測定し、飽和状態か機会があるかを見極めます。 | すでに3つ以上のサービスを利用しているユーザーにはクロスセルを行わず、0件のユーザーにはコーラーチューンやエンターテインメントをアップセルします。 |
+| Preferred VAS Category | Last Value | **イベント:** `VAS Activated`、**プロパティ:** `category`(Entertainment、Utility、Regional) | VASカルーセルをパーソナライズし、適切なカテゴリをレコメンドします。 | カテゴリ別のメールダイジェストを送信し、地域言語のコンテンツを宣伝します。 |
+| Total Roaming Sessions | Count | **イベント:** `Roaming Session Started` | 頻繁に旅行するユーザーは、出発前のローミングパックの主要ターゲットです。 | ユーザーの典型的な旅行時期の前にローミングパックのプッシュを送信し、頻繁に旅行するユーザーにはプレミアムローミングを自動で有効化します。 |
+| Last Roaming Country | Last Value | **イベント:** `Roaming Session Started`、**プロパティ:** `country` | 旅行者ごとにローミングパックのオファーをローカライズします。 | 地域別のパックをレコメンドし、旅行パートナーとの共同マーケティングを実施します。 |
+
+### クロスセル
+
+ほとんどの通信事業者の顧客は1つの製品しか利用していません。これらのトレイトにより、2つ目の製品を利用する準備ができているユーザーを特定できます。
+
+| Computed Trait | 計算方法 | データソース(イベント/プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Distinct Products Held | Aggregation (Count Distinct) | **イベント:** `Product Owned Snapshot`、**プロパティ:** `product_type` | 単一製品か複数製品かを示す指標です。 | 単一製品のユーザーにクロスセルを行い、すでに3つ以上の製品を利用しているユーザーは除外します。 |
+| Last Broadband Interest Event | Last Value | **イベント:** `Broadband Page Viewed`、`Callback Requested`、**プロパティ:** `timestamp` | 有望なリードをフィールドセールスに迅速に提示します。 | ユーザーが最近関心を示した際に営業チームに通知するConnectorキャンペーンを実行します。 |
+| Prepaid-to-Postpaid Propensity | SQL Computation | しきい値を超える平均リチャージ額、リチャージの一貫性、12か月を超える利用期間 | ポストペイドへの切り替え準備ができているプリペイドユーザーを特定する複合スコアです。 | パーソナライズされた請求額の見積もりを含むポストペイドオファーのキャンペーンを実行します。 |
+| Broadband Cross-sell Score | SQL Computation | 自宅のWi-Fi使用パターン、アクティブな`broadband_id`がないこと、利用可能な住所 | 家庭用ブロードバンドのフィールドセールスパイプラインの優先順位付けを行う複合スコアです。 | Webフォームとコールバック予約を送信し、Connectorキャンペーンを通じて営業に引き継ぎます。 |
+
+### 解約とリテンション
+
+プリペイドの解約は最大の損失要因です。これらのトレイトにより、介入に十分な早期警告を得られます。
+
+| Computed Trait | 計算方法 | データソース(イベント/プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Last Complaint Date | Last Value | **イベント:** `Support Ticket Raised`、**プロパティ:** `timestamp` | 最近苦情を申し立てた顧客は、他社への乗り換えリスクが高くなります。 | チケット解決から7日以内にNPSアンケートとお詫びのオファーを送信するFlowを実行します。 |
+| Total Complaints Raised | Count | **イベント:** `Support Ticket Raised` | 苦情を繰り返す顧客には、マーケティングの追加ではなく専用のサポート対応が必要です。 | 90日間に3件を超える苦情を申し立てたユーザーをサポートエスカレーションに回し、キャンペーンから除外します。 |
+| Days Since Last Recharge | Last Value | **イベント:** `Recharge Successful`、**プロパティ:** `timestamp` | 最も早期の、最新性に基づく解約指標です。 | 日付演算子を使ったセグメントを作成し、段階的なウィンバック(リマインダープッシュ、次にオファー、さらに手厚いオファー)を実施します。 |
+| Port-Out Risk Score | SQL Computation | リチャージの遅延、苦情の最新性、競合サイト訪問のシグナル | リテンションチーム向けの複合解約スコアです。 | リテンションのコールバックをトリガーし、SMSでウィンバックオファーを送信します。 |
+
+## 関連ドキュメント
+
+Computed TraitsはMoEngage全体で使用されます。以下のガイドでは、上記の表で言及されている機能について説明しています。
+
+- [セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments): Computed Traitの値からオーディエンスを作成します。
+- [アナリティクス](/ja/user-guide/analyze/moengage-analytics/overview): Computed Traitの値でユーザー行動をグループ化およびフィルタリングします。
+- [キャンペーンとチャネル](/ja/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels): ユーザーにリーチできるチャネルです。
+- [Flows](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows): トレイトに基づいてユーザーを異なるパスに分岐させます。
+- [メッセージのパーソナライゼーション](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/overview): Jinjaを使用してトレイトの値をコンテンツに挿入します。
+- [データ](/ja/user-guide/data/key-concepts/overview-data): これらのトレイトの基盤となるイベントデータをMoEngageがどのように収集・管理するかを説明します。

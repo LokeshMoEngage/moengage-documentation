@@ -1,0 +1,236 @@
+---
+title: "通知センター"
+description: "MoEngage Inbox プラグインを使用して、Flutter アプリに通知センターの受信トレイを追加します。"
+---
+
+![ダウンロード](https://img.shields.io/pub/v/moengage_inbox.svg)
+
+# インストール
+
+MoEngage Inbox SDK をアプリケーションに追加するには、アプリケーションの **pubspec.yaml** ファイルを編集し、以下の依存関係を追加します。
+
+<CodeGroup>
+
+```pubspec.yaml pubspec.yaml
+dependencies:
+ moengage_inbox: $latestVersion
+```
+
+</CodeGroup>
+
+flutter packages get を実行して SDK をインストールします。
+
+<Note>
+  このプラグインは **moengage_flutter** プラグインに依存しています。**moengage_flutter** プラグインもインストールされていることを確認してください。詳細については、[ドキュメント](/ja/developer-guide/flutter-sdk/sdk-integration/sdk-installation/framework-dependency)を参照してください。
+</Note>
+
+## Android でのインストール
+
+<img
+  src="/images/maven-3.svg"
+  alt="V(1)"
+  style={{ width:"28%" }}
+  title="V(1)"
+/>
+
+Flutter プラグインをインストールしたら、アプリケーションの Android プロジェクトに MoEngage のネイティブ Android SDK の依存関係を追加します。
+
+**android/app/build.gradle** に移動します。**dependencies** ブロックに MoEngage Android SDK の依存関係を追加します。
+
+<CodeGroup>
+
+```json build.gradle wrap
+dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation("com.moengage:inbox-core:$sdkVersion")
+}
+```
+
+</CodeGroup>
+
+**\$sdkVersion** は、MoEngage SDK の最新バージョンに置き換えてください。
+
+## iOS でのインストール
+
+iOS の場合、ネイティブの依存関係はコア SDK 自体に含まれているため、通知センターをサポートするために追加の依存関係を含める必要はありません。
+
+<Warning>
+  SDK が受信した通知を保存できるように、iOS プロジェクトで [App Target の AppGroup ID](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial) を設定し、[Notification Service Extension](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#test-notification-delivery-and-display) をセットアップしてください。
+</Warning>
+
+# メッセージの取得
+
+すべての受信トレイメッセージを取得するには、以下のように **fetchAllMessages()** メソッドを使用します。これにより **InboxData** のインスタンスを取得できます。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_inbox/moengage_inbox.dart';
+MoEngageInbox _moEngageInbox = MoEngageInbox(YOUR_WORKSPACE_ID);
+InboxData data = await _moEngageInbox.fetchAllMessages();
+```
+
+</CodeGroup>
+
+## InboxData のペイロード
+
+InboxData は以下の形式で受信されます。
+
+<CodeGroup>
+
+```Dart Dart
+class InboxData {
+  /// Native platform from which the callback was triggered.
+  String platform;
+
+  /// List of [InboxMessage]
+  List messages;
+}
+
+class InboxMessage {
+  /// internal identifier used by the SDK for storage.
+  int id;
+
+  /// Unique identifier for a message.
+  String campaignId;
+
+  /// Text content of the message. Instance of [TextContent]
+  TextContent textContent;
+
+  /// true if the message has been clicked by the user else false
+  bool isClicked;
+
+  /// Media content associated with the message.
+  Media? media;
+
+  /// List of actions to be executed on click.
+  List action;
+
+  /// Tag associated to the message.
+  String tag;
+
+  /// The time in which the message was received on the device.
+  ///
+  /// Format - ISO-8601 yyyy-MM-dd'T'HH:mm:ss'Z'
+  String receivedTime;
+
+  /// The time at which the message expiry.
+  ///
+  /// Format - ISO-8601 yyyy-MM-dd'T'HH:mm:ss'Z'
+  String expiry;
+
+  /// Complete message payload.
+  Map<String, dynamic> payload;
+  
+  /// A key representing the group to which the inbox message belongs.
+  /// @since 9.0.0
+  String groupKey;
+
+  /// Notification Replacement Id.
+  /// @since 9.0.0
+  String notificationId;
+
+  /// The timestamp indicating when the message was sent.
+  ///
+  /// Format - ISO-8601 yyyy-MM-dd'T'HH:mm:ss'Z'
+  /// @since 9.0.0
+  String sentTime;
+}
+
+class TextContent {
+  /// Title string for the inbox message.
+  String title;
+
+  /// Message string for the inbox message.
+  String message;
+
+  /// Summary string for the inbox message.
+  ///
+  /// Note: This is present for Android Platform.
+  String summary;
+
+  /// Subtitle string for the inbox message.
+  ///
+  /// Note: This is present only for the iOS Platform.
+  String subtitle;
+}
+
+class Media {
+  /// Content type of the Media.
+  MediaType mediaType;
+
+  /// Url for the media content. Generally a http(s) url.
+  String url;
+
+  /// Defines the accessibility properties for the media model
+  /// @since 9.0.0
+  AccessibilityData? accessibilityData;
+}
+      
+class AccessibilityData {
+  /// Text for the AccessibilityData
+  String? text;
+
+  /// Hint for the AccessibilityData. Applicable only for iOS Platform
+  String? hint;
+}
+      
+class Action {
+  /// ActionType - navigation
+  ActionType actionType;
+}
+
+class NavigationAction extends Action {
+  ///navigation type deepLink/richLanding/screenName
+  NavigationType navigationType;
+
+  String value;
+
+  Map<String, dynamic> kvPair;
+}
+```
+
+</CodeGroup>
+
+# 未クリックのメッセージ数の取得
+
+受信トレイから未クリックのメッセージ数を取得するには、以下のように **getUnclickedCount()** メソッドを使用します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageInbox _moEngageInbox = MoEngageInbox(YOUR_WORKSPACE_ID);
+int count = await _moEngageInbox.getUnClickedCount();
+```
+
+</CodeGroup>
+
+## メッセージクリックのトラッキング:
+
+受信トレイ内のメッセージのクリックをトラッキングするには、以下のように **trackMessageClicked()** メソッドを使用します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageInbox _moEngageInbox = MoEngageInbox(YOUR_APP_D);
+_moEngageInbox.trackMessageClicked(message);  //Pass the instance of InboxMessage here
+```
+
+</CodeGroup>
+
+## メッセージの削除:
+
+メッセージのリストから特定のメッセージを削除するには、以下のように **deleteMessage()** メソッドを使用します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageInbox _moEngageInbox = MoEngageInbox(YOUR_WORKSPACE_ID);
+_moEngageInbox.deleteMessage(message);  //Pass the instance of InboxMessage here
+```
+
+</CodeGroup>
+
+<Info>
+  ハイブリッドフレームワークは、MoEngage のデフォルトの通知センターをサポートしていません。セルフハンドルの通知センターのみがサポートされています。
+</Info>

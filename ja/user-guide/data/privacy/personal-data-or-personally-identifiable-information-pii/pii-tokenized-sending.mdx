@@ -1,0 +1,271 @@
+---
+title: "PII Tokenized Sending"
+description: "トークン化送信を使用して、MoEngageにPIIを保存せずにキャンペーンを実行します。機密性の高い連絡先情報を匿名トークンに置き換え、GDPRに準拠します。"
+---
+
+# 概要
+
+<Info>
+  PII Tokenized Sendingは有料機能です。アカウントで有効にするには、MoEngageサポートチームにお問い合わせください。
+</Info>
+
+PII Tokenized Sendingは、MoEngageの特許取得済み機能であり、顧客の個人を特定できる情報（PII）をMoEngageプラットフォーム内に保存することなく、顧客とエンゲージできます。
+
+PIIデータには以下が含まれます。
+
+- **顧客の連絡先情報：** メールID、携帯電話番号。
+- **顧客のパーソナライゼーション情報：** 名、姓。
+
+トークン化により、これらの機密データは機密性のない匿名トークンに置き換えられます。この機能により、MoEngageはGDPRなどのデータプライバシー規制に完全に準拠したまま、セグメント化、パーソナライズ、キャンペーンの実行を行えます。
+
+MoEngageのデータプライバシーコンプライアンスの詳細については、[GDPR Compliance](/ja/user-guide/data/privacy/gdpr)および[PII Masking](/ja/user-guide/data/privacy/personal-data-or-personally-identifiable-information-pii/pii-masking)を参照してください。
+
+# ユースケース
+
+- **データセキュリティの強化：** メールアドレスや電話番号などの機密性の高いPIIをMoEngageに保存することなく、ターゲットキャンペーンを通じてオーディエンスとエンゲージできます。
+- **コンプライアンスの確保：** マーケティングプラットフォーム内で顧客IDを匿名化することで、厳格なデータプライバシー規制に対応できます。
+- **パーソナライゼーションの維持：** データをリアルタイムで取得することで、キャンペーンで引き続きパーソナライゼーションを使用できます。
+
+<Tip>
+  **前提条件**
+
+  この機能を設定する前に、以下が揃っていることを確認してください。
+
+  - **PII APIエンドポイント**：MoEngageから匿名IDを受け取り、対応するPII（メールアドレスまたは携帯電話番号）を返すことができる、お客様のサーバー上のAPIエンドポイント。
+  - **匿名ID**：お客様のデータベースで管理される一意の匿名化された顧客識別子で、お客様のシステムとMoEngageの間の共通キーとして機能します。
+</Tip>
+
+# 設定
+
+キャンペーン配信時に顧客のメールIDまたは携帯電話番号を取得するためのPII APIを設定できます。
+
+<Info>
+  - PII Tokenized Sendingは、以下のチャネルとパートナーでサポートされています。
+    - SMS、MMS、RCS（すべてのネイティブおよびカスタムSMSコネクターまたはサービスプロバイダー）
+    - Email（SendGrid、Amazon SES、カスタムSMTPコネクター）
+    - WhatsApp（すべてのネイティブおよびカスタムWhatsAppコネクター）
+  - MoEngageはメッセージの送信に動的IPを使用します。静的IPを使用する場合は、[こちら](/ja/user-guide/settings/account/security/ip-whitelisting-in-moengage)のドキュメントを参照してください。
+  - PII Tokenized Sendingが有効な場合、以下はサポートされません。
+    - オプトアウト管理（WhatsApp）
+    - サブスクリプション管理（SMS、MMS）
+    - RCS
+    - メッセージアーカイブ
+</Info>
+
+## 1. PII APIの設定
+
+<Tabs>
+  <Tab title="メール設定">
+    顧客のメールアドレスをMoEngageに保存せずにメールキャンペーンを送信するには、以下の設定を行います。
+
+    1. MoEngageダッシュボードで、**Settings \> Channels \> Email**に移動します。
+    2. **Data**タブを選択します。
+    3. **Customer's email address data**フィールドで、**Customer's email addresses are not stored in MoEngage DB (Fetch via API)**オプションを選択します。
+    4. このオプションを選択すると、API設定フィールドが表示されます。次のステップに進み、API設定を行います。
+  </Tab>
+  <Tab title=" SMS、MMS、RCS設定">
+    顧客の携帯電話番号をMoEngageに保存せずにSMS、MMS、RCSキャンペーンを送信するには、以下の設定を行います。
+
+    1. **Settings** \> **Channels** \> **SMS, MMS & RCS**に移動します。
+    2. **PII tokenization**タブを選択します。
+    3. **\+Add API Configuration**をクリックします。
+    4. API設定フィールドが表示されます。次のステップに進み、API設定を行います。
+  </Tab>
+  <Tab title="WhatsApp設定">
+    顧客の携帯電話番号をMoEngageに保存せずにWhatsAppキャンペーンを送信するには、以下の設定を行います。
+
+    1. MoEngageダッシュボードで、**Settings \> Channels \> WhatsApp**に移動します。
+    2. **Data**タブを選択します。
+    3. **Customer's mobile numbers data**フィールドで、**Customer's mobile numbers are not stored in MoEngage DB (Fetch via API)**オプションを選択します。
+    4. このオプションを選択すると、API設定フィールドが表示されます。次のステップに進み、API設定を行います。
+  </Tab>
+</Tabs>
+
+## 2. API設定
+
+ユーザーのデータは個別に、またはバッチで取得できます。
+
+<Tabs>
+  <Tab title="Single">
+    Singleを選択すると、リクエストごとにレスポンスを取得できます。これにより、大規模なデータセットではなく、特定のレスポンスを取得できます。
+
+    以下の手順を実行します。
+
+    - **Method：** GETまたはPOSTメソッドを選択します。
+    - **OAuth 2.0認証**：OAuth 2.0でPII APIを保護するには、**OAuth**トグルを有効にします。ドロップダウンメニューが表示されます。事前に設定されたOAuth設定を選択します。OAuth設定の作成と管理方法については、[Authorization Configuration with OAuth 2.0](/ja/user-guide/settings/advanced-settings/authorization-configuration-with-oauth-20)を参照してください。
+
+    <Info>
+      - OAuthオプションはリクエストに応じて有効になります。有効にするには、CSMまたはMoEngageサポートチームにお問い合わせください。
+      - ドロップダウンで選択できるのは、ステータスが「Active」のOAuth設定のみです。
+      - APIで使用しているアクティブなOAuth設定の有効期限が切れると、ステータスは「Failed」に変わります。PII設定を編集するとエラーメッセージが表示されるため、新しいアクティブなOAuth設定を選択する必要があります。
+    </Info>
+
+    - **Request URL：** APIの「Request URL」を入力または貼り付けます。
+    - **Parameters：** APIの関連する「URL parameters」、「Headers」、「Body」の詳細をキーと値のペアとして入力または貼り付けます。キーと値のペアを入力する際、プレースホルダーに@を入力することで、URLパラメーターとリクエストヘッダーをパーソナライズできます。 \\
+
+    ![singlesss.png](/images/moengage_b6c890.png)
+  </Tab>
+  <Tab title="Bulk">
+    Bulkを選択すると、1回のリクエストで最大500件のユーザー属性を取得でき、各顧客データを個別に収集するためのリクエスト数を大幅に削減できます。
+
+    ![BULKKKKK.png](/images/moengage_f147de.png)
+
+    1. リクエストのバッチサイズを入力します。
+    2. **API設定**
+       - **Method：** Bulkでは、POSTメソッドのみがサポートされています。
+       - **Enable OAuth**：OAuth 2.0でPII APIを保護するには、OAuthトグルを有効にします。ドロップダウンメニューが表示されます。事前に設定されたOAuth設定を選択します。OAuth設定の作成と管理方法については、[Authorization Configuration with OAuth 2.0](/ja/user-guide/settings/advanced-settings/authorization-configuration-with-oauth-20)を参照してください。
+
+    <Info>
+      - OAuthオプションはリクエストに応じて有効になります。有効にするには、CSMまたはMoEngageサポートチームにお問い合わせください。
+      - ドロップダウンで選択できるのは、ステータスが「Active」のOAuth設定のみです。
+      - APIで使用しているアクティブなOAuth設定の有効期限が切れると、ステータスは「Failed」に変わります。PII設定を編集するとエラーメッセージが表示されるため、新しいアクティブなOAuth設定を選択する必要があります。
+    </Info>
+
+    - **Request URL：** APIの「Request URL」を入力または貼り付けます。
+    - **Parameters：** APIの関連する「URL parameters」、「Headers」、「Body」の詳細をキーと値のペアとして入力または貼り付けます。
+      <Info>
+        Bulkリクエストでは、URLパスパラメーターとヘッダーをパーソナライズすることはできません。パーソナライズできるのは、リクエストボディ内のキーと値のペアのユーザー属性のみです（例：Customer hash: `{{UserAttribute['ID']}}` の値）。これは入力で必須であり、同じキーが出力で返されます。
+      </Info>
+
+    2. **サンプルリクエスト：** リクエストは、以下のようにバックエンドで処理されます。
+       ```json JSON
+       {
+       "abcd": "abcd",
+       "CustomerInBulk": [
+         {
+          "Customer hash": "{{UserAttribute['ID']}}"
+         }
+       ]
+       }
+       ```
+    3. Customer hashがキーで、456 `{{UserAttribute['ID']}}` が値です。Customer keyとCustomer IDなど、異なるキーと値のペアを使用できます。\
+       **サンプルレスポンス：** バックエンドから、以下のようなレスポンスを受け取ります。
+       ```json JSON
+       {
+       “CustomerInBulk”: {
+         {
+           Customer hash: “456”,
+           First name: “John”,
+           Last name: “doe”,
+           Email ID: “xyz@abc.com”
+           Phone number: “9876543210”
+         },
+         {
+          Customer hash: “567”,
+          First name: “Joe”,
+          Last name: “Bloggs”,
+          Email ID: “ioh@abc.com”
+          Phone number: “1234567890”
+          }
+        },
+       }
+       ```
+       データは、リクエストしたのと同じキー（ユーザー属性）で返されます。
+       <Info>
+         複数のキーセットを持つことができますが、パーソナライズされたリクエストは1つのキーセットのユーザー属性に基づいてのみ行えます。
+       </Info>
+  </Tab>
+</Tabs>
+
+## 3. 設定のテストと保存
+
+API設定を定義したら、MoEngageがデータを正しく取得できることを確認するために設定をテストする必要があります。
+
+1. 設定した匿名IDの有効なテスト値を入力します（例：`456`）。
+2. **Test**をクリックしてAPI呼び出しをトリガーします。
+3. APIレスポンスを確認し、成功して正しいデータが返されることを確認します。
+4. **Email/Mobile Number field in API response**リストで、顧客のメールアドレスまたは携帯電話番号を含むレスポンスキーを選択します（例：`Email_ID`）。
+5. **Save**をクリックして設定を確定します。 <img src="/images/moengage_ceb13c.png" />
+
+# PIIベースのキャンペーンワークフロー
+
+以下の図は、PII Tokenized Sendingを有効にしてキャンペーンを送信する際のデータフローを示しています。
+
+![PII\_TS\_Flow.png](/images/moengage_0dc235.png)
+
+1. MoEngageでキャンペーンがトリガーされます。
+2. MoEngageは、設定されたPII APIを呼び出し、対象ユーザーの匿名IDを渡します。
+3. お客様のAPIは、各匿名IDに対応するメールアドレスまたは携帯電話番号を取得して返します。
+4. MoEngageは、キャンペーンコンテンツと取得したPIIを、設定済みのEmail、SMS、RCS、またはWhatsAppサービスプロバイダーに送信します。
+5. **MoEngageは、取得したPII**（メール、携帯電話番号、およびそのキャンペーンでContent APIを介して取得したその他のデータ）を**プロバイダーへの送信後ただちに削除します**。
+6. サービスプロバイダーがエンドユーザーにメッセージを配信します。
+7. サービスプロバイダーが配信ステータスデータをMoEngageに返します。
+8. MoEngageは、一意のメッセージIDを使用して配信データをキャンペーンにマッピングし、配信レシートで返された可能性のあるPIIを削除します。
+9. MoEngageダッシュボードでキャンペーン分析が更新されます。
+
+# 匿名化のサポート
+
+MoEngageプラットフォームで顧客の匿名性をサポートするために実装されたその他の変更は以下のとおりです。
+
+- **キャンペーン送信ログ** - 特定のチャネルでTokenized Sendingが設定されている場合、キャンペーンログは、（設定変更後の）次回のキャンペーン実行から、メールまたは携帯電話番号のデータ（PII Tokenized Sendingが設定されているチャネルに応じて）を保存しなくなります。
+- **キャンペーン配信データ** - MoEngageは、すべてのネイティブコネクターの配信データを追跡し、メッセージIDフィールドを使用して配信データをキャンペーンにマッピングします。
+  <Info>
+    カスタム（SMS、MMS、RCS、Email）コネクターの配信情報は追跡されません。
+  </Info>
+- **セグメンテーション** - 'show count'クエリは、**Segment** \> **Create Segment**ナビゲーションからのセグメンテーションとキャンペーン内のセグメンテーションの両方で、ユーザー数を一覧表示します。ただし、MoEngageは携帯電話番号やメールアドレス（到達可能性の計算の基礎となるもの）を保存しないため、どちらの場合も到達可能なユーザー数は表示できません。
+- **現在のキャンペーン（ライブキャンペーン）** - PII API設定の構成時にそのチャネル（ポイントチャネルまたはフロー）でライブキャンペーンがある場合、次のインスタンスからメールIDまたは携帯電話番号を取得して送信が行われます。
+- **パーソナライズされたプレビュー** - この機能は、PII設定の保存後、そのチャネルで自動的に無効になります。再度有効にするには、カスタマーサクセスマネージャー（CSM）にお問い合わせください。
+- **キャンペーンテストの失敗** **理由** - （PII設定が行われているチャネルで）作成中のキャンペーンをテストする際に、APIが応答しない場合は、APIエラーがUIに表示されます。
+- **キャンペーン分析** - 上記で設定したPII APIが顧客の送信ID（メールIDまたは携帯電話番号）の取得に失敗した顧客は、Campaign InfoまたはAnalyticsセクションの _Campaign delivery stats_ にカウントされません。これは、このファネルが有効なメールIDまたは携帯電話番号を持つユーザーを対象としているためです。
+- **顧客データがMoEngageにない場合のコンテンツパーソナライゼーション** - 上記のPII APIは顧客の送信ID（メールIDまたは携帯電話番号）の取得に重点を置いていますが、MoEngageのContent API機能を使用すると、キャンペーンがエンドユーザーに送信される直前に、お客様のデータベースから任意のデータ（PIIやその他のデータ）をリアルタイムで直接取得できます。詳細については、[Personalization using Content APIs](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-content-apis)を参照してください。
+
+# よくある質問（FAQ）
+
+<Accordion title="匿名IDを作成するためにトークン化サーバーは必要ですか？">
+  いいえ。MoEngageのユーザーにマッピングできる、一意のPIIではない顧客識別子がデータベースに存在することを確認するだけで十分です。
+</Accordion>
+
+<Accordion title="Content APIとPII Tokenized Sendingは独立して機能しますか？">
+  はい。これらの機能は独立しています。PII Tokenized Sendingを使用せずにContent APIをパーソナライゼーションに使用することも、その逆も可能です。
+</Accordion>
+
+<Accordion title="今PII API機能を有効にした場合、アクティブなキャンペーンはどうなりますか？">
+  そのチャネルのアクティブなキャンペーンの後続のメッセージはすべて、PII APIを使用して送信されます。設定を保存する前にすでにプロバイダーのキューにあったメッセージは、MoEngageに以前保存されていたデータを使用して送信される場合があります。
+</Accordion>
+
+<Accordion title="MoEngageはAPIの再試行をどのように処理しますか？">
+  MoEngageは、2秒間隔で最大3回までAPI呼び出しを再試行します。再試行は、バッチ全体ではなく、API呼び出しが失敗した特定のユーザーに対してのみ実行されます。
+</Accordion>
+
+<Accordion title="APIから返されるPIIデータを暗号化できますか？">
+  はい。MoEngageは、APIペイロードの対称鍵暗号化をサポートしています。PIIの値は、キャンペーンの送信時にのみ復号されます。
+</Accordion>
+
+<Accordion title="PII APIが失敗した場合、MoEngageはキャンペーン分析でどのようなエラーを表示しますか？">
+  エラー内訳セクションには、以下のエラーが表示されます。
+
+  | チャネル | UIのエラーメッセージ |
+  | --- | --- |
+  | SMS、MMS、RCS、WhatsApp | Invalid API response (fetching Mobile No.) Invalid/empty customer identifier in the MoEngage workspace. |
+  | Email | Invalid API response (fetching Email ID) Invalid/empty customer identifier in the MoEngage workspace. |
+
+  ![PII\_API\_Error.png](/images/moengage_59915b.png)
+</Accordion>
+
+<Accordion title="これらの設定を変更した後に有効化された下書き/スケジュール済みキャンペーンはどうなりますか？">
+  下書きキャンペーンも、次に公開またはトリガーされた時点からPII APIを使用します。
+</Accordion>
+
+<Accordion title="顧客のデータベースからリアルタイムで取得したデータはどうなりますか？">
+  Email / SMS / MMS / RCS / WhatsAppサービスプロバイダーと共有され、その後削除されます。
+</Accordion>
+
+<Accordion title="APIで取得したPIIはログに保存されますか？">
+  PII APIを介してデータを取得するように設定されたチャネルでは、MoEngageはメールIDや携帯電話番号のログ記録を停止します。代わりに、ログにはMoEngageとお客様の顧客データベースの両方で一貫した一意の顧客識別子（またはトークン化された識別子）が含まれます。
+</Accordion>
+
+<Accordion title="PII API設定はFlowsにも適用されますか？">
+  はい。たとえば、MoEngageに保存されている値を使用する代わりにAPIを介してメールIDを取得するようにメール設定が構成されている場合、個別のメールキャンペーンとフローに組み込まれたメールキャンペーンの両方で、MoEngageデータベース内のメール属性に依存せず、APIを介して顧客のメールIDを取得するようになります。
+</Accordion>
+
+<Accordion title="MoEngageはPIIマスキングを提供していますか？">
+  はい。詳細については、[こちら](/ja/user-guide/data/privacy/personal-data-or-personally-identifiable-information-pii/pii-masking)を参照してください。
+</Accordion>
+
+<Accordion title="MoEngage InformはPII Tokenized Sendingをサポートしていますか？">
+  いいえ。現在、MoEngage InformではPII Tokenized Sendingをサポートしていません。
+</Accordion>
+
+<Accordion title="PII APIの送信速度とスロットル速度はメールバッチ処理と同じですか？">
+  PII APIの送信速度とスロットル速度は、メールバッチ処理と同じです。
+</Accordion>

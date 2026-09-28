@@ -1,0 +1,130 @@
+---
+title: "メールのオンボーディング"
+description: "購読者のインポートや認証の設定から、本番キャンペーンに向けたドメインのウォームアップまで、MoEngage のメールオンボーディングチェックリストに沿って進めます。"
+---
+
+この記事では、メールのオンボーディングプロセスで実施するさまざまな手順について説明します。
+
+# 前提条件
+
+ターゲットオーディエンスがメールのオンボーディングに向けて準備できていることを確認してください。そのためには、以下の点を必ず実施してください。
+
+- 購読済みユーザーを DB に[インポート](/ja/user-guide/data/imports/overview-imports)し、以前にオプトアウトしたユーザーや抑制されたユーザーが含まれていないことを確認します。
+- オプトアウトしたユーザーを、配信停止のプロファイル属性を TRUE に設定した状態で DB にアップロードします。
+- 新規ユーザーが直接 MoEngage に流入し、リアルタイムのイベントを利用できるように、[ウェブサイトおよびアプリの SDK 連携](https://www.moengage.com/docs/developer-guide/introduction)を必ず完了してください。
+- ウェブサイトおよびアプリの SDK 連携を完了しなくてもメールを送信することはできます。ただし、これまでにメールを送信したことがない場合は、連携を完了しておいてください。
+- これは MoEngage Sender と Other Email Sender の両方に適用されます。
+
+# メールのオンボーディング手順
+
+## ドメインを選択する
+
+**MoEngage Email Sender** と **Other Email Sender** のどちらも、ドメインを選択する際には以下の点に従ってください。
+
+- メール送信ドメイン (From ドメイン) が、ウェブサイトドメインのサブドメインであることを確認します。たとえば、ウェブサイトドメインが [_https://www.example.com/_](https://www.example.com/) の場合、From ドメインは _anything.example.com._ となります。
+- 使用するサブドメインを選択する必要があります。ウェブサイトを所有している場合は、追加費用なしでサブドメインを作成または設定できます。
+
+<Info>
+  - 一括メールの送信にサブドメインが推奨される理由については、[こちら](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/ip-addresses-and-domains#number-of-domains-required)を参照してください。
+  - ルートドメイン、ウェブサイトドメイン、サブドメイン、From ドメインについては、[こちら](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/ip-addresses-and-domains#importance-of-domains-in-email-marketing)を参照してください。
+</Info>
+
+## 専用 IP を選択する
+
+必要な専用 IP の数は、送信量と送信パターンによって異なります。
+
+<Tabs>
+  <Tab title="MoEngage Email Sender">
+    これはすでに契約に含まれているか、MoEngage のメール到達率チームが最適な数の IP の設定をサポートします。
+  </Tab>
+  <Tab title="Other Email Sender">
+    推奨事項についてはメールベンダーに確認してください。基本的なガイドラインについては、[こちら](https://moengage-user-guide.mintlify.app/user-guide/campaigns-and-channels/email/getting-started-with-email/ip-addresses-and-domains#dedicated-and-shared-ips)を参照してください。
+  </Tab>
+</Tabs>
+
+## DNS の設定と検証
+
+### DNS レコードを生成する
+
+<Tabs>
+  <Tab title="MoEngage Email Sender">
+    Email Onboarding フォームに記入すると、チームが DNS レコードを生成します。
+  </Tab>
+  <Tab title="Other Email Sender">
+    使用する予定のドメインと IP の DNS を生成する必要があります。詳細については、以下のリンクを参照してください。
+
+    - [Sendgrid](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/how-to-set-up-domain-authentication)
+    - [Amazon SES](https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html)
+    - [SparkPost](https://support.sparkpost.com/docs/getting-started/setting-up-domains)
+    - [Mandrill](https://easydmarc.com/blog/mandrill-dkim-and-spf-setup-step-by-step/)
+    - [MailChimp](https://mailchimp.com/developer/transactional/docs/authentication-delivery/)
+    - [Netcore](https://cedocs.netcorecloud.com/docs/domain-settings)
+  </Tab>
+</Tabs>
+
+### DNS レコードを追加する
+
+**MoEngage Email Sender** と **Other Email Sender** のどちらも、DNS レコードを IT チームに渡して DNS レコードに追加してもらう必要があります。[レコードが追加](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-authentication-basics)されたら、DNS レコードを検証します。
+
+### DNS レコードを検証する
+
+<Tabs>
+  <Tab title="MoEngage Email Sender">
+    MoEngage のメール到達率チームが DNS レコードを検証します。そのため、DNS レコードを追加したことを必ず MoEngage チームに連絡してください。
+  </Tab>
+  <Tab title="Other Email Sender">
+    DNS レコードを検証する必要があります。詳細については、以下のリンクを参照してください。
+
+    - [Sendgrid](https://www.twilio.com/docs/sendgrid/ui/account-and-settings/how-to-set-up-domain-authentication)
+    - [Amazon SES](https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html)
+    - [SparkPost](https://support.sparkpost.com/docs/getting-started/setting-up-domains)
+    - [Mandrill](https://easydmarc.com/blog/mandrill-dkim-and-spf-setup-step-by-step/)
+    - [MailChimp](https://mailchimp.com/developer/transactional/docs/authentication-delivery/)
+    - [Netcore](https://cedocs.netcorecloud.com/docs/domain-settings)
+  </Tab>
+</Tabs>
+
+## メール設定を構成する
+
+DNS が検証されたら、MoEngage からメールを送信するために、ドメイン/IP を設定・検証したベンダーに MoEngage システムを接続する必要があります。
+
+<Tabs>
+  <Tab title="MoEngage Email Sender">
+    DNS レコードが正常に検証されると、MoEngage のメール到達率チームがメール設定を構成します。
+  </Tab>
+  <Tab title="Other Email Sender">
+    [メール設定を構成](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel)する必要があります。
+  </Tab>
+</Tabs>
+
+## メール設定をテストする
+
+上記の手順が完了したら、すべてが問題なく想定どおりに動作していることをテストで確認します。
+
+<Tabs>
+  <Tab title="MoEngage Email Sender">
+    テストが完了すると、MoEngage の到達率チームが開始の許可を出します。
+  </Tab>
+  <Tab title="Other Email Sender">
+    最初のキャンペーンを送信する前に[メール設定をテスト](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation)し、[メールコンプライアンス](https://www.moengage.com/blog/email-compliance/)の要件を満たしていることを確認する必要があります。
+  </Tab>
+</Tabs>
+
+## 最初のメールを送信する
+
+**MoEngage Email Sender** と **Other Email Sender** のどちらも、メールを送信する前に以下の点に従ってください。
+
+- ウォームアップ計画と[ガイドライン](/ja/user-guide/campaigns-and-channels/email/deliverability/best-practices/best-practices-to-be-followed-for-warm-up)に従います。
+- メールコンテンツが[関連性があり読みやすい](/ja/user-guide/campaigns-and-channels/email/deliverability/best-practices/best-practices-to-be-followed-within-an-email-body-html-guidelines)ことを確認します。
+- 最初のメールキャンペーンを[作成](/ja/user-guide/campaigns-and-channels/email/create/create-an-email-campaign)します。
+
+## 送信したメールをモニタリングする
+
+**MoEngage Email Sender** と **Other Email Sender** のどちらも、メールを送信した後に以下の点に従ってください。
+
+- [モニタリング](/ja/user-guide/campaigns-and-channels/email/deliverability/email-performance/checklist-to-review-email-performance)を行い、必要に応じて調整します。
+- メールを正常に配信するための[ベストプラクティス](/ja/user-guide/campaigns-and-channels/email/deliverability/best-practices/best-practices-for-email-deliverability)に必ず従ってください。
+
+<Info>
+  メールを正常に配信するために、必要に応じて[ベストプラクティス](/ja/user-guide/campaigns-and-channels/email/deliverability/best-practices)に従ってください
+</Info>

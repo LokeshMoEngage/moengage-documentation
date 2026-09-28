@@ -1,0 +1,58 @@
+---
+title: "Flutter、Swift、MoEngage-iOS-SDK（バージョン 7.x.x、8.x.x、9.x.x）を使用する iOS デバイスで、プッシュ通知の一般的な問題を回避するにはどうすればよいですか？"
+description: "Flutter と Swift を使用する iOS でのプッシュ通知の問題を解決します。Firebase プロキシ設定、ディープリンク、MoEngage SDK のセットアップ手順について説明します。"
+keywords: ["Flutter iOS push issues", "Swift", "FirebaseAppDelegateProxyEnabled", "Firebase proxy", "deep linking not working", "Notification Service Extension", "iOS SDK 7.x.x 8.x.x 9.x.x"]
+---
+
+## 問題
+
+Flutter、Swift、MoEngage-iOS-SDK（バージョン 7.x.x、8.x.x、9.x.x）を使用する iOS デバイスで、配信の失敗、画面遷移、ディープリンク、リッチランディングなど、プッシュ通知に関する一般的な問題が発生しています。
+
+## 解決策
+
+以下の手順を実行します。
+
+1. **Firebase プロキシ**:
+   - Firebase プッシュ通知を使用していない場合は、info.plist に FirebaseAppDelegateProxyEnabled キーを値 Boolean = False/NO で追加して、Firebase プロキシを無効にします。
+   - プッシュ通知をテストします。成功した場合、それ以上の操作は不要です。成功しない場合は、以下の手順に従ってください。
+   - Firebase プッシュ通知を使用している場合は、この手順をスキップして次の手順に進みます。
+2. **MoEngage プロキシを無効にする**:
+   - info.plist に MoEngageAppDelegateProxyEnabled キーを値 Boolean = false/NO で追加します
+      <img src="/images/moengage_6550ce.png" alt="boolean.png" />
+3. **didRegisterForRemoteNotificationsWithDeviceToken 関数をオーバーライドする**:
+   - AppDelegate.m ファイルの didRegisterForRemoteNotificationsWithDeviceToken 関数をオーバーライドします。
+     ```swift Swift
+     override func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+       super.application(application, didRegisterForRemoteNotificationsWithDeviceToken: deviceToken)
+       //7.xx version
+       MoEngage.sharedInstance().setPushToken(deviceToken)
+       //8.xx version
+       MOMessaging.sharedInstance.setPushToken(deviceToken)
+       //9.xx version
+       MoEngageSDKMessaging.sharedInstance.setPushToken(deviceToken)
+     }
+     ```
+4. **UNUserNotificatoinCenterDelegate 関数をオーバーライドする**:
+   - AppDelegate.m ファイルの UNUserNotificatoinCenterDelegate 関数をオーバーライドします。
+     ```swift Swift wrap
+     //Try without willPresent if it works good to go! else override it
+     override func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) - Void) {
+       if #available(iOS 14.0, *) {
+         completionHandler([.sound,.alert, .banner, .list])
+       } else {
+         completionHandler([.sound,.alert])
+       }
+     }
+         
+     override func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () - Void) {
+       super.userNotificationCenter(center, didReceive: response, withCompletionHandler: completionHandler)
+       //7.xx version
+       MoEngage.sharedInstance().userNotificationCenter(center, didReceive: response)
+       
+       //8.xx version
+       MOMessaging.sharedInstance.userNotificationCenter(center, didReceive: response)
+       
+       //9.xx version
+       MoEngageSDKMessaging.sharedInstance.userNotificationCenter(center, didReceive: response)        
+     }
+     ```
