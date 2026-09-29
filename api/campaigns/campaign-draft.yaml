@@ -1054,6 +1054,24 @@ components:
           type: string
           description: The name of the team collaborating on this campaign.
           example: "marketing_team"
+        send_only_double_opt_in_users:
+          type: boolean
+          description: |
+            Restricts the campaign to users who have double-opted in. Applies only to `PROMOTIONAL` campaigns.
+
+            For the validation errors returned when this field is misused, refer to the `400` response examples on the Create, Update, and Validate Campaign endpoints.
+          example: true
+        deduplication_attribute:
+          type: string
+          description: |
+            Brand-level deduplication. A user matching this attribute receives at most one send across campaigns that share the same value.
+
+            - Pass `""` (empty string) for single-brand use (no dedup).
+            - Pass a user attribute name for multi-brand dedup. Use the backend attribute name (for example, `u_em`), not the readable/display name (for example, `Email (Standard)`) — the same requirement as the segmentation component elsewhere in this API.
+            - `deduplication_attribute` is not supported for `API_TRIGGERED` campaigns. Passing this field on an API-triggered campaign returns a 400 validation error.
+
+            For the validation errors returned when this field is misused, refer to the `400` response examples on the Create, Update, and Validate Campaign endpoints.
+          example: "u_em"
         user_attribute_identifier: 
           type: string
           default: "Email (Standard)"
@@ -2030,13 +2048,25 @@ components:
           example: "MoEngage Team"
         from_address: 
           type: string
-          format: email
-          description: The sender's email address.
+          description: |
+            The sender's email address.
+
+            This field accepts personalization tokens, for example `{{UserAttribute['custom_from_email']}}`, resolved per-recipient at send time. **Requires the `EMAIL_FROM_ADDRESS_PERS` flag enabled for the workspace.**
+
+            ```json
+            { "from_address": "{{UserAttribute['custom_from_email']}}" }
+            ```
           example: "noreply@example.com"
         reply_to_address: 
           type: string
-          format: email
-          description: The reply-to email address.
+          description: |
+            The reply-to email address.
+
+            This field accepts personalization tokens, for example `{{UserAttribute['custom_reply_to']}}`, resolved per-recipient at send time. Works unconditionally — no flag required.
+
+            ```json
+            { "reply_to_address": "{{UserAttribute['custom_reply_to']}}" }
+            ```
           example: "support@example.com"
         cc_ids:
           type: array
@@ -2092,8 +2122,328 @@ components:
                 enum: [URL, PERSONALIZED_ATTACHMENT]
               url: 
                 type: string
+              s3_keys:
+                type: array
+                items:
+                  type: string
+                description: |
+                  S3 object keys backing an attachment stored in a fixed, MoEngage-owned S3 bucket. This is complementary to `url` / `file_type` on the same attachment entry, not a replacement — `url` and `file_type` are still required regardless of whether `s3_keys` is also provided.
+
+                  No workspace-level configuration (such as bucket allowlisting) is required or supported, since the bucket is not customer-owned.
+                example: ["attachments/2026/06/invoice-001.pdf"]
           description: |
             Attachments to include in the email.
+        gmail_annotations:
+          $ref: '#/components/schemas/GmailAnnotations'
+        link_branding_domain:
+          type: string
+          description: |
+            Custom domain for wrapping tracked links, in place of the default MoEngage tracking domain. Configured per workspace under **Settings** > **Link Branding**.
+
+            - If supplied, must match a domain already configured for the workspace.
+            - Optional — a campaign is accepted without this field even when the workspace has a matching domain configured. Omitting it falls back to the default MoEngage tracking domain.
+            - Passing an empty string (`""`) is treated the same as omitting the field.
+            - Supported for all delivery types including API_TRIGGERED.
+          example: "yourbrand.com"
+        deep_link_domain:
+          type: string
+          description: |
+            Custom domain for deep/branch links in the email, in place of the default deep link behavior. Configured per workspace under **Settings** > **Deep Links**.
+
+            - If supplied, must match a domain already configured for the workspace.
+            - Optional — a campaign is accepted without this field even when the workspace has a matching domain configured. Omitting it uses the default deep link behavior.
+            - Can be set independently of `link_branding_domain`.
+            - Supported for all delivery types including API_TRIGGERED.
+          example: "deeplink.yourbrand.com"
+
+
+    # ==================== Gmail Annotations ====================
+    GmailAnnotations:
+      type: object
+      description: |
+        Gmail Annotations shown in Gmail's Promotions tab. Two annotation types are supported: `deal_card` and `product_carousel`. These are mutually exclusive — include only one per campaign. Passing both `deal_card` and `product_carousel` returns a 400 validation error.
+
+        **Note:** `gmail_annotations` is only supported when `content_type` is `PROMOTIONAL`. Using it with `TRANSACTIONAL` returns a `400` error.
+      required:
+        - send_email_if_personalization_fails
+        - sender_logo
+        - sender_logo_type
+      properties:
+        send_email_if_personalization_fails:
+          type: boolean
+          description: |
+            Whether to send the email if personalization of any Gmail annotation field fails.
+
+            **Required** when `gmail_annotations` is present.
+          example: true
+        sender_logo:
+          type: string
+          description: |
+            The sender logo shown in the Gmail annotation.
+
+            Accepts a valid HTTPS URL or a MoEngage personalization token.
+
+            **Required** when `gmail_annotations` is present.
+          example: "https://example.com/logo.png"
+        sender_logo_type:
+          type: string
+          enum:
+            - image_url
+            - uploaded_image
+          description: |
+            The source type of the sender logo.
+
+            - `image_url`: `sender_logo` is treated as a publicly accessible image URL.
+            - `uploaded_image`: `sender_logo` is treated as an uploaded image reference from the MoEngage asset manager.
+
+            **Required** when `sender_logo` is provided.
+          example: "image_url"
+        deal_card:
+          description: |
+            The Deal Card annotation.
+
+            **Optional.** Use either `deal_card` or `product_carousel` — not both. Passing both `deal_card` and `product_carousel` returns a 400 validation error.
+          allOf:
+            - $ref: '#/components/schemas/GmailAnnotationsDealCard'
+        product_carousel:
+          description: |
+            The Product Carousel annotation.
+
+            **Optional.** Use either `product_carousel` or `deal_card` — not both. Passing both `deal_card` and `product_carousel` returns a 400 validation error.
+          allOf:
+            - $ref: '#/components/schemas/GmailAnnotationsProductCarousel'
+
+    GmailAnnotationsDealCard:
+      type: object
+      description: |
+        Deal Card annotation shown in Gmail's Promotions tab. All four fields below are required when `deal_card` is present.
+      required:
+        - description
+        - discount_code
+        - availability_starts
+        - availability_ends
+      properties:
+        description:
+          type: string
+          description: |
+            Short deal description shown in the Gmail annotation.
+
+            **Required** when `deal_card` is present.
+          example: "Get 20% off on all orders above $50"
+        discount_code:
+          type: string
+          description: |
+            Promo or discount code displayed with the deal.
+
+            **Required** when `deal_card` is present.
+          example: "SAVE20"
+        availability_starts:
+          type: string
+          description: |
+            ISO 8601 datetime indicating when the deal becomes active. Use the timezone of the promotion, not your server or API caller timezone. Ensure the timezone matches the promotion's local timezone so the deal displays the correct active and expiry times for your audience.
+
+            **Accepted formats:**
+            - UTC (`Z` suffix): `YYYY-MM-DDTHH:mm:ssZ` (for example, `2026-06-01T00:00:00Z`).
+            - Positive offset: `YYYY-MM-DDTHH:mm:ss+HH:MM` (for example, `2026-06-01T00:00:00+05:30` for IST).
+            - Negative offset: `YYYY-MM-DDTHH:mm:ss-HH:MM` (for example, `2026-06-01T00:00:00-07:00` for US Pacific PDT).
+
+            **Common offsets:** IST `+05:30`, SGT `+08:00`, GST `+04:00`, CET `+01:00` or `+02:00` (DST), EST `-05:00`, EDT `-04:00`, PST `-08:00`, PDT `-07:00`, UTC `Z` or `+00:00`.
+
+            **Required** when `deal_card` is present.
+          example: "2026-06-01T00:00:00Z"
+        availability_ends:
+          type: string
+          description: |
+            ISO 8601 datetime indicating when the deal expires. Same format as `availability_starts`.
+
+            Use the timezone of the promotion, not your server or API caller timezone. Ensure the timezone matches the promotion's local timezone so the deal displays the correct active and expiry times for your audience.
+
+            Must be at least 1 hour after `availability_starts`.
+
+            **Required** when `deal_card` is present.
+          example: "2026-06-30T23:59:59Z"
+
+    GmailAnnotationsProductCarousel:
+      type: object
+      description: |
+        Product Carousel annotation shown in Gmail's Promotions tab.
+
+        Use `MANUAL` to specify products directly in the request, or `PRODUCT_SET` to pull products dynamically from a MoEngage Catalog product set.
+      required:
+        - type
+      properties:
+        type:
+          type: string
+          enum:
+            - MANUAL
+            - PRODUCT_SET
+          description: |
+            The source type for the product carousel.
+
+            - `MANUAL`: Specify products directly in the request using `manual_data`.
+            - `PRODUCT_SET`: Pull products dynamically from a MoEngage Catalog product set using `product_set_data`. Requires the Product Sets feature to be enabled for your workspace.
+
+            **Required** when `product_carousel` is present.
+        manual_data:
+          description: |
+            Products specified directly in the request.
+
+            **Required** when `product_carousel.type` is `MANUAL`.
+          allOf:
+            - $ref: '#/components/schemas/GmailAnnotationsProductCarouselManualData'
+        product_set_data:
+          description: |
+            Reference to a MoEngage Catalog product set.
+
+            **Required** when `product_carousel.type` is `PRODUCT_SET`.
+          allOf:
+            - $ref: '#/components/schemas/GmailAnnotationsProductCarouselProductSetData'
+
+    GmailAnnotationsProductCarouselManualData:
+      type: object
+      description: |
+        Manual product list for the Gmail Annotations product carousel.
+
+        **Required** when `product_carousel.type` is `MANUAL`. Minimum 2 products required.
+      required:
+        - currency
+        - products
+      properties:
+        currency:
+          type: string
+          description: |
+            ISO 4217 currency code applied to all products in the carousel.
+
+            **Required** when `manual_data` is present.
+          example: "USD"
+        products:
+          type: array
+          description: |
+            List of products to display in the carousel.
+
+            **Required** when `manual_data` is present. Minimum 2 products.
+          minItems: 2
+          items:
+            $ref: '#/components/schemas/GmailAnnotationsProductCarouselManualProduct'
+
+    GmailAnnotationsProductCarouselManualProduct:
+      type: object
+      description: A single product entry in a manual product carousel. All fields below are required for each product.
+      required:
+        - id
+        - headline
+        - original_price
+        - discount_value
+        - discount_type
+        - promo_url
+        - product_image
+      properties:
+        id:
+          type: string
+          description: |
+            Unique product identifier.
+
+            **Required** for each product.
+          example: "prod-001"
+        headline:
+          type: string
+          description: |
+            Product name shown in the annotation.
+
+            **Required** for each product.
+          example: "Wireless Headphones"
+        original_price:
+          type: string
+          description: |
+            Original price of the product as a numeric string.
+
+            **Required** for each product.
+          example: "199.99"
+        discount_value:
+          type: string
+          description: |
+            Discount amount as a numeric string. Interpreted as a percentage or absolute value depending on `discount_type`.
+
+            **Required** for each product.
+          example: "30"
+        discount_type:
+          type: string
+          enum:
+            - PERCENT
+            - VALUE
+          description: |
+            How `discount_value` is interpreted.
+
+            - `PERCENT`: `discount_value` is a percentage.
+            - `VALUE`: `discount_value` is an absolute amount in `currency`.
+
+            **Required** for each product.
+          example: "PERCENT"
+        promo_url:
+          type: string
+          description: |
+            Product landing page URL. Must be a valid HTTPS URL.
+
+            **Required** for each product.
+          example: "https://example.com/products/prod-001"
+        product_image:
+          type: string
+          description: |
+            Product image URL. Must be a valid HTTPS URL. Cannot be empty.
+
+            **Required** for each product.
+          example: "https://example.com/images/prod-001.png"
+
+    GmailAnnotationsProductCarouselProductSetData:
+      type: object
+      description: |
+        Product set configuration for the Gmail Annotations product carousel. Pulls products dynamically from a MoEngage Catalog product set.
+
+        **Required** when `product_carousel.type` is `PRODUCT_SET`. Requires the Product Sets feature to be enabled for your workspace.
+      required:
+        - product_set
+        - image_url
+        - headline
+        - promo_url
+        - product_count
+      properties:
+        product_set:
+          type: string
+          description: |
+            Product set ID from MoEngage Catalog. Must be valid and exist in your workspace.
+
+            **Required** when `product_set_data` is present.
+          example: "product_set_12345"
+        image_url:
+          type: string
+          description: |
+            Fallback image URL if a product set image is unavailable.
+
+            **Required** when `product_set_data` is present.
+          example: "https://example.com/images/fallback.png"
+        headline:
+          type: string
+          description: |
+            Label shown for the product carousel.
+
+            **Required** when `product_set_data` is present.
+          example: "Recommended For You"
+        promo_url:
+          type: string
+          description: |
+            Destination URL when the user clicks the annotation.
+
+            **Required** when `product_set_data` is present.
+          example: "https://example.com/shop"
+        product_count:
+          type: integer
+          description: |
+            Number of products to display.
+
+            **Required** when `product_set_data` is present. Minimum 2, maximum 9.
+          minimum: 2
+          maximum: 9
+          example: 3
 
 
     SegmentationDetails:
@@ -3258,15 +3608,320 @@ components:
       content:
         application/json:
           schema: { $ref: '#/components/schemas/V5ErrorEnvelope' }
-          example:
-            response_id: "abc-101"
-            error:
-              code: VALIDATION_FAILED
-              message: "One or more fields failed validation."
-              request_id: "req-push-001"
-              details:
-                - target: "campaign_delivery_type"
-                  message: "campaign_delivery_type value is required."
+          examples:
+            validation_failed:
+              summary: Generic field validation failure
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  request_id: "req-push-001"
+                  details:
+                    - target: "campaign_delivery_type"
+                      message: "campaign_delivery_type value is required."
+            double_opt_in_not_enabled_for_account:
+              summary: Double opt-in not enabled for account
+              value:
+                response_id: "abc-101"
+                error:
+                  code: "BAD_REQUEST"
+                  message: "Double opt-in is not enabled for this account"
+                  target: "basic_details"
+                  details:
+                    - target: "basic_details.send_only_double_opt_in_users"
+                      message: "Double opt-in is not enabled for this account"
+            double_opt_in_single_opt_in_method:
+              summary: Account opt-in method is Single Opt-in
+              value:
+                response_id: "abc-101"
+                error:
+                  code: "BAD_REQUEST"
+                  message: "send_only_double_opt_in_users cannot be set to true when account opt-in method is Single Opt-in"
+                  target: "basic_details"
+                  details:
+                    - target: "basic_details.send_only_double_opt_in_users"
+                      message: "send_only_double_opt_in_users cannot be set to true when account opt-in method is Single Opt-in"
+            double_opt_in_used_on_transactional_campaign:
+              summary: Used on TRANSACTIONAL campaign
+              value:
+                response_id: "abc-101"
+                error:
+                  code: "BAD_REQUEST"
+                  message: "send_only_double_opt_in_users is not supported for transactional campaigns"
+                  target: "basic_details"
+                  details:
+                    - target: "basic_details.send_only_double_opt_in_users"
+                      message: "send_only_double_opt_in_users is not supported for transactional campaigns"
+            double_opt_in_wrong_type:
+              summary: Wrong type (non-boolean)
+              value:
+                response_id: "abc-101"
+                error:
+                  code: "BAD_REQUEST"
+                  message: "send_only_double_opt_in_users - Invalid value passed. Expected type: boolean"
+                  target: "basic_details"
+                  details:
+                    - target: "basic_details.send_only_double_opt_in_users"
+                      message: "send_only_double_opt_in_users - Invalid value passed. Expected type: boolean"
+            deduplication_attribute_feature_not_enabled_for_account:
+              summary: deduplication_attribute - feature not enabled for account
+              value:
+                response_id: "abc-101"
+                error:
+                  code: "BAD_REQUEST"
+                  message: "Brand dedup is not enabled for this account"
+                  target: "basic_details"
+                  details:
+                    - target: "basic_details.deduplication_attribute"
+                      message: "Brand dedup is not enabled for this account"
+            deduplication_attribute_invalid_attribute_name:
+              summary: deduplication_attribute - invalid attribute name
+              value:
+                response_id: "abc-101"
+                error:
+                  code: "BAD_REQUEST"
+                  message: "deduplication_attribute '<value>' is not a valid user attribute for this account"
+                  target: "basic_details"
+                  details:
+                    - target: "basic_details.deduplication_attribute"
+                      message: "deduplication_attribute '<value>' is not a valid user attribute for this account"
+            deduplication_attribute_wrong_type_non_string:
+              summary: deduplication_attribute - wrong type (non-string)
+              value:
+                response_id: "abc-101"
+                error:
+                  code: "BAD_REQUEST"
+                  message: "deduplication_attribute - Invalid value passed. Expected type: string, but got: int."
+                  target: "basic_details"
+                  details:
+                    - target: "basic_details.deduplication_attribute"
+                      message: "deduplication_attribute - Invalid value passed. Expected type: string, but got: int."
+            deduplication_attribute_not_supported_for_api_triggered:
+              summary: deduplication_attribute not supported for API_TRIGGERED campaigns
+              value:
+                response_id: "abc-101"
+                error:
+                  code: "BAD_REQUEST"
+                  message: "deduplication_attribute is not supported for API_TRIGGERED campaigns"
+                  target: "basic_details"
+                  details:
+                    - target: "basic_details.deduplication_attribute"
+                      message: "deduplication_attribute is not supported for API_TRIGGERED campaigns"
+            gmail_annotations_on_transactional:
+              summary: gmail_annotations used on TRANSACTIONAL campaign
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations"
+                      message: "gmail_annotations is not supported for TRANSACTIONAL content type. It is only supported for PROMOTIONAL campaigns."
+            gmail_annotations_missing_sender_logo:
+              summary: sender_logo missing when gmail_annotations is present
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.sender_logo"
+                      message: "sender_logo is required when gmail_annotations is specified"
+            gmail_annotations_invalid_sender_logo:
+              summary: sender_logo is not a valid HTTPS URL
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.sender_logo"
+                      message: "sender_logo must be a valid https URL"
+            gmail_annotations_deal_card_missing_field:
+              summary: Required deal_card field missing
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.deal_card.availability_starts"
+                      message: "availability_starts is required when deal_card is specified"
+            gmail_annotations_deal_card_invalid_end_time:
+              summary: availability_ends less than 1 hour after availability_starts
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.deal_card"
+                      message: "End date and time must be a minimum of one hour later than the start date and time"
+            gmail_annotations_product_carousel_minimum_products:
+              summary: Product carousel has fewer than 2 products
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.product_carousel"
+                      message: "Product carousel requires a minimum of 2 products"
+            gmail_annotations_product_set_product_count_exceeds_maximum:
+              summary: product_count exceeds maximum of 9
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.product_carousel.product_set_data"
+                      message: "product_count must be between 2 and 9"
+            gmail_annotations_product_carousel_invalid_original_price:
+              summary: Manual product has invalid original_price
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.product_carousel.manual_data.products[0].original_price"
+                      message: "original_price must be a valid number"
+            gmail_annotations_product_carousel_invalid_discount_value:
+              summary: Manual product has invalid discount_value
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.product_carousel.manual_data.products[0].discount_value"
+                      message: "discount_value must be a valid number"
+            gmail_annotations_product_carousel_invalid_promo_url:
+              summary: Manual product has invalid promo_url
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.product_carousel.manual_data.products[0].promo_url"
+                      message: "promo_url must be a valid https URL"
+            gmail_annotations_product_carousel_empty_product_image:
+              summary: Manual product has empty product_image
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.product_carousel.manual_data.products[0].product_image"
+                      message: "product_image (Image URL) cannot be empty"
+            gmail_annotations_product_carousel_invalid_product_image_url:
+              summary: Manual product has invalid product_image URL
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.product_carousel.manual_data.products[0].product_image"
+                      message: "product_image must be a valid https URL"
+            gmail_annotations_product_set_not_found:
+              summary: Product set ID does not exist in the workspace
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.product_carousel.product_set_data"
+                      message: "product_set not found for the given workspace"
+            gmail_annotations_product_sets_feature_not_enabled:
+              summary: Product Sets feature is not enabled for the workspace
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.gmail_annotations.product_carousel"
+                      message: "Product Sets is not enabled for this workspace"
+            link_branding_domain_no_domain_configured:
+              summary: link_branding_domain - no link branding domains configured
+              value:
+                response_id: "abc-101"
+                error:
+                  code: BAD_REQUEST
+                  message: "link_branding_domain cannot be processed because no link branding domains have been configured for this workspace. Please set up a domain in your MoEngage dashboard settings first."
+                  target: "campaign_content.content.email"
+                  details:
+                    - target: "campaign_content.content.email.link_branding_domain"
+                      message: "link_branding_domain cannot be processed because no link branding domains have been configured for this workspace."
+            link_branding_domain_no_match:
+              summary: link_branding_domain - does not match a configured domain
+              value:
+                response_id: "abc-101"
+                error:
+                  code: BAD_REQUEST
+                  message: "The provided link_branding_domain does not match any of the configured domains for this workspace. Please verify the domain name and try again."
+                  target: "campaign_content.content.email"
+                  details:
+                    - target: "campaign_content.content.email.link_branding_domain"
+                      message: "The provided link_branding_domain does not match any of the configured domains for this workspace."
+            deep_link_domain_no_domain_configured:
+              summary: deep_link_domain - no deep linking domains configured
+              value:
+                response_id: "abc-101"
+                error:
+                  code: BAD_REQUEST
+                  message: "deep_link_domain cannot be processed because no deep linking domains have been configured for this workspace. Please set up a domain in your MoEngage dashboard settings first."
+                  target: "campaign_content.content.email"
+                  details:
+                    - target: "campaign_content.content.email.deep_link_domain"
+                      message: "deep_link_domain cannot be processed because no deep linking domains have been configured for this workspace."
+            deep_link_domain_no_match:
+              summary: deep_link_domain - does not match a configured domain
+              value:
+                response_id: "abc-101"
+                error:
+                  code: BAD_REQUEST
+                  message: "The provided deep_link_domain does not match any of the configured domains for this workspace. Please verify the domain name and try again."
+                  target: "campaign_content.content.email"
+                  details:
+                    - target: "campaign_content.content.email.deep_link_domain"
+                      message: "The provided deep_link_domain does not match any of the configured domains for this workspace."
+            from_address_personalization_not_enabled:
+              summary: from_address - personalized value used without EMAIL_FROM_ADDRESS_PERS enabled
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.from_address"
+                      message: "Personalized from_address is not supported for this workspace. Remove the personalization token, or ask support to enable EMAIL_FROM_ADDRESS_PERS."
+            from_address_invalid_email:
+              summary: from_address - not a valid email address
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.from_address"
+                      message: "from_address is not a valid email address"
+            reply_to_address_invalid_email:
+              summary: reply_to_address - not a valid email address
+              value:
+                response_id: "abc-101"
+                error:
+                  code: VALIDATION_FAILED
+                  message: "One or more fields failed validation."
+                  details:
+                    - target: "campaign_content.content.email.reply_to_address"
+                      message: "reply_to_address is not a valid email address"
     V5Unauthorized:
       description: Authentication failure.
       content:
@@ -3519,6 +4174,128 @@ paths:
                     delivery_type: "AT_FIXED_TIME"
                     start_time: "{{start_time}}"
                     expiry_time: "{{expiry_time}}"
+              email_with_gmail_annotations_deal_card:
+                summary: Email - Gmail Annotations Deal Card (IST +05:30)
+                value:
+                  request_id: "{{request_id}}"
+                  channel: "EMAIL"
+                  campaign_delivery_type: "ONE_TIME"
+                  created_by: "{{user_email}}"
+                  basic_details:
+                    name: "{{campaign_name}}"
+                    content_type: "PROMOTIONAL"
+                    user_attribute_identifier: "Email (Standard)"
+                    subscription_category: "{{subscription_category}}"
+                  connector:
+                    connector_type: "{{connector_type}}"
+                    connector_name: "{{connector_name}}"
+                  campaign_content:
+                    content:
+                      email:
+                        subject: "Exclusive Deal Just for You"
+                        preview_text: "Save big with our limited-time offer"
+                        sender_name: "{{sender_name}}"
+                        from_address: "{{from_email}}"
+                        reply_to_address: "{{reply_to_address}}"
+                        html_content: "<!DOCTYPE html><html><body><p>Deal!</p></body></html>"
+                        gmail_annotations:
+                          send_email_if_personalization_fails: true
+                          sender_logo: "{{sender_logo}}"
+                          sender_logo_type: "image_url"
+                          deal_card:
+                            description: "Get 20% off on all orders above $50"
+                            discount_code: "SAVE20"
+                            availability_starts: "2026-06-01T00:00:00+05:30"
+                            availability_ends: "2026-06-30T23:59:59+05:30"
+                  scheduling_details:
+                    delivery_type: "ASAP"
+              email_with_gmail_annotations_product_carousel_manual:
+                summary: Email - Gmail Annotations Product Carousel (Manual)
+                value:
+                  request_id: "{{request_id}}"
+                  channel: "EMAIL"
+                  campaign_delivery_type: "ONE_TIME"
+                  created_by: "{{user_email}}"
+                  basic_details:
+                    name: "{{campaign_name}}"
+                    content_type: "PROMOTIONAL"
+                    user_attribute_identifier: "Email (Standard)"
+                    subscription_category: "{{subscription_category}}"
+                  connector:
+                    connector_type: "{{connector_type}}"
+                    connector_name: "{{connector_name}}"
+                  campaign_content:
+                    content:
+                      email:
+                        subject: "Featured Products This Week"
+                        preview_text: "Discover our latest deals"
+                        sender_name: "{{sender_name}}"
+                        from_address: "{{from_email}}"
+                        reply_to_address: "{{reply_to_address}}"
+                        html_content: "<!DOCTYPE html><html><body><p>Shop now!</p></body></html>"
+                        gmail_annotations:
+                          send_email_if_personalization_fails: true
+                          sender_logo: "{{sender_logo}}"
+                          sender_logo_type: "image_url"
+                          product_carousel:
+                            type: "MANUAL"
+                            manual_data:
+                              currency: "{{currency}}"
+                              products:
+                                - id: "{{id}}"
+                                  headline: "{{headline}}"
+                                  original_price: "{{original_price}}"
+                                  discount_value: "{{discount_value}}"
+                                  discount_type: "PERCENT"
+                                  promo_url: "{{promo_url}}"
+                                  product_image: "{{product_image}}"
+                                - id: "{{id}}"
+                                  headline: "{{headline}}"
+                                  original_price: "{{original_price}}"
+                                  discount_value: "{{discount_value}}"
+                                  discount_type: "VALUE"
+                                  promo_url: "{{promo_url}}"
+                                  product_image: "{{product_image}}"
+                  scheduling_details:
+                    delivery_type: "ASAP"
+              email_with_gmail_annotations_product_carousel_product_set:
+                summary: Email - Gmail Annotations Product Carousel (Product Set)
+                value:
+                  request_id: "{{request_id}}"
+                  channel: "EMAIL"
+                  campaign_delivery_type: "ONE_TIME"
+                  created_by: "{{user_email}}"
+                  basic_details:
+                    name: "{{campaign_name}}"
+                    content_type: "PROMOTIONAL"
+                    user_attribute_identifier: "Email (Standard)"
+                    subscription_category: "{{subscription_category}}"
+                  connector:
+                    connector_type: "{{connector_type}}"
+                    connector_name: "{{connector_name}}"
+                  campaign_content:
+                    content:
+                      email:
+                        subject: "Picks Curated For You"
+                        preview_text: "Personalized recommendations"
+                        sender_name: "{{sender_name}}"
+                        from_address: "{{from_email}}"
+                        reply_to_address: "{{reply_to_address}}"
+                        html_content: "<!DOCTYPE html><html><body><p>Shop now!</p></body></html>"
+                        gmail_annotations:
+                          send_email_if_personalization_fails: true
+                          sender_logo: "{{sender_logo}}"
+                          sender_logo_type: "image_url"
+                          product_carousel:
+                            type: "PRODUCT_SET"
+                            product_set_data:
+                              product_set: "product_set_12345"
+                              image_url: "https://example.com/images/fallback.png"
+                              headline: "{{headline}}"
+                              promo_url: "{{promo_url}}"
+                              product_count: 3
+                  scheduling_details:
+                    delivery_type: "ASAP"
               push_event_triggered:
                 summary: Push - EVENT_TRIGGERED
                 value:
@@ -4215,6 +4992,29 @@ paths:
                         from_address: "{{from_email}}"
                         html_content: "{{html_body}}"
                         "email_editor": "Froala Editor"
+              email_update_gmail_annotations:
+                summary: Email - Update campaign_content with gmail_annotations
+                value:
+                  request_id: "{{request_id}}"
+                  channel: "EMAIL"
+                  campaign_delivery_type: "{{campaign_delivery_type}}"
+                  updated_by: "{{user_email}}"
+                  campaign_content:
+                    content:
+                      email:
+                        subject: "{{email_subject}}"
+                        sender_name: "{{sender_name}}"
+                        from_address: "{{from_email}}"
+                        html_content: "{{html_body}}"
+                        gmail_annotations:
+                          send_email_if_personalization_fails: true
+                          sender_logo: "{{sender_logo}}"
+                          sender_logo_type: "image_url"
+                          deal_card:
+                            description: "Get 20% off on all orders above $50"
+                            discount_code: "SAVE20"
+                            availability_starts: "2026-06-01T00:00:00+05:30"
+                            availability_ends: "2026-06-30T23:59:59+05:30"
               push_update_basic_details:
                 summary: Push - Update basic_details
                 value:

@@ -70,6 +70,7 @@ Everything below this section is reference material covering every supported cha
 | [iOS push content](#ios-push-content) | `campaign_content.content.push.ios` |
 | [Web push content](#web-push-content) | `campaign_content.content.push.web` |
 | [Email content](#email-content) | `campaign_content.content.email` |
+| [Gmail Annotations](#gmail-annotations) | `campaign_content.content.email.gmail_annotations` |
 | [A/B test variations](#a%2Fb-test-variations) | `campaign_content.variation_details` |
 | [Email delivery connector](#email-delivery-connector) | `connector` (Email requests only) |
 | [Validation rules](#validation-rules) | Cross-cutting rules enforced at validate or publish |
@@ -188,6 +189,8 @@ The `basic_details` object on an Email campaign carries identifying metadata, su
 | `business_event` | string | The business event mapped to the campaign. **Required** when `campaign_delivery_type` is `BUSINESS_EVENT_TRIGGERED`. |
 | `content_type` | string | The type of content. Enum: `PROMOTIONAL`, `TRANSACTIONAL`. |
 | `subscription_category` | string | The subscription category for promotional emails. **Required** when `content_type` is `PROMOTIONAL`. |
+| `send_only_double_opt_in_users` | boolean | Restricts the campaign to users who have double-opted in. Applies only to `PROMOTIONAL` campaigns — including it on a `TRANSACTIONAL` campaign returns a 400 validation error, as does setting it to `true` on a workspace using Single Opt-in or without double opt-in enabled. See the `double_opt_in_*` error examples on [Create Campaign Draft](/api/create-campaigns/create-campaign-draft-v5). |
+| `deduplication_attribute` | string | Brand-level deduplication. Pass `""` for single-brand use (no dedup), or a backend user attribute name (e.g. `u_em`) for multi-brand dedup. Not supported for `API_TRIGGERED` campaigns — passing this field on an API-triggered campaign returns a 400 validation error. See the `deduplication_attribute_*` error examples on [Create Campaign Draft](/api/create-campaigns/create-campaign-draft-v5). |
 | `tags` | array of string | Free-form context tags. |
 | `team` | string | The team collaborating on the campaign. |
 | `user_attribute_identifier` | string | The user attribute that stores the recipient email address. Default: `Email (Standard)`. The internal identifier `MOE_EMAIL_ID` is also accepted. |
@@ -1036,13 +1039,14 @@ Each entry in `buttons` is a `WebButton`.
 | `subject` | string | The subject line. |
 | `preview_text` | string | The preview text shown in inbox listings. |
 | `sender_name` | string | The display name of the sender. |
-| `from_address` | email | The sender email address. |
-| `reply_to_address` | email | The reply-to address. |
+| `from_address` | email | The sender email address. Also accepts a Jinja personalization token (e.g. `{{UserAttribute['custom_from_email']}}`) to send from a per-user dynamic sender address — snippet: `{ "from_address": "{{UserAttribute['custom_from_email']}}" }`. This requires the `EMAIL_FROM_ADDRESS_PERS` feature flag to be enabled for your workspace — contact MoEngage support to enable it. |
+| `reply_to_address` | email | The reply-to address. Also accepts a Jinja personalization token (e.g. `{{UserAttribute['custom_reply_to']}}`) for per-user dynamic reply-to addresses — snippet: `{ "reply_to_address": "{{UserAttribute['custom_reply_to']}}" }`. No additional feature flag required. |
 | `cc_ids` | array of email | CC recipients. |
 | `bcc_ids` | array of email | BCC recipients. |
 | `html_content` | string | The raw HTML body. Optional when `custom_template_id` is provided. |
 | `link_branding_domain` | string | Create Campaign only. The custom domain used to brand links in the email body, in place of the standard MoEngage domain. Shown as **Link branding** in the dashboard. Defaults to the workspace setting. |
 | `deep_link_domain` | string | Create Campaign only. The deep linking domain used to wrap deep links in the email body. |
+| `gmail_annotations` | object | Rich annotations (Deal Card or Product Carousel) shown in Gmail's Promotions tab. `PROMOTIONAL` content type only. See [Gmail Annotations](#gmail-annotations) for the full sub-schema. |
 | `email_editor` | enum | `Froala Editor` or `Ace Editor`. Required when the campaign uses `Ace Editor`. |
 | `custom_template_id` | string | A saved email template ID. When provided, `subject`, `preview_text`, and `sender_name` are not required. |
 | `custom_template_version` | integer | Optional template version. |
@@ -1132,7 +1136,13 @@ When `custom_template_id` is provided, `subject`, `preview_text`, and `sender_na
 
 ### Email attachments
 
-Each entry in `attachments` is `{ file_type, url }`.
+Each entry in `attachments` has the following fields:
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `file_type` | enum | `URL` or `PERSONALIZED_ATTACHMENT`. See behavior table below. |
+| `url` | string | The attachment URL. Required regardless of whether `s3_keys` is also provided. |
+| `s3_keys` | array of string | Optional. S3 object keys backing the attachment, stored in a single, fixed MoEngage-owned S3 bucket (for example, `attachments/2026/06/invoice-001.pdf`). Complementary to `url` / `file_type`, not a replacement — `url` and `file_type` remain required either way. No customer-owned bucket and no workspace-level bucket allowlisting to configure. |
 
 | `file_type` | Behavior |
 | :--- | :--- |
@@ -1150,7 +1160,11 @@ Each entry in `attachments` is `{ file_type, url }`.
         "from_address": "marketing@example.com",
         "html_content": "<p>See the attached brochure.</p>",
         "attachments": [
-          { "file_type": "URL", "url": "https://example.com/brochure.pdf" }
+          {
+            "file_type": "URL",
+            "url": "https://example.com/brochure.pdf",
+            "s3_keys": ["attachments/2026/06/brochure.pdf"]
+          }
         ]
       }
     }
@@ -1167,7 +1181,11 @@ Each entry in `attachments` is `{ file_type, url }`.
         "from_address": "billing@example.com",
         "html_content": "<p>Your invoice is attached.</p>",
         "attachments": [
-          { "file_type": "PERSONALIZED_ATTACHMENT", "url": "https://example.com/invoices/{{UserAttribute['User ID']}}.pdf" }
+          {
+            "file_type": "PERSONALIZED_ATTACHMENT",
+            "url": "https://example.com/invoices/{{UserAttribute['User ID']}}.pdf",
+            "s3_keys": ["attachments/2026/06/invoice-{{UserAttribute['User ID']}}.pdf"]
+          }
         ]
       }
     }
@@ -1176,6 +1194,206 @@ Each entry in `attachments` is `{ file_type, url }`.
 ```
 
 </CodeGroup>
+
+## Gmail Annotations
+
+`campaign_content.content.email.gmail_annotations` renders rich annotations in Gmail's Promotions tab — a Deal Card or a Product Carousel. This section covers the full sub-schema; the base object sits under `EmailContent` (see [Email content](#email-content)).
+
+<Warning>
+`gmail_annotations` is supported only when `content_type` is `PROMOTIONAL`. Using it with `TRANSACTIONAL` returns a `400` error. For the full error response bodies, see the `gmail_annotations_*` examples on [Create Campaign Draft](/api/create-campaigns/create-campaign-draft-v5).
+</Warning>
+
+### gmail_annotations fields
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `send_email_if_personalization_fails` | boolean | **Required.** Whether to send the email if personalization of any Gmail annotation field fails. |
+| `sender_logo` | string | **Required.** The sender logo shown in the annotation. Accepts a valid HTTPS URL or a MoEngage personalization token. |
+| `sender_logo_type` | enum | **Required** when `sender_logo` is provided. `image_url` — `sender_logo` is treated as a publicly accessible image URL. `uploaded_image` — `sender_logo` is treated as an uploaded image reference from the MoEngage asset manager. |
+| `deal_card` | object | Optional. See [Deal Card](#deal-card). Mutually exclusive with `product_carousel`. |
+| `product_carousel` | object | Optional. See [Product Carousel](#product-carousel). Mutually exclusive with `deal_card`. |
+
+<Warning>
+`deal_card` and `product_carousel` are mutually exclusive. Only one may be included in a single `gmail_annotations` object. Passing both returns a 400 validation error.
+</Warning>
+
+### Deal Card
+
+`gmail_annotations.deal_card`. All four fields are required when `deal_card` is present.
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `description` | string | Short deal description shown in the annotation. |
+| `discount_code` | string | Promo or discount code displayed with the deal. |
+| `availability_starts` | string | ISO 8601 datetime the deal becomes active. Use the promotion's own local timezone, not your server or API caller timezone — see accepted formats below. |
+| `availability_ends` | string | ISO 8601 datetime the deal expires. Same format as `availability_starts`. Must be at least 1 hour after `availability_starts`. |
+
+**Accepted datetime formats for `availability_starts` / `availability_ends`:**
+- UTC (`Z` suffix): `YYYY-MM-DDTHH:mm:ssZ` (for example, `2026-06-01T00:00:00Z`)
+- Positive offset: `YYYY-MM-DDTHH:mm:ss+HH:MM` (for example, `2026-06-01T00:00:00+05:30` for IST)
+- Negative offset: `YYYY-MM-DDTHH:mm:ss-HH:MM` (for example, `2026-06-01T00:00:00-07:00` for US Pacific PDT)
+
+Common offsets: IST `+05:30`, SGT `+08:00`, GST `+04:00`, CET `+01:00`/`+02:00` (DST), EST `-05:00`, EDT `-04:00`, PST `-08:00`, PDT `-07:00`, UTC `Z` or `+00:00`.
+
+```json Deal Card example
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Exclusive Deal Just for You",
+        "preview_text": "Save big with our limited-time offer",
+        "sender_name": "Example Team",
+        "from_address": "hello@example.com",
+        "reply_to_address": "support@example.com",
+        "html_content": "<!DOCTYPE html><html><body><p>Deal!</p></body></html>",
+        "gmail_annotations": {
+          "send_email_if_personalization_fails": true,
+          "sender_logo": "https://example.com/logo.png",
+          "sender_logo_type": "image_url",
+          "deal_card": {
+            "description": "Get 20% off on all orders above $50",
+            "discount_code": "SAVE20",
+            "availability_starts": "2026-06-01T00:00:00+05:30",
+            "availability_ends": "2026-06-30T23:59:59+05:30"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Product Carousel
+
+`gmail_annotations.product_carousel`. Use `MANUAL` to specify products directly in the request, or `PRODUCT_SET` to pull products dynamically from a MoEngage Catalog product set.
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `type` | enum | **Required.** `MANUAL` or `PRODUCT_SET`. |
+| `manual_data` | object | **Required** when `type` is `MANUAL`. See [Manual product data](#manual-product-data). |
+| `product_set_data` | object | **Required** when `type` is `PRODUCT_SET`. See [Product set data](#product-set-data). Requires the Product Sets feature enabled for your workspace. |
+
+#### Manual product data
+
+`gmail_annotations.product_carousel.manual_data`. Requires a minimum of 2 products.
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `currency` | string | **Required.** ISO 4217 currency code applied to all products in the carousel. |
+| `products` | array | **Required.** Minimum 2 products. See fields below. |
+
+Each entry in `products` — all fields required:
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `id` | string | Unique product identifier. |
+| `headline` | string | Product name shown in the annotation. |
+| `original_price` | string | Original price as a numeric string. |
+| `discount_value` | string | Discount amount as a numeric string. Interpreted per `discount_type`. |
+| `discount_type` | enum | `PERCENT` — `discount_value` is a percentage. `VALUE` — `discount_value` is an absolute amount in `currency`. |
+| `promo_url` | string | Product landing page URL. Must be a valid HTTPS URL. |
+| `product_image` | string | Product image URL. Must be a valid HTTPS URL. Cannot be empty. |
+
+```json Manual product carousel example
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Featured Products This Week",
+        "sender_name": "Example Team",
+        "from_address": "hello@example.com",
+        "html_content": "<!DOCTYPE html><html><body><p>Shop now!</p></body></html>",
+        "gmail_annotations": {
+          "send_email_if_personalization_fails": true,
+          "sender_logo": "https://example.com/logo.png",
+          "sender_logo_type": "image_url",
+          "product_carousel": {
+            "type": "MANUAL",
+            "manual_data": {
+              "currency": "USD",
+              "products": [
+                {
+                  "id": "prod-001",
+                  "headline": "Wireless Headphones",
+                  "original_price": "199.99",
+                  "discount_value": "30",
+                  "discount_type": "PERCENT",
+                  "promo_url": "https://example.com/products/prod-001",
+                  "product_image": "https://example.com/images/prod-001.png"
+                },
+                {
+                  "id": "prod-002",
+                  "headline": "Smart Watch",
+                  "original_price": "249.99",
+                  "discount_value": "50",
+                  "discount_type": "VALUE",
+                  "promo_url": "https://example.com/products/prod-002",
+                  "product_image": "https://example.com/images/prod-002.png"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+#### Product set data
+
+`gmail_annotations.product_carousel.product_set_data`. Requires the Product Sets feature enabled for your workspace.
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `product_set` | string | **Required.** Product set ID from MoEngage Catalog. Must exist in your workspace. |
+| `image_url` | string | **Required.** Fallback image URL if a product set image is unavailable. |
+| `headline` | string | **Required.** Label shown for the product carousel. |
+| `promo_url` | string | **Required.** Destination URL when the user clicks the annotation. |
+| `product_count` | integer | **Required.** Number of products to display. Minimum 2, maximum 9. |
+
+```json Product set carousel example
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Picks Curated For You",
+        "sender_name": "Example Team",
+        "from_address": "hello@example.com",
+        "html_content": "<!DOCTYPE html><html><body><p>Shop now!</p></body></html>",
+        "gmail_annotations": {
+          "send_email_if_personalization_fails": true,
+          "sender_logo": "https://example.com/logo.png",
+          "sender_logo_type": "image_url",
+          "product_carousel": {
+            "type": "PRODUCT_SET",
+            "product_set_data": {
+              "product_set": "product_set_12345",
+              "image_url": "https://example.com/images/fallback.png",
+              "headline": "Recommended For You",
+              "promo_url": "https://example.com/shop",
+              "product_count": 3
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Gmail Annotations Validation Rules
+
+| Rule | Source |
+| :--- | :--- |
+| `gmail_annotations` is supported only when `content_type` is `PROMOTIONAL`. Using it with `TRANSACTIONAL` returns a `400` error. | `GmailAnnotations` description |
+| `deal_card` and `product_carousel` are mutually exclusive. Passing both returns a `400` error. | `GmailAnnotations.deal_card`, `GmailAnnotations.product_carousel` descriptions |
+| All four `deal_card` fields are required when `deal_card` is present. `availability_ends` must be at least 1 hour after `availability_starts`. | `GmailAnnotationsDealCard` |
+| `manual_data.products` requires a minimum of 2 products. All product fields are required per entry. | `GmailAnnotationsProductCarouselManualData` |
+| `product_set_data.product_count` must be between 2 and 9. Requires the Product Sets feature enabled for the workspace. | `GmailAnnotationsProductCarouselProductSetData` |
+
+For the full set of 400 error response bodies (missing sender logo, invalid HTTPS URLs, minimum-products violations, product set not found, and so on), see the `gmail_annotations_*` examples under [Create Campaign Draft](/api/create-campaigns/create-campaign-draft-v5).
+
 
 ## A/B test variations
 
