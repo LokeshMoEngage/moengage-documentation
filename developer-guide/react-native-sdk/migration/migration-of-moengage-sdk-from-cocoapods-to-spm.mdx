@@ -1,0 +1,127 @@
+---
+title: "Migrate the MoEngage React Native SDK From CocoaPods to Swift Package Manager"
+sidebarTitle: "Migrate From CocoaPods to SPM"
+description: "Migrate the iOS side of an existing MoEngage React Native application from CocoaPods to Swift Package Manager."
+keywords: ["cocoapods to spm", "npx react-native spm", "swift package manager migration", "moengage-extensions-integration", "duplicate symbols", "version conflict"]
+---
+
+This guide describes how to migrate the iOS side of an existing React Native application from CocoaPods to Swift Package Manager (SPM). SPM support starts in `react-native-moengage` [13.0.0](/release-notes/sdks/react-native). It is experimental and uses React Native's own SPM support, which requires React Native 0.87 or later. For more information, refer to [Experimental Swift Package Manager support for iOS](https://reactnative.dev/blog/2026/08/11/react-native-0.87#experimental-swift-package-manager-support-for-ios) in the React Native 0.87 release announcement.
+
+The JavaScript code, SDK initialization, and dashboard configuration remain unchanged.
+
+## Migration Scope
+
+<Note>
+  Migration is optional for now. CocoaPods is the default for this release, and MoEngage publishes new SDK versions to CocoaPods until December 2, 2026. After that date, new MoEngage SDK versions are available only through Swift Package Manager. SPM support in React Native is experimental in this release, so plan the migration before that date.
+
+  Migrate only after your application meets the SPM requirements and every other native library in the application supports SPM.
+</Note>
+
+## Before You Begin
+
+- Review the SPM requirements and limitations on the [iOS Installation](/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-installation/ios) page.
+- Confirm that every other native library in the application supports SPM, either through its own `Package.swift` or through `npx react-native spm scaffold`.
+- Identify which extension targets use MoEngage, and whether the application uses the extension integrator tool.
+- Commit or back up the project, including the `ios` directory.
+
+## Step 1: Upgrade React Native and the MoEngage Packages
+
+1. Upgrade `react-native` to 0.87 or later.
+2. Upgrade `react-native-moengage` to [13.0.0](/release-notes/sdks/react-native) or later, and upgrade any other MoEngage packages in use to the versions from the same release.
+3. Run the following command:
+
+   ```bash Bash
+   npm install
+   ```
+
+## Step 2: Remove Manually Declared Pods
+
+Remove every pod declared manually in `ios/Podfile`, including the MoEngage pods that extension targets usually declare. Pods that are autolinked from npm packages need no change: the next step removes them.
+
+```ruby Podfile
+target 'NotificationService' do
+  pod 'MoEngage-iOS-SDK/RichNotification'
+end
+```
+
+In `ios/Podfile`, delete every line that starts with `pod 'MoEngage-iOS-SDK`, and remove any MoEngage settings from `post_install`.
+
+<Warning>
+  After the migration, no target in the Xcode project can reference a `Pods-*.xcconfig` file. Both `npx react-native spm add` and `npx react-native spm update` scan `project.pbxproj` for one and stop with an error if they find it, so a single remaining pod breaks every later SPM run.
+
+  Do not run `pod install` after migrating. Running it re-adds those references and breaks every subsequent `npx react-native spm` run, including the runs required after each dependency change.
+</Warning>
+
+## Step 3: Switch the Project to SPM
+
+From the `ios` directory, run the following command:
+
+```bash Bash
+npx react-native spm add --deintegrate
+```
+
+<Warning>
+  Use `add --deintegrate` for this first run. A bare `npx react-native spm` converts a CocoaPods-integrated project only when the `Podfile` declares no pods of its own and both `Podfile` and `project.pbxproj` are committed without local changes. An application that declares MoEngage pods for its extensions fails that check, and the command stops with an error telling you to re-run it with `spm add --deintegrate`.
+</Warning>
+
+This command replaces `pod install`. It runs `pod deintegrate`, removes `use_react_native!` and `use_native_modules!` from the `Podfile`, and sets up SPM in the existing `.xcodeproj`. It requires CocoaPods on your `PATH`, and it leaves the `.xcworkspace` untouched. The initial run takes longer because it downloads and caches React Native's prebuilt frameworks.
+
+<Note>
+  Keep `ios/Podfile`. The React Native CLI uses it to detect the iOS project, so the migration does not delete it.
+</Note>
+
+From this point onward, open `ios/<YourApp>.xcodeproj` and use plain `npx react-native spm` for every later run, as described in [Step 5](#step-5-update-build-scripts-and-ci).
+
+## Step 4: Update the Push Notification Extensions
+
+**If the application uses the extension integrator tool**, the only change is the Run Script. `react-native-moengage` already includes `MoEngageRichNotification`, so don't add the `apple-sdk` package in Xcode.
+
+1. Replace the CocoaPods Run Script:
+
+   ```bash Bash lines wrap
+   ${PODS_ROOT}/MoEngageExtensionsIntegration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration $OPTIONS
+   ```
+
+   with the following script, which works for both regular and archive builds:
+
+   ```bash Bash lines wrap
+   case "$ACTION" in
+     install) SPM_ROOT="$OBJROOT/../../../../.." ;;   # xcodebuild archive
+     *)       SPM_ROOT="$OBJROOT/../.." ;;            # build / run from Xcode
+   esac
+   "$SPM_ROOT/SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration" $OPTIONS
+   ```
+
+**If the application has its own Notification Service Extension or Content Extension code that imports `MoEngageRichNotification`:**
+
+1. In Xcode, expand **Package Dependencies** and note the `apple-sdk` version.
+2. Go to **File > Add Package Dependencies**, enter `https://github.com/moengage/apple-sdk.git`, and set **Dependency Rule** to **Exact Version** with that version.
+3. Add the `MoEngageRichNotification` product to those extension targets only.
+4. After every upgrade of the MoEngage React Native packages, update the **Exact Version** to match.
+
+## Step 5: Update Build Scripts and CI
+
+- In CI and local scripts, replace `pod install` with `npx react-native spm`, run from the `ios` directory.
+- Run the command after a fresh clone, a `node_modules` reset, or any dependency change. `npx react-native run-ios` does not invoke it automatically.
+- Build the `.xcodeproj`, not the `.xcworkspace`.
+
+## Step 6: Verify the Migration
+
+1. In Xcode, select **Product > Clean Build Folder**.
+2. Check that **Package Dependencies** lists the MoEngage packages, and that `ios/Podfile.lock`, if present, has no MoEngage entries.
+3. Build and run the application. Confirm that the SDK initialization logs report the expected version.
+4. Select **Product > Archive** and confirm that it succeeds. This tests the extension targets and the integrator script in a release build.
+5. Send a test push notification. Confirm that the device receives it, that the SDK tracks its impression, and that rich content renders. Verify the cards, inbox, geofence, and personalize modules if the application uses them.
+
+## Troubleshooting
+
+For general SPM issues, refer to the SPM section of [Troubleshooting and FAQs - React Native](/developer-guide/react-native-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs-react).
+
+| Issue | Cause and fix |
+| :-- | :-- |
+| Duplicate symbols, or "Multiple commands produce" | MoEngage comes from both CocoaPods and SPM. Remove the remaining MoEngage pods from `ios/Podfile`, as described in [Step 2](#step-2-remove-manually-declared-pods). |
+| Package resolution fails with a version conflict on `apple-sdk` | The project adds `apple-sdk` at a different version from the one the MoEngage plugin uses. If you use the extension integrator tool, remove the separately added `apple-sdk` package. Otherwise, set its **Exact Version** to the version listed under **Package Dependencies**. Refer to [Step 4](#step-4-update-the-push-notification-extensions). |
+| Archive fails with "moengage-extensions-integration: No such file or directory" | The Run Script still uses the CocoaPods path or a fixed SPM path. Use the script in [Step 4](#step-4-update-the-push-notification-extensions). |
+| Package not found, or the build fails after a dependency change | Run `npx react-native spm` again from the `ios` directory. |
+| Another native library fails to build | The library does not yet support SPM. Scaffold it with `npx react-native spm scaffold`, or keep the whole application on CocoaPods until every native dependency supports SPM. |
+| Linker errors or "framework not found" on the simulator | `EXCLUDED_ARCHS` or `ONLY_ACTIVE_ARCH` values set in the `Podfile` `post_install` hook no longer apply. Set them in Xcode on the app and extension targets. Refer to [Configuring Project for Architecture Compatibility](/developer-guide/ios-sdk/sdk-integration/basic/Configuring-Project-for-Architecture-Compatibility). |

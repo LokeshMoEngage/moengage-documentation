@@ -1,7 +1,7 @@
 ---
 title: "Troubleshooting and FAQs - React Native"
 description: "Find answers to common MoEngage React Native SDK issues with push, callbacks, in-app messages, and iOS build configuration."
-keywords: ["Unsupported Swift Architecture", "framework not found", "arm64", "ONLY_ACTIVE_ARCH", "MoEngageKMMConditionEvaluator", "MoEngageInitializer", "undeclared identifier", "Podfile post_install", "EXCLUDED_ARCHS"]
+keywords: ["Unsupported Swift Architecture", "framework not found", "arm64", "ONLY_ACTIVE_ARCH", "MoEngageKMMConditionEvaluator", "MoEngageInitializer", "undeclared identifier", "Podfile post_install", "EXCLUDED_ARCHS", "npx react-native spm", "swift package manager", "package not found", "deployment target"]
 ---
 
 import MoeDebuggerActivityFaq from '/snippets/moe-debugger-activity-hybrid-faq.mdx';
@@ -111,3 +111,24 @@ cd ios && pod install --repo-update
 </CodeGroup>
 
 Then clean the build folder in Xcode and build again.
+
+# iOS (SPM) - Why does the build fail with a package not found error after adding or updating a dependency?
+
+React Native's SPM autolinking doesn't run automatically. Navigate to the `ios` directory and run `npx react-native spm` again to regenerate the autolinking graph.
+
+Run this command after a fresh clone, after resetting `node_modules`, and after any dependency change. Unlike CocoaPods, `npx react-native run-ios` doesn't run it for you.
+
+# iOS (SPM) - Why does the app keep building against a stale version of the SDK?
+
+In Xcode, select **Product > Clean Build Folder**, then **File > Packages > Reset Package Caches**. If the build still uses the old version, quit Xcode, delete `~/Library/Developer/Xcode/DerivedData`, and run `npx react-native spm` again from the `ios` directory.
+
+# iOS (SPM) - Why does the build fail with a minimum deployment target error?
+
+SPM requires a minimum deployment target of iOS 15.0, because React Native's generated SPM packages require iOS 15. Open `ios/<YourApp>.xcodeproj` in Xcode, select the app target, and set **General > Minimum Deployments** to 15.0. Repeat this for any notification extension targets. The `platform :ios` line in the `Podfile` no longer applies under SPM. If your app must support iOS 13 or 14, use CocoaPods instead.
+
+# iOS (SPM) - Why does Xcode fail to resolve packages with a version conflict on apple-sdk?
+
+The MoEngage React Native plugin already brings in the MoEngage iOS SDK (`apple-sdk`), including `MoEngageRichNotification`, at an exact version. This error means `apple-sdk` was also added to the Xcode project at a different version.
+
+- If you use the extension integrator tool, remove the separately added `apple-sdk` package in Xcode under **Package Dependencies**. You don't need it.
+- If your own extension code imports `MoEngageRichNotification`, set the separately added `apple-sdk` package's **Dependency Rule** to **Exact Version**, using the version the plugin uses. Update it every time you upgrade the MoEngage React Native packages.

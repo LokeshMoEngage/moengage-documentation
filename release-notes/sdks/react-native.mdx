@@ -8,6 +8,205 @@ rss: true
   For information on supported SDK versions and deprecation timelines, see the [SDK Deprecation Policy](/developer-guide/sdk-lifecycle-and-policies/sdk-deprecation-policy).
 </Info>
 
+<Update label="1st October 2026" description="Core 13.0.0 · Cards 7.0.0 · Geofence 8.0.0 · Inbox 7.0.0 · Personalize 2.0.0 — Major Release">
+<CardGroup cols={2}>
+<Card title="Plugins">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>13.0.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>7.0.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>8.0.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>7.0.0</span>
+
+**Personalize** <span style={{ color: '#00C896', fontWeight: 'bold' }}>2.0.0</span>
+
+</Card>
+<Card title="Dependencies">
+
+**Android**
+- AGP: 9.1.1
+- Kotlin: 2.3.20
+- Compile SDK: 36
+- Gradle: 9.3.1
+
+**iOS**
+- Minimum iOS: 13 (CocoaPods), 15 (Swift Package Manager, React Native 0.87+)
+- tvOS deployment target: 13
+
+</Card>
+</CardGroup>
+
+<Note>
+The following native SDK updates apply to all plugins in this release. Both native SDKs move to a new major version, so review their release notes before you upgrade.
+
+- **Android:** Updated to MoEngage SDK BOM [4.4.0](/release-notes/sdks/android#23rd-september-2026). This release drops push token registration in favour of the Firebase Installation ID, and moves the build toolchain to AGP 9.
+- **iOS:** Updated MoEngage-iOS-SDK to [11.2.0](/release-notes/sdks/ios#16th-september-2026), which also carries the changes from [11.0.0](/release-notes/sdks/ios#22nd-july-2026).
+
+The Android Firebase Installation ID change adds two JavaScript APIs, listed under Core below. Apart from those, the JavaScript APIs are unchanged, and the iOS native SDK changes affect you only if your iOS native code, such as `AppDelegate` or a custom notification extension, calls MoEngage iOS APIs directly.
+</Note>
+
+#### Core 13.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>What's New</span>
+
+**Android**
+
+- Added `ReactMoE.passFirebaseInstallationId()` for passing the Firebase Installation ID to the SDK. For more information, refer to [Passing the Firebase Installation ID](/developer-guide/react-native-sdk/push/basic/android-push-configuration#passing-the-firebase-installation-id).
+- Added the `firebaseInstallationIdAvailable` event, which delivers a `MoEFirebaseInstallationIdResult`. For more information, refer to [Firebase Installation ID Callback](/developer-guide/react-native-sdk/push/basic/push-callback#firebase-installation-id-callback).
+
+**iOS**
+
+- Added experimental Swift Package Manager (SPM) support for `react-native-moengage`, `react-native-moengage-cards`, `react-native-moengage-geofence`, `react-native-moengage-inbox`, and `react-native-moengage-personalize`. SPM requires React Native 0.87 or later and iOS 15.0 or later, and doesn't support tvOS or Expo. CocoaPods remains the default in this release. For setup, refer to [iOS Installation](/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-installation/ios). To move an existing app, refer to [Migrate From CocoaPods to SPM](/developer-guide/react-native-sdk/migration/migration-of-moengage-sdk-from-cocoapods-to-spm).
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Breaking Changes</span>
+
+- Removed support for the React Native old architecture. The plugins now support only the New Architecture, so they require React Native 0.68 or later with the New Architecture enabled. It is on by default from React Native 0.76. If your app disables it, enable it before upgrading, or stay on 12.x.
+
+**Android**
+
+- Push registration now uses the Firebase Installation ID instead of the FCM token. If you use MoEngage to register for push, move to Firebase dependency 25.1.2 or above and complete the Firebase Installation ID integration before upgrading. For more information, refer to [Migrating to Firebase Installation ID](/developer-guide/android-sdk/migration/migrating-to-firebase-installation-id).
+- `ReactMoE.passFcmPushToken()` and the `pushTokenGenerated` event are deprecated. Both continue to work in this release. MoEngage recommends moving to `ReactMoE.passFirebaseInstallationId()` and `firebaseInstallationIdAvailable`.
+- Updated the build toolchain to AGP 9.1.1, Gradle 9.3.1, Kotlin 2.3.20, and compile SDK 36. Update your project's build configuration to match before upgrading.
+- MoEngage SDK BOM updated to [4.4.0](/release-notes/sdks/android#23rd-september-2026)
+
+**iOS**
+
+- MoEngage-iOS-SDK updated to [11.2.0](/release-notes/sdks/ios#16th-september-2026), which carries the breaking changes introduced in [11.0.0](/release-notes/sdks/ios#22nd-july-2026)
+- The SDK's default **Dismiss** notification action is removed from its notification categories. Notifications now show only the actions you configure. If your application relies on that button, add it to your own category definition.
+- `trackUserPushPreference` is deprecated. It still works in this release and will be removed in a future major version.
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Improvements</span>
+
+**iOS**
+
+- The InApp framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+- The RealTimeTrigger framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+- Real-time trigger evaluation and delivery now run under the actor model for safer concurrent access.
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Fixes</span>
+
+**Android**
+
+- Fixed alerting for grouped notifications. The summary notification sometimes alerted instead of the notification that had just arrived. Each notification in a group now alerts on arrival, and the summary notification is silent.
+- Fixed bottom nudges being obscured by the navigation bar. Nudges anchored to the bottom of the screen with taller content could extend under the system navigation or gesture bar, cutting off text and making the call to action hard to tap. Nudges now lay out above the system insets on all devices.
+
+**iOS**
+
+- The plugin pod is now declared as a static framework, so applications that use `use_frameworks!` (for example, for Firebase) continue to run `pod install` successfully with MoEngage-iOS-SDK 11.
+- Fixed duplicate event identifiers during data syncing. An analytics batch identifier could be reused across two sets of events when the application was terminated before pending writes finished.
+- Fixed in-app messages not being initialized in Swift Package Manager integrations, an issue introduced in MoEngage-iOS-SDK 11.1.0.
+- Fixed race conditions in in-app stats tracking when the SDK is initialized multiple times in a process's lifecycle.
+- Fixed rich push media not rendering for dynamic media URLs. Media served from URLs without a recognizable file extension failed to display in the expanded notification. The media type is now resolved from the server response, with the URL extension used as a fallback.
+- Fixed the application icon badge being one higher than the notification tray after a notification update.
+
+#### Cards 7.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Breaking Changes</span>
+
+**Android**
+
+- MoEngage SDK BOM updated to [4.4.0](/release-notes/sdks/android#23rd-september-2026)
+
+**iOS**
+
+- MoEngage-iOS-SDK updated to [11.2.0](/release-notes/sdks/ios#16th-september-2026)
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Improvements</span>
+
+**iOS**
+
+- The Cards framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Fixes</span>
+
+**Android**
+
+- Fixed cards showing unexpected colors on Android 10 and above when the device's Force Dark setting was on. Cards now use the colors you configure, in both light and dark mode.
+
+**iOS**
+
+- The plugin pod is now declared as a static framework, so applications that use `use_frameworks!` (for example, for Firebase) continue to run `pod install` successfully with MoEngage-iOS-SDK 11.
+- Fixed the module not being initialized in Swift Package Manager integrations, an issue introduced in MoEngage-iOS-SDK 11.1.0.
+
+#### Geofence 8.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Breaking Changes</span>
+
+**Android**
+
+- MoEngage SDK BOM updated to [4.4.0](/release-notes/sdks/android#23rd-september-2026)
+
+**iOS**
+
+- MoEngage-iOS-SDK updated to [11.2.0](/release-notes/sdks/ios#16th-september-2026)
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Improvements</span>
+
+**iOS**
+
+- The Geofence framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+- Geofence now runs on the actor-based concurrency model. Location and campaign handling is structured around Swift concurrency, removing data-race risk in geofence processing.
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Fixes</span>
+
+**iOS**
+
+- The plugin pod is now declared as a static framework, so applications that use `use_frameworks!` (for example, for Firebase) continue to run `pod install` successfully with MoEngage-iOS-SDK 11.
+- Fixed the module not being initialized in Swift Package Manager integrations, an issue introduced in MoEngage-iOS-SDK 11.1.0.
+
+#### Inbox 7.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Breaking Changes</span>
+
+**Android**
+
+- MoEngage SDK BOM updated to [4.4.0](/release-notes/sdks/android#23rd-september-2026)
+
+**iOS**
+
+- MoEngage-iOS-SDK updated to [11.2.0](/release-notes/sdks/ios#16th-september-2026)
+- Inbox APIs now follow Swift's concurrency model. `presentInboxViewController`, `pushInboxViewController`, and `getInboxViewController` are main-actor bound. This affects your application only if your iOS native code calls these APIs directly.
+- All Inbox completion blocks are now invoked on the main thread, so you can update the user interface directly from them.
+- `getInboxViewController` now always invokes its completion block, passing `nil` when no SDK instance is registered for the given Workspace ID.
+- Inbox entries are now immutable snapshots. Read-state changes such as `isRead` and `clickedDate` appear on the next fetch instead of mutating entry objects you already hold. Re-fetch the inbox after marking an entry as read.
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Improvements</span>
+
+**iOS**
+
+- The Inbox framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Fixes</span>
+
+**iOS**
+
+- The plugin pod is now declared as a static framework, so applications that use `use_frameworks!` (for example, for Firebase) continue to run `pod install` successfully with MoEngage-iOS-SDK 11.
+- Fixed the module not being initialized in Swift Package Manager integrations, an issue introduced in MoEngage-iOS-SDK 11.1.0.
+
+#### Personalize 2.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Breaking Changes</span>
+
+**Android**
+
+- MoEngage SDK BOM updated to [4.4.0](/release-notes/sdks/android#23rd-september-2026)
+
+**iOS**
+
+- MoEngage-iOS-SDK updated to [11.2.0](/release-notes/sdks/ios#16th-september-2026)
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Improvements</span>
+
+**iOS**
+
+- The Personalize framework is now statically linked into the host binary instead of embedded as a dynamic framework. CocoaPods and Swift Package Manager integrations require no change.
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>Fixes</span>
+
+**iOS**
+
+- The plugin pod is now declared as a static framework, so applications that use `use_frameworks!` (for example, for Firebase) continue to run `pod install` successfully with MoEngage-iOS-SDK 11.
+- Fixed the module not being initialized in Swift Package Manager integrations, an issue introduced in MoEngage-iOS-SDK 11.1.0.
+
+</Update>
+
 <Update label="12th August 2026" description="Core 12.9.1 · Cards 6.6.1 · Geofence 7.5.1 · Inbox 6.5.1 · Personalize 1.1.1">
 <CardGroup cols={2}>
 <Card title="Plugins">
@@ -419,7 +618,6 @@ Initial release of the MoEngage Personalize plugin. Fetch personalized campaign 
 - iOS: MoEngage-iOS-SDK updated to [10.10.0](/release-notes/sdks/ios#29th-january-2026)
 
 </Update>
-
 
 <Update label="19th November 2025" description="Core 12.4.0 · Cards 6.1.0 · Geofence 7.1.0 · Inbox 6.1.0">
 <CardGroup cols={2}>
@@ -990,7 +1188,6 @@ Initial release of the MoEngage Personalize plugin. Fetch personalized campaign 
 
 </Update>
 
-
 <Update label="25th November 2024" description="Core 11.1.1">
 <CardGroup cols={2}>
 <Card title="Plugins">
@@ -1337,7 +1534,6 @@ Updating to Core 11.0.0 changes custom boolean user attribute tracking on iOS fr
 - iOS: MoEngageInbox updated to 2.14.0
 
 </Update>
-
 
 <Update label="29th November 2023" description="Core 8.6.0 · Cards 1.1.0 · Geofence 3.5.0 · Inbox 2.5.0">
 
