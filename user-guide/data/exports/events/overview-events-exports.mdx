@@ -1,0 +1,76 @@
+---
+title: "Overview - Event Exports"
+description: "Get started with MoEngage event exports. Compare destinations and delivery frequencies, then set up the integration for your data warehouse, cloud storage, or API endpoint."
+keywords: "event exports, streams, data warehouse, cloud storage, Snowflake, BigQuery, Redshift, Databricks, S3, GCS, SFTP"
+---
+
+## Introduction
+
+MoEngage Event Exports let you forward the events MoEngage receives or generates, such as user actions and campaign interaction events, to a destination outside MoEngage. This page helps you choose the right destination for your use case. Once you pick one, its dedicated help doc walks you through the setup.
+
+<Info>
+  Event exports are part of the Streams add-on. Contact your MoEngage customer success manager (CSM) to enable them for your account.
+</Info>
+
+## Choose Your Export Destination
+
+MoEngage supports three categories of export destinations:
+
+| Category | Destinations | Delivery |
+| --- | --- | --- |
+| API | Streams | Near real-time, per event |
+| Data Warehouse | Snowflake, Google BigQuery, Amazon Redshift, Databricks | Hourly |
+| Cloud Storage | Amazon S3, Google Cloud Storage, SFTP | Every 15 minutes, daily, or weekly (Amazon S3 and SFTP); hourly (Google Cloud Storage) |
+
+Select the destination that matches your setup:
+
+<CardGroup cols={2}>
+  <Card title="Streams" href="/api/data/moengage-streams" icon="webhook">
+    Forward events to your own API endpoint in near real-time by using a Bulk API call.
+  </Card>
+  <Card title="Snowflake" href="/user-guide/data/exports/events/data-warehouse/snowflake-exports" icon="database">
+    Export events directly to Snowflake tables.
+  </Card>
+  <Card title="Databricks" href="/user-guide/data/exports/events/data-warehouse/databricks-exports" icon="database">
+    Export events to Databricks through a direct export or OpenSharing (zero-copy sharing).
+  </Card>
+  <Card title="Google BigQuery" href="/user-guide/data/exports/events/data-warehouse/bigquery-exports" icon="database">
+    Export events directly to BigQuery, without an intermediate Google Cloud Storage hop.
+  </Card>
+  <Card title="Amazon Redshift" href="/user-guide/data/exports/events/data-warehouse/redshift-exports" icon="database">
+    Export events directly to your Amazon Redshift cluster.
+  </Card>
+  <Card title="Amazon S3" href="/user-guide/data/exports/events/data-warehouse/s3-exports" icon="folder">
+    Export events as JSON files to an S3 bucket, on a schedule you choose.
+  </Card>
+  <Card title="SFTP" href="/user-guide/data/exports/events/data-warehouse/sftp-exports" icon="folder">
+    Export events as JSON files to your own SFTP server, on a schedule you choose.
+  </Card>
+  <Card title="Google Cloud Storage" href="/user-guide/data/exports/events/data-warehouse/google-cloud-storage-gcs-exports" icon="folder">
+    Export events as JSON files to a GCS bucket, on a schedule you choose.
+  </Card>
+</CardGroup>
+
+## How Exports Work
+
+The following mechanics are common across data warehouse and cloud storage destinations. Streams, being a direct API call rather than a scheduled export, does not follow this flow.
+
+You set up and manage every export from the **App Marketplace**: search for the destination, open its tile, and go to the **Integrate** tab to add or manage an export.
+
+### Export Failure, Pause, and Replay
+
+MoEngage will retry an export multiple times before marking it as failed. The export will be paused if multiple scheduled exports fail. While it is paused, MoEngage saves the events the export would have delivered. After you fix the problem and re-enable the export, you can replay the collected data:
+
+- MoEngage keeps up to 7 days of collected data while an export is paused, dropping the oldest days if the pause runs longer.
+- You can replay collected data up to 30 days from the date the oldest paused data was collected. The 7-day retention can cut this window short, so not all 30 days are always replayable. For a worked example, refer to the failure policy section on each destination's page.
+- A replay resends the entire collection, so deduplicate on the `event_uuid` field at your end if you replay more than once.
+
+The exact number of scheduled exports that need to fail before MoEngage pauses an export depends on its frequency (for example, hourly data warehouse exports pause after 3 consecutive scheduled exports fail, while daily or weekly cloud storage exports pause after 1). For the specific thresholds and replay steps, refer to the failure policy section on each destination's page.
+
+MoEngage notifies you when it pauses an export through the **Data Exports** system alert, so you can fix the issue and replay the data. MoEngage subscribes workspace admins by default, along with the user who creates or updates the export. To manage who else receives this alert, refer to [Alert Management](/user-guide/settings/reports-and-alerts/alert-management/getting-started/overview-alert-management).
+
+## Further Reading
+
+For the full event and attribute schema exported to each destination, refer to the [Data Export Glossary](/user-guide/data/exports/events/data-export-glossary).
+
+To track how much data you are exporting against your monthly usage, refer to [Analyze the Volume of Data Exports](/user-guide/data/exports/events/analyze-the-volume-of-data-exports).

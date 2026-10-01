@@ -3,21 +3,205 @@ title: "Redshift Exports"
 description: "Export campaign interaction events from MoEngage directly to your Amazon Redshift cluster. Set up the data warehouse integration for event analytics."
 ---
 
-# Introduction
+import ExportFailureFaqs from '/snippets/exports-faq-failure.mdx';
+import ExportGeneralFaqs from '/snippets/exports-faq-general.mdx';
+
+## Overview
 
 [Amazon Redshift](https://aws.amazon.com/redshift/) is a fast and powerful, fully managed, petabyte-scale data warehouse service that forms part of the larger cloud-computing platform Amazon Web Services.
 
-# MoEngage `<>` Redshift
+## How Does MoEngage Work with Redshift?
 
 The MoEngage and Redshift integration exports Campaign Interaction Events data directly to your Amazon Redshift cluster.
 
-# Integration
+## Integration
 
-<Tip>
-  - Ensure you have an Amazon Web Services account with permission to create/edit Redshift clusters, roles, and policies. 
-  - Optional: To create a new user, you need to have access to create a new user in your Redshift Cluster. 
-  - Exports to Redshift are part of the Streams add-on. Contact your dedicated MoEngage CSM (customer success manager) to enable them for your account. 
-  - If your system requires IP whitelisting, refer [here](https://moengage.com/docs/user-guide/settings/account/security/ip-whitelisting-in-moengage) before setting up the Redshift exports integration.
-</Tip>
+### Prerequisites
 
-Read our [Amazon Redshift](/partner-guide/data-and-analytics/data-warehouses/amazon-redshift) to set up MoEngage `<>` Amazon Redshift integration for your account.
+- Ensure you have an Amazon Web Services account with permission to create/edit Redshift clusters, roles, and policies.
+- It is optional to create a new user; you must have access to create a new user in your Redshift cluster.
+- If your system requires IP whitelisting, you must whitelist MoEngage IPs. For more information, refer [here](/user-guide/settings/account/security/ip-whitelisting-in-moengage).
+- Ensure you have a [Redshift Connection](/partner-guide/data-and-analytics/data-warehouses/amazon-redshift) on the App marketplace.
+- Exports to Redshift are part of the Streams add-on. Contact your dedicated MoEngage CSM (customer success manager) to enable them for your account.
+
+### Set Up Your Export
+
+<Info>
+  - For the full list of events and attributes, refer to the [Data Export Glossary](/user-guide/data/exports/events/data-export-glossary).
+  - The event\_time of the exported events is always in UTC.
+</Info>
+
+#### Add a New Redshift Export on the MoEngage App Marketplace
+
+1. On your MoEngage Dashboard, go to the App Marketplace.
+2. Search for "Redshift".
+3. Go to the "Integrate" tab, and click on "\+ Add Integration".
+
+![addintegration.png](/images/partner_12091204131732.png)
+
+4. Fill out the connection details of your Redshift cluster.
+
+![connectiondetails.png](/images/partner_12091351269140.png)
+
+![credentialsandevents.png](/images/partner_12091730203412.png)
+
+| Field | Description | Example |
+| --- | --- | --- |
+| Connection Name | Give this connection an identifiable name. | `My Redshift Instance 1` |
+| Host Name | On your AWS Console, navigate to your Redshift cluster. Under **General information**, the hostname is listed as your Redshift endpoint. Paste the part before the colon `:`. <br />For example, if the Endpoint is `redshift-cluster-1.xxxxxxxzgxxx.us-east-1.redshift.amazonaws.com:5439/dev` then your Host Name will be `redshift-cluster-1.xxxxxxxzgxxx.us-east-1.redshift.amazonaws.com`.  <br /><img src="/images/partner_12091527172244.png" alt="Redshift endpoint location" /> | Format should be `[name].[id].[region].redshift.amazonaws.com` |
+| Port | Enter your port number. On your AWS Console, navigate to your Redshift cluster. Under the **Properties** tab, find your port number and database name in the **Database configurations**. By default, the Redshift port number is 5439.  <br /><img src="/images/partner_12091625026324.png" alt="Port and database configuration" /> | `5439` |
+| Database | The name of your Redshift database. | `moengage_exports` |
+| Username | Enter the username you want MoEngage to connect as. This can either be an existing user, or the one you created in [Step 2](/partner-guide/data-and-analytics/data-warehouses/amazon-redshift#step-2-create-a-new-database-user-for-moengage). | — |
+| Password | Enter the password of the database user. | — |
+| IAM Role ARN | Enter the ARN of the IAM Role you created in [Step 5](/partner-guide/data-and-analytics/data-warehouses/amazon-redshift#step-5-create-a-new-redshift-iam-role). To find the ARN, on your AWS Console, go to IAM Console. In the side menu, under Access Management, click on **Roles**. Select the IAM Role you created in [Step 5](/partner-guide/data-and-analytics/data-warehouses/amazon-redshift#step-5-create-a-new-redshift-iam-role). Under the **Summary** section, you will find the ARN listed. Copy and paste it into the input field.  <br /><img src="/images/partner_12091830424212.png" alt="IAM Role ARN location" /> | Format should be `arn:aws:iam::[aws-account-id]:role/[role-name]` |
+| Export into schema | MoEngage will create tables in the schema you provide. Unless specifically configured, the usual value for schema name is "public". | — |
+| Select events to export | Select which events you want to export to your Redshift cluster. | — |
+
+5. Optionally, you can choose to test the connection. MoEngage will attempt to verify if the details you entered are correct. If there is an issue, an error will be shown that you can rectify.
+6. Once the test connection is successful, you can save the connection details and MoEngage will begin exporting events shortly to your Redshift cluster.
+
+### Verify You Are Receiving Data Correctly
+
+MoEngage will create the following two tables in your schema:
+
+1. `test_connection_moengage` - We will use this table to verify if your connection details are valid from time to time.
+2. `moengage_events` - We will dump (append) all your events in this table.
+
+![tablestructure.png](/images/partner_12092184809492.png)
+
+You can verify if data is correctly flowing in your warehouse by querying `moengage_events` table:
+
+![tabledata.png](/images/partner_12092212491284.png)
+
+### Export Process and Frequency
+
+We will dump the data at hourly intervals.
+
+### Sample Table Structure
+
+The final table definition will depend on the exact configurations of your exports.
+
+| Field | Type | NL |
+| --- | --- | --- |
+| `app_name` | character varying(256) | NN |
+| `event_name` | character varying(256) | NN |
+| `event_code` | character varying(256) | NN |
+| `event_uuid` | character varying(256) | NN |
+| `event_time` | bigint | NN |
+| `event_type` | character varying(256) | NN |
+| `event_source` | character varying(256) | NN |
+| `uid` | character varying(256) | NULL |
+| `user_attributes_moengage_user_id` | character varying(256) | NULL |
+| `device_attributes_moengage_device_id` | character varying(256) | NULL |
+| `push_id` | character varying(512) | NULL |
+| `email_address` | character varying(256) | NULL |
+| `mobile_number` | character varying(256) | NULL |
+| `event_attributes_app_version` | character varying(256) | NULL |
+| `event_attributes_sdk_version` | character varying(256) | NULL |
+| `event_attributes_platform` | character varying(256) | NULL |
+| `event_attributes_campaign_id` | character varying(256) | NULL |
+| `event_attributes_campaign_name` | character varying(256) | NULL |
+| `event_attributes_campaign_type` | character varying(256) | NULL |
+| `event_attributes_campaign_channel` | character varying(256) | NULL |
+| `event_attributes_readable_campaign_id` | character varying(256) | NULL |
+| `event_attributes_parent_campaign_id` | character varying(256) | NULL |
+| `event_attributes_parent_flow_id` | character varying(256) | NULL |
+| `event_attributes_parent_flow_name` | character varying(256) | NULL |
+| `event_attributes_variation_id` | character varying(256) | NULL |
+| `event_attributes_locale_id` | character varying(256) | NULL |
+| `event_attributes_locale_name` | character varying(256) | NULL |
+| `event_attributes_url` | character varying(256) | NULL |
+| `event_attributes_timestamp` | bigint | NULL |
+| `event_attributes_first_session` | boolean | NULL |
+| `event_attributes_logged_in_status` | character varying(256) | NULL |
+| `event_attributes` | super | NULL |
+| `user_attributes` | super | NULL |
+| `device_attributes` | super | NULL |
+| `created_at` | character varying(256) | NULL |
+
+## Export Failure Policy
+
+MoEngage pauses an export that keeps failing. While it is paused, MoEngage collects the events the export would have delivered, and you replay them after you fix the problem.
+
+### When MoEngage Pauses an Export
+
+Exports to Redshift run hourly. MoEngage will retry an export multiple times before marking it as failed. The export will be paused after 3 consecutive scheduled export failures.
+
+When MoEngage pauses an export, it alerts you and shows the export as **Paused** on the App Marketplace.
+
+### What Happens While an Export Is Paused
+
+![A paused Redshift export on the Integrate tab, with Export status turned off and the Paused label beside it](/images/export-paused-card.png)
+
+MoEngage collects the events the export would have delivered and keeps only the most recent 7 days. If the export stays paused for longer than a week, MoEngage drops the oldest days as newer ones come in.
+
+If an export pauses more than once before you replay, MoEngage combines the data from all those pauses, provided it falls within the 7-day window.
+
+### Resume an Export
+
+#### Find the Failure Reason
+
+On the App Marketplace, click the **Integrate** tab, and then hover over the **Paused** label on the export. MoEngage names the reason for the failure, such as a missing write permission on the destination table, and tells you how to fix it.
+
+![The Paused label hover on the Integrate tab, showing the failure reason and what you need to do](/images/redshift-export-paused-failure-reason.png)
+
+#### Enable the Export
+
+Fix the cause at your end, and then turn on **Export status** for the export. Do this as soon as you can, because the 7-day window keeps moving while the export stays paused.
+
+When you enable the export, MoEngage stops collecting and sets aside what it has: the last 7 days of paused data, or all of it if the pause was shorter. This is the data you can replay. It stays fixed from then on, and does not reduce further even if you wait to replay it.
+
+### Replay Paused Data
+
+#### Request a Replay
+
+MoEngage saves the data it collected while the export was paused. An export with data waiting shows a **Replay available** label on the **Integrate** tab.
+
+To replay, perform the following steps:
+
+1. Hover over the **Replay available** label, or open the kebab menu on the export.
+2. Click **Replay paused data**.
+
+   ![Redshift export with a Replay available label on the Integrate tab and the Replay paused data option](/images/redshift-export-replay-paused-data.png)
+3. In the **Replay paused data** dialog box, click **Confirm**.
+
+   ![Replay paused data dialog box asking you to confirm, with the Confirm button](/images/export-replay-confirm.png)
+
+A replay sends everything MoEngage collected while the export was paused. MoEngage appends the data to the destination table.
+
+You can replay at any time until 30 days from the date the oldest paused data was collected. After that, the data is no longer available.
+
+<Note>
+  Replay before the export pauses again. If it pauses a second time before you replay, MoEngage adds the new paused data to the data still waiting from the first pause. The combined data is then trimmed back to the most recent 7 days, so if the two pauses are more than 7 days apart, the older data is lost.
+
+  For example, your export pauses on day 1. You enable it but do not replay. It pauses again on day 20. Since that is 19 days later, the day 1 data falls outside the 7 day window and is gone, even though its 30 day replay window had not expired. If the second pause had happened within 7 days of the first, the day 1 data would still be included.
+</Note>
+
+#### Replay Results
+
+When the replay finishes, MoEngage emails the user who requested it with one of the following results:
+
+| Result | What it means |
+| --- | --- |
+| Successful | MoEngage delivered all the collected data. The replay option is no longer available. |
+| Partially Successful | MoEngage delivered some of the collected data, and then hit an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+| Failed | MoEngage delivered none of the collected data, because of an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+
+You can run only one replay per export at a time.
+
+#### Avoid Duplicate Data
+
+Every replay sends the whole collection again, because MoEngage does not deduplicate. If you replay more than once, deduplicate at your end on the `event_uuid` field, which is unique for each event. For the fields in the export, refer to the [Data Export Glossary](/user-guide/data/exports/events/data-export-glossary).
+
+### Export Paused Alerts
+
+MoEngage alerts you when it pauses an export, so you can fix the issue and replay the data collected while the export was paused.
+
+MoEngage subscribes workspace admins to the Data Exports system alert by default, and adds the user who creates or updates an export. To subscribe or unsubscribe anyone else, go to the Alert Management page. Subscribing or unsubscribing changes notifications only for that person, and does not affect anyone else's subscription.
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <ExportFailureFaqs />
+  <ExportGeneralFaqs />
+</AccordionGroup>
