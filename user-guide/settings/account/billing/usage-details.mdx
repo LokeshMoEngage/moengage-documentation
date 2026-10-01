@@ -95,7 +95,7 @@ For more information, refer to [Manage Subscription](/user-guide/settings/accoun
     | --- | --- |
     | Total MTU grew proportionally | Expected, more tracked users means more cost. |
     | Total MTU flat, but Billable MTU jumped | Check average events per user, you likely crossed your FUP threshold. |
-    | Messaging or channel costs rose, MTU flat | This is a channel-usage change, not a user-count change. Check add-on usage (Email, SMS, WhatsApp, Push, RCS, Cards, Landing Pages, Data Exports) under [Add-Ons](#add-ons). |
+    | Messaging or channel costs rose, MTU flat | This is a channel-usage change, not a user-count change. Check add-on usage (Email, SMS, WhatsApp, Push, RCS, Cards, Landing Pages, Data Exports & Imports) under [Add-Ons](#add-ons). |
   </Tab>
   <Tab title="Profile-Based">
     If your contract specifies profile-based pricing, your platform fee is a flat rate based on the number of user profiles in your account each month. MTU, Events, and FUP don't factor into your billing under this model.
@@ -106,9 +106,9 @@ For more information, refer to [Manage Subscription](/user-guide/settings/accoun
     | Identified Profiles | The subset of All Profiles with an identifier, such as an email, mobile number, or unique ID. |
     | Billing basis | Billed per profile tier, based on either All Profiles or Identified Profiles depending on your subscription. |
 
-    Add-ons (messaging channels, RCS, Cards, Data Exports) are billed the same way regardless of which platform pricing model you're on. For more information, refer to [Add-Ons](#add-ons).
+    Add-ons (messaging channels, RCS, Cards, Data Exports & Imports) are billed the same way regardless of which platform pricing model you're on. For more information, refer to [Add-Ons](#add-ons).
 
-    Profile-based billing keeps things simple, no MTU, Events, or FUP calculation is involved, and the profile count each month is the only variable. Add-ons (messaging, RCS, Data Exports) are added on top, the same as under the MTU model.
+    Profile-based billing keeps things simple, no MTU, Events, or FUP calculation is involved, and the profile count each month is the only variable. Add-ons (messaging, RCS, Data Exports & Imports) are added on top, the same as under the MTU model.
   </Tab>
 </Tabs>
 
@@ -118,12 +118,15 @@ These are billed on top of platform pricing when the corresponding add-on is ena
 
 <AccordionGroup>
   <Accordion title="Messaging channels">
+    Messages sent to your users through campaigns and flows on the Email, SMS, and WhatsApp channels. You're billed only for the channels enabled on your plan, based on the volume sent each month.
+
     | Metric | Description |
     | --- | --- |
-    | Emails Sent | Number of emails sent to your users across all campaigns and flows, as recorded in MoEngage's event store.<br /><br />This number isn't used for billing. Your invoice is based on the send count reported by your configured email service provider, such as SendGrid or Amazon SES.<br /><br />The two numbers can differ because each provider calculates "sent" using its own logic. For example, some providers count a message as sent as soon as their servers accept it, while others count it only after delivery attempts, deferrals, and retries are resolved, or after checking it against their own suppression list. |
-    | Emails Sent via MoEngage SendGrid | Number of emails sent through MoEngage's managed SendGrid service, across all campaigns and flows. |
-    | Total IPs for Emails | Count of unique IPs used for sending emails. |
-    | SMS Sent | Number of SMS messages sent to your users, across all campaigns and flows. Billed in segments, a message over 160 characters splits into multiple billable segments. |
+    | Emails Sent | Number of emails sent to your users across all campaigns and flows, based on MoEngage's internal count.<br /><br />This number isn't used for billing. Email billing is based on delivery data reported by your configured email service provider, such as SendGrid.<br /><br />The two numbers can differ because each provider calculates "sent" using its own logic. For example, some providers count a message as sent as soon as their servers accept it, while others count it only after delivery attempts, deferrals, and retries are resolved, or after checking it against their own suppression list. |
+    | Emails Sent via MoEngage SendGrid | Number of emails sent to your users across all campaigns and flows through MoEngage's managed SendGrid service. |
+    | Dedicated IPs for emails | Number of distinct dedicated IP addresses used for sending emails. |
+    | SMS Sent | Number of SMS message parts sent to your users across all campaigns and flows, based on MoEngage's internal count.<br /><br />This number isn't used for billing. SMS billing is based on delivery data reported by your configured SMS service provider, such as Twilio.<br /><br />The two numbers can differ because each provider calculates "sent" using its own logic. For example, some providers count a message as sent as soon as their servers accept it, while others count it only after carrier delivery attempts and retries are resolved and a delivery receipt is returned, or after checking it against their own opt-out list. |
+    | SMS Sent via MoEngage Twilio | Number of SMS message parts sent to your users across all campaigns and flows through MoEngage's managed Twilio service. |
     | WhatsApp Messages Sent | Number of WhatsApp messages sent to your users, across all campaigns and flows. |
   </Accordion>
   <Accordion title="Inform">
@@ -146,8 +149,14 @@ These are billed on top of platform pricing when the corresponding add-on is ena
     | Cards Sent | Cards sent across campaigns and flows. |
     | Landing Page Views | Total non-unique impressions across landing pages. |
   </Accordion>
-  <Accordion title="Data Exports">
-    Automated data exports to your data warehouse, partner tool, or API destination. Billed based on the volume of data exported monthly if not already covered by your plan.
+  <Accordion title="Data Exports & Imports">
+    Automated data exports to your data warehouse, partner tool, or API destination, and data imports from your data warehouse. Billed based on the monthly volume if not already covered by your plan.
+
+    | Metric | Description |
+    | --- | --- |
+    | Streams | Number of events sent to partners, such as API, mParticle, and Segment. |
+    | Data Warehouse Exports | Number of events sent to data warehouses, such as S3, SFTP, Snowflake, and Databricks. |
+    | Data Warehouse Imports | Number of records received from data warehouses: Snowflake, Databricks, and BigQuery. |
   </Accordion>
   <Accordion title="Open Analytics">
     Available if you run queries through MoEngage's open analytics or data warehouse querying capability.
@@ -162,8 +171,9 @@ These are billed on top of platform pricing when the corresponding add-on is ena
 
 The following metrics are calculated at an account level in the UTC timezone, unlike all other metrics, which are calculated at a workspace level in the [workspace's configured timezone](/user-guide/settings/account/general-settings/workspace-settings):
 
+- Dedicated IPs for emails
 - Emails Sent via MoEngage SendGrid
-- Total IPs for Emails
+- SMS Sent via MoEngage Twilio
 
 ## View Usage
 
@@ -286,15 +296,6 @@ MoEngage evaluates alerts daily and scans usage data accumulated up to the evalu
 </Info>
 
 ## FAQs
-
-<Accordion title="Why don't my Email or SMS dashboard numbers match my bill?">
-  The email volumes shown in your workspace dashboard reflect sends from that specific workspace only. Billing for email is calculated at the account level across all workspaces that use the same MoEngage Sender. If the same Sender (for example, a shared "from" email address or domain, or SendGrid Subuser) is configured across multiple workspaces, the total sends from all those workspaces are aggregated for billing purposes. This means your billed email volume may be higher than what any single workspace dashboard shows. For the complete billing information, refer to the Usage page and select all relevant workspaces.
-
-  SMS billing discrepancies typically arise for two reasons:
-
-  - **Shared shortcodes across workspaces**: Similar to email, if the same shortcode is configured across multiple workspaces, billing is aggregated at the account level. Your workspace dashboard only shows sends from that workspace, while invoicing reflects the combined total.
-  - **SMS segments vs. messages**: The MoEngage dashboard shows SMS Sent as the number of individual messages sent. Billing is based on SMS segments, the number of individual transmission units a message is broken into. A single message that exceeds the standard GSM character limit (160 characters for plain text) is split into multiple segments, each billed separately. For example, a 320-character message counts as 2 billable segments even though it appears as 1 message in the dashboard. To reconcile the difference, review your message length distribution and check if shared shortcodes are active across multiple workspaces. Contact your CSM for a detailed segment-level billing report.
-</Accordion>
 
 <Accordion title="Why is there a discrepancy in event count between the Billing Usage page and the Data Management page?">
   The Billing Usage page reflects all data processed within the month, including historical backfills through file or data warehouse imports and data that arrives late due to delays. The Data Management page shows a daily snapshot and doesn't retroactively update historical graphs for events added after the original date passes. Your bill reflects the total volume of data ingested, while Data Management shows only what MoEngage captured at that time.
