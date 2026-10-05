@@ -240,15 +240,16 @@ Then select your warehouse tile and click **Continue**.
 
 Enter a name for this import to identify it on the Imports Dashboard. Based on the import type, your next steps vary:
 
-<Accordion title="User Imports">
-  Select whether to import **Registered users**, **Anonymous users**, or both together.
-</Accordion>
+<Tabs>
+  <Tab title="User Imports">
+    Select whether to import **Registered users**, **Anonymous users**, or both together.
+  </Tab>
+  <Tab title="Event Imports">
+    Select the event you want to import, or create a new one. If a single table holds multiple events, MoEngage uses the **Event Name** column to determine which rows to import, the value depends on the event you select. Event display names and event names can differ; view them on the [Data Management](/user-guide/settings/data-management/overview-data-management) page. For example, the event _App/Site Opened_ has the event name `MOE_APP_OPENED`.
 
-<Accordion title="Event Imports">
-  Select the event you want to import, or create a new one. If a single table holds multiple events, MoEngage uses the **Event Name** column to determine which rows to import, the value depends on the event you select. Event display names and event names can differ; view them on the [Data Management](/user-guide/settings/data-management/overview-data-management) page. For example, the event _App/Site Opened_ has the event name `MOE_APP_OPENED`.
-
-  To create a new event, click **+ Create event** at the end of the **Select event** list and enter a unique name. New events appear on the Data Management page only after the first successful import.
-</Accordion>
+    To create a new event, click **+ Create event** at the end of the **Select event** list and enter a unique name. New events appear on the Data Management page only after the first successful import.
+  </Tab>
+</Tabs>
 
 Next, select the connection and the table or view to import from. If you have not created a connection, click **+ Add connection** to set one up in the App Marketplace. After selecting the connection, choose the **Schema/Dataset** and **Table/View**. If schemas fail to load, confirm you granted the permissions above.
 
@@ -385,7 +386,15 @@ When importing users, turn on **Save as a custom segment** to add the imported u
 
 ### Import Behaviour
 
-For User Imports, select **Update existing users only** under Import Behaviour to bulk-update attributes without creating new users.
+
+<Tabs>
+  <Tab title="User Imports">
+    For User Imports, select **Skip new users during this import** under Import Behaviour to bulk-update attributes without creating new users. MoEngage creates no new users from this import, and a row whose identifier is not already in MoEngage is ignored.
+  </Tab>
+  <Tab title="Event Imports">
+    For event imports, select **Skip duplicate rows** to perform de-duplication on the selected column. MoEngage will skip any row with a duplicate value in that column, and only the first occurrence is ingested. If you do not select this option, MoEngage ingests all rows, including duplicates.
+  </Tab>
+</Tabs>
 
 ### Send Import Notifications
 
@@ -435,8 +444,9 @@ Data warehouse imports are subject to the following ingestion rate limits (defau
 
 | Phase | Hourly | Daily |
 | --- | --- | --- |
-| Historical (first sync) | 15M rows/hr | 50M rows/day |
-| Normal (subsequent syncs) | 600K rows/hr | 14M rows/day |
+| Normal (default) | 600K rows/hr | 14M rows/day |
+| Migration (upon request) | 15M rows/hr | 50M rows/day |
+
 
 The first run of any import is a historical sync that pulls in all matching rows and uses the higher migration limit. Every subsequent periodic run uses the normal limit.
 

@@ -177,6 +177,8 @@ File imports have the following limits:
 
 The hourly rate is the maximum ingested per hour; the daily rate is the total cap per day. When a rate limit is breached, you receive a _Rate limit breached_ alert on the Data Imports dashboard.
 
+To see how much of your hourly and daily import limit you have used, which imports are held back when a limit is reached, and which imports are consuming the most, refer to [Check Import Limits](/user-guide/data/imports/overview-imports#check-import-limits).
+
 <Tip>
   Avoid scheduling a very large number of files at the same time. Doing so can create a processing backlog and delay ingestion, even when each file is small. Stagger or batch your scheduled imports over time instead of queuing a large number of files together.
 </Tip>
@@ -303,7 +305,9 @@ Turn on **Save as File Segment** and enter a name to create a segment from the i
 
 ### Import Behaviour
 
-For user imports, select **Update existing users only** under **Import Behaviour** to bulk-update attributes on users MoEngage already has. MoEngage creates no new users from that import, and a row whose identifier is not already in MoEngage is ignored.
+For user imports, select **Skip new users during this import** under **Import Behaviour** to bulk-update attributes on users MoEngage already has. MoEngage creates no new users from this import, and a row whose identifier is not already in MoEngage is ignored.
+
+For event imports, select **Skip duplicate rows** to perform de-duplication on the selected column. MoEngage will skip any row with a duplicate value in that column, and only the first occurrence is ingested. If you do not select this option, MoEngage ingests all rows, including duplicates.
 
 ### Send Import Notifications
 
@@ -349,6 +353,68 @@ MoEngage retries a failed file automatically, up to 30 attempts, before marking 
 Use these in the `datetime_format` field of your mapping file, or when configuring DateTime columns during mapping.
 
 <DatetimeFormats />
+
+# Run History
+
+**Run history** on the import details page lists every run of an import, so you can see when each run was scheduled, when it finished, how long it took, and how each file inside it performed. A one-time import has a single row. A periodic import has one row for each scheduled execution. **Run history** shows the last two months of runs.
+
+To open **Run history**, perform the following steps:
+
+1. On the Data imports page, click the kebab menu under **Actions** for the import.
+2. Click **View**.
+
+![Actions column on the Data imports page with the menu open and the View option highlighted](/images/import-actions-view.png)
+
+![Run history on the import details page, with one row per run and the View files action](/images/import-run-history.png)
+
+MoEngage sorts **Run history** by scheduled time, with the most recent run first. Each row is one run and shows the following columns:
+
+| Column | Description |
+| --- | --- |
+| Scheduled at | When the run was scheduled to execute. |
+| Completed at | When the run finished. Shows `--` until the run finishes. Hover over the value to see the start time, the completion time, and the total time the run took. |
+| Status | The status of the run. For how MoEngage derives it, refer to [Import Statuses](/user-guide/data/imports/overview-imports#import-statuses). |
+| Files processed | The number of files processed in that run, against the number of files in it. |
+| Total rows | The number of rows found across the files in the run. |
+| Rows processed | The number of rows MoEngage processed across the run. User imports only. |
+| Rows failed | The number of rows that failed. User imports only. |
+| Events added | The number of events MoEngage added. Event imports only. |
+| Events failed | The number of events that failed. Event imports only. |
+| Auxiliary data added | The number of auxiliary data records MoEngage added. Auxiliary data imports only. |
+| Auxiliary data failed | The number of auxiliary data records that failed. Auxiliary data imports only. |
+| Rows skipped | The number of rows MoEngage skipped. Event and auxiliary data imports. |
+| Actions | Opens the file breakdown for that run. |
+
+MoEngage populates these statistics only after a run finishes, so a run that is still processing shows no counts. To narrow the list, select a value from **Select status**, or select a range from **Select scheduled date**.
+
+## View the Files in a Run
+
+The file breakdown shows each file in a run separately, so you can find the file that failed or the one that slowed the run down.
+
+To open the breakdown, perform the following steps:
+
+1. On the import details page, find the run you want to inspect.
+2. Click **View files**.
+
+![View files slideout with the run summary above the table of files, showing each file's rows, events added, events failed and rows skipped](/images/import-run-file-breakdown.png)
+
+The summary at the top of the slideout shows the run's scheduled time, start time, completion time, file count, and status. MoEngage sorts the files below it by completion time, with the most recent first, and shows files still processing above them, sorted by start time. The table lists the following for each file:
+
+| Column | Description |
+| --- | --- |
+| File name | The name of the file. |
+| Completed at | When the file finished. Hover over the value to see the start time and the total time the file took. |
+| Status | Pending, Processing, Successful, Partial Success, or Failed. |
+| Rows in file | The number of rows in the file. |
+| Rows processed | The number of rows MoEngage processed from the file. User imports only. |
+| Rows failed | The number of rows that failed. User imports only. |
+| Events added | The number of events MoEngage added from the file. Event imports only. |
+| Events failed | The number of events that failed. Event imports only. |
+| Auxiliary data added | The number of auxiliary data records MoEngage added from the file. Auxiliary data imports only. |
+| Auxiliary data failed | The number of auxiliary data records that failed. Auxiliary data imports only. |
+| Rows skipped | The number of rows MoEngage skipped. Event and auxiliary data imports. |
+| Actions | Downloads the file. For a failed or partially successful file, you can also download the error report. Downloading the file is unavailable while the PII flag is on for your workspace, but the error report stays available. |
+
 
 # Manage Your Imports
 
