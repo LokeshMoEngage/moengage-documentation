@@ -59,148 +59,36 @@ MoEngage Data APIs support two authentication methods: Basic Auth and OAuth 2.0.
   </Tab>
 
   <Tab title="OAuth 2.0" id="oauth-2">
-    OAuth 2.0 uses short-lived access tokens instead of sending your Data API Key with every request. You generate an access token and pass it in the `Authorization` header of your Data API requests.
-
-    <Note>
-    The `{dc}` in the endpoint URLs refers to your MoEngage Data Center (DC). Your DC can be 01, 02, 03, 04, 05, 06, or 101. For the DC and API endpoint mapping, refer to [Data Centers](/api/introduction#data-centers).
-    </Note>
-
-    {/* TODO (DOC-2541): Ticket uses {OX} as the placeholder. Confirm with PM that it maps to the standard DC values above. */}
+    OAuth 2.0 authenticates your Data API requests with a short-lived access token instead of an API key sent on every call. You exchange the credentials of an OAuth 2.0 API key for an access token, send that token in the `Authorization` header as a Bearer token, and then refresh the access token before the token expires.
 
     <Steps>
-      <Step title="Enable OAuth 2.0 for your Data APIs">
-        Enable OAuth 2.0 on the API Keys dashboard. For more information, refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard).
-
-        After you enable OAuth 2.0, use the API key generated on the dashboard in the next step.
+      <Step title="Create an OAuth 2.0 API Key">
+        On the API keys dashboard, create a key with **Authentication Type** set to **OAuth 2.0**, and select **Data APIs** under **Select APIs for access**. For the full procedure, refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard).
       </Step>
-
-      <Step title="Generate an access token">
-        Request an access token from the MoEngage OAuth service.
-
-        **Endpoint:**
-
-        ```http
-        POST https://oauth2-{dc}.moengage.com/v1/oauth/token
-        ```
-
-        **Request headers:**
-
-        ```http
-        Content-Type: application/x-www-form-urlencoded
-        Authorization: Basic <base64(Workspace_ID:API_Key)>
-        ```
-
-        **Request body:**
-
-        | Parameter | Required | Description |
-        |---|---|---|
-        | `grant_type` | Yes | The OAuth 2.0 grant type. The supported value is `client_credentials`. |
-        | `client_id` | Yes | The client ID for your workspace. |
-        | `client_secret` | Yes | The client secret for your workspace. |
-
-        {/* TODO (DOC-2541): Confirm with PM: (1) Are both the Basic header and client_id/client_secret in the body required? (2) Where does the user find client_id and client_secret — do they map to Workspace ID and API Key? */}
-
-        **Example cURL:**
-
-        ```bash
-        curl -L -X POST 'https://oauth2-{dc}.moengage.com/v1/oauth/token' \
-          -H 'Content-Type: application/x-www-form-urlencoded' \
-          -H 'Authorization: Basic <base64(Workspace_ID:API_Key)>' \
-          -d 'grant_type=client_credentials' \
-          -d 'client_id=<client_id>' \
-          -d 'client_secret=<client_secret>'
-        ```
-
-        **Response:**
-
-        ```json
-        {
-          "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-          "token_type": "Bearer",
-          "expires_in": 3600
-        }
-        ```
-
-        | Field | Description |
-        |---|---|
-        | `access_token` | The access token to use in your Data API requests. |
-        | `token_type` | The token type. The value is always `Bearer`. |
-        | `expires_in` | The validity of the access token, in seconds. |
+      <Step title="Generate an Access Token">
+        Exchange the Workspace ID and API key of that key for an access token and a refresh token. For the request parameters, the response fields, and the error codes, refer to [Generate Access Token](/api/oauth/generate-access-token).
       </Step>
+      <Step title="Call the Data APIs">
+        Send the access token in the `Authorization` header as a Bearer token.
 
-      <Step title="Validate the access token (optional)">
-        MoEngage recommends that you validate the access token before you use it in your Data API requests.
-
-        {/* TODO (DOC-2541): Ticket cURL uses internal host iam-auth-service.moeinternal.com. Confirm the public endpoint below with PM, and confirm this step is customer-facing. Also get the success and failure responses. */}
-
-        **Endpoint:**
-
-        ```http
-        POST https://oauth2-{dc}.moengage.com/v1/iam/auth/validate
-        ```
-
-        **Request headers:**
-
-        ```http
-        Content-Type: application/json
-        ```
-
-        **Request body:**
-
-        | Parameter | Required | Description |
-        |---|---|---|
-        | `uri` | Yes | The path of the Data API you want to call with the token. For example, `/v1/customer/{Workspace_ID}`. |
-        | `method` | Yes | The HTTP method of the Data API you want to call. For example, `POST`. |
-        | `auth` | Yes | The access token in the format `Bearer <access_token>`. |
-
-        **Example cURL:**
-
-        ```bash
-        curl -L -X POST 'https://oauth2-{dc}.moengage.com/v1/iam/auth/validate' \
-          -H 'Content-Type: application/json' \
-          -d '{
-            "uri": "/v1/customer/{Workspace_ID}",
-            "method": "POST",
-            "auth": "Bearer <access_token>"
-          }'
+        ```bash Call a Data API with an Access Token
+        curl --request POST \
+          --url https://api-{dc}.moengage.com/v1/customer/YOUR_WORKSPACE_ID \
+          --header 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
+          --header 'Content-Type: application/json' \
+          --data '{ "type": "customer", "customer_id": "user_12345" }'
         ```
       </Step>
-
-      <Step title="Use the access token in your Data API request">
-        Pass the access token in the `Authorization` header of your Data API request.
-
-        **Request headers:**
-
-        ```http
-        Authorization: Bearer <access_token>
-        Content-Type: application/json
-        ```
-
-        **Example cURL:**
-
-        ```bash
-        curl -X POST 'https://api-{dc}.moengage.com/v1/customer/{Workspace_ID}' \
-          -H 'Authorization: Bearer <access_token>' \
-          -H 'Content-Type: application/json' \
-          -d '{
-            "type": "customer",
-            "customer_id": "john@example.com",
-            "attributes": {
-              "name": "John Doe",
-              "first_name": "John"
-            }
-          }'
-        ```
+      <Step title="Refresh the Access Token">
+        Before the access token expires, exchange the refresh token for a new access token. For the request parameters, the response fields, and the error codes, refer to [Refresh Access Token](/api/oauth/refresh-access-token).
       </Step>
     </Steps>
 
-    ### Token Expiration
+    <Note>
+      The `{dc}` in the endpoint URL refers to your MoEngage Data Center. For the data center and endpoint mapping, refer to [Data Centers](/api/introduction#data-centers).
+    </Note>
 
-    - An access token expires after the duration specified in the `expires_in` field.
-    - When your access token expires, generate a new one.
-    - For optimal performance, implement token caching and refresh logic in your integration instead of generating a new token for every request.
-
-    {/* TODO (DOC-2541): Ticket says expiry is set "while setting up the API keys". Confirm whether token validity is configurable on the dashboard or fixed at 3600 seconds. */}
+    For the end-to-end integration, including the OAuth base URLs, the token lifecycle, the rate limits, and the authentication error codes, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
   </Tab>
 </Tabs>
 
@@ -269,8 +157,8 @@ You can pass the datetime in the following formats in the request body:
 <Warning>
   For the `user_time` and `current_time` fields (Track Event and Bulk Import), MoEngage accepts only:
 
-  - **Epoch time in seconds** (10-digit) — for example, `1710740192`
-  - **ISO-8601 string** — for example, `2020-05-31T16:33:35Z`
+  - **Epoch time in seconds** (10-digit). For example, `1710740192`.
+  - **ISO-8601 string**. For example, `2020-05-31T16:33:35Z`.
 
   **Epoch time in milliseconds (13-digit) is not accepted.** If `user_time` or `current_time` is sent in an unsupported or unparseable format, MoEngage does not reject the request; the event is ingested using the server-received (Kafka) time instead, which may cause the event's recorded time to differ from what you intended to send.
 </Warning>
@@ -358,7 +246,7 @@ When a request is rejected with `HTTP 429`:
 
 1. Stop sending further requests to that endpoint until the window resets (`x-ratelimit-reset`).
 2. Retry with exponential backoff rather than retrying immediately.
-3. Batch where the endpoint supports it — for example, send multiple user updates in a single Track User request instead of one call per user.
+3. Batch where the endpoint supports it. For example, send multiple user updates in a single Track User request instead of one call per user.
 
 If your integration consistently approaches a limit through legitimate, well-batched usage, contact your CSM or the Support team to request an increase.
 
