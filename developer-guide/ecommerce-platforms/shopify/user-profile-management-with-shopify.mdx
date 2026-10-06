@@ -22,19 +22,19 @@ A user visiting your store is tracked by two primary sources:
 
 ## User Profile Attribute Capture
 
-Profile attributes such as first name, last name, and Shopify ID are tracked when a user creates an account. For anonymous users, these attributes are collected during checkout along with the checkout updated event.
+Profile attributes such as first name, last name, and Shopify ID are tracked when a user creates an account. For anonymous users, these attributes are collected during checkout along with the checkout updated event. MoEngage also keeps user profiles up to date as customers are created and updated in Shopify. For more information, refer to [Profile Sync](/developer-guide/ecommerce-platforms/shopify/events-and-user-data-tracking#profile-sync).
 
-Email addresses and mobile numbers are captured when a user submits an on-site messaging form, logs in, registers, or provides contact details during checkout. MoEngage uses the captured value as the unique identifier (UID) to recognize and merge profiles.
+Email addresses and mobile numbers are captured when a user submits an on-site messaging form, logs in, registers, or provides contact details during checkout. MoEngage uses the user identifiers you selected during integration, such as Shopify ID, email, and mobile number, to recognize and merge profiles.
 
 <Warning>
-  **UID selection is permanent**
+  **User identifiers are locked after setup**
 
-  The identifier you choose during integration (email or mobile number) cannot be changed after setup without significant consequences for your entire user database. Verify which identifier is most reliably present at checkout before you complete the installation.
+  After you save the configuration, you cannot change your user identifiers. To change them later, contact the MoEngage support team. Profile merges cannot be reversed.
 </Warning>
 
 ## Profile Merge
 
-Profile merge occurs when MoEngage finds two profiles with the same UID value. This process ensures user activity remains under a single profile when a customer visits from a new device.
+Profile merge occurs when MoEngage finds two profiles with the same value for one of your user identifiers. This process ensures user activity remains under a single profile when a customer visits from a new device.
 
 In Shopify integrations, MoEngage uses the **Cart token** as a common identifier to merge SDK and Webhook events. This token is generated when the first item is added to a cart and refreshed each time the cart is emptied.
 
@@ -45,31 +45,45 @@ In Shopify integrations, MoEngage uses the **Cart token** as a common identifier
 You might notice more user profiles in MoEngage than visitors reported in Shopify analytics. To troubleshoot profile count discrepancies, review the following scenarios:
 
 - **Buy Now Button usage**: If your site allows checkout without adding a product to the cart, SDK and webhook events cannot merge, which creates extra profiles.
-- **Missing UID at checkout**: If a user places an order from a new device without entering the UID attribute, MoEngage creates a separate profile that cannot be merged automatically.
+- **Missing identifier at checkout**: If a user places an order from a new device without entering any of your user identifiers, MoEngage creates a separate profile that cannot be merged automatically.
 
 To prevent these tracking discrepancies from creating persistent duplicate records, you can implement [MoEngage's Identity Resolution](#identity-resolution) to automatically reconcile and link user profiles.
 
 ## Identity Resolution
 
-If your store has persistent duplicate profile issues, enable Identity Resolution. Identity Resolution is a MoEngage feature that links user profiles from multiple sources into a single unified profile. This allows MoEngage to recognize a user using more than one identifier, such as both email and mobile number.
+Identity Resolution is a MoEngage feature that links user profiles from multiple sources into a single unified profile. It allows MoEngage to recognize a user by more than one identifier, such as Shopify ID, email, and mobile number.
 
-When you activate Identity Resolution, a one-time merge runs on all existing duplicate profiles based on your configured identifiers. Existing users merge over 48 hours, while new users merge immediately.
+When you save the configuration of the MoEngage app for the first time, MoEngage sets up Identity Resolution for your workspace with the user identifiers you selected. For more information, refer to [Configuration Settings](/developer-guide/ecommerce-platforms/shopify/shopify-20#step-4-configuration-settings).
 
 <Warning>
   **Profile merges are irreversible**
 
-  After two profiles merge, they cannot be unmerged. Review your identifier configuration and merge rules carefully before you activate this feature.
+  After two profiles merge, they cannot be unmerged. Review your identifier selection carefully before you save the configuration.
 </Warning>
 
-## Identity Resolution Enablement
+### Identity Resolution for Existing Stores
 
-To enable Identity Resolution for your Shopify workspace, perform the following steps:
+If your store was integrated before multiple identifiers were available and your workspace does not have Identity Resolution, perform the following steps:
 
 1. Contact your Customer Success Manager to request enablement for your workspace.
 2. After enabled, go to **Settings** > **Data** > **Identity Resolution** in your MoEngage dashboard to configure identifiers and merge rules.
 
+When you activate Identity Resolution, a one-time merge runs on all existing duplicate profiles based on your configured identifiers. Existing users merge over 48 hours, while new users merge immediately.
+
 For more information on configuration steps, refer to the [Unified Identity (Identity Resolution)](/user-guide/data/user-data/unified-identity-identity-resolution).
+
+## Shopify Customer Merge
+
+When you merge two customers in Shopify, Shopify keeps one customer and deletes the other. During the merge, you choose which customer's email address and mobile number the kept customer retains.
+
+MoEngage merges the two matching user profiles only if the kept customer retains the email address or mobile number of the deleted customer. The profiles merge the next time the kept customer is updated in Shopify.
+
+For example, you merge customer A into customer B in Shopify and keep customer A's email address. The next update to customer B carries customer A's email address, so MoEngage merges the profiles of customer A and customer B.
+
+If the kept customer retains their own email address and mobile number, MoEngage does not merge the profiles, and the deleted customer's profile remains in MoEngage as a separate profile.
+
+Profile merges in MoEngage cannot be reversed.
 
 ## Webhook Profile Resolution Logic
 
-MoEngage creates a new profile for a webhook event only when the system cannot resolve the event to an existing user. This ensures that every event is captured and that campaigns depending on those events trigger correctly. If you observe a high volume of new profiles from webhook events, enabling Identity Resolution is the most effective solution.
+MoEngage creates a new profile for a webhook event or a profile sync update only when the system cannot resolve it to an existing user. This ensures that every event and profile update is captured and that campaigns depending on those events trigger correctly. For example, a customer who creates an account or signs up for a newsletter in your store gets a MoEngage user profile even before they place an order.
