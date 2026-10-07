@@ -321,7 +321,7 @@
  * System Status Indicator
  *
  * Shows the live rollup from status.moengage.com (Atlassian Statuspage) as a
- * pill in the navbar, in one of four states:
+ * link in the navbar, in one of four states:
  *
  *   operational  green  all clear
  *   degraded     amber  something is impaired but serving
@@ -363,7 +363,7 @@
     maintenance: 'degraded'
   };
 
-  /* The pill shows the API's own status.description verbatim, so the navbar can
+  /* The link shows the API's own status.description verbatim, so the navbar can
      never word things differently from the status page itself. These are only
      the fallbacks for a missing description, and they match Statuspage's own
      default wording. 'unavailable' has no API text by definition. */
@@ -470,6 +470,9 @@
     link.rel = 'noreferrer';
     // Carries the full wording for the compact, dot-only mobile rendering.
     link.title = status.detail;
+    // Names the link for what it is; the visible label stays inside the name
+    // (SC 2.5.3).
+    link.setAttribute('aria-label', 'System status: ' + status.label);
 
     const dot = document.createElement('span');
     dot.className = 'moe-status-dot';

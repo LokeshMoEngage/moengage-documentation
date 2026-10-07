@@ -391,43 +391,43 @@ div[class*="scroll-mt"][class*="peer"] {
 
 /* System status indicator.
 
-   One data-moe-status attribute drives the pill. Each state declares a dot
-   colour and a separate text colour: the dot is decorative so it can take the
-   vivid hue, but pill text has to clear 4.5:1 against the tinted background,
-   which the vivid greens and ambers do not. Light-theme text therefore uses the
-   800-level shades (the 600/700 shades measure 4.4-4.5:1 and miss AA).
+   The indicator is a plain navbar link in every state: no pill background, the
+   links' own size and weight, and a coloured dot. One data-moe-status attribute
+   drives it, and each state declares a dot, text, and hover colour.
 
-   Dot contrast is measured against the tinted pill the dot actually sits on,
-   NOT against the page background - the page gives a flattering number that the
-   rendered pill never delivers. On the tint, the 600-shade green and amber come
-   out at 2.95:1 and 2.80:1 and miss the 3:1 non-text minimum, so light-theme
-   dots use the 700 shades and land at 4.0-4.5:1 across all four states. This
-   matters because under 639px the label is visually hidden and the dot becomes
-   the only visual carrier of state, so SC 1.4.11 genuinely applies there.
+   Operational and unavailable text uses Mintlify's gray tokens, the same
+   text-gray-600/900 and dark:text-gray-400/300 the Support link uses, so the
+   resting state reads as one more link. Degraded and major colour the text as
+   well, so an incident stands out without a filled background. Light-theme
+   incident text uses the 800-level shades, which measure 6.5-7:1 against
+   white.
 
-   In dark theme the accessible direction inverts, so text takes the lighter
-   hue; those dots already clear 4.2:1 on their tints. */
+   Light-theme dots use the 700 shades (grey 500) and measure 4.8-5:1 against
+   white, above the 3:1 non-text minimum. This matters because under 640px the
+   label is visually hidden and the dot becomes the only visual carrier of
+   state, so SC 1.4.11 genuinely applies there. In dark theme the accessible
+   direction inverts, so text and dots take the lighter hues. */
 [data-moe-status="operational"] {
   --moe-status-dot: #15803d;
-  --moe-status-text: #166534;
-  --moe-status-tint: rgb(22 163 74 / 0.1);
+  --moe-status-text: rgb(var(--gray-600));
+  --moe-status-hover: rgb(var(--gray-900));
 }
 [data-moe-status="degraded"] {
   --moe-status-dot: #b45309;
   --moe-status-text: #92400e;
-  --moe-status-tint: rgb(217 119 6 / 0.12);
+  --moe-status-hover: #78350f;
 }
 [data-moe-status="major"] {
   --moe-status-dot: #dc2626;
   --moe-status-text: #b91c1c;
-  --moe-status-tint: rgb(220 38 38 / 0.12);
+  --moe-status-hover: #7f1d1d;
 }
 /* Grey is "we could not reach the status page", not "everything is fine" and
    not "everything is down". */
 [data-moe-status="unavailable"] {
   --moe-status-dot: #6b7280;
-  --moe-status-text: #4b5563;
-  --moe-status-tint: rgb(107 114 128 / 0.12);
+  --moe-status-text: rgb(var(--gray-600));
+  --moe-status-hover: rgb(var(--gray-900));
 }
 
 /* Mintlify sets .dark on some builds and data-theme on others, so both are
@@ -435,26 +435,26 @@ div[class*="scroll-mt"][class*="peer"] {
 .dark [data-moe-status="operational"],
 [data-theme="dark"] [data-moe-status="operational"] {
   --moe-status-dot: #22c55e;
-  --moe-status-text: #4ade80;
-  --moe-status-tint: rgb(34 197 94 / 0.16);
+  --moe-status-text: rgb(var(--gray-400));
+  --moe-status-hover: rgb(var(--gray-300));
 }
 .dark [data-moe-status="degraded"],
 [data-theme="dark"] [data-moe-status="degraded"] {
   --moe-status-dot: #f59e0b;
   --moe-status-text: #fbbf24;
-  --moe-status-tint: rgb(245 158 11 / 0.16);
+  --moe-status-hover: #fcd34d;
 }
 .dark [data-moe-status="major"],
 [data-theme="dark"] [data-moe-status="major"] {
   --moe-status-dot: #ef4444;
   --moe-status-text: #f87171;
-  --moe-status-tint: rgb(239 68 68 / 0.16);
+  --moe-status-hover: #fca5a5;
 }
 .dark [data-moe-status="unavailable"],
 [data-theme="dark"] [data-moe-status="unavailable"] {
   --moe-status-dot: #9ca3af;
-  --moe-status-text: #d1d5db;
-  --moe-status-tint: rgb(156 163 175 / 0.16);
+  --moe-status-text: rgb(var(--gray-400));
+  --moe-status-hover: rgb(var(--gray-300));
 }
 
 .moe-status-dot {
@@ -470,19 +470,16 @@ div[class*="scroll-mt"][class*="peer"] {
   display: inline-flex;
   align-items: center;
   gap: 0.4375rem;
-  padding: 0.25rem 0.625rem;
-  border-radius: 9999px;
-  background-color: var(--moe-status-tint);
   color: var(--moe-status-text);
-  font-size: 0.8125rem;
+  font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.25rem;
   white-space: nowrap;
   text-decoration: none;
-  transition: background-color 150ms ease;
+  transition: color 150ms ease;
 }
 .moe-status-pill:hover {
-  filter: brightness(0.97);
+  color: var(--moe-status-hover);
 }
 /* Mintlify's Tailwind preflight can drop the UA focus ring, and this is a real
    anchor in the navbar tab order. */
@@ -492,9 +489,11 @@ div[class*="scroll-mt"][class*="peer"] {
 }
 
 /* Degraded and major must not rest on colour alone, so their dots also pulse.
-   Operational and unavailable stay static - a permanently blinking navbar on a
-   healthy site would be noise. Anyone who has asked for less motion gets the
-   static dot and still has the pill's text label. */
+   Operational gets a different, softer motion: the dot stays solid and a halo
+   ripples out from it, which reads as "live" rather than as an alert, so the
+   on-off blink stays reserved for incidents. Unavailable stays static, since
+   there is nothing live to show. Anyone who has asked for less motion gets the
+   static dot and still has the text label. */
 [data-moe-status="degraded"] .moe-status-dot,
 [data-moe-status="major"] .moe-status-dot {
   animation: moe-status-pulse 2s ease-in-out infinite;
@@ -508,15 +507,41 @@ div[class*="scroll-mt"][class*="peer"] {
     opacity: 0.35;
   }
 }
+[data-moe-status="operational"] .moe-status-dot {
+  position: relative;
+}
+[data-moe-status="operational"] .moe-status-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-color: var(--moe-status-dot);
+  animation: moe-status-ripple 2.4s ease-out infinite;
+}
+@keyframes moe-status-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  70%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
-  .moe-status-dot {
+  .moe-status-dot,
+  .moe-status-dot::after {
     animation: none !important;
+  }
+  .moe-status-dot::after {
+    display: none;
   }
 }
 
 /* The mobile slot only earns its place below Mintlify's lg breakpoint, where the
-   desktop link list is display:none. From lg up the desktop pill takes over, so
-   the mobile one is withdrawn rather than shown twice. */
+   desktop link list is display:none. From lg up the desktop indicator takes
+   over, so the mobile one is withdrawn rather than shown twice. */
 @media (min-width: 1024px) {
   .moe-status-navbar-mobile {
     display: none !important;
@@ -525,12 +550,9 @@ div[class*="scroll-mt"][class*="peer"] {
 
 /* Under sm the mobile header has room for the dot but not the words, so the
    label is visually hidden rather than removed - it stays in the accessibility
-   tree and goes on supplying the link's accessible name. Below sm the only pill
-   on screen is the mobile one. */
+   tree and goes on supplying the link's accessible name. Below sm the only
+   indicator on screen is the mobile one. */
 @media (max-width: 639px) {
-  .moe-status-pill {
-    padding: 0.25rem;
-  }
   .moe-status-pill-label {
     position: absolute;
     width: 1px;
