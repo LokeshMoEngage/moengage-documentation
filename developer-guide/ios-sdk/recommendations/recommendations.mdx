@@ -1,0 +1,190 @@
+---
+title: "Recommendations"
+description: "Fetch items from a MoEngage recommendation in your iOS app with MoEngageSDKRecommendations.fetchRecommendations(), configure the cache duration, and handle failures."
+keywords: "ios recommendations sdk, MoEngageSDKRecommendations, fetchRecommendations ios, recommended items, product recommendations ios, recommendation id, item id, included fields, recommendations cache duration, moengage ios catalog"
+---
+
+## Overview
+
+The MoEngage iOS SDK fetches the recommended items for a recommendation you created on the MoEngage dashboard and returns them to your app as key-value data, handling user identity, networking, and caching internally.
+
+<Tip>
+  **Prerequisites**
+
+  - Integrate MoEngage iOS SDK 11.3.0 or above, which includes the Recommendations module. For more information, refer to [SDK Integration](/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration).
+  - Initialize the SDK in `didFinishLaunchingWithOptions`. For more information, refer to [SDK Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization).
+  - Enable Recommendations for your workspace and create a recommendation on the MoEngage dashboard. For more information, refer to [Recommendations Overview](/user-guide/content/recommendations/getting-started/overview).
+</Tip>
+
+## Install the Module
+
+<Tabs>
+  <Tab title="SPM (Swift Package Manager)">
+    To install `MoEngageRecommendations` through SPM, perform the following steps:
+
+    1. Navigate to **File** \> **Add Package**.
+    2. Enter the repository URL [https://github.com/moengage/apple-sdk.git](https://github.com/moengage/apple-sdk.git).
+    3. Select the master branch or your desired version.
+    4. Click **Add Package**.
+    5. Add the `MoEngageRecommendations` product to your app target.
+  </Tab>
+  <Tab title="CocoaPods">
+    <Warning>
+      CocoaPods is being deprecated. MoEngage recommends Swift Package Manager for all new integrations. For more information, refer to [SDK Integration](/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration).
+    </Warning>
+
+    Add the following to your `Podfile`:
+
+    <CodeGroup>
+
+    ```ruby Cocoapods
+    pod 'MoEngage-iOS-SDK/Recommendations'
+    ```
+
+    </CodeGroup>
+
+    Then run:
+
+    <CodeGroup>
+
+    ```shellscript Shell wrap
+    pod repo update
+    pod install
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## Fetch Recommended Items
+
+Call `fetchRecommendations(recommendationId:itemId:includedFields:workspaceId:)` on `MoEngageSDKRecommendations` and attach `onSuccess` and `onFailure` callbacks to the returned `MoEngageFetchRecommendationsTask`. Pass the Recommendation ID of the recommendation you want to fetch items from, as defined on the MoEngage dashboard. You can also pass an anchor item ID and the catalog fields you want returned for each item. For the full parameter list, refer to the [API reference](https://moengage.github.io/ios-api-reference/).
+
+<CodeGroup>
+
+```swift Swift wrap
+import MoEngageRecommendations
+
+MoEngageSDKRecommendations.sharedInstance
+    .fetchRecommendations(
+        recommendationId: "YOUR_RECOMMENDATION_ID",
+        itemId: "YOUR_ITEM_ID",
+        includedFields: ["FIELD_1", "FIELD_2"]
+    )
+    .onSuccess { recommendedItems in
+        if recommendedItems.items.isEmpty {
+            // No recommended items are available for this user. Show your empty state.
+        } else {
+            // Render the items.
+        }
+    }
+    .onFailure { failure in
+        switch failure.reason.code {
+        case .networkError:
+            // The device is offline. Retry when connectivity returns.
+            break
+        default:
+            // Show a fallback.
+            break
+        }
+    }
+```
+
+```objective-c Objective C wrap
+@import MoEngageRecommendations;
+
+MoEngageFetchRecommendationsTask* task =
+    [[MoEngageSDKRecommendations sharedInstance]
+     fetchRecommendationsWithRecommendationId:@"YOUR_RECOMMENDATION_ID"
+     itemId:@"YOUR_ITEM_ID"
+     includedFields:@[@"FIELD_1", @"FIELD_2"]
+     workspaceId:@"YOUR_WORKSPACE_ID"];
+
+[task onSuccess:^(MoEngageRecommendedItems * _Nonnull recommendedItems) {
+    if (recommendedItems.items.count == 0) {
+        // No recommended items are available for this user. Show your empty state.
+    } else {
+        // Render the items.
+    }
+}];
+
+[task onFailure:^(MoEngageRequestFailure * _Nonnull failure) {
+    // Show a fallback.
+}];
+```
+
+</CodeGroup>
+
+<Info>
+  Pass `workspaceId` only when your application runs multiple MoEngage instances. `includedFields` is a `Set<String>`, which does not bridge to Objective-C. Objective-C callers use the `fetchRecommendations` overload, which accepts an array in place of the set.
+</Info>
+
+### Handle the Result
+
+The `onSuccess` callback receives a `MoEngageRecommendedItems` object. Its `items` property is a list of maps, where each map is one recommended item keyed by its catalog attribute names. An empty list is a successful result and means no recommended items are available for the user.
+
+The SDK passes the keys and value types through from your catalog unchanged. To serve a default set of items when a recommendation returns nothing, configure [Fallback Items](/user-guide/content/recommendations/getting-started/fallback-items) on the recommendation.
+
+### Handle Failures
+
+On failure, `onFailure` receives a `MoEngageRequestFailure` object. Use its `reason` property to identify the failure. Its `message` property carries details for logging only and can be empty, and its `cause` property carries the underlying `NSError` when the failure originated in the network layer. The SDK writes nothing to the cache on failure and leaves any cached items untouched.
+
+Read `reason.code` to identify the failure. For the full list of codes common to all MoEngage SDK requests, refer to the [API reference](https://moengage.github.io/ios-api-reference/Classes/MoEngageRequestFailureReason/Code.html).
+
+The SDK does not retry a failed request. To try again, call `fetchRecommendations()` again. Because the SDK caches nothing on failure, the next call makes a fresh network request. Retry only for these reasons:
+
+- `networkError`
+- `serverError`
+- `unknownError`
+
+<Note>
+  Recommendations also defines its own failure codes on a subclass of `MoEngageRequestFailureReason`, exposed through a nested `ModuleCode` enum and a `moduleCode` property. For the list of these codes, refer to the [API reference](https://moengage.github.io/ios-api-reference/).
+</Note>
+
+## Caching
+
+The SDK caches the items it fetches, so repeated calls for the same recommendation do not trigger a network request.
+
+- The SDK scopes each cache entry to the combination of Recommendation ID, item ID, and included fields. Changing any of the three fetches a fresh list.
+- Within the cache duration, `fetchRecommendations()` returns the cached items without a network call.
+- After the cache duration elapses, the next call fetches the items from the server and refreshes the entry.
+- The SDK caches an empty result in the same way, so an empty recommendation does not trigger a network call on every screen render.
+- The SDK clears the cache when the user logs out, when the user identity changes, and when the SDK is disabled.
+
+### Configure the Cache Duration
+
+The SDK caches recommended items for 24 hours (86400 seconds). To cache items for longer, set the `recommendationConfig` property on the `MoEngageSDKConfig` object before you initialize the SDK. For more information, refer to [SDK Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization).
+
+<CodeGroup>
+
+```swift Swift wrap
+let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
+sdkConfig.recommendationConfig = MoEngageRecommendationConfig(recommendedItemsCacheDuration: 172800)
+MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
+```
+
+</CodeGroup>
+
+<Note>
+  The duration is in seconds. The minimum cache duration is 86400 seconds (24 hours). The SDK ignores a smaller value and uses 86400 seconds instead.
+</Note>
+
+## FAQs
+
+<AccordionGroup>
+  <Accordion title="Does the SDK render the recommended items?">
+    No, the SDK returns the item data only. Your application parses the response and builds the user interface.
+  </Accordion>
+
+  <Accordion title="Does the SDK download the images referenced in the items?">
+    No, the SDK does not download or cache media. Use a standard image loading library for the image URLs in the response.
+  </Accordion>
+
+  <Accordion title="What happens if I call fetchRecommendations() before I initialize the SDK?">
+    The SDK raises a fatal exception and the application crashes. From iOS SDK 11.0.0, this applies to every public MoEngage API in Debug, Release, and TestFlight builds. Initialize the SDK in `didFinishLaunchingWithOptions` before you fetch recommendations. For more information, refer to [SDK Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization).
+  </Accordion>
+
+  <Accordion title="Can I force a fresh fetch before the cache expires?">
+    No, the SDK serves the cached items until the cache duration elapses. Configure a duration that matches how frequently your catalog changes.
+  </Accordion>
+</AccordionGroup>

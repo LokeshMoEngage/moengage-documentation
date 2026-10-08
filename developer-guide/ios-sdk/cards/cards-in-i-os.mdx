@@ -98,6 +98,54 @@ MoEngageSDKCards.sharedInstance.getCardsViewController(withUIConfiguration: nil,
   Starting with iOS SDK [11.0.0](/release-notes/sdks/ios#22nd-july-2026), `getCardsViewController` carries `@MainActor` annotation. Objective-C callers remain unaffected. Swift code inside a `UIViewController` (as shown above) already runs on the main actor, so this call compiles unchanged. When called from a non-main-actor Swift context, use `await MainActor.run { ... }` to transition to the main actor.
 </Note>
 
+# Displaying the Inbox in SwiftUI
+
+<Info>
+  **Prerequisite**
+
+  SwiftUI support requires MoEngage iOS SDK [11.3.0](/release-notes/sdks/ios#8th-october-2026) or above.
+</Info>
+
+Use `cardsView(withUIConfiguration:withCardsViewControllerDelegate:forAppID:isModallyPresented:onResolutionFailure:)` to place the Inbox anywhere in a SwiftUI view hierarchy. The method returns a standard SwiftUI view, so you can embed it inline, in a tab, in a navigation stack, or in a sheet.
+
+<CodeGroup>
+
+```swift Swift wrap
+import MoEngageCards
+
+MoEngageSDKCards.sharedInstance.cardsView(
+    withUIConfiguration: uiConfig,          // Optional. The same MoEngageCardsUIConfiguration you pass in UIKit.
+    withCardsViewControllerDelegate: self,  // Optional. The same delegate callbacks you receive in UIKit.
+    forAppID: "YOUR_WORKSPACE_ID",          // Optional. Pass this only when your app runs multiple SDK instances.
+    isModallyPresented: false,              // Set this to true only inside .sheet or .fullScreenCover.
+    onResolutionFailure: { appID in         // Optional. Called when the SDK is not initialized or the instance is not found.
+        print("Cards inbox failed for \(appID ?? "default")")
+    }
+)
+```
+
+</CodeGroup>
+
+## Presenting the SwiftUI Inbox from UIKit
+
+Use `presentCardsSwiftUIView(withUIConfiguration:withCardsViewControllerDelegate:forAppID:)` to show the SwiftUI Inbox from a UIKit app. The SDK presents it from the top-most view controller, so your app does not need to create a `UIHostingController`.
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.presentCardsSwiftUIView(
+    withUIConfiguration: uiConfig,
+    withCardsViewControllerDelegate: self,
+    forAppID: "YOUR_WORKSPACE_ID"
+)
+```
+
+</CodeGroup>
+
+<Note>
+  `cardsView` and `presentCardsSwiftUIView` carry the `@MainActor` annotation. Call them from the main actor, otherwise your code does not compile.
+</Note>
+
 # Customizing Inbox UI
 
 The earlier snapshots indicate what the default UI of the Inbox would look like. But we have also added support for customizing the App Inbox screen according to your App Theme. For customizing the screen make use of [_MoEngageCardsUIConfiguration_](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardsUIConfiguration.html) instance and pass the same in the above-mentioned methods. Refer to the example below:
