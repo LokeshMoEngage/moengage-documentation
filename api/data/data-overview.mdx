@@ -224,17 +224,17 @@ The following status codes and associated error messages are returned when the r
 Rate-limited endpoints return the following headers on every response, so your integration can track remaining capacity in real time rather than waiting for a `429`:
 
 ```http
-x-ratelimit-limit: 100
+x-ratelimit-limit: 100, 100;w=60
 x-ratelimit-remaining: 95
 x-ratelimit-reset: 30
 ```
 <img alt="monitor_your_usage.png"  src="/images/monitor_your_usage.png" width="50%" />
 
 | Header | Description |
-| --- | --- |
-| `x-ratelimit-limit` | The maximum number of requests allowed within the current 60-second window (w=60). |
+| - | - |
+| `x-ratelimit-limit` | The request quota for the current window, followed by the quota policy. For example, `100, 100;w=60` means 100 requests are allowed per 60-second window (`w=60`). |
 | `x-ratelimit-remaining` | The number of requests still available in the current 60-second window before the limit is reached. |
-| `x-ratelimit-reset` | The UTC epoch timestamp at which the current window resets. Since the window is 60 seconds (w=60), this value will always be within 60 seconds of the current time.|
+| `x-ratelimit-reset` | The number of seconds remaining until the current window resets. Because the window is 60 seconds, the value is always between 1 and 60.  |
 
 <Note>
   A few high-throughput endpoints (such as the Push API) signal throttling with an `x-envoy-ratelimited: true` header instead. Check the specific endpoint's reference page for the headers it returns.
