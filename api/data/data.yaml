@@ -4095,11 +4095,31 @@ components:
           description: This field denotes the platforms where the device is supported. Using unsupported values may result in an API response of 400.
         push_id:
           type: string
-          description: This field denotes the Push token of the device. When you pass a push token using this API, reachability is only updated if the device is currently marked as _Installed_. If a device is marked as _Uninstalled_, updating the `push_id` or `moe_push_opted` using Track Device API will not affect its reachability (it will remain Unreachable). To change a device's status back to _Installed_, the MoEngage SDK must actively track the device.
+          description: >-
+            This field denotes the push token of the device. Reachability is
+            affected as follows:
+
+            - **Device has no push token yet** (including a newly added
+            device): adding a `push_id` updates the device's push
+            reachability. The resulting status depends on `moe_push_opted`.
+
+            - **Device already has a push token**: updating the `push_id` does
+            not change the device's reachability status.
         moe_push_opted:
           type: string
-          enum: ["True", "False"]
-          description: This field denotes the opt-in status of the device of the user.
+          enum:
+            - 'True'
+            - 'False'
+          description: >-
+            This field denotes the push opt-in status of the device. It applies
+            to both new and existing devices and sets the reachability status
+            as follows:
+
+            - `True`: reachability status is set to `201`.
+
+            - `False`: reachability status is set to `202`.
+
+            - Not passed: reachability status defaults to `200`.
         moe_push_provisional_opted:
           type: string
           description:  This field denotes the provisional push opt-in status of the user. Know more about provisional push [here](/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/ios-push-permission-and-reachability).  
