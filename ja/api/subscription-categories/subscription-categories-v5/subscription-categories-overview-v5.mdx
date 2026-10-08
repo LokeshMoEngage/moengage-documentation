@@ -1,0 +1,83 @@
+---
+title: "Subscription Categories (V5)"
+description: "MoEngage がホストするランディングページのフローに依存せずに、ユーザーの Subscription Category の設定をサーバー間で読み取り、管理します。"
+icon: "file-magnifying-glass"
+---
+
+MoEngage Subscription Preferences API (V5) を使用すると、MoEngage がホストするランディングページのフローに依存せずに、自社システムから直接ユーザーの Subscription Category の設定を読み取り、管理できます。ユーザーはパスパラメーターではなく、`user_identifier_type` / `user_identifier_value` のペア (`moe_user_id`、`uid`、または `email`) によって識別されます。
+
+<Note>
+Subscription Preferences (V5) API がサポートしているのはメールチャネルのみです。
+
+* PII トークン化されたデータベースでは、UID と MoEngage ID のみがサポートされます。
+* PII 暗号化されたデータベースでは、暗号化されたメールアドレスの値も受け付けます。
+</Note>
+
+## エンドポイント
+
+Subscription Categories (V5) API は、次のエンドポイントで構成されています:
+
+- [Get Subscription Categories (V5)](/ja/api/subscription-categories/get-subscription-categories-v5): ワークスペースの有効な購読カテゴリのカタログを取得します。
+- [Get Subscription Preferences (V5)](/ja/api/subscription-preferences/get-subscription-preferences-v5): ユーザーのカテゴリごとの購読状態と、グローバルな購読解除のステータスを取得します。
+- [Update Subscription Preferences (V5)](/ja/api/subscription-preferences/update-subscription-preferences-v5): ユーザーのカテゴリごとの購読状態とグローバルな購読解除のステータスのいずれか、または両方を更新します。更新は非同期で処理されます。エンドポイントは `202 Accepted` を返しますが、更新が適用されたことは確認しません。
+
+<Note>
+  **認証に関する暫定的な注意事項:** このルートは現在、HTTP Basic 認証のみを受け付けます。Bearer トークンのサポートは予定されていますが、このパスではまだ有効になっていません。APISIX ゲートウェイがこのルートの前段に配置されるまで、Bearer リクエストは `401` を返します。
+</Note>
+
+## FAQ
+
+### Get Subscription Categories
+
+<AccordionGroup>
+  <Accordion title="このエンドポイントにユーザー識別子を渡す必要がありますか?" icon="sparkles">
+    いいえ。このエンドポイントはワークスペースの有効な購読カテゴリのカタログ全体を返し、個々のユーザーに限定されません。リクエストの認証のみが必要です。
+  </Accordion>
+  <Accordion title="このエンドポイントから返されるカテゴリデータはどのくらい最新ですか?" icon="sparkles">
+    カタログは既存の 1 時間ごとのカテゴリキャッシュから提供されるため、ダッシュボードで作成または編集したばかりのカテゴリがここに表示されるまでに最大 1 時間かかる場合があります。
+  </Accordion>
+  <Accordion title="channel フィルターを渡さない場合はどうなりますか?" icon="sparkles">
+    すべてのチャネルのカテゴリが返されます。現時点でこの API はメールチャネルのみをサポートしているため、`channel=email` を渡しても同じカタログが返されます。
+  </Accordion>
+</AccordionGroup>
+
+### Get Subscription Preferences
+
+<AccordionGroup>
+  <Accordion title="渡したメールアドレスが複数のユーザープロファイルに一致する場合はどうなりますか?" icon="sparkles">
+    `EMAIL_UNSUB_BASED_ON_EMAIL` sentry フラグがオンの場合、MoEngage は同じメールアドレスを持つすべてのユーザープロファイルを処理します。
+  </Accordion>
+  <Accordion title="渡した識別子に一致するプロファイルがない場合はどうなりますか?" icon="sparkles">
+    呼び出しは `404` を返します。
+  </Accordion>
+  <Accordion title="moe_user_id、uid、email は相互に置き換えて使用できますか?" icon="sparkles">
+    はい。`user_identifier_type` に保持している識別子 (`moe_user_id`、`uid`、または `email`) を設定し、対応する `user_identifier_value` を指定してください。事前に別の識別子を検索する必要はありません。
+  </Accordion>
+</AccordionGroup>
+
+### Update Subscription Preferences
+
+<AccordionGroup>
+  <Accordion title="更新された設定ではなく 202 が返されたのはなぜですか?" icon="sparkles">
+    このエンドポイントは、既存の SLA に基づいて別のワーカーによって非同期で処理されます。`202` はリクエストが受け付けられたことを確認するだけで、変更がすでに反映されたことは確認しません。同じ識別子で [Get Subscription Preferences](/ja/api/subscription-preferences/get-subscription-preferences-v5) をポーリングし、返された状態が送信した内容と一致することを確認してください。
+  </Accordion>
+  <Accordion title="is_globally_unsubscribed フィールドは省略可能ですか?" icon="sparkles">
+    いいえ。中立的なデフォルト値がないため、すべての呼び出しで必須です。`true` はチャネル上のすべてのカテゴリからプロファイルの購読を解除し、`false` は既存のグローバルな購読解除を明示的に解除します。
+  </Accordion>
+  <Accordion title="リクエストに含めなかったカテゴリはどうなりますか?" icon="sparkles">
+    変更されません。`categories` はスパースマップであり、リクエストに含まれるカテゴリ名のみが更新されます。
+  </Accordion>
+  <Accordion title="異なるリクエストボディで Idempotency-Key を再利用するとどうなりますか?" icon="sparkles">
+    呼び出しは `409` で失敗します。ただし、同じキーを同じボディで再利用した場合は、更新を再適用せずに元のレスポンスが返されます。
+  </Accordion>
+  <Accordion title="channel を省略した場合、更新はどのカテゴリに適用されますか?" icon="sparkles">
+    デフォルトは、現時点でこの API がサポートする唯一のチャネルである `email` になるため、更新はユーザーのメール購読カテゴリに適用されます。
+  </Accordion>
+  <Accordion title="event_attributes に予約された名前はありますか?" icon="sparkles">
+    いいえ。任意の属性名を使用できます。制限は、1 回の呼び出しにつき最大 5 つの属性、50 文字以下の名前、255 文字以下の値のみです。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+Postman コレクションをインポートして、これらのエンドポイントをすばやくテストできます: [**Postman で表示**](https://www.postman.com/moengage-dev/api-docs/collection/uorepia/moengage-subscription-categories-v5-api)

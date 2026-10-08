@@ -70,6 +70,7 @@ icon: "layout-template"
 | [iOS プッシュのコンテンツ](#ios-push-content) | `campaign_content.content.push.ios` |
 | [Web プッシュのコンテンツ](#web-push-content) | `campaign_content.content.push.web` |
 | [Email のコンテンツ](#email-content) | `campaign_content.content.email` |
+| [Gmail Annotations](#gmail-annotations) | `campaign_content.content.email.gmail_annotations` |
 | [A/B テストのバリエーション](#a%2Fb-test-variations) | `campaign_content.variation_details` |
 | [Email 配信コネクタ](#email-delivery-connector) | `connector`(Email リクエストのみ) |
 | [検証ルール](#validation-rules) | 検証時または公開時に適用される横断的なルール |
@@ -84,7 +85,7 @@ Push キャンペーンの `basic_details` オブジェクトには、識別用�
 | `name` | string | ダッシュボードに表示されるキャンペーン名です。 |
 | `business_event` | string | キャンペーンに紐付けられたビジネスイベントです。`campaign_delivery_type` が `BUSINESS_EVENT_TRIGGERED` の場合は **必須** です。 |
 | `tags` | array of string | 自由形式のコンテキストタグです。 |
-| `team` | string | キャンペーンで共同作業するチームです。[Teams in MoEngage](https://help.moengage.com/hc/en-us/articles/360028586211-Teams-in-MoEngage) を参照してください。 |
+| `team` | string | キャンペーンで共同作業するチームです。[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。 |
 | `platforms` | array of string | ターゲットプラットフォームです。列挙値: `ANDROID`、`IOS`、`WEB`。 |
 | `broadcast_live_activity_id` | string | iOS Live Activities 用のブロードキャスト Live Activity ID です。`BROADCAST_LIVE_ACTIVITY` はドラフト作成ではサポートされていません。[検証ルール](#validation-rules) を参照してください。 |
 | `geofences` | object | `campaign_delivery_type` が `LOCATION_TRIGGERED` の場合は **必須** です。完全なスキーマは [ジオフェンスのターゲティング](/ja/api/campaigns/audience-scheduling-delivery-reference#geofence-targeting) にあります。 |
@@ -188,6 +189,8 @@ Email キャンペーンの `basic_details` オブジェクトには、識別用
 | `business_event` | string | キャンペーンに紐付けられたビジネスイベントです。`campaign_delivery_type` が `BUSINESS_EVENT_TRIGGERED` の場合は **必須** です。 |
 | `content_type` | string | コンテンツの種類です。列挙値: `PROMOTIONAL`、`TRANSACTIONAL`。 |
 | `subscription_category` | string | プロモーションメールの購読カテゴリです。`content_type` が `PROMOTIONAL` の場合は **必須** です。 |
+| `send_only_double_opt_in_users` | boolean | キャンペーンの対象をダブルオプトインしたユーザーに限定します。`PROMOTIONAL` キャンペーンにのみ適用されます。`TRANSACTIONAL` キャンペーンに含めると 400 検証エラーが返されます。また、Single Opt-in を使用しているワークスペースや、ダブルオプトインが有効になっていないワークスペースで `true` に設定した場合も同様です。[Create Campaign Draft](/ja/api/create-campaigns/create-campaign-draft-v5) の `double_opt_in_*` エラーの例を参照してください。 |
+| `deduplication_attribute` | string | ブランドレベルの重複排除です。単一ブランドで使用する場合(重複排除なし)は `""` を、複数ブランドで重複排除する場合はバックエンドのユーザー属性名(例: `u_em`)を渡します。`API_TRIGGERED` キャンペーンではサポートされていません。API トリガー型キャンペーンでこのフィールドを渡すと 400 検証エラーが返されます。[Create Campaign Draft](/ja/api/create-campaigns/create-campaign-draft-v5) の `deduplication_attribute_*` エラーの例を参照してください。 |
 | `tags` | array of string | 自由形式のコンテキストタグです。 |
 | `team` | string | キャンペーンで共同作業するチームです。 |
 | `user_attribute_identifier` | string | 受信者のメールアドレスを格納するユーザー属性です。デフォルト: `Email (Standard)`。内部識別子 `MOE_EMAIL_ID` も使用できます。 |
@@ -1036,13 +1039,14 @@ iOS のボタンはカテゴリベースのモデルを使用します。ボタ�
 | `subject` | string | 件名です。 |
 | `preview_text` | string | 受信トレイの一覧に表示されるプレビューテキストです。 |
 | `sender_name` | string | 送信者の表示名です。 |
-| `from_address` | email | 送信者のメールアドレスです。 |
-| `reply_to_address` | email | 返信先アドレスです。 |
+| `from_address` | email | 送信者のメールアドレスです。Jinja のパーソナライズトークン(例: `{{UserAttribute['custom_from_email']}}`)も受け付け、ユーザーごとの動的な送信者アドレスから送信できます。スニペット: `{ "from_address": "{{UserAttribute['custom_from_email']}}" }`。これには、ワークスペースで `EMAIL_FROM_ADDRESS_PERS` 機能フラグが有効になっている必要があります。有効にするには MoEngage サポートにお問い合わせください。 |
+| `reply_to_address` | email | 返信先アドレスです。Jinja のパーソナライズトークン(例: `{{UserAttribute['custom_reply_to']}}`)も受け付け、ユーザーごとの動的な返信先アドレスを使用できます。スニペット: `{ "reply_to_address": "{{UserAttribute['custom_reply_to']}}" }`。追加の機能フラグは不要です。 |
 | `cc_ids` | array of email | CC の受信者です。 |
 | `bcc_ids` | array of email | BCC の受信者です。 |
 | `html_content` | string | 生の HTML 本文です。`custom_template_id` を指定した場合は任意です。 |
 | `link_branding_domain` | string | Create Campaign のみ。標準の MoEngage ドメインの代わりに、メール本文内のリンクをブランディングするために使用するカスタムドメインです。ダッシュボードでは **Link branding** として表示されます。デフォルトはワークスペースの設定です。 |
 | `deep_link_domain` | string | Create Campaign のみ。メール本文内のディープリンクをラップするために使用するディープリンクドメインです。 |
+| `gmail_annotations` | object | Gmail のプロモーションタブに表示されるリッチアノテーション(Deal Card または Product Carousel)です。`PROMOTIONAL` コンテンツタイプのみ。サブスキーマの詳細については、[Gmail Annotations](#gmail-annotations) を参照してください。 |
 | `email_editor` | enum | `Froala Editor` または `Ace Editor`。キャンペーンで `Ace Editor` を使用する場合は必須です。 |
 | `custom_template_id` | string | 保存済みのメールテンプレート ID です。指定した場合、`subject`、`preview_text`、`sender_name` は不要です。 |
 | `custom_template_version` | integer | 任意のテンプレートバージョンです。 |
@@ -1132,7 +1136,13 @@ iOS のボタンはカテゴリベースのモデルを使用します。ボタ�
 
 ### メールの添付ファイル
 
-`attachments` の各エントリは `{ file_type, url }` です。
+`attachments` の各エントリには、次のフィールドがあります:
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `file_type` | enum | `URL` または `PERSONALIZED_ATTACHMENT`。以下の動作の表を参照してください。 |
+| `url` | string | 添付ファイルの URL です。`s3_keys` も指定するかどうかにかかわらず必須です。 |
+| `s3_keys` | array of string | 省略可能。添付ファイルの実体となる S3 オブジェクトキーで、MoEngage が所有する単一の固定 S3 バケットに保存されます(例: `attachments/2026/06/invoice-001.pdf`)。`url` / `file_type` を補完するものであり、置き換えるものではありません。いずれの場合も `url` と `file_type` は必須です。顧客所有のバケットや、ワークスペースレベルのバケット許可リストを設定する必要はありません。 |
 
 | `file_type` | 動作 |
 | :--- | :--- |
@@ -1150,7 +1160,11 @@ iOS のボタンはカテゴリベースのモデルを使用します。ボタ�
         "from_address": "marketing@example.com",
         "html_content": "<p>See the attached brochure.</p>",
         "attachments": [
-          { "file_type": "URL", "url": "https://example.com/brochure.pdf" }
+          {
+            "file_type": "URL",
+            "url": "https://example.com/brochure.pdf",
+            "s3_keys": ["attachments/2026/06/brochure.pdf"]
+          }
         ]
       }
     }
@@ -1167,7 +1181,11 @@ iOS のボタンはカテゴリベースのモデルを使用します。ボタ�
         "from_address": "billing@example.com",
         "html_content": "<p>Your invoice is attached.</p>",
         "attachments": [
-          { "file_type": "PERSONALIZED_ATTACHMENT", "url": "https://example.com/invoices/{{UserAttribute['User ID']}}.pdf" }
+          {
+            "file_type": "PERSONALIZED_ATTACHMENT",
+            "url": "https://example.com/invoices/{{UserAttribute['User ID']}}.pdf",
+            "s3_keys": ["attachments/2026/06/invoice-{{UserAttribute['User ID']}}.pdf"]
+          }
         ]
       }
     }
@@ -1176,6 +1194,206 @@ iOS のボタンはカテゴリベースのモデルを使用します。ボタ�
 ```
 
 </CodeGroup>
+
+## Gmail Annotations
+
+`campaign_content.content.email.gmail_annotations` は、Gmail のプロモーションタブにリッチアノテーション(Deal Card または Product Carousel)を表示します。このセクションではサブスキーマ全体を説明します。ベースオブジェクトは `EmailContent` の下にあります([Email のコンテンツ](#email-content) を参照)。
+
+<Warning>
+`gmail_annotations` は、`content_type` が `PROMOTIONAL` の場合にのみサポートされます。`TRANSACTIONAL` で使用すると `400` エラーが返されます。エラーレスポンスボディの詳細については、[Create Campaign Draft](/ja/api/create-campaigns/create-campaign-draft-v5) の `gmail_annotations_*` の例を参照してください。
+</Warning>
+
+### gmail_annotations のフィールド
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `send_email_if_personalization_fails` | boolean | **必須。** いずれかの Gmail アノテーションフィールドのパーソナライズに失敗した場合に、メールを送信するかどうかです。 |
+| `sender_logo` | string | **必須。** アノテーションに表示される送信者のロゴです。有効な HTTPS URL または MoEngage のパーソナライズトークンを受け付けます。 |
+| `sender_logo_type` | enum | `sender_logo` を指定する場合は **必須** です。`image_url` — `sender_logo` は一般公開されている画像 URL として扱われます。`uploaded_image` — `sender_logo` は MoEngage のアセットマネージャーからアップロードされた画像の参照として扱われます。 |
+| `deal_card` | object | 省略可能。[Deal Card](#deal-card) を参照してください。`product_carousel` とは同時に指定できません。 |
+| `product_carousel` | object | 省略可能。[Product Carousel](#product-carousel) を参照してください。`deal_card` とは同時に指定できません。 |
+
+<Warning>
+`deal_card` と `product_carousel` は同時に指定できません。1 つの `gmail_annotations` オブジェクトに含められるのはいずれか一方のみです。両方を渡すと 400 検証エラーが返されます。
+</Warning>
+
+### Deal Card
+
+`gmail_annotations.deal_card`。`deal_card` が存在する場合、4 つのフィールドはすべて必須です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `description` | string | アノテーションに表示される短いディールの説明です。 |
+| `discount_code` | string | ディールとともに表示されるプロモーションコードまたは割引コードです。 |
+| `availability_starts` | string | ディールが有効になる ISO 8601 形式の日時です。サーバーや API 呼び出し元のタイムゾーンではなく、プロモーション自体の現地タイムゾーンを使用してください。使用できる形式は以下を参照してください。 |
+| `availability_ends` | string | ディールの有効期限が切れる ISO 8601 形式の日時です。形式は `availability_starts` と同じです。`availability_starts` から少なくとも 1 時間後である必要があります。 |
+
+**`availability_starts` / `availability_ends` で使用できる日時形式:**
+- UTC(`Z` サフィックス): `YYYY-MM-DDTHH:mm:ssZ`(例: `2026-06-01T00:00:00Z`)
+- 正のオフセット: `YYYY-MM-DDTHH:mm:ss+HH:MM`(例: IST の場合は `2026-06-01T00:00:00+05:30`)
+- 負のオフセット: `YYYY-MM-DDTHH:mm:ss-HH:MM`(例: 米国太平洋夏時間 PDT の場合は `2026-06-01T00:00:00-07:00`)
+
+一般的なオフセット: IST `+05:30`、SGT `+08:00`、GST `+04:00`、CET `+01:00`/`+02:00`(夏時間)、EST `-05:00`、EDT `-04:00`、PST `-08:00`、PDT `-07:00`、UTC `Z` または `+00:00`。
+
+```json Deal Card example
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Exclusive Deal Just for You",
+        "preview_text": "Save big with our limited-time offer",
+        "sender_name": "Example Team",
+        "from_address": "hello@example.com",
+        "reply_to_address": "support@example.com",
+        "html_content": "<!DOCTYPE html><html><body><p>Deal!</p></body></html>",
+        "gmail_annotations": {
+          "send_email_if_personalization_fails": true,
+          "sender_logo": "https://example.com/logo.png",
+          "sender_logo_type": "image_url",
+          "deal_card": {
+            "description": "Get 20% off on all orders above $50",
+            "discount_code": "SAVE20",
+            "availability_starts": "2026-06-01T00:00:00+05:30",
+            "availability_ends": "2026-06-30T23:59:59+05:30"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Product Carousel
+
+`gmail_annotations.product_carousel`。リクエストで商品を直接指定する場合は `MANUAL` を、MoEngage Catalog の商品セットから商品を動的に取得する場合は `PRODUCT_SET` を使用します。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `type` | enum | **必須。** `MANUAL` または `PRODUCT_SET`。 |
+| `manual_data` | object | `type` が `MANUAL` の場合は **必須** です。[手動の商品データ](#manual-product-data) を参照してください。 |
+| `product_set_data` | object | `type` が `PRODUCT_SET` の場合は **必須** です。[商品セットのデータ](#product-set-data) を参照してください。ワークスペースで Product Sets 機能が有効になっている必要があります。 |
+
+#### 手動の商品データ
+
+`gmail_annotations.product_carousel.manual_data`。最低 2 つの商品が必要です。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `currency` | string | **必須。** カルーセル内のすべての商品に適用される ISO 4217 通貨コードです。 |
+| `products` | array | **必須。** 最低 2 つの商品が必要です。以下のフィールドを参照してください。 |
+
+`products` の各エントリ(すべてのフィールドが必須):
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `id` | string | 一意の商品識別子です。 |
+| `headline` | string | アノテーションに表示される商品名です。 |
+| `original_price` | string | 数値文字列で表した元の価格です。 |
+| `discount_value` | string | 数値文字列で表した割引額です。`discount_type` に従って解釈されます。 |
+| `discount_type` | enum | `PERCENT` — `discount_value` はパーセンテージです。`VALUE` — `discount_value` は `currency` での絶対額です。 |
+| `promo_url` | string | 商品のランディングページの URL です。有効な HTTPS URL である必要があります。 |
+| `product_image` | string | 商品画像の URL です。有効な HTTPS URL である必要があります。空にすることはできません。 |
+
+```json Manual product carousel example
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Featured Products This Week",
+        "sender_name": "Example Team",
+        "from_address": "hello@example.com",
+        "html_content": "<!DOCTYPE html><html><body><p>Shop now!</p></body></html>",
+        "gmail_annotations": {
+          "send_email_if_personalization_fails": true,
+          "sender_logo": "https://example.com/logo.png",
+          "sender_logo_type": "image_url",
+          "product_carousel": {
+            "type": "MANUAL",
+            "manual_data": {
+              "currency": "USD",
+              "products": [
+                {
+                  "id": "prod-001",
+                  "headline": "Wireless Headphones",
+                  "original_price": "199.99",
+                  "discount_value": "30",
+                  "discount_type": "PERCENT",
+                  "promo_url": "https://example.com/products/prod-001",
+                  "product_image": "https://example.com/images/prod-001.png"
+                },
+                {
+                  "id": "prod-002",
+                  "headline": "Smart Watch",
+                  "original_price": "249.99",
+                  "discount_value": "50",
+                  "discount_type": "VALUE",
+                  "promo_url": "https://example.com/products/prod-002",
+                  "product_image": "https://example.com/images/prod-002.png"
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+#### 商品セットのデータ
+
+`gmail_annotations.product_carousel.product_set_data`。ワークスペースで Product Sets 機能が有効になっている必要があります。
+
+| フィールド | 型 | 備考 |
+| :--- | :--- | :--- |
+| `product_set` | string | **必須。** MoEngage Catalog の商品セット ID です。ワークスペースに存在している必要があります。 |
+| `image_url` | string | **必須。** 商品セットの画像を利用できない場合のフォールバック画像の URL です。 |
+| `headline` | string | **必須。** Product Carousel に表示されるラベルです。 |
+| `promo_url` | string | **必須。** ユーザーがアノテーションをクリックしたときの遷移先 URL です。 |
+| `product_count` | integer | **必須。** 表示する商品の数です。最小 2、最大 9 です。 |
+
+```json Product set carousel example
+{
+  "campaign_content": {
+    "content": {
+      "email": {
+        "subject": "Picks Curated For You",
+        "sender_name": "Example Team",
+        "from_address": "hello@example.com",
+        "html_content": "<!DOCTYPE html><html><body><p>Shop now!</p></body></html>",
+        "gmail_annotations": {
+          "send_email_if_personalization_fails": true,
+          "sender_logo": "https://example.com/logo.png",
+          "sender_logo_type": "image_url",
+          "product_carousel": {
+            "type": "PRODUCT_SET",
+            "product_set_data": {
+              "product_set": "product_set_12345",
+              "image_url": "https://example.com/images/fallback.png",
+              "headline": "Recommended For You",
+              "promo_url": "https://example.com/shop",
+              "product_count": 3
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+### Gmail Annotations の検証ルール
+
+| ルール | ソース |
+| :--- | :--- |
+| `gmail_annotations` は、`content_type` が `PROMOTIONAL` の場合にのみサポートされます。`TRANSACTIONAL` で使用すると `400` エラーが返されます。 | `GmailAnnotations` の説明 |
+| `deal_card` と `product_carousel` は同時に指定できません。両方を渡すと `400` エラーが返されます。 | `GmailAnnotations.deal_card`、`GmailAnnotations.product_carousel` の説明 |
+| `deal_card` が存在する場合、4 つの `deal_card` フィールドはすべて必須です。`availability_ends` は `availability_starts` から少なくとも 1 時間後である必要があります。 | `GmailAnnotationsDealCard` |
+| `manual_data.products` には最低 2 つの商品が必要です。各エントリですべての商品フィールドが必須です。 | `GmailAnnotationsProductCarouselManualData` |
+| `product_set_data.product_count` は 2 から 9 の間である必要があります。ワークスペースで Product Sets 機能が有効になっている必要があります。 | `GmailAnnotationsProductCarouselProductSetData` |
+
+400 エラーレスポンスボディの一覧(送信者ロゴの欠落、無効な HTTPS URL、最小商品数の違反、商品セットが見つからない場合など)については、[Create Campaign Draft](/ja/api/create-campaigns/create-campaign-draft-v5) の `gmail_annotations_*` の例を参照してください。
+
 
 ## A/B テストのバリエーション
 

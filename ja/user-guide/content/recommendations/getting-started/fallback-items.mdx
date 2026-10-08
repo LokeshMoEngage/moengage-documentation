@@ -1,0 +1,188 @@
+---
+title: "Fallback Items"
+description: "MoEngage のレコメンデーションの空きスロットを人気アイテムや別のレコメンデーションで埋め、空のレコメンデーションがユーザーに届かないようにします。"
+keywords: "fallback items, fallback recommendation, empty recommendation, zero results, cold start, popular items, number of items to show"
+---
+
+キャンペーンでレコメンデーションを使用する際は、返すアイテムの数を設定します。各アイテムは 1 つのスロットを埋めます。スロットとは、キャンペーン内でアイテムが表示される 1 つの位置のことです。モデルが常に十分な数のアイテムを見つけられるとは限らないため、一部のスロットが空のまま残り、キャンペーンが歯抜けの状態で、あるいは何も表示されない状態でユーザーに届くことがあります。
+
+Fallback items を使用すると、レコメンデーションで埋められなかったスロットを何で埋めるかを選択できます。レコメンデーションのアイテムが不足するたびに MoEngage がその選択を使用するため、ユーザーには空きではなくアイテムが表示されます。
+
+# Fallback Items が必要な理由
+
+レコメンデーションは、次のような状況で要求した数よりも少ないアイテムを返します。
+
+- **ユーザーが新規または非アクティブである。** パーソナライズモデルには利用できる履歴がありません。これは、カタログのアップロード後数時間のすべてのユーザーにも影響します。
+- **フィルターで候補を絞り込みすぎている。** アイテム属性フィルターやビジネスルールはそれぞれ候補を除外するため、複数を組み合わせるとアイテムがほとんど、またはまったく残らないことがあります。
+- **アイテムが在庫切れ、またはフィードが古い。** 在庫のあるアイテムのみを含むフィードではそれ以外のアイテムが除外され、更新が遅れるフィードには既になくなったアイテムが含まれている場合があります。
+- **ソースアイテムがカタログにない。** アイテム間モデルでは、現在のアイテムの ID がカタログに含まれている必要があります。サイトから送信される ID がフィードの ID と異なる場合、照合する対象がありません。
+
+Fallback items は原因ではなく結果に対応するため、これらすべてのケースをカバーします。レコメンデーションが返すアイテムが少なすぎる場合は、常に MoEngage が残りを埋めます。
+
+# Fallback Items の仕組み
+
+**Number of items to show** でスロットの数を設定します。
+
+MoEngage は最初にレコメンデーションを実行します。これがプライマリレコメンデーションです。返されたアイテムがスロットの数より少ない場合、MoEngage は設定したフォールバックから残りのスロットを埋めます。MoEngage はプライマリレコメンデーションで見つかったアイテムをすべて保持し、残りのスロットのみを埋めるため、パーソナライズされた結果が先に表示されます。
+
+フォールバックは 1 階層のみです。たとえば、レコメンデーションが Fallback 1 を使用しており、Fallback 1 にも独自のフォールバックがあるとします。MoEngage はレコメンデーションを実行し、次に Fallback 1 から残りのスロットを埋め、そこで停止します。Fallback 1 自身のフォールバックには進みません。
+
+<Note>
+  フォールバックは空きスロットを埋めるものです。レコメンデーション自体の範囲を広げるものではないため、モデルが考慮するアイテムやランク付けの順序は変わりません。
+</Note>
+
+# Number of Items to Show の設定
+
+**Number of items to show** では、レコメンデーションで返すアイテムの数を設定します。この数によって、フォールバックで埋める必要のあるスロットの数が決まります。たとえば、10 を設定してレコメンデーションで 6 個のアイテムが見つかった場合、フォールバックが残りの 4 個を埋めます。
+
+レコメンデーションを作成すると、MoEngage はこのフィールドに 10 を入力します。この値は、フィールドの下に表示されるワークスペースの上限まで変更できます。上限は追加をリクエストしない限り 25 です。より大きな値が必要な場合は、MoEngage Support にお問い合わせください。
+
+![Catalog リストの下でハイライトされた Number of items to show フィールドと、その下に表示された上限](/images/recommendations-fallback-number-of-items.png)
+
+# Fallback Items の設定
+
+Fallback items は、レコメンデーションの作成時、または既存のレコメンデーションで設定できます。Catalog alerts のレコメンデーションには **Fallback items** セクションがありません。
+
+**Fallback items** セクションは、レコメンデーションによって異なる状態で開きます。
+
+| レコメンデーション | セクションの状態 |
+| --- | --- |
+| 人気アイテムを使用できる新しい Advanced レコメンデーション | MoEngage がトグルをオンにし、**Popular items** を選択します。 |
+| 人気アイテムを使用できない新しい Advanced レコメンデーション | MoEngage がトグルをオンにし、**Select specific recommendation** を選択します。 |
+| 新しい Basic レコメンデーション | MoEngage はトグルをオフのままにし、オプションを選択しません。 |
+| 既存のレコメンデーション | MoEngage は以前に設定した内容を表示します。 |
+
+Advanced レコメンデーションは、次のいずれかの場合に人気アイテムを使用できません。
+
+- Trending Items モデルを使用している。このモデルでは **Select specific recommendation** のみを利用できます。
+- ワークスペースに、人気アイテムの元となるアクティブな Advanced レコメンデーションがない。最初の Advanced レコメンデーションを作成する場合がこれに該当します。
+
+![Fallback items トグルがオフで、オプションが選択されていない新しい Basic レコメンデーション](/images/recommendations-fallback-basic-toggle-off.png)
+
+Fallback items を設定するには、次の手順を実行します。
+
+1. 既存のレコメンデーションを開くか、新しく作成します。
+
+   - 既存のレコメンデーションにフォールバックを追加するには、Recommendations ページでそのレコメンデーションを見つけ、**Actions** の下にある編集アイコンをクリックします。
+   - 新しいレコメンデーションを作成するには、[Advanced レコメンデーションの作成](/ja/user-guide/content/recommendations/advanced-recommendations/creating-advanced-recommendations)、または使用するモデルの記事の手順に従います。
+2. **Fallback items** までスクロールし、**Fallback items** トグルをオンにします。
+
+   ![セクションがハイライトされ、オンになった Fallback items トグル](/images/recommendations-fallback-toggle-on.png)
+3. 次のいずれかのオプションを選択します。
+
+   - **Popular items**: MoEngage が空きスロットを人気アイテムで埋めます。詳細については、[Popular Items](#popular-items) を参照してください。
+   - **Select specific recommendation**: MoEngage が空きスロットを、選択したレコメンデーションのアイテムで埋めます。詳細については、[Specific Recommendation](#specific-recommendation) を参照してください。
+
+   ![ハイライトされた 2 つのフォールバックオプション (Popular items と Select specific recommendation)](/images/recommendations-fallback-options.png)
+4. **Save** をクリックします。
+
+## Popular Items
+
+MoEngage が空きスロットを人気アイテムで埋めます。人気アイテムはユーザーの履歴に依存しないため、新規ユーザーを含むすべてのユーザーに結果を返します。
+
+![トグルがオンで、Popular items オプションがハイライトされ選択された Fallback items セクション](/images/recommendations-fallback-popular-items.png)
+
+このオプションは、Recommended items、Similar items、Frequently bought together items、Frequently viewed together items の各モデルでのみ使用できます。User Actions、Item attributes、Trending Items の各モデルでは、**Select specific recommendation** のみを利用できます。
+
+また、このオプションを使用するには、ワークスペースに少なくとも 1 つのアクティブな Advanced レコメンデーションが必要です。それがない間は、MoEngage がこのオプションを無効にします。オプションにカーソルを合わせると、理由が表示されます。
+
+![Popular items オプションがハイライトされて無効になっており、少なくとも 1 つの Advanced レコメンデーションがアクティブである必要があることを示すツールチップが表示された Fallback items セクション](/images/recommendations-fallback-popular-items-locked.png)
+
+使用するモデルで人気アイテムを利用できない場合や、ワークスペースにまだ Advanced レコメンデーションがない場合は、代わりに特定のレコメンデーションを選択してください。
+
+## Specific Recommendation
+
+MoEngage が空きスロットを、選択したレコメンデーションのアイテムで埋めます。Trending Items レコメンデーションなど、どのユーザーにも結果を返すレコメンデーションを選択してください。ユーザー履歴に依存するフォールバックは、元のレコメンデーションで結果が得られなかったのと同じユーザーに対して、空の結果を返す可能性があるためです。
+
+フォールバックとしてレコメンデーションを選択するには、次の手順を実行します。
+
+1. **Select recommendation** ボックスをクリックします。
+2. **Search to select** ボックスに、使用するレコメンデーションの名前を入力します。
+3. レコメンデーションをクリックします。右側に、その説明、使用しているモデル、最終更新日時が表示されます。
+
+![左側で Search to select ボックスがハイライトされ、右側で選択したレコメンデーションの詳細がハイライトされた、開いた状態の Select recommendation リスト](/images/recommendations-fallback-select-list.png)
+
+リストには、次の条件を満たすレコメンデーションのみが表示されます。
+
+- 設定中のレコメンデーションと同じカタログを使用している。
+- Active ステータスである。
+- Catalog alerts のレコメンデーションではない。
+
+# Fallback Items を使用したレコメンデーションのテスト
+
+レコメンデーションをテストして、フォールバックがユーザーの空きスロットを埋めるかどうかを確認します。テストは [レコメンデーションのテスト](/ja/user-guide/content/recommendations/getting-started/test-a-recommendation) の説明に従って実行します。結果では、フォールバックが **Recommendation conditions** の下に **Fallback items** として表示され、設定したフォールバックの名前が付いたチェックボックスが表示されます。
+
+フォールバックによって追加されるアイテムを確認するには、次のいずれかの操作を実行します。
+
+- チェックボックスを選択すると、レコメンデーション自体のアイテムとフォールバックアイテムが合わせて表示されます。
+- チェックボックスをオフにすると、レコメンデーションが返したアイテムのみが表示されます。
+
+![Recommendation conditions の下で Fallback items グループがハイライトされ、右側にアイテムのプレビューが表示された Test recommendation パネル](/images/recommendations-fallback-test-panel.png)
+
+2 つの結果を比較します。チェックボックスを選択した場合にのみ表示されるアイテムは、フォールバックによって追加されたものです。両方の結果に同じアイテムが表示される場合、レコメンデーションは単独で十分な数のアイテムを見つけています。
+
+# レコメンデーションのカタログの変更
+
+レコメンデーションとそのフォールバックは同じカタログを使用する必要があるため、カタログを変更すると、そのレコメンデーションが関係するフォールバックのリンクがすべて解除されます。MoEngage は、新しいカタログを選択したときと保存するときに警告を表示します。
+
+最初の警告では、レコメンデーションが持つフォールバックのリンクに応じて異なるメッセージが表示されます。
+
+| レコメンデーション | ダイアログボックスの内容 |
+| --- | --- |
+| フォールバックがある | 両方のレコメンデーションで同じカタログを使用する必要があるため、カタログを変更するとそのフォールバックが削除されます。 |
+| 他のレコメンデーションのフォールバックになっている | カタログを変更すると、それらのフォールバックから削除されます。ダイアログボックスには、それらのレコメンデーションが名前とそれぞれのステータスとともに一覧表示されます。 |
+| 両方 | 両方のメッセージ。 |
+
+カタログを変更するには、次の手順を実行します。
+
+1. レコメンデーションを開きます。
+2. **Catalog** リストで、使用するカタログを選択します。**Are you sure you want to change the catalog for this recommendation?** 確認ダイアログボックスが表示されます。
+
+   ![このレコメンデーションをフォールバックとして使用しているアクティブなレコメンデーションが一覧表示され、Cancel ボタンと Change anyway ボタンがハイライトされたカタログの確認ダイアログボックス](/images/recommendations-fallback-catalog-confirmation.png)
+3. 次のいずれかの操作を実行します。
+
+   - カタログを変更するには、**Change anyway** をクリックします。
+   - 現在のカタログを維持するには、**Cancel** をクリックします。
+4. **Fallback items** までスクロールし、フォールバックを再度選択します。
+5. **Save** をクリックします。**Are you sure you want to save this recommendation?** 確認ダイアログボックスが表示されます。
+
+   ![Cancel ボタンと Save anyway ボタンがハイライトされた Are you sure you want to save this recommendation ダイアログボックス](/images/recommendations-fallback-save-anyway.png)
+6. **Save anyway** をクリックします。
+
+MoEngage は保存時にフォールバックを削除するため、2 回目の確認を求めます。フォールバックを失ったレコメンデーションはフォールバックなしで引き続き実行され、この操作は元に戻せません。その後、それぞれのレコメンデーションに新しいフォールバックを設定してください。
+
+# フォールバックとして使用されているレコメンデーションのアーカイブ
+
+アーカイブされたレコメンデーションはアイテムを返さなくなるため、フォールバックとして機能できなくなります。アーカイブすると、MoEngage はそのレコメンデーションをフォールバックとして使用していたすべてのレコメンデーションから削除します。
+
+他のレコメンデーションがフォールバックとして使用しているレコメンデーションをアーカイブするには、次の手順を実行します。
+
+1. Recommendations ページで、対象のレコメンデーションの **Actions** の下にあるアーカイブアイコンをクリックします。**Are you sure you want to archive this recommendation?** 確認ダイアログボックスが表示されます。
+
+   ![Basic_Main_Fallback レコメンデーションの Actions の下にあるアーカイブアイコンがハイライトされた Recommendations ページ](/images/recommendations-fallback-archive-icon.png)
+2. 次のいずれかの操作を実行します。
+
+   - レコメンデーションをアーカイブするには、**Archive Anyway** をクリックします。
+   - レコメンデーションをアクティブのままにするには、**Cancel** をクリックします。
+
+![このレコメンデーションをフォールバックとして使用しているアクティブなレコメンデーションが一覧表示され、Cancel ボタンと Archive Anyway ボタンがハイライトされた確認ダイアログボックス](/images/recommendations-fallback-archive-confirmation.png)
+
+ダイアログボックスには、このレコメンデーションをフォールバックとして使用しているすべてのレコメンデーションが、それぞれのステータスとともに一覧表示されます。アーカイブ後、それらのレコメンデーションは引き続き実行されますが、フォールバックはありません。それぞれを開き、新しいフォールバックを選択してください。この操作は元に戻せません。
+
+どのレコメンデーションからもフォールバックとして使用されていないレコメンデーションでは、代わりに標準のアーカイブ確認が表示されます。詳細については、[レコメンデーションの管理](/ja/user-guide/content/recommendations/basic-recommendations/manage-basic-recommendations) を参照してください。
+
+# Fallback Items がロックされている場合
+
+Fallback items は Advanced Recommendations の一部です。ワークスペースで Advanced Recommendations を利用していない場合、**Fallback items** セクションには **Locked** バッジが表示され、トグルをオンにできません。このロックはワークスペース全体に適用されるため、使用するモデルにかかわらず、すべてのレコメンデーションでロックが表示されます。
+
+![Locked バッジがトグルの横に表示された、レコメンデーション設定の下部にある Fallback items セクション](/images/recommendations-fallback-locked.png)
+
+<Note>
+  ワークスペースに Advanced Recommendations を追加するには、MoEngage の CSM (カスタマーサクセスマネージャー) にお問い合わせください。
+</Note>
+
+# 関連記事
+
+- [レコメンデーションのテスト](/ja/user-guide/content/recommendations/getting-started/test-a-recommendation)
+- [レコメンデーションの管理](/ja/user-guide/content/recommendations/basic-recommendations/manage-basic-recommendations)
+- [Advanced レコメンデーションの作成](/ja/user-guide/content/recommendations/advanced-recommendations/creating-advanced-recommendations)
