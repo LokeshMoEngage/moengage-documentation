@@ -1,0 +1,168 @@
+---
+title: "新しいエピソードの通知を送信する"
+---
+
+# はじめに
+
+テレビ番組の新しいエピソードの通知により、登録しているユーザーや関心のあるユーザーに、新しいコンテンツが公開されたらすぐにアクセスするよう促すことができます。マーケターは、新しいエピソードがリリースされるたびに、ターゲットオーディエンスに手動でキャンペーンを送信する必要はありません。ビジネスイベントを活用して、お気に入りのシリーズの新しいエピソードについてリアルタイムで視聴者に通知できます。
+
+#### 新しいエピソードの通知を送信するメリット
+
+- **エンゲージメントの向上**: 通知によってユーザーにプラットフォームに戻って新しいエピソードを視聴するよう促し、エンゲージメントと視聴数を高めます。
+- **コンテンツの発見**: 通知によって、ユーザーが他の方法では見つけられなかった可能性のある新しいエピソードを紹介でき、コンテンツの消費拡大につながります。
+- **ユーザーリテンション**: 新しいコンテンツについてユーザーに情報を提供し続けることで、ユーザーリテンションを向上させ、サブスクリプションの継続を促すことができます。
+- **パーソナライズされたエクスペリエンス**: ユーザーの好みや視聴履歴に基づいて通知を調整し、ユーザーが関連性の高い最新情報を受け取れるようにできます。
+- **利便性**: ユーザーがプラットフォームを頻繁に確認しなくても、新しいエピソードについて通知を受け取れます。
+
+このユースケースは、次の 4 つのステップで実現します。
+
+1. [Postman を設定する](/ja/use-cases/business-events/send-notifications-for-a-new-episode#step-1-set-up-postman)
+2. [ビジネスイベントを作成する](/ja/use-cases/business-events/send-notifications-for-a-new-episode#step-2-create-a-business-event)
+3. [Push キャンペーンを作成する](/ja/use-cases/business-events/send-notifications-for-a-new-episode#step-3-create-a-push-campaign)
+4. [新しいエピソードのアラートをトリガーする]/ja/user-guide/use-cases/business-events/send-notifications-for-a-new-episode#step-4-trigger-the-alert-for-a-new-episode)
+
+# 期待される結果
+
+ユーザーは、新しいエピソードが視聴可能になったことに関するプッシュ通知を受信します。次の画像は、人気テレビ番組 _Friends_ の新しいエピソード _The One with Joey’s Fridge_ のプッシュ通知を示しています。
+
+![business event push.png](/images/moengage_afe167.png)
+
+<Tip>
+  - MoEngage サーバーへの API 呼び出しをトリガーするには、Postman ソフトウェアが必要です。アラートの送信には、[MoEngage Business Events API](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/overview-business-events) を使用します。
+  - アカウントで Business Events 機能が有効になっているエンタープライズプランが必要です。
+  - 特定のエピソードに対する顧客の関心を追跡するイベントが MoEngage で利用可能である必要があります。この例では、イベント名を _Watched Episode_ とします。顧客がエピソードの詳細を確認したときに、エピソードの名前または ID を含むイベントをトリガーできます。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - [Push チャネル](/ja/user-guide/campaigns-and-channels/mobile-push/getting-started-with-mobile-push)が設定されている必要があります。
+</Tip>
+
+# ステップ 1: Postman を設定する
+
+ここでは、デモンストレーションの目的で Postman を使用します。理想的には、エンジニアリングチームがこれらの API を既存のコンテンツ管理システムと統合し、バックエンドサーバーからこれらの API をトリガーするようにします。
+
+1. Postman をまだインストールしていない場合は、ダウンロードしてメールアドレスでサインインしてください。MoEngage は、すべての API を公開されているダウンロード可能なコレクションとしてこちらにドキュメント化しています: `<https://www.postman.com/moengage-dev/workspace/api-docs/overview>`
+2. ブラウザでこのページを開いたら、MoEngage スペースから Business Events API コレクションをエクスポートし、Postman のワークスペースにインポートします。 <img src="/images/moengage_4b749d.png" alt="business events 30.png" />
+
+次に、MoEngage アカウントに新しいビジネスイベントを追加します。
+
+# ステップ 2: ビジネスイベントを作成する
+
+キャンペーンコンテンツを設定する際に使用できるよう、このビジネスイベントに何が含まれるかを MoEngage に通知する必要があります。エピソードのビジネスイベントには、通常、エピソードの名前、番号、画像などが含まれます。この情報は、Create Business Event API を使用して MoEngage に送信します。大まかには、イベント名、属性、作成者が必要です。
+
+イベント名は _ENT\_New\_Content\_Released_ とします。このイベントを作成したメールアドレスは [example@moengage.com](mailto:example@moengage.com) とします。次のイベント属性を、そのデータ型とともにビジネスイベントに追加します。
+
+- イベント名: _ENT\_New\_Content\_Released_
+- イベントの属性とそのデータ型:
+  - **Name of the Series**: string
+  - **Episode Name**: string
+  - **Episode Number**: integer
+  - **Episode Image**: string
+  - **Episode URL**: string (ユーザーにコンテンツを検索させる代わりに、コンテンツへ直接誘導するために使用できます。)
+
+次の手順を実行します。
+
+1. 上記の情報を JSON 形式で記述し、Postman を使用して MoEngage に送信します。 
+   JSON
+   ```json
+   {
+     "event_name": "ENT_New_Content_Released",
+     "event_attributes": [
+       {
+         "attribute_name": "name of the series",
+         "attribute_data_type": "string"
+       },
+       {
+         "attribute_name": "episode name",
+         "attribute_data_type": "string"
+       },
+       {
+         "attribute_name": "episode number",
+         "attribute_data_type": "int"
+       },
+       {
+         "attribute_name": "episode image",
+         "attribute_data_type": "string"
+       },
+       {
+         "attribute_name": "episode url",
+         "attribute_data_type": "string"
+       }
+     ],
+     "created_by": "example@moengage.com"
+   }
+   ```
+2. 上記の JSON 形式の情報を使用し、ワークスペースが属する適切なデータセンターの認証情報を指定して API 呼び出しを行います。詳細については、[Create Business Event API](/ja/api/business-events/create-business-event) を参照してください。\
+   API 呼び出しが行われ、イベントが正常に作成されると、MoEngage は次のレスポンスを送信します。JSON
+   ```ruby
+   {
+   "message": "The business event has been created",
+   "_id": "{{Business Event ID}}"
+   }
+   ```
+3. ビジネスイベントの追加が成功したかどうかを確認するには、次の操作を行います。
+   1. MoEngage ダッシュボードで、任意の Business Event Triggered キャンペーンに移動します。
+   2. **Select business event** リストでイベントを確認できます。_ENT-New\_Content\_Released_ イベントが表示されます。 <img src="/images/moengage_9dcb1d.png" alt="8usecase3.png" />
+
+# ステップ 3: Push キャンペーンを作成する
+
+このセクションでは、これらの詳細を使用してキャンペーンをパーソナライズし、プッシュ通知キャンペーンを作成します。
+
+## ステップ 3.1: ユーザーをターゲットにする
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. All campaigns ページで、**\+ Create campaign** をクリックします。
+3. **Outbound** で、**Push** \> **Business Event Triggered** をクリックします。 <img src="/images/moengage_7d4c50.png" alt="BUSINESSPUSH.png" />
+4. キャンペーン定義の最初のステップである **Target users** に移動します。
+5. 名前とタグを指定してキャンペーンを定義します。次の詳細を入力します。
+   1. **Team**: 組織のアカウントでチームが有効になっている場合は、チームを選択します。詳細については、[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。
+   2. **Campaign name**: キャンペーンの名前を入力します。例: _Episode Notifications_。
+   3. **Campaign tags**: 必要なキャンペーンタグを選択します。 <img src="/images/moengage_4d8a54.png" alt="8usecase2.png" />
+6. **Select business event** リストで、_ENT\_New\_Content\_Released_ イベントを選択します。 <img src="/images/moengage_9dcb1d.png" alt="8usecase3.png" />
+7. **Target audience** セクションで、過去 3 日間にシリーズのエピソードを視聴したすべての顧客を特定するロジックを定義します。この例では、ターゲットオーディエンスは次のようになります。 <img src="/images/moengage_65dcb8.png" alt="8usecase4.png" />
+8. **Target Platforms** セクションで、**Android** を選択します。 <img src="/images/moengage_6fa151.png" alt="8usecase5.png" />
+9. **Next** をクリックして、2 番目のステップである **Content** に進みます。ここでは、Push キャンペーンのコンテンツを定義できます。
+
+## ステップ 3.2: コンテンツ
+
+1. 使用するテンプレートを選択します。この例では、**Basic notification** を選択します。 <img src="/images/moengage_b8f24e.png" alt="8usecase6.png" />
+2. キャンペーンに必要なコンテンツを入力します。タイトル、メッセージ、サマリーは手動で入力することも、Merlin AI を使用して生成することもできます。詳細については、[Generate Push Messages with Merlin AI](/ja/user-guide/ai-and-intelligence/merlin-ai/merlin-ai-copywriter/generate-push-messages-with-merlin-ai) を参照してください。 <img src="/images/moengage_884b73.png" alt="8usecase7.png" /> \
+   このようなコミュニケーションのコンテンツには、ビジネスイベントの属性から取得した値を含める必要があります。これは他のパーソナライゼーションと同様の方法で行えます。
+3. ユーザー名などの情報を使用して、メッセージにパーソナライゼーションを追加します。このようなパーソナライゼーションにより、メッセージがより文脈に沿ったものになり、ユーザーはつながりを感じることができます。これを行うには、次の操作を行います。
+   1. _@_ を入力します。
+   2. **Push Personalization** ダイアログボックスで、ユーザーのビジネスイベントまたはユーザープロパティから関連する属性を見つけます。 <img src="/images/moengage_e258c8.png" alt="9.png" />
+4. ディープリンクオプションを使用して、ユーザーがチケットの詳細を確認できるアプリまたはウェブサイトのページにユーザーを誘導します。
+   1. **Default click action** リストで、_Deeplinking_ を選択します。
+   2. **URL** フィールドに、関連する URL を入力します。
+5. **Next** をクリックして、3 番目のステップである **Schedule and goals** に進みます。ここでは、キャンペーンのスケジュールと目標を定義できます。
+
+## ステップ 3.3: スケジュールと目標
+
+1. 要件に基づいて、このキャンペーンの開始日時と終了日時、およびコンバージョン目標を定義します。
+2. 要件に基づいて配信設定を変更します。詳細については、[Create Push Campaigns](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns) を参照してください。 <img src="/images/moengage_ab4611.png" alt="10.png" />
+3. **Publish** をクリックします。
+
+# ステップ 4: 新しいエピソードのアラートをトリガーする
+
+デモンストレーションでは、Postman を使用してこの API をトリガーします。ただし、実際の運用では、新しいエピソードがコンテンツ管理システムに追加されたときにこのイベントをトリガーすることが理想的です。
+
+アラートをトリガーするには、別のビジネスイベント API である [trigger API](/ja/api/business-events/trigger-business-event) を使用します。この API には、プッシュ通知の一部として送信される新しいエピソードの実際の値を渡す必要があります。ビジネスイベントの作成時に使用したものと同じデータ型を使用する必要があります。
+
+キャンペーンをトリガーするには、次のペイロードを使用します。
+
+JSON
+
+```json
+{
+"event_name": "ENT_New_Content_Released",
+"event_attributes": {
+"name of the series": "Friends",
+"episode name": "The one with Joey's Fridge",
+"episode number": 19,
+"episode image": "https://image.moengage.com/showcasemoengage/20230907052100588487CT730Mfriends619jpgcompshowcasemoengage.jpg",
+"episode url":"https://myapp.com/friends/season6/episode19"
+},
+"triggered_by": "example@moengage.com"
+}
+```
+
+# まとめ
+
+このユースケースでは、お気に入りのシリーズの最新コンテンツについて顧客に最新情報を提供するため、Push キャンペーンを使用して新しいエピソードの通知を作成しました。これを実現するために、MoEngage の [Business Event Triggered Campaigns](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/business-event-triggered-campaigns) を使用しました。

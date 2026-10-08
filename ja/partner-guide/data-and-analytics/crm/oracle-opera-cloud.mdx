@@ -1,0 +1,72 @@
+---
+title: "Oracle OPERA Cloud"
+description: "OHIP Streaming API を通じて OPERA Cloud の予約、チェックイン、チェックアウト、ゲストプロファイルのイベントを MoEngage にストリーミングし、ホテルのゲストジャーニーに活用します。"
+keywords: ["Oracle OPERA Cloud", "OPERA Cloud PMS", "OHIP", "Oracle Hospitality Integration Platform", "ホテル予約", "ゲストプロファイル", "ストリーミング API", "ホスピタリティ"]
+---
+
+[Oracle OPERA Cloud](https://www.oracle.com/hospitality/) は、ホテルが予約、ゲストプロファイル、滞在を管理するために使用するプロパティマネジメントシステム（PMS）です。MoEngage と OPERA Cloud の統合では、予約、チェックイン、チェックアウト、ゲストプロファイルの変更などのホテルのビジネスイベントを、Oracle Hospitality Integration Platform（OHIP）を通じて OPERA Cloud から MoEngage にストリーミングします。
+
+各変更はユーザーイベントまたはプロファイルの更新として MoEngage に届くため、施設の現在の状態を反映したデータに基づいて、到着前、滞在中、滞在後のゲストジャーニーを構築できます。
+
+## サポートされているイベント
+
+次の表は、OPERA Cloud が MoEngage に送信するイベントについて説明しています。
+
+| イベント | 説明 | ユースケース |
+| --- | --- | --- |
+| Reservation Created | 新しい予約が確定しました。 | 到着前キャンペーンをトリガーします。 |
+| Reservation Updated | 予約の詳細が変更されました。 | ジャーニーを再トリガーまたは抑制します。 |
+| Reservation Cancelled | 予約がキャンセルされました。 | ウィンバックキャンペーンまたはフィードバックキャンペーンをトリガーします。 |
+| Reservation Checked-In | ゲストが施設に到着しました。 | 滞在中のアップセルメッセージまたはウェルカムメッセージを送信します。 |
+| Reservation Checked-Out | ゲストが滞在を終えました。 | 滞在後の Net Promoter Score（NPS）アンケートまたはレビュー依頼を送信します。 |
+| Guest Profile Updated | 連絡先または嗜好の情報が変更されました。 | MoEngage のゲストプロファイルを充実させます。 |
+
+これらは、MoEngage がデフォルトでストリーミングするイベントです。一覧にないイベントが必要な場合は、同じリクエストで CSM にお知らせください。MoEngage がセットアップの一環として評価します。
+
+OPERA Cloud でのビジネスイベントの操作については、*OPERA Cloud User Guide* の [Configuring Business Events](https://docs.oracle.com/en/industries/hospitality/opera-cloud/23.1/ocsuh/t_admin_interfaces_configuring_business_events.htm) トピックを参照してください。このトピックには、ビジネスイベントとデータ要素の一覧も記載されています。これを使用して、処理するデータ要素と ID を MoEngage にお知らせください。新しいイベントが必要な場合は、MoEngage がリクエストの一環として評価します。
+
+## 統合
+
+この統合は、OPERA Cloud と MoEngage の間のリアルタイムストリーミングアーキテクチャに基づいています。MoEngage がホストするミドルウェアレイヤーがイベントをリアルタイムで処理するため、Oracle Integration Cloud（OIC）を設定したり、お客様の環境で接続エージェントを実行したりする必要はありません。
+
+![OPERA Cloud が WebSocket 経由で MoEngage がホストする統合レイヤーにイベントをストリーミングし、統合レイヤーがマッピングしたイベントを Connected Sources API に送信する様子を示すアーキテクチャ図](/images/opera-cloud-integration-architecture.png)
+
+この統合は、次の 3 つのコンポーネントで構成されています。
+
+- **ソース（OPERA Cloud）**: OHIP GraphQL Streaming API は、ホスピタリティイベントが発生すると同時に、安全にリアルタイムで配信します。スケジュールに従って OPERA Cloud をポーリングするのではなく、永続的な WebSocket サブスクリプションを維持します。
+- **統合レイヤー（MoEngage がホストするミドルウェア）**: フルマネージドのリスナーが OHIP への WebSocket 接続を保持し、OAuth 2.0 を通じて Oracle と安全に認証し、各イベントのペイロードを MoEngage のユーザーおよびイベントのスキーマに変換します。
+- **宛先（MoEngage）**: ミドルウェアは、変換されたデータを HTTPS POST で MoEngage Connected Sources API に送信し、マッピングされたイベントをキャンペーンで使用できるようにします。
+
+## 前提条件
+
+<Info>
+  統合をリクエストする前に、Streaming API が有効になっている有効な [Oracle Hospitality Integration Platform](https://shop.oracle.com/apex/f?p=DSTORE:PRODUCT::::6:P6_LPI,P6_PROD_HIER_ID:126819285023690850584826,128016537132070991130337) サブスクリプションがあることを確認してください。
+
+  また、イベントをサブスクライブする前に、イベントを取得する OPERA 環境を追加しておく必要があります。
+</Info>
+
+## 統合を設定する
+
+この統合は MoEngage が設定します。リクエストするには、次の手順を実行します。
+
+1. MoEngage のカスタマーサクセスマネージャー（CSM）または [MoEngage サポート](/ja/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard)に連絡し、Oracle OPERA Cloud 統合をリクエストします。
+2. リクエストで、次の詳細を提供します。
+
+   | 詳細 | 説明 |
+   | --- | --- |
+   | Enterprise ID | OHIP クライアントが作成されたエンタープライズの一意の識別子。 |
+   | Chain Code | OPERA Cloud でホテルチェーンを識別するコード。 |
+   | Region | OPERA Cloud 環境のリージョン。 |
+   | Environment | イベントをストリーミングする OPERA 環境（Non Production または Production）。 |
+
+   これらの詳細は、OHIP Developer Portal で確認できます。
+3. MoEngage が OHIP Developer Portal を通じて送信したアクセスリクエストを承認します。承認するには、お客様自身の OHIP ポータルインスタンスにサインインします。
+
+OHIP はこれらの詳細を使用して接続を認証するため、すべての詳細が揃っていないとリクエストを進めることはできません。アクセスリクエストを承認すると、MoEngage が技術的な設定を完了し、ワークスペースへのイベントのストリーミングを開始します。
+
+## 関連する統合
+
+他のソースから MoEngage にデータを送信するには、次のガイドを参照してください。
+
+- [データインポート](/ja/user-guide/data/imports/overview-imports)
+- [Connected Sources](/ja/partner-guide/integrate-with-us/build-integration/connected-sources)

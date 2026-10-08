@@ -1,0 +1,259 @@
+---
+title: "Android デバイスモード 5.x.x"
+---
+
+すべての機能（プッシュ通知、アプリ内メッセージングなど）を有効にするには、Android アプリでいくつかの手順を実施する必要があります。
+
+# MoEngage 依存関係の追加
+
+プロジェクトレベルの build.gradle ファイルに mavenCentral() リポジトリを追加します。
+
+<CodeGroup>
+
+```text build.gradle file
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+ 
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+```
+
+</CodeGroup>
+
+Segment に加えて、build.gradle ファイルに以下の依存関係を追加します。
+
+<CodeGroup>
+
+```text build.gradle file wrap
+     implementation("com.moengage:moengage-segment-integration:5.6.00") {
+        transitive = true
+    }
+```
+
+</CodeGroup>
+
+MoEngage SDK は、動作のために Google が提供する以下の Jetpack ライブラリに依存しています。アプリケーションにまだ含まれていない場合は、必ず追加してください。
+
+```text lines
+implementation("androidx.core:core:1.3.1")
+implementation("androidx.appcompat:appcompat:1.2.0") 
+implementation("androidx.lifecycle:lifecycle-process:2.2.0")
+```
+
+ビルド設定および SDK が使用するその他のライブラリの詳細については、[Android SDK Configuration](/ja/developer-guide/android-sdk/sdk-integration/advanced-or-optional/sdk-configuration) ドキュメントを参照してください。
+
+# Segment SDK への MoEngage の登録:
+
+依存関係を追加したら、Segment SDK に統合を登録する必要があります。そのためには、MoEngage 統合をインポートします。
+
+<CodeGroup>
+
+```java Java wrap
+import com.segment.analytics.android.integrations.moengage.MoEngageIntegration;
+```
+
+</CodeGroup>
+
+次の行を追加します。
+
+<CodeGroup>
+
+```java Java
+Analytics analytics = new Analytics.Builder(this, "write_key")
+                .use(MoEngageIntegration.FACTORY)
+                .build();
+```
+
+</CodeGroup>
+
+# MoEngage SDK の初期化方法:
+
+設定ページ `Dashboard --> Settings --> App --> General` から Workspace ID を取得し、`Application` クラスの `onCreate()` で MoEngage SDK を初期化します。**_注: SDK は` onCreate()` 内のメインスレッドで初期化することを推奨します。ワーカースレッドを作成してそのスレッドで SDK を初期化しないでください。_**
+
+<CodeGroup>
+
+```java Java wrap
+// this is the instance of the application class and "XXXXXXXXXXX" is the Workspace ID from the dashboard.
+MoEngage moEngage = new MoEngage.Builder(this, "XXXXXXXXXXX")
+            .enablePartnerIntegration(IntegrationPartner.SEGMENT)
+            .build();
+MoEngage.initialise(moEngage);
+```
+
+</CodeGroup>
+
+# インストール/アップデートの区別
+
+これは MoEngage プラットフォームへの移行時にのみ必要です。ユーザーがアプリケーションの新規ユーザーなのか、最新バージョンにアップデートした既存ユーザーなのかを SDK に伝える必要があります。
+
+ユーザーがすでにアプリケーションを使用していて、MoEngage SDK を含む新しいバージョンにアップデートしたばかりの場合はアップデートとなるため、以下の API を呼び出します。
+
+<CodeGroup>
+
+```text Java wrap
+MoEHelper.getInstance(getApplicationContext()).setAppStatus(AppStatus.UPDATE);
+```
+
+</CodeGroup>
+
+新規インストールの場合は、以下の API を呼び出します。
+
+<CodeGroup>
+
+```text Java wrap
+MoEHelper.getInstance(getApplicationContext()).setAppStatus(AppStatus.INSTALL);
+```
+
+</CodeGroup>
+
+# プッシュ通知の設定方法:
+
+FCM コンソールから Server Key をコピーし、MoEngage ダッシュボードに追加します（Server Key の場所がわからない場合は、[Getting FCM Server Key](/ja/developer-guide/partner-integrations/firebase/getting-fcm-server-key) を参照してください）。アップロードするには、MoEngage Dashboard --\> Settings --\> Channel --\> Push --\> Mobile Push --\> Android に移動し、Server Key とパッケージ名を追加します。
+
+<Warning>
+  キーは Test 環境と Live 環境の両方に必ず追加してください。
+</Warning>
+
+## プッシュ通知のメタ情報の追加
+
+プッシュ通知を表示するには通知に関するメタデータが必要で、スモールアイコンとラージアイコンの drawable は必須です。
+
+設定を SDK に渡すには、`configureNotificationMetaData()` を使用します。
+
+<CodeGroup>
+
+```java Java wrap
+MoEngage moEngage =
+        new MoEngage.Builder(this, "XXXXXXXXXX")
+            .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon))
+            .enablePartnerIntegration(IntegrationPartner.SEGMENT)
+            .build();
+MoEngage.initialise(moEngage);
+```
+
+</CodeGroup>
+
+## Firebase Cloud Messaging の設定
+
+プッシュ通知を表示するには、次の 2 つが重要です。
+
+1. プッシュの登録、つまりプッシュトークンの生成。
+2. Firebase Cloud Messaging（FCM）サービスからプッシュペイロードを受信し、デバイスに通知を表示すること。
+
+## アプリによるプッシュ登録と受信の処理
+
+デフォルトでは、MoEngage SDK はプッシュトークンの登録を試みます。アプリケーションでプッシュを処理する場合は、SDK のトークン登録をオプトアウトする必要があります。
+
+## MoEngage の登録をオプトアウトする方法
+
+MoEngage のトークン登録メカニズムをオプトアウトするには、以下のように `MoEngage.Builder` で FCM を設定する際にトークン登録を無効にします。
+
+<CodeGroup>
+
+```java Java wrap
+MoEngage moEngage = new MoEngage.Builder(this, "XXXXXXXXXX")
+            .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon, R.color.notiColor, "sound", true, true, true))
+            .configureFcm(FcmConfig(false))
+            .enablePartnerIntegration(IntegrationPartner.SEGMENT)
+            .build();
+MoEngage.initialise(moEngage);
+```
+
+</CodeGroup>
+
+## プッシュトークンを MoEngage SDK に渡す
+
+MoEngage プラットフォームがデバイスにプッシュ通知を送信できるように、アプリケーションは FCM から受け取ったプッシュトークンを MoEngage SDK に渡す必要があります。プッシュトークンを MoEngage SDK に渡すには、以下の API を使用します。
+
+<CodeGroup>
+
+```java Java wrap
+MoEFireBaseHelper.getInstance().passPushToken(getApplicationContext(), token);
+```
+
+</CodeGroup>
+
+_注:_ プッシュトークンが更新されたときと、アプリケーションのアップデート時には、必ずトークンを MoEngage SDK に渡してください。アプリケーションのアップデート時にトークンを渡すことは、MoEngage プラットフォームへの移行において重要です。
+
+## プッシュペイロードを MoEngage SDK に渡す
+
+プッシュペイロードを MoEngage SDK に渡すには、Firebase レシーバーの `onMessageReceived()` から MoEngage API を呼び出します。ペイロードを MoEngage SDK に渡す前に、SDK が提供するヘルパー API を使用して、ペイロードが MoEngage プラットフォームからのものかどうかを確認してください。
+
+<CodeGroup>
+
+```java Java wrap
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(remoteMessage.getData())) {
+  MoEFireBaseHelper.Companion.getInstance().passPushPayload(getApplicationContext(), remoteMessage.getData());
+}else{
+  // your app's business logic to show notification
+}
+```
+
+</CodeGroup>
+
+## SDK によるプッシュ登録と受信の処理
+
+マニフェストファイルに以下のコードを追加します。
+
+<CodeGroup>
+
+```xml XML wrap
+<service android:name="com.moengage.firebase.MoEFireBaseMessagingService">
+ 	<intent-filter>
+		<action android:name="com.google.firebase.MESSAGING_EVENT" />
+ 	</intent-filter>
+</service>
+```
+
+</CodeGroup>
+
+MoEngage SDK がプッシュ登録を処理する場合、新しいトークンが登録されたとき、またはトークンが更新されたときに、オプションでアプリケーションにコールバックを提供します。アプリケーションは `FirebaseEventListener` を実装し、Application クラスの `onCreate()` で `MoEFireBaseHelper.getInstance().addEventListener()` を使用してコールバックを登録することで、このコールバックを受け取ることができます。
+
+## Rich Landing Activity の宣言と設定:
+
+次のスニペットを追加し、`[PARENT_ACTIVITY_NAME]` を親アクティビティの名前に、`[ACTIVITY_NAME]` を Rich Landing Page の親となるアクティビティ名に置き換えます。
+
+<CodeGroup>
+
+```xml XML wrap
+<activity
+    android:name="com.moe.pushlibrary.activities.MoEActivity"
+    android:label="[ACTIVITY_NAME]"
+    android:parentActivityName="[PARENT_ACTIVITY_NAME]" >
+ </activity>
+```
+
+</CodeGroup>
+
+これで、MoEngage からプッシュ通知を受信する準備が整いました。MoEngage Android SDK が提供する機能の詳細については、以下のリンクを参照してください。
+
+- [プッシュ通知](/ja/developer-guide/android-sdk/push/basic/push-configuration)
+- [ジオフェンス](/ja/developer-guide/android-sdk/push/optional/location-triggered)
+- [アプリ内メッセージング](/ja/developer-guide/android-sdk/in-app-messages/in-app-nativ)
+- [通知センター](/ja/developer-guide/android-sdk/push/optional/notification-center)
+- [高度な設定](/ja/developer-guide/android-sdk/push/advanced/callbacks-and-customisation)
+- [API リファレンス](https://moengage.github.io/android-api-reference/index.html)
+- [コンプライアンス](/ja/developer-guide/android-sdk/compliance/compliance)
+- リリースノート
+
+# Identify
+
+ユーザー固有の属性をトラッキングするには、[Identify](https://segment.com/docs/sources/mobile/android/#identify) を使用します。これは MoEngage での[ユーザー属性](/ja/developer-guide/android-sdk/data-tracking/basic/track-user-attributes)のトラッキングに相当します。MoEngage は、Segment がサポートする traits とカスタム traits の両方をサポートしています。traits.id を設定すると、その値がそのユーザーの Unique ID として設定されます。
+
+# Track
+
+アプリ内のイベントとユーザー行動をトラッキングするには、[track](https://segment.com/docs/sources/mobile/android/#track) を使用します。これにより、関連するプロパティとともにイベントが MoEngage に送信されます。イベントのトラッキングは不可欠であり、ユーザーエンゲージメントのためのセグメントの作成に役立ちます。
+
+# Reset
+
+アプリでユーザーがログアウトして新しい ID でログインできる場合は、Analytics クライアントの reset を呼び出す必要があります。
+
+# 実装サンプル
+
+実装サンプルについては、[こちら](https://github.com/moengage/moengage-segment-integration)の GitHub リポジトリを参照してください。

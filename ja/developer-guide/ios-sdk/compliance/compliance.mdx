@@ -1,0 +1,102 @@
+---
+title: "コンプライアンス"
+description: "MoEngage SDKを使用して、iOSアプリでデータトラッキングのオプトアウトとIDFA/IDFVのプライバシー制御を管理します。"
+---
+
+# データトラッキングのオプトアウト
+
+SDKによるデータトラッキングを無効にするには、以下のように [_disableDataTracking()_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)disableDataTracking) メソッドを使用します。データトラッキングをオプトアウトした後、ユーザーのイベントや属性のトラッキングを開始するには、明示的にオプトインする必要があります。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.disableDataTracking() //Opt out
+MoEngageSDKAnalytics.sharedInstance.enableDataTracking()  //Opt in
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] disableDataTracking]; //Opt out
+[[MoEngageSDKAnalytics sharedInstance] enableDataTracking]; //Opt in
+```
+
+</CodeGroup>
+
+# IDFAとIDFVのオプトアウト
+
+SDKはデフォルトで [IDFA](https://developer.apple.com/documentation/adsupport/asidentifiermanager/1614151-advertisingidentifier)（広告識別子）をUserAttributeとしてトラッキングします。これは、プロジェクトにAdSupportおよびAppTrackingTransparencyフレームワークが含まれており、ユーザーが広告トラッキングを制限していない場合にのみトラッキングされます。IDFAトラッキングをオプトアウトする場合は、以下のようにオプトアウトメソッドを呼び出します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.disableIDFATracking() //Opt out
+MoEngageSDKAnalytics.sharedInstance.enableIDFATracking() //Opt in
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] disableIDFATracking]; //Opt out
+[[MoEngageSDKAnalytics sharedInstance] enableIDFATracking]; // Opt in
+```
+
+</CodeGroup>
+
+<Warning>
+  - `MoEngageSDKAnalytics.sharedInstance.enableIDFATracking()` を呼び出すには、プロジェクトに `AdSupport` フレームワークがリンクされている必要があります。フレームワークがない場合、`DEBUG` ビルドではSDKが致命的な例外をスローしてアプリがクラッシュします。リリースビルドでは、呼び出しは通知なく無視され、IDFAはトラッキングされません。
+  - アップグレード中にこれらの `DEBUG` 検証によってアプリがクラッシュする場合は、SDKを初期化する前に `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` を呼び出して一時的にオプトアウトしてください。問題が修正されたら、この呼び出しを削除してください。
+</Warning>
+
+SDKはデフォルトで [IDFV](https://developer.apple.com/documentation/uikit/uidevice/1620059-identifierforvendor)（ベンダー識別子）もデバイス識別子としてトラッキングします。IDFVトラッキングをオプトアウトする場合は、以下のようにオプトアウトメソッドを呼び出します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.disableIDFVTracking() //Opt out
+MoEngageSDKAnalytics.sharedInstance.enableIDFVTracking() //Opt in
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] disableIDFVTracking]; //Opt out
+[[MoEngageSDKAnalytics sharedInstance] enableIDFVTracking]; //Opt in
+```
+
+</CodeGroup>
+
+IDFAとIDFVのオプトアウトは、SDKバージョン6.1.1から利用できます。
+
+# SDKの有効化/無効化
+
+MoEngage SDKにユーザー情報をトラッキングさせたくない場合や、MoEngageシステムにデータを送信させたくない場合は、以下のメソッドを使用します。
+
+<CodeGroup>
+
+```swift Swift
+MoEngage.sharedInstance.disableSDK()
+```
+
+
+```objective-c Objective C
+[[MoEngage sharedInstance] disableSDK];
+```
+
+</CodeGroup>
+
+このAPIが呼び出されると、SDKのすべてのAPIが動作しなくなります。SDKは [_enableSDK()_](https://moengage.github.io/ios-api-reference/Classes/MoEngage.html#/c:@M@MoEngageSDK@objc\(cs\)MoEngage\(im\)enableSDK) が呼び出されるまで無効のままになります。
+
+ユーザーの同意を得たら、以下のAPIを使用してSDKを有効にします。
+
+<CodeGroup>
+
+```swift Swift
+MoEngage.sharedInstance.enableSDK()
+```
+
+
+```objective-c Objective C
+[[MoEngage sharedInstance] enableSDK];
+```
+
+</CodeGroup>
+
+SDKの有効化/無効化メソッドは、SDKバージョン6.3.0から利用できます。

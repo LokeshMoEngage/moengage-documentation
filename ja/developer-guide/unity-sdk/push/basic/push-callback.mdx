@@ -1,0 +1,109 @@
+---
+title: "Push コールバック"
+description: "MoEngage Unity SDK で、プッシュ通知のクリックオブザーバーを設定して通知のインタラクションを処理します。"
+---
+
+# 通知クリックオブザーバー
+
+MoEngage プラグインは、通知がクリックされるたびに **PushNotifCallback** イベントをトリガーします。このイベントは、iOS と Android の両方のプラットフォームに共通のトリガーです。オブザーバーを設定するには、以下のコードを参照してください。
+
+<CodeGroup>
+```auto c#
+using MoEngage;
+
+// Add Push Callback for MoEGameObject
+MoEGameObject.PushNotifCallback += PushCallback;
+
+//Implement the calback
+public void OnPushClicked(object sender, PushCampaignData campaignData)
+{
+  Debug.Log(" OnPushClicked() : Event handler callback: " + campaignData.platform + 
+  " \n clickedAction: " + campaignData.data.clickedAction + " \n payload:" + campaignData.data.payload);
+}
+```
+
+</CodeGroup>
+## PushCampaignData の構造
+
+PushCampaignData インスタンスには、以下のプロパティがあります。
+
+<CodeGroup>
+```auto c#
+  public class PushCampaignData {
+    ///  Account info 
+    public AccountMeta accountMeta;
+
+     ///  PushCampaign data object 
+    public PushCampaign data;
+
+    ///  Native platform from which the callback was triggered. 
+    public Platform platform;
+  }
+  
+  /// Meta-data related to your MoEngage account.
+  public class AccountMeta {
+    ///  Account Identifier  
+    public string appId;
+  }
+  
+  /// Push Payload information
+  public class PushCampaign {
+    ///  This key is present only for the Android Platform. It's a boolean value indicating if the user clicked on the default content or not. true if the user clicks on the default content else false.  
+    public bool isDefaultAction;
+
+    ///  Action to be performed on notification click.  
+    public IDictionary < string, object > clickedAction;
+
+    /// Complete campaign payload. 
+    public IDictionary < string, object > payload;
+  }
+  
+  /// Platform on which Push Campaign belongs
+  public enum Platform {
+         iOS,
+         Android
+  }
+```
+
+</CodeGroup>
+**clickedAction** ディクショナリのペイロード構造
+
+<CodeGroup>
+```json JSON
+{
+  "clickedAction": {
+    "type": "navigation/customAction",
+    "payload": {
+      "type": "screenName/deepLink/richLanding",
+      "value": "",
+      "kvPair": {
+        "key1": "value1",
+        "key2": "value2",
+        ...
+      }
+    }
+  }
+}
+```
+
+</CodeGroup>
+**clickedAction** - 通知クリック時に実行されるアクションです。
+
+**clickedAction.type** - クリックアクションのタイプです。指定可能な値は **navigation** と **customAction** です。現在、**customAction** は Android でのみサポートされています。
+
+**clickAction.payload** - クリックされたアクションのアクションペイロードです。  
+**clickedAction.payload.type** - 定義されたナビゲーションアクションのタイプです。指定可能な値は **screenName**、**deepLink**、**richLanding** です。
+
+現在、iOS の場合、リッチランディングおよびディープリンク URL は SDK によって内部で処理され、このコールバックには渡されません。そのため、iOS で指定可能な値は **screenName** のみです。  
+**clickAction.value** - ナビゲーションアクションまたはカスタムペイロードに入力された値です。  
+**clickAction.kvPair** - MoEngage プラットフォームで入力されたカスタムのキーと値のペアです。  
+**payload** - キャンペーンの完全なペイロードです。
+
+## Android のペイロード
+
+ユーザーが通知のデフォルトコンテンツをクリックした場合、キーと値のペアとキャンペーンペイロードは **payload** キー内にあります。ユーザーがアクションボタンまたはプッシュテンプレートのアクションをクリックした場合、アクションペイロードは **clickedAction** 内にあります。  
+**isDefaultAction** キーを使用して、ユーザーがデフォルトコンテンツをクリックしたかどうかを確認し、それに応じてペイロードを解析できます。
+
+## iOS のペイロード
+
+iOS の場合、クリックされたアクションに関するキーと値のペアは常に **clickedAction** プロパティで受け取ります。iOS の通知ペイロードの構造については、こちらの [リンク](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial) を参照してください。

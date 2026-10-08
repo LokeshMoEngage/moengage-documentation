@@ -1,0 +1,116 @@
+---
+title: "Google Tag Manager (GTM) Server Side"
+---
+
+## はじめに
+
+[Google Tag Manager](https://tagmanager.google.com/) は、マーケティング担当者が Web サイトのコードを変更せずにマーケティングタグをインストール、保存、管理でき、使いやすい Web ベースのインターフェイスから Web サイトやモバイルアプリにタグを即座にデプロイできる無料のツールです。
+
+## MoEngage × Google Tag Manager
+
+MoEngage と Google Tag Manager の連携により、Web サイトにコードを記述することなく、GTM サーバーで取得したイベントを MoEngage に転送できます。
+
+## GTM Server Side による連携
+
+<Info>
+  **前提条件**
+
+  テンプレートのインポートと新しいタグの追加の権限を持つ Google Tag Manager アカウントがあることを確認してください。
+</Info>
+
+MoEngage が構築した Google Tag Manager テンプレートを使用すると、GTM から MoEngage にイベントを転送できます。
+
+### ステップ 1: MoEngage タグをダウンロードしてインポートする
+
+![GTM の MoEngage タグエディター画面](/images/partner_18825948528020.png)
+
+1. [MoEngage](https://raw.githubusercontent.com/moengage/snowplow-gtm-server-side-moengage-tag/master/template.tpl) タグをダウンロードします（右クリックして保存）。
+2. タグを GTM ワークスペースにインポートするには、左側のメニューから **Templates** 画面に移動します。
+   ![Tag Templates セクションが表示された GTM の Templates 画面](/images/partner_18825978047252.png)
+3. **Tag Templates** で、**New** ボタン \> **Actions** メニュー（右上）\> **Import** をクリックします。ダウンロードした MoEngage タグファイルを選択します。
+4. 左側に MoEngage のロゴが表示されたら、**Save** をクリックします。
+
+### ステップ 2: MoEngage タグを選択して設定する
+
+MoEngage タグテンプレートを使用すると、GTM のイベントを転送し、MoEngage 内のカスタムおよび標準のユーザー属性を更新できます。
+
+1. GTM ダッシュボードで、**Tags** \> **New** をクリックします。
+2. **Tag Configuration** をクリックし、**Custom** で **MoEngage Tag** を探します。
+3. ニーズに応じてタグを設定します。
+
+![GTM の MoEngage タグ設定画面](/images/partner_18825065381396.png)
+
+| プロパティ | 値 |
+| --- | --- |
+| **Select data center** | MoEngage のデータセンターリージョン（**DC\_X**）: <ul><li>Dashboard-01 (DC-01)</li><li>Dashboard-02 (DC-02)</li><li>Dashboard-03 (DC-03)</li><li>Dashboard-04 (DC-04)</li></ul> |
+| **API ID** | API ID は Workspace ID です。<br />MoEngage アカウントの Workspace ID は、**Settings** \> **Account** \> **APIs** \> **Workspace ID** で確認できます。<br />MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+| **API Key** | API Key は Data API キーです。<br />MoEngage アカウントの Data API キーは、**Settings** \> **Account** \> **APIs** \> **API keys** \> **Data** API 設定で確認できます。 |
+
+#### ユーザー識別子
+
+![MoEngage タグのユーザー識別子マッピングセクション](/images/partner_18825308479252.png)
+
+ここでは、MoEngage でユーザーを識別するためのユーザー識別子をマッピングする必要があります。この値は、次の複数の方法でマッピングできます。
+
+- **From Variable**: GTM 変数をユーザー識別子の値として使用する場合は、このオプションを選択します。
+- **From Event Property**: イベントプロパティからユーザー識別子を抽出する場合は、このオプションを選択します。ここに属性キー（例: `user_id`）を入力します。値を取得できるのはルートレベルのキーからのみであることに注意してください。ネストされたキーの値を抽出する場合は、GTM 変数を使用してから「From Variable」オプションを選択してください。
+
+#### Snowplow イベントマッピングオプション
+
+このセクションはそのままにしておいてかまいません。Snowplow クライアントを使用している場合は、Snowplow のイベントを MoEngage に取り込むために使用できる追加オプションがあります。詳細については、[Snowplow 連携ガイド](/ja/partner-guide/data-and-analytics/analytics/snowplow)を参照してください。
+
+#### 追加のイベントマッピングオプション
+
+![MoEngage タグの Additional Event Mapping Options セクション](/images/partner_18825951116948.png)
+
+| プロパティ | 値 |
+| --- | --- |
+| **Include common event properties** | GTM の[共通イベントデータ](https://developers.google.com/tag-platform/tag-manager/server-side/common-event-data)のイベントプロパティを、MoEngage へのイベントプロパティとして自動的に含める場合は、このオプションを選択します。 |
+| **Additional Event Property Mapping Rules** | MoEngage 内でイベントプロパティとしてマッピングするキーを選択できます。新しいキーマッピングを追加するには、**Add Row** をクリックします。<br />**Event Property Key** にイベントデータオブジェクトのプロパティキーを指定し、**MoEngage Mapped Key** にマッピング先の名前を指定します。**MoEngage Mapped Key** フィールドを空白のままにすると、キーの名前は変更されません。<br />これらのプロパティは、MoEngage にイベントプロパティとして保存されます。 |
+| **Include common user properties** | GTM の[共通イベントデータ](https://developers.google.com/tag-platform/tag-manager/server-side/common-event-data)の「user\_data」プロパティを、MoEngage へのユーザー属性として自動的に含める場合は、このオプションを選択します。 |
+| **Additional User Property Mapping Rules** | MoEngage 内でユーザー属性としてマッピングするキーを選択できます。新しいキーマッピングを追加するには、**Add Row** をクリックします。<br />**User Property Key** にイベントデータオブジェクトのプロパティキーを指定し、**MoEngage Mapped Key** にマッピング先の名前を指定します。**MoEngage Mapped Key** フィールドを空白のままにすると、キーの名前は変更されません。<br />これらの属性によって、MoEngage のユーザー属性が更新されます。 |
+
+#### 追加のイベントデータ
+
+![MoEngage タグの Additional Event Data セクション](/images/partner_18875625054356.png)
+
+ネストされたオブジェクトや配列から値を抽出する場合は、そのための GTM 変数を作成し、このセクションを使用してその変数をイベント属性として直接使用できます。新しいイベント属性を追加するには、**Add Row** をクリックします。
+
+| プロパティ | 値 |
+| --- | --- |
+| **Key** | イベント属性に追加するキーを指定します。 |
+| **Value** | このイベント属性の値を直接入力するか、GTM 変数を使用します。 |
+
+#### 追加のユーザーデータ
+
+![MoEngage タグの Additional User Data セクション](/images/partner_18875652326036.png)
+
+上記の方法を使用してネストされたオブジェクトや配列から値を抽出し、このセクションを使用してその変数をユーザー属性として直接使用することもできます。新しいユーザー属性を追加するには、**Add Row** をクリックします。
+
+| プロパティ | 値 |
+| --- | --- |
+| **Key** | ユーザー属性に追加するキーを指定します。 |
+| **Value** | このユーザー属性の値を直接入力するか、GTM 変数を使用します。 |
+
+#### 高度なイベント設定
+
+![MoEngage タグの Advanced Event Settings セクション](/images/partner_18875631317780.png)
+
+このセクションを使用して、イベントの名前を変更したり、イベント時刻を変更したりできます。
+
+| プロパティ | 値 |
+| --- | --- |
+| **Event Name Override** | MoEngage に取り込まれるイベントの名前を変更する場合は、ここに新しいイベント名を入力します。空白のままにすると、共通イベントプロパティからイベント名が取得されます。 |
+| **Event time property** | イベント時刻（ISO-8601 形式）を設定するためのクライアントイベントプロパティを指定します。現在の時刻を使用する場合は空のままにします。 |
+
+### ステップ 3: トリガー条件を選択する
+
+![MoEngage タグ設定の Triggering セクション](/images/partner_18875697109524.png)
+
+**Triggering** セクションで、要件に応じてイベントをトリガーとして選択するか、新しいトリガーを作成できます。
+
+タグの設定が完了したら、**Save** をクリックします。タグをプレビューし、想定しているすべてのイベントが設定どおりに MoEngage に取り込まれているかを確認できます。
+
+## Web SDK による連携
+
+Web サイトにコードを記述することなく、MoEngage Web SDK をデプロイしてそのすべての機能を活用できます。MoEngage テンプレートを使用した MoEngage Web SDK の設定の詳細については、[ヘルプドキュメント](https://www.moengage.com/docs/developer-guide/web-sdk/other-supported-web-sdk-integration/google-tag-manager-gtm-templates)を参照してください。

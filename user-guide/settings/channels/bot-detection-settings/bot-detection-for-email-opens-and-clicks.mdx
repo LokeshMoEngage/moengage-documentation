@@ -7,7 +7,7 @@ description: "Identify and filter bot-generated opens and clicks on your Email c
 
 Not every open or click recorded by your Email campaigns comes from an actual human recipient. Sources such as [Apple Mail Privacy Protection (MPP)](/user-guide/campaigns-and-channels/email/getting-started-with-email/mail-privacy-protection-mpp-and-email-analytics), corporate security scanners, and automated link-checking proxies can trigger opens and clicks automatically. Left unfiltered, this activity inflates your metrics, skews Key Performance Indicators (KPIs) like Open rates, Click rates, and Click-to-Open Rate (CTOR) that can incorrectly trigger engagement-based automations (for example, retargeting based on email opens and clicks).
 
-Bot Detection allows you to define specific rules to identify non-human activity. You can configure rules separately for **Bot opens** and **Bot clicks**, and choose how MoEngage should display these metrics in your campaign analytics and reports.
+Bot Detection allows you to define specific rules to identify non-human activity, including blocklists for known bot user agents and IP addresses, and heuristic rules that flag opens and clicks based on timing and click patterns. You can configure rules separately for **Bot opens** and **Bot clicks**, and choose how MoEngage should display these metrics in your campaign analytics and reports.
 
 <Note>
   - Bot detection feature is currently available only for Email channel.
@@ -26,7 +26,7 @@ Bot Detection allows you to define specific rules to identify non-human activity
 ## Enable Bot Detection
 
 To start filtering bot activity, perform the following steps:
-   <img alt="bot_detection_settings.png" src="/images/bot_detection_settings.png" />
+   <img alt="bot_detection_settings_1.png" src="/images/bot_detection_settings_1.png" />
 
 1. Log in to your MoEngage dashboard.
 2. Navigate to **Settings** > **Channels** > **Bot Detection Settings**.
@@ -37,14 +37,22 @@ After enabling, there will be two sub-tabs: **Bot opens** and **Bot clicks**. Yo
 ## Configure Bot Opens
 
 Navigate to the **Bot opens** tab to define how MoEngage identifies and handles bot-driven email opens.
-  <img alt="bot_opens.png" src="/images/bot_opens.png" />
+  <img alt="configure_bot_opens_new_2.png" src="/images/configure_bot_opens_new_2.png" />
 
 ### Detection Rules
 
 * **Detect opens from Apple Mail Privacy Protection**: For recipients who have enabled [Apple Mail Privacy Protection (MPP)](/user-guide/campaigns-and-channels/email/getting-started-with-email/mail-privacy-protection-mpp-and-email-analytics), Apple preloads remote content, including tracking pixels, through its own relay servers before the recipient actually opens the email. This preload can happen immediately or after a delay, and it registers as an "open" even though no human has read the email, producing a false engagement signal. Check this box to automatically identify these proxy-generated opens.
-     <img alt="apple_mpp.png" src="/images/apple_mpp.png" />
+     <img alt="apple_mpp_1.png" src="/images/apple_mpp_1.png" />
+* **Classify as bot activity if**: Use these heuristic rules to flag opens based on when they occur relative to email delivery. Select the checkbox next to a rule to enable it. For a rule with a time threshold, the value and unit fields stay disabled until you select the rule. For details on how MoEngage evaluates these rules, refer to [How Heuristic Rules Work](#how-heuristic-rules-work).
+    <img alt="bot_opens_heuristics.png" src="/images/bot_opens_heuristics.png" />
+  * **An open is detected within [value] [unit] of the email being delivered.**: Classifies an open as bot activity if it occurs within the specified time after the email is delivered. Security scanners and image proxies typically fetch the tracking pixel within seconds of delivery, well before a human recipient could read the email.
+    * **Value**: Enter the threshold duration.
+    * **Unit**: Select **seconds** or **minutes**.
+    * The maximum threshold is 10 minutes (600 seconds). If you enter a higher value, MoEngage displays the error **Opens can be classified as bot opens for up to 10 minutes after the email is delivered.** You can't save your settings until you correct the value.
+    * For example, if you set the threshold to 10 minutes and an email is delivered at 5:48 PM, an open recorded at 5:52 PM is classified as a bot open. An open recorded at 6:00 PM is treated as a genuine open.
+  * **An open is detected before the email being delivered.**: Classifies an open as bot activity if it occurs before the email is delivered. A recipient can't open an email that hasn't reached their inbox, so an open recorded ahead of delivery indicates automated activity. If MoEngage receives the open event before the delivery event, it compares the event timestamps shared by your email service provider (ESP) to determine which actually occurred first.
 * **Bot user-agent blocklist**: Expand this section to manage the list of user-agent signatures used to detect bots.
-    <img alt="user_agent_blocklist11.png" src="/images/user_agent_blocklist11.png" />
+    <img alt="user_agent_blocklist_2.png" src="/images/user_agent_blocklist_2.png" />
   * **MoEngage Default**: Rules tagged with **"MoEngage default"** are maintained automatically by MoEngage to cover known bots.These rules cannot be deleted. However, if you find that traffic from a specific default user agent or IP is actually genuine for your brand, you can disable that individual rule at any time using its **Enabled** checkbox.
   * **Search**: Use the **Search bot user-agent by name** field to find specific rules.
   * **Add bot user-agent**: Click the **+ Add bot user-agent** button to create custom rules. You can add up to 200 entries. This creates a new input row where you must define the following fields:
@@ -59,11 +67,11 @@ Navigate to the **Bot opens** tab to define how MoEngage identifies and handles 
     * **Bot user-agent name**: Type the exact or partial string you want to detect. Note: You must enter a string here before saving, otherwise MoEngage displays a **Please enter a user agent string before saving** error.
     * **Enabled**: This checkbox determines the active status of the rule. Leave it checked to activate the rule immediately upon saving. Uncheck it if you want to save the rule to your list but keep it inactive for now.
     * **Actions**: While adding a new rule, click the checkmark icon to save and apply the new entry, or click the cross (X) icon to cancel and discard the row. After a rule is saved, these icons change to a pencil for editing and a trash can for deleting.
-* **I.P. Address blocklist**: Expand this section to block opens originating from specific IP addresses or ranges (e.g., corporate proxies or data centers).
-       <img alt="ipaddress_blocklist.png" src="/images/ipaddress_blocklist.png" />
-  * Click **+ Add I.P. address** to define the **Type** (**Single I.P.** or **I.P. Range**), the **Standard** (**IPv4** or **IPv6**), and the exact address/range.
-  * While adding a new I.P. address, click the checkmark icon to save and apply the new entry, or click the cross (X) icon to cancel and discard the row. After an I.P. address is saved, these icons change to a pencil for editing and a trash can for deleting.
-       <img alt="add_ip_address.png" src="/images/add_ip_address.png" />
+* **IP Address blocklist**: Expand this section to block opens originating from specific IP addresses or ranges (e.g., corporate proxies or data centers).
+       <img alt="ipaddress_blocklist_new.png" src="/images/ipaddress_blocklist_new.png" />
+  * Click **+ Add IP address** to define the **Type** (**Single IP** or **IP Range**), the **Standard** (**IPv4** or **IPv6**), and the exact address/range.
+  * While adding a new IP address, click the checkmark icon to save and apply the new entry, or click the cross (X) icon to cancel and discard the row. After an IP address is saved, these icons change to a pencil for editing and a trash can for deleting.
+       <img alt="add_ip_address_new.png" src="/images/add_ip_address_new.png" />
 
 ### Post Detection Actions
 
@@ -78,17 +86,133 @@ For more information, refer to the Engagement Metrics section in [Campaign Perfo
   Important Note: To prevent discrepancies, this display adjustment applies to both Opens and Clicks. Any changes made to this setting will reflect uniformly across all metric adjustment dashboards.
 </Note>
 
+## Configure Bot Clicks
+
+Navigate to the **Bot clicks** tab to define how MoEngage identifies and handles automated link-checking bots. Because bots often crawl every link in an email to check for malicious content, they can falsely inflate your Click-Through Rates (CTR) and accidentally trigger unsubscribe links.
+    <img alt="bot_clicks_1.png" src="/images/bot_clicks_1.png" />
+### Detection Rules
+
+This tab utilizes the same blocklist structures as the **Bot opens** tab, but applies them specifically to link clicks. If you are configuring this for the first time, you will see empty state illustrations prompting you to begin.
+   
+* **Classify as bot activity if**: Use these heuristic rules to flag clicks based on their timing and pattern. Link-scanning bots often follow every link in an email within seconds of delivery, often without loading the email itself. Select the checkbox next to a rule to enable it. For a rule with a time threshold, the value and unit fields stay disabled until you select the rule. For details on how MoEngage evaluates these rules, refer to [How Heuristic Rules Work](#how-heuristic-rules-work).
+    <img alt="bot_clicks_heuristics.png" src="/images/bot_clicks_heuristics.png" />
+  * **The first click is detected within [value] [unit] of the email being delivered.**: Classifies a click as bot activity if the first click on the email occurs within the specified time after delivery.
+    * **Value**: Enter the threshold duration.
+    * **Unit**: Select **seconds** or **minutes**.
+    * The maximum threshold is 10 minutes (600 seconds). If you enter a higher value, MoEngage displays the error **Clicks can be classified as bot clicks for up to 10 minutes after the email is opened.** You can't save your settings until you correct the value.
+    * For example, if you set the threshold to 3 seconds, a click recorded 2 seconds after delivery is classified as a bot click.
+  * **Two or more links are clicked within [value] [unit] of each other.**: Classifies clicks as bot activity if two or more links in the same email are clicked within the specified time of each other. Rapid clicks across multiple links are typical of automated link checkers rather than human readers.
+    * **Value**: Enter the maximum time between clicks.
+    * **Unit**: Select **seconds** or **minutes**.
+    * The maximum threshold is 10 minutes (600 seconds). If you enter a higher value, MoEngage displays the error **Clicks can be classified as bot clicks for up to 10 minutes after the email is opened.** You can't save your settings until you correct the value.
+    * For example, if you set the threshold to 3 seconds and one link is clicked and then a second link 1 second later, both clicks are classified as bot clicks.
+  * **All the links in an email are clicked.**: Classifies clicks as bot activity if every link in the email is clicked. Security bots commonly scan every URL in an email for malicious content, while human recipients rarely click every link. This rule has no configurable threshold.
+  * **A click is detected without the email being opened.**: Classifies a click as bot activity if no open has been recorded for the email before the click. Automated link checkers follow links without loading the email's tracking pixel, so their clicks arrive without a preceding open. If an open is recorded after the click, the click's classification doesn't change.
+    <Warning>
+      Do not enable this rule if your database includes contacts subject to CNIL (France/Italy) or similar open-tracking consent regulations, or if a significant portion of your audience uses email clients that block tracking pixels by default. For these contacts, opens aren't tracked, so their genuine clicks are classified as bot clicks.
+    </Warning>
+  * **A click is detected before the email being delivered.**: Classifies a click as bot activity if it occurs before the email is delivered. If MoEngage receives the click event before the delivery event, it compares the event timestamps shared by your ESP to determine which actually occurred first.
+* **Bot user-agent blocklist**: Click **+ Add bot user-agent** to input user-agent signatures for known link-crawling bots. You will use the exact same inline inputs (**Detection logic**, **Bot user-agent name**, **Enabled** checkbox, and checkmark/cross **Actions**) as described in the [Bot Opens](#configure-bot-opens) section.
+   <img alt="add_bot_useragent_clicks.png" src="/images/add_bot_useragent_clicks.png" />
+* **IP Address blocklist**: Click **+ Add IP address** to block click activity originating from specific servers or data center IP ranges.
+    <img alt="ip_address_blocklist_clicks_new.png" src="/images/ip_address_blocklist_clicks_new.png" />
+
+### Post Detection Actions
+   <img alt="post_detection_actions_clicks.png" src="/images/post_detection_actions_clicks.png" />
+
+#### Campaign Metrics Display Settings
+
+Choose how your campaign dashboards present click data:
+
+* **Show both total and adjusted clicks**: Displays raw counts alongside adjusted (human-only) click counts.
+* **Show bot adjusted clicks only**: Completely excludes detected bot clicks from your reports. (Note: Updating this will also update the setting on the **Bot opens** tab).
+
+For more information, refer to the Engagement Metrics section in [Campaign Performance Stats](/user-guide/campaigns-and-channels/email/analyze/email-analytics-and-info#campaign-performance-stats).
+
+#### On Detecting Unsubscribe Bot Clicks
+
+Because security bots test every link, they will inevitably click your unsubscribe link. This setting protects genuine users from accidental opt-outs.
+
+* **Unsubscribe the user**: MoEngage will process the opt-out request normally, even if the system suspects it was triggered by a bot.
+* **Ignore unsubscribe bot clicks**: MoEngage will block the opt-out request if a bot click is detected, ensuring the genuine user remains subscribed and reachable.
+
+
+<Warning>
+  Choosing to ignore unsubscribe bot clicks carries a compliance risk. If a detected "bot click" was actually a genuine user trying to opt out, that user's unsubscribe request won't go through, and they'll continue receiving emails they intended to stop. Depending on your region and audience, this can have compliance implications under regulations such as GDPR and CAN-SPAM, both of which require honoring opt-out requests. While our bot detection is robust, it is impossible to identify 100% of all bot activities, so some genuine unsubscribe clicks may still be misclassified as bot activity. Review your compliance obligations before selecting this option, and consider periodically auditing suppressed unsubscribe attempts to detect any false positives.
+</Warning>
+
+## How Heuristic Rules Work
+
+The heuristic rules under **Classify as bot activity if** on the **Bot opens** and **Bot clicks** tabs work as follows:
+
+* **Seven rules in total**: The **Bot opens** tab has two heuristic rules and the **Bot clicks** tab has five. Three of these rules let you set a time threshold: one on **Bot opens** and two on **Bot clicks**.
+* **Threshold limit**: A threshold can't exceed 10 minutes (600 seconds). If you enter a higher value, MoEngage displays a validation error below the rule and you can't save your settings until you correct the value:
+  * On the **Bot opens** tab: **Opens can be classified as bot opens for up to 10 minutes after the email is delivered.**
+  * On the **Bot clicks** tab: **Clicks can be classified as bot clicks for up to 10 minutes after the email is opened.**
+* **Multiple matching rules**: Each enabled rule is evaluated independently, so a single open or click can match more than one rule. MoEngage records every matching rule as a reason on the event. For example, if a bot clicks all three links in an email within seconds of delivery and no open was recorded, the click is flagged for **The first click is detected within**, **All the links in an email are clicked.**, and **A click is detected without the email being opened.**
+* **Classification is final**: MoEngage classifies an open or click when the event is processed. Events that arrive later don't change an earlier classification. For example, an open recorded after a click doesn't reclassify that click.
+* **Only enabled rules affect your metrics**: Opens and clicks are classified as bot activity in your campaign metrics only for the rules you enable.
+* **Delivery-based rules**: Four rules depend on the email's delivery event: **An open is detected within [value] [unit] of the email being delivered.**, **An open is detected before the email being delivered.**, **The first click is detected within [value] [unit] of the email being delivered.**, and **A click is detected before the email being delivered.** How MoEngage evaluates these rules depends on whether it has the delivery event for the email:
+  * **Delivery event is available**: MoEngage compares the event timestamps shared by your ESP. If the open or click occurred before the delivery, it's classified as bot activity under the corresponding "before the email being delivered" rule. The order in which MoEngage receives the events doesn't matter; the ESP timestamps decide.
+  * **Delivery event isn't available**: If the delivery event was never received, or was received too late to be evaluated, MoEngage skips the delivery-based rules for that open or click. MoEngage never classifies an open or click as bot activity just because its delivery event is missing. Other enabled rules, such as the blocklists, Apple MPP detection, and heuristic rules that don't depend on delivery, still apply.
+  * **ESPs that don't send delivery events**: Some ESPs, such as Mandrill and SparkPost, don't send delivery events to MoEngage, so delivery-based rules are never applied to their emails. For more information, refer to the [FAQs](#faqs).
+
+<Note>
+  For the delivery-based rules, MoEngage looks back up to 24 hours from the time of an open or click to find the email's delivery event.
+</Note>
+
+### Choose a Threshold
+
+Timing-based rules can't distinguish a fast bot from a fast human. Any genuine recipient who opens or clicks within your threshold is also classified as a bot, even when the action is manual. Before you set a threshold, review how quickly your recipients typically engage after delivery. Start with a short threshold, monitor your adjusted metrics, and increase it gradually if bot activity is still getting through.
+
+## Save or Disable Bot Detection Settings
+
+**Saving**: Click the **Save** button at the bottom right of the screen to apply your configurations. Changes to the **Bot opens** and **Bot clicks** tabs are saved independently. If you attempt to navigate away with unsaved changes, MoEngage will prompt you to confirm before discarding them.
+
+**Disabling**: To turn the feature off entirely, switch off the **Detect bots for email opens and clicks** master toggle. MoEngage will display a confirmation dialog summarizing the impact on your metrics before disabling the rules.
+
+ 
+## FAQs
+ 
 <AccordionGroup>
+  <Accordion title="Does bot detection apply retroactively to past campaigns?">
+    No. Bot detection rules apply only to opens and clicks moving forward from the moment they are saved. Changing a rule or a display setting does not reprocess historical campaign data recorded prior to the change.
+  </Accordion>
+ 
+  <Accordion title="Can I use different detection rules for opens and clicks?">
+    Yes. The **Bot opens** and **Bot clicks** tabs feature independent blocklists, allowing you to configure different User-Agent or IP Address rules based on the specific type of bot activity you are observing for each interaction type.
+  </Accordion>
+ 
+  <Accordion title="Can I choose different display settings for opens and clicks?">
+    No. To maintain reporting consistency, the "Campaign metrics display settings" apply uniformly. If you choose to "Show bot adjusted opens only", your reports will also automatically show bot adjusted clicks only.
+  </Accordion>
+
+  <Accordion title="Will this affect channels other than Email?">
+    No. Bot detection currently applies strictly to the Email channel.
+  </Accordion>
+
+  <Accordion title="Why are genuine opens or clicks being flagged as bot activity?">
+    Timing-based rules flag every open or click that falls within the threshold, including manual actions by real recipients. The **A click is detected without the email being opened.** rule can also flag genuine clicks from contacts whose opens aren't tracked, such as contacts subject to CNIL or similar open-tracking consent regulations, or recipients whose email clients block tracking pixels by default. Review your thresholds and the rules you have enabled. For guidance, refer to [Choose a Threshold](#choose-a-threshold).
+  </Accordion>
+
+  <Accordion title="Can one open or click be flagged by more than one heuristic rule?">
+    Yes. Each enabled rule is evaluated independently, and every matching rule is recorded as a reason on the event.
+  </Accordion>
+
+  <Accordion title="What is the maximum threshold I can set for a heuristic rule?">
+    10 minutes (600 seconds). If you enter a higher value, MoEngage displays a validation error and doesn't let you save your settings.
+  </Accordion>
+
   <Accordion title="What will get classified as machine opens and clicks?">
-    In addition to Apple Mail Privacy Protection opens, all email opens and clicks coming from a list of malicious user agents will be classified as machine opens/clicks. The list of user agents has been compiled by us based on our monitoring and assessment that has happened over the last couple of quarters.
+    Opens and clicks are classified as machine activity if they match any rule you enable on the **Bot opens** or **Bot clicks** tab. This includes Apple Mail Privacy Protection opens, opens and clicks from blocklisted user agents or IP addresses, and opens and clicks that match a heuristic rule under **Classify as bot activity if**. The default user-agent list is compiled and maintained by MoEngage based on ongoing platform monitoring.
   </Accordion>
 
   <Accordion title="What if I want neither suppression nor a split view?">
-    This is one of the solution's supported options. If you believe that you are not impacted by machine opens/clicks, you can indicate this in bot detection settings. As a result, MoEngage will not evaluate email opens/clicks for machine activity and will show all open/click metrics.
+    If you believe your email opens and clicks aren't affected by bot activity, turn off the **Detect bots for email opens and clicks** toggle at the top of the **Bot Detection Settings** page (**Settings** > **Channels** > **Bot Detection Settings** > **Email** tab). When the toggle is off, MoEngage doesn't evaluate email opens and clicks for bot activity, and your campaign reports show all open and click metrics without any adjustment. For more information, refer to [Save or Disable Bot Detection Settings](#save-or-disable-bot-detection-settings).
   </Accordion>
 
   <Accordion title="Is this solution future-proof?">
-    For the past couple of quarters, MoEngage have done a lot of research and troubleshooting on the email opens/clicks front and have a good handle on the various moving parts involved. Having said that, machine open/clicks detection and labeling is a shifting landscape that requires continuous identification and resolution of issues. MoEngage continues to do the same in the future.
+    Over the past few quarters, MoEngage has done extensive research and troubleshooting on email opens and clicks and has a good understanding of the various moving parts involved. However, detecting and labeling bot opens and clicks is a shifting landscape that requires continuous identification and resolution of issues. MoEngage will continue to do the same in the future.
   </Accordion>
 
   <Accordion title="Does this cover all machine activity?">
@@ -115,71 +239,14 @@ For more information, refer to the Engagement Metrics section in [Campaign Perfo
     Yes, it is.
   </Accordion>
 
-  <Accordion title="Are there any changes I should make to trigger campaigns?">
-    Yes, you can consider updating the trigger condition and adding `Machine Open = False`, `Is Machine Event= False` as an additional attribute to the email open\click event.
-  </Accordion>
-</AccordionGroup>
+  <Accordion title="Do delivery-based bot detection rules apply to emails sent through ESPs that don't send delivery events?">
+    No. Some ESPs, such as Mandrill and SparkPost, don't send a delivery event to MoEngage. For emails sent through these ESPs, MoEngage skips the following delivery-based rules:
 
-## Configure Bot Clicks
+    - **An open is detected within [value] [unit] of the email being delivered.**
+    - **An open is detected before the email being delivered.**
+    - **The first click is detected within [value] [unit] of the email being delivered.**
+    - **A click is detected before the email being delivered.**
 
-Navigate to the **Bot clicks** tab to define how MoEngage identifies and handles automated link-checking bots. Because bots often crawl every link in an email to check for malicious content, they can falsely inflate your Click-Through Rates (CTR) and accidentally trigger unsubscribe links.
-    <img alt="bot_clicks.png" src="/images/bot_clicks.png" />
-### Detection Rules
-
-This tab utilizes the same blocklist structures as the **Bot opens** tab, but applies them specifically to link clicks. If you are configuring this for the first time, you will see empty state illustrations prompting you to begin.
-   <img alt="bot_user_agent_clicks.png" src="/images/bot_user_agent_clicks.png" />
-* **Bot user-agent blocklist**: Click **+ Add bot user-agent** to input user-agent signatures for known link-crawling bots. You will use the exact same inline inputs (**Detection logic**, **Bot user-agent name**, **Enabled** checkbox, and checkmark/cross **Actions**) as described in the [Bot Opens](#configure-bot-opens) section.
-   <img alt="add_bot_useragent_clicks.png" src="/images/add_bot_useragent_clicks.png" />
-* **I.P. Address blocklist**: Click **+ Add I.P. address** to block click activity originating from specific servers or data center IP ranges.
-    <img alt="ip_address_blocklist_clicks.png" src="/images/ip_address_blocklist_clicks.png" />
-
-### Post Detection Actions
-   <img alt="post_detection_actions_clicks.png" src="/images/post_detection_actions_clicks.png" />
-
-#### Campaign metrics display settings
-
-Choose how your campaign dashboards present click data:
-
-* **Show both total and adjusted clicks**: Displays raw counts alongside adjusted (human-only) click counts.
-* **Show bot adjusted clicks only**: Completely excludes detected bot clicks from your reports. (Note: Updating this will also update the setting on the **Bot opens** tab).
-
-For more information, refer to the Engagement Metrics section in [Campaign Performance Stats](/user-guide/campaigns-and-channels/email/analyze/email-analytics-and-info#campaign-performance-stats).
-
-#### On detecting unsubscribe bot clicks
-
-Because security bots test every link, they will inevitably click your unsubscribe link. This setting protects genuine users from accidental opt-outs.
-
-* **Unsubscribe the user**: MoEngage will process the opt-out request normally, even if the system suspects it was triggered by a bot.
-* **Ignore unsubscribe bot clicks**: MoEngage will block the opt-out request if a bot click is detected, ensuring the genuine user remains subscribed and reachable.
-
-
-<Warning>
-  Choosing to ignore unsubscribe bot clicks carries a compliance risk. If a detected "bot click" was actually a genuine user trying to opt out, that user's unsubscribe request won't go through, and they'll continue receiving emails they intended to stop. Depending on your region and audience, this can have compliance implications under regulations such as GDPR and CAN-SPAM, both of which require honoring opt-out requests. While our bot detection is robust, it is impossible to identify 100% of all bot activities, so some genuine unsubscribe clicks may still be misclassified as bot activity. Review your compliance obligations before selecting this option, and consider periodically auditing suppressed unsubscribe attempts to detect any false positives.
-</Warning>
-
-## Save or Disable Bot Detection Settings
-
-**Saving**: Click the **Save** button at the bottom right of the screen to apply your configurations. Changes to the **Bot opens** and **Bot clicks** tabs are saved independently. If you attempt to navigate away with unsaved changes, MoEngage will prompt you to confirm before discarding them.
-
-**Disabling**: To turn the feature off entirely, switch off the **Detect bots for email opens and clicks** master toggle. MoEngage will display a confirmation dialog summarizing the impact on your metrics before disabling the rules.
-
- 
-## FAQs
- 
-<AccordionGroup>
-  <Accordion title="Does bot detection apply retroactively to past campaigns?">
-    No. Bot detection rules apply only to opens and clicks moving forward from the moment they are saved. Changing a rule or a display setting does not reprocess historical campaign data recorded prior to the change.
-  </Accordion>
- 
-  <Accordion title="Can I use different detection rules for opens and clicks?">
-    Yes. The **Bot opens** and **Bot clicks** tabs feature independent blocklists, allowing you to configure different User-Agent or I.P. Address rules based on the specific type of bot activity you are observing for each interaction type.
-  </Accordion>
- 
-  <Accordion title="Can I choose different display settings for opens and clicks?">
-    No. To maintain reporting consistency, the "Campaign metrics display settings" apply uniformly. If you choose to "Show bot adjusted opens only", your reports will also automatically show bot adjusted clicks only.
-  </Accordion>
-   
-   <Accordion title="Will this affect channels other than Email?">
-    No. Bot detection currently applies strictly to the Email channel.
+    Opens and clicks on these emails aren't classified as bot activity only because the delivery event is missing. All other enabled rules still apply.
   </Accordion>
 </AccordionGroup>

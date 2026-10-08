@@ -1,0 +1,139 @@
+---
+title: "Inform を使用して注文ステータスを更新する方法"
+---
+
+# はじめに
+
+ブランドは常に、顧客が行った注文について最新情報を提供したいと考えています。こうした注文追跡メールは、注文処理のプロセス全体を通じて透明性と説明責任を提供するため、企業と顧客の間の信頼構築に役立ちます。
+
+この記事では、注文に関する最新情報をリアルタイムで顧客にタイムリーに送信する方法を学びます。ここでは、注文が発送され、その注文に含まれるすべての商品も一緒に発送された場合の注文ステータス更新を例に説明します。
+
+# 期待される結果
+
+ユーザーは注文確認メールを受け取ります。
+
+<img
+  src="/images/moengage_25ec99.png"
+  alt="image-20231222-132422.png"
+  style={{ width:"50%" }}
+/>
+
+<Tip>
+  - Inform モジュールのサブスクリプション。これにより、5 秒の SLA で、複数のチャネルにわたって API による 1:1 のコミュニケーションをトリガーできます。
+  - MoEngage Inform モジュールへの API コールを実行できるバックエンドシステム。注文ステータスが変更されるたびに、必要な詳細情報とともに MoEngage Inform API が呼び出されます。
+
+  詳細については、[Inform](/ja/user-guide/inform/overview-inform) および [Inform API](/ja/api/inform/inform-overview) を参照してください。
+</Tip>
+
+# Inform API のペイロードを定義する
+
+API ペイロードには、注文ステータスと購入された商品の詳細が含まれている必要があります。ペイロードには定義された構造がありますが、_personalized\_attributes_ は必要に応じてカスタマイズできます。
+
+サンプルペイロード
+
+```json wrap
+{
+    "alert_id": "65xxxxxxxxxxxxxxxxxxxx98",
+    "transaction_id": "IN-00263",
+    "payloads": {
+        "EMAIL": {
+            "recipient": "john.doe@moengage.com",
+            "personalized_attributes": {
+                "customer_name": "John",
+                "items": [{
+                    "image_url": "https://www.apple.com/v/iphone-15-pro/c/images/overview/camera/48mp_camera__cxq25ak34nau_large_2x.jpg",
+                    "brand_name": "Apple",
+                    "product_name": "iPhone 15 Pro",
+                    "quantity": 1,
+                    "price": 999
+                },
+                {
+                    "image_url": "https://www.apple.com/v/airpods-pro/i/images/overview/case_front__r6ng7f1x18a6_large_2x.png",
+                    "brand_name": "Apple",
+                    "product_name": "AirPods Pro(2nd generation)",
+                    "quantity": 1,
+                    "price": 249
+                }],
+                "order_status": "Your order has been dispatched!",
+                "order_id": "IN-00263",
+                "estimated_delivery_date": "29th Dec 2023"
+                }
+        }
+    }
+}
+```
+
+詳細については、[Inform API](/ja/api/inform/inform-overview) を参照してください。
+
+# Inform Alert を作成する
+
+このセクションでは、Inform Alert を作成します。
+
+## ステップ 1: Alert の詳細
+
+利用可能な任意のチャネルを選択できますが、この記事ではチャネルとして Email を使用します。Inform Alert の作成の詳細については、[Create Alert](/ja/user-guide/inform/create/create-alert) を参照してください。
+
+## ステップ 2: コンテンツ
+
+**Drag and drop editor** タブで、注文ステータスと商品の詳細を表示するために必要なテンプレートを作成します。
+
+### 注文ステータスとその他の関連情報
+
+ペイロードの定義に使用したキーは、ここでは Jinja 属性として使用されます: `{{order_status}}`、`{{order_id}}`、`{{estimated_delivery_date}}`。
+
+![image-20231222-130419.png](/images/moengage_d5fff1.png)
+
+### 商品の詳細
+
+すべての詳細を含む行を設定した後、商品を繰り返し処理し、定義したテンプレートに基づいて各商品を表示する条件を追加できます。
+
+行を選択し、以下のように条件を追加します。ここで items は、オブジェクトの配列が渡されるキーです。
+
+- **Name**: Products Purchased
+- **Description**: Products Purchased
+- **Before**: `{% for item in items %}`
+- **After**: `{% endfor %}`
+
+<img
+  src="/images/moengage_7e3ddb.png"
+  alt="image-20231222-131731.png"
+  style={{ width:"55%" }}
+/>
+
+条件を追加した後、Product オブジェクトのキーを使用して各商品の値をパーソナライズします。ここで item は現在の反復を指します。
+
+<img
+  src="/images/moengage_e5ed35.png"
+  alt="image-20231222-132001.png"
+  style={{ width:"64%" }}
+/>
+
+### 画像
+
+1. 画像コンテンツブロックをクリックします。
+2. **Dynamic image** トグルをオンにします。
+3. **Dynamic Url** フィールドに JINJA 属性を入力します。
+
+![image-20231222-132116.png](/images/moengage_52c700.png)
+
+## ステップ 3: 公開
+
+### Alert をテストする
+
+テンプレート全体を定義した後、次のステップで提供される cURL を Postman で使用してメールをテストできます。
+
+Alert を公開する前にテストして、API との統合が正常に機能しているかどうかを確認し、ユーザーが実際に受信するメールを確認できます。詳細については、[Test Your Alert](/ja/user-guide/inform/create/test-alert) を参照してください。
+
+### Alert を公開する
+
+右下の **Publish** をクリックします。これにより Alert が公開され、Alert を一意に識別するために使用される Alert ID が生成されます。入力した Reference ID を使用して Alert を識別することもできます。
+
+## Alert の本番稼働
+
+テスト結果が期待どおりであれば、同じペイロードを使用して、バックエンドから開始される API コールの Alert を設定できます。これらの API を呼び出すタイミングのロジックは、ビジネス要件によって異なります。
+
+# まとめ
+
+この設定により、顧客は Alert をトリガーしたタイミングでタイムリーな最新情報を受け取ることができます。また、完全に自動化できるため、手動での介入が不要になります。
+
+トリガーのロジックはバックエンドにありますが、テンプレートは MoEngage ダッシュボードからいつでも変更できます。さらに、このようなタイムリーな最新情報は、顧客の信頼を高めるだけでなく、サポートへの問い合わせも削減します。

@@ -1,0 +1,239 @@
+---
+title: "MoEngage Expo SDK の設定"
+description: "MoEngage Expo SDK プラグインのパラメータと、プラットフォーム固有の初期化ファイルを設定します。"
+---
+
+## 概要
+
+このガイドでは、MoEngage SDK の設定に使用できるパラメータについて説明します。プラグインレベルの設定はすべて app.json または app.config.js ファイル内で行います。コア SDK の認証情報は、プラットフォームごとの別ファイルに配置します。
+
+<Check>
+  SDK を設定する前に、[インストール](/ja/developer-guide/react-native-sdk/sdk-integration/expo/installation)ガイドを完了しておく必要があります。
+</Check>
+
+## プラグインによるネイティブ設定の管理
+
+信頼性が高く効率的なセットアップを実現するために、MoEngage Expo プラグインはネイティブプロジェクトの設定を自動的に管理します。この方法では、prebuild プロセス中にプラットフォーム固有の要件を処理するため、手作業によるミスの可能性が減ります。
+
+主な自動化の内容は次のとおりです。
+
+- 重要な設定の適用: プラグインは、データの整合性を確保するために、Android のバックアップ除外ルールなどの必要な設定を自動的に追加します。
+- 手動でのファイル編集が不要: AndroidManifest.xml（Android）や Info.plist（iOS）などのネイティブファイルを直接変更する必要はありません。
+
+## SDK 初期化の設定（XML ファイルと Plist ファイル）
+
+configFilePath プロパティで指定するとおり、MoEngage のコア認証情報と SDK 設定は app.json には記述しません。代わりに、プラットフォームごとに別のファイルで定義します。
+
+- Android の場合: XML ファイル（例: android_initialisation_config.xml）を[生成](https://app-cdn.moengage.com/sdk/integration/config/index.html)します。
+- iOS の場合: Plist ファイル（例: MoEngage-Config.plist）を[生成](https://app-cdn.moengage.com/sdk/integration/config/index.html)します。
+
+<Accordion title="SDK 設定パラメータ">
+  以下の表に、これらのファイルで使用できるプロパティの詳細を示します。
+
+  <Tabs>
+    <Tab title="Android">
+      **Android SDK の設定**
+
+      | セクション | フィールド名 | 説明 |
+      | :-------------------- | :------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+      | **Core**              | Moengage Workspace ID                        | アプリケーションを MoEngage ダッシュボード内の特定のワークスペースに関連付ける一意の識別子です。 |
+      | Core                  | Moengage Project ID                          | ワークスペースで [_Portfolio_](https://www.moengage.com/docs/user-guide/settings/account/portfolio/portfolio) 機能が有効になっている場合に、特定のプロジェクトに関連付けられる一意の識別子です。 |
+      | Core                  | Moengage Data Center                         | ダッシュボードの URL に基づくデータセンターです。詳細については、[こちらを参照してください](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/data-center)。 |
+      | Core                  | MoengageEnvironment                          | データレポートの環境です。テストデータが本番環境の分析に影響しないように、本番アプリケーションには LIVE、開発には TEST を指定します。 |
+      | Core                  | Custom Proxy Domain                          | SDK のネットワークトラフィックを独自のサブドメイン経由でルーティングするために使用する、ベースのカスタムプロキシドメインです。（キー: `com_moengage_core_custom_base_domain`） |
+      | Core                  | Enable Logging for Release build             | アプリの本番バージョンで SDK のログを有効にするかどうかを指定します。パフォーマンスを向上させ、機密データの漏洩を防ぐために、リリースビルドでは無効にすることを推奨します。 |
+      | Core                  | Log Level                                    | デバッグ目的で SDK が生成するログの詳細度を指定します。通常、詳細（VERBOSE = 0）から最小限（ERROR = 3）までの範囲です。 |
+      | Core                  | Integration Partner                          | 使用しているサードパーティの統合パートナーの名前です。ユーザー獲得や特定のイベントをそのパートナーに帰属させるのに役立ちます。 |
+      | Core                  | Cache Connection                             | データを MoEngage サーバーに送信する前に SDK がローカルにキャッシュする方法の設定です。ネットワーク使用量の管理とオフライントラッキングに役立ちます。 |
+      | **Data Tracking**     | Track Device Information                     | デバイスモデル、OS バージョン、GAID、アプリバージョンなどの標準的なデバイス属性を SDK がトラッキングするかどうかを指定します。 |
+      | Data Tracking         | Enable Carrier Tracking                      | セグメンテーションのために、ユーザーのモバイルキャリア情報（例: Verizon、T-Mobile）を SDK が収集して送信するかどうかを指定します。 |
+      | Data Tracking         | Enable Screen Filtering by Package           | Screen Tracking Whitelisted Packages で指定したパッケージベースのフィルタリングを有効にするかどうかを指定します。 |
+      | Data Tracking         | Screens to Exclude from Tracking             | 自動スクリーントラッキングから除外する Android Activity 名のカンマ区切りリストです。機密性の高い画面や無関係な画面からのデータ収集を防ぎます。 |
+      | Data Tracking         | Enable Background Data Sync                  | アプリケーションがバックグラウンドで実行されている間に、SDK が MoEngage サーバーとデータを同期することを許可するかどうかを指定します。 |
+      | Data Tracking         | Enable Periodic Data Sync                    | 定期同期が有効になっている場合に、SDK がバッチ処理したデータを MoEngage サーバーと同期する時間間隔（ミリ秒）です。 |
+      | **Push Notification** | Push Token Retry Interval(s)                 | 配信に失敗したプッシュ通知を再送信する前に SDK が待機する時間間隔（秒）です。 |
+      | Push Notification     | Push Notification Small Icon                 | アプリのすべてのプッシュ通知でスモールアイコンとして使用する drawable のリソース名です。 |
+      | Push Notification     | Push Notification Large Icon                 | プッシュ通知でラージアイコンとして使用する drawable のリソース名です。 |
+      | Push Notification     | Push Notification Color                      | プッシュ通知のアクセントに使用する 16 進数のカラーコード（例: #FFFFFF）です。アプリ名やアクションボタンなどの要素に影響します。 |
+      | Push Notification     | Group Multiple Notifications in Drawer       | アプリからの複数の通知を、システムトレイ内の 1 つのスタックされた通知にグループ化するために使用するキーです。 |
+      | Push Notification     | Enable Push Notification Back Stack Building | 通知をタップしたときにアプリのタスクスタックを再構築し、戻るボタンによる適切なナビゲーションを確保するかどうかを指定します。 |
+      | Push Notification     | Enable Notification Large Icon Display       | 指定したラージアイコンをプッシュ通知に表示するかどうかを指定します。 |
+      | Push Notification     | Enable Heads-Up Notification                 | 優先度の高い通知を、画面上部にフローティングの「ヘッドアップ」バナーとして表示することを許可するかどうかを指定します。 |
+      | Push Notification     | Configure FCM Registration                   | Firebase Cloud Messaging（FCM）プロジェクトのサーバーキーです。Android デバイスにプッシュ通知を送信するために必要です。 |
+      | Push Notification     | Configure Huawei Push Kit Registration       | Huawei Mobile Services（HMS）プロジェクトのアプリシークレットキーです。Huawei デバイスにプッシュ通知を送信するために必要です。 |
+      | Push Notification     | Enable RTT Background Sync                   | Real-Time Triggers（RTT）のバックグラウンド同期を有効にするかどうかを指定します。これにより、ユーザーの行動に基づいてより迅速にキャンペーンアクションを実行できます。 |
+      | **In-apps**           | Screens to Suppress In-Apps                  | アプリ内メッセージを表示しない Android Activity 名のカンマ区切りリストです。 |
+      | In-apps               | Show In-App in New Activity                  | アプリ内メッセージを現在の Activity に重ねて表示するのではなく、新しい専用の Android Activity 内に表示するかどうかを指定します。 |
+      | **Cards**             | Cards Placeholder Image                      | 実際の Card コンテンツの読み込み中に表示されるプレースホルダー画像の URL です。 |
+      | Cards                 | Cards Empty Inbox Image                      | ユーザーの Card 受信トレイが空の場合に表示される画像の URL です。 |
+      | Cards                 | Cards Date Format                            | UI の Card 要素にタイムスタンプを表示する際の日付形式（例: "dd-MMM-yyyy"）です。 |
+      | Cards                 | Enable Swipe to Refresh the Cards            | ユーザーが Card 受信トレイ画面を下に引いてコンテンツを更新できるかどうかを指定します。 |
+      | **Security**          | Enable Storage Encryption                    | ユーザーのデバイスにローカルに保存される MoEngage データを暗号化して、データセキュリティを強化するかどうかを指定します。 |
+      | Security              | Enable Network Encryption                    | SDK と MoEngage サーバー間で送信されるデータを暗号化して、転送中のデータを保護するかどうかを指定します。 |
+      | Security              | Enable JWT Authorisation                     | SDK から MoEngage バックエンドへのリクエストを認証するために、JSON Web Token（JWT）ベースの認可を有効にするかどうかを指定します。 |
+    </Tab>
+    <Tab title="iOS">
+      **iOS SDK の設定**
+
+      | セクション | フィールド名 | 説明 |
+      | :---------------- | :--------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+      | **Core**          | MoEngage Workspace ID                    | アプリケーションを MoEngage ダッシュボード内の特定のワークスペースに関連付ける一意の識別子です。 |
+      | Core              | Moengage Project ID                      | ワークスペースで [Portfolio](https://www.moengage.com/docs/user-guide/settings/account/portfolio/portfolio) 機能が有効になっている場合に、特定のプロジェクトに関連付けられる一意の識別子です。 |
+      | Core              | Moengage Data Center                     | アプリのデータが保存および処理される MoEngage サーバーの地理的な場所（例: 米国は 1、EU は 2）です。 |
+      | Core              | MoengageEnvironment                      | データレポートの環境です。テストデータが本番環境の分析に影響しないように、本番アプリケーションには PROD、開発には DEV を指定します。デフォルトでは、環境はビルド設定から取得されます。 |
+      | Core              | Custom Proxy Domain                      | SDK のネットワークトラフィックを独自のサブドメイン経由でルーティングするために使用する、ベースのカスタムプロキシドメインです。（キー: `CustomBaseDomain`） |
+      | Core              | Enable Logging for Release & Debug build | アプリの本番バージョンで SDK のログを有効にするかどうかを指定します。リリースビルドでは無効にすることを推奨します。 |
+      | Core              | Integration Partner                      | サードパーティの統合パートナーの名前です。ユーザー獲得や特定のイベントをそのパートナーに帰属させるのに役立ちます。 |
+      | Core              | App Group Name                           | App Group ID です。メインアプリが、Notification Service Extension などの関連する拡張機能とデータを共有できるようにします。 |
+      | **Data Tracking** | Enable Periodic Data Sync                | トラッキングしたデータをリアルタイムではなく、一定の間隔でバッチ処理して MoEngage に送信するかどうかを指定します。デフォルトで有効にすると、バッテリーとネットワークの使用を最適化できます。 |
+      | **In-apps**       | Padding for Inapp                        | アプリ内メッセージのコンテンツの周囲にセーフエリアとして適用するパディングの量（ポイント単位）です。間隔とレイアウトを制御します。 |
+      | In-apps           | Provide Deeplink Call back               | アプリ内メッセージからトリガーされたディープリンクをカスタム処理するために、ホストアプリケーションにコールバックメソッドを提供するかどうかを指定します。 |
+      | **Security**      | Enable Storage Encryption                | ユーザーのデバイスにローカルに保存される MoEngage データを暗号化して、データセキュリティを強化するかどうかを指定します。デフォルトでは暗号化は有効になっていません。 |
+      | Security          | Enable Network Encryption                | SDK と MoEngage サーバー間で送信されるデータを暗号化して、転送中のデータを保護するかどうかを指定します。デフォルトでは暗号化は有効になっていません。 |
+      | Security          | JWT Authorization Enabled                | SDK から MoEngage バックエンドへのリクエストを認証するために、JSON Web Token（JWT）ベースの認可を有効にするかどうかを指定します。 |
+    </Tab>
+  </Tabs>
+</Accordion>
+
+## 設定パラメータ
+
+app.json または app.config.js ファイルの react-native-expo-moengage プラグインエントリ内に、以下のプロパティを追加します。これらのパラメータは、ネイティブモジュールのリンクや設定ファイルの参照など、プラグインのビルド時の動作を制御します。
+
+1. app.json または app.config.js ファイルを開きます。
+2. plugins 配列に react-native-expo-moengage を追加します。
+
+<Tabs>
+  <Tab title="Android">
+    <CodeGroup>
+
+    ```json JSON
+    [
+            "react-native-expo-moengage",
+            {
+              "android": {
+                "configFilePath": "assets/moengage/android_initilisation_config.xml",
+                "smallIconPath": "assets/moengage/small_icon.png",
+                "largeIconPath": "assets/moengage/large_icon.png",
+                "disableMoEngageDefaultBackupFile": false,
+                "includeFirebaseMessagingDependencies": true,
+                "isExpoNotificationIntegration": true,
+                "shouldIncludeMoEngageFirebaseMessagingService": true
+              }
+            }
+    ]
+    ```
+
+    </CodeGroup>
+
+    | キー | 説明 |
+    | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+    | configFilePath                                | MoEngage SDK のコア設定を含む設定ファイル（.xml）へのパスを指定します。 |
+    | smallIconPath                                 | プッシュ通知で使用するスモールアイコンへのパスを指定します。 |
+    | largeIconPath                                 | プッシュ通知で使用するラージアイコンへのパスを指定します。 |
+    | disableMoEngageDefaultBackupFile              | MoEngage では、バックアップ時に特定のファイルを除外する必要があります。このフラグはそのプロセスを設定するためのものです。有効にすると設定が自動的に含まれ、それ以外の場合は手動で追加する必要があります。詳細については、[こちら](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup)を参照してください。 |
+    | includeFirebaseMessagingDependencies          | プラグインに、プッシュに必要な Firebase Cloud Messaging（FCM）ライブラリを含めます。 |
+    | isExpoNotificationIntegration                 | MoEngage の通知サービスと併せて expo-notifications ライブラリを使用する場合に、互換性を確保し、プッシュペイロードを正しくルーティングするには true に設定します。 |
+    | shouldIncludeMoEngageFirebaseMessagingService | 有効にすると、MoEngage によって通知サービスが含まれます。それ以外の場合は、ペイロードを MoEngage SDK に渡す必要があります。 |
+  </Tab>
+  <Tab title="iOS">
+    <CodeGroup>
+
+    ```json JSON
+    [
+            "react-native-expo-moengage",
+            {
+              "apple": {
+                "configFilePath": "assets/moengage/MoEngage-Config.plist",
+                "pushNotificationImpressionTrackingEnabled": true,
+                "richPushNotificationEnabled": true,
+                "pushTemplatesEnabled": true,
+                "deviceTriggerEnabled": true,
+                "liveActivityTargetPath": "assets/moengage/LiveActivity"
+              }
+            }
+          ],
+    ```
+
+    </CodeGroup>
+
+    | キー | 説明 |
+    | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | configFilePath                            | アプリケーションプロジェクトのルートパスを基準とした、MoEngage 設定 plist ファイルへのパスを指定します。この plist ファイルのデータは、アプリケーションの Info.plist 内の MoEngage キーに追加されます。パスが指定されていない場合は、assets/moengage/MoEngage-Config.plist がパスとみなされます。 |
+    | pushNotificationImpressionTrackingEnabled | プッシュ通知の配信インプレッションのトラッキングを有効にするかどうかを指定します。指定されていない場合のデフォルト値は true です。 |
+    | richPushNotificationEnabled               | プッシュ通知でリッチメディアコンテンツを有効にするかどうかを指定します。指定されていない場合は false です。 |
+    | pushTemplatesEnabled                      | プッシュ通知テンプレートを有効にするかどうかを指定します。有効にしない場合は false です。詳細については、[こちら](/ja/developer-guide/android-sdk/push/optional/push-templates)を参照してください。 |
+    | deviceTriggerEnabled                      | デバイストリガー通知を有効にするかどうかを指定します。有効にしない場合は false です。詳細については、[こちら](/ja/developer-guide/ios-sdk/push/optional/real-time-triggers)を参照してください。 |
+    | liveActivityTargetPath                    | Live Activity ウィジェットのターゲットファイルへのパスを指定します。ウィジェットの UI とペイロードの定義、およびウィジェットに必要な追加リソースを含める必要があります。詳細については、[こちら](/ja/developer-guide/ios-sdk/push/optional/broadcast-live-activity)を参照してください。 |
+  </Tab>
+</Tabs>
+
+## EAS Build での iOS App Extension の設定
+
+EAS Build は、標準的な iOS アプリの設定を自動的に処理します。ただし、個別のネイティブターゲットを必要とする機能をアプリで使用している場合は、`eas.json` でそれらを設定する必要があります。これには次のような機能が含まれます。
+
+- Notification Service Extension（NSE）: リッチプッシュとインプレッションのトラッキングに使用します。
+- Notification Content Extension（NCE）: プッシュテンプレートまたは Live Activities に使用します。
+
+iOS App Extension を設定するには、`expo.extra.eas.build.experimental.ios` オブジェクトに `appExtensions` キーを追加します。この設定により、EAS Build が追加のネイティブターゲットを正しくコンパイルして署名できるようになります。
+
+<CodeGroup>
+
+```json JSON
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "MoEngageExpoRichPush",
+                  "bundleIdentifier": "${YOUR Bundle Identifier}.MoEngageExpoRichPush",
+                  "entitlements": {
+                    "com.apple.security.application-groups": ["${YOUR AppGroup provided in apple.configFilePath}"]
+                  }
+                },
+                {
+                  "targetName": "MoEngageExpoPushTemplates",
+                  "bundleIdentifier": "${YOUR Bundle Identifier}.MoEngageExpoPushTemplates",
+                  "entitlements": {
+                    "com.apple.security.application-groups": ["${YOUR AppGroup provided in apple.configFilePath}"]
+                  }
+                },
+                {
+                  "targetName": "MoEngageExpoLiveActivity",
+                  "bundleIdentifier": "${YOUR Bundle Identifier}",
+                  "entitlements": {
+                    "com.apple.security.application-groups": ["${YOUR AppGroup provided in apple.configFilePath}"]
+                  }
+                }
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+## ネイティブプロジェクトファイルの生成
+
+パッケージをインストールしてプラグインエントリを追加したら、prebuild コマンドを実行する必要があります。このコマンドは設定を使用して、プロジェクトのネイティブな Android および iOS ディレクトリを生成します。
+
+次のコマンドを実行します。
+
+<CodeGroup>
+
+```shell Shell
+npx expo prebuild
+```
+
+</CodeGroup>
+
+## 次のステップ
+
+設定を追加したら、最後のステップとして、アプリのコードで SDK を[初期化](/ja/developer-guide/react-native-sdk/sdk-integration/expo/configure-the-moengage-expo-sdk)します。

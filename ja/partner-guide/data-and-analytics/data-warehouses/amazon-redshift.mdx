@@ -1,0 +1,299 @@
+---
+title: "Amazon Redshift"
+description: "アクセス権を付与し、App Marketplace で Redshift を接続することで、MoEngage のキャンペーンインタラクションイベントを Amazon Redshift クラスターにエクスポートします。"
+---
+
+# はじめに
+
+[Amazon Redshift](https://aws.amazon.com/redshift/) は、高速かつ強力なフルマネージド型のペタバイト規模のデータウェアハウスサービスで、クラウドコンピューティングプラットフォームである Amazon Web Services の一部です。
+
+# MoEngage × Redshift
+
+MoEngage と Redshift の連携により、キャンペーンインタラクションイベントのデータを Amazon Redshift クラスターに直接エクスポートできます。
+
+# 連携
+
+<Info>
+  - Redshift クラスター、ロール、ポリシーを作成・編集する権限を持つ Amazon Web Services アカウントがあることを確認してください。
+  - 任意：新しいユーザーを作成するには、Redshift クラスターで新しいユーザーを作成するアクセス権が必要です。
+  - Redshift へのエクスポートは Streams アドオンの一部です。お使いのアカウントで有効にするには、担当の MoEngage CSM（カスタマーサクセスマネージャー）にお問い合わせください。
+</Info>
+
+## ステップ 1：Redshift クラスターがパブリックにアクセス可能であることを確認する
+
+Redshift クラスターで "Publicly Accessible" 設定がオンになっていることを確認してください。
+
+- 新しい Redshift クラスターを作成する場合は、"Network and Security" セクションで "Turn on Publicly accessible" オプションを選択します。 <img src="/images/partner_12060228001300.png" alt="Create-Public.png" />
+- すでに Redshift クラスターがある場合は、Properties タブで Network and Security セクションを探します。"Edit" ボタンをクリックします。 <img src="/images/partner_12060217490964.png" alt="Edit-Properties.png" />
+
+プロパティで Publicly accessible をオンにして保存します <img src="/images/partner_12060233602452.png" alt="Edit-Public.png" />
+
+## ステップ 2：MoEngage 用の新しいデータベースユーザーを作成する
+
+MoEngage は、お客様が提供した認証情報を使用して Redshift クラスターに接続します。MoEngage 専用に、権限を制限した新しいユーザーを作成することをおすすめします。既存のユーザーの認証情報を提供することもできます。新しい専用ユーザーを作成するには、Redshift クラスターで以下のコマンドを実行します。
+
+<CodeGroup>
+
+```sql SQL
+-- create a new user with a strong password
+CREATE USER <username> PASSWORD <password>;
+-- create a new schema where MoEngage will dump data
+-- you can skip this if you want to use existing schema
+CREATE SCHEMA IF NOT EXISTS <schema_name>;
+-- grant create access on the above schema or existing schema
+GRANT CREATE, USAGE ON SCHEMA <schema_name> TO <username>;
+```
+
+</CodeGroup>
+
+既存のスキーマを使用することもできます。MoEngage は、App Marketplace で接続を設定する際に指定したスキーマにテーブルを作成します。
+
+## ステップ 3：MoEngage の IP がクラスターにアクセスできるようにする
+
+新しいセキュリティグループを作成するか、既存のセキュリティグループを編集できます。
+
+### 新しいセキュリティグループを作成する
+
+EC2 コンソールの "Network & Security" で、Security Groups ページを開きます。"Create security group" ボタンをクリックします。
+
+1. セキュリティグループに名前と、任意で説明を付けます。
+2. VPC を選択します（デフォルトでは選択済みです）。
+3. 以下の詳細で新しいインバウンドルールを追加します。
+
+| **プロパティ** | **値** |
+| --- | --- |
+| Type | Redshift |
+| Protocol | TCP |
+| Port range | 5439 |
+| Source | ドロップダウンから **Custom** を選択します。CIDR ブロックには、MoEngage ダッシュボードのデータセンターに応じて、対応する CIDR を入力する必要があります。以下の表を参照してください。 |
+| Description | 任意で説明を入力します。 |
+
+"source" フィールドに入力する正しい IP アドレスは、MoEngage のデータセンターのリージョンによって異なります。
+
+| **データセンターのリージョン** | **CIDR ブロック** |
+| --- | --- |
+| DC-01 | 52.1.205.204/32 |
+| DC-02 | 18.195.110.23/32 |
+| DC-03 | 3.6.251.95/32 |
+| DC-04 | 10.22.3.193/32 |
+
+追加する必要があるインバウンドルールは 1 つだけです。たとえば、MoEngage の DC-01 サーバーを使用している場合は、最初の CIDR ブロックのみを追加します。
+
+![securitygroup.png](/images/partner_12060649054356.png)
+
+4. アウトバウンドルールは空のままにします。
+5. 完了したら "Create security group" をクリックします。
+
+### 既存のセキュリティグループを編集する
+
+EC2 コンソールの "Network & Security" で、Security Groups ページを開きます。セキュリティグループの一覧から、編集するものを開きます。
+
+1. セキュリティグループのページで "Actions" ボタンをクリックし、"Edit inbound rules" を選択します。
+2. 上記の表に従って、新しいインバウンドルールを追加します。
+3. 完了したら "Save rules" をクリックします。
+
+### セキュリティグループを Redshift クラスターにアタッチする
+
+1. Redshift コンソールで、Redshift クラスターを開きます。Properties タブに移動します。
+2. "Network & Security settings" セクションで、"Edit" ボタンをクリックします。
+3. VPC security groups で、作成または編集したセキュリティグループを選択します。
+4. 完了したら "Save changes" をクリックします。
+
+## ステップ 4：新しい IAM ポリシーを作成する
+
+MoEngage が S3 から Redshift クラスターにデータを転送できるようにする、新しい IAM ポリシーを作成する必要があります。
+
+![createpolicy.png](/images/partner_12061425942420.png)
+
+1. IAM コンソールの Access Management で、Policies に移動します。"Create policy" ボタンをクリックします。
+2. Create Policy ページで JSON タブに切り替え、以下のポリシーを貼り付けます。
+   <CodeGroup>
+   ```text JSON
+   {
+       "Version": "2012-10-17",
+       "Statement": [
+           {
+               "Sid": "VisualEditor1",
+               "Effect": "Allow",
+               "Action": [
+                   "s3:Get*",
+                   "s3:List*"
+               ],
+               "Resource": [ "<bucket-arn>",
+                             "<bucket-arn>/*"]
+           }
+       ]
+   }
+   ```
+   </CodeGroup>
+
+`<bucket-arn>` の値は、MoEngage のデータセンターのリージョンによって異なります。
+
+| データセンターのリージョン | `<bucket-arn>` | Resource 配列 |
+| --- | --- | --- |
+| DC-01 | `arn:aws:s3:::moe-warehouse-exports-us-east-1` | `"Resource": ["arn:aws:s3:::moe-warehouse-exports-us-east-1", "arn:aws:s3:::moe-warehouse-exports-us-east-1/*"]` |
+| DC-02 | `arn:aws:s3:::moe-warehouse-exports-eu-central-1` | `"Resource": ["arn:aws:s3:::moe-warehouse-exports-eu-central-1", "arn:aws:s3:::moe-warehouse-exports-eu-central-1/*"]` |
+| DC-03 | `arn:aws:s3:::moe-warehouse-exports-ap-south-1` | `"Resource": ["arn:aws:s3:::moe-warehouse-exports-ap-south-1", "arn:aws:s3:::moe-warehouse-exports-ap-south-1/*"]` |
+| DC-04 | `arn:aws:s3:::moe-warehouse-exports-us-east-2` | `"Resource": ["arn:aws:s3:::moe-warehouse-exports-us-east-2", "arn:aws:s3:::moe-warehouse-exports-us-east-2/*"]` |
+
+`<bucket-arn>` を、お使いの MoEngage データセンターのリージョンに対応するものに置き換えるだけです。
+
+<img src="/images/partner_12061504085652.png" alt="jsonpolicy.png" /> "Next" をクリックし、任意でタグを追加します。次に "Next: Review" をクリックします。
+
+3. ポリシーに名前と、任意で説明を付けます。準備ができたら "Create policy" をクリックします。<img src="/images/partner_12061562388628.png" alt="reviewpolicy.png" />
+
+## ステップ 5：新しい Redshift IAM ロールを作成する
+
+このロールにより、MoEngage のサーバーが Redshift クラスターにデータを書き込めるようになります。
+
+1. IAM コンソールの Access Management で、Roles に移動します。"Create role" ボタンをクリックします。
+2. Trusted entity type として "AWS service" を選択します。Use Case で、"Use cases for other AWS services" から "**Redshift** " を選択します。Redshift のユースケースの種類で、"**Redshift - Customizable** " を選択します。準備ができたら "Next" をクリックします。 <img src="/images/partner_12061766229268.png" alt="newrole.png" />
+3. 次のステップで、ステップ 4 で作成したポリシーを選択します。完了したら Next をクリックします。 <img src="/images/partner_12092468888084.png" alt="selectpolicy.png" />
+4. ロールに名前を付け、先ほど作成した正しいポリシーがアタッチされているかを確認します。準備ができたら Create Role をクリックします。 <img src="/images/partner_12061832176276.png" alt="createrolefinal.png" />
+
+## ステップ 6：このロールを Redshift クラスターにアタッチする
+
+Redshift コンソールで、Redshift クラスターを開きます。
+
+1. Properties タブで、"Associated IAM roles" セクションに移動します。
+2. "Manage IAM roles" ボタンをクリックし、"Associate IAM roles" オプションを選択します。
+3. ポップアップのモーダルから、[ステップ 5](#step-5-create-a-new-redshift-iam-role) で作成したロールを選択します。
+
+![attachrole.png](/images/partner_12062024553236.png)
+
+4. "Associate IAM roles" をクリックして、このロールを Redshift クラスターにアタッチします。
+
+## ステップ 7：MoEngage App Marketplace で Redshift 連携を有効にする
+
+1. MoEngage ダッシュボードで、App Marketplace に移動します。
+2. "Redshift" を検索します。
+3. "Integrate" タブに移動し、"\+ Add Integration" をクリックします。
+
+![addintegration.png](/images/partner_12091204131732.png)
+
+4. Redshift クラスターの接続の詳細を入力します。
+
+![connectiondetails.png](/images/partner_12091351269140.png)
+
+![credentialsandevents.png](/images/partner_12091730203412.png)
+
+| フィールド | 説明 | 例 |
+| --- | --- | --- |
+| Connection Name | この接続に識別しやすい名前を付けます。 | `My Redshift Instance 1` |
+| Host Name | AWS コンソールで Redshift クラスターに移動します。**General information** の下に、ホスト名が Redshift エンドポイントとして表示されます。コロン `:` より前の部分を貼り付けます。<br />たとえば、Endpoint が `redshift-cluster-1.xxxxxxxzgxxx.us-east-1.redshift.amazonaws.com:5439/dev` の場合、Host Name は `redshift-cluster-1.xxxxxxxzgxxx.us-east-1.redshift.amazonaws.com` になります。  <br /><img src="/images/partner_12091527172244.png" alt="Redshift エンドポイントの場所" /> | 形式は `[name].[id].[region].redshift.amazonaws.com` である必要があります |
+| Port | ポート番号を入力します。AWS コンソールで Redshift クラスターに移動します。**Properties** タブの **Database configurations** で、ポート番号とデータベース名を確認できます。デフォルトでは、Redshift のポート番号は 5439 です。  <br /><img src="/images/partner_12091625026324.png" alt="ポートとデータベースの構成" /> | `5439` |
+| Database | Redshift データベースの名前です。 | `moengage_exports` |
+| Username | MoEngage が接続に使用するユーザー名を入力します。既存のユーザー、または [ステップ 2](#step-2-create-a-new-database-user-for-moengage) で作成したユーザーのいずれかを指定できます。 | — |
+| Password | データベースユーザーのパスワードを入力します。 | — |
+| IAM Role ARN | [ステップ 5](#step-5-create-a-new-redshift-iam-role) で作成した IAM ロールの ARN を入力します。ARN を確認するには、AWS コンソールで IAM コンソールに移動します。サイドメニューの Access Management で、**Roles** をクリックします。[ステップ 5](#step-5-create-a-new-redshift-iam-role) で作成した IAM ロールを選択します。**Summary** セクションに ARN が表示されています。これをコピーして入力フィールドに貼り付けます。  <br /><img src="/images/partner_12091830424212.png" alt="IAM ロール ARN の場所" /> | 形式は `arn:aws:iam::[aws-account-id]:role/[role-name]` である必要があります |
+| Export into schema | MoEngage は指定されたスキーマにテーブルを作成します。特に構成していない限り、スキーマ名の通常の値は "public" です。 | — |
+| Select events to export | Redshift クラスターにエクスポートするイベントを選択します。 | — |
+
+5. 任意で、接続をテストできます。MoEngage は入力された詳細が正しいかどうかを検証します。問題がある場合はエラーが表示されるので、修正できます。
+6. 接続テストが成功したら、接続の詳細を保存できます。MoEngage は間もなく Redshift クラスターへのイベントのエクスポートを開始します。
+
+# データを正しく受信しているかを確認する
+
+MoEngage はスキーマに以下の 2 つのテーブルを作成します。
+
+1. `test_connection_moengage` - このテーブルは、接続の詳細が有効かどうかを定期的に確認するために使用します。
+2. `moengage_events` - すべてのイベントをこのテーブルにダンプ（追加）します。
+
+![tablestructure.png](/images/partner_12092184809492.png)
+
+`moengage_events` テーブルをクエリすることで、データがウェアハウスに正しく流れているかを確認できます。
+
+![tabledata.png](/images/partner_12092212491284.png)
+
+### サポートされている日時形式
+
+| 日付と時刻の形式 | 例 |
+| --- | --- |
+| `"datetime_format": "YYYY-MM-DD"` | <ul><li>2022-01-22</li></ul> |
+| `"datetime_format": "YYYY/MM/DD"` | <ul><li>2022/01/22</li></ul> |
+| `"datetime_format": "DD/MM/YYYY"` | <ul><li>22/01/2022</li></ul> |
+| `"datetime_format": "DD-MM-YYYY"` | <ul><li>22-01-2022</li></ul> |
+| `"datetime_format": "DD-MM-YYYY hh:mm:ss"` | <ul><li>31-12-2022 12:10:33</li></ul> |
+| `"datetime_format": "DD/MM/YYYY hh:mm:ss"` | <ul><li>31/12/2022 12:10:33</li></ul> |
+| `"datetime_format": "YYYY-MM-DD hh:mm:ss"` | <ul><li>2019-02-22 17:54:14</li></ul> |
+| `"datetime_format": "YYYY/MM/DD hh:mm:ss"` | <ul><li>2019/02/22 17:54:14</li></ul> |
+| `"datetime_format": "DD-MM-YYYYThh:mm:ss.s"` | <ul><li>31-12-2022T12:10:33.882</li></ul> |
+| `"datetime_format": "DD/MM/YYYYThh:mm:ss.s"` | <ul><li>31/12/2022T12:10:33.882</li></ul> |
+| `"datetime_format": "DD-MM-YYYYThh:mm:ssTZD"` | <ul><li>31-12-2022T12:10:33Z</li><li>31-12-2022T12:10:33\+08:00</li><li>31-12-2022T12:10:33-08:00</li></ul> |
+| `"datetime_format": "DD/MM/YYYYThh:mm:ssTZD"` | <ul><li>31/12/2022T12:10:33Z</li><li>31/12/2022T12:10:33\+08:00</li><li>31/12/2022T12:10:33-08:00</li></ul> |
+| `"datetime_format": "YYYY-MM-DD hh:mm:ss.s"` | <ul><li>2019-02-22 17:54:14.933</li></ul> |
+| `"datetime_format": "YYYY/MM/DD hh:mm:ss.s"` | <ul><li>2019/02/22 17:54:14.933</li></ul> |
+| `"datetime_format": "YYYY-MM-DDThh:mm:ssTZD"` | <ul><li>2019-11-14T00:01:02Z</li><li>2019-11-14T00:01:02\+08:00</li><li>2019-11-14T00:01:02Z-08:00</li></ul> |
+| `"datetime_format": "YYYY/MM/DDThh:mm:ssTZD"` | <ul><li>2019/11/14T00:01:02Z</li><li>2019/11/14T00:01:02\+08:00</li><li>2019/11/14T00:01:02-08:00</li></ul> |
+| `"datetime_format": "YYYY-MM-DDThh:mm:ss.sTZD"` | <ul><li>2019-02-22T17:54:14.957Z</li><li>2019-02-22T17:54:14.957299-08:00</li><li>2019-02-22T17:54:14.957299\+08:00</li></ul> |
+| `"datetime_format": "YYYY/MM/DDThh:mm:ss.sTZD"` | <ul><li>2019/02/22T17:54:14.957Z</li><li>2019/02/22T17:54:14.957299-08:00</li><li>2019/02/22T17:54:14.957299\+08:00</li></ul> |
+
+# テーブル構造のサンプル
+
+最終的なテーブル定義は、エクスポートの具体的な構成によって異なります。
+
+| フィールド | 型 | NL |
+| --- | --- | --- |
+| `app_name` | character varying(256) | NN |
+| `event_name` | character varying(256) | NN |
+| `event_code` | character varying(256) | NN |
+| `event_uuid` | character varying(256) | NN |
+| `event_time` | bigint | NN |
+| `event_type` | character varying(256) | NN |
+| `event_source` | character varying(256) | NN |
+| `uid` | character varying(256) | NULL |
+| `user_attributes_moengage_user_id` | character varying(256) | NULL |
+| `device_attributes_moengage_device_id` | character varying(256) | NULL |
+| `push_id` | character varying(512) | NULL |
+| `email_address` | character varying(256) | NULL |
+| `mobile_number` | character varying(256) | NULL |
+| `event_attributes_app_version` | character varying(256) | NULL |
+| `event_attributes_sdk_version` | character varying(256) | NULL |
+| `event_attributes_platform` | character varying(256) | NULL |
+| `event_attributes_campaign_id` | character varying(256) | NULL |
+| `event_attributes_campaign_name` | character varying(256) | NULL |
+| `event_attributes_campaign_type` | character varying(256) | NULL |
+| `event_attributes_campaign_channel` | character varying(256) | NULL |
+| `event_attributes_readable_campaign_id` | character varying(256) | NULL |
+| `event_attributes_parent_campaign_id` | character varying(256) | NULL |
+| `event_attributes_parent_flow_id` | character varying(256) | NULL |
+| `event_attributes_parent_flow_name` | character varying(256) | NULL |
+| `event_attributes_variation_id` | character varying(256) | NULL |
+| `event_attributes_locale_id` | character varying(256) | NULL |
+| `event_attributes_locale_name` | character varying(256) | NULL |
+| `event_attributes_url` | character varying(256) | NULL |
+| `event_attributes_timestamp` | bigint | NULL |
+| `event_attributes_first_session` | boolean | NULL |
+| `event_attributes_logged_in_status` | character varying(256) | NULL |
+| `event_attributes` | super | NULL |
+| `user_attributes` | super | NULL |
+| `device_attributes` | super | NULL |
+| `created_at` | character varying(256) | NULL |
+
+# エクスポートの頻度
+
+データは 1 時間ごとにダンプされます。
+
+# よくある質問
+
+<AccordionGroup>
+  <Accordion title="データの受信はいつから開始されますか？">
+    通常、アカウントの自動データエクスポートが設定され、データが表示され始めるまでに最大 30 分かかります。
+  </Accordion>
+
+  <Accordion title="後から追加のイベントをエクスポートできますか？">
+    はい。後から新しいイベントをエクスポートする必要がある場合は、いつでも App Marketplace で構成を編集し、新しいイベントをエクスポートに追加できます。
+  </Accordion>
+
+  <Accordion title="自動データエクスポートを使用して履歴データをエクスポートできますか？">
+    現時点では、自動データエクスポートを使用して履歴データをエクスポートすることはできません。構成が完了すると、エクスポートを有効にした時点からの各イベントのデータが表示され始めます。
+  </Accordion>
+
+  <Accordion title="自動データエクスポートには料金がかかりますか？">
+    お使いの料金プランにこの機能がまだ含まれておらず、後から有効にする必要がある場合は、カスタマーサクセスマネージャーと協力して料金プランに含める必要があります。MoEngage が毎月データウェアハウス/パートナー/API に送信するデータ量に応じて、追加料金が発生する場合があります。
+  </Accordion>
+
+  <Accordion title="データエクスポートでは最新のユーザー属性が保証されますか？">
+    いいえ。データエクスポートは主にイベントをほぼリアルタイムでエクスポートするために構築されており、MoEngage のユーザー属性は非同期で更新されるため、現時点ではエクスポートにおけるユーザー属性の最新値を保証することはできません。
+  </Accordion>
+</AccordionGroup>

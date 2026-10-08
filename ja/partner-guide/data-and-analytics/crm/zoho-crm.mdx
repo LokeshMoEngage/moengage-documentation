@@ -1,0 +1,411 @@
+---
+title: "Zoho CRM"
+description: "Zoho CRM と MoEngage を接続し、コンタクト、リード、商談、通話、会議、カスタムモジュールをユーザーまたはイベントとして同期して、リード育成キャンペーンに活用します。"
+---
+
+[Zoho CRM](https://www.zoho.com/en-in/crm/) は、クラウドベースの技術を活用して、企業の営業、マーケティング、カスタマーサポートのプロセスを効率化する顧客関係管理プラットフォームです。これにより、顧客とのやり取りを効果的に管理し、営業パイプラインを追跡し、ビジネスの成長を促進できます。
+
+## MoEngage × Zoho CRM
+
+MoEngage と Zoho CRM の連携により、データ同期を通じてマーケティングと営業の施策を強化できます。この連携により、以下のことが可能になります。
+
+- Zoho CRM から MoEngage にリード、商談などを同期する。
+- 通話や会議などの営業アクティビティを行動イベントとしてインポートする。
+- 包括的な顧客プロファイリングのためにカスタムモジュールを取り込む。
+
+## ユースケース
+
+Zoho CRM と MoEngage を連携すると、以下のユースケースに対応できます。
+
+- **有望なリードの育成**：Zoho CRM のリードスコアリングとステージの進行に基づいて、パーソナライズされた MoEngage キャンペーンを送信します。
+- **失注した商談への再エンゲージメント**：商談が **Lost** または **Closed Lost** とマークされたときに、ターゲットを絞ったウィンバックキャンペーンを送信して見込み客に再エンゲージします。
+
+### 同期モジュール
+
+以下の表は、各モジュールのデフォルトの同期タイプを示しています。
+
+| モジュール | MoEngage の同期タイプ |
+| --- | --- |
+| Contacts | Users |
+| Leads | Users |
+| Accounts | Users（Contacts および Deals と同期） |
+| Deals | Events |
+| Tasks | Events（カスタム） |
+| Calls | Events（カスタム） |
+| Meetings | Events（カスタム） |
+| Custom Modules | Users/Events（カスタム） |
+
+<Info>
+  **アカウント情報：** Accounts モジュールもサポートされています。データを常に最新の状態に保つため、関連するアカウント情報はそれぞれ Contacts レコードと Deals レコードとともに同期されます。
+</Info>
+
+# 連携
+
+<Check>
+  **前提条件：** ワークフローと Webhook を構成するために必要な権限を持つ Zoho CRM アカウントがあることを確認してください。
+</Check>
+
+## ステップ 1：MoEngage エンドポイントを取得する
+
+連携専用のエンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストには、MoEngage とパートナープラットフォームの間でユーザープロファイルを紐付けるために使用する共通の識別子を指定する必要があります。
+
+## ステップ 2：Zoho CRM でワークフロールールを作成する
+
+ワークフロールールを設定するには、以下の手順を実行します。
+
+1. Zoho CRM のダッシュボードで、**Settings** \> **Automation** \> **Workflow Rules** に移動します。
+2. **Workflow Rules** ページで、**Create Rule** をクリックします。 <img src="/images/partner_40830764971668.png" alt="Create New Rule ダイアログボックスの画像" /> \
+   **Create New Rule** ダイアログボックスが表示されます。次に、同期するモジュールを選択します。**注**：Zoho のワークフローはモジュールごとに固有です。モジュールごとに個別のワークフローを作成する必要があります。
+3. **Module** リストで、**Contacts**、**Leads**、**Deals**、**Calls**、**Meetings** など、目的のモジュールを選択します。
+4. **Rule Name** ボックスに、ルールの名前を入力します。
+5. **Description** ボックス（任意）に、ルールの目的の説明を入力します。
+6. **Next** をクリックします。 <img src="/images/partner_40830749827348.png" alt="Next ボタンの画像" /> 次に、トリガーを構成します。
+7. **WHEN** ブロックで、**Execute this workflow rule based on** の横にあるドロップダウンリストをクリックし、**Record action** を選択します。これにより、従属するドロップダウンリストが表示されます。
+8. 従属するドロップダウンリストで、**Create or Edit** などのアクションタイプを選択します。
+9. レコードが編集されるたびにワークフローを繰り返す場合は、**Repeat this workflow whenever a contact is edited** チェックボックスを選択します（任意）。
+10. **Next** をクリックします。 <img src="/images/partner_40830764972948.png" alt="Next ボタンの画像" /> \
+    **CONDITION** ブロックでは、すべてのレコードに対してワークフロールールを実行するように定義するか、必要に応じて特定のフィルター条件を追加できます。 <img src="/images/account-push.png" alt="CONDITION ブロックの画像" />
+
+## ステップ 3：Webhook アクションを構成する
+
+Webhook アクションを構成するには、以下の手順を実行します。
+
+1. **Instant Actions** リストで、**Webhook** を選択します。\
+   **Webhook** ダイアログボックスが表示されます。
+2. **Configure Webhook** をクリックします。
+
+![Configure Webhook ボタンの画像](/images/partner_40830749830164.png)
+
+3. **Webhooks** ページで、以下の詳細を入力します。
+
+| Zoho CRM のセクション | 説明 |
+| --- | --- |
+| Method | **POST** |
+| URL | MoEngage から提供された専用の Webhook URL を以下の形式で入力します：`https://api-0X.moengage.com/v1/partner/zoho-crm/{events/user}/?configName={config_name}` |
+| Custom Headers | 以下のカスタムヘッダーを追加します。<ul><li>**Content-Type**：application/json</li><li>**Authorization**：オンラインの [Basic Auth Header Generator ツール](https://www.debugbear.com/basic-auth-header-generator)を使用して Basic 認証トークンを生成します。ユーザー名に **Workspace ID**、パスワードに **Data API Key** を入力する必要があります。認証情報を確認するには、以下の手順を実行します。<br /><br />1. MoEngage の UI で、**Settings** \> **Account** \> **APIs** に移動します。<br />2. **Workspace ID**（**旧 app id**）の下にある ID をコピーします。<br />3. **API keys** の下にある **Data** をコピーします。<br /><br />Basic 認証トークンは **Workspace ID** と **Data** を組み合わせたものです。たとえば、以下の値を Basic 認証トークンとして貼り付けます：`Basic Qk5CR1NNNUR4eHh4eHhWQ1hSRFJEWTdSOlFsWHVoTHVaeHh4eHh4QWQrQnBYUEotNw==`<br />**注**：トークンは余分なスペースを含めず、完全にコピーしてください。<br /><br /></li></ul> |
+
+![Webhooks ページの画像](/images/partner_40830764976788.png)
+
+## ステップ 4：Webhook のリクエストボディを構成する
+
+Request Body セクションでは、以下のいずれかのオプションを選択できます。
+
+- **シンプルな構成**：MoEngage のデフォルトのフィールドマッピングを含む[事前構築済みの JSON ペイロード](/ja/partner-guide/data-and-analytics/crm/zoho-crm#mapping-references)を使用します。
+- **高度な構成**：[ボイラープレートテンプレート](/ja/partner-guide/data-and-analytics/crm/zoho-crm#boilerplate-templates)を使用してカスタムペイロードを作成します。キーと値のペアに特定のデータを入力するには、[Zoho CRM のマージフィールド](https://help.zoho.com/portal/en/kb/crm/automate-business-processes/actions/articles/webhooks-workflow#Recognize_Unsupported_Merge_Field_Values)を使用します。
+
+### ボイラープレートテンプレート
+
+<Accordion title="ユーザーデータ（Contacts/Leads）の場合">
+  <CodeGroup>
+
+  ```json JSON
+  {
+    "customer_id": "${Unique_Identifier}",
+    "first_name": "${Module.First Name}",
+    "last_name": "${Module.Last Name}",
+    "email": "${Module.Email}",
+    "phone": "${Module.Phone}",
+    "user_attributes": {
+      "type": "Contacts", // or "Leads"
+      "modified_time": "${Module.Modified Time}"
+      // Add additional fields as needed - see reference tables below
+    }
+  }
+  ```
+
+  </CodeGroup>
+</Accordion>
+
+<Accordion title="イベントデータ（Deals/Activities）の場合">
+  <CodeGroup>
+
+  ```json JSON
+  {
+    "customer_id": "${Unique_Identifier}",
+    "event_name": "Deal Updated", // or custom event name
+    "user_attributes": {
+      "type": "Deals",
+      "modified_time": "${Module.Modified Time}"
+      // Add user context fields if needed
+    },
+    "event_attributes": {
+      "modified_time": "${Module.Modified Time}"
+      // Add event-specific fields - see reference tables below
+    }
+  }
+  ```
+
+  </CodeGroup>
+</Accordion>
+
+## データマッピングのガイドライン
+
+- **一意の識別子（Customer ID）：** Zoho CRM データから、一貫性があり変更されない一意の識別子（external\_id、メールアドレス、電話番号など）を使用します。この値を MoEngage ペイロードの `customer_id` フィールドにマッピングします。これはデータのマージと重複ユーザープロファイルの防止に不可欠です。
+- **必須フィールド：** すべてのペイロードには、`customer_id`、`modified_time`、`type` フィールドを含める必要があります。これらは適切なデータ処理、ルックアップ、セグメンテーションに不可欠です。
+- **Type：** MoEngage で正確なセグメンテーションとターゲティングを行うために、レコードタイプを "Contacts"、"Leads"、"Deals" のいずれかで指定します。
+- **日付と時刻の形式：** すべての日付と時刻のフィールド、特に `modified_time` が `dd-mm-yyyy` `HH:MM:SS` の形式になっていることを確認してください。この設定は Zoho の Webhook で構成します。
+- **イベント名：** MoEngage でアクションを識別・分類するために、すべてのイベントに `event_name` を含めます。これにより、分析とセグメンテーションのためにすべてのイベントが正確に追跡されます。
+
+![Webhook リクエストボディにおける Zoho CRM モジュールのデータマッピング](/images/Datamappings.png)
+
+### マッピングのリファレンス
+
+以下は、**Contact**、**Lead**、**Deal** などのモジュールの JSON マッピングです。これらの例をそのまま使用するか、user\_attributes または event\_attributes オブジェクト内にキーと値のペアを追加してカスタマイズできます。
+
+<Accordion title="Contact のマッピング（Users）">
+  <CodeGroup>
+
+  ```json JSON
+  {
+    "customer_id": "${Unique_Identifier}",
+    "first_name": "${Contacts.First Name}",
+    "last_name": "${Contacts.Last Name}",
+    "email": "${Contacts.Email}",
+    "phone": "${Contacts.Phone}",
+    "user_attributes": {
+      "type": "Contacts",
+      "contact_owner": "${Contacts.Contact Owner}",
+      "lead_source": "${Contacts.Lead Source}",
+      "modified_time": "${Contacts.Modified Time}",
+      "account_name": "${Accounts.Account Name}"
+    }
+  }
+  ```
+
+  </CodeGroup>
+</Accordion>
+
+<Accordion title="Lead のマッピング（Users）">
+  <CodeGroup>
+
+  ```json JSON
+  {
+    "customer_id": "${Unique_Identifier}",
+    "first_name": "${Leads.First Name}",
+    "last_name": "${Leads.Last Name}",
+    "email": "${Leads.Email}",
+    "phone": "${Leads.Phone}",
+    "user_attributes": {
+      "type": "Leads",
+      "lead_status": "${Leads.Lead Status}",
+      "company": "${Leads.Company}",
+      "lead_source": "${Leads.Lead Source}",
+      "modified_time": "${Leads.Modified Time}"
+    }
+  }
+  ```
+
+  </CodeGroup>
+</Accordion>
+
+<Accordion title="Deal のマッピング（Events）">
+  <CodeGroup>
+
+  ```json JSON
+  {
+    "customer_id": "${Unique_Identifier}",
+    "event_name": "Deal Updated", // or custom event name
+    "user_attributes": {
+      "type": "Deals",
+      "modified_time": "${Deals.Modified Time}"
+    },
+    "event_attributes": {
+      "deal_name": "${Deals.Deal Name}",
+      "stage": "${Deals.Stage}",
+      "deal_amount": "${Deals.Amount}",
+      "closing_date": "${Deals.Closing Date}",
+      "modified_time": "${Deals.Modified Time}"
+    }
+  }
+  ```
+
+  </CodeGroup>
+</Accordion>
+
+<Accordion title="カスタムオブジェクトのマッピング：Meetings">
+  <CodeGroup>
+
+  ```json JSON
+  {
+    "customer_id": "${Unique_Identifier}",
+    "event_name": "Meeting Scheduled",
+    "user_attributes": {
+      "modified_time": "${Meetings.Modified Time}"
+    },
+    "event_attributes": {
+      "meeting_subject": "${Meetings.Subject}",
+      "meeting_start_time": "${Meetings.Start DateTime}",
+      "meeting_owner": "${Meetings.Owner}",
+      "modified_time": "${Meetings.Modified Time}"
+    }
+  }
+  ```
+
+  </CodeGroup>
+</Accordion>
+
+<Accordion title="カスタムオブジェクトのマッピング：Calls">
+  <CodeGroup>
+
+  ```json JSON
+  {
+    "customer_id": "${Unique_Identifier}",
+    "event_name": "Call Logged", // or custom event name
+    "event_attributes": {
+      "call_id": "${Calls.Call Id}",
+      "subject": "${Calls.Subject}",
+      "call_type": "${Calls.Call Type}",
+      "call_purpose": "${Calls.Call Purpose}",
+      "related_to": "${Calls.Related To}",
+      "start_time": "${Calls.Call Start Time}",
+      "duration_formatted": "${Calls.Call Duration}",
+      "duration_in_seconds": "${Calls.Call Duration (in seconds)}",
+      "description": "${Calls.Description}",
+      "result": "${Calls.Call Result}",
+      "outgoing_status": "${Calls.Outgoing Call Status}",
+      "agenda": "${Calls.Call Agenda}",
+      "created_by": "${Calls.Created By}",
+      "modified_by": "${Calls.Modified By}",
+      "created_time": "${Calls.Created Time}",
+      "modified_time": "${Calls.Modified Time}",
+      "last_activity_time": "${Calls.Last Activity Time}"
+    }
+  }
+  ```
+
+  </CodeGroup>
+</Accordion>
+
+<Accordion title="カスタムオブジェクトのマッピングテンプレート">
+  <CodeGroup>
+
+  ```json JSON
+  {
+    "customer_id": "${Unique_Identifier}",
+    "event_name": "Custom Event Name",
+    "user_attributes": {
+      "modified_time": "${Object.Modified Time}"
+    },
+    "event_attributes": {
+      "specific_details": "${Object.Specific Fields}",
+      "modified_time": "${Object.Modified Time}"
+    }
+  }
+  ```
+
+  </CodeGroup>
+</Accordion>
+
+### フィールドのリファレンス
+
+以下の表は、各モジュールでサポートされているフィールドと、対応する Zoho CRM のマージフィールドを示しています。
+
+<AccordionGroup>
+  <Accordion title="Contact のフィールド">
+    | フィールド | ZOHO のマージフィールド |
+    | --- | --- |
+    | Department | `${Contacts.Department}` |
+    | Title | `${Contacts.Title}` |
+    | Mobile | `${Contacts.Mobile}` |
+    | Fax | `${Contacts.Fax}` |
+    | Assistant | `${Contacts.Assistant}` |
+    | Email Opt Out | `${Contacts.Email Opt Out}` |
+    | Skype ID | `${Contacts.Skype ID}` |
+    | Twitter | `${Contacts.Twitter}` |
+    | Created By | `${Contacts.Created By}` |
+    | Created Time | `${Contacts.Created Time}` |
+    | Last Activity | `${Contacts.Last Activity Time}` |
+    | Mailing Street | `${Contacts.Mailing Street}` |
+    | Mailing City | `${Contacts.Mailing City}` |
+    | Mailing State | `${Contacts.Mailing State}` |
+    | Mailing Zip | `${Contacts.Mailing Zip}` |
+    | Mailing Country | `${Contacts.Mailing Country}` |
+    | Description | `${Contacts.Description}` |
+  </Accordion>
+
+  <Accordion title="Lead のフィールド">
+    | フィールド | ZOHO のマージフィールド |
+    | --- | --- |
+    | Lead ID | `${Leads.Lead Id}` |
+    | Lead Owner | `${Leads.Lead Owner}` |
+    | Industry | `${Leads.Industry}` |
+    | Rating | `${Leads.Rating}` |
+    | Annual Revenue | `${Leads.Annual Revenue}` |
+    | Employees | `${Leads.No. of Employees}` |
+    | Website | `${Leads.Website}` |
+    | Street | `${Leads.Street}` |
+    | City | `${Leads.City}` |
+    | State | `${Leads.State}` |
+    | Zip Code | `${Leads.Zip Code}` |
+    | Country | `${Leads.Country}` |
+    | Secondary Email | `${Leads.Secondary Email}` |
+    | Mobile | `${Leads.Mobile}` |
+  </Accordion>
+
+  <Accordion title="Deal のフィールド">
+    | フィールド | ZOHO のマージフィールド |
+    | --- | --- |
+    | Deal ID | `${Deals.Deal Id}` |
+    | Deal Owner | `${Deals.Deal Owner}` |
+    | Contact Name | `${Deals.Contact Name}` |
+    | Probability | `${Deals.Probability (%)}` |
+    | Expected Revenue | `${Deals.Expected Revenue}` |
+    | Type | `${Deals.Type}` |
+    | Next Step | `${Deals.Next Step}` |
+    | Campaign Source | `${Deals.Campaign Source}` |
+    | Created By | `${Deals.Created By}` |
+    | Sales Cycle Duration | `${Deals.Sales Cycle Duration}` |
+    | Reason for Loss | `${Deals.Reason For Loss}` |
+  </Accordion>
+
+  <Accordion title="Account のフィールド">
+    | フィールド | ZOHO のマージフィールド |
+    | --- | --- |
+    | Account Name | `${Accounts.Account Name}` |
+    | Account Type | `${Accounts.Account Type}` |
+    | Industry | `${Accounts.Industry}` |
+    | Account Number | `${Accounts.Account Number}` |
+    | SIC Code | `${Accounts.SIC Code}` |
+    | Rating | `${Accounts.Rating}` |
+    | Phone | `${Accounts.Phone}` |
+    | Ticker Symbol | `${Accounts.Ticker Symbol}` |
+    | Annual Revenue | `${Accounts.Annual Revenue}` |
+    | Ownership | `${Accounts.Ownership}` |
+  </Accordion>
+
+  <Accordion title="Activity のフィールド">
+    #### Meetings
+
+    | フィールド | ZOHO のマージフィールド |
+    | --- | --- |
+    | Subject | `${Meetings.Subject}` |
+    | Start DateTime | `${Meetings.Start DateTime}` |
+    | Owner | `${Meetings.Owner}` |
+
+    #### Calls
+
+    | フィールド | ZOHO のマージフィールド |
+    | --- | --- |
+    | Call Type | `${Calls.Call Type}` |
+    | Call Purpose | `${Calls.Call Purpose}` |
+    | Duration | `${Calls.Call Duration}` |
+    | Result | `${Calls.Call Result}` |
+
+    #### Tasks
+
+    | フィールド | ZOHO のマージフィールド |
+    | --- | --- |
+    | Subject | `${Tasks.Subject}` |
+    | Status | `${Tasks.Status}` |
+    | Priority | `${Tasks.Priority}` |
+    | Due Date | `${Tasks.Due Date}` |
+  </Accordion>
+</AccordionGroup>
+
+## レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Zoho CRM データの取り込みをワークスペースあたり最大 500 リクエスト/秒（RPS）に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、Zoho CRM のデフォルトの再試行ポリシーを参照してください。
+
+**再試行の上限到達**：Zoho CRM がデータのバッチに対してすべての再試行を使い切った場合、失敗したリクエストを再実行するには Zoho CRM サポートチームに問い合わせる必要があります。

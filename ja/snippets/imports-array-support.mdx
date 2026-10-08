@@ -1,0 +1,22 @@
+{/* Array support for CSV imports. Applies to Manual Upload, S3, and SFTP CSV files
+(user and event attributes). Not applicable to Auxiliary Data (String only). */}
+
+* 単純な配列がサポートされています。ネストされた配列や連想配列はサポートされていません。
+* CSV でサポートされている区切り文字はパイプ（`|`）です。例: `[1|2|3]`。
+* サポートされているデータ型は Array String と Array Double（数値）です。列のマッピング時に **Map column to attribute** リストで型を選択してください。
+* 配列内のすべての要素は同種である必要があり、すべて integer/double か、すべて string のいずれかでなければなりません。そうでない場合、MoEngage は各要素を宣言された型に型変換しようと試み、その結果を保存します。
+* **配列の型変換**: 配列 `["1" | 2 | "abc"]` を Array Double としてマッピングした場合、`"abc"` は数値に変換できないため破棄され、MoEngage は `[1, 2]` を取り込みます。
+
+**例**
+
+String 列、Array String 列、Array Double 列を含む CSV 行:
+
+```csv
+user_id,tags,scores
+u123,["premium"|"beta_user"|"newsletter"],[4.5|3.8|5.0]
+```
+
+* `tags` は **Array String** としてマッピングされ、MoEngage は `["premium", "beta_user", "newsletter"]` を取り込みます。
+* `scores` は **Array Double** としてマッピングされ、MoEngage は `[4.5, 3.8, 5.0]` を取り込みます。
+
+各要素はパイプ区切り文字の間に置かれ、値全体は角括弧で囲まれます（`[element1|element2|element3]`）。パイプの前後にスペースは入れません。

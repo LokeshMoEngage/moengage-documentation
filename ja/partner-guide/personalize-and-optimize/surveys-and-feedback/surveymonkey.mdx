@@ -1,0 +1,76 @@
+---
+title: "SurveyMonkey"
+---
+
+# はじめに
+
+[SurveyMonkey](https://www.surveymonkey.com/) は、ユーザーがアンケートを作成、送信、分析するのに役立つクラウドベースのアンケートツールです。
+
+# MoEngage × Survey Monkey
+
+SurveyMonkey のオンラインアンケートおよびフォームツールを使用してユーザーの声や意見を収集することで、ビジネスを前進させることができます。MoEngage と SurveyMonkey の連携により、以下のことができます。
+
+- MoEngage のユーザーを SurveyMonkey の Contacts にインポートする。
+- MoEngage のユーザーを SurveyMonkey の Contact Lists に追加する。
+
+## ユースケース
+
+Survey Monkey を MoEngage と連携すると、以下のユースケースに対応できます。
+
+- **ターゲットを絞ったフィードバックループ**: 全員にアンケートを一斉送信するのではなく、特定の MoEngage セグメント（例:「High Spenders」や「At-Risk Users」）を SurveyMonkey に同期して、関連性の高い質問を行います。
+- **デモグラフィックの同期**: MoEngage の属性を SurveyMonkey に渡すことで、アンケートのフィールド（名前、都市、最後に購入した商品など）を事前入力します。これにより、ユーザーの手間が減り、アンケートの完了率が向上します。
+- **クローズドループマーケティング**:（インバウンドの設定が必要）アンケートの回答を使用して MoEngage でユーザーにタグを付けます。たとえば、ユーザーがアンケートで「I love Spicy Food」と回答した場合、MoEngage のプロファイルを更新して「Spicy Food Deals」のプッシュ通知をトリガーします。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  - SurveyMonkey の API にアクセスするには、プライベートアプリを作成する必要があります。
+  - SurveyMonkey の API キーがあることを確認してください。
+</Info>
+
+## MoEngage のユーザーを SurveyMonkey の Contact Lists に追加する
+
+MoEngage でコネクタキャンペーンを作成するには、以下を行います。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最も適した配信タイプを選択します。この場合は、「Event triggered」を選択します。<img src="/images/partner_20357410766996.png" alt="Screenshot_2022-02-21_at_10.48.46_PM.png" />
+2. トリガー条件とターゲットオーディエンスを選択します。
+3. キャンペーンのステップ 2 で、以下を行います。
+
+### SurveyMonkey API を呼び出す
+
+MoEngage のユーザーを SurveyMonkey に転送するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして POST を選択します。
+- Headers:
+  - `Authorization`: `Bearer <your_api_key>`
+  - `Content-Type`: `application/json`
+- Webhook URL としてエンドポイント `https://api.surveymonkey.com/v3/contact_lists/{{CONTACT_LIST_ID}}/contacts` を追加します。`{{CONTACT_LIST_ID}}` をコンタクトリストの ID に置き換えてください。
+- Body:
+  <CodeGroup>
+  ```json JSON
+  {
+      "first_name": "{{UserAttribute['First Name']}}",
+      "last_name": "{{UserAttribute['Last Name']}}",
+      "email": "{{UserAttribute['Email (Standard)']}}",
+      "custom_fields": {
+          "Phone": "{{UserAttribute['Mobile Number (Standard)']}}",
+          "City": "{{UserAttribute['Last Known City']}}",
+          "Country": "{{UserAttribute['Last Known Country']}}"
+      }
+  }
+  ```
+  </CodeGroup>
+
+![](/images/partner_20357410768660.png)
+
+![](/images/partner_45472575730068.png)
+
+- 詳細については、[SurveyMonkey の API ドキュメント](https://api.surveymonkey.com/v3/docs?shell#api-endpoints-get-contact_lists-contact_list_id-contacts)を参照してください。
+
+## リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整っています。Create Connector Campaign のステップ 2 で利用できる Test 機能を使用して、コネクタの設定をテストすることもできます。<img src="/images/partner_20357410769556.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+
+そのままキャンペーンを公開できます。

@@ -1,0 +1,129 @@
+---
+title: "BOM を使用したインストール"
+description: "MoEngage の Bill of Materials を使用して、互換性のある Android SDK モジュールのバージョンを管理します。"
+---
+
+import DocsMcpBanner from '/ja/snippets/docs-mcp-banner.mdx';
+
+<DocsMcpBanner />
+
+<Info>
+  **情報**
+
+  MoEngage が Android Native SDK の新しいバージョンをリリースするたびに通知を受け取れるようになりました。詳細については、[MoEngage SDK リリースの購読](/ja/release-notes/sdks/android)を参照してください。
+</Info>
+
+<Note>
+  統合する前に、サポートされている SDK バージョンと非推奨化のタイムラインについて [SDK 非推奨ポリシー](/ja/developer-guide/sdk-lifecycle-and-policies/sdk-deprecation-policy)を確認してください。
+</Note>
+
+## 概要
+
+Android SDK コアバージョン [14.04.03](/ja/release-notes/sdks/android#core-sdk-14-04-03) 以降では、MoEngage は Bill of Materials (BOM) を使用して Android SDK を統合することを推奨しています。単一の BOM バージョンを定義することで、Push Kit、Rich Media、Geofence などのすべての MoEngage モジュールが自動的に互換性のあるバージョンを使用するようになります。BOM は依存関係の管理を簡素化し、バージョンの競合を防ぎ、個々のアーティファクトのバージョン番号を手動で追跡する必要をなくします。
+
+## アプリケーションに BOM を追加する
+
+BOM を統合するには、アプリケーションレベルの `build.gradle` ファイルに `android-bom` の依存関係を追加します。バージョン番号はこの依存関係でのみ指定します。
+
+<img
+  src="https://img.shields.io/maven-metadata/v.svg?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fcom%2Fmoengage%2Fandroid-bom%2Fmaven-metadata.xml&label=maven-central"
+  alt="Maven Central"
+  style={{ width:"26%" }}
+/>
+
+<CodeGroup>
+
+```kotlin build.gradle.kts (Kotlin) wrap
+dependencies {
+    // Import the MoEngage BOM
+    implementation(platform("com.moengage:android-bom:<bomVersion>"))
+}
+```
+
+</CodeGroup>
+
+`<bomVersion>` を該当するバージョン番号に置き換えてください。BOM バージョンの詳細については、[Android SDK リリースノート](/ja/release-notes/sdks/android)を参照してください。
+
+## MoEngage モジュールを追加する
+
+BOM を設定したら、アプリケーションに必要な特定の MoEngage モジュールを含めます。\
+**注:** これらの依存関係にバージョン番号は不要です。BOM が自動的に管理します。
+
+<CodeGroup>
+
+```kotlin build.gradle.kts (Kotlin) wrap
+dependencies {
+    // -------------------------------------------------
+    // OPTIONAL MODULES (Add based on required features)
+    // -------------------------------------------------
+
+    // Cards Core - Required if using Cards Core APIs directly
+    implementation("com.moengage:cards-core")
+    
+    // Cards UI - Required for Cards (feed) UI
+    implementation("com.moengage:cards-ui")
+    
+    // Geofence - Required for Geofence-based campaigns
+    implementation("com.moengage:geofence")
+    
+     // HMS Push Kit - Required for Huawei Push Notifications
+    implementation("com.moengage:hms-pushkit")
+    
+     // InApp - Required for In-App Messaging
+    implementation("com.moengage:inapp")
+    
+     // Inbox Core - Required if using Inbox Core APIs directly
+    implementation("com.moengage:inbox-core")
+    
+     // Inbox UI - Required for Notification Center (Inbox) UI
+    implementation("com.moengage:inbox-ui")
+    
+     // Push Amp - Required for Push Amplification
+    implementation("com.moengage:push-amp")
+    
+    // Real Time Trigger - Required for device-triggered campaigns
+    implementation("com.moengage:realtime-trigger")
+    
+    // Rich Notification - Required for Push Templates 
+    implementation("com.moengage:rich-notification")
+    
+    // Security - Required for Security features, for example; storage encryption
+    implementation("com.moengage:security")
+}
+```
+
+</CodeGroup>
+
+<Info>
+  **情報**
+
+  MoEngage では、シームレスな依存関係管理のために BOM の使用を強く推奨していますが、各アーティファクトのバージョンを手動で設定することもできます。この方法を選択する場合は、統合するすべてのモジュールのバージョンが相互に互換性があることを確認する必要があります。
+
+  最新バージョンと互換性のあるアーティファクトの組み合わせについては、[Artifact ID を使用した SDK のインストール](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/advanced-or-optional/installing-sdk-using-artifact-id)を参照してください。
+</Info>
+
+## Androidx ライブラリを追加する
+
+SDK が機能するには、いくつかの Androidx ライブラリが必要です。まだ追加していない場合は、以下の Androidx ライブラリをアプリケーションに追加してください。
+
+<CodeGroup>
+
+```groovy Groovy wrap
+implementation("androidx.core:core:1.15.0")
+implementation("androidx.appcompat:appcompat:1.7.1")
+implementation("androidx.lifecycle:lifecycle-process:2.8.7")
+```
+
+</CodeGroup>
+
+MoEngage SDK の一部の主要機能は **lifecycle-process** ライブラリに依存しており、最新バージョンの **lifecycle-process** は **androidx.startup:startup-runtime** ライブラリに依存しています。そのため、マニフェストから **InitializationProvider** コンポーネントを削除しないでください。**startup-runtime** を使用して他の Initializer を追加する場合は、**lifecycle-process** ライブラリの Initializer も追加されていることを確認してください。Initializer の追加方法については、[ドキュメント](https://developer.android.com/jetpack/androidx/releases/lifecycle#2.4.0)を参照してください。
+
+## BOM を使用した場合の影響
+
+BOM を使用してもアプリケーションのサイズは増加しません。BOM は互換性を確保するためのバージョンマネージャーとしてのみ機能します。`dependencies` ブロックに含まれる特定のモジュール (例: `push-kit`、`android-sdk`) のみがアプリケーションにバンドルされます。
+
+## BOM を使用する理由
+
+- **バージョン管理の簡素化:** 個々のアーティファクトのバージョンを管理する必要がなくなります。BOM のバージョンを更新するだけで、統合全体が更新されます。
+- **互換性:** BOM により、統合されたすべてのモジュールが効率的に連携して動作することが保証され、ライブラリのバージョンの不一致によるランタイムクラッシュを防ぎます。
+- **クリーンな設定:** SDK バージョンの唯一の信頼できる情報源を持つ、クリーンな `build.gradle` ファイルを維持できます。

@@ -1,0 +1,499 @@
+---
+title: "In-App Nativ"
+description: "MoEngage In-App NATIV SDK を使用して、iOS アプリのユーザーにコンテキストに応じたアプリ内メッセージを表示します。"
+---
+
+In-App キャンペーンは、ユーザーのセグメントに送信して、カスタムメッセージの表示、新しいオファーの提供、特定のページへの誘導などを行うことができるカスタムビューです。In-App キャンペーンは MoEngage アカウントから作成できます。
+
+<Warning>
+  **SDK バージョン**
+
+  このドキュメントは、`MoEngage-iOS-SDK` バージョン 8.2.0 以降を使用している場合にのみ従ってください。バージョン 5.2.7 以前を使用している場合は、こちらの[リンク](https://developers.moengage.com/hc/en-us/articles/4404155414676)のドキュメントに従ってください。
+</Warning>
+
+<img
+  src="/images/inapp-native1.png"
+  alt="Inapp Native1"
+  title="Inapp Native1"
+  style={{ width:"41%" }}
+/>
+
+# SDK のインストール
+
+## Swift Package Manager を使用したインストール
+
+MoEngageInApp は、SDK バージョン 3.2.0 から SPM でサポートされています。統合するには、SDK バージョン 9.23.0 以上の場合は GitHub の URL https://github.com/moengage/apple-sdk.git を、それ以外の SDK バージョンの場合は https://github.com/moengage/MoEngage-iOS-SDK.git を使用し、ブランチを master または必要なバージョンに設定します。
+
+## CocoaPods を使用したインストール
+
+<Info>
+  **情報**
+
+  CocoaPods は非推奨になりつつあります。MoEngage では、すべての新規統合に Swift Package Manager を使用することを推奨しています。CocoaPods の詳細については、[CocoaPods 統合ガイド](/ja/developer-guide/ios-sdk/sdk-integration/basic/integration-through-cocoa-pods)を参照してください。
+</Info>
+
+以下のように Podfile に依存関係を追加して、MoEngageInApp フレームワークを統合します。
+
+<CodeGroup>
+
+```ruby Ruby
+pod 'MoEngage-iOS-SDK/InApps',
+```
+
+</CodeGroup>
+
+次に、`pod install` を実行してフレームワークをインストールします。
+
+## 手動統合
+
+<Info>
+  **手動統合：**
+
+  `MoEngageInApp` SDK をプロジェクトに手動で統合するには、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/manual-integration/manual-integration)に従ってください。
+</Info>
+
+# アプリ内メッセージを表示する方法
+
+<Note>
+  MoEngage は、メタ API 呼び出しを通じて対象となる In-App キャンペーンのリストを更新します。アクティブなセッション中は、アプリがバックグラウンドからフォアグラウンドに戻ったとき（最大で 15 分に 1 回）にリストが更新されます。また、新しいセッションが開始されたとき、またはアプリが強制終了されて再起動されたときには、即座に更新されます。
+</Note>
+
+アプリ内メッセージを使用するには、`MoEngageInApps` をインポートし、In-App を表示したいビューコントローラーに以下のコードを追加します。
+
+<CodeGroup>
+
+```swift Swift wrap
+import MoEngageInApps
+// Add the below line to show inapp
+MoEngageSDKInApp.sharedInstance.showInApp()
+```
+
+
+```objective-c Objective-C wrap
+@import MoEngageInApps;
+// Add the below line to show inapp
+[[MoEngageSDKInApp sharedInstance] showInApp];
+```
+
+</CodeGroup>
+
+<Note>
+  iOS SDK [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) 以降、`showInApp()` は `Void` ではなく型付きのタスクオブジェクト（`MoEngageShowInAppTask`）を返します。上記のような直接の呼び出しは、変更なしでコンパイルできます。`.onSuccess { ... }` / `.onFailure { ... }` をチェーンするか、非同期の `result()` メソッドを呼び出すことで、呼び出しごとの成功または失敗を確認できます。
+</Note>
+
+# Non Intrusive Nudges
+
+<img
+  src="/images/inappnativ2.png"
+  alt="Inappnativ2"
+  title="Inappnativ2"
+  style={{ width:"42%" }}
+/>
+
+バージョン **_5.0.0_** 以降、MoEngage InApp SDK は Non-Intrusive Nudges の表示をサポートしています。
+
+SDK は、画面の上部、下部、左下、右下の 4 つの位置に Nudge を表示できます。SDK に Nudge を表示させたいビューコントローラーで [_showNudge(atPosition:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInApp.html#/c:@M@MoEngageInApps@objc\(cs\)MoEngageSDKInApp\(im\)showNudgeAtPosition:) を呼び出します。
+
+<Note>
+  iOS SDK [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) 以降、`MoEngageNudgePosition` は Swift の enum（`.top`、`.bottom`、`.bottomLeft`、`.bottomRight`、`.any`、`.none`）に移行されています。Objective-C の呼び出し元は、上記に示す名前が変更された `MoEngageNudgePosition*` 定数を使用します。
+</Note>
+
+<CodeGroup>
+
+```swift Swift wrap
+  //For showing nudges at Top of the screen
+  MoEngageSDKInApp.sharedInstance.showNudge(atPosition: .top)
+  
+  //For showing nudges at Bottom of the screen
+  MoEngageSDKInApp.sharedInstance.showNudge(atPosition: .bottom)
+    
+  //For showing nudges at BottomLeft of the screen
+  MoEngageSDKInApp.sharedInstance.showNudge(atPosition: .bottomLeft)
+    
+  //For showing nudges at BottomRight of the screen
+  MoEngageSDKInApp.sharedInstance.showNudge(atPosition: .bottomRight)
+    
+  //For showing nudges at any above mentioned position
+  MoEngageSDKInApp.sharedInstance.showNudge()
+  
+```
+
+
+```objective-c Objective-C wrap
+ //For showing nudges at Top of the screen
+   [[MoEngageSDKInApp sharedInstance] showNudgeAtPosition:MoEngageNudgePositionTop];
+   
+   //For showing nudges at Bottom of the screen
+   [[MoEngageSDKInApp sharedInstance] showNudgeAtPosition:MoEngageNudgePositionBottom];
+   
+   //For showing nudges at BottomLeft of the screen
+   [[MoEngageSDKInApp sharedInstance] showNudgeAtPosition:MoEngageNudgePositionBottomLeft];
+   
+   //For showing nudges at BottomRight of the screen
+   [[MoEngageSDKInApp sharedInstance] showNudgeAtPosition:MoEngageNudgePositionBottomRight];
+   
+   //For showing nudges at any above mentioned position.
+   [[MoEngageSDKInApp sharedInstance] showNudge];
+```
+
+</CodeGroup>
+
+
+# InApp コールバック
+
+<Warning>
+  **注意**
+
+  すべてのコールバックを受け取るには、クラスが [_MoEngageInAppNativeDelegate_](https://moengage.github.io/ios-api-reference/Protocols/MoEngageInAppNativeDelegate.html) で構成されていることを確認してください。
+</Warning>
+
+InApp が表示、閉じられた、またはクリックされたときにコールバックを監視するには、[_MoEngageInAppNativeDelegate_](https://moengage.github.io/ios-api-reference/Protocols/MoEngageInAppNativeDelegate.html) を実装します。以下のメソッドを使用してデリゲートを設定します。
+
+<CodeGroup>
+
+```swift Swift wrap
+  MoEngageSDKInApp.sharedInstance.setInAppDelegate(self)
+```
+
+
+```objective-c Objective-C wrap
+   [[MoEngageSDKInApp sharedInstance] setInAppDelegate:self];
+```
+
+</CodeGroup>
+
+デリゲートを設定すると、次のコールバックを受け取ります。
+
+<CodeGroup>
+
+```swift Swift wrap
+   // Called when an inApp is shown on the screen
+   func inAppShown(withCampaignInfo inappCampaign: MoEngageInAppCampaign, forAccountMeta accountMeta: MoEngageAccountMeta) {
+      print("InApp shown callback for Campaign ID(\(inappCampaign.campaign_id)) and CampaignName(\(inappCampaign.campaign_name))")
+      print("Account Meta AppID: \(accountMeta.appID)")
+   }
+   
+   // Called when an inApp is dismissed by the user
+   func inAppDismissed(withCampaignInfo inappCampaign: MoEngageInAppCampaign, forAccountMeta accountMeta: MoEngageAccountMeta) {
+       print("InApp dismissed callback for Campaign ID(\(inappCampaign.campaign_id)) and CampaignName(\(inappCampaign.campaign_name))")
+       print("Account Meta AppID: \(accountMeta.appID)")
+   }
+   
+   // Called when an inApp is clicked by the user, and it has been configured with a custom action
+   func inAppClicked(withCampaignInfo inappCampaign: MoEngageInAppCampaign, andCustomActionInfo customAction: MoEngageInAppAction, forAccountMeta accountMeta: MoEngageAccountMeta) {
+        print("InApp Clicked with Campaign ID \(inappCampaign.campaign_id)")
+        print("Custom Actions Key Value Pairs: \(customAction.keyValuePairs)")
+   }
+   
+   // Called when an inApp is clicked by the user, and it has been configured with a navigation action
+   // Below InApp version 6.00.0
+   func inAppClicked(withCampaignInfo inappCampaign: MoEngageInAppCampaign, andNavigationActionInfo navigationAction: MoEngageInAppAction, forAccountMeta accountMeta: MoEngageAccountMeta) {
+        print("InApp Clicked with Campaign ID \(inappCampaign.campaign_id)")
+        print("Navigation Action Screen Name \(navigationAction.screenName) Key Value Pairs: \((navigationAction.keyValuePairs))")
+   }
+   
+   // Called when an inApp is clicked by the user, and it has been configured with a navigation action (Deeplink , Navigate To Screen)
+   // From and above InApp version 6.00.0
+   func inAppClicked(withCampaignInfo inappCampaign: MoEngageInAppCampaign, andNavigationActionInfo navigationAction: MoEngageInAppNavigationAction, forAccountMeta accountMeta: MoEngageAccountMeta) {
+       print("InApp Clicked with Campaign ID \(inappCampaign.campaign_id)")
+       print("Navigation Url \(navigationAction.navigationUrl) Key Value Pairs: \((navigationAction.keyValuePairs))")
+       print("Navigation Action Type : \(navigationAction.navigationType)")
+   }  
+```
+
+
+```objective-c Objective-C wrap
+  // Called when an inApp is shown on the screen
+  (void)inAppShownWithCampaignInfo:(MoEngageInAppCampaign *)inappCampaign forAccountMeta:(MoEngageAccountMeta *)accountMeta {
+      NSLog(@"InApp Shown with Campaign ID %@",inappCampaign.campaign_id);
+  }
+  
+  // Called when an inApp is dismissed by the user
+  - (void)inAppDismissedWithCampaignInfo:(MoEngageInAppCampaign *)inappCampaign forAccountMeta:(MoEngageAccountMeta *)accountMeta {
+      NSLog(@"InApp Dismissed with Campaign ID %@",inappCampaign.campaign_id);
+  }
+  
+  // Called when an inApp is clicked by the user, and it has been configured with a custom action
+  - (void)inAppClickedWithCampaignInfo:(MoEngageInAppCampaign *)inappCampaign andCustomActionInfo:(MoEngageInAppAction *)customAction forAccountMeta:(MoEngageAccountMeta *)accountMeta  {
+      NSLog(@"InApp Clicked with Campaign ID %@",inappCampaign.campaign_id);
+      NSLog(@"Custom Action Key Value Pairs: %@", customAction.screenName);
+  }
+  
+  // Called when an inApp is clicked by the user, and it has been configured with a navigation action
+  // Below InApp version 5.03.0
+  - (void)inAppClickedWithCampaignInfo:(MoEngageInAppCampaign *)inappCampaign andNavigationActionInfo:(MoEngageInAppAction *)navigationAction forAccountMeta:(MoEngageAccountMeta *)accountMeta {
+      NSLog(@"InApp Clicked with Campaign ID %@",inappCampaign.campaign_id);
+      NSLog(@"Navigation Action Screen Name %@\n Key Value Pairs: %@", navigationAction.screenName,navigationAction.keyValuePairs);
+  }
+        
+  // Called when an inApp is clicked by the user, and it has been configured with a navigation action (Deeplink, Navigate To Screen)
+  // From and above InApp version 5.03.0
+  -(void)inAppClickedWithCampaignInfo:(MoEngageInAppCampaign*)inappCampaign andNavigationActionInfo:(MoEngageInAppNavigationAction*)navigationAction forAccountMeta:(nonnull MoEngageAccountMeta *)accountMeta {
+     NSLog(@"InApp Clicked with Campaign ID %@",inappCampaign.campaign_id);
+    NSLog(@"Navigation Action Screen Name %@\n Key Value Pairs: %@", navigationAction.navigationUrl,navigationAction.keyValuePairs);
+  }
+```
+
+</CodeGroup>
+
+# コンテキストベースの InApp
+
+SDK バージョン 6.0.0 で、コンテキストベースの InApp が導入されました。InApp キャンペーンを作成する際に、キャンペーンにコンテキストまたはタグを設定できます。SDK はアプリに設定されている現在のコンテキストを確認し、現在設定されているコンテキストがキャンペーンのコンテキストと一致する場合にのみ InApp を表示します。
+
+## 現在のコンテキストの設定：
+
+InApp モジュールの現在のコンテキストを設定するには、以下のように [_setCurrentInAppContexts(\_):_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInApp.html#/c:@M@MoEngageInApps@objc\(cs\)MoEngageSDKInApp\(im\)setCurrentInAppContexts:) を使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKInApp.sharedInstance.setCurrentInAppContexts(["Home","CategoriesScreen"])
+```
+
+
+```objective-c Objective-C wrap
+  [[MoEngageSDKInApp sharedInstance] setCurrentInAppContexts:@[@"Home",@"CategoriesScreen"]];
+```
+
+</CodeGroup>
+
+## コンテキストのリセット：
+
+InApp モジュールの現在のコンテキストをリセットするには、[_invalidateInAppContexts()_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInApp.html#/c:@M@MoEngageInApps@objc\(cs\)MoEngageSDKInApp\(im\)invalidateInAppContexts) メソッドを呼び出します。
+
+<CodeGroup>
+
+```swift Swift wrap
+  MoEngageSDKInApp.sharedInstance.invalidateInAppContexts()
+```
+
+
+```objective-c Objective-C wrap
+  [[MoEngageSDKInApp sharedInstance] invalidateInAppContexts];
+```
+
+</CodeGroup>
+
+# ViewController での In-App の無効化
+
+特定の ViewController で InApp メッセージを表示したくない場合は、以下のように [_blockInApp(forViewController:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInApp.html#/c:@M@MoEngageInApps@objc\(cs\)MoEngageSDKInApp\(im\)blockInAppForViewController:) メソッドを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+  //For not showing in apps in viewController
+  MoEngageSDKInApp.sharedInstance.blockInApp(forViewController: viewController);
+```
+
+
+```objective-c Objective-C wrap
+  //For not showing in apps in viewController
+  [[MoEngageSDKInApp sharedInstance] blockInAppForViewController:viewController];
+```
+
+</CodeGroup>
+
+# アプリでの In-App の無効化
+
+InApp メッセージを使用しない場合は、disableInApps プロパティを設定します。このプロパティは、最初の呼び出しの前に設定する必要があります。
+
+<CodeGroup>
+
+```swift Swift wrap
+  MoEngageSDKInApp.sharedInstance.disableInApps()
+```
+
+
+```objective-c Objective-C wrap
+  [[MoEngageSDKInApp sharedInstance] disableInApps];
+```
+
+</CodeGroup>
+
+# セルフハンドル型 In-App
+
+セルフハンドル型 In-App は SDK によって表示されません。キャンペーンの作成時に、String のペイロードを指定する必要があります。キャンペーンの配信時に、同じペイロードがアプリケーションに提供されます。トリガー条件が画面の起動である InApp キャンペーンは、[_getSelfHandledInApp(completionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInApp.html#/c:@M@MoEngageInApps@objc\(cs\)MoEngageSDKInApp\(im\)getSelfHandledInAppWithCompletionBlock:) を使用して取得できます。
+
+<CodeGroup>
+
+```swift Swift wrap
+  MoEngageSDKInApp.sharedInstance.getSelfHandledInApp { campaignInfo, accountMeta in
+        if let campaignInfo = campaignInfo{ print("Self-Hanled InApp Content \(campaignInfo.campaignContent)")
+            // Update UI with Self Handled InApp Content
+                  
+        } else{
+            print("No Self Handled campaign available")
+                  
+        }
+  }
+```
+
+
+```objective-c objective-c wrap
+ [[MoEngageSDKInApp sharedInstance] getSelfHandledInAppWithCompletionBlock:^(MoEngageInAppSelfHandledCampaign * _Nullable campaignInfo, MoEngageAccountMeta * _Nullable accountMeta) {
+      if (campaignInfo != nil) {
+          NSLog(@"Self Handled inApp content : %@", campaignInfo.campaignContent);
+           // Update UI using the self-handled content
+      }
+      else{
+           NSLog(@"Self-Handled InApp not available");
+      }
+ }];
+```
+
+</CodeGroup>
+
+イベントトリガー型キャンペーンでセルフハンドル型 InApp のペイロードを取得するには、[_selfHandledInAppTriggered(withInfo:forAccountMeta:)_](https://moengage.github.io/ios-api-reference/Protocols/MoEngageInAppNativeDelegate.html#/c:@M@MoEngageInApps@objc\(pl\)MoEngageInAppNativeDelegate\(im\)selfHandledInAppTriggeredWithInfo:forAccountMeta:) デリゲートを設定します。ユーザーがキャンペーンの対象である場合、SDK は自動的にこのデリゲートでペイロードを配信します。
+
+<CodeGroup>
+
+```swift Swift wrap
+  // This method is called when an event triggers an in-app from the server, which is of type self handled.
+  func selfHandledInAppTriggered(withInfo inappCampaign: MoEngageInAppSelfHandledCampaign, forAccountMeta accountMeta: MoEngageAccountMeta) {
+      print("Self Handled InApp Triggered with info:\nCampaign ID:\(inappCampaign.campaign_id) \nContent: \(inappCampaign.campaignContent)")
+  }
+```
+
+
+```objective-c Objective-C wrap
+  // This method is called when an event triggers an in-app from the server, which is of type self handled.
+  - (void)selfHandledInAppTriggeredWithInfo:(MoEngageInAppSelfHandledCampaign *)inappCampaign forAccountMeta:(MoEngageAccountMeta *)accountMeta {
+      NSLog(@"Self Handled InApp Triggered with info:\nCampaign ID: %@ \nContent: %@",inappCampaign.campaign_id, inappCampaign.campaignContent);
+  }
+```
+
+</CodeGroup>
+
+<Info>
+  **注意**
+
+  上記のメソッドは、テストキャンペーンを通じてセルフハンドル型キャンペーンをテストする場合にも呼び出されます。
+</Info>
+
+# 複数のセルフハンドル型 In-App
+
+**_MoEngage-iOS-SDK 9.19.0_** バージョン以降、MoEngage InApp SDK は複数のセルフハンドル型 InApp の表示をサポートしています。ユーザーが設定した複数のコンテキストに対して複数のセルフハンドル型 InApp を取得するには、SDK の [_getSelfHandledInApps(completionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInApp.html#/c:@M@MoEngageInApps@objc\(cs\)MoEngageSDKInApp\(im\)getSelfHandledInAppsFor:completionBlock:) を使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+  MoEngageSDKInApp.sharedInstance.getSelfHandledInApps(for: "YOUR_WORKSPACE_ID") { [weak self] campaignData in
+         print(campaignData)
+  }
+```
+
+
+```objective-c Objective-C wrap
+  [[MoEngageSDKInApp sharedInstance] getSelfHandledInAppsFor:@"YOUR_WORKSPACE_ID" completionBlock:^(MoEngageInAppSelfHandledData * _Nonnull campaignData) {
+      NSLog(@"%@", campaignData);
+  }];
+```
+
+</CodeGroup>
+
+## キャンペーンの選択ロジック
+
+- **デフォルトの上限**：デフォルトでは、取得されるキャンペーンは 5 件のみです。
+- **優先度に基づく選択**：キャンペーンは、優先度と最終更新時刻に基づいて配信されます。まず優先度を確認し、優先度が競合する場合は最終更新時刻を確認します。
+- **除外基準**：キャンペーンは、フリークエンシーキャップ、対象条件、キャンペーンのステータス、優先度の上限などの特定のルールに基づいてのみ除外されます。
+
+**シナリオの例：** 優先度、公開時刻、コンテキストが異なる 6 つのキャンペーンがある場合：
+
+- コンテキスト 1：キャンペーン 1（P0、T2）、キャンペーン 2（P1、T3）、キャンペーン 3（P2、T6）
+- コンテキスト 2：キャンペーン 4（P0、T1）、キャンペーン 5（P1、T5）
+- コンテキスト 3：キャンペーン 6（P0、T4）
+
+次のキャンペーンがこの順序で配信されます：[キャンペーン 4、キャンペーン 1、キャンペーン 6、キャンペーン 2、キャンペーン 5]
+
+**選択アルゴリズム：**
+
+1. ユーザーの対象条件とターゲティング条件でキャンペーンをフィルタリングする
+2. キャンペーンの優先度（P0、P1、P2 など）で並べ替える
+3. 優先度が同じキャンペーンについては、最新の更新タイムスタンプ順に並べ替える
+4. 上位 5 件のキャンペーンを返す
+
+#### **複数のセルフハンドル型キャンペーンを整理するためのベストプラクティス**
+
+1 つのページで複数のコンテキストにわたって最適なパフォーマンスを得るには、次のようにキャンペーンを整理します。
+
+- コンテキスト 1（ホームページ）：キャンペーン A（P0）、キャンペーン B（P1）
+- コンテキスト 2（商品）：キャンペーン C（P0）、キャンペーン D（P1）
+- コンテキスト 3（チェックアウト）：キャンペーン E（P0）
+
+これにより、5 件のキャンペーン上限に達することなく、各コンテキストに関連するキャンペーンが確保されます。
+
+また、このメソッドはコンテキストベースかどうかに関係なくすべてのセルフハンドル型キャンペーンを取得するため、取得したいキャンペーンの優先度を適切に設定してください。
+
+## 複数のセルフハンドル型 InApp のトラッキング
+
+[_getSelfHandledInApps(completionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInApp.html#/c:@M@MoEngageInApps@objc\(cs\)MoEngageSDKInApp\(im\)getSelfHandledInAppsFor:completionBlock:) メソッドは [_MoEngageInAppSelfHandledData_](https://moengage.github.io/ios-api-reference/Classes/MoEngageInAppSelfHandledData.html) を返します。これには [_MoEngageInAppSelfHandledCampaign_](https://moengage.github.io/ios-api-reference/Classes/MoEngageInAppSelfHandledCampaign.html) オブジェクトのリストが含まれています。各 [_MoEngageInAppSelfHandledCampaign_](https://moengage.github.io/ios-api-reference/Classes/MoEngageInAppSelfHandledCampaign.html) オブジェクトの統計情報は、以下の API を使用して個別にトラッキングする必要があります。
+
+## コンテキストに応じた複数のセルフハンドル型 InApp の取得
+
+コンテキストに応じた複数のセルフハンドル型 InApp を取得するには、[_getSelfHandledInApps(completionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInApp.html#/c:@M@MoEngageInApps@objc\(cs\)MoEngageSDKInApp\(im\)getSelfHandledInAppsFor:completionBlock:) を呼び出す前に、[_setCurrentInAppContexts()_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInApp.html#/c:@M@MoEngageInApps@objc\(cs\)MoEngageSDKInApp\(im\)setCurrentInAppContexts:) を使用して InApp のコンテキストを設定します。これにより、コンテキストに応じた InApp とコンテキストに依存しない InApp のリストが（キャンペーン作成時に設定されたキャンペーンの優先度の順で）返されます。
+
+## InApp の表示とクリックのトラッキング：
+
+セルフハンドル型 In-App の表示をトラッキングするには、[_selfHandledShown(campaignInfo:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKInApp.html#/c:@M@MoEngageInApps@objc\(cs\)MoEngageSDKInApp\(im\)selfHandledShownWithCampaignInfo:) を使用し、パラメーターとしてキャンペーンのインスタンスを渡します。
+
+<CodeGroup>
+
+```swift Swift wrap
+  // Call this method when you show the self handled in-app so we can update impressions.
+  MoEngageSDKInApp.sharedInstance.selfHandledShown(campaignInfo: campaignInfo)
+```
+
+
+```objective-c Objective-C wrap
+ // Call this method when you show the self handled in-app so we can update impressions.
+ [[MoEngageSDKInApp sharedInstance] selfHandledShownWithCampaignInfo:campInfo];
+```
+
+</CodeGroup>
+
+統計用に InApp のクリック情報をトラッキングするには、次のメソッドを呼び出します。
+
+<CodeGroup>
+
+```swift Swift wrap
+  // Call this method to track if self handled in app widget(other than Primary Widget) is clicked.
+  MoEngageSDKInApp.sharedInstance.selfHandledClicked(campaignInfo: campaignInfo)
+  
+  // Call this method to track dismiss actions on the inApp.
+  MoEngageSDKInApp.sharedInstance.selfHandledDismissed(campaignInfo: campaignInfo)
+```
+
+
+```objective-c Objective-C wrap
+  // Call this method to track if self handled in app widget(other than Primary Widget) is clicked.
+  [[MoEngageSDKInApp sharedInstance] selfHandledClickedWithCampaignInfo:campaignInfo];
+  
+  // Call this method to track dismiss actions on the inApp.
+  [[MoEngageSDKInApp sharedInstance] selfHandledDismissedWithCampaignInfo:campaignInfo];
+```
+
+</CodeGroup>
+
+# アプリ内メッセージのルール
+
+In-App を表示する際には、次のルールを使用します。
+
+InApp が機能するための前提条件：
+
+- 現在のセッションで InApp のバックエンド同期が成功したかどうか。
+- 現在の画面で InApp が無効になっているかどうかを確認します。
+
+アクティブなキャンペーンのリスト（優先度と最終更新時刻に従って並べ替え済み）の各キャンペーンについて、以下が確認されます。
+
+- グローバル遅延が経過したかどうかを確認します。キャンペーンに「グローバル遅延を無視」が設定されている場合はスキップします。
+- キャンペーンの有効期限が切れていないかを確認します
+- 表示ルール
+- 「特定の画面でのみ表示」を確認します
+- 現在のコンテキストと照合します
+- 配信コントロール
+- 永続性チェック（InApp のプライマリアクションが完了していても、InApp を引き続き表示したい場合）
+- キャンペーンが最大表示回数に達していないかを確認します。
+- キャンペーンレベルの遅延が経過したかどうかを確認します。
+- ネイティブ InApp の場合はデバイスの向きが縦向きであること、HTML InApp の場合は（キャンペーン作成時に選択した）必要な向きであることを確認します。
+
+すべてのルールを満たす最初のキャンペーンがユーザーに表示されます。

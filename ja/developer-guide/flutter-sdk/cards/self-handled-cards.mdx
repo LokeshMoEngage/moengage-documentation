@@ -1,0 +1,332 @@
+---
+title: "Self Handled Cards"
+description: "MoEngage の Self Handled Cards SDK と API を使用して、Flutter アプリでカスタムのカードビューを構築します。"
+---
+
+Self Handled Cards を使用すると、MoEngage プラットフォームでカードキャンペーンを作成し、アプリケーション内の任意の場所にカードを表示できる柔軟性が得られます。SDK はキャンペーンのデータを取得するための API を提供しており、これを使用してカードの独自のビューを作成できます。
+
+![Download](https://img.shields.io/pub/v/moengage_cards.svg)
+
+# SDK のインストール
+
+# インストール
+
+MoEngage Cards SDK をアプリケーションに追加するには、アプリケーションの **pubspec.yaml** ファイルを編集し、次の依存関係を追加します。
+
+<CodeGroup>
+
+```yaml pubspec.yaml
+dependencies:
+  moengage_cards: $latestVersion
+```
+
+</CodeGroup>
+
+**_\$latestVersion_** は、プラグインの最新バージョンを指します。
+
+依存関係を追加したら、ターミナルで **_flutter pub get_** コマンドを実行して依存関係をインストールします。
+
+プラグインをインストールした後、以下のプラットフォーム固有の設定を行います。
+
+<Info>
+  このプラグインは **moengage_flutter** プラグインに依存しています。**moengage_flutter** プラグインもインストールされていることを確認してください。詳細については、[ドキュメント](/ja/developer-guide/flutter-sdk/sdk-integration/sdk-installation/framework-dependency)を参照してください。
+</Info>
+
+# Android のインストール
+
+<img
+  src="/images/maven-3.svg"
+  alt="V(1)"
+  style={{ width:"28%" }}
+  title="V(1)"
+/>
+
+_app/build.gradle_ ファイルに次の依存関係を追加します。
+
+<CodeGroup>
+
+```json build.gradle wrap
+dependencies {
+    ...
+  implementation("com.moengage:cards-core:$sdkVersion")
+}
+```
+
+</CodeGroup>
+
+**\$sdkVersion** を適切な SDK バージョンに置き換えてください。サポートされる最小バージョンは 1.5.0 です。
+
+# iOS のインストール
+
+iOS の場合、ネイティブの依存関係は Cards Flutter SDK 自体に含まれているため、Cards をサポートするために追加の依存関係を含める必要はありません。
+
+# Cards の初期化
+
+MoEngage Cards モジュールは、Cards モジュールを使用するウィジェット内で初期化できます。 
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+cards.initialize();
+```
+
+</CodeGroup>
+
+例
+
+<CodeGroup>
+
+```Dart Dart
+// Use Named Import otherwise MoEngage classes might be collided with classed in flutter/material.dart
+ import 'package:moengage_cards/moengage_cards.dart' as moe;
+class CardsScreen extends StatefulWidget {
+  const CardsScreen({Key? key}) : super(key: key);
+  @override
+  State<CardsScreen> createState() => _CardsScreenState();
+}
+class _CardsScreenState extends State<CardsScreen>{
+moe.MoEngageCards cards = moe.MoEngageCards("MOE_Workspace_ID");
+  @override
+  void initState() {
+    super.initState();
+    cards.initialize();
+  }
+}
+```
+
+</CodeGroup>
+
+# カード情報の取得
+
+特定のユーザーに表示可能なすべてのカードキャンペーンのデータを取得します。データは **_CardsInfo_** として返されます。データモデルの完全な一覧については、[API ドキュメント](https://pub.dev/documentation/moengage_cards/)を参照してください。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+CardsInfo cardsInfo = await cards.getCardsInfo();
+```
+
+</CodeGroup>
+
+## ウィジェットとウィジェット ID のマッピング
+
+### Basic Card/Illustration Card
+
+| ウィジェット ID | ウィジェットタイプ                | ウィジェット情報                |
+| --------- | -------------------------- | --------------------------------- |
+| 0         | Image (WidgetType.IMAGE)   | カード内の画像ウィジェット。         |
+| 1         | Text (WidgetType.TEXT)     | カードのヘッダーテキスト。         |
+| 2         | Text (WidgetType.TEXT)     | カードのメッセージテキスト。        |
+| 3         | Button (WidgetType.Button) | カードの CTA（Call to action）。 |
+
+# カードの更新
+
+**_refreshCards_**\*()\*\*\* API を使用して、ユーザーの要求に応じてカードを更新します。この API は、プルして更新（Pull to refresh）の動作を再現するために使用できます。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+cards.refreshCards((data) {  if (data?.hasUpdates == true) {    // Update UI  }});
+```
+
+</CodeGroup>
+
+# カードの取得
+
+**_fetchCards_**\*()\*\*\* API を使用して、ユーザーのカードを取得します。この API は、最新のカードデータを同期するために使用できます。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+cards.fetchCards().then((data) {  // Update UI});
+```
+
+</CodeGroup>
+
+<Info>
+  `fetchCards()` の同期タイミングとレート制限の詳細については、[MoEngage SDK はいつカードデータを同期しますか？](/ja/user-guide/campaigns-and-channels/cards/faqs-cards/when-does-the-moengage-sdk-sync-card-data)を参照してください。
+</Info>
+
+# Inbox の読み込み
+
+カードは、別の画面または画面の一部のセクションに表示できます。カードの画面またはセクションが読み込まれたら、**_onCardsSectionLoaded()_** を呼び出します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+cards.onCardsSectionLoaded((data) {
+  if (data?.hasUpdates == true) {
+    // Refresh UI
+  }
+});
+```
+
+</CodeGroup>
+
+# Inbox のアンロード
+
+画面またはセクションが表示されなくなったとき、またはバックグラウンドに移行するときに、**_onCardSectionUnloaded()_** を呼び出します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+  cards.onCardsSectionUnLoaded();
+```
+
+</CodeGroup>
+
+# カテゴリーの取得
+
+カードが設定されているすべてのカテゴリーを取得するには、**_getCardsCategories()_** API を使用します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+List<String> categories = await cards.getCardsCategories();
+```
+
+</CodeGroup>
+
+# All カテゴリーが有効かどうか
+
+カードが設定されているすべてのカテゴリーを取得するには、**_isAllCategoryEnabled()_** API を使用します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID); 
+bool isAllCategoryEnabled = await cards.isAllCategoryEnabled();
+```
+
+</CodeGroup>
+
+# カテゴリー別のカードの取得
+
+特定のカテゴリーで表示可能なカードを取得するには、**_getCardsForCategory()_** API を使用します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID); 
+int count = await cards.getCardsForCategory(category);
+```
+
+</CodeGroup>
+
+# 新しいカード数の取得
+
+新しいカードの数を取得するには、次のように **_getNewCardsCount()_** メソッドを使用します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+int count = await cards.getNewCardsCount();
+```
+
+</CodeGroup>
+
+# カードの表示
+
+カードがユーザーに表示されたことを通知するには、**_cardShown()_** API を呼び出します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+cards.cardShown(context, card); // Pass Card Object
+```
+
+</CodeGroup>
+
+# カードのクリック
+
+カードがユーザーに表示されたことを通知するには、**_cardClicked()_** API を呼び出します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+cards.cardClicked(card, widgetId); // Pass Card Object
+```
+
+</CodeGroup>
+
+# カードの削除
+
+カードを削除するには、**_deleteCard()_** API を呼び出します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+cards.deleteCard(card); // Pass Card Object
+```
+
+</CodeGroup>
+
+# カードを配信済みとしてマーク
+
+アプリケーションのカードセクションへの配信をトラッキングするには、アプリケーションのカードセクションが読み込まれたときに **_cardDelivered()_** API を呼び出します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+cards.cardDelivered();
+```
+
+</CodeGroup>
+
+# 複数のカードの削除
+
+カードを削除するには、**_deleteCards()_** API を呼び出します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+cards.deleteCards(context, cards); // Pass List of Cards
+```
+
+</CodeGroup>
+
+# 未クリックのカード数の取得
+
+未クリックのカードの数を取得するには、次のように **_getUnClickedCardsCount()_** メソッドを使用します。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+int count = await cards.getUnClickedCardsCount();
+```
+
+</CodeGroup>
+
+# アプリ起動時のカード同期リスナー
+
+このリスナーを設定すると、アプリ起動時のカード同期についてコールバックを受け取れます。このリスナーは **_initialize()_** API を呼び出す前に設定する必要があります。ほとんどの場合、この API は必要ありません。
+
+<CodeGroup>
+
+```Dart Dart
+MoEngageCards cards = MoEngageCards(YOUR_WORKSPACE_ID);
+cards.setAppOpenCardsSyncListener((data) {
+  //Update UI
+});
+cards.initialize();
+```
+
+</CodeGroup>
+
+<Info>
+  ハイブリッドフレームワークは、MoEngage のデフォルトの Card をサポートしていません。Self-handled Card のみがサポートされています。
+</Info>

@@ -1,0 +1,65 @@
+---
+title: "Mandrill を設定する"
+---
+
+# はじめに  
+  
+Mandrill はトランザクションメール API です。信頼性が高く強力で、ターゲットを絞った e コマースメールやパーソナライズされた 1 対 1 のメッセージなど、データ駆動型のメールの送信に最適です。
+
+# インテグレーション
+
+<Info>
+**前提条件**
+
+Mandrill アカウントへのアクセス権があることを確認してください。
+</Info>
+
+## メールコネクターを設定する
+
+料金プランを選択し、[https://mandrill.com/signup/](https://mandrill.com/signup/) で Mandrill にサインアップできます。アカウントの作成後、ドメインを追加して検証し、DNS 設定に DKIM および SPF レコードを追加して、送信ドメインをセットアップする必要があります。[ドメインのセットアップの詳細はこちら。](https://mailchimp.com/developer/transactional/docs/fundamentals/#set-up-your-sending-domain)
+
+![Mandrill_1.png](/images/partner_23582009178644.png)
+
+Mandrill には配信停止、バウンス、苦情をトラッキングする仕組みがあります。詳細については、この記事の後半で説明します。
+
+## SMTP 設定を構成する
+
+SMTP 設定は、**Mandrill account - > Settings -> SMTP & API Info** で確認できます。
+
+  * SMTP Host name は、SMTP & API Info の詳細から入力できます。
+  * **SMTP Port と Protocol type** は[こちら](https://mailchimp.com/developer/transactional/docs/smtp-integration/)から取得できます。一部のホスティング会社が設定しているレート制限を回避するため、推奨ポートは 587 です。
+  * **SMTP Username** は Mandrill アカウントのユーザー名です。
+  * **SMTP Password** は、SMTP & API Info の下にある **New API Key** ボタンをクリックして生成された任意の API キーです。
+  * **Maximum send rate** は料金プランによって異なり、Mandrill ダッシュボードに記載されています。
+
+![Mandrill_send_rate.png](/images/partner_23582038613012.png)
+
+## 配信停止を設定する
+
+  * 「MoEngage Tracking」を選択すると、配信停止ページの URL がメールのフッターとして追加されます - 「If you'd like to unsubscribe and stop receiving these emails [click here](https://api-01.moengage.com/v1/emailunsubscribe?wid=%40%24xy%2A%40%21h_%C3%B6%C3%B01%1A%C2%B1%C3%8A%5B%C3%88&xid=%40%24xy%2A%40%21h%C2%A0%0F%C3%BB%1A%60%C2%A2%C3%94%C3%A3x%C2%92%C3%85%C3%BB%C2%A1%C2%98%22%1F%5C%C3%A8%2CT%7F%C3%AD%C2%B4%C2%AAy%C3%8BZ%C2%A4%C3%A6%C3%BD%C3%AB%02%C3%86%C3%BC%C3%9F%C2%96xHd%3D%C3%9A%C3%8BY%C3%A9%C3%8EXq.%C2%99%C2%B6O%3Aam%C2%A6%C2%93%C3%B2%C2%B6Cu%2FS%C2%81%3E%C2%AD%60%C3%9FB%C2%85%7C%C2%B0E%3D%C3%B1Q%C3%B3%3E%C2%8Cj%C3%B0%C2%8C%C2%A6%C2%9E%C2%B7&yid=%40%24xy%2A%40%21h%1Bd6V%7D%C3%AB%C3%B3%C2%8E%04%22tUJRw%C2%BD%3E%18Ne%C2%B0%C3%AC%C2%AFtv%C2%99%C3%90%C3%A7%C2%94%C3%98%C2%83D&zid=ushithwa%40moengage.com&url=https://google.com/)」。
+  * ダッシュボードが設定されているデータセンターに応じて、配信停止ページのコールバック URL を入力してください。
+
+| 配信停止 URL | データセンター |
+| --- | --- |
+| [https://api-01.moengage.com/v1/emailresubscribe](https://api-01.moengage.com/v1/emailresubscribe) | Datacenter 1 |
+| [https://api-02.moengage.com/v1/emailresubscribe](https://api-01.moengage.com/v1/emailresubscribe) | Datacenter 2 |
+| [https://api-03.moengage.com/v1/emailresubscribe](https://api-01.moengage.com/v1/emailresubscribe) | Datacenter 3 |
+| [https://api-04.moengage.com/v1/emailresubscribe](https://api-01.moengage.com/v1/emailresubscribe) | Datacenter 4 |
+
+![mceclip0__1_.png](/images/partner_23582038621332.png)
+
+  * 「Mandrill Tracking」を選択すると、コールバック URL（以下の「バウンス」の項で説明）で Mandrill からの配信停止情報を使用して、配信停止をトラッキングできるようになります。[Unsubscribe Tag](https://mailchimp.com/developer/transactional/docs/outbound-email/#unsubscribes) を必ず追加するか、Mandrill Account -> Settings -> Sending Defaults で「add Unsubscribe Footer」を有効にする必要があります。 
+
+![mandrill_unsub.png](/images/partner_23582038627476.png)
+
+  * プロモーションメールキャンペーンで「None」を選択すると、スパムとして分類される可能性が高くなります。
+
+## バウンスと苦情を設定する 
+
+この情報は、**Mandrill Account - > Settings -> Webhooks** で「Webhook を追加」し、以下に示すようにイベントを選択して、配信停止、バウンス、苦情のトラッキングを有効にすることで取得します。また、**Moengage App Settings - > Email Settings -> Connector Configurations -> Mandrill -> Callback URL** から URL をコピーし、以下に示す「POST to URL」テキストボックスに貼り付けます。
+
+![mandrill_bounce1.png](/images/partner_23582038630420.png)
+
+![mandrill_bounce2.png](/images/partner_23582038633492.png)
+
+コネクターの設定はすべて完了です。「Save」ボタンをクリックすると、これらの設定（認証情報などを含む）がテストされて保存されます。その後、General Settings で Mandrill をデフォルトのコネクターとして選択できます。

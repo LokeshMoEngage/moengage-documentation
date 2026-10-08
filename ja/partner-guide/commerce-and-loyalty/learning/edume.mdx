@@ -1,0 +1,76 @@
+---
+title: "EduMe"
+description: "MoEngage で eduMe の Content API を設定して、キャンペーン内でユーザーに eduMe のコースやレッスンへのアクセスを提供し、eduMe のレポートで進捗状況をトラッキングします。"
+---
+
+# 概要
+
+eduMe は、従業員が必要なときに、どこにいても、成功に必要な知識を得られるモバイルベースのトレーニングツールです。
+
+# MoEngage × eduMe
+
+MoEngage と eduMe の統合により、MoEngage キャンペーン内でユーザーに eduMe のコースやレッスンへのアクセスを提供できます。個人およびグループの進捗状況は、eduMe のレポート機能でトラッキングできます。
+
+## ユースケース
+
+ユーザーに対して、それぞれのオンボーディングコースの詳細を記載したオンボーディングメールキャンペーンを送信したい場合があります。例:
+
+![Screenshot\_2022-06-24\_at\_2.13.51\_AM.png](/images/partner_7269931479956.png)
+
+# 統合
+
+この統合により、ユーザーにコース、レッスン、または eNPS アンケートへのアクセスを提供し、eduMe で社内のユーザー ID に基づいて進捗状況をトラッキングできます。
+
+次の EduMe の機能がサポートされています。
+
+1. コース
+2. レッスン
+3. NPS アンケート
+
+<Info>
+  - eduMe アカウントがあることを確認してください。
+  - eduMe の API キーがあることを確認してください。API キーは、eduMe のカスタマーサクセス担当者にリクエストする必要があります。
+  - eduMe のリンク署名シークレットがあることを確認してください。組織のリンク署名シークレットを設定するよう、eduMe のカスタマーサクセス担当者にリクエストする必要があります。このシークレットは、Content API でシームレスなリンクを有効にするために使用されます。このシークレットに対してお客様が何かを行う必要はありません。
+  - eduMe のグループ ID とコンテンツ ID があることを確認してください。これらの識別子は Content API の設定に必要です。これらの識別子の取得についてサポートが必要な場合は、eduMe のカスタマーサービス担当者にお問い合わせください。
+</Info>
+
+## ステップ 1: MoEngage で EduMe の Content API を定義する
+
+[MoEngage の Content API](/ja/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis#using-content-apis-in-moengage) を使用して、EduMe をエンドポイントの 1 つとして追加します。
+
+1. MoEngage ダッシュボードで、**Settings** \> **Advanced settings** \> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。
+
+![ContentAPI\_Navogation.png](/images/partner_21979679599764.png)
+
+2. 次の内容を追加します。
+
+- API URL `https://connect.edume.com/<eduME_content_link_and_content_details>`
+
+ユースケースに応じて、_eduME\_content\_link\_and\_content\_details_ をコース/レッスン/eNPS アンケートに置き換えます。
+
+- Headers\
+  x-api-key : \<Your API Key\>
+- Parameters\
+  groupId : \<the group id\>\
+  externalUserId : `{{UserAttribute['driverId']}}`
+  <Note>
+    - コース/レッスン/アンケート/グループの識別子は、eduMe アカウントで確認できます。
+    - `externalUserId` フィールドにマッピングする適切なフィールドを含めてください。上のスクリーンショットの例では driver\_id を使用していますが、お客様のフィールドは異なる可能性があります。この ID は eduMe のレポートで利用できるため、お客様のシステムと関連付けることができます。
+  </Note>
+
+![Screenshot\_2022-06-24\_at\_2.20.05\_AM.png](/images/partner_7270105440276.png)
+
+<Note>
+  必要に応じてメッセージをカスタマイズしてテストしてください。少なくとも 1 通のテストメッセージを送信し、eduMe のコンテンツにアクセスしてレッスンまたはコースを完了し、eduMe の分析が記録されていることを確認することを推奨します。
+</Note>
+
+## ステップ 2: MoEngage キャンペーンで EduMe のコンテンツを使用する
+
+これで、これらの Content API をキャンペーンで使用できます。詳細については、[こちら](/ja/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis)をお読みください。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 2 で設定した Content API を選択できます。
+
+![Screenshot\_2022-06-24\_at\_2.07.52\_AM.png](/images/partner_7269789234836.png)
+
+3. MoEngage テンプレート言語を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。[EduMe の API レスポンスについてはこちら](https://edume.docs.apiary.io/#)をお読みください。

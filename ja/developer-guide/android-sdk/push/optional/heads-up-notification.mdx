@@ -1,0 +1,63 @@
+---
+title: "ヘッドアップ通知"
+description: "MoEngage SDK で Android の通知チャネルを使用して、ヘッドアップのプッシュ通知を設定します。"
+---
+
+## **概要**
+
+<Info>
+  **通知チャネルの設定**
+
+  ヘッドアップ通知は、Android の通知チャネルを通じてのみサポートされます。[通知チャネル](https://developer.android.com/develop/ui/views/notifications/channels)の作成については、公式ドキュメントを参照してください。この設定が必要な通知チャネルは API レベル 26 まで利用できなかったため、API レベル 26 未満の Android デバイスでは設定が適用されません。
+
+  ヘッドアップ通知の場合、通知チャネルの重要度は **IMPORTANCE_HIGH** である必要があり、同じチャネル ID を MoEngage ダッシュボードで設定する必要があります。
+</Info>
+
+## 設定
+
+MoEngage Android バージョン **13.06.00** では、**NotificationConfig** に新しいフラグ **isDirectPostingForHeadsUpEnabled** が追加されました。ヘッドアップ通知を使用している場合は、SDK の初期化時に **isDirectPostingForHeadsUpEnabled** フラグを true として渡すことを強くお勧めします。デフォルトでは false です。
+
+使用可能なすべてのオプションの API リファレンスの詳細については、[NotificationConfig](https://moengage.github.io/android-api-reference/core/com.moengage.core.config/-notification-config/index.html) を参照してください。
+
+[_configureNotificationMetaData()_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-notification-meta-data.html) を使用して、設定を SDK に渡します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+val moEngage = MoEngage.Builder(
+        application = this,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureNotificationMetaData(
+        NotificationConfig(
+            smallIcon = R.drawable.small_icon,
+            largeIcon = R.drawable.large_icon,
+            isDirectPostingForHeadsUpEnabled = true
+        )
+    )
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```Java Java
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon, R.color.notiColor, false, true))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+## ヘッドアップ通知の動作
+
+**isDirectPostingForHeadsUpEnabled** が true の場合、高優先度のチャネルであれば、SDK は直接投稿メカニズムを使用してリッチコンテンツを直接投稿します。そのため、操作されない場合、フローティングのヘッドアップ通知ビューは 5〜8 秒間表示されます。API レベル 26 より前の Android バージョンでは、このフラグはデフォルトで無視され、デフォルトで再投稿メカニズムが使用されます。
+
+一方、**isDirectPostingForHeadsUpEnabled** が false の場合は、既存の再投稿メカニズムが使用されます。このメカニズムでは、まずテキストが投稿され、メディアアセットのダウンロードが完了するとリッチコンテンツが投稿されます。これは、通知の受信時に少なくとも一部のコンテンツをすぐにユーザーに表示し、良好なインプレッション率を維持するためです。この場合、再投稿によりヘッドアップウィンドウは数秒以内に閉じられます。
+
+## ヘッドアップ以外の通知の動作
+
+チャネルの重要度が **IMPORTANCE_HIGH** 以外のチャネル ID を持つ通知の場合、SDK はデフォルトで再投稿メカニズムを使用します。
+
+ヘッドアップ通知の動作と OEM の制限の詳細については、[ユーザーガイド](https://www.moengage.com/docs/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/android-push-heads-up-notifications)を参照してください。

@@ -1,0 +1,503 @@
+---
+title: "データウェアハウスインポートを設定する"
+description: "Snowflake、BigQuery、Databricksのテーブルやビューから、ユーザーとイベントをMoEngageに直接インポートします。接続を設定し、列をマッピングして、同期をスケジュールします。"
+keywords: "data warehouse import, Snowflake, BigQuery, Databricks, table import, view import, updated_at, object data type, VARIANT"
+---
+
+import MappingFileConcept from '/ja/snippets/imports-mapping-file-concept.mdx';
+import DatetimeFormats from '/ja/snippets/imports-datetime-formats.mdx';
+import UniversalImportFaqs from '/ja/snippets/imports-faq-universal.mdx';
+import DwImportFaqs from '/ja/snippets/imports-faq-dw.mdx';
+import PortfolioRouting from '/ja/snippets/imports-portfolio-routing.mdx';
+import TimezoneDisplayNote from '/ja/snippets/imports-timezone-display-note.mdx';
+import DataArchival from '/ja/snippets/imports-data-archival.mdx';
+
+MoEngageは、データウェアハウス (Snowflake、BigQuery、またはDatabricks) のテーブルやビューから、ユーザーとイベントを直接インポートします。ウェアハウスインポートは接続ベースです。MoEngageに読み取りアクセス権を付与し、列を一度マッピングすれば、1回限りまたは定期的なスケジュールでインポートを実行できます。
+
+以下のいずれかのタブセクションでウェアハウスを選択すると、ページ全体でそのウェアハウスが選択されたままになります。
+
+# インポートの種類
+
+MoEngageは、データウェアハウスから次のデータをインポートできます。
+
+- **Registered Users**: MoEngageにすでに登録されているユーザーです。既存ユーザーの一括更新にも使用します。
+- **Anonymous Users**: MoEngageにまだ登録されていないユーザーです。
+- **Events** (標準およびユーザー定義): Campaign Interaction Eventsなどの標準イベントと、独自のユーザー定義イベントです。
+
+<Note>
+  Auxiliary Dataはデータウェアハウスインポートではサポートされていません。ファイルベースのソースでのみ利用できます。[Auxiliary Data](/ja/user-guide/data/imports/auxiliary-data) を参照してください。
+</Note>
+
+# データを準備する
+
+MoEngageは特定のテーブルスキーマを必要としません。すべての列はダッシュボードでマッピングまたはスキップできます。インポートを設定する前に、MoEngageが変更された行をどのように検出するかを確認してください。
+
+<Tabs>
+  <Tab title="ユーザーインポート">
+    定期的なユーザーインポートでは、MoEngageは前回の同期以降に変更されたデータのみを同期します。変更された行を識別するために、一般的に `updated_at` という名前のタイムスタンプ (日付 + 時刻) 列を使用します。行が最後に変更された時刻のタイムスタンプを保持していれば、この列には任意の名前を付けることができ、ダッシュボードでマッピングします。
+  </Tab>
+  <Tab title="イベントインポート">
+    イベントインポートでは、イベントのタイムスタンプ (日付 + 時刻) をUTCで含む列をマッピングする必要があります。MoEngageはこの列を使用して、前回の同期以降の新しいイベントを同期します。MoEngageの標準イベントをインポートするには、テーブル内のイベント名がMoEngageの標準イベント名と一致していることを確認してください。
+  </Tab>
+</Tabs>
+
+**日時属性のインポート:** 日付または時刻を保持する列をマッピングする場合は、**Date Time** 属性として作成し、一致するフォーマットを選択します ([サポートされている日時フォーマット](#supported-datetime-formats)を参照)。最初のインポートが成功した後、アカウント管理者は [Data Management](/ja/user-guide/settings/data-management/overview-data-management) を開き、ユーザー属性とイベント属性の両方について、新しい各属性の **allowed data type** を _datetime_ に設定する必要があります。データ型が固定されるまで、値がdatetimeとして取り込まれたりセグメント化されたりしない場合があります。
+
+## 定期同期で変更された行を検出する仕組み
+
+**定期** インポートでは、MoEngageは各実行を固定の時間ウィンドウ `[last_run_time, next_run_time)` で同期します。このウィンドウは半開区間で重複せず、固定の実時間の間隔 (1時間ごとのインポートの場合は `last_run_time + 1 hour`) で進み、参照したデータから導出されることはありません。行は、マッピングされた参照タイムスタンプ (ユーザーの場合は `Updated At`、イベントの場合は `Updated At`、または個別にマッピングされていない場合は `Event Time`) がそのウィンドウ内にある場合にのみ、その実行に含まれます。
+
+ウィンドウは常に前にしか進まないため、**参照タイムスタンプが現在の `last_run_time` より前の行は恒久的に取り込まれません**。遅延されるわけでも、後の実行で追いつくわけでもありません。これは、タイムスタンプが早くなった理由 (上流パイプラインの遅延、意図的なバックフィル、`Updated At` マッピングの欠落、値を過去にずらすタイムゾーン変換) に関係なく適用されます。最初の履歴実行には下限がないため、この方法でデータが失われることはありません。[ステップ3](#step-3-select-the-import-frequency) の注記を参照してください。
+
+<Accordion title="詳細: エンティティの動作、タイムゾーンの落とし穴、具体例">
+  ### ユーザーとイベントの違い
+
+  **ユーザー** では、単一の `Updated At` 列が *何が変更されたか* と *いつ変更されたか* の両方を決定し、この2つを切り離すことはできません。恒久的な取り込み漏れを防ぐには、`Updated At` がビジネス時刻やイベント時刻ではなく、**テーブルへの書き込み時刻** を反映するようにしてください。これは一般的に、挿入時に列のデフォルトが `CURRENT_TIMESTAMP` になるビューを使用して行います。これにより、遅れて到着した書き込みにも、常に進み続ける現在のタイムスタンプが付与されます。
+
+  **イベント** には、マッピング可能な2つの個別の列があります。
+
+  - `Event Time`: 実際の (過去の日付になる可能性がある) ビジネスタイムスタンプで、分析に使用されます。
+  - `Updated At`: 差分フィルターを決定します。個別にマッピングされていない場合、デフォルトで `Event Time` になります。
+
+  `Updated At` をテーブルへの書き込み時刻にマッピングすると、分析用の `Event Time` を損なうことなく、実際に過去の日付のイベントも定期同期でインポートできます。`Updated At` をデフォルトの `Event Time` のままにすると、過去の日付のイベントにはユーザーと同じ恒久的な取り込み漏れのリスクがあります。イベントはMoEngageにインポートされると変更できず、以前に同期されたイベントをその場で更新することはできません。
+
+  ### 参照列は真のUTCである必要がある
+
+  3つのウェアハウスすべてで、マッピングされた参照列の値は真のUTCである必要があります。MoEngageがその列をどのように扱うかは異なります。
+
+  <Tabs>
+    <Tab title="Snowflake">
+      MoEngageは `CONVERT_TIMEZONE('UTC', col)` を使用して列を変換します。`TIMESTAMP_NTZ` 列の場合、変換ではまず、セッションの有効なタイムゾーン (セッション → ユーザー → アカウントの優先順位) を使用してタイムゾーンなしの値を解釈します。そのタイムゾーンが実際にはUTCでない場合、すでに正しい値が二重にシフトされます。`SHOW PARAMETERS LIKE 'TIMEZONE'` で確認し、必要に応じてMoEngage接続ユーザーのユーザーレベルで設定してください。
+    </Tab>
+    <Tab title="BigQuery">
+      MoEngageは変換を適用せず、列の生の値を直接比較します。リスクは、UTC以外の値を保持する `DATETIME` 型の列 (タイムゾーンなし) に特有のものです。`TIMESTAMP` 型の列は、BigQueryが真のUTC時刻として保存するため、構造上安全です。
+    </Tab>
+    <Tab title="Databricks">
+      MoEngageは変換を適用せず、コネクター経由で `TIMESTAMP` 型の列のみを読み取ります。(Databricksの `TIMESTAMP_NTZ` 型はJDBC/ODBC経由ではサポートされていないため、ここでは対象外です。) `TIMESTAMP` はすでにUTCに正規化されているため、現実的な失敗パターンは、独自のパイプラインがUTC型の列にローカル時刻の値を書き込むことのみであり、これはデータ衛生上の問題です。
+    </Tab>
+  </Tabs>
+
+  インポートはワークスペースのタイムゾーンとは異なるタイムゾーンで実行できますが、スケジュールの実行時刻は常にUTCで計算および保存されます。UTC以外のインポートタイムゾーンを選択しても、UI上でスケジュールが実行されるように見える時刻が変わるだけで、上記のウィンドウの仕組みは変わりません。
+
+  ### 具体例
+
+  <Tabs>
+    <Tab title="ユーザーインポート">
+
+  `10:07 UTC` に1時間ごとのユーザーインポートを作成したとします。最初の `next_run_time` は次の1時間の境界である `11:00 UTC` まで進み、**履歴実行** で `11:00` までのすべての一致する行がインポートされます。以下の各表は、実行後のソーステーブル全体の状態と、各行をインポートした実行を示しています。
+
+  履歴実行後 (`Updated At < 11:00` のすべてをインポート):
+
+  | user_id | updated_at (UTC) | インポートされた実行 |
+  | --- | --- | --- |
+  | u_100 | 10:50 | 履歴実行 |
+
+  実行1の前に、`u_101` が `Updated At = 11:30` で書き込まれます。実行1はウィンドウ `[11:00, 12:00)` を対象とします。
+
+  | user_id | updated_at (UTC) | インポートされた実行 |
+  | --- | --- | --- |
+  | u_100 | 10:50 | 履歴実行 |
+  | u_101 | 11:30 | 実行1 |
+
+  `u_101` (`11:30`) は `[11:00, 12:00)` 内にあるため、実行1で問題なくインポートされます。
+
+  実行2の前に、さらに2行が追加されます。`Updated At = 12:00:00` の `u_102` と、`12:45` にテーブルに物理的に書き込まれたものの、過去の日付の `Updated At = 09:15` を持つ `u_103` です。実行2は `[12:00, 13:00)` を対象とします。
+
+  | user_id | updated_at (UTC) | インポートされた実行 |
+  | --- | --- | --- |
+  | u_100 | 10:50 | 履歴実行 |
+  | u_101 | 11:30 | 実行1 |
+  | u_102 | 12:00:00 | 実行2 |
+  | u_103 | 09:15 | インポートされない |
+
+  `u_102` はちょうど境界上にあります。実行1からは除外され (そこでは `< 12:00` を満たさない)、実行2でインポートされます (`>= 12:00` を満たす)。漏れも重複カウントもありません。`u_103` は `Updated At = 09:15` を持ち、これは実行2の下限 `12:00` よりも、履歴のカットオフ `11:00` よりも前であるため、どの実行のウィンドウにも含まれません。
+
+  実行3は `[13:00, 14:00)` を対象とします。新しい行は追加されておらず、`u_103` はまだテーブルに残っています。
+
+  | user_id | updated_at (UTC) | インポートされた実行 |
+  | --- | --- | --- |
+  | u_100 | 10:50 | 履歴実行 |
+  | u_101 | 11:30 | 実行1 |
+  | u_102 | 12:00:00 | 実行2 |
+  | u_103 | 09:15 | インポートされない |
+
+  `09:15` は今後のすべての `last_run_time` より前であるため、`u_103` はどの実行にも表示されません。実行3の直前にテーブルに追加されたにもかかわらず、恒久的に取り込まれません。
+
+    </Tab>
+    <Tab title="イベントインポート">
+
+  イベントには、マッピング可能な2つの列があります。`Event Time` (分析用に保持される実際のビジネスタイムスタンプ) と `Updated At` (差分フィルターを決定) です。この例では、同じ1時間ごとの間隔 (`10:07 UTC` に作成、履歴のカットオフは `11:00`) を使用し、`2024-01-16 UTC` にインポートします。前の例と同様に、各表は実行後のソーステーブル全体の状態を示しています。
+
+  履歴実行後 (`Updated At < 11:00` のすべてをインポート):
+
+  | event | user_id | event_time (UTC) | updated_at (UTC) | インポートされた実行 |
+  | --- | --- | --- | --- | --- |
+  | purchase | u_200 | 2024-01-16 10:40 | 2024-01-16 10:40 | 履歴実行 |
+
+  `u_200` の `Updated At` (`10:40`) は `11:00` のカットオフより前であるため、履歴実行でインポートされます。
+
+  実行1の前に、2つのイベントが書き込まれます。`u_201` のイベントはリアルタイムで `11:45` に発生しました。`u_202` のイベントは *昨日* (`2024-01-15 18:00`) 発生しましたが、今日になってテーブルに追加され、`Updated At` には実際の書き込み時刻 (`11:20`) が設定されています。実行1は `[11:00, 12:00)` を対象とします。
+
+  | event | user_id | event_time (UTC) | updated_at (UTC) | インポートされた実行 |
+  | --- | --- | --- | --- | --- |
+  | purchase | u_200 | 2024-01-16 10:40 | 2024-01-16 10:40 | 履歴実行 |
+  | purchase | u_201 | 2024-01-16 11:45 | 2024-01-16 11:45 | 実行1 |
+  | purchase | u_202 | 2024-01-15 18:00 | 2024-01-16 11:20 | 実行1 |
+
+  `u_201` (`Updated At = 11:45`) は `[11:00, 12:00)` 内にあり、問題なくインポートされます。`u_202` も、`Event Time` が1日前であるにもかかわらずインポートされます。差分フィルターは `Event Time` ではなく `Updated At` (書き込み時刻 `11:20`、ウィンドウ内) を参照するためです。MoEngageはイベントを実際の `Event Time` (`2024-01-15 18:00`) で保存するため、分析には実際に発生した時刻が引き続き反映されます。
+
+  実行2の前に、さらに2つのイベントが書き込まれます。`u_203` の `Updated At` はちょうど `12:00:00` です。`u_204` は過去の日付のイベントで、顧客が `Updated At` を **デフォルトの `Event Time`** (`09:30`) のままにしているため、2つの列が切り離されていません。実行2は `[12:00, 13:00)` を対象とします。
+
+  | event | user_id | event_time (UTC) | updated_at (UTC) | インポートされた実行 |
+  | --- | --- | --- | --- | --- |
+  | purchase | u_200 | 2024-01-16 10:40 | 2024-01-16 10:40 | 履歴実行 |
+  | purchase | u_201 | 2024-01-16 11:45 | 2024-01-16 11:45 | 実行1 |
+  | purchase | u_202 | 2024-01-15 18:00 | 2024-01-16 11:20 | 実行1 |
+  | purchase | u_203 | 2024-01-16 12:00:00 | 2024-01-16 12:00:00 | 実行2 |
+  | refund | u_204 | 2024-01-16 09:30 | 2024-01-16 09:30 | インポートされない |
+
+  `u_203` の `Updated At` はちょうど境界上にあります。実行1からは除外され (そこでは `< 12:00` を満たさない)、実行2でインポートされます (`>= 12:00` を満たす)。漏れも重複カウントもありません。`u_204` の `Updated At` は `09:30` で、実行2の下限 `12:00` および履歴のカットオフ `11:00` より前であるため、どのウィンドウにも含まれず、取り込まれません。正常にインポートされた `u_202` との唯一の違いは、`u_202` が `Updated At` を書き込み時刻にマッピングしていたのに対し、`u_204` はデフォルトの `Event Time` のままにしていたことです。
+
+  実行3は `[13:00, 14:00)` を対象とします。新しいイベントは追加されておらず、`u_204` はまだテーブルに残っています。
+
+  | event | user_id | event_time (UTC) | updated_at (UTC) | インポートされた実行 |
+  | --- | --- | --- | --- | --- |
+  | purchase | u_200 | 2024-01-16 10:40 | 2024-01-16 10:40 | 履歴実行 |
+  | purchase | u_201 | 2024-01-16 11:45 | 2024-01-16 11:45 | 実行1 |
+  | purchase | u_202 | 2024-01-15 18:00 | 2024-01-16 11:20 | 実行1 |
+  | purchase | u_203 | 2024-01-16 12:00:00 | 2024-01-16 12:00:00 | 実行2 |
+  | refund | u_204 | 2024-01-16 09:30 | 2024-01-16 09:30 | インポートされない |
+
+  `09:30` は今後のすべての `last_run_time` より前であるため、`u_204` は引き続きインポートされず、取り込み漏れが自動的に修正されることはありません。イベントはインポート後に変更できないため、後から `u_204` をその場で更新して修正することはできず、復旧には1回限りのインポートが必要です (以下を参照)。
+
+    </Tab>
+  </Tabs>
+
+  ### 取り込み漏れや過去の日付のデータを復旧する
+
+  すでに取り込み漏れが発生したデータは、定期同期では取得されません。復旧する場合、または意図的にバックフィルする場合は、修正済みまたは取り込み漏れのレコードを含む1回限りのビューを作成し、それに対して **1回限りのインポート** を実行します。1回限りのインポートには下限フィルターがないため、参照タイムスタンプに関係なく、一致するすべての行を取得します。または、インポートを複製する (新しい履歴実行がトリガーされます) か、スケジュールの開始時刻を過去に編集して `last_run_time` を強制的に再計算させることもできます。
+</Accordion>
+
+# 必要なアクセス権限
+
+MoEngageには、ウェアハウスへの `READ` アクセス権が必要です。既存のデータベースユーザーまたはMoEngage専用のユーザーに、以下の権限を付与してください。
+
+<Tabs>
+  <Tab title="Snowflake">
+    インポート元のデータベースへの `READ` アクセス権をMoEngageに付与します。接続の設定と必要な権限付与については、[Snowflake接続ガイド](/ja/partner-guide/data-and-analytics/data-warehouses/snowflake)を参照してください。
+  </Tab>
+  <Tab title="BigQuery">
+    データセットに対する必要な権限をMoEngageに付与します。完全なリストと設定については、[MoEngageに権限を付与する](/ja/partner-guide/data-and-analytics/data-warehouses/google-bigquery)を参照してください。
+  </Tab>
+  <Tab title="Databricks">
+    MoEngageのDatabricksインポートはUnity Catalog上に構築されています。既存または専用のユーザーに次の権限を付与します。`catalog_name`、`schema_name`、`user@example.com` はご自身の値に置き換えてください。
+
+    ```sql
+    -- Required: read data from all tables in the schema
+    GRANT SELECT ON SCHEMA `catalog_name`.`schema_name` TO `user@example.com`;
+    -- Required: access and reference the schema
+    GRANT USE SCHEMA ON SCHEMA `catalog_name`.`schema_name` TO `user@example.com`;
+    ```
+
+    両方の権限付与が必要です。`USE SCHEMA` はMoEngageがスキーマにアクセスすることを許可し、`SELECT` はスキーマ内のテーブルからデータを読み取ることを許可します。`USE SCHEMA` がない場合、テーブルに対する `SELECT` があってもユーザーはスキーマにアクセスできません。
+  </Tab>
+</Tabs>
+
+# インポートを設定する
+
+インポートは3つのステップで設定します。接続とテーブルソースを選択し、列をMoEngage属性にマッピングし、インポート頻度を選択します。
+
+<Tip>
+  **前提条件**
+
+  - 上記の権限を持つ、MoEngage App Marketplaceで設定済みの既存のウェアハウス接続。
+  - セキュリティポリシーでIPホワイトリスト登録が必要な場合は、[MoEngageでのIPホワイトリスト登録](/ja/user-guide/settings/account/security/ip-whitelisting-in-moengage)を参照してください。
+  - JSONをObjectデータ型としてインポートするには、アカウントで [Objectデータ型のサポート](/ja/user-guide/data/key-concepts/support-for-object-data-type) が有効になっている必要があります (任意)。
+</Tip>
+
+開始するには、MoEngageのサイドバーで **Data** > **Data imports** に移動し、**Data warehouses** タブを開いて、右上の **+ Import** をクリックし、**Users** または **Events** を選択します。
+
+<img src="/images/data3-2.png" alt="Data importsページでImportリストが開いたData warehousesタブ" />
+
+次に、ウェアハウスのタイルを選択し、**Continue** をクリックします。
+
+<Tabs>
+  <Tab title="Snowflake">
+    <img src="/images/snowflake-select-tile-continue.png" alt="Snowflakeタイルを選択してContinueをクリック" />
+  </Tab>
+  <Tab title="BigQuery">
+    <img src="/images/moengage_ffbdab.png" alt="Google BigQueryタイルを選択してContinueをクリック" />
+  </Tab>
+  <Tab title="Databricks">
+    <img src="/images/data4-2.png" alt="Databricksタイルを選択してContinueをクリック" />
+  </Tab>
+</Tabs>
+
+## ステップ1: 接続とテーブルソースを選択する
+
+Imports Dashboardでこのインポートを識別するための名前を入力します。インポートタイプに応じて、次の手順が異なります。
+
+<Accordion title="ユーザーインポート">
+  **Registered users**、**Anonymous users**、またはその両方をまとめてインポートするかを選択します。
+</Accordion>
+
+<Accordion title="イベントインポート">
+  インポートするイベントを選択するか、新しいイベントを作成します。1つのテーブルに複数のイベントが含まれている場合、MoEngageは **Event Name** 列を使用してインポートする行を決定します。その値は選択したイベントによって異なります。イベントの表示名とイベント名は異なる場合があり、[Data Management](/ja/user-guide/settings/data-management/overview-data-management) ページで確認できます。たとえば、イベント _App/Site Opened_ のイベント名は `MOE_APP_OPENED` です。
+
+  新しいイベントを作成するには、**Select event** リストの末尾にある **+ Create event** をクリックし、一意の名前を入力します。新しいイベントは、最初のインポートが成功した後にのみData Managementページに表示されます。
+</Accordion>
+
+次に、接続と、インポート元のテーブルまたはビューを選択します。接続を作成していない場合は、**+ Add connection** をクリックしてApp Marketplaceで設定します。接続を選択した後、**Schema/Dataset** と **Table/View** を選択します。スキーマの読み込みに失敗した場合は、上記の権限を付与したことを確認してください。
+
+複数のイベントを含むテーブルの場合は、まずテーブルを **Preview** してから、**Table contains multiple events** を選択し、イベント名を保持する列をマークします。続行する前に、再度プレビューしてフィルタリングされた行を確認してください。
+
+<Tabs>
+  <Tab title="Snowflake">
+    <img src="/images/snowflake6.png" alt="Snowflakeの接続、スキーマ、テーブルを選択" style={{ width:"70%" }} />
+    <img src="/images/snowflake7.png" alt="SnowflakeのTable contains multiple eventsオプション" style={{ width:"80%" }} />
+  </Tab>
+  <Tab title="BigQuery">
+    <img src="/images/moengage_1f2b5a.png" alt="BigQueryの接続、スキーマ/データセット、テーブル/ビューを選択" style={{ width:"73%" }} />
+    <img src="/images/moengage_4ed8b4.png" alt="BigQueryのTable contains multiple eventsオプション" />
+  </Tab>
+  <Tab title="Databricks">
+    <img src="/images/mceclip0b.png" alt="Databricksの接続、スキーマ、テーブル/ビューを選択" style={{ width:"67%" }} />
+    <img src="/images/mceclip1.png" alt="DatabricksのTable contains multiple eventsオプション" style={{ width:"61%" }} />
+  </Tab>
+</Tabs>
+
+## ステップ2: 列をMoEngage属性にマッピングする
+
+各テーブル列をMoEngage属性にマッピングします。表示される各列について、次の項目があります。
+
+1. **Column name**: ソース列と、取得したテーブルからのサンプル値。
+2. **Map attribute**: マッピング先のMoEngage属性。一部の属性は複数のデータ型を受け付けるため、列のデータ型を選択します。DateTime列の場合は、フォーマットも選択します。
+3. **Action**: 必要に応じて列をスキップします。スキップした列はインポートされません。
+
+必須マッピングがマークされると、その列はスキップできなくなります。新しい属性を作成するには、**+ Create attribute** をクリックし、名前を入力してデータ型を選択します。新しい属性は、最初のインポートが成功した後にのみData Managementページに表示されます。
+
+### 必須マッピング
+
+タイムスタンプ列の型はウェアハウスによって異なります。
+
+<Tabs>
+  <Tab title="Snowflake">
+    <Accordion title="ユーザーインポート">
+      | マッピング | 説明 |
+      | --- | --- |
+      | User ID (Registered) / Anonymous ID (Anonymous) | 一意のユーザー識別子を含む列、または匿名ユーザーの場合はメールアドレスや携帯電話番号などの識別子を含む列。**All Users** の場合は両方をマッピングします。User IDが空のユーザーは匿名ユーザーとしてインポートされます。 |
+      | Updated at | 前回の同期以降に変更された行を決定します。列の型が `TIMESTAMP_NTZ` のUTCタイムスタンプである必要があります。 |
+    </Accordion>
+    <Accordion title="イベントインポート">
+      | マッピング | 説明 |
+      | --- | --- |
+      | User ID | MoEngageのユーザーIDをイベントと照合します。 |
+      | Event time | イベントが発生した時刻のタイムスタンプ (日付 + 時刻、UTC)。列の型は `TIMESTAMP`。ダッシュボードのタイムゾーンに変換されます。 |
+      | Updated on | 前回の同期以降に変更された行を決定します。過去の日付のイベントや上流の遅延がある場合に使用します。UTC、列の型は `TIMESTAMP`。利用できない場合は、_Use same as Event time_ を選択します。 |
+    </Accordion>
+  </Tab>
+  <Tab title="BigQuery">
+    <Accordion title="ユーザーインポート">
+      | マッピング | 説明 |
+      | --- | --- |
+      | User ID | 一意のユーザー識別子を含む列。 |
+      | Updated on | 前回の同期以降に変更された行を決定します。列の型が `TIMESTAMP` のUTCタイムスタンプである必要があります。 |
+    </Accordion>
+    <Accordion title="イベントインポート">
+      | マッピング | 説明 |
+      | --- | --- |
+      | User ID | MoEngageのユーザーIDをイベントと照合します。 |
+      | Event time | イベントが発生した時刻のタイムスタンプ (日付 + 時刻、UTC)。列の型は `DATETIME`。ダッシュボードのタイムゾーンに変換されます。 |
+      | Updated on | 前回の同期以降に変更された行を決定します。過去の日付のイベントや上流の遅延がある場合に使用します。UTC、列の型は `DATETIME`。利用できない場合は、_Use same as Event time_ を選択します。 |
+    </Accordion>
+  </Tab>
+  <Tab title="Databricks">
+    <Accordion title="ユーザーインポート">
+      | マッピング | 説明 |
+      | --- | --- |
+      | User ID (Registered) / Anonymous ID (Anonymous) | 一意のユーザー識別子を含む列、または匿名ユーザーの場合はメールアドレスや携帯電話番号などの識別子を含む列。**All Users** の場合は両方をマッピングします。User IDが空のユーザーは匿名ユーザーとしてインポートされます。 |
+      | Updated at | 前回の同期以降に変更された行を決定します。列の型が `TIMESTAMP` のUTCタイムスタンプである必要があります。 |
+    </Accordion>
+    <Accordion title="イベントインポート">
+      | マッピング | 説明 |
+      | --- | --- |
+      | User ID | MoEngageのユーザーIDをイベントと照合します。 |
+      | Event time | イベントが発生した時刻のタイムスタンプ (日付 + 時刻、UTC)。列の型は `TIMESTAMP`。ダッシュボードのタイムゾーンに変換されます。 |
+      | Updated on | 前回の同期以降に変更された行を決定します。過去の日付のイベントや上流の遅延がある場合に使用します。UTC、列の型は `TIMESTAMP`。利用できない場合は、_Use same as Event time_ を選択します。 |
+    </Accordion>
+  </Tab>
+</Tabs>
+
+ [Unified Identity](/ja/user-guide/data/user-data/unified-identity-identity-resolution) が有効な場合は、追加の識別子もマッピングするオプションがあります。サポートされている日時フォーマットの完全なリストについては、下記の[サポートされている日時フォーマット](#supported-datetime-formats)を参照してください。
+
+### マッピングファイル
+
+必要に応じて、マッピングファイルをアップロードして列を自動マッピングできます。マッピングテーブルの右上にある **Upload mapping file** をクリックし、ファイルを選択します。MoEngageがマッピングを自動設定します。マッピングファイルがまだ存在しない属性を参照している場合は、モーダルが表示され、インポート中にそれらを作成できます。
+
+<MappingFileConcept />
+
+**マッピングの不一致に関するルール:**
+
+- 存在しないMoEngage属性にマッピングされた列 (モーダルで作成しないもの) は、手動マッピング用に空白のままになります。
+- マッピングファイルにあってもソーステーブルまたはビューにない列は無視されます。
+- テーブルにあってもマッピングファイルにない列は、手動マッピング用に空白のままになります。
+
+### Objectデータ型のサポート
+
+MoEngageは、JSON列をObjectデータ型としてインポートできます (アカウントでObjectデータ型のサポートが有効になっている必要があります)。MoEngageはトップレベルの属性のみをマッピングし、ネストされた属性はサポートされていません。マッピング中に、既存のObject属性をマッピングしたり、新しい属性を作成したりできます。
+
+JSONは、ウェアハウスに応じた正しい列の型で保存してください。
+
+<Tabs>
+  <Tab title="Snowflake">
+    列のデータ型を `VARIANT` に変更します。保存する値は有効なJSONである必要があります。詳細については、[Snowflake JSON basics tutorial](https://docs.snowflake.com/en/user-guide/tutorials/json-basics-tutorial) を参照してください。
+
+    ```json
+    { "Designation": "SSE", "Palace": "Bangalore", "age": 30, "name": "Shasha" }
+    ```
+  </Tab>
+  <Tab title="BigQuery">
+    テーブルの作成時に、列のデータ型を `JSON` に設定します。保存する値は有効なJSONである必要があります。
+
+    ```json
+    { "Designation": "SSE", "Palace": "Bangalore", "age": 30, "name": "Shasha" }
+    ```
+  </Tab>
+  <Tab title="Databricks">
+    列のデータ型を `VARIANT` に変更します。保存する値は有効なJSONである必要があります。詳細については、[Databricks VARIANT type reference](https://docs.databricks.com/aws/en/sql/language-manual/data-types/variant-type) を参照してください。
+
+    ```json
+    { "Designation": "SSE", "Palace": "Bangalore", "age": 30, "name": "Shasha" }
+    ```
+  </Tab>
+</Tabs>
+
+### Portfolioのサポート (プロジェクトレベルのルーティング)
+
+<PortfolioRouting />
+
+### ユーザーをセグメントとして保存する
+
+ユーザーをインポートする際に **Save as a custom segment** をオンにすると、インポートしたユーザーがMoEngageのセグメントに追加されます。セグメント名を入力し、識別子の列を選択します。ユーザーは同期のたびにこのセグメントに追加される (追加のみで、削除されるユーザーはありません) ため、キャンペーンでターゲットにできます。
+
+### インポートの動作
+
+ユーザーインポートでは、Import Behaviourの下にある **Update existing users only** を選択すると、新しいユーザーを作成せずに属性を一括更新できます。
+
+### インポート通知を送信する
+
+**Send import status to** をオンにし、最大 **10件のメール受信者** を選択します。インポートの作成、成功、失敗時に、MoEngageからメールが送信されます。マッピングが完了したら、**Next** をクリックします。
+
+## ステップ3: インポート頻度を選択する
+
+MoEngageがテーブルと同期するタイミングを定義します。
+
+- **One-Time**: できるだけ早く、またはスケジュールした日時に実行します。一致するすべての行がインポートされます。
+- **Periodic**: 1時間ごと、毎日、毎週、または毎月、間隔と詳細設定を指定して実行します。
+
+必要に応じて、一定の回数後または特定の日付にインポートを終了するように設定します。**Done** をクリックします。
+
+<Warning>
+  インポートの最初の実行では、テーブルから一致するすべての行を取得します (履歴インポート)。以降の各実行では、変更された行のみを取得します。
+</Warning>
+
+<TimezoneDisplayNote />
+
+# サポートされている日時フォーマット
+
+これらのフォーマットは、マッピングファイルの `datetime_format` フィールドで、またはマッピング中にDateTime列を設定する際に使用します。
+
+<DatetimeFormats />
+
+<Info>
+  **Snowflakeのみ:** Snowflakeインポートでは、`"datetime_format": "YYYY-MM-DD hh:mm:ss.sTZD"` も追加でサポートされています (例: `2019-01-31 17:54:14.957299-08:00` または `2019-01-31 17:54:14.957299+08:00`)。
+</Info>
+
+# 重複するインポート
+
+一度に設定できるのは、一意のインポート1つのみです。次の **すべて** が既存のインポートと一致する場合、そのインポートは重複とみなされます。
+
+1. **インポートタイプ**: UsersまたはEvents。
+2. **インポートサブタイプ**: イベント名、またはRegistered / Anonymous / All users。
+3. **ウェアハウス接続**。
+4. **Schema/DatasetとTable/View**。
+
+これらのいずれか1つでも異なる場合、そのインポートは一意です。
+
+# 制限
+
+データウェアハウスインポートには、次の取り込みレート制限が適用されます (デフォルト値です。引き上げについてはMoEngageにお問い合わせください)。
+
+<DataArchival />
+
+| フェーズ | 1時間あたり | 1日あたり |
+| --- | --- | --- |
+| 履歴 (初回同期) | 15M rows/hr | 50M rows/day |
+| 通常 (以降の同期) | 600K rows/hr | 14M rows/day |
+
+インポートの最初の実行は、一致するすべての行を取得する履歴同期であり、より高い移行用の制限が適用されます。以降の定期実行にはすべて通常の制限が適用されます。
+
+# インポート失敗時のポリシー
+
+接続障害 (認証情報、ネットワーク、ウェアハウスが利用できないなど) が発生した場合、定期インポートは最大10回再試行されます。すべての再試行が失敗すると、インポートはFAILEDとしてマークされます。
+
+| ポリシー | 説明 | アクション |
+| --- | --- | --- |
+| 自動再試行 | MoEngageは接続を復旧するために、インポートを最大10回再試行します。 | 不要。MoEngageが自動的に処理します。 |
+| インポートの失敗 | 10回の再試行がすべて失敗すると、MoEngageはインポートをFAILEDとしてマークし、今後のすべての実行を停止します。 | 調査して再開します (以下を参照)。 |
+
+### 失敗したインポートを再開する
+
+FAILEDのインポートには手動での対応が必要です。
+
+1. ウェアハウス側の根本的な問題を調査して解決します (認証情報の更新、権限の確認、ウェアハウスの可用性の確保など)。
+2. MoEngage UIからインポートを手動で複製して再開します。
+3. インポートされたデータに重複がないか確認します。失敗したインポートを複製すると新しい履歴インポートが開始されるため、元のインポートが以前に成功していた場合は、冗長なデータが作成される可能性があります。データフローを制御するために、MoEngageではビューの使用を推奨しています。
+
+<Info>
+  - 新しい定期インポートの最初の成功した実行は、常に履歴インポートです (設定されたテーブル/ビューからすべてのデータを取得します)。
+  - 履歴実行では一致するすべての行を取得するため、非常に大規模な単一インポートは、ペイロードサイズや処理時間の制限により、完了できない場合があります (実行がタイムアウトしたり、スケジュールが期限切れになったりするなど)。大規模なデータセットがある場合は、1回の同期ですべてをインポートするのではなく、複数の小さなインポートに分割してください (日付範囲ごとなど)。
+</Info>
+
+# インポートを管理する
+
+インポートの監視、インポートステータスの理解、手動またはAPI経由での実行のトリガーについては、Imports Overviewの[インポートの仕組み](/ja/user-guide/data/imports/overview-imports#how-imports-work)を参照してください。
+
+# よくある質問
+
+<UniversalImportFaqs />
+
+<DwImportFaqs />
+
+<Tabs>
+  <Tab title="Snowflake">
+    {/* Snowflake has no source-specific FAQs beyond the shared DW set. */}
+    上記以外にSnowflake固有の質問はありません。
+  </Tab>
+  <Tab title="BigQuery">
+    <Accordion title="JSONデータをObjectデータ型としてインポートするには、BigQueryの列のデータ型を何にする必要がありますか?">
+      BigQueryでは、テーブルの作成時に列の型を `JSON` にする必要があります。
+    </Accordion>
+    <Accordion title="MoEngageはBigQueryのSTRUCT列をどのようにインポートしますか?">
+      MoEngageは `STRUCT` 列をObjectデータ型としてインポートし、構造体のスキーマを取り込んで、対応するフィールドのセットを作成します。インポート中に、構造体内の個々のフィールドを選択したり名前を変更したりすることはできません。
+    </Accordion>
+    <Accordion title="MoEngageは、UTCではなくローカルタイムゾーンを持つBigQueryのTIMESTAMP列をどのように処理しますか?">
+      MoEngageは参照列にタイムゾーン変換を適用せず、生の値を直接比較します。`TIMESTAMP` 型の列は、BigQueryが真のUTC時刻として保存するため安全です。リスクがあるのはタイムゾーンを持たない `DATETIME` 型の列です。UTC以外の値を保持している場合、差分フィルターはそれらの値をそのまま使用します。`DATETIME` 列にはUTCの値を保存するか、`TIMESTAMP` 型を使用してください。
+    </Accordion>
+  </Tab>
+  <Tab title="Databricks">
+    <Accordion title="MoEngageはDatabricks Unity Catalog接続をサポートしていますか? また、設定はどのように異なりますか?">
+      はい。MoEngageのDatabricksインポートはUnity Catalog上に構築されているため、設定は標準のDatabricks接続と同じです。
+    </Accordion>
+    <Accordion title="DatabricksまたはDatabricks SQL Warehousesに特定のバージョン要件はありますか?">
+      いいえ、互換性のための特定のバージョン要件はありません。
+    </Accordion>
+    <Accordion title="JSONデータをObjectデータ型としてインポートするには、Databricksの列のデータ型を何にする必要がありますか?">
+      Databricksでは、テーブルの作成時に列の型を `VARIANT` にする必要があります。
+    </Accordion>
+    <Accordion title="MoEngageは、UTCではなくローカルタイムゾーンを持つDatabricksのTIMESTAMP列をどのように処理しますか?">
+      MoEngageはタイムゾーン変換を適用せず、JDBC/ODBCコネクター経由で `TIMESTAMP` 型の列のみを読み取ります。`TIMESTAMP` はUTCに正規化されているため、現実的な問題は、独自のパイプラインがUTC型の列にローカル時刻の値を書き込むことのみです。これは型の選択ではなく、データ衛生上の問題です。(Databricksのタイムゾーンなしの `TIMESTAMP_NTZ` 型はドライバー経由ではサポートされていないため、ここでは対象外です。)
+    </Accordion>
+  </Tab>
+</Tabs>
+

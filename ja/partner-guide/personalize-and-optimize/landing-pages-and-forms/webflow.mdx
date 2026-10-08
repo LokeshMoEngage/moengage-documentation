@@ -1,0 +1,79 @@
+---
+title: "Webflow"
+---
+
+## はじめに
+
+[Webflow](https://webflow.com/) は、チームがコラボレーションしてウェブサイトを開発できるよう支援します。チームが開発とデザインを同時に進められるため、開発期間を短縮できます。デザインを進めながらコンテンツチームが編集でき、プロジェクトマネージャーはプロセスを簡単に監督できます。
+
+## MoEngage と Webflow
+
+MoEngage と Webflow の連携により、Webflow のランディングページの入力内容を取得し、MoEngage を通じてパーソナライズされたターゲットキャンペーンを送信してコンバージョンを促進できます。この連携により、以下のことができます。
+
+- フォームが送信されたときに MoEngage でユーザーを作成または更新する。
+- フォームから送信された詳細を使用してイベントを作成する。
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - Webflow の設定と Webhook にアクセスできることを確認してください。
+  - ウェブサイトページのサイト ID があることを確認してください。
+</Info>
+
+### ステップ 1: MoEngage エンドポイントを取得する
+
+連携用の専用エンドポイントを取得するには、MoEngage サポートチームに連絡してください。リクエストでは、MoEngage とパートナープラットフォーム間でユーザープロファイルをリンクするために使用する共通の識別子を指定してください。たとえば、ユーザーのメール ID や電話番号などです。
+
+### ステップ 2: Webflow で Webhook を設定する
+
+#### サイト ID を取得する
+
+サイト ID はサイト設定から確認できます。
+
+1. Designer で、左上隅の **Webflow** アイコンをクリックし、メニューから **Site Settings** を選択します。
+2. Site Settings で **Overview** セクションまでスクロールし、Site ID を確認します。<img src="https://fdr-prod-docs-files-public.s3.amazonaws.com/https://webflow-prod.docs.buildwithfern.com/2024-11-25T21:05:46.734Z/assets/images/7bbb258-Screenshot_2024-07-29_at_2.49.21_PM.png" alt="Site ID フィールドが表示された Webflow の Site Settings の Overview セクション" />
+
+#### API キーを作成する
+
+1. **Site** \> **Apps and Integration** に移動します。
+2. **API access** セクションまでスクロールします。<img src="/images/partner_32485612507284.png" alt="API access セクションが表示された Webflow の Apps and Integration ページ" />
+3. **Generate Key** をクリックします。
+4. キーの名前を入力し、関連する権限を追加します。<img src="/images/partner_32485628871060.png" alt="名前と権限スコープが設定された Webflow の API キー作成フォーム" />
+5. **Generate Token** をクリックします。
+   <Warning>
+     トークンはすぐにコピーし、安全に保管してください。再度表示することはできません。
+   </Warning>
+
+#### Webhook を作成する
+
+Create Webhook エンドポイントに `POST` リクエストを送信します。リクエストには、`site_id`、`url`（MoEngage エンドポイント）、および `form_submission` の `triggerType` を含めます。
+
+[Webflow の Create Webhook API リファレンス](https://developers.webflow.com/data/reference/webhooks/create?playground=%2Fdata%2Freference%2Fwebhooks%2Fcreate)を直接使用するか、以下の cURL コマンドを使用できます。
+
+```bash cURL wrap
+curl --location 'https://api.webflow.com/v2/sites/6745f3f6b40250a60ab0f815/webhooks' \
+  --header 'Authorization: Bearer <API key>' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "triggerType": "form_submission",
+    "url": "<MoEngage endpoint>"
+  }'
+```
+
+<Note>
+  `<API key>` を前のステップで生成したトークンに、`<MoEngage endpoint>` を MoEngage サポートから受け取った専用エンドポイントに置き換えてください。
+</Note>
+
+#### Webhook をテストする
+
+新しいフォーム送信をリッスンする Webhook を正常に作成したら、サイトのフォームに移動して回答を送信することでテストできます。
+
+### ステップ 3: MoEngage で詳細を表示する
+
+ユーザーとイベントが MoEngage に表示され始めます。ユーザープロファイルから確認できます。イベント名は `webflow form submission` と表示されます。これで、ユーザーに対してイベントトリガー型キャンペーンを実行できます。
+
+<Check>
+  テスト送信が、`webflow form submission` イベントが追跡された状態で MoEngage にユーザーとして表示されます。
+</Check>

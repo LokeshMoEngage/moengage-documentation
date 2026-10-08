@@ -1,0 +1,99 @@
+---
+title: "SDK の初期化"
+description: "Workspace ID とデータセンターを使用して、Application クラスで MoEngage Android SDK を初期化します。"
+---
+
+import ExcludeMoEngageStorageFileAndroidStart from '/ja/snippets/ExcludeMoEngageStorageFile_Android_Start.mdx';
+
+# SDK の設定
+
+MoEngage ダッシュボードの設定ページ (**Dashboard** --\> **Settings** --\> **App** --\> **General**) から Workspace ID を取得し、Application クラスの `onCreate()` で MoEngage SDK を初期化します。
+
+<Info>
+  **SDK バージョン 15.00.00 で更新** このバージョン以降、SDK の初期化前に API が呼び出されると、SDK は `IllegalStateException` をスローします。他の SDK API を呼び出す前に、`Application.onCreate()` で `MoEngage.initialiseDefaultInstance()` が呼び出されていることを確認してください。詳細については、[リリースノート](/ja/release-notes/sdks/android#7th-july-2026)を参照してください。
+</Info>
+
+<Info>
+  **注** SDK は `onCreate()` 内のメインスレッドで初期化してください。ワーカースレッドを作成してそのスレッドで SDK を初期化しないでください。
+</Info>
+
+<Info>
+  **SDK バージョン 15.00.00 で更新** Java の `MoEngage.Builder` コンストラクターは、データセンターとして `DataCenter` enum オブジェクトではなく `String` を受け取るようになりました。以下のように Java の初期化コードを更新してください。この変更は Kotlin には影響しません。詳細については、[リリースノート](/ja/release-notes/sdks/android#7th-july-2026)を参照してください。
+</Info>
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+                     .build()
+//replace X with your data center number
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+```java Java
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+
+MoEngage moEngage = MoEngage.builder(this, "YOUR_WORKSPACE_ID", DataCenter.getDataCenterX())
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+## ポートフォリオ (オプション)
+
+MoEngage アカウントで、[ポートフォリオ](https://www.moengage.com/docs/user-guide/settings/account/portfolio/portfolio)に複数のプロジェクトが設定されている場合は、以下のメソッドを使用します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.ProjectConfig
+
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+              .configureProject(ProjectConfig("<YOUR ProjectID>"))
+              .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+```java Java wrap
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+import com.moengage.core.config.ProjectConfig;
+
+MoEngage moEngage = MoEngage.builder(this, "YOUR_WORKSPACE_ID", DataCenter.getDataCenterX())
+    .configureProject(new ProjectConfig("<YOUR ProjectID>"))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+以下は、ダッシュボードホストに基づいて設定する必要がある各データセンターの詳細です。
+
+| データセンター | ダッシュボードホスト |
+| :-- | :-- |
+| `DataCenter.DATA_CENTER_1` | dashboard-01.moengage.com |
+| `DataCenter.DATA_CENTER_2` | dashboard-02.moengage.com |
+| `DataCenter.DATA_CENTER_3` | dashboard-03.moengage.com |
+| `DataCenter.DATA_CENTER_4` | dashboard-04.moengage.com |
+| `DataCenter.DATA_CENTER_5` | dashboard-05.moengage.com |
+| `DataCenter.DATA_CENTER_6` | dashboard-06.moengage.com |
+
+設定可能な項目の詳細な一覧については、[API リファレンス](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html)を参照してください。
+
+<Warning>
+  **重要** すべての設定は、初期化前にビルダーに追加されます。複数の場所で初期化を呼び出している場合は、動作の一貫性を保つために、初期化のたびに必要なすべてのフラグと設定が行われていることを確認してください。
+</Warning>
+
+# データフロー
+
+SDK はインストールされたアプリケーションのビルドタイプを検出し、それに基づいてデータを MoEngage プラットフォームの Test 環境と Live 環境のどちらに送信するかを決定します。
+
+- 未署名/デバッグビルド — データは Test 環境に送信されます
+- 署名済み/Live ビルド — データは Live 環境に送信されます。

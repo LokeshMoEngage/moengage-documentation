@@ -1,0 +1,44 @@
+---
+title: "AB Tasty"
+---
+
+# はじめに
+
+MoEngage のテクノロジーパートナーの 1 社である [AB Tasty](https://www.abtasty.com/) を使用すると、ウェブサイト、アプリ、機能などで製品の A/B テストや多変量テストを実行できます。これらのテストを AB Tasty で実行し、その結果を MoEngage で分析できます。
+
+# MoEngage でテスト結果を分析する
+
+MoEngage でテスト結果を分析するには、以下のように MoEngage 用のデータトラッキングを設定する必要があります。
+
+## Android
+
+Android アプリで、以下のようにコールバックを設定します。
+
+```java wrap
+// Flagship campaign activation
+Flagship.Companion.activateModification("my_flag")
+
+// Get Flagship campaign information, map it, and send it to Segment
+JSONObject json = Flagship.Companion.getModificationInfo("my_flag");
+        if (json != null) {
+            Iterator<String> iterator = json.keys();
+            Properties properties = new Properties();
+            while (iterator.hasNext()){
+                String name = iterator.next();
+                properties.addAttribute(name, json.opt(name));
+            }
+            MoEHelper.getInstance().trackEvents("Flagship_Source_Java", properties);
+        }
+```
+
+## iOS
+
+iOS アプリで、以下のようにコールバックを設定します。
+
+```swift wrap
+if let campaign_info = Flagship.sharedInstance.getModificationInfo(key:"my_flag") {
+    let campaignInfoDict = NSMutableDictionary.init(dictionary: campaign_info)
+    let properties = MOProperties.init(attributes: campaignInfoDict)
+    MoEngage.sharedInstance().trackEvent("Flagship_Source_ios", with: properties)
+}
+```

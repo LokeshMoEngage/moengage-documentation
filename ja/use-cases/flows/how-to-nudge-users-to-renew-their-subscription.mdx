@@ -1,0 +1,87 @@
+---
+title: "サブスクリプションの更新をユーザーに促す方法"
+---
+
+# はじめに
+
+サブスクリプション更新ジャーニーは、現在のサブスクリプションの期限が近づいたときに、ユーザーにサブスクリプションの更新を促すことを目的としています。このジャーニーを計画することは、次の理由から重要です。
+
+- 一般的に、新規ユーザーを獲得するよりも既存ユーザーを維持する方が費用対効果が高く、サブスクリプションを更新してもらうことがユーザーを維持する最善の方法です。これは収益の向上にもつながります。
+- さらに、更新の意欲が低いユーザーから、より良いフィードバックを得ることにも役立ちます。これにより問題を解決でき、最終的により良いカスタマーエクスペリエンスを提供できるようになります。
+
+ユーザーに更新を促す際の鉄則は、価値提案と、更新しなかった場合に失うメリットを強調することに重点を置くことです。また、適切なチャネルを選択し、適切なタイミングでメッセージを送信することで、効果が大きく高まります。
+
+この記事では、サブスクリプションの更新をユーザーに促す Flow キャンペーンを作成します。このユースケースを実現するために、Flows の Conditional Split と [Next Best Action](/ja/user-guide/flows-cross-channel-messaging/create/intelligence-in-flows/next-best-action-in-flows) の機能を使用します。サブスクリプションの有効期限の前に、複数回の働きかけ（10 日前、6 日前、1 日前）を設定する方法について説明します。
+
+# 期待される結果
+
+ユーザーは、サブスクリプションの更新を促すプッシュ通知をスマートフォンで受信します。
+
+<img
+  src="/images/moengage_de97a8.png"
+  alt="image-20231214-045901.png"
+  style={{ width:"51%" }}
+/>
+
+ユーザーは、サブスクリプションの更新を促すメールメッセージを受信します。
+
+<img
+  src="/images/moengage_26ec7b.png"
+  alt="image-20231214-045353.png"
+  style={{ width:"51%" }}
+/>
+
+<Tip>
+  - ユーザーがサブスクリプションの更新を開始するアクションと、プラットフォーム、サブスクリプションカテゴリ、価格などの関連情報を追跡するイベント。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。この例では、「Subscription Renewal Started」というイベント名にします。
+  - ユーザーが支払いを正常に完了するアクションと、プラットフォーム、サブスクリプションカテゴリ、価格などの関連情報を追跡するイベント。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。この例では、「Subscription Successful」というイベント名にします。
+  - ユーザーのサブスクリプションカテゴリと更新日を追跡するユーザープロパティ。ユーザープロパティを通じてこの情報を追跡する方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。この例では、ユーザープロパティ名を「ENT- Subscription Category」と「ENT- Subscription Renew Date」とします。
+  - Push、Email、SMS、WhatsApp などの 1 つ以上のチャネルの設定。
+</Tip>
+
+# Flow を作成する
+
+このセクションでは、顧客とエンゲージしてサブスクリプションの更新を促す Flow を作成します。
+
+## Flow の詳細を追加する
+
+1. **Engage** \> **Flows** に移動して **\+ Create Flow** をクリックするか、サイドバーに移動して **\+ Create new** をクリックしてから **Flow** をクリックします。
+2. **\+ Start with a blank canvas** をクリックして、このユースケース用の Flow の作成を開始します。最初のステップ「Details and goals」に移動します。
+3. 次の詳細を入力します。
+   - **Flow Name**: Flow 名を入力します。たとえば、「Subscription Renewal」と入力します。
+   - **Flow tags**: 必要な Flow タグを選択します。
+4. **Conversion goal** セクションで、**Exit on conversion** トグルをオンにして、「Subscription Successful」イベントを実行してコンバージョンしたユーザーを Flow から退出させます。これは主要なコンバージョン目標であり、ユーザーがサブスクリプション更新の支払いを正常に完了したときにトリガーされます。 <img alt="image-20231212-190042.png" src="/images/moengage_20ea46.png" />
+5. **Next** をクリックして 2 番目のステップ「When will users enter the flow」に進みます。このステップでは、ユーザーをいつ Flow に参加させるかを定義します。
+6. **Users enter the flow** で **At Fixed Time** カードを選択します。 <img alt="image-20231212-190218.png" src="/images/moengage_148bae.png" />
+7. **Periodic** で **Daily** を選択し、開始日と送信時刻を指定します。
+8. **Limit user entry into the flow** トグルをオンにして、ユーザーが Flow に参加できる最大回数を定義します。このような制限を定義すると、ユーザーが繰り返し Flow に再参加するのを制御でき、過剰なメッセージ送信を避けられるため、より良いユーザーエクスペリエンスを提供できます。
+9. **Next** をクリックして 3 番目のステップ「Who will enter the flow」に進みます。ここでは、Flow のターゲットオーディエンスを選択します。
+10. **Audience** で **User property** を選択し、ユーザープロパティ「ENT- Subscription Renew Date」が今後 10 日以内に到来するユーザーを定義します。 <img alt="image-20231213-022014.png" src="/images/moengage_aae216.png" />
+11. **Next** をクリックしてキャンバスセクションに移動します。ここでは、ユーザーが進む Flow の構造を定義できます。
+
+## Flow の構造を定義する
+
+1. **\+** アイコンをクリックします。ドロワーが表示されます。
+2. **Conditions** で、エントリー条件として「Conditional Split」を追加し、更新までの残り日数に基づいてユーザーを分割します。 <img alt="image-20231213-021712.png" src="/images/moengage_952035.png" />
+3. 最初の 2 つのブランチに **Next Best Action** (NBA) ステージを追加し、3 番目のブランチには任意のチャネルを追加して、サブスクリプションを更新しなかった場合に失うものをユーザーに思い出させるメッセージを送信します。ブランチ 1 ではメッセージのトーンを緊急性があり強く促すものに、ブランチ 2 ではユーザーの FOMO（取り残されることへの不安）を喚起するものにできます。一方、Others ブランチでは残り日数が十分にあるため、中立的なトーンにできます。詳細については、[Next Best Action in Flows](/ja/user-guide/flows-cross-channel-messaging/create/intelligence-in-flows/next-best-action-in-flows) を参照してください。
+   <Info>
+     Action の **Next Best Action** オプションは Enterprise プランでのみ利用可能で、その他のプランではアドオンとなります。
+   </Info>
+4. NBA を追加すると、適切なタイミングで適切なチャネルを使用して各ユーザーにアプローチできることに注意してください。これにより、エンゲージメントが高まる可能性が上がり、コンバージョンの向上につながります。  <img alt="image-20231213-023159.png" src="/images/moengage_97fc42.png" />
+   1. **Next Best Action** ステージを定義するには、ステージにマウスポインターを合わせて編集アイコンをクリックします。Next best action ポップアップが表示されます。 <img src="/images/moengage_fec9c7.png" alt="11.png" />
+   2. **Choose a fallback channel** ドロップダウンリストからチャネルを選択します。フォールバックチャネルは、ユーザーの優先チャネルを予測するのに十分なデータが MoEngage にない場合に使用されます。
+   3. **Default time to send** セクションでオプションを選択します。デフォルト時間は、ユーザーにコミュニケーションを送信する最適な時間を予測するのに十分なデータが MoEngage にない場合に使用されます。
+   4. **Done** をクリックします。
+5. 使用する各チャネル（Push、Email、SMS）でメッセージを定義します。
+6. さらに、ユーザーの名前や性別などの情報がある場合は、Action キャンペーンを編集する際にその情報を使用してメッセージをパーソナライズします。また、属性「ENT- Subscription Category」を使用して以前に購入したプランの詳細を含めると、メッセージがより状況に即したものになり、ユーザーがつながりを感じる可能性が高まります。詳細については、[Personalization in Flows](/ja/user-guide/flows-cross-channel-messaging/create/actions-in-flows/personalization-in-flows) を参照してください。
+7. プッシュ通知を定義する際は、ディープリンクオプションを使用して、ユーザーが購入を完了できるページに直接移動する URL を追加します。これにより離脱の可能性が減り、ユーザーは私たちが直接実行してほしいことに集中できます。 <img alt="image-20231213-024456.png" src="/images/moengage_dbcde6.png" />
+8. 上記の NBA ステージまたはチャネルに基づく Action ステージの後に、「Has done event」ステージを配置し、「Subscription Successful」イベントを確認して、ユーザーが更新を完了したかどうかをチェックできます。まだ更新していないユーザーを移動させる前の最大待機時間として、**Keep evaluating for the next** を **1 day** に設定します。 <img alt="image-20231213-024920.png" src="/images/moengage_416bdb.png" />
+9. Wait ステージを使用して各コミュニケーションの間に間隔を空け、ユーザーへの過剰なメッセージ送信を避けてください。詳細については、[Add Controls to Flow](/ja/user-guide/flows-cross-channel-messaging/create/conditions-and-controls-in-flows/force-move-or-delay-users-in-flows) を参照してください。
+10. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、サブスクリプションの更新をユーザーに促す Flow キャンペーンを作成しました。
+
+- Flow を公開したので、Flow のパフォーマンスを[分析](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/analyze-a-flow)できます。
+- キャンペーンによって Flow に参加したユーザー数を把握できます。「Flow ID」を指定して「User Entered Flow」イベントでセグメンテーションを作成します。詳細については、[Users who have entered/exited the Flow](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/tracking-users-in-flows) を参照してください。
+- キャンペーンによって実際にサブスクリプションを更新したユーザー数も把握できます。「Flow ID」を指定して「Flow Trip Conversion」イベントでセグメンテーションを作成します。詳細については、[Conversion Tracking and Attribution in Flows](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/conversion-attribution-in-flows) を参照してください。

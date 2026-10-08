@@ -1,0 +1,307 @@
+---
+title: "MoEngage Destination"
+---
+
+# はじめに
+
+<Info>
+  Twilio Segment 統合は現在、[Unified Identity (Identity Resolution)](https://moengage-user-guide.mintlify.app/user-guide/data/user-data/unified-identity-identity-resolution) をサポートしていません。OS タイプとしての TV はサポートされていません。
+</Info>
+
+Twilio Segment の MoEngage Destination を使用すると、ユーザー、イベント、オーディエンス（[Twilio Segment Engage](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/getting-started/twilio-segment-engage)）のデータを MoEngage に転送し、それらを対象としたパーソナライズされたキャンペーンを実行できます。MoEngage を新たにご利用になるお客様は、[Twilio Segment replays](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/getting-started/twilio-segment-engage) を使用して過去のデータを MoEngage に転送できます。
+
+## 統合モード
+
+| 統合モード | 詳細 |
+| --- | --- |
+| Side-by-side（Device mode） | 推奨される統合モード <br />Device mode は Segment の SDK を使用してデータを MoEngage に直接送信します。これにより、より高度な機能にアクセスでき、MoEngage をより包括的に活用できます。 |
+| Server-to-server（Cloud mode） | Cloud mode は、Segment のサーバーから MoEngage Data API にデータを直接転送します。Cloud mode は、一般的にオフラインデータを MoEngage に送信する場合に推奨されます。<br />制限事項: Cloud mode は、プッシュ通知、アプリ内メッセージング、オンサイトメッセージング、Cards をサポートしていません。これらの機能を使用するには、MoEngage SDK を別途インストールする必要があります。 |
+
+## Destination フレームワーク
+
+MoEngage は、MoEngage Classic と MoEngage Actions の 2 種類の Destination フレームワークをサポートしています。
+
+以下の表を参照して、ニーズに最適なフレームワークの種類を選択してください。
+
+| Destination フレームワーク \> <br />_統合モード v_ | MoEngage Classic | MoEngage Actions |
+| --- | --- | --- |
+| _Device Mode_ | 推奨 | N/A |
+| _Cloud Mode_ | 2025 年 12 月までに廃止予定 | 推奨 |
+
+注: 匿名ユーザーとそのイベントは、MoEngage (Actions) Destination でのみサポートされています。
+
+# 統合
+
+<Info>
+  - MoEngage と Segment のログイン認証情報。
+  - インストール済みのソースと Segment ソースの[ライブラリ](https://segment.com/docs/sources/)—モバイルアプリ、Web サイト、バックエンドサーバーなど、Segment に送信されるデータの送信元です。`Source > Destination` フローを正しく設定するには、事前にアプリ、サイト、またはサーバーにライブラリをインストールしておく必要があります。
+</Info>
+
+# ステップ 1: MoEngage を Destination として追加する
+
+ソースの設定が完了したら、MoEngage を Destination として設定する必要があります。接続設定には、MoEngage と Segment の間でのデータの移動方法をカスタマイズするためのさまざまな方法が用意されています。MoEngage を Destination として追加するには、次の手順を実行します。
+
+1. **Segment** App にログインします。
+2. Segment ダッシュボードの左側のナビゲーションメニューで、**Connections** \> **Destinations** をクリックします。
+3. \+ **Add destination** をクリックします。 <img src="/images/partner_38197516342676.png" />
+4. **Destinations** で、使用する Destination に応じて **MoEngage** または **MoEngage (Actions)** を選択できます。 <img src="/images/partner_38197516343828.png" />
+
+<Tabs>
+  <Tab title="MoEngage (Classic)">
+    ### MoEngage (Classic)
+
+    MoEngage（「MoEngage (Classic)」）Destination を使用すると、Segment の Device mode または Cloud mode のいずれかを使用して、Segment からユーザーとイベントのデータを転送できます。MoEngage をセットアップするには、次の手順を実行します。
+
+    1. [MoEngage Destination ページ](https://app.segment.com/moengage-shivam/destinations/catalog/moengage)で、**Add Destination** をクリックします。
+    2. **Data Source** を選択し、**Next** をクリックします。
+    3. ステップ 2 で選択した統合モードに基づいて、**Setup** ページで Destination 名を入力します。\
+       オプション: 以前に MoEngage Destination と統合したことがある場合は、その設定をここにコピーすることを選択できます。 <img src="/images/partner_38197516346388.png" />
+    4. **Create Destination** をクリックします。
+    5. **Settings** タブで MoEngage アプリの詳細を入力し、接続を有効にして MoEngage へのデータ転送を開始します。 <img src="/images/partner_38197516350996.png" />
+
+    # ステップ 2: 統合タイプを選択して実装する
+
+    MoEngage (Classic) 統合は、Segment から MoEngage にデータを転送するための 2 つの接続モードをサポートしています。
+
+    - **Device Mode（Side-by-side）**: このモードでは、モバイルアプリで MoEngage のすべての機能が有効になり、すべてのデータがモバイルアプリから MoEngage に直接転送されます。こちらが推奨されるモードです。
+    - **Cloud Mode（Server-to-server）**: このモードは、オフラインデータを MoEngage に送信する場合に推奨されます。
+
+    ## Device Mode（Side-by-side）
+
+    Device Mode は、Segment で MoEngage を使用する場合に推奨される接続モードです。Device Mode で設定すると、Segment はすべての track および identify リクエストを、ユーザーのデバイス経由で MoEngage に直接転送します。つまり、アプリは Segment と MoEngage に個別にリクエストを送信するため、MoEngage にデータを明示的に送信する必要がなくなります。Android と iOS で Device Mode を使用するには、MoEngage **\+ Segment** バンドルを統合します。Web サイトのデータについては、Device Mode 接続を選択します。
+
+    ![](/images/partner_38197578349460.png)
+
+    **Settings** タブで、次の詳細を入力します。
+
+    | 項目 | 説明 |
+    | --- | --- |
+    | App ID | Workspace ID を取得するには、MoEngage ダッシュボードで **Settings** \> **Account** \> **General settings** に移動します。 |
+    | Debug Logging | このオプションをオンにして、デバッグログを有効にする必要があります。これにより、データが MoEngage の TEST 環境にルーティングされます。 |
+    | Connection Mode（このオプションは JavaScript ソースの場合にのみ表示されます） | <ul><li>**Website、Android、iOS**: デフォルトの接続モードは Device Mode です。</li><li>**Server-side**: デフォルトの接続モードは Cloud Mode です。</li></ul> |
+
+    Device Mode 接続を使用して MoEngage のすべての機能を活用するには、以下に記載されている統合手順に従う必要があります。
+
+    ## Cloud Mode（Server-to-server）
+
+    <Info>
+      Cloud Mode には MoEngage (Actions) を使用することを推奨します。
+    </Info>
+
+    Cloud Mode 統合は、次のシナリオで役立ちます。
+
+    - Segment のサーバーサイドソースで生成されたデータを MoEngage に転送する場合。
+    - Android または iOS デバイスに MoEngage \+ Segment のコードがバンドルされていない場合に、Cloud Mode 経由でデータを自動的に送信する場合。
+
+    詳細については、[Segment Sources](https://segment.com/docs/connections/sources/)、[MoEngage Destination](https://segment.com/docs/connections/destinations/catalog/moengage/)、およびサポートされている接続モードを参照してください。
+
+    <Info>
+      **制限事項**
+
+      Cloud Mode 統合を使用する場合、いくつかの制限があります。Segment は、データを MoEngage に送信する前に（Cloud Mode 経由の場合のみ）、すべての属性（プロパティ）を `camelCase` から `snake_case` に変換します。これにより、MoEngage ダッシュボードに重複した属性が表示される場合があります。Device Mode を使用する場合、この変換は発生しません。
+    </Info>
+
+    ### iOS
+
+    使用する必要がある MoEngage SDK は、使用している Segment SDK によって異なります。
+
+    |  | Segment SDK | MoEngage SDK |
+    | --- | --- | --- |
+    | 推奨 | [Analytics Swift](https://github.com/segmentio/analytics-swift) | [MoEngage Segment Swift](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/device-mode-integration/ios-swift-device-mode) |
+    | レガシー | [Analytics iOS](https://github.com/segmentio/analytics-ios) | [MoEngage Segment iOS](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/device-mode-integration/ios-swift-device-mode) |
+
+    ### Android
+
+    使用する必要がある MoEngage SDK は、使用している Segment SDK によって異なります。
+
+    |  | Segment SDK | MoEngage SDK |
+    | --- | --- | --- |
+    | 推奨 | [Analytics Kotlin](https://github.com/segmentio/analytics-kotlin) | [MoEngage Segment Kotlin](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/device-mode-integration/android-kotlin-device-mode) |
+    | レガシー | [Analytics Android](https://github.com/segmentio/analytics-android) | [MoEngage Segment Android](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/device-mode-integration/android-device-mode) |
+
+    ### Web
+
+    Side-by-side 統合を完了するには、[Segment Web](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/device-mode-integration/web-device-mode) の詳細な手順を参照してください。
+
+    ### React Native
+
+    Side-by-side 統合を完了するには、[Segment React Native](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/device-mode-integration) の詳細な手順を参照してください。
+  </Tab>
+  <Tab title="MoEngage (Actions)">
+    ### MoEngage (Actions)
+
+    MoEngage (Actions) Destination は、Classic Destination に比べて大幅に改善されています。
+
+    ![](/images/partner_38197578352916.png)
+
+    ## MoEngage (Actions) と MoEngage Classic の比較によるメリット
+
+    MoEngage (Actions) には、MoEngage Classic Destination と比べて次のメリットがあります。
+
+    - **データの一貫性**: Device Mode と Cloud Mode の間のデータの一貫性が向上しました。以前は、これらのモードで送信されたデータが一致しなかったり、重複したプロパティが含まれたりすることがありましたが、この問題は解決されました。
+    - **マッピングのサポート**: MoEngage Actions を使用すると、以前は互換性のなかったプロパティを MoEngage 互換のプロパティにマッピングできるようになりました。これにより、開発の工数を大幅に削減できます。
+    - **拡張された設定**: JavaScript 統合で、カスタム Service Worker のオプションなど、追加の設定が利用できるようになりました。
+
+    ### ステップ 2: MoEngage (Actions) Destination をセットアップする
+
+    MoEngage (Actions) Destination をセットアップするには、次の手順を実行します。
+
+    1. **Setup** ページで、**Destination name** を入力します。\
+       **注**: 使用するセットアップ方法を選択してください。オプション: 以前に MoEngage と統合したことがある場合は、以前の Destination から設定をコピーできます。
+    2. **Save** をクリックします。 <img src="/images/partner_38197516359572.png" />
+    3. **Settings** タブで、**MoEngage App** の詳細を入力します。
+
+    | 項目 | 説明 |
+    | --- | --- |
+    | Name | MoEngage prod、MoEngage test など、MoEngage Destination の名前です。 |
+    | App ID | Workspace ID をコピーして貼り付けます。MoEngage アカウントの Workspace ID は、**Settings** -\> **Account** -\> **APIs** -\> **Workspace ID** で確認できます。MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+    | App Key | App Key をコピーして貼り付けます。MoEngage アカウントの Data API キーは、**Settings** -\> **Account** -\> **APIs** -\> **API keys** \> **Data API settings** で確認できます。 |
+    | Endpoint region | MoEngage のデータセンターです。詳細については、[こちら](https://moengage-user-guide.mintlify.app/user-guide/data/key-concepts/data-centers-in-moengage)を参照してください。 |
+
+    4. **Enable** **Destination** トグルをオンにし、**Save** **Changes** をクリックします。 <img src="/images/partner_38197516367636.png" />
+
+    ## マッピングの有効化 - Track と Identify
+
+    MoEngage (Actions) Destination は Data Mapping をサポートするようになりました。これにより、Segment がソースから受信したイベントデータを MoEngage に送信する方法を制御できます。この Destination 内の各 Action には、必須およびオプションのイベントデータが一覧表示されます。また、どのイベントタイプ、イベント名、またはイベントプロパティの値で Action をトリガーするかを選択することもできます。
+
+    これらのトリガーとマッピングにより、トリガーされたコンテキストに応じて異なるバージョンの Action を送信できます。詳細については、[Classic Destinations and Destination Actions](https://segment.com/docs/connections/destinations/actions/) を参照してください。マッピングを使用するには、**Mappings** タブ \> **\+** **New Mapping** をクリックします。MoEngage (Actions) には、**Track Event** と **Identify User** の 2 つの Action があります。
+
+    ![](/images/partner_38197578360596.png)
+
+    ### Identify User マッピングの追加
+
+    <Info>
+      MoEngage (Actions) は、Cloud Mode 経由で登録済みユーザーと匿名ユーザーの両方のインポートをサポートしています。User ID または匿名 ID の少なくとも 1 つを必ず渡してください。
+    </Info>
+
+    1. **Mappings** タブをクリックし、**\+ New Mapping** をクリックします。
+    2. **Add mapping** セクションの **ACTIONS** で、**Identify User** を選択します。 <img src="/images/partner_38197516374676.png" />
+    3. 要件に基づいてイベントトリガーを定義するか、MoEngage が提供するデフォルトの条件をそのまま使用します。
+    4. **Test Event** をクリックします。Segment は、トリガー条件に一致する最近のイベントの取得を試みます。
+    5. **Define mappings** ステップでは、MoEngage がすべてのマッピングにプリセット値を提供します。
+    6. 必要に応じて、ページの最後までスクロールして接続をテストします。 <img src="/images/partner_38197516377620.png" />
+    7. 設定後、**Save** をクリックします。これらの値は変更しないでください。
+
+    <Info>
+      Twilio Segment 統合は MoEngage Portfolio をサポートしています。Project Name 属性を使用すると、Portfolio が有効なワークスペース内の特定のプロジェクトにイベントをルーティングできます。
+    </Info>
+
+    ## Portfolio のサポート
+
+    MoEngage ワークスペースで Portfolio が有効になっている場合、次の要件に従って Segment のペイロードでプロジェクト名を指定することで、特定のプロジェクトにイベントをルーティングできます。
+
+    - Segment の Project Name 属性を MoEngage のプロジェクト名にマッピングします。
+    - このフィールドの値が、MoEngage Portfolio で設定されているプロジェクト名と完全に一致していることを確認してください。
+      ![Portfolio](/images/Portfolio.png)
+
+    ### プロジェクトへのイベントルーティング
+
+    Portfolio が有効なワークスペースでは、MoEngage は属性ベースのルーティングを使用します。これにより、Segment から特定のプロジェクトにイベントを送信できます。イベントをルーティングするには、Segment のプロパティのプロジェクト識別子を、専用の MoEngage 属性である Project Name（`moe_project_name`）にマッピングする必要があります。
+
+    ### イベント取り込みのルール
+
+    Project Name のマッピングに基づいて MoEngage がイベントの取り込みをどのように処理するかを以下に示します。
+
+    - **属性マッピング**: ソースのプロパティ（Segment の brand\_name や app\_id など）を MoEngage 属性の Project Name にマッピングします。このマッピングが存在する場合、MoEngage は属性値に基づいて対象プロジェクトを特定します。
+    - **名前の完全一致**: ソース列で渡される値は、MoEngage の Portfolio 設定で構成されている Project Name と完全に一致する必要があります。
+    - **フォールバック動作（不一致または空白）**: Project Name フィールドが空白の場合、マッピングがない場合、または値が設定済みのプロジェクトと完全に一致しない場合、イベントはグローバルな Portfolio レベルで取り込まれます。
+
+    <Warning>
+      Portfolio レベルで取り込まれたデータは特定のプロジェクトに関連付けられないため、プロジェクト固有の分析、セグメンテーション、ターゲティングには使用できません。
+    </Warning>
+
+    詳細については、[Portfolio](/ja/user-guide/settings/account/portfolio/portfolio) および [Portfolio: Data Ingestion and Management](https://www.moengage.com/docs/user-guide/data/key-concepts/portfolio-data-ingestion-and-management#event-attributes-project-level) を参照してください。
+
+    <Warning>
+      **制限事項**
+
+      Segment のプロジェクトレベルのルーティングは、イベントに対してのみ利用できます。次の機能はグローバルな Portfolio レベルで管理されます。
+
+      - **ユーザー同期**: プロジェクトレベルではサポートされていません。アウトバウンドのユーザー同期では、デフォルトでユーザーはグローバルな Portfolio レベルでトラッキングされます。
+      - **コホート同期**: プロジェクトレベルではサポートされていません。
+    </Warning>
+
+    ### 既存ユーザーのみを更新
+
+    Identity コールを実行すると、MoEngage に新しいユーザーを作成できます。**Update existing users only** オプションを選択した場合、転送されたユーザーが MoEngage にまだ存在しないときは新しいユーザーは作成されず、既存ユーザーのプロパティのみが更新されます。新しいユーザーを作成する設定が **Yes** に設定されている場合、既存ユーザーのプロパティのみが更新されます（**Yes** は値 true を意味します）。
+
+    ![](/images/partner_38197516383124.png)
+
+    ### Track Event Action の追加
+
+    Track Event Action を追加するには、次の手順を実行します。
+
+    1. **Mappings** タブをクリックし、**\+** **New Mapping** をクリックします。
+    2. **Add mapping** セクションの **ACTIONS** で、**Track Event** を選択します。 <img src="/images/partner_38197578373268.png" />
+    3. 要件に基づいてイベントトリガーを定義するか、MoEngage が提供するデフォルトの条件をそのまま使用します。
+    4. **Test Event** をクリックします。Segment は、トリガー条件に一致する最近のイベントの取得を試みます。
+    5. **Define mappings** ステップでは、MoEngage がすべてのマッピングにプリセット値を提供します。
+    6. 必要に応じて、ページの最後までスクロールして接続をテストします。 <img src="/images/partner_38197516386836.png" />
+    7. 設定後、**Save** をクリックします。\
+       **注**: これらの値は変更しないでください。
+
+    <Info>
+      **Identify User** と **Track Event** のマッピング後、**Enabled** トグルがオンになります。オンになっていない場合は、**Status** 列のトグルをオンにして有効にします。 <img src="/images/partner_38197578376084.png" />
+    </Info>
+
+    ## Classic MoEngage Destination からの移行
+
+    <Warning>
+      **Segment の Analytics.js 2.0 が必要です**
+
+      MoEngage (Actions) Destination には、Segment の Analytics.js 2.0 の機能が必要です。Web actions を使用していて、MoEngage (Actions) Destination を JavaScript ソースに接続している場合は、互換性を確保するために Analytics.js（Segment が提供）をアップグレードしてください。
+    </Warning>
+  </Tab>
+</Tabs>
+
+# ステップ 3: 統合をテストする
+
+統合の設定が完了したら、データが MoEngage に正しく送信されていることを確認する必要があります。まず、アプリでいくつかのテストアクションを実行します。次に、MoEngage ダッシュボードの最近のイベント、セグメント、または分析のセクションでデータを確認できます。特定のデータを検証するには、カスタムイベントと属性データに基づいてユーザーとイベントをフィルタリングできます。
+
+![統合をテストする](/images/Test-your-integration.png)
+
+# Segment Replays
+
+Segment Replay は、Segment データのアーカイブコピーを取得し、MoEngage に再送信します。これにより、Segment から MoEngage にすべての過去データをインポートできます。Segment Replays の詳細については、Segment の CSM にお問い合わせください。
+
+# Segment Engage と Computed Traits
+
+Segment Engage を使用すると、さまざまなソースからすでに収集したデータに基づいてユーザーのセグメントを作成し、MoEngage に同期できます。詳細については、[Segment Personas and Computed Traits](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/getting-started/twilio-segment-engage) のセットアップと同期の方法を参照してください。
+
+# Segment Unify
+
+既存の Segment から MoEngage への統合は**変更されず**、MoEngage Destination の**設定を更新する必要はありません**。
+
+Segment Unify はアップストリームで動作し、MoEngage に送信される `Identify` コールに、最も正確に統合された顧客プロファイルが含まれるようにします。MoEngage のセットアップでは、Segment の Unify レイヤーから送られてくる新しい統合済みのユーザー traits とイベントデータが自動的に活用されます。
+
+# レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Segment データの取り込みを、ワークスペースあたり最大 500 リクエスト/秒（RPS）に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+Segment は通常、レート制限の発生を自動的に処理します。レート制限がデータフローにどのように影響するかについては、Segment のデフォルトの再試行ポリシーを参照してください。詳細については、Segment のドキュメントを参照してください。
+
+**再試行の上限到達**: Segment がデータのバッチに対するすべての再試行を使い切った場合は、Segment サポートチームに連絡して、失敗したリクエストを再実行してもらう必要があります。
+
+# よくある質問
+
+<AccordionGroup>
+  <Accordion title="Data Exports では最新のユーザー属性が保証されますか？">
+    いいえ。Data Exports は主にイベントをほぼリアルタイムでエクスポートするために構築されており、MoEngage のユーザー属性は非同期で更新されるため、現時点ではエクスポートでユーザー属性の最新値を保証することはできません。
+  </Accordion>
+
+  <Accordion title="データの受信はいつ開始されますか？">
+    通常、アカウントで自動データエクスポートがセットアップされ、データが表示され始めるまでに最大 30 分かかります。
+  </Accordion>
+
+  <Accordion title="後から追加のイベントをエクスポートできますか？">
+    はい。後から新しいイベントをエクスポートする必要がある場合は、App Marketplace でいつでも設定を編集し、新しいイベントをエクスポートに追加できます。
+  </Accordion>
+
+  <Accordion title="Automated Data Exports を使用して過去のデータをエクスポートできますか？">
+    現時点では、Automated Data Exports を使用して過去のデータをエクスポートすることはできません。設定後は、エクスポートを有効にした時点からの各イベントのデータが表示されるようになります。
+  </Accordion>
+
+  <Accordion title="Automated Data Exports には料金がかかりますか？">
+    お使いの請求プランにこの機能がまだ含まれておらず、後から有効にする必要がある場合は、カスタマーサクセスマネージャーと協力して請求プランに含めてもらう必要があります。MoEngage が毎月データウェアハウス/パートナー/API に送信するデータ量によっては、追加料金が発生する場合があります。
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,78 @@
+---
+title: "BIK"
+---
+
+# はじめに
+
+[BIK](https://bik.ai/) は、マーケターが訪問者を収益に転換できるよう支援するオールインワンの AI プラットフォームです。BIK は、収益の向上、信頼の強化、ロイヤルな顧客アドボケイトの育成に必要なすべてのツールをワンストップで提供します。
+
+# ユースケース
+
+_A. 旅行・ホスピタリティ_(情報提供) - ユーザーが旅行パッケージを予約し、次のオプションを含む予約に関する WhatsApp メッセージをユーザーに送信したい場合 -
+
+1. 請求書を取得する
+2. 旅程を表示する
+3. 折り返し電話をリクエストする
+
+_B. 通信_(コンバージョン) - ユーザーの請求書の支払期日が近づいています。次のオプションを含むリマインダーメッセージを WhatsApp で送信したい場合 -
+
+1. 請求書を表示する
+2. 未払い金を支払う
+3. アプリを開く
+
+_C. フィンテック_(リテンション) - ユーザーに未請求のポイントがいくつかあります。次のオプションを使って変更を通知したい場合 -
+
+1. 報酬を請求する
+2. ポイントを獲得する
+3. お問い合わせ
+
+これらの各ユースケースでは、ユーザーが WhatsApp メッセージに返信でき、ボットのレシピがユーザーの問題解決をガイドするか、ユーザーをチームにつなぎます。
+
+# MoEngage × BIK
+
+MoEngage と BIK の統合により、最初のアプローチから会話型体験への誘導、そしてインテリジェントなリターゲティングによるオムニチャネルのフォローアップまで、エンドツーエンドの顧客ライフサイクルをシームレスにオーケストレーションできます。
+
+チャットフローは BIK ダッシュボードで作成する必要があります。作成したフローは、MoEngage のコネクタキャンペーンを使用してトリガーされます。
+
+# 統合
+
+<Info>
+  - BIK アカウントを持っていることを確認してください。
+  - [BIK アカウントの API](https://docs.bik.ai/docs/references/APIs/send-message) にアクセスできることを確認してください。
+</Info>
+
+## ステップ 1: BIK でチャットフローを作成する
+
+1. [こちら](https://help.bik.ai/en/articles/9779972-whatsapp-carousel-block)の手順に従ってジャーニーを作成します。
+2. API キーを生成します。[こちらの BIK API ドキュメント](https://docs.bik.ai/docs/authentication/)に記載されている手順に従います。キーとシークレットをコピーします。
+
+## ステップ 2: MoEngage でコネクタキャンペーンを作成する
+
+MoEngage でコネクタキャンペーンを作成するには、
+
+1. Create Campaign \> Connectors \> Custom に移動し、ニーズに最適な配信タイプを選択します <img src="/images/partner_30279566777620.png" alt="Screenshot_2022-02-21_at_10.48.46_PM.png" />
+2. キャンペーンのステップ 2 で
+
+- メソッドとして POST を選択します
+- Webhook URL として次を追加します: [https://bikapi.bikayi.app/integrations/bikPlatformFunctions-sendMessage](https://bikapi.bikayi.app/integrations/bikPlatformFunctions-sendMessage)
+- Headers で、
+  - Content-Type を application/json に設定します
+  - Username を _Key_、Password を _Secret_ として Basic 認証を設定します
+- Body で Raw を選択し、リクエストをコピーして貼り付けます
+  <CodeGroup>
+  ```json JSON wrap
+  {
+  "appId": <your BIK APP_ID>,
+  "medium": <BIK message medium such as whatsapp>,
+  "flowId": <your BIK flow ID>,
+  "phoneNumber":{{UserAttribute['Mobile Number (Standard)']}},
+  "carryPayload: <initiate chat flow payload>
+  } 
+  ```
+  </CodeGroup>
+
+詳細については、[こちらの BIK API](https://docs.bik.ai/docs/references/APIs/Initiate-chat-flow) を参照してください。
+
+3. これで、キャンペーンをテストして送信する準備が整いました。Create Connector Campaign のステップ 2 にある Test 機能を使用して、コネクタの設定をテストすることもできます。 <img src="/images/partner_30279542057364.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+
+テストユーザーがメッセージを正常に受信すれば、設定は完了です。キャンペーンを公開してください。

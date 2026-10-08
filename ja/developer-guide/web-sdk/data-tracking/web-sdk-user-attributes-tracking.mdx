@@ -1,0 +1,257 @@
+---
+title: "Web SDK ユーザー属性のトラッキング"
+description: "MoEngage Web SDK を使用して、Web サイト上でメールアドレス、名前、性別などのユーザー属性をトラッキングします。"
+---
+
+<Note>
+  MoEngage Web SDK の統合では、オプションの手順を実施することを強く推奨します。
+</Note>
+
+ユーザー属性とは、メールアドレス、ユーザー名、携帯電話番号、性別など、ユーザーに固有の特性です。ユーザー属性を使用すると、デバイスやインストールをまたいでこれらの属性に基づいてユーザーをターゲティングしたり、メッセージをパーソナライズしたりできます。
+
+## 事前定義済みの属性
+
+標準のユーザー属性を使用するには、以下の MoEngage メソッドを使用します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.setFirstName("Dominick");
+Moengage.setLastName("Cobb");
+Moengage.setEmailId("dom@level5.com");
+Moengage.setMobileNumber("+12399999999");
+Moengage.setUserName("Dominick (Dom) Cobb"); // Full name for user
+Moengage.setGender("M");
+Moengage.setBirthDate(new Date(1980, 2, 31));
+```
+
+</CodeGroup>
+
+## カスタム属性
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+	// string
+	Moengage.setUserAttribute("ATTRIBUTE_NAME_1", "value");
+	// Integer - Numeric
+	Moengage.setUserAttribute("ATTRIBUTE_NAME_2", 1);
+	// Double - Numeric
+	Moengage.setUserAttribute("ATTRIBUTE_NAME_3", 5.99);
+	// Date
+	Moengage.setUserAttribute("ATTRIBUTE_NAME_4", new Date(2021, 2, 10));
+	// Boolean
+	Moengage.setUserAttribute("ATTRIBUTE_NAME_5", false);
+	// Arrays can be only in string or in number format.
+	// Array (all items should be of same data type)
+	Moengage.setUserAttribute('colors', ['blue', 'green', 'red']);
+	// Array (all items should be of same data type)
+	Moengage.setUserAttribute('ids', [77892, 1123, 3311]);
+	 
+	// Object (upto 2 levels and maximum payload size of 150 KB is supported)
+	 
+	// The value of the highest-level key has to be of primitive JavaScript type or Date
+	Moengage.setUserAttribute('someCustAttr', { 'key1': { 'subKey1': 'someVal1', 'subKey2': true, 'subKey3': 125676, 'subKey4': new Date() }, 'key2': [1, 4, 5, 3] });
+```
+
+</CodeGroup>
+
+## ユーザーのログインとログアウト
+
+ID は、MoEngage ダッシュボード内でユーザーを一意に識別するために使用されます。
+
+Web サイトへの訪問中にユーザーのログインとログアウトが正しく実装され、ユーザーが認証されていることを確認してください。
+
+<Warning>
+  ユーザーの[ログイン](#log-in)と[ログアウト](#log-out)が正しく処理されない場合、ユーザーデータが破損する可能性があります。
+</Warning>
+
+MoEngage Web SDK を初めて本番稼働させる際は、ページの読み込み時に既存の Web サイトユーザーの ID を設定していることを確認してください。
+
+ユーザーが認証されたらすぐに、ログインメソッドを使用してユーザー ID を MoEngage SDK に渡してください。ユーザーがアプリからログアウトした後は、必ず MoEngage のログアウトメソッドを呼び出してください。
+
+ユーザーのログイン、ログアウト、およびユーザーの更新時には、以下の MoEngage メソッドを使用します。
+
+### ログイン
+
+SDK バージョン 2.52.2 未満については、[こちらのドキュメント](/ja/developer-guide/web-sdk/data-tracking/setting-unique-id-for-sdk-versions-below-2-52-2)を参照してください。
+
+<Note>
+  以下の MoEngage メソッドを使用する前に、最新の[統合スクリプト](https://www.moengage.com/docs/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)を使用していることを確認してください。
+</Note>
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+/** if a single argument is passed into identifyUser method, it will be treated as ID */
+Moengage.identifyUser(UNIQUE_ID); // UNIQUE_ID is used to uniquely identify a user
+/** if email has been chosen as identity */
+Moengage.identifyUser({ u_em: 'emailValue@emailDomain.com' });
+/** if mobile has been chosen as identity */
+Moengage.identifyUser({ u_mb: '7777777777' });
+/** you can set two or more identities at the same time */
+Moengage.identifyUser({ u_em: 'emailValue@emailDomain.com', u_mb: '7777777777', uid: 'unique_id_value' });
+```
+
+</CodeGroup>
+
+<Info>
+  **情報**
+
+  ユーザーの識別とセッション管理を改善するため、SDK の関数が更新されています。
+
+  - **強制ログアウト**: MoEngage SDK は、デバイスで新しいユーザーが検出されたときに、以前のユーザーを自動的にログアウトしなくなりました。Identity resolution が有効なワークスペースでは、データの破損を防ぐために、ログアウトを明示的に呼び出す必要があります。
+  - **SetUniqueID**: _IdentifyUser_ 関数は複数の識別子をサポートしているため、ユーザーの識別に _SetUniqueID_ 関数を使用する必要がなくなりました。_SetUniqueID_ は今後の SDK バージョンのリリースで削除される予定です。特にワークスペースで Identity resolution を使用している場合は、代わりに _identifyUser_ を使用することが重要です。
+  - **SetAlias**: Identity resolution 機能が有効なワークスペースでは、MoEngage SDK は以前の識別子の値を保存します。_IdentifyUser_ 関数を使用して新しい識別子の値をトラッキングすると、MoEngage SDK は識別子の値の変更を検出し、それに応じてレポートします。
+  - ログアウトせずに _IdentifyUser_ 関数を呼び出すと、既存のログイン済みユーザーの ID が更新されます。
+</Info>
+
+この機能の詳細については、ヘルプ[ドキュメント](/ja/user-guide/data/user-data/unified-identity-identity-resolution)を参照してください。
+
+ここで、`u_em`、`u_mb`、`uid` は標準のユーザー属性です。標準のユーザー属性でユーザーを識別するには、以下の表を参照してください。
+
+| ユーザー属性名      | identifyUser メソッドで使用するキー名 |
+| :----------------------- | :----------------------------------------- |
+| ID                       | uid                                        |
+| Email (Standard)         | u_em                                       |
+| Gender                   | u_gd                                       |
+| Birthday                 | u_bd                                       |
+| Name                     | u_n                                        |
+| First Name               | u_fn                                       |
+| Last Name                | u_ln                                       |
+| Mobile Number (Standard) | u_mb                                       |
+
+MoEngage ダッシュボードでカスタムユーザー属性が ID として選択されている場合は、カスタムユーザー属性でユーザーを識別することもできます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+	/** replace custom_attribute_name with the actual name of your custom user attribute and attributeValue with the actual value you want to assign to the attribute */
+	Moengage.identifyUser({ custom_attribute_name: 'attributeValue' });
+	/** you can set two or more identities at the same time */
+	Moengage.identifyUser({ cust_attr_1: 'value1', cust_attr_2: 'value2' });
+	/** you can set custom user identity and standard user identity at the same time */
+	Moengage.identifyUser({ cust_attr_1: 'value1', cust_attr_2: 'value2', u_em: 'emailValue@emailDomain.com' });
+```
+
+</CodeGroup>
+
+ユーザーに設定されている ID の現在の状態を取得するには、以下のメソッドを使用できます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+	Moengage.getUserIdentities();
+	/**
+	  returns an object with the user's current set identities and their values:
+	  { u_em: 'emailValue@emailDomain.com', u_mb: '7777777777', uid: 'valueOfID' }
+	*/
+```
+
+</CodeGroup>
+
+<Warning>
+  **重要 - 非常に重要な統合ガイドライン**
+
+  プロジェクト内で、`identifyUser` と `updateUniqueUserId` (SDK バージョン 2.52.2 未満のログインメソッド) の両方のログインメソッドを使用しないでください。どちらか一方のメソッドのみを使用してください。両方のメソッドを使用すると、MoEngage アカウントでのユーザープロファイルの作成やマージに不整合が生じる可能性があります。
+</Warning>
+
+トラッキングされたユーザー属性の値を取得するには、以下のメソッドを使用できます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.getUserAttribute(ATTRIBUTE_NAME);
+/**
+  Pass the attribute name as the paramaeter and it will return the value of the attribute if present.
+  Note: This method only returns locally tracked user attributes. if the user logs out and then logs in, the previously tracked attributes will not be fetched using this method.
+*/
+```
+
+</CodeGroup>
+
+### ログアウト
+
+現在のユーザーをログアウトします。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.logoutUser();
+```
+
+</CodeGroup>
+
+### ユーザーの更新
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+/** Set the ID for the first time */
+Moengage.identifyUser(UNIQUE_ID);
+/** Update the ID */
+Moengage.identifyUser(NEW_UNIQUE_ID);
+/** Set the identities for the first time */
+Moengage.identifyUser({ uid: UNIQUE_ID, u_em: 'emailValue@emailDomain.com', u_mb: '7777777777' });
+/** Update the identities - you can update one or more identities. */
+Moengage.identifyUser({ u_em: 'updatedValue@emailDomain.com', u_mb: '8888888888' });
+```
+
+</CodeGroup>
+
+<Warning>
+  **重要**
+
+  `identifyUser` メソッドと `logoutUser` メソッドは、適切な順序で呼び出す必要があります。そのため、これらのメソッドの実行が完全に完了した後に他の属性をトラッキングするようにしてください。これらのメソッドは Promise を返すため、次のようにデータをトラッキングできます。
+
+  <CodeGroup>
+
+  ```javascript JavaScript lines wrap
+  Moengage.identifyUser({ u_em: 'emailValue@emailDomain.com', uid: UNIQUE_ID }).then(() => { 
+    Moengage.setMobileNumber('7777777777')
+  });
+  ```
+
+  </CodeGroup>
+</Warning>
+
+## ユーザー属性のトラッキング
+
+以下の場合にユーザー属性をトラッキングしていることを確認してください。
+
+1. ユーザーに新しい属性が設定された場合。たとえば、ユーザーが Web サイトにログインまたはサインアップした後に、そのユーザーのメール ID や携帯電話番号の属性を設定します。
+2. 既存の属性の値が更新された場合。
+3. MoEngage Web SDK の統合を初めて本番稼働させる際は、ページの読み込み後に、既存の Web サイトユーザーに設定されているユーザー属性を渡していることを確認してください (まだ MoEngage に送信されていない場合)。
+4. サポートされているデータ型とデータトラッキングポリシーの詳細については、[データトラッキングポリシー](https://www.moengage.com/docs/user-guide/data/key-concepts/data-tracking-policies)を参照してください。
+
+<Note>
+  すべてのユーザーに単一の一意の ID を使用していないことを確認してください。これは、一意の ID の値をサーバーから取得せずにハードコードしている場合にのみ発生します。
+</Note>
+
+## Google Tag Manager (GTM) による属性のトラッキング
+
+GTM を使用して属性をトラッキングするには、[Google Tag Manager(GTM)](/ja/developer-guide/web-sdk/other-supported-web-sdk-integration/google-tag-manager-gtm-templates) のドキュメントに従ってください。
+
+## リダイレクト時のトラッキング
+
+属性やイベントをトラッキングした直後に別のページにリダイレクトする場合は、トラッキングが完了してからリダイレクトするようにしてください。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.identifyUser({ u_em: 'emailValue@emailDomain.com', uid: UNIQUE_ID }).then(() => {
+    window.open('[https://www.moengage.com](https://www.moengage.com)')
+});
+```
+
+</CodeGroup>
+
+トラッキングの完了を待てず、すぐにリダイレクトする必要がある場合は、リダイレクト後の次のページでデータをトラッキングすることを推奨します。
+
+## ユーザー属性のキャッシュ
+
+重複するユーザー属性は、6 時間トラッキングされません。
+
+MoEngage SDK によって収集されるデフォルト属性の詳細については、[Web SDK のデータ収集](https://www.moengage.com/docs/user-guide/getting-started/integration/default-web-sdk)を参照してください。
+
+さらにサポートが必要な場合は、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームにお問い合わせください。

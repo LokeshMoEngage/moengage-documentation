@@ -1,0 +1,770 @@
+---
+title: "Experience Fragments を Content Blocks として同期する"
+description: "カスタム AEM ワークフロープロセスステップを使用して、Adobe Experience Manager の Experience Fragments を MoEngage に Content Blocks として同期します。"
+---
+
+## はじめに
+
+[Adobe Experience Manager (AEM)](https://business.adobe.com/products/experience-manager/adobe-experience-manager.html) は、組織が複数のチャネルにわたってパーソナライズされたデジタル体験を作成、管理、配信できるエンタープライズコンテンツ管理プラットフォームです。
+
+## AEM と MoEngage
+
+この統合は、カスタムワークフロープロセスを介して AEM を MoEngage に接続し、AEM から MoEngage Content Blocks へのリアルタイムのコンテンツ同期を可能にします。この統合により、マーケティングチームはコンテンツを AEM で一元管理しながら、MoEngage キャンペーンで活用してパーソナライズされた顧客エンゲージメントを実現できます。
+
+### ユースケース
+
+Adobe Experience Manager を MoEngage と統合すると、次のユースケースに対応できます。
+
+- **キャンペーンコンテンツ管理**: マーケティングチームが AEM でプロモーションコンテンツを作成します。公開されると MoEngage Content Blocks に自動的に同期され、メールキャンペーン、プッシュ通知、アプリ内メッセージですぐに利用できるようになります。
+- **パーソナライズされた体験の配信**: パーソナライズトークンを含むローカライズされた Experience Fragments を AEM で作成します。これらは MoEngage と自動的に同期され、変換されたトークンを利用してユーザー属性に基づくパーソナライズされたキャンペーンを実現します。
+- **動的なコンテンツ更新**: AEM で商品説明、オファー、メッセージを更新します。変更内容は、それらの Content Blocks を使用しているすべてのアクティブな MoEngage キャンペーンに自動的に反映され、チャネル間の一貫性が保たれます。
+- **マルチチャネルでのコンテンツ再利用**: AEM でコンテンツを一度作成するだけで、重複や手動でのコピーなしに複数の MoEngage キャンペーン（メール、プッシュ、アプリ内）で使用できます。
+
+## 統合
+
+### アプローチ
+
+AEM 内にカスタム統合を実装し、[カスタムワークフロー](https://experienceleague.adobe.com/en/docs/experience-manager-65/content/implementing/developing/extending-aem/extending-workflows/workflows-models#creating-a-new-workflow)を使用して、関連コンテンツが作成、更新、公開されるたびに MoEngage Content Block API を呼び出します。これにより、MoEngage は常に最新の AEM コンテンツにアクセスできます。
+
+### フロー図
+
+![](/images/partner_45033003131156.png)
+
+MoEngage API に接続するカスタム AEM Workflow Process Step を開発します。
+
+#### サポートされているコンテンツタイプ
+
+次の表は、AEM から MoEngage に同期できるコンテンツタイプを示しています。
+
+| コンテンツタイプ | 説明 | MoEngage の同期タイプ |
+| --- | --- | --- |
+| Experience Fragments | HTML、テキスト、メディアを含む再利用可能なコンテンツコンポーネント | Content Block (HTML) |
+| Content Fragments | 事前定義されたモデルと要素を持つ構造化コンテンツ | Content Block (HTML/Text) |
+| DAM Assets (.html, .txt) | Digital Asset Manager に保存されたテキストファイルまたは HTML ファイル | Content Block (HTML/Text) |
+
+#### サポートされているアクション
+
+| AEM でのアクション | MoEngage での結果 |
+| --- | --- |
+| Publish | Content Blocks を作成/更新（ステータス: ACTIVE） |
+
+<Info>
+  **前提条件**
+
+  開始する前に、次の要件を満たしていることを確認してください。
+
+  - アクティブな Adobe Experience Manager インスタンス（AEM 6.5 または AEM as a Cloud Service）。
+  - 設定済みの AEM Author 環境および Publish 環境。
+  - OSGi バンドルをデプロイするための適切な権限を持つ Maven プロジェクトのセットアップ。
+  - API アクセスが有効になっている MoEngage ワークスペース。
+  - MoEngage の **Workspace ID**（API Key）と **Data API Secret**。
+  - AEM SDK を備えた Java 開発環境。
+  - AEM Workflows と OSGi サービスに関する理解。
+</Info>
+
+### ステップ 1: MoEngage API 認証情報を取得する
+
+認証情報を確認するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、**Settings** \> **Account** \> **APIs** をクリックします。
+2. APIs ページで、次の認証情報をコピーします。
+   1. **Workspace ID**（**旧 app id**）: API Key（MOE-APPKEY ヘッダー）として使用できます。
+   2. **Campaign API Secret**: Basic 認証に使用できます。 <img src="/images/partner_44996805286548.png" />
+3. ダッシュボードの URL からデータセンターコードを確認します。詳細については、[MoEngage のデータセンター](/ja/user-guide/data/key-concepts/data-centers-in-moengage#list-of-data-centers)を参照してください。
+
+### ステップ 2: Maven プロジェクトの依存関係を更新する
+
+Maven プロジェクトの依存関係を更新するには、次の手順を実行します。
+
+1. 適切な JSON ペイロードを構築できるように、AEM プロジェクトの `core/pom.xml` ファイルに `org.json` ライブラリを追加します。
+2. `core/pom.xml` 内の `<dependencies>` セクションを見つけます。
+3. 次の依存関係を追加します。
+
+```xml
+<dependency>
+    <groupId>org.json</groupId>
+    <artifactId>json</artifactId>
+    <version>20231013</version>
+    <scope>compile</scope>
+</dependency>
+```
+
+**org.json を使用する理由**
+
+_`org.json` ライブラリは、HTML コンテンツ内の特殊文字（引用符、改行）を自動的にエスケープし、JSON ペイロードのエラーを防ぎます。手動で文字列を連結すると、コンテンツにこれらの文字が含まれている場合に MoEngage API の呼び出しが失敗する可能性があります。_
+
+### ステップ 3: カスタムワークフローを設定する
+
+MoEngage へのコンテンツ同期を処理する OSGi サービスを作成する必要があります。このサービスは `WorkflowProcess` インターフェースを実装し、ワークフローステップとして登録されます。以下に示すサンプルを参照するか、独自に作成してください。
+
+#### 本番環境対応の実装サンプル
+
+この実装は、ライフサイクル管理全体をカバーしています。
+
+- バリエーションを含む Experience Fragments を処理します。
+- Content Fragments と DAM Assets をサポートします。
+- テスト用の Webhook をサポートするデバッグモード。
+- HTML のクリーニングとリンクの外部化を改善。
+
+このコードをコピーして、ファイルパス `core/src/main/java/com/[your-company]/integration/workflow/MoEngageContentSyncStep.java` に追加するだけです。
+
+```java MoEngageContentSyncStep.java wrap
+package com.moengage.integration.workflow;
+
+import com.adobe.granite.workflow.WorkflowException;
+import com.adobe.granite.workflow.WorkflowSession;
+import com.adobe.granite.workflow.exec.WorkItem;
+import com.adobe.granite.workflow.exec.WorkflowProcess;
+import com.adobe.granite.workflow.metadata.MetaDataMap;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.engine.SlingRequestProcessor;
+import com.day.cq.contentsync.handler.util.RequestResponseFactory;
+import com.day.cq.dam.api.Asset;
+import com.day.cq.dam.api.Rendition;
+import com.day.cq.wcm.api.Page;
+import com.adobe.cq.dam.cfm.ContentFragment;
+import com.adobe.cq.dam.cfm.ContentElement;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.*;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.json.JSONObject;
+import org.json.JSONArray;
+
+@Component(
+    service = WorkflowProcess.class,
+    property = { "process.label=MoEngage Content Sync" }
+)
+public class MoEngageContentSyncStep implements WorkflowProcess {
+
+    private static final Logger log = LoggerFactory.getLogger(MoEngageContentSyncStep.class);
+    private static final String API_BASE_TEMPLATE = "https://api-%s.moengage.com/v1/external/campaigns/content-blocks";
+    private static final int BUFFER_DELAY_MS = 500;
+
+    @Reference private RequestResponseFactory requestResponseFactory;
+    @Reference private SlingRequestProcessor requestProcessor;
+
+    @Override
+    public void execute(WorkItem workItem, WorkflowSession workflowSession, MetaDataMap args)
+            throws WorkflowException {
+        ResourceResolver resourceResolver = null;
+        try {
+            String processArgs = args.get("PROCESS_ARGS", "string");
+            Map<String, String> config = parseProcessArgs(processArgs);
+            String apiKey = config.get("moengage.api.key");
+            String apiSecret = config.get("moengage.api.secret");
+            String dataCenter = config.get("moengage.datacenter");
+            String publishUrl = config.get("aem.publish.url");
+            String targetStatus = config.get("moengage.status");
+            boolean debugMode = Boolean.parseBoolean(config.get("moengage.debug"));
+            String debugUrl = config.get("moengage.debug.url");
+
+            if (apiKey == null || apiKey.trim().isEmpty()) {
+                log.warn("MoEngage API key not configured, skipping");
+                return;
+            }
+            if (apiSecret == null) apiSecret = "";
+            if (dataCenter == null || dataCenter.trim().isEmpty()) {
+                log.warn("MoEngage datacenter not configured, skipping");
+                return;
+            }
+            if (targetStatus == null) targetStatus = "ACTIVE";
+            targetStatus = targetStatus.toUpperCase();
+
+            if (publishUrl != null && publishUrl.endsWith("/")) {
+                publishUrl = publishUrl.substring(0, publishUrl.length() - 1);
+            }
+
+            String basicAuthHeader = "Basic " + Base64.getEncoder()
+                .encodeToString((apiKey.trim() + ":" + apiSecret.trim())
+                .getBytes(StandardCharsets.UTF_8));
+            String baseUrl = String.format(API_BASE_TEMPLATE, dataCenter.trim());
+            String searchUrl = baseUrl + "/search";
+
+            resourceResolver = workflowSession.adaptTo(ResourceResolver.class);
+            if (resourceResolver == null) {
+                log.error("Could not obtain ResourceResolver");
+                return;
+            }
+
+            String payloadPath = getCleanPath(workItem.getWorkflowData()
+                .getPayload().toString());
+            Resource payloadResource = resourceResolver.getResource(payloadPath);
+            if (payloadResource == null) {
+                log.warn("Resource not found: {}", payloadPath);
+                return;
+            }
+
+            String initiator = workItem.getWorkflow().getInitiator();
+
+            if (payloadPath.contains("/experience-fragments/")) {
+                processExperienceFragments(payloadResource, resourceResolver, publishUrl,
+                    baseUrl, searchUrl, apiKey.trim(), basicAuthHeader, targetStatus,
+                    initiator, debugMode, debugUrl);
+            } else if (payloadPath.contains("/content/dam/")) {
+                processDAMContent(payloadResource, resourceResolver, publishUrl,
+                    baseUrl, searchUrl, apiKey.trim(), basicAuthHeader, targetStatus,
+                    initiator, debugMode, debugUrl);
+            } else {
+                log.info("Unsupported content type at path: {}", payloadPath);
+            }
+        } catch (Exception e) {
+            log.error("MoEngage Sync Failed", e);
+        }
+    }
+
+    private void processExperienceFragments(Resource resource, ResourceResolver resolver,
+            String publishUrl, String baseUrl, String searchUrl, String apiKey,
+            String basicAuthHeader, String targetStatus, String initiator,
+            boolean debugMode, String debugUrl) throws Exception {
+        List<XFItem> items = collectExperienceFragments(resource, resolver);
+        if (items.isEmpty()) {
+            log.info("No experience fragments found");
+            return;
+        }
+        for (int i = 0; i < items.size(); i++) {
+            XFItem item = items.get(i);
+            try {
+                processExperienceFragment(item, resolver, publishUrl, baseUrl,
+                    searchUrl, apiKey, basicAuthHeader, targetStatus, initiator,
+                    debugMode, debugUrl);
+                if (i < items.size() - 1) {
+                    Thread.sleep(BUFFER_DELAY_MS);
+                }
+            } catch (Exception e) {
+                log.error("Failed to process XF: {}", item.path, e);
+            }
+        }
+    }
+
+    private List<XFItem> collectExperienceFragments(Resource resource,
+            ResourceResolver resolver) {
+        List<XFItem> items = new ArrayList<>();
+        if (resource == null) return items;
+        Page page = resource.adaptTo(Page.class);
+        if (page != null) {
+            Iterator<Page> children = page.listChildren();
+            boolean hasChildren = children.hasNext();
+            if (hasChildren) {
+                children = page.listChildren();
+                while (children.hasNext()) {
+                    Page variation = children.next();
+                    items.add(new XFItem(variation.getPath(), page, variation));
+                }
+            } else {
+                Page parent = page.getParent();
+                if (parent != null && parent.listChildren().hasNext()) {
+                    items.add(new XFItem(page.getPath(), parent, page));
+                }
+            }
+        } else {
+            Iterator<Resource> children = resource.listChildren();
+            while (children.hasNext()) {
+                items.addAll(collectExperienceFragments(children.next(), resolver));
+            }
+        }
+        return items;
+    }
+
+    private void processExperienceFragment(XFItem item, ResourceResolver resolver,
+            String publishUrl, String baseUrl, String searchUrl, String apiKey,
+            String basicAuthHeader, String targetStatus, String initiator,
+            boolean debugMode, String debugUrl) throws IOException {
+        String itemName = generatePathBasedName(item.path);
+        String rawContent = renderPageHtml(item.variation.getPath(), resolver);
+        rawContent = cleanContent(rawContent);
+        if (publishUrl != null && !publishUrl.isEmpty()) {
+            rawContent = externalizeLinks(rawContent, publishUrl);
+        }
+        if (rawContent.isEmpty()) {
+            log.info("Empty content for XF: {}, skipping", item.path);
+            return;
+        }
+        itemName = sanitizeName(itemName);
+        log.info("Processing XF: {} -> {}", item.path, itemName);
+        String existingId = searchContentBlockId(searchUrl, apiKey, basicAuthHeader,
+            itemName, debugMode, debugUrl);
+        JSONObject payload = new JSONObject();
+        if (existingId != null) {
+            payload.put("id", existingId);
+            payload.put("raw_content", rawContent);
+            payload.put("updated_by", initiator);
+            payload.put("status", targetStatus);
+            payload.put("description", "Sync from AEM: " + item.path);
+            sendRequest(baseUrl, "PUT", apiKey, basicAuthHeader,
+                payload.toString(), debugMode, debugUrl);
+            log.info("Updated content block: {}", itemName);
+        } else {
+            payload.put("name", itemName);
+            payload.put("label", itemName);
+            payload.put("content_type", "HTML");
+            payload.put("raw_content", rawContent);
+            payload.put("status", targetStatus);
+            payload.put("created_by", initiator);
+            payload.put("images_used", new JSONArray());
+            payload.put("content_block_used", new JSONArray());
+            payload.put("tag_ids", new JSONArray());
+            sendRequest(baseUrl, "POST", apiKey, basicAuthHeader,
+                payload.toString(), debugMode, debugUrl);
+            log.info("Created content block: {}", itemName);
+        }
+    }
+
+    private void processDAMContent(Resource resource, ResourceResolver resolver,
+            String publishUrl, String baseUrl, String searchUrl, String apiKey,
+            String basicAuthHeader, String targetStatus, String initiator,
+            boolean debugMode, String debugUrl) throws IOException {
+        String itemName = generatePathBasedName(resource.getPath());
+        String rawContent = "";
+        String contentType = "HTML";
+        ContentFragment cf = resource.adaptTo(ContentFragment.class);
+        if (cf != null) {
+            itemName = cf.getName();
+            rawContent = extractContentFromFragment(cf);
+        } else {
+            Asset asset = resource.adaptTo(Asset.class);
+            if (asset != null) {
+                itemName = asset.getName();
+                String mime = asset.getMimeType();
+                contentType = (mime != null && mime.contains("text/plain"))
+                    ? "Plain Text" : "HTML";
+                Rendition original = asset.getOriginal();
+                if (original != null) {
+                    try (InputStream is = original.getStream()) {
+                        rawContent = new BufferedReader(
+                            new InputStreamReader(is, StandardCharsets.UTF_8))
+                            .lines()
+                            .collect(Collectors.joining("\n"));
+                    }
+                }
+            }
+        }
+        if (rawContent.isEmpty()) {
+            log.info("Empty content, skipping: {}", resource.getPath());
+            return;
+        }
+        itemName = sanitizeName(itemName);
+        log.info("Processing DAM content: {} -> {}", resource.getPath(), itemName);
+        String existingId = searchContentBlockId(searchUrl, apiKey, basicAuthHeader,
+            itemName, debugMode, debugUrl);
+        JSONObject payload = new JSONObject();
+        if (existingId != null) {
+            payload.put("id", existingId);
+            payload.put("raw_content", rawContent);
+            payload.put("updated_by", initiator);
+            payload.put("status", targetStatus);
+            sendRequest(baseUrl, "PUT", apiKey, basicAuthHeader,
+                payload.toString(), debugMode, debugUrl);
+            log.info("Updated content block: {}", itemName);
+        } else {
+            payload.put("name", itemName);
+            payload.put("label", itemName);
+            payload.put("content_type", contentType);
+            payload.put("raw_content", rawContent);
+            payload.put("status", targetStatus);
+            payload.put("created_by", initiator);
+            payload.put("images_used", new JSONArray());
+            payload.put("content_block_used", new JSONArray());
+            payload.put("tag_ids", new JSONArray());
+            sendRequest(baseUrl, "POST", apiKey, basicAuthHeader,
+                payload.toString(), debugMode, debugUrl);
+            log.info("Created content block: {}", itemName);
+        }
+    }
+
+    private String extractContentFromFragment(ContentFragment cf) {
+        if (cf.hasElement("htmlContent")) {
+            return cf.getElement("htmlContent").getContent();
+        }
+        if (cf.hasElement("master")) {
+            return cf.getElement("master").getContent();
+        }
+        if (cf.hasElement("body")) {
+            return cf.getElement("body").getContent();
+        }
+        StringBuilder sb = new StringBuilder();
+        Iterator<ContentElement> elements = cf.getElements();
+        while (elements.hasNext()) {
+            ContentElement el = elements.next();
+            if (!isMetadataField(el.getName())) {
+                sb.append(el.getContent()).append("\n");
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    private boolean isMetadataField(String name) {
+        return name.matches("(?i).*(metadata|title|segment|offerCode).*");
+    }
+
+    private String generatePathBasedName(String path) {
+        if (path == null || path.isEmpty()) return "content_block";
+        String temp = path
+            .replace("/content/experience-fragments/", "")
+            .replace("/content/dam/", "")
+            .replace("/content/", "");
+        if (temp.contains("/jcr:content")) {
+            temp = temp.substring(0, temp.indexOf("/jcr:content"));
+        }
+        return temp.replaceAll("/", "_")
+                   .replaceAll("-", "_")
+                   .replaceAll("[^a-zA-Z0-9_]", "")
+                   .replaceAll("_+", "_")
+                   .replaceAll("^_|_$", "")
+                   .toLowerCase();
+    }
+
+    private String sanitizeName(String name) {
+        if (name == null || name.isEmpty()) return "content_block";
+        return name.replaceAll("[^a-zA-Z0-9_]", "_")
+                   .replaceAll("_+", "_")
+                   .replaceAll("^_|_$", "")
+                   .toLowerCase();
+    }
+
+    private String cleanContent(String html) {
+        if (html == null || html.isEmpty()) {
+            return "";
+        }
+        StringBuilder result = new StringBuilder();
+        Pattern linkPattern = Pattern.compile("<link[^>]*rel=[\"']stylesheet[\"'][^>]*>", Pattern.CASE_INSENSITIVE);
+        Matcher linkMatcher = linkPattern.matcher(html);
+        while (linkMatcher.find()) {
+            result.append(linkMatcher.group()).append("\n");
+        }
+        Pattern stylePattern = Pattern.compile("<style[^>]*>.*?</style>", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+        Matcher styleMatcher = stylePattern.matcher(html);
+        while (styleMatcher.find()) {
+            result.append(styleMatcher.group()).append("\n");
+        }
+        String bodyContent = html;
+        Pattern bodyPattern = Pattern.compile("<body[^>]*>(.*?)</body>", Pattern.DOTALL | Pattern.CASE_INSENSITIVE);
+        Matcher bodyMatcher = bodyPattern.matcher(html);
+        if (bodyMatcher.find()) {
+            bodyContent = bodyMatcher.group(1);
+        } else {
+            bodyContent = html
+                .replaceAll("(?is)<!DOCTYPE[^>]*>", "")
+                .replaceAll("(?is)<html[^>]*>", "")
+                .replaceAll("(?is)</html>", "")
+                .replaceAll("(?is)<head[^>]*>.*?</head>", "")
+                .replaceAll("(?is)<body[^>]*>", "")
+                .replaceAll("(?is)</body>", "");
+        }
+        bodyContent = cleanAEMArtifacts(bodyContent);
+        result.append(bodyContent);
+        return result.toString().trim();
+    }
+
+    private String cleanAEMArtifacts(String content) {
+        if (content == null) return "";
+        return content
+            .replaceAll("(?is)<script[^>]*src=\"/etc\\.clientlibs/[^\"]*\"[^>]*></script>", "")
+            .replaceAll("\\s*data-cmp-data-layer=\"[^\"]*\"", "")
+            .replaceAll("\\s*data-cmp-clickable", "")
+            .replaceAll("(?is)<div[^>]*>\\s*</div>", "")
+            .replaceAll("\\n\\s*\\n\\s*\\n", "\n\n")
+            .trim();
+    }
+
+    private String renderPageHtml(String path, ResourceResolver resolver) {
+        try {
+            if (requestProcessor != null && requestResponseFactory != null) {
+                HttpServletRequest req = requestResponseFactory
+                    .createRequest("GET", path + ".html");
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                HttpServletResponse resp = requestResponseFactory.createResponse(out);
+                requestProcessor.processRequest(req, resp, resolver);
+                return out.toString(StandardCharsets.UTF_8.name());
+            }
+        } catch (Exception e) {
+            log.error("Failed to render: {}", path, e);
+        }
+        return "";
+    }
+
+    private String externalizeLinks(String content, String domain) {
+        if (content == null || domain == null) return content;
+        return content
+            .replaceAll("(src|href)=\"(/content/[^\"]+)\"", "$1=\"" + domain + "$2\"")
+            .replaceAll("(src|href)=\"(/etc\\.clientlibs/[^\"]+)\"",
+                "$1=\"" + domain + "$2\"");
+    }
+
+    private String searchContentBlockId(String url, String apiKey, String auth,
+            String name, boolean dbg, String dbgUrl) {
+        try {
+            JSONObject body = new JSONObject();
+            JSONObject filter = new JSONObject();
+            filter.put("search_text", name);
+            body.put("filters", filter);
+            APIResponse resp = sendRequest(url, "POST", apiKey, auth,
+                body.toString(), dbg, dbgUrl);
+            if (resp.statusCode >= 200 && resp.statusCode < 300) {
+                JSONObject json = new JSONObject(resp.body);
+                if (json.optInt("count") > 0) {
+                    JSONArray data = json.getJSONArray("data");
+                    for (int i = 0; i < data.length(); i++) {
+                        JSONObject item = data.getJSONObject(i);
+                        if (item.getString("name").equals(name)) {
+                            return item.getString("id");
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.debug("Search failed: {}", name, e);
+        }
+        return null;
+    }
+
+    private APIResponse sendRequest(String endpoint, String method, String apiKey,
+            String auth, String jsonPayload, boolean dbg, String dbgUrl)
+            throws IOException {
+        if (dbg && dbgUrl != null && !dbgUrl.isEmpty()) {
+            try {
+                sendDebug(jsonPayload, method, dbgUrl);
+            } catch (Exception e) {
+                log.debug("Debug send failed", e);
+            }
+        }
+        URL url = new URL(endpoint.trim());
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setRequestMethod(method);
+        conn.setRequestProperty("Content-Type", "application/json");
+        conn.setRequestProperty("MOE-APPKEY", apiKey);
+        conn.setRequestProperty("Authorization", auth);
+        conn.setConnectTimeout(30000);
+        conn.setReadTimeout(30000);
+        conn.setDoOutput(true);
+        try (OutputStream os = conn.getOutputStream()) {
+            os.write(jsonPayload.getBytes(StandardCharsets.UTF_8));
+        }
+        int code = conn.getResponseCode();
+        String body = readResponse(conn);
+        return new APIResponse(code, body);
+    }
+
+    private void sendDebug(String payload, String method, String debugUrl) {
+        try {
+            URL url = new URL(debugUrl + "?method=" + method);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setConnectTimeout(5000);
+            conn.setReadTimeout(5000);
+            conn.setDoOutput(true);
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(payload.getBytes(StandardCharsets.UTF_8));
+            }
+            conn.getResponseCode();
+        } catch (Exception e) {
+            // Non-critical
+        }
+    }
+
+    private String readResponse(HttpURLConnection conn) {
+        try {
+            InputStream is = conn.getResponseCode() >= 400 ?
+                conn.getErrorStream() : conn.getInputStream();
+            if (is == null) return "";
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(is, StandardCharsets.UTF_8))) {
+                return reader.lines().collect(Collectors.joining("\n"));
+            }
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
+    private String getCleanPath(String path) {
+        if (path == null) return "";
+        if (path.endsWith("/jcr:content")) {
+            return path.substring(0, path.indexOf("/jcr:content"));
+        }
+        if (path.endsWith("/jcr:content/metadata")) {
+            return path.substring(0, path.indexOf("/jcr:content/metadata"));
+        }
+        return path;
+    }
+
+    private Map<String, String> parseProcessArgs(String args) {
+        Map<String, String> map = new HashMap<>();
+        if (args != null && !args.isEmpty()) {
+            for (String pair : args.split(",")) {
+                String[] parts = pair.split("=", 2);
+                if (parts.length == 2) {
+                    map.put(parts[0].trim(), parts[1].trim());
+                }
+            }
+        }
+        return map;
+    }
+
+    private static class XFItem {
+        final String path;
+        final Page xfRoot;
+        final Page variation;
+
+        XFItem(String path, Page xfRoot, Page variation) {
+            this.path = path;
+            this.xfRoot = xfRoot;
+            this.variation = variation;
+        }
+    }
+
+    private static class APIResponse {
+        final int statusCode;
+        final String body;
+
+        APIResponse(int statusCode, String body) {
+            this.statusCode = statusCode;
+            this.body = body;
+        }
+    }
+}
+```
+
+<Info>
+  **トラブルシューティング**:
+
+  デプロイエラーが発生した場合は、`crx-quickstart/logs/` 内の `error.log` ファイルで詳細なエラーメッセージを確認してください。
+</Info>
+
+### ステップ 4: OSGi バンドルをビルドしてデプロイする
+
+コードを追加した後、AEM プロジェクトをビルドしてデプロイするには、次の手順を実行します。
+
+1. プロジェクトのルートディレクトリに移動します。
+2. Maven ビルドコマンドを実行します。
+   ```bash
+   mvn clean install -PautoInstallPackage
+   ```
+3. OSGi Console（`http://<aem-author>:4502/system/console/bundles`）でバンドルがアクティブであることを確認します。
+4. バンドル名を検索し、ステータスが **Active** であることを確認します。
+
+### ステップ 5: ワークフローモデルを作成する
+
+公開操作を処理するために、次のワークフローモデルを作成します。
+
+#### ワークフロー 1: 公開ワークフロー（ACTIVE ステータス）
+
+公開ワークフロー（ACTIVE ステータス）を作成するには、次の手順を実行します。
+
+![](/images/partner_44122980932756.png)
+
+1. AEM Author で **Tools** \> **Workflow** \> **Models** に移動します。
+2. **Create** \> **Create Model** をクリックします。
+3. ワークフローの詳細を入力します。
+   1. **Title:** MoEngage Content Sync
+   2. **Name:** moengage-content-sync
+4. ワークフローを編集用に開き、デフォルトのステップを削除します。
+5. サイドバーから **Process Step** をワークフローキャンバスにドラッグします。
+6. Process Step をダブルクリックして設定します。
+7. **Process** ドロップダウンで、**MoEngage Content Sync** を選択します。
+8. **Arguments** フィールドに次のように入力します。
+   ```text wrap
+   moengage.api.key=YOUR_WORKSPACE_ID,moengage.api.secret=YOUR_API_SECRET,moengage.datacenter=YOUR_DATACENTRE_VALUE,aem.publish.url=https://your-publish-domain.com,moengage.status=ACTIVE
+   ```
+9. **OK** をクリックして保存します。
+10. **Sync** をクリックしてワークフローモデルを保存します。
+
+#### 設定パラメーター
+
+| パラメーター | 説明 | 必須 |
+| --- | --- | --- |
+| moengage.api.key | MoEngage の Workspace ID | はい |
+| moengage.api.secret | MoEngage の Data API Secret（Basic 認証用） | はい |
+| moengage.datacenter | MoEngage のデータセンター番号（例: 02、03、04） | はい |
+| aem.publish.url | AEM Publish インスタンスのベース URL | はい |
+| moengage.status | ターゲットステータス: ACTIVE | はい |
+| moengage.debug | デバッグモードを有効にする（true/false） | いいえ |
+| moengage.debug.url | デバッグ用の Webhook URL（例: webhook.site） | いいえ |
+
+![](/images/partner_44122961627540.png)
+
+### ステップ 6: ワークフローランチャーを設定する
+
+**Tools → Workflow → Launchers** に移動し、公開、非公開、削除の操作を処理する 6 つのランチャーを作成します。
+
+#### Experience Fragments のランチャー
+
+| ランチャー名 | イベントタイプ | ノードタイプ | パス | 条件 | ワークフロー |
+| --- | --- | --- | --- | --- | --- |
+| moengage-xf-publish | Modified | cq:PageContent | /content/experience-fragments/\[your-site\] | cq:lastReplicationAction==Activate | moengage-content-sync |
+
+#### DAM Assets のランチャー
+
+| ランチャー名 | イベントタイプ | ノードタイプ | パス | 条件 | ワークフロー |
+| --- | --- | --- | --- | --- | --- |
+| moengage-dam-publish | Modified | dam:AssetContent | /content/dam/\[your-site\] | cq:lastReplicationAction==Activate | moengage-content-sync |
+
+<Warning>
+  すべてのランチャーについて:
+
+  - **Run Modes:** author に設定します
+  - **Enabled:** true に設定します
+  - `[your-site]` を実際のサイトパスに置き換えます
+</Warning>
+
+![](/images/partner_44122961627796.png)
+
+### ステップ 7: 統合をテストする
+
+##### デバッグモードを有効にする（推奨）
+
+初回のテストでは、ワークフローの引数にデバッグパラメーターを追加します。
+
+```text wrap
+moengage.debug=true,moengage.debug.url=https://webhook.site/your-unique-id
+```
+
+[webhook.site](https://webhook.site) から無料の Webhook URL を取得して、ペイロードをリアルタイムで確認できます。
+
+1. AEM Author で **Experience Fragment** または **Content Fragment** に移動します。
+2. ページ情報アイコンを選択します。
+3. **Start Workflow** をクリックします。
+4. **MoEngage Content Sync Workflow** を選択します。
+5. **Start** をクリックします。
+
+![](/images/partner_44122961627668.png)
+
+## パーソナライズトークンのマッピング
+
+ワークフローは、AEM のパーソナライズトークンを MoEngage の形式に自動的に変換します。
+
+| AEM トークン（Adobe Target 形式） | MoEngage トークン |
+| --- | --- |
+| `{{profile.person.name.firstName}}` | `{{UserAttribute['First Name']}}` |
+| `{{profile.person.name.lastName}}` | `{{UserAttribute['Last Name']}}` |
+| `{{profile.person.name.fullName}}` | `{{UserAttribute['Name']}}` |
+| `{{identityMap.email.0.id}}` | `{{UserAttribute['Email (Standard)']}}` |
+| `{{#if condition}}` | `{% if condition %}` |
+| `{{else}}` | `{% else %}` |
+| `{{/if}}` | `{% endif %}` |
+
+## その他のリソース
+
+- [MoEngage Content Block API ドキュメント](/ja/api/content-blocks/content-blocks-overview)
+- [Adobe AEM: OSGi サービスの開発](https://experienceleague.adobe.com/en/docs/experience-manager-learn/cloud-service/developing/osgi-services/basics)
+- [Adobe AEM: ワークフローの拡張](https://experienceleague.adobe.com/en/docs/experience-manager-65/content/implementing/developing/extending-aem/extending-workflows/workflows-customizing-extending)
+- [Adobe AEM: ContentFragment API](https://developer.adobe.com/experience-manager/reference-materials/6-5/javadoc/com/adobe/cq/dam/cfm/ContentFragment.html)
+
+## サポートとカスタマイズ
+
+<Info>
+  **サポート**:
+
+  デプロイ、カスタムコンテンツ抽出ロジック、トラブルシューティング、または高度な設定についてサポートが必要な場合は、**MoEngage Integration Support** またはカスタマーサクセスマネージャーにお問い合わせください。
+</Info>

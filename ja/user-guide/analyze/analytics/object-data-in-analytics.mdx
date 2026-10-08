@@ -1,0 +1,74 @@
+---
+title: "Analyticsにおけるオブジェクトデータ"
+description: "MoEngage Analyticsでネストされたオブジェクトデータ属性をクエリし、スキーマをフラット化することなく、旅程の詳細などの複雑なイベントプロパティを分析します。"
+---
+
+# 概要
+
+オブジェクトデータを使用すると、ユーザーインタラクションに関するより深いインサイトを得ることができます。オブジェクト内の属性をクエリすることで、トラッキングしているイベントの特定の特性に基づいて、より効果的な分析を実行できます。
+
+このアプローチにより、考えられるすべてのバリエーションを個別のトップレベルのイベント属性にフラット化することなく、複雑で関連性のあるデータポイントを本来の構造のままクエリできます('source'と'destination'の詳細を含む'trip'オブジェクトなど)。
+
+# オブジェクトデータを使用したAnalyticsクエリの作成
+
+Analytics内でオブジェクトデータを活用して、強力なクエリを作成できます。オブジェクトの属性は、string、numeric、dateなど、任意のプリミティブデータ型にすることができます。次の例は、オブジェクトデータを含むイベントを使用してBehavior分析のクエリを作成する方法を示しています。
+
+オブジェクトの配列が別のオブジェクトの配列内にネストされているデータ構造の場合、両方のレベルにまたがるクエリを作成して分析を実行できます。これにより、同じオブジェクト要素内の親配列とネストされた配列の属性の組み合わせに基づいてイベントを分析できます。
+
+_SEARCH_BUS_イベントを考えてみましょう。このイベントの属性**trip**は、_source_、_destination_、_journey_date_などの詳細を含む単一のオブジェクトです。
+
+<CodeGroup>
+
+```json Example Event Data
+{
+  "SEARCH_BUS": {
+    "trip": {
+      "source": {
+        "city": "Bengaluru",
+        "state": "KA"
+      },
+      "destination": {
+        "city": "Chennai",
+        "state": "TN"
+      },
+      "journey_date": "2025-11-20",
+      "passenger_count": 2
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+それでは、分析を作成してみましょう。_trip_オブジェクトに_journey_date_が存在し、かつ同じ_trip_オブジェクト内の_destination.city_が_Chennai_である_SEARCH_BUS_イベントをクエリしたいとします。
+
+1. **Behavior Analysis**ページで、イベントを選択します。この例では、_SEARCH_BUS_を選択します。
+2. **\+ Attributes**をクリックし、まず属性`trip.journey_date`でフィルタリングします。
+3. インデントされて表示される**\+ With**演算子をクリックします。これにより、同じ_trip_オブジェクトに対して真でなければならない条件をさらに追加できます。
+4. 条件`trip.destination.city` is _Chennai_を追加します。
+5. 残りの手順に従って分析を作成します。詳細については、[こちら](/ja/user-guide/analyze/analytics/behavior/behavior-analysis)を参照してください。
+
+![2025-11-06_17-33-56 (1).gif](/images/moengage_3a9028.png)
+
+このクエリでは、**With**演算子を使用して、すべての条件が同じ_trip_オブジェクト内で満たされるようにしています。`journey_date`が存在し、かつ`destination.city`が_Chennai_であるtripを持つ_SEARCH_BUS_イベントが検索されます。
+
+オブジェクトデータをクエリするための「With」や「And/Or」などの演算子の機能の詳細については、[Object Data Type in Segmentation](/ja/user-guide/segment/advanced-concepts/object-data-type-in-segmentation)を参照してください。
+
+# 現在のAnalyticsの機能
+
+次のAnalytics機能でのオブジェクトデータ属性の使用のサポートは、次のフェーズで予定されています。
+
+- すべての分析機能
+  - Split by
+  - Group by user property
+- User Analysis
+  - Distribution
+  - Date/Timestamp Attributes
+
+それまでの間、これらの機能が必要なシナリオでは、取り込み前にデータをよりシンプルなプリミティブ型に変換することを検討してください。
+
+# 次のステップ
+
+- さまざまな分析タイプの詳細については、[こちら](/ja/user-guide/analyze/moengage-analytics/overview)を参照してください。
+- ユーザーグループの定義の詳細については、[Create Segments](/ja/user-guide/segment/create-segments/rule-based-filter-segments)を参照してください。
+- 「With」および「And/Or」演算子の使用方法については、[Object Data Type in Segmentation](/ja/user-guide/segment/advanced-concepts/object-data-type-in-segmentation)を参照してください。

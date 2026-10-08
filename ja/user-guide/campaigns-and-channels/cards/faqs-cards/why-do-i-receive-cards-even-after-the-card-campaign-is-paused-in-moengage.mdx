@@ -1,0 +1,45 @@
+---
+title: "MoEngage で Card キャンペーンを一時停止した後も Card を受信するのはなぜですか?"
+description: "Show Card トグルがオンになっているため、キャンペーンの一時停止後も Card が表示される場合があります。トグルをオフにすると、MoEngage でユーザーの受信箱から Card を非表示にできます。"
+---
+
+## 問題
+
+MoEngage で Card キャンペーンを一時停止した後も Card を受信します。
+
+## 説明
+
+この問題は **Show Card** トグルが原因で発生します。このトグルをオンにすると、キャンペーンの一時停止後も Card がユーザーに表示され続けます。**Show Card** トグルをオフにすると、Card が非表示になります。
+
+**Show Card** トグルは以下のように機能します。
+
+- トグルがオフの場合**:** Card は一時的に非表示になり、アプリの受信箱に表示されません。Card のステータスは Hidden のままになります。
+- トグルがオンの場合**:** ユーザーが次にアプリの受信箱を開いたときに Card が配信されます。
+
+キャンペーンの表示/非表示ステータスを変更すると、同期方法に基づいて次回のフェッチ時に反映されます。
+
+<img alt="show card.png" src="/images/moengage_0b72e2.png" />
+
+## 解決策
+
+キャンペーンの各ステータスと、それに対応する Show/Hide ロジックの動作を理解すると、Card の表示を管理しやすくなります。
+
+On Trigger Event
+
+| **キャンペーンステータス** | **キャンペーンタイプ** | **Show/Hide のロジック** |
+| --- | --- | --- |
+| Sent | Allow future qualifiers なしの One-time | **Show card** トグルはデフォルトでオンになっています。いつでも無効にできます。 |
+| Active | Event-triggered | **Show card** トグルはデフォルトでオンになっています。いつでも無効にできます。 |
+| Paused | Event-triggered および Allow future qualifiers ありの One-time | キャンペーンが一時停止されると、**Show card** トグルはオフになります。いつでもオンにできます。 |
+| Resumed | Event-triggered および Allow future qualifiers ありの One-time | キャンペーンが再開されると、**Show card** トグルはオンになります。いつでもオフにできます。 |
+| Stopped | Allow future qualifiers なしの One-time | キャンペーンが停止されるとすぐに、**Show card** トグルはオフになります。いつでもオンにできます。 |
+| Archived | One-time および Event-triggered | キャンペーンがアーカイブされるとすぐに、**Show card** トグルはオフになります。アーカイブ状態ではオンにできません。ただし、キャンペーンのアーカイブを解除すると、**Show card** トグルはオンになります。 |
+
+<Info>
+- **Show card** トグルは、Periodic および Event-triggered の配信タイプではサポートされていません。
+- 一時停止したキャンペーンは、再開することのみ可能です。
+- 停止したキャンペーンを再びアクティブにすることはできません。
+- **Show Card** は、すでに Card が配信されたユーザーと、今後キャンペーンの対象となる新しいユーザーに適用されます。
+</Info>
+
+詳細については、[Card キャンペーンの編集と Card の表示/非表示](/ja/user-guide/campaigns-and-channels/cards/create/edit-card-campaigns-and-showhide-cards)を参照してください。

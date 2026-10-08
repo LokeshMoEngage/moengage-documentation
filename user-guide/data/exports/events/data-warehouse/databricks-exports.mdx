@@ -4,15 +4,21 @@ description: "Export campaign interaction events from MoEngage to Databricks usi
 keywords: ["Databricks", "OpenSharing", "zero-copy sharing", "Delta Sharing", "Unity Catalog", "data exports", "sharing identifier"]
 ---
 
-# Introduction
+import StreamsAddOn from '/snippets/streams-add-on.mdx';
+import ExportFailureFaqs from '/snippets/exports-faq-failure.mdx';
+import ExportGeneralFaqs from '/snippets/exports-faq-general.mdx';
+
+<StreamsAddOn />
+
+## Overview
 
 [Databricks](https://www.databricks.com/resources/ebook/maximize-your-organizations-potential-data-and-ai?scid=7018Y000001Fi1AQAS&utm_medium=paid+search&utm_source=google&utm_campaign=15418435374&utm_adgroup=130717555576&utm_content=ebook&utm_offer=maximize-your-organizations-potential-data-and-ai&utm_ad=703594935116&utm_term=databricks&gad_source=1&gclid=CjwKCAjwvr--BhB5EiwAd5YbXpGh4ugWZyyOwJrqbfr-c5cZhP9HVrGMKQmBuZRlVcC_BRLco-zKVxoCmZkQAvD_BwE) is a platform that allows organizations to store, analyze, and process large volumes of structured and semi-structured data in a highly scalable and efficient manner. With its unique architecture, organizations can consolidate their data, perform quick analytics, and gain valuable data-driven insights accessible to all users.
 
-# MoEngage `<>` Databricks
+## How Does MoEngage Work with Databricks?
 
 With this integration, you can export data from campaign interaction events to your Databricks tables.
 
-## Delivery Methods
+### Delivery Methods
 
 MoEngage delivers event data to Databricks in two ways:
 
@@ -34,9 +40,9 @@ Both methods produce the same table schema and refresh hourly. The following tab
   The two methods use separate storage layers. Records already delivered through a direct export do not appear in an OpenSharing catalog, and vice versa. To move between methods, contact your MoEngage Customer Success Manager (CSM).
 </Note>
 
-# Integration
+## Integration
 
-## Prerequisites
+### Prerequisites
 
 The prerequisites depend on the delivery method you choose. Click the tab for your method:
 
@@ -49,11 +55,10 @@ The prerequisites depend on the delivery method you choose. Click the tab for yo
     - Ensure you have a Databricks account with relevant permissions to create/edit Databricks instances, roles, and policies. It is optional to create a new user; you must have access to create a new user in your Databricks database.
     - If your system requires IP whitelisting, you must whitelist MoEngage IPs. For more information, refer [here](/user-guide/settings/account/security/ip-whitelisting-in-moengage).
     - Ensure you have a [Databricks Connection](/partner-guide/data-and-analytics/data-warehouses/databricks) on the App marketplace.
-    - Exports to Databricks are part of the Streams add-on. Contact your dedicated MoEngage CSM (customer success manager) to enable them for your account.
   </Tab>
 </Tabs>
 
-## Set Up Your Export
+### Set Up Your Export
 
 <Info>
   - For the full list of events and attributes, refer to the [Data Export Glossary](/user-guide/data/exports/events/data-export-glossary).
@@ -161,13 +166,37 @@ The setup steps differ by delivery method. Click the tab for the method you are 
     - `<SCHEMA_NAME>` - The name of your database or schema.
     - `<EMAIL_ID_OF_THE_USER>` - The email ID of the user who created the token.
 
-    **Step 2: Add the Export on the App Marketplace**
+    **Step 2: Use a Unity Catalog Volume for Faster Exports (Recommended)**
+
+    This step is optional. MoEngage can use a Unity Catalog volume to export data more efficiently. To use this method, create a dedicated volume and grant MoEngage access to it.
+
+    Use the following code to create the volume and grant access:
+
+    ```sql wrap
+    -- Create the volume. This is a one-time activity, and Databricks provisions the storage.
+    CREATE VOLUME IF NOT EXISTS <CATALOG_NAME>.<SCHEMA_NAME>.<VOLUME_NAME>;
+
+    -- Grant MoEngage read and write access on the volume.
+    GRANT READ VOLUME, WRITE VOLUME ON VOLUME <CATALOG_NAME>.<SCHEMA_NAME>.<VOLUME_NAME>
+      TO `<GRANTEE>`;
+    ```
+
+    Change the following values:
+
+    - `<CATALOG_NAME>` - The name of your catalog.
+    - `<SCHEMA_NAME>` - The name of your database or schema.
+    - `<VOLUME_NAME>` - The name of the volume you are creating.
+    - `<GRANTEE>` - The service principal's application ID (if using OAuth or a Service Principal PAT) or the user's email address (if using a User PAT).
+
+    Enter the volume name in the **Unity Catalog Volume** field when you add the export.
+
+    **Step 3: Add the Export on the App Marketplace**
 
     Continue with [Add a New Databricks Export on the MoEngage App Marketplace](/user-guide/data/exports/events/data-warehouse/databricks-exports#add-a-new-databricks-export-on-the-moengage-app-marketplace), below.
   </Tab>
 </Tabs>
 
-### Add a New Databricks Export on the MoEngage App Marketplace
+#### Add a New Databricks Export on the MoEngage App Marketplace
 
 Both delivery methods use this step. With OpenSharing, the connection already exists, so you only choose the schema, events, and attributes.
 
@@ -187,14 +216,15 @@ To add a new Databricks export, perform the following steps:
    | **Export name** | Yes | Type a name for the Databricks export. |
    | **Databricks connection** | Yes | Select your Databricks connection. |
    | **Export into schema** | Yes | Select the schema that MoEngage uses to create new tables and export your events into. |
+   | **Unity Catalog Volume** | Optional | Enter the name of the volume you created for MoEngage. Leave it empty if you are not using a volume. To create one and grant MoEngage access, refer to the **Direct Export** tab under [Set Up Your Export](/user-guide/data/exports/events/data-warehouse/databricks-exports#set-up-your-export). |
    | **User properties** | Optional | Select the user properties (user properties and device properties) you want to export with your events. |
    | **Select events** | Yes | Select the events you want to export to Databricks. You can choose to export all events, including existing and new ones coming into MoEngage, or manually select specific events to export. |
 
-   ![Setup exports to Databricks form showing the export name, Databricks connection, export into schema, user properties, and event selection fields, with the Save button highlighted](/images/databricks-add-export-form.png)
+   ![Setup exports to Databricks form showing the export name, Databricks connection, export into schema, Unity Catalog Volume, user properties, and event selection fields, with the Save button highlighted](/images/databricks-add-export-form.png)
 
 6. Click **Save**.
 
-## Export Process and Frequency
+### Export Process and Frequency
 
 Both delivery methods refresh hourly, and neither requires you to run manual sync jobs.
 
@@ -205,14 +235,16 @@ For a direct export, MoEngage creates a destination table in your schema after y
 
 For OpenSharing, MoEngage refreshes the shared datasets every hour. Your queries read the current state of the data, so there is no table for MoEngage to write into on your side.
 
-## Sample Table Structure
+### Sample Table Structure
 
 MoEngage creates a single table using the following format:\
 `moe_events_<table_creation_timestamp>`.
 
 For a direct export, this table is created in your schema. For OpenSharing, it appears in the shared catalog you mounted.
 
-**Note**: This table is created per connection. All hourly exports and different event types configured under this connection are consolidated and appended to this specific table.
+<Note>
+  This table is created per connection. All hourly exports and different event types configured under this connection are consolidated and appended to this specific table.
+</Note>
 
 The overall structure of the table remains fixed for all event types. Any new user property or event attribute that is exported is included in the user\_attributes or event\_attributes column, respectively. All events are consolidated in a single table containing necessary information, such as event names and event times, for easy analysis:
 
@@ -255,36 +287,102 @@ The overall structure of the table remains fixed for all event types. Any new us
 
 The schema is the same for both delivery methods. Custom column naming is not supported.
 
-# Frequently Asked Questions
+## Export Failure Policy
 
-<Accordion title="How soon will I start getting the data?">
-  It typically takes up to 30 minutes for the automated data exports to be set up for your account and for you to start seeing data there.
-</Accordion>
+MoEngage pauses an export that keeps failing. While it is paused, MoEngage collects the events the export would have delivered, and you replay them after you fix the problem.
 
-<Accordion title="Can I export additional events at a later time?">
-  Yes, if you need to export new events at a later time, you can always edit your configuration on the App Marketplace and get the new events added to your exports.
-</Accordion>
+### When MoEngage Pauses an Export
 
-<Accordion title="Can I export historical data using Automated Data Exports?">
-  As of now, you cannot export historical data using Automated Data Exports. Once configured, you will start seeing data for each event from the time you enabled your exports. This applies to both direct exports and OpenSharing.
-</Accordion>
+Exports to Databricks run hourly. MoEngage will retry an export multiple times before marking it as failed. The export will be paused after 3 consecutive scheduled export failures.
 
-<Accordion title="Is there any pricing involved for Automated Data Exports?">
-  If your billing plan does not cover this already and you need to get this enabled at a later time, you would need to work with your Customer Success Manager to get this included in your billing plan. Based on the amount of data that MoEngage will place in your Data warehouse/Partner/API on a monthly basis, this could lead to additional charges.
-</Accordion>
+When MoEngage pauses an export, it alerts you and shows the export as **Paused** on the App Marketplace.
 
-<Accordion title="Does Data Exports guarantee the latest user attributes?">
-  No, Data Exports is primarily built to export your Events in near real-time and user attributes in MoEngage are updated asynchronously so it is currently not possible to guarantee the latest values of user attributes in the exports.
-</Accordion>
+### What Happens While an Export Is Paused
 
-<Accordion title="Can I move from a direct export to OpenSharing?">
-  Yes. Contact your MoEngage CSM to change delivery methods. The two methods use the same schema but separate storage layers, so records already delivered through your direct export do not appear in the OpenSharing catalog.
-</Accordion>
+![A paused Databricks export on the Integrate tab, with Export status turned off and the Paused label beside it](/images/export-paused-card.png)
 
-<Accordion title="Can I rename the columns or tables in the OpenSharing catalog?">
-  No. The schema is standardized and custom naming is not supported. You choose which events and attributes to export during configuration, as described in [Step 3: Configure Your Export](/user-guide/data/exports/events/data-warehouse/databricks-exports#set-up-your-export).
-</Accordion>
+MoEngage collects the events the export would have delivered and keeps only the most recent 7 days. If the export stays paused for longer than a week, MoEngage drops the oldest days as newer ones come in.
 
-<Accordion title="Who do I contact after the OpenSharing connection is live?">
-  Your MoEngage CSM is the primary contact for maintaining the connection, resolving technical questions, and adjusting your data requirements.
-</Accordion>
+If an export pauses more than once before you replay, MoEngage combines the data from all those pauses, provided it falls within the 7-day window.
+
+### Resume an Export
+
+#### Find the Failure Reason
+
+On the App Marketplace, click the **Integrate** tab, and then hover over the **Paused** label on the export. MoEngage names the reason for the failure, such as a missing write permission on the destination table, and tells you how to fix it.
+
+![The Paused label hover on the Integrate tab, showing the failure reason and what you need to do](/images/databricks-export-paused-failure-reason.png)
+
+#### Enable the Export
+
+Fix the cause at your end, and then turn on **Export status** for the export. Do this as soon as you can, because the 7-day window keeps moving while the export stays paused.
+
+When you enable the export, MoEngage stops collecting and sets aside what it has: the last 7 days of paused data, or all of it if the pause was shorter. This is the data you can replay. It stays fixed from then on, and does not reduce further even if you wait to replay it.
+
+### Replay Paused Data
+
+#### Request a Replay
+
+MoEngage saves the data it collected while the export was paused. An export with data waiting shows a **Replay available** label on the **Integrate** tab.
+
+To replay, perform the following steps:
+
+1. Hover over the **Replay available** label, or open the kebab menu on the export.
+2. Click **Replay paused data**.
+
+   ![Databricks export with a Replay available label on the Integrate tab and the Replay paused data option](/images/databricks-export-replay-paused-data.png)
+3. In the **Replay paused data** dialog box, click **Confirm**.
+
+   ![Replay paused data dialog box asking you to confirm, with the Confirm button](/images/export-replay-confirm.png)
+
+A replay sends everything MoEngage collected while the export was paused. MoEngage appends the data to the destination table.
+
+You can replay at any time until 30 days from the date the oldest paused data was collected. After that, the data is no longer available.
+
+<Note>
+  Replay before the export pauses again. If it pauses a second time before you replay, MoEngage adds the new paused data to the data still waiting from the first pause. The combined data is then trimmed back to the most recent 7 days, so if the two pauses are more than 7 days apart, the older data is lost.
+
+  For example, your export pauses on day 1. You enable it but do not replay. It pauses again on day 20. Since that is 19 days later, the day 1 data falls outside the 7 day window and is gone, even though its 30 day replay window had not expired. If the second pause had happened within 7 days of the first, the day 1 data would still be included.
+</Note>
+
+#### Replay Results
+
+When the replay finishes, MoEngage emails the user who requested it with one of the following results:
+
+| Result | What it means |
+| --- | --- |
+| Successful | MoEngage delivered all the collected data. The replay option is no longer available. |
+| Partially Successful | MoEngage delivered some of the collected data, and then hit an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+| Failed | MoEngage delivered none of the collected data, because of an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+
+You can run only one replay per export at a time.
+
+#### Avoid Duplicate Data
+
+Every replay sends the whole collection again, because MoEngage does not deduplicate. If you replay more than once, deduplicate at your end on the `event_uuid` field, which is unique for each event. For the fields in the export, refer to the [Data Export Glossary](/user-guide/data/exports/events/data-export-glossary).
+
+### Export Paused Alerts
+
+MoEngage alerts you when it pauses an export, so you can fix the issue and replay the data collected while the export was paused.
+
+MoEngage subscribes workspace admins to the Data Exports system alert by default, and adds the user who creates or updates an export. To subscribe or unsubscribe anyone else, go to the Alert Management page. Subscribing or unsubscribing changes notifications only for that person, and does not affect anyone else's subscription.
+
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <ExportFailureFaqs />
+  <ExportGeneralFaqs />
+
+  <Accordion title="Can I move from a direct export to OpenSharing?">
+    Yes. Contact your MoEngage CSM to change delivery methods. The two methods use the same schema but separate storage layers, so records already delivered through your direct export do not appear in the OpenSharing catalog.
+  </Accordion>
+
+  <Accordion title="Can I rename the columns or tables in the OpenSharing catalog?">
+    No. The schema is standardized and custom naming is not supported. You choose which events and attributes to export during configuration, as described in [Step 3: Configure Your Export](/user-guide/data/exports/events/data-warehouse/databricks-exports#set-up-your-export).
+  </Accordion>
+
+  <Accordion title="Who do I contact after the OpenSharing connection is live?">
+    Your MoEngage CSM is the primary contact for maintaining the connection, resolving technical questions, and adjusting your data requirements.
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,129 @@
+---
+title: "React-Native、Objective-C、MoEngage-iOS-SDK（バージョン 7.x.x、8.x.x、9.x.x）を使用する iOS デバイスでよくあるプッシュ通知の問題を回避するには"
+description: "React-Native、Objective-C、MoEngage SDK バージョン 7〜9.x.x を使用する iOS での、プッシュ通知の配信、画面遷移、ディープリンクの問題を修正します。"
+keywords: ["React Native iOS push issues", "Objective-C", "push navigation not working", "deep linking not working", "Notification Service Extension", "iOS SDK 7.x.x 8.x.x 9.x.x"]
+---
+
+## 問題
+
+React-Native、Objective-C、MoEngage-iOS-SDK（バージョン 7.x.x、8.x.x、9.x.x）を使用する iOS デバイスで、配信の失敗、画面遷移、ディープリンク、リッチランディングなど、プッシュ通知に関するよくある問題が発生しています。
+
+## 手順
+
+次の手順を実行します。
+
+1. _Firebase プロキシ。_
+   - Firebase のプッシュ通知を使用していない場合は、info.plist に FirebaseAppDelegateProxyEnabled キーを値 Boolean = False または NO で追加して、Firebase プロキシを無効にします。
+   - プッシュ通知をテストします。成功した場合、それ以上の対応は不要です。成功しない場合は、以下の手順に従ってください。
+   - Firebase のプッシュ通知を使用している場合は、この手順をスキップして次の手順に進みます。
+2. _UNUserNotificationCenterDelegate を設定する。_
+   - AppDelegate.m の didFinishLaunch メソッドで UNUserNotificationCenterDelegate を設定します。
+   - didFinishLaunch で Firebase を初期化している場合は、MoEngage SDK を初期化する前に行います。
+   - UNUserNotificationCenterDelegate がこのメソッドの冒頭で設定されていることを確認します。
+     ```swift React-Native
+     //7.xx
+     #import  
+     //8.xx
+     #import  
+     #import 
+     //9.xx
+     #import  
+     @import MoEngageSDK;
+     @implementation AppDelegate
+       
+      - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
+     {
+       UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+       center.delegate = self;
+       
+       [FIRApp configure]; //Firebase configuration syntx could differ according to versions
+       
+       //MoEngage Initializatoin - use specific version code only
+       
+       //7.xx version //Set MoEngage Properties in Info.plist
+       [MoEngage setDataCenter:DATA_CENTER_0X];
+       [MoEngage enableSDKLogs: true];
+       [MoEngage setAppGroupID: @"group.com.XXXXXXXXXXXXXXXX"];
+       [[MOReactInitializer sharedInstance] intializeSDKWithLaunchOptions:launchOptions];
+       
+       //7.xx version with sdkConfig
+       MOSDKConfig* sdkConfig = [[MOSDKConfig alloc] initWithAppID: @"XXXXXXXXXXXXXXXX"];
+       sdkConfig.moeDataCenter = DATA_CENTER_0X;
+       sdkConfig.appGroupID = @"group.com.XXXXXXXXXXXXXXXX";
+       [[MOReactInitializer sharedInstance] intializeSDKWithConfig: sdkConfig andLaunchOptions: launchOptions];
+       //8.xx version //Set MoEngage Properties in Info.plist
+       [[MoEngageInitializer sharedInstance] initializeDefaultInstance: launchOptions];
+       
+       //8.xx version with sdkConfig
+       MOSDKConfig* sdkConfig = [[MOSDKConfig alloc] initWithAppID:@"XXXXXXXXXXXXXXXX"];
+       sdkConfig.enableLogs = true;
+       sdkConfig.moeDataCenter = MODataCenterData_center_0X; 
+       sdkConfig.appGroupID = @"group.com.XXXXXXXXXXXXXXXX";
+       [[MoEngageInitializer sharedInstance] initializeDefaultSDKConfig:sdkConfig andLaunchOptions:launchOptions];
+       
+       //9.xx version //Set MoEngage Properties in Info.plist
+       [[MoEngageInitializer sharedInstance] initializeDefaultInstance: launchOptions];
+       
+       //9.xx version with sdkConfig
+       MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"XXXXXXXXXXXXXXXX" dataCenter: MoEngageDataCenterData_center_0X];
+       MoEngageConsoleLogConfig *logConfig = [[MoEngageConsoleLogConfig alloc] initWithIsLoggingEnabled:YES loglevel:MoEngageLoggerTypeVerbose];
+       sdkConfig.consoleLogConfig = logConfig;
+       sdkConfig.appGroupID = @"group.com.XXXXXXXXXXXXXXXX";
+       [[MoEngageInitializer sharedInstance] initializeDefaultSDKConfig:sdkConfig andLaunchOptions:launchOptions];
+       
+       // Rest of the implementation related to developer's app
+       
+       return YES;
+     }
+     ```
+3. _AppDelegate.h を拡張する。_
+   - AppDelegate.h を拡張して UNUserNotificationCenterDelegate に準拠させます。AppDelegate.h は次のコードスニペットのようになっている必要があります。
+     ```objective-c Objective-C
+     #import 
+     @interface AppDelegate : UIResponder <uiapplicationdelegate, unusernotificationcenterdelegate="UNUserNotificationCenterDelegate">
+     OR
+     @interface AppDelegate : RCTAppDelegate</uiapplicationdelegate,>
+     ```
+4. _MoEngage プロキシを無効にする。_
+   - info.plist に MoEngageAppDelegateProxyEnabled キーを値 Boolean = False または NO で追加します。
+      <img alt="boolean.png" src="/images/moengage_85c161.png" />
+5. _プッシュ通知トークンを手動で渡す。_
+   - AppDelegate.m の didRegisterForRemoteNotificationsWithDeviceToken 関数を使用して、プッシュ通知トークンを手動で渡します。
+     ```objective-c Objective-C
+     - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
+     {
+       //7.xx version
+       [[MoEngage sharedInstance] setPushToken:deviceToken];
+       
+       //8.xx version
+       [[MOMessaging sharedInstance] setPushToken:deviceToken];
+       
+       //9.xx version
+       [[MoEngageSDKMessaging sharedInstance] setPushToken:deviceToken];
+     }
+     ```
+6. _UNUserNotificatoinCenter Delegate 関数を実装する。_
+   - AppDelegate.m に UNUserNotificatoinCenter Delegate 関数が実装されていることを確認します。
+     ```objective-c Objective-C
+     -(void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
+     {
+       if (@available(iOS 14.0, *)) {
+         completionHandler(UNNotificationPresentationOptionBadge | UNNotificationPresentationOptionSound | UNNotificationPresentationOptionList | UNNotificationPresentationOptionBanner);
+       } else {
+         // Fallback on earlier versions
+         completionHandler(UNAuthorizationOptionSound | UNAuthorizationOptionAlert | UNAuthorizationOptionBadge);
+       }
+     }
+     - (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler
+     {
+       //7.xx version
+       [[MoEngage sharedInstance] userNotificationCenter:center didReceiveNotificationResponse:response];
+       //8.xx version
+       [[MOMessaging sharedInstance] userNotificationCenter:center didReceive:response];
+       
+       //9.xx version
+       [[MoEngageSDKMessaging sharedInstance] userNotificationCenter:center didReceive:response];
+       
+       completionHandler();
+     }
+     ```

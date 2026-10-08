@@ -1,0 +1,50 @@
+---
+title: "Android"
+description: "ファイルベースの初期化を使用して、Unity プロジェクトの Android ライブラリプラグインで MoEngage SDK を設定します。"
+---
+
+## 概要
+
+プログラムによる初期化の代わりに、設定ファイルを使用して SDK を初期化できます。これにより、Workspace ID とデータセンターをネイティブの設定ファイル内で直接管理し、アプリケーションロジックから分離しておくことができます。
+
+<Info>
+  代わりにプログラムによる初期化が必要な場合は、[手動初期化](/ja/developer-guide/unity-sdk/sdk-integration/sdk-initialization/manual-initialization/android) のガイドを参照してください。
+</Info>
+
+## 設定ファイルを追加する
+
+Android ライブラリプラグインの `Assets/Plugins/Android/<YOUR_ANDROID_LIBRARY_PLUGIN>.androidlib/res/values/moengage_init_config.xml` に `moengage_init_config.xml` を作成し、ワークスペース ID とデータセンターを指定します。
+
+```xml moengage_init_config.xml
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="moengage_workspace_id">YOUR_WORKSPACE_ID</string>
+    <string name="moengage_data_center">DATA_CENTER_X</string>
+</resources>
+```
+
+Android ライブラリプラグインの作成の詳細については、[Unity のドキュメント](https://docs.unity3d.com/6000.4/Documentation/Manual/android-library-plugin-create.html) を参照してください。
+
+ファイルベースの設定と併せて、Application クラスで `MoEInitializer.initialiseDefaultInstance(application)` を呼び出す必要もあります。このファイルが存在する場合、SDK は起動時にそこから設定を読み込みます。両方が指定されている場合は、プログラムによる初期化が優先されます。
+
+以下は、ダッシュボードのホストに基づいて設定する必要があるデータセンターの詳細です。
+
+| データセンター              | ダッシュボードのホスト            |
+| ------------------------ | ------------------------- |
+| DataCenter.DATA_CENTER_1 | dashboard-01.moengage.com |
+| DataCenter.DATA_CENTER_2 | dashboard-02.moengage.com |
+| DataCenter.DATA_CENTER_3 | dashboard-03.moengage.com |
+| DataCenter.DATA_CENTER_4 | dashboard-04.moengage.com |
+| DataCenter.DATA_CENTER_5 | dashboard-05.moengage.com |
+
+使用可能な設定の詳細な一覧については、[API リファレンス](https://moengage.github.io/android-api-reference/core/com.moengage.core/[android-jvm]-mo-engage/-builder/index.html) を参照してください。
+
+<Info>
+  すべての設定は、初期化の前にビルダーに追加されます。複数の場所で initialize を呼び出している場合は、動作の一貫性を保つために、初期化のたびに必要なすべてのフラグと設定が指定されていることを確認してください。
+</Info>
+
+## MoEngage ストレージファイルを自動バックアップから除外する
+
+これは必須の統合手順であり、データの破損を防ぐために非常に重要です。Android の自動バックアップサービスは、Shared Preference ファイルやデータベースファイルなどを定期的にバックアップします。詳細は [こちら](https://developer.android.com/guide/topics/data/autobackup) を参照してください。このバックアップにより、MoEngage SDK の識別子がバックアップされ、再インストール後に復元されます。この識別子の復元により、データが破損し、プッシュ通知でユーザーにリーチできなくなります。
+
+バックアップの復元後にデータが破損しないようにするには、MoEngage SDK のストレージファイルをバックアップ対象から除外してください。除外するファイルの詳細については、ドキュメントの [MoEngage ストレージファイルを自動バックアップから除外する](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup) セクションを参照してください。

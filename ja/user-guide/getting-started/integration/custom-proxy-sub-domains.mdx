@@ -1,0 +1,43 @@
+---
+title: "カスタムプロキシサブドメイン"
+description: "カスタムプロキシサブドメインを設定して広告ブロッカーを回避し、MoEngage の信頼性の高いデータトラッキングを実現します。ファーストパーティトラフィックのための DNS 委任を設定します。"
+---
+
+広告ブロッカーを回避し、一貫したデータトラッキングを確保するために、MoEngage は DNS 委任プロセスを利用します。これは、プライマリドメインの特定のサブドメインを切り出し、そのサブドメインの DNS レコードを管理する権限を MoEngage に付与するものです。このアプローチにより、ファーストパーティトラフィックとして認識されるため、信頼性の高いデータ取得とキャンペーン配信が可能になります。
+
+## サブドメイン選択の推奨事項
+
+この機能の効果を最大化し、広告ブロックリストでフラグが付けられないようにするために、サブドメインを選択する際は次の推奨事項に従ってください。
+
+- **トラッキング関連のキーワードを避ける:** _track_、_ads_、_moengage_ などの名前は使用しないでください。多くの広告ブロッカーはキーワードベースのフィルタリングを使用しています。
+- **中立的な用語を使用する:** ランダムな文字列や無関係な辞書の単語の使用を検討してください(例: `cn.example.com`、`data.example.com`、`mx-events.example.com`)。
+- **短くする:** 効率的な URL 構造を維持するために、5～8 文字の長さを目指してください。
+
+## オンボーディングプロセス
+
+DNS 委任の設定は、お客様の技術チームと MoEngage サポートの共同作業で行います。
+
+1. **サブドメインを選択する:** 上記の推奨事項に基づいてサブドメインを選択します(例: `xyz.example.com`)。
+2. **MoEngage に連絡する:** 選択したサブドメインを MoEngage のアカウントチームに共有するか、[サポートチケットを作成](/ja/user-guide/contact-support/raise-a-support-ticket-from-the-moengage-login-page)します。
+3. **ネームサーバーを受け取る:** MoEngage の SRE チームが DNS ゾーンを作成し、ネームサーバー(NS)レコードの一覧を提供します。
+4. **親ドメインを更新する:** 提供された NS レコードを親ドメインの DNS 設定に追加します。この操作により、トラフィックのルーティングのためにサブドメインの制御が MoEngage に委任されます。
+5. **検証:** MoEngage が委任のステータスを監視します。検証が完了すると、必要なインフラストラクチャのエンドポイントがカスタムサブドメインにマッピングされます。
+6. **SDK を設定する:** 委任と検証が正常に完了したら、カスタムプロキシドメインを使用するように SDK の初期化ロジックを更新します。以下の各実装ガイドを参照してください。
+   - [Android SDK](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/advanced-or-optional/custom-proxy-domain-android)
+   - [iOS SDK](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/advanced/custom-proxy-domain-ios)
+   - [Web SDK](https://www.moengage.com/docs/developer-guide/web-sdk/web-sdk-integration/advanced-integration/custom-proxy-domain-web)
+
+<Info>
+  **反映に関する注意**
+
+  DNS の変更がグローバルに反映されるまでには 24～72 時間かかる場合があります。DNSChecker などのオンラインツールを使用して、NS レコードのステータスを確認できます。
+</Info>
+
+## プロバイダー別の手順
+
+主要な DNS プロバイダーのほとんどは、NS レコードによるサブドメインの委任をサポートしています。"NS Record Management" または "Subdomain Delegation" に関する具体的な手順については、各プロバイダーのドキュメントを参照してください。
+
+- [Cloudflare](https://developers.cloudflare.com/dns/manage-dns-records/how-to/subdomains-outside-cloudflare/)
+- [AWS Route53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/CreatingDevelopingManagingDNS.html)
+- [Akamai](https://techdocs.akamai.com/cloud-computing/docs/ns-records)
+- [IBM NS1](https://www.ibm.com/docs/en/ns1-connect?topic=zones-subdelegations-child#subdelegations_child_zones__title__2)

@@ -1,0 +1,99 @@
+---
+title: "Amazon SES のメール設定を行う"
+description: "本番環境へのアクセス、IAM のセットアップ、SMTP 設定を含め、MoEngage でメールサービスプロバイダーとして Amazon SES を設定する手順を説明します。"
+---
+
+この記事では、Amazon SES でメール設定を行う手順について説明します。
+
+# はじめに
+
+Amazon Simple Email Service (Amazon SES) は、大量のメール自動送信のためにあらゆるアプリケーションに統合できる、クラウドベースのメールサービスプロバイダーです。Amazon SES を使用すると、Amazon SES API または SMTP インターフェイスを利用して、オンプレミスの Simple Mail Transfer Protocol (SMTP) メールサーバーなしで顧客に確実にリーチできます。
+
+<Tip>
+Amazon SES アカウントの管理者権限があることを確認してください。
+</Tip>
+
+# Amazon SES アカウントを設定する
+
+MoEngage でメール設定を行う前に、Amazon SES アカウントで次の操作を完了してください。
+
+## Amazon SES アカウントの本番環境へのアクセスをリクエストする
+
+デフォルトでは、Amazon SES はサンドボックス環境で動作します。つまり、検証済みの ID から検証済みのメールアドレスにのみメールを送信できます。すべての受信者にメールを送信するには、SES アカウントの本番環境へのアクセスをリクエストする必要があります。   
+詳細については、[Request production access (Moving out of the Amazon SES sandbox)](https://docs.aws.amazon.com/ses/latest/dg/request-production-access.html) を参照してください。
+
+## Amazon SES でドメインを検証する
+
+Amazon SES でメール送信に使用するドメインを検証する必要があります。ドメインは、SES アカウントを本番環境用に設定したのと同じ AWS リージョンで検証してください。この手順により、ドメインの所有者であることが確認され、送信者のレピュテーションの維持に役立ちます。
+
+詳細については、[Creating and verifying identities in Amazon SES](https://docs.aws.amazon.com/ses/latest/dg/creating-identities.html) を参照してください。
+
+## Amazon SES で SMTP 認証情報を作成する
+
+Amazon SES で Simple Mail Transfer Protocol (SMTP) 認証情報を生成します。これらの認証情報は、ドメインを検証し、本番環境へのアクセスを有効にしたのと同じ AWS リージョンで作成してください。
+
+詳細については、[Obtaining Amazon SES SMTP credentials](https://docs.aws.amazon.com/ses/latest/dg/smtp-credentials.html) を参照してください。ウィンドウを閉じると再表示されないため、これらの認証情報は必ず安全な場所に記録してください。
+
+# メール設定を行う
+
+## MoEngage UI で設定を追加する
+
+1. MoEngage ワークスペースにログインします。
+2. **Settings** \> **Channels** の下の **Email** \> **Sender Configuration** タブ\> に移動し、**Add Sender** をクリックします。 **<img alt="sendgrid 1.png" src="/images/moengage_5339a0.png" />**
+3. 表示される **Add Sender** 画面で **Amazon SES** を選択し、以下のように SMTP の詳細を追加します。  
+    <img alt="Screenshot 2024-07-12 at 4.20.23 PM.png" src="/images/moengage_01f180.png" />   
+
+   | フィールド | 説明 |
+   | --- | --- |
+   | Sender Name | 送信者名を入力します。 |
+   | SMTP Host Name | この情報は Amazon SES アカウントから取得できます。 |
+   | SMTP Port | **587** を入力します。一部のサービスプロバイダーによるレート制限を回避するため、ポート 587 が推奨されます。 |
+   | SMTP Protocol | **TLS** を選択します。 |
+   | SMTP Username | この情報は Amazon SES アカウントから取得できます。 |
+   | SMTP Password | この情報は Amazon SES アカウントから取得できます。 |
+4. 要件に応じて **Unsubscribe Settings** を設定します。詳細については、[メールの配信停止を処理する](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/handle-unsubscribes-in-emails)を参照してください。
+5. 要件に応じて **List unsubscribe email** の設定を行います。詳細については、[List Unsubscribe メール](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/list-unsubscribe-email)を参照してください。
+6. **Bounce and Compliant Tracking** URL は、Amazon SES アカウントで SNS 設定を行う際に使用できます。
+7. **Save** をクリックします。追加したコネクタが **Sender configuration** タブに表示されます。
+8. **General Settings** タブに移動します。
+9. **Set a default sender** ドロップダウンから、追加した送信者を選択します。
+10. **User Attribute that stores the user’s email address** ドロップダウンから、"Email (Standard)" を選択します。
+11. **“From” email address(s)** フィールドに、From アドレスを追加します。ドメイン (@ 以降の部分) は、Amazon SES で検証済みのものである必要があります。  
+     <img alt="hhh.png" src="/images/moengage_dc6f68.png" />
+12. 設定を **Save** します。上記で追加した From アドレスのメールボックスに確認メールが届きます。IT チームにそのメールボックスへのアクセス権を付与してもらうか、確認リンクをクリックしてもらってください。
+
+# SES で Configuration Set を設定する
+
+別々の IP プールを使用するには、Configuration Set を使用します。詳細については、[こちら](https://docs.aws.amazon.com/ses/latest/dg/creating-configuration-sets.html)を参照してください。
+
+# SNS 設定を行う
+
+SNS 設定を使用して、イベント Webhook を設定します。SNS 設定を行うには、Amazon SES アカウントで以下の手順を実行します。詳細については、[Configuring Amazon SNS notifications for Amazon SES](https://docs.aws.amazon.com/ses/latest/dg/configure-sns-notifications.html#configure-feedback-notifications-console) を参照してください。
+
+1. Amazon SES で **Topics** に移動します。
+2. Configuration Set の下に作成された Topic を選択します。  
+     
+    <img  src="/images/moengage_a3763b.png"  />
+3. **Create Subscription** をクリックします。  
+     
+    <img  src="/images/moengage_c4fa12.png"  />
+4. **Protocol** として **HTTPS** を選択します。  
+     
+    <img  src="/images/moengage_a0128d.png"  />
+5. **Endpoint URL** フィールドに、MoEngage のメール設定ページで取得した **Bounce and Complaint Tracking URL** を貼り付けます。
+6. **Enable raw message delivery** チェックボックスをオフにします。  
+    <img  src="/images/moengage_a1c2c2.png"  />
+7. **Create subscription** をクリックします。
+8. **Subscriptions** に移動して、新しいサブスクリプションを確認します。
+
+     
+    <img  src="/images/moengage_6be5c8.png"  />
+9. 1～2 時間経過してもサブスクリプションのステータスが **Pending confirmation** のままの場合は、サブスクリプションを選択して **Request confirmation** をクリックします。サブスクリプションのステータスが **Confirmed** に変わったことを確認して、この手順を完了します。  <img  src="/images/moengage_dfcb2f.png"   />
+
+# メール設定をテストする
+
+Amazon SES の統合を確認するには、[メール設定をテストする](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-setup-and-content-validation)を参照してください。
+
+# 次のステップ
+
+Amazon SES の送信者を設定した後、MoEngage でメールキャンペーンの作成と送信に進むことができます。詳細については、[Email キャンペーンを作成する](/ja/user-guide/campaigns-and-channels/email/create/create-an-email-campaign)を参照してください。

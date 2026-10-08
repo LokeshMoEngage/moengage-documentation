@@ -1,0 +1,95 @@
+---
+title: "Jasper.ai"
+---
+
+# はじめに
+
+[Jasper.ai](https://www.jasper.ai/) は、ブログ記事、製品説明、企業プロフィール、広告コピー、ソーシャルメディアのキャプションなどのマーケティングコピーを生成するために設計された AI ライティングツールです。
+
+# MoEngage × Jasper.ai
+
+MoEngage と Jasper.ai の連携により、Jasper.ai の生成 AI を使用して、MoEngage のさまざまなチャネルで高度にパーソナライズされた効果的なキャンペーンを送信できます。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  Jasper.ai の API を使用するには、Jasper.ai の API トークンが必要です。
+</Info>
+
+## MoEngage キャンペーンに動的コンテンツを表示する
+
+MoEngage の Content API を使用すると、Jasper.ai で作成したコンテンツを MoEngage キャンペーン内に動的に追加し、よりパーソナライズされた体験を提供できます。以下は、メールキャンペーン向けに生成 AI を使用してパーソナライズされた件名を生成する例です。
+
+### ステップ 1: MoEngage Content API を設定する
+
+1. **Settings** \> **Advanced settings** \> **Content API** に移動します。Content API 画面の右上隅にある **\+ Add content API** をクリックします。<img src="/images/partner_21980456257172.png" alt="ContentAPI_Navogation.png" />
+2. エンドポイント URL に Jasper.ai の API を追加します。ユースケースに応じてエンドポイントは変わります。<img src="/images/partner_20129257074836.png" />
+
+AI が生成したパーソナライズされた件名を表示するには、Jasper.ai の [Run Command API](https://developers.jasper.ai/docs/getting-started-1) を使用します。
+
+Content API を設定する際に、メソッドとして POST を選択し、以下の URL を挿入します。
+
+```text
+[https://api.jasper.ai/v1/command](https://api.jasper.ai/v1/command)
+```
+
+URL Parameters は空白のままにします。
+
+Headers で、以下を追加します。
+
+1. `X-API-Key`: このためには、Jasper.ai のダッシュボードから[新しいアクセストークンを生成](https://developers.jasper.ai/docs/authentication)する必要があります。
+2. `content-type`: `application/json`
+3. `accept`: `application/json`
+
+_Body Type_ で _Raw_ を選択し、以下を追加します。
+
+<CodeGroup>
+
+```json JSON wrap
+{
+  "inputs": {
+    "command": "Write a personalized email subject line for a campaign about Christmas holidays",
+    "context": "Email is being sent to {{UserAttribute['First Name']}} {{UserAttribute['Last Name']}}",
+    "toneId": "<your_tone_id>"
+  },
+  "options": {
+    "outputCount": 1,
+    "outputLanguage": "English",
+    "inputLanguage": "English",
+    "languageFormality": "default",
+    "completionType": "performance"
+  }
+}
+```
+
+</CodeGroup>
+
+1. 「Save」をクリックし、成功レスポンスが表示されたら「Done」をクリックします。
+2. 注 - API をテストすることもできます。API をテストするには、Content API のアクションメニューから「Test」をクリックします。API レスポンスを確認して検証できます。
+
+### ステップ 2: MoEngage キャンペーン内にコンテンツを表示する
+
+MoEngage キャンペーンでこの API を使用するには、以下を行います。
+
+1. キャンペーン作成のステップ 2 で、`@` を入力します。
+2. ポップアップで、ステップ 1 で設定した Jasper.ai Content API を選択できます。
+3. [MoEngage Templating Language](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。
+
+<Frame>
+  ![Jinja](/images/jinja.png)
+</Frame>
+
+Jasper が生成した件名を表示するには、以下のコードを使用できます。
+
+<CodeGroup>
+
+```json JINJA wrap
+{% set response = ContentApi.JasperAiParagraph({({"params":{},"static_params":{},"dynamic_params":{},"request_body":{"inputs":{"command":"Write a personalized email subject line for a campaign about Christmas holidays","context":"Email is being sent to {{UserAttribute['First Name']}} {{UserAttribute['Last Name']}}","toneId":"ton_2ee766eaa4ef48e59da1d9602bfecf2d"},"options":{"outputCount":1,"outputLanguage":"English","inputLanguage":"English","languageFormality":"default","completionType":"performance"}}})}) %}{{ response.data[0].text }}
+```
+
+</CodeGroup>
+
+4. Preview タブをクリックすると、リアルタイムのパーソナライゼーションでキャンペーンを確認できます。\\ <img src="/images/partner_20129618598420.png" />
+5. そのままキャンペーンを公開できます。

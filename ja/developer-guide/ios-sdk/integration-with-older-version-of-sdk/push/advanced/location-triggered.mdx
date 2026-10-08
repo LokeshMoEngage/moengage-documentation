@@ -1,0 +1,146 @@
+---
+title: "位置情報トリガー"
+description: "MoEngage SDK を使用して、iOS アプリでジオフェンスベースの位置情報トリガー型プッシュ通知を設定します。"
+---
+
+[![Version](https://img.shields.io/cocoapods/v/MoEngageGeofence.svg?style=flat)](http://cocoapods.org/pods/MoEngageGeofence)
+
+<Info>
+**重要**
+
+* **iOS 14.0** 以降、Apple はアプリで共有する位置情報の精度レベルをユーザーが選択できるようにしました。このため、**ユーザーが正確な位置情報を無効にしている場合、リージョンモニタリング（ジオフェンス機能）は機能しません**。詳細については、[リンク](https://developer.apple.com/videos/play/wwdc2020/10660/)を参照してください。
+* リージョンモニタリングは、**常に許可（Always authorization）** の場合にのみサポートされます。使用中のみ許可（When-in-use authorization）では、この機能はサポートされません。詳細については、[リンク](https://developer.apple.com/documentation/corelocation/choosing_the_authorization_level_for_location_services)を参照してください。
+* **Dwell** トリガーは **iOS ではサポートされていない**ため、SDK は Enter トリガーと Exit トリガーのみをサポートしています。
+</Info>
+
+# 位置情報トリガーを有効にする方法
+
+## 必要な権限：
+
+**リージョンモニタリング（ジオフェンス）を機能させるには、常に許可と正確な位置情報の精度が有効になっている必要があります**。そのため、アプリがこれらの権限を取得できるように構成されていることを確認してください。また、これらの権限が必要となる状況をユーザーに伝えることは良い習慣であり、ユーザーがこれらの権限を許可することを促すことにもつながります。
+
+# SDK のインストール
+
+## CocoaPods を使用したインストール
+
+以下のように Podfile に依存関係を追加して、MoEngageGeofence フレームワークを統合します。
+
+<CodeGroup>
+``` Ruby
+pod 'MoEngageGeofence','~>4.2.0'
+```
+
+</CodeGroup>
+
+次に、`pod install` を実行してフレームワークをインストールします。
+
+## Swift Package Manager を使用したインストール
+
+MoEngageGeofence は、SDK バージョン 4.2.0 から SPM でサポートされています。統合するには、次の GitHub の URL リンクを使用し、ブランチを master に、またはバージョンを 4.2.0 以上に設定します。[https://github.com/moengage/MoEngage-iOS-Geofence.git](https://github.com/moengage/MoEngage-iOS-Geofence.git)
+
+## 手動統合
+
+`MoEngageGeofence` SDK をプロジェクトに手動で統合するには、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/manual-integration/manual-integration)に従ってください。
+
+<Warning>
+MOGeofence は、バージョン 4.2.0 から MoEngageGeofence に名前が変更されました。Podfile と import 文をそれに応じて更新してください。
+</Warning>
+
+## ジオフェンスモニタリングの開始：
+
+MOGeofence モジュールを統合した後、`startGeofenceMonitoring()` メソッドを呼び出してジオフェンスモジュールを開始します。これにより、ユーザーの現在地周辺のジオフェンスが取得されます。
+
+<CodeGroup>
+```swift Swift
+MOGeofence.sharedInstance.startGeofenceMonitoring()
+```
+
+```objectivec Objective-C
+[[MOGeofence sharedInstance] startGeofenceMonitoring];
+```
+
+</CodeGroup>
+
+ジオフェンスハンドラーには、`didEnterRegion` と `didExitRegion` のコールバックもあります。これらは `MOGeofence.sharedInstance.setGeofenceDelegate(self)` のように準拠することで取得できます。
+
+<CodeGroup>
+```swift Swift
+extension GeofenceViewController: MOGeofenceDelegate {
+    func geofenceEnterTriggered(withLocationManager locationManager: CLLocationManager?, andRegion region: CLRegion?, forAccountMeta accountMeta: MOAccountMeta) {
+        print("Geofence Entered")
+    }
+    
+    func geofenceExitTriggered(withLocationManager locationManager: CLLocationManager?, andRegion region: CLRegion?, forAccountMeta accountMeta: MOAccountMeta) {
+        print("Geofence Exited"
+    }
+}
+```
+
+```objectivec Objective-C
+@interface MyViewController ()<MOGeofenceDelegate>
+---
+- (void)geofenceEnterTriggeredWithLocationManager:(CLLocationManager * _Nullable)locationManager andRegion:(CLRegion * _Nullable)region forAccountMeta:(MOAccountMeta * _Nonnull)accountMeta {
+    NSLog(@"Geofence Entered");
+}
+
+- (void)geofenceExitTriggeredWithLocationManager:(CLLocationManager * _Nullable)locationManager andRegion:(CLRegion * _Nullable)region forAccountMeta:(MOAccountMeta * _Nonnull)accountMeta {
+    NSLog(@"Geofence Exited");
+}
+```
+
+</CodeGroup>
+
+# ジオフェンスのテスト
+
+まず、MoEngage ダッシュボードでジオフェンスキャンペーンを作成します。ジオフェンスは次の方法でテストできます。
+
+1. シミュレーターの場合：
+	* 以下に示すように位置情報をシミュレートできます。  
+	![Debug メニューを使用して iOS シミュレーターでカスタムの位置情報をシミュレートする](/images/ios-legacy-location-triggered-1.png)
+	* ダッシュボードでキャンペーンを作成した位置情報をシミュレートします。  
+	対応するコールバック（MOGeofenceHandler のデリゲートメソッド）を受け取れば、問題ありません。シミュレーターではプッシュ通知は受信されません。
+2. デバイスの場合：
+
+	* 以下に示すように、コンソールの上にあるバーから実機の位置情報をシミュレートできます。  
+	![Xcode のデバッグバーから実機の位置情報をシミュレートする](/images/ios-legacy-location-triggered-2.png)
+	* 位置情報が構成された gpx ファイルを追加できます。サンプルの gpx ファイルは次のようになります。
+	
+<CodeGroup>
+``` XML
+<?xml version=“1.0”?>
+<gpx version=“1.0”>
+    <wpt lat=“12.9719” lon=“77.6412”><name>CustomName</name></wpt>
+    <wpt lat=“12.9619” lon=“77.6312”></wpt>
+    <wpt lat=“12.9519” lon=“77.6112”></wpt>
+</gpx>
+```
+
+</CodeGroup>
+
+デバイスでは、リージョンへの入場または退出のデリゲートコールバックを受け取ると、デバイスに通知が送信されます。これは即座に行われますが、通知の到着には最大 10 分かかる場合があります。
+
+# ジオ通知
+
+通知を受信した後、ジオ通知を識別するには、以下に示すように、パラメーター app\_extra 内のカスタムパラメーター "cType" = "geo" を確認します。
+
+<CodeGroup>
+```json JSON
+{
+    "app_extra" = {
+            cType = geo;
+            screenData = {
+                "" = "";
+                };
+            screenName = "";
+        };
+        aps = {
+            alert = "exit london- single fence";
+            badge = 1;
+        };
+        moengage = {
+            cid = "55a628bcf4c4073bb66a368b_GEO:55a628bcf4c4073bb66a368c_ABab1:2015-07-15_14:11:33.704706";
+        };
+}
+```
+
+</CodeGroup>

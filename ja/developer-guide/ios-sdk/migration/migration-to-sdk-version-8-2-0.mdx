@@ -1,0 +1,202 @@
+---
+title: "SDKバージョン8.2.0への移行"
+description: "更新されたPod名、インポート、初期化方法を使用して、MoEngage iOS SDKをバージョン8.2.0に移行します。"
+---
+
+SDKバージョン8.2.0では大きな変更が加えられています。古いバージョンのSDKを使用していて、バージョン8.2.0以上への移行を計画している場合は、移行時に以下の変更を行ってください。
+
+# Pod名の更新
+
+SDKバージョン `8.2.0` から、一部のPod名が更新されました。以下の表を参照してPodfileを更新してください。
+
+| SDKバージョン7.0.0         | SDKバージョン8.2.0               |
+| :------------------------ | :------------------------------ |
+| import MOGeofence         | import MoEngageGeofence         |
+| import MORichNotification | import MoEngageRichNotification |
+
+# インポートの更新
+
+SDKバージョン `8.2.0` から、一部のフレームワーク名が更新されました。以下の表を参照して、各モジュールのインポート文を更新してください。
+
+| SDKバージョン7.0.0         | SDKバージョン8.2.0               |
+| :------------------------ | :------------------------------ |
+| import MoEngage           | import MoEngageSDK              |
+| import MOInApp            | import MoEngageInApps           |
+| import MOCards            | import MoEngageCards            |
+| import MOGeofence         | import MoEngageGeofence         |
+| import MORichNotification | import MoEngageRichNotification |
+
+# 初期化メソッドの変更
+
+以前の初期化メソッドは非推奨となり、新しいメソッドが導入されました。
+
+**非推奨のメソッド**
+
+<CodeGroup>
+
+```swift Swift wrap
+let sdkConfig = MOSDKConfig(withAppID: "YOUR_WORKSPACE_ID")
+#if DEBUG
+	MoEngage.sharedInstance().initializeTest(with: sdkConfig, andLaunchOptions: launchOptions)
+#else
+	MoEngage.sharedInstance().initializeLive(with: sdkConfig, andLaunchOptions: launchOptions)
+#endif
+```
+
+
+```objective-c Objective C wrap
+MOSDKConfig* sdkConfig = [[MOSDKConfig alloc] initWithAppID:@"YOUR_WORKSPACE_ID"];
+#ifdef DEBUG
+   [[MoEngage sharedInstance] initializeTestWithConfig:sdkConfig andLaunchOptions:launchOptions];
+#else
+   [[MoEngage sharedInstance] initializeLiveWithConfig:sdkConfig andLaunchOptions:launchOptions];
+#endif
+```
+
+</CodeGroup>
+
+新しい初期化メソッドの詳細については、こちらの[リンク](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)を参照してください。
+
+# リージョン/データセンターの設定
+
+MODataCenter: SDKバージョン `8.2.0` でDataCenter名が更新されました。以下は、SDKバージョン `7.0.0` 以上で使用されていた既存のものです。
+
+<CodeGroup>
+
+```swift Swift
+typedef enum {              
+      DATA_CENTER_01, 
+      DATA_CENTER_02, 
+      DATA_CENTER_03 
+}MODataCenter;
+```
+
+
+```objective-c Objective C
+typedef enum {
+    DATA_CENTER_01,
+    DATA_CENTER_02,
+    DATA_CENTER_03
+}MODataCenter;
+```
+
+</CodeGroup>
+
+新しいDataCenterの値の詳細については、こちらの[リンク](/ja/developer-guide/ios-sdk/sdk-integration/basic/data-center)を参照してください。
+
+# App Target: App Group IDの設定
+
+App TargetのApp Group IDは以前は `setAppGroupID:` を使用して設定していましたが、これはサポートされなくなりました。最新のSDKバージョンでは、MOSDKConfigを使用して設定してください(詳細については[リンク](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)を参照してください)
+
+**以前のメソッド[6.3.1以下]**
+
+<CodeGroup>
+
+```swift Swift
+MoEngage.setAppGroupID("AppGroupID")
+```
+
+
+```objective-c Objective C
+[MoEngage setAppGroupID:@"AppGroupID"];
+```
+
+</CodeGroup>
+
+# ログ有効化の変更
+
+トラブルシューティングのためにSDKログを有効にするメソッドが、`debug:` から `enableSDKLogs :` に変更されました。以前のメソッドは以下のように使用されていました。最新のSDKバージョンでの更新された実装については、次の[ドキュメント](/ja/developer-guide/ios-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs-ios)を参照してください。
+
+**以前のメソッド[6.3.1以下]**
+
+<CodeGroup>
+
+```swift Swift
+MoEngage.debug(LOG_ALL)
+```
+
+
+```objective-c Objective C
+[MoEngage debug:LOG_ALL];
+```
+
+</CodeGroup>
+
+# ユーザー属性のトラッキング
+
+SDKバージョン `8.2.0` から、いくつかのUserAttributeメソッドが非推奨になりました。更新されたメソッドについては、以下の表を参照してください。
+
+| SDKバージョン7.0.0                                                 | SDKバージョン8.2.0                                                                                                                               |
+| :---------------------------------------------------------------- | :---------------------------------------------------------------------------------------------------------------------------------------------- |
+| MoEngage.sharedInstance().setUserUniqueID(UNIQUE_ID)              | MOAnalytics.sharedInstance.setUniqueID(UNIQUE_ID)                                                                                               |
+| MoEngage.sharedInstance().setUserName(userName)                   | MOAnalytics.sharedInstance.setName(userName)                                                                                                    |
+| MoEngage.sharedInstance().setUserLastName(userLastname)           | MOAnalytics.sharedInstance.setLastName(userLastname)                                                                                            |
+| MoEngage.sharedInstance().setUserFirstName(userFirstName)         | MOAnalytics.sharedInstance.setFirstName(userFirstName)                                                                                          |
+| MoEngage.sharedInstance().setUserEmailID(userEmailID)             | MOAnalytics.sharedInstance.setEmailID(userEmailID)                                                                                              |
+| MoEngage.sharedInstance().setUserMobileNo(userPhoneNo)            | MOAnalytics.sharedInstance.setMobileNumber(userPhoneNo)                                                                                         |
+| MoEngage.sharedInstance().setUserGender(MALE)                     | MOAnalytics.sharedInstance.setGender(.male)                                                                                                     |
+| MoEngage.sharedInstance().setUserDateOfBirth(userBirthdate)       | MOAnalytics.sharedInstance.setDateOfBirth(userBirthdate)                                                                                        |
+| MoEngage.sharedInstance().setUserLocationLatitude                 | MOAnalytics.sharedInstance.setLocation(MOGeoLocation(withLatitude: userLocationLat, andLongitude: userLocationLng))                             |
+| (userLocationLat, andLongitude: userLocationLng)                  |                                                                                                                                                 |
+| MoEngage.sharedInstance().setUserAttributeISODateString           | MOAnalytics.sharedInstance.setUserAttributeISODate("2020-01-12T18:45:59Z", withAttributeName: "Date Attr 2")e                                   |
+| ("2020-01-12T18:45:59Z", forKey: "DateAttr2")                     |                                                                                                                                                 |
+| MoEngage.sharedInstance().setUserAttributeTimestamp               | MOAnalytics.sharedInstance.setUserAttributeEpochTime(663333, withAttributeName: "Date Attr 3")                                                  |
+| (NSDate().timeIntervalSince1970, forKey:"DateAttr3")              |                                                                                                                                                 |
+| MoEngage.sharedInstance().setUserAttributeLocationLatitude        | MOAnalytics.sharedInstance.setLocation(MOGeoLocation.init(withLatitude: 72.90909, andLongitude: 12.34567), withAttributeName: "attribute name") |
+| (12.98798, longitude: 34.98789, forKey:"location_attribute_name") |                                                                                                                                                 |
+
+ユーザー属性のトラッキングメソッドの詳細については、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/data-tracking/basic/tracking-user-attributes)を参照してください。
+
+# プッシュ通知
+
+SDKバージョン `8.2.0` から、プッシュ通知に関連するメソッドが更新されました。更新されたメソッドを使用するには、以下の表を参照してください。
+
+| SDKバージョン7.0.0                                                                    | SDKバージョン8.2.0                                                                               |
+| :----------------------------------------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| MoEngage.sharedInstance().disableBadgeReset = true                                   | MoEngage.sharedInstance().setDisableBadgeReset(true)                                            |
+| MORichNotification.handle(request, withContentHandler: contentHandler)               | MORichNotification.handle(richNotificationRequest: request, withContentHandler: contentHandler) |
+| MOPushTemplateHandler.sharedInstance().addPushTemplate(to: self, with: notification) | MORichNotification.addPushTemplate(toController: self, withNotification: notification)          |
+| //Set messaging delegate                                                             | //Set messaging delegate                                                                        |
+| MOMessaging.sharedInstance().messagingDelegate = self                                | MOMessaging.sharedInstance.setMessagingDelegate(self)                                           |
+
+# RealTimeTriggerおよびInboxモジュール
+
+SDKバージョン8.0.0から、RealTimeTriggerおよびInboxモジュールはMoEngage-iOS-SDKから分離されました。そのため、これらは明示的に統合する必要があります。ドキュメントについては[リンク](/ja/developer-guide/ios-sdk/push/advanced)を参照してください。
+
+# Location Triggered
+
+SDKバージョン `8.2.0` から、Geofenceに関連するメソッドが更新されました。更新されたメソッドを使用するには、以下の表を参照してください。
+
+| SDKバージョン7.0.0                                             | SDKバージョン8.2.0                                   |
+| :------------------------------------------------------------ | :-------------------------------------------------- |
+| MOGeofenceHandler.sharedInstance()?.startGeofenceMonitoring() | MOGeofence.sharedInstance.startGeofenceMonitoring() |
+| MOGeofenceHandler.sharedInstance().delegate = self            | MOGeofence.sharedInstance.setGeofenceDelegate(self) |
+
+Geofence機能の詳細については、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/push/optional/location-triggered)を参照してください。
+
+# InApp
+
+SDKバージョン `8.2.0` から、InAppに関連するメソッドが更新されました。更新されたメソッドを使用するには、以下の表を参照してください。
+
+| SDKバージョン7.0.0                              | SDKバージョン8.2.0                               |
+| :--------------------------------------------- | :---------------------------------------------- |
+| MOInApp.sharedInstance().show()                | MOInApp.sharedInstance().showCampaign()         |
+| MOInApp.sharedInstance().inAppDelegate = self; | MOInApp.sharedInstance().setInAppDelegate(self) |
+
+InApp機能の詳細については、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/in-app-messages/in-app-nativ)を参照してください。
+
+# Cards
+
+SDKバージョン `8.0.0` から、Cardsに関連するメソッドが更新されました。更新されたメソッドを使用するには、以下の表を参照してください。
+
+| SDKバージョン7.0.0                                         | SDKバージョン8.2.0                                                                                                                                                                                  |
+| :-------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MoEngageCards.sharedInstance.pushCardsViewController      | MOCards.sharedInstance.pushCardsViewController                                                                                                                                                     |
+| (toNavigationController: self.navigationController!)      | (toNavigationController: self.navigationController!)                                                                                                                                               |
+| MoEngageCards.sharedInstance.presentCardsViewController() | MOCards.sharedInstance.presentCardsViewController()                                                                                                                                                |
+| MoEngageCards.sharedInstance.getCardsViewController()     | MOCards.sharedInstance.getCardsViewController(withUIConfiguration: nil, withCardsViewControllerDelegate: self, forAppID: "YOUR_WORKSPACE_ID")  cardsController in print("fetched CardsController") |
+| MoEngageCards.sharedInstance.getNewCardsCount()           | MOCards.sharedInstance.getNewCardsCount(forAppID: "YOUR_WORKSPACE_ID", withCompletionBlock:  count, accountMeta in print("Card count is \(count)") )                                               |
+| MoEngageCards.sharedInstance.getUnclickedCardsCount()     | MOCards.sharedInstance.getUnclickedCardsCount(forAppID: "YOUR_WORKSPACE_ID")  count, accountMeta in print("UnClicked Card count is \(count)")                                                      |
+| MoEngageCards.sharedInstance.cardsDelegate = delegate     | MOCards.sharedInstance.setCardsDelegate(delegate: self)                                                                                                                                            |
+
+Cards機能の詳細については、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/cards/cards-in-i-os)を参照してください。

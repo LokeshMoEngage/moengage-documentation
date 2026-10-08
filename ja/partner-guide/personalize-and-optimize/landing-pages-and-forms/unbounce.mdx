@@ -1,0 +1,113 @@
+---
+title: "Unbounce"
+---
+
+## はじめに
+
+[Unbounce](https://unbounce.com/) は、ドラッグアンドドロップ機能を備えた AI 搭載のランディングページビルダーで、マーケティングキャンペーン用のランディングページを作成できます。
+
+## MoEngage と Unbounce
+
+MoEngage と Unbounce の連携により、Unbounce のランディングページからリードを取得し、MoEngage を通じてパーソナライズされたターゲットキャンペーンを送信してコンバージョンを促進できます。この連携により、以下のことができます。
+
+- フォームが送信されたときに MoEngage でユーザーを作成または更新する。
+- フォームから送信された詳細を使用してイベントを作成する。
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - Unbounce のフォームにアクセスできることを確認してください。
+</Info>
+
+### ステップ 1: MoEngage エンドポイントを取得する
+
+連携用の専用エンドポイントを取得するには、MoEngage サポートチームに連絡してください。リクエストでは、MoEngage とパートナープラットフォーム間でユーザープロファイルをリンクするために使用する共通の識別子を指定してください。
+
+### ステップ 2: Unbounce で Webhook を設定する
+
+ユーザーがフォームを送信したときに MoEngage でユーザーとイベントを作成するには、Unbounce 内で Webhook を設定します。
+
+1. Unbounce ダッシュボードで **Pages** に移動し、目的のランディングページ、ポップアップ、またはスティッキーバーを開きます。
+2. **Integrations** タブ \> **Webhooks** \> **\+ Add Webhook** に移動します。<img src="/images/partner_31892409661716.png" alt="Add Webhook オプションが強調表示された Unbounce の Integrations タブ" />
+3. [Webhook の設定](#webhook-configuration)セクションで説明する Webhook の詳細を入力します。
+4. **Save changes** をクリックして Webhook を追加します。
+
+#### Webhook の設定
+
+Unbounce の Webhook を設定する際に、以下の詳細を指定します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **Choose a URL to POST form data to** | Customer Success Manager から提供された MoEngage エンドポイントを入力します。 |
+| **Body Type** | デフォルトでは **Default** が選択されています。**これを JSON に変更してください。** |
+| **Custom Headers** | 以下の[カスタムヘッダー](#custom-headers)セクションで説明するヘッダーを追加します。 |
+| **Unbounce Form Data** | [フォームデータのマッピング](#form-data-mapping)セクションの説明に従って、Unbounce のフォームフィールドを MoEngage の標準フィールドにマッピングします。 |
+| **Unbounce Page Data** | このマッピングはそのままにしておけます。 |
+| **Custom fields** | MoEngage ダッシュボードに表示するイベント名を入力します。[カスタムフィールド](#custom-fields)を参照してください。 |
+
+<Info>
+  Webhook は JSON を受け付けます。XML はサポートされておらず、XML を送信するリクエストは Unsupported Media Type エラーで失敗する場合があります。**Body Type** を **JSON** に設定し、`Content-Type` ヘッダーを `application/json` として送信してください。
+</Info>
+
+#### カスタムヘッダー
+
+| ヘッダー | 値 |
+| --- | --- |
+| `Content-Type` | `application/json` |
+| `Authorization` | `Basic <Token Key>` |
+
+**Authorization** トークンを生成するには、以下を行います。
+
+1. [Basic Auth Header Generator ツール](https://www.debugbear.com/basic-auth-header-generator)を使用します。
+2. ユーザー名に **Workspace ID**、パスワードに **Data API Key** を入力します。
+
+認証情報を確認するには、MoEngage ダッシュボードで **Settings** \> **Account** \> **APIs** に移動します。
+
+最終的なトークンは次のようになります。
+
+```text wrap
+Basic Qk5CR1NNNUR4eHh4eHhWQ1hSRFJEWTdSOlFsWHVoTHVaeHh4eHh4QWQrQnBYUEotNw==
+```
+
+これを `Authorization` ヘッダーの値として貼り付けます。
+
+#### フォームデータのマッピング
+
+Unbounce のフィールド ID を MoEngage の標準フィールドにマッピングします。
+
+| Unbounce のフィールド ID | MoEngage の標準フィールド |
+| --- | --- |
+| `name` | `full_name` |
+| `mobile_number` | `mobile_number`（または `customer_id`） |
+| `email` | `email`（または `customer_id`） |
+| `first_name` | `first_name` |
+| `last_name` | `last_name` |
+
+<Note>
+  - 追加のフィールドを収集する場合は、MoEngage の対応する属性名にマッピングしてください。
+  - `mobile_number` または `email` を **Customer ID** として使用する場合は、その Unbounce のフィールド ID に対して値 `customer_id` を入力します。
+</Note>
+
+#### カスタムフィールド
+
+MoEngage ダッシュボードに表示されるイベント名を定義します。
+
+| Unbounce のフィールド ID | マッピング先のフィールド |
+| --- | --- |
+| イベント名（例: `Unbounce Form Submitted`） | `event_name` |
+
+### ステップ 3: MoEngage でターゲットキャンペーンを送信する
+
+ユーザーとイベントが MoEngage に表示され始めます。
+
+<Frame>
+  ![Unbounce のフォーム送信から取得されたデータが表示された MoEngage のユーザープロファイル](/images/partner_31893440584084.png)
+</Frame>
+
+これで、ユーザーに対してイベントトリガー型キャンペーンを実行できます。
+
+<Check>
+  テスト送信が、設定したイベント名が追跡された状態で MoEngage にユーザーとして表示されます。
+</Check>

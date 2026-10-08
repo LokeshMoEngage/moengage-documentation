@@ -1,0 +1,117 @@
+---
+title: "銀行・金融サービス・保険向けの Computed Traits"
+description: "銀行・金融サービス・保険向けの Computed Traits のリファレンスです。各トレイトの計算方法、データソース、ビジネスユースケースを紹介します。"
+keywords: "computed traits, BFSI, banking, insurance, wealth tier, cross-sell, churn, user attributes"
+---
+
+BFSI アプリでは、入金、EMI の支払い、SIP の積立、保険の更新、保険金請求など、価値の高いイベントデータが毎分のように生成されます。しかし、その大半はユーザープロファイルに反映されません。Computed Traits を使うと、これらの生のイベントを、セグメンテーション、パーソナライズ、Flows の分岐に使用できるリアルタイムのユーザー属性に変換できます。エンジニアのサポートや CSV のアップロードは必要ありません。
+
+このページはメニューとしてご利用ください。各行には、何を作成するか、どの計算方法を選ぶか、必要なイベントデータ、ビジネス上の成果、活用方法が記載されています。
+
+Computed Traits を初めて使用する場合は、[Computed Traits - 概要](/ja/user-guide/data/computed-traits/computed-traits-overview)で Computed Traits の概要と各計算方法の仕組みを、[Computed Trait の作成](/ja/user-guide/data/computed-traits/create-a-computed-trait)で作成手順を確認してください。
+
+## Computed Traits の仕組み
+
+このページのすべてのトレイトは、同じ 4 ステップのモデルに従います。このモデルを理解すれば、以下の表をひと目で読み取れるようになります。
+
+<Steps>
+  <Step title="イベントから始める" icon="database">
+    Deposit Successful や Loan Product Viewed など、すでにトラッキングしているユーザー行動です。
+  </Step>
+  <Step title="計算方法を選ぶ" icon="calculator">
+    [Count、Aggregation、First/Last Value、または SQL](/ja/user-guide/data/computed-traits/computed-traits-overview#methods-of-computations) から選択します。
+  </Step>
+  <Step title="トレイトを取得する" icon="user-check">
+    Lifetime Deposit Value のように、自動的に更新されるリアルタイムの属性です。
+  </Step>
+  <Step title="活用する" icon="rocket">
+    セグメンテーション、分析、Jinja パーソナライズ、Flows で使用します。
+  </Step>
+</Steps>
+
+トレイトが実行されると、MoEngage のあらゆる場所で使用できる標準のユーザー属性になります。トレイトから[セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments)を作成したり、[分析](/ja/user-guide/analyze/moengage-analytics/overview)でグループ化やフィルタリングを行ったり、[Jinja パーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)でメッセージ本文に値を挿入したり、トレイトに基づいて [Flow](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows) を分岐させたりできます。
+
+<Tip>
+  **ここで紹介するトレイトのほとんどはノーコードで作成できます。** <Badge color="green">Count</Badge> <Badge color="green">Aggregation</Badge> および <Badge color="green">First/Last Value</Badge> の方法では SQL は不要です。<Badge color="purple">SQL</Badge> が必要になるのは、複数のイベントを組み合わせる複合スコアや、引き換え率や完了率などの比率を算出する場合のみです。このページのノーコードのトレイトはすべてご自身で作成できます。
+</Tip>
+
+## まずはここから
+
+最初に次の 3 つを作成しましょう。最も早く成果が得られ、キャンペーン間で最も再利用しやすいトレイトです。
+
+<CardGroup cols={3}>
+  <Card title="Lifetime Deposit Value" icon="wallet">
+    **Aggregation** · すぐに設定できます。ティアベースのセグメンテーションをすぐに実現できます。
+  </Card>
+  <Card title="Last Transaction Date" icon="clock">
+    **Last Value** · 最初の解約防止 Flow を実行できます。SQL は不要です。
+  </Card>
+  <Card title="Preferred Investment Category" icon="chart-pie">
+    **Last Value** · すべての商品レコメンデーションをパーソナライズできます。
+  </Card>
+</CardGroup>
+
+## 目的別にトレイトを探す
+
+<Info>
+  これらの表に記載されているイベント名とプロパティ名は例です。実際の名前はアプリのデータトラッキング方法によって異なるため、ここに記載されている `Deposit Successful` という名前のイベントが見つからない場合があります。トレイトを作成する前に **Data** でトラッキング済みのイベントとプロパティを確認し、不足しているものがあれば開発チームにトラッキングを依頼してください。トラッキングの仕組みについては、[イベントトラッキングの完全ガイド](/ja/user-guide/data/event-data/a-complete-guide-to-event-tracking)を参照してください。
+</Info>
+
+### 顧客価値
+
+銀行との関係の深さで顧客をランク付けし、プレミアムサービス、資産運用のアプローチ、カードのアップグレードを適切な顧客に届けます。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Lifetime Deposit Value | Aggregation (Sum) | **イベント:** `Deposit Successful`、**プロパティ:** `amount` | プライオリティバンキングや専任のリレーションシップマネージャーの対象となる富裕層顧客を特定します。 | 最も価値の高い預金者のセグメントを作成してパーソナライズされたプライベートバンキングのメールを送信し、Jinja を使って各顧客をティアに応じて呼びかけます。 |
+| Total Amount Invested | Aggregation (Sum) | **イベント:** `Investment Successful`、**プロパティ:** `amount` | ユーザーを Bronze、Silver、Gold、Platinum の資産ティアに自動的に分類します。 | 資産ティアで顧客をセグメント化し、上位ティアに移行した際にアップグレードキャンペーンをトリガーします。 |
+| Total Investments Made | Count | **イベント:** `Investment Successful` | アクティブな投資家と一度きりの預金者を見分けるアクティビティ指標です。 | 頻繁に投資する顧客には 1 つのキャンペーンで特典を提供し、一度だけ投資した顧客には 2 回目の投資を促す Flow を実行します。 |
+| Average Monthly Balance (AMB) | Aggregation (Average) | **イベント:** `End-of-Day Balance`、**プロパティ:** `balance` | ペナルティが発生する前に、最低 AMB を下回りそうな顧客を検出します。 | 月末前に残高不足のリマインダーを送信する Flow を実行し、顧客がペナルティを回避できるようにします。 |
+| Wallet Share Score | SQL Computation | **イベント:** `Investment`、`Deposit`、`Loan` を `declared_income` プロパティと組み合わせたもの | 顧客の金融取引のうち、競合他社ではなく自社がどれだけの割合を占めているかを測る複合スコアです。 | シェアが低く高収入の顧客をセグメント化してクロスセルキャンペーンを実施し、すでにほとんどの商品を自社で保有している顧客は除外します。 |
+
+### 商品アフィニティ
+
+各顧客が閲覧、申し込み、購入した商品をトラッキングし、全員に同じものを勧めるのではなく、次に最適な商品をクロスセルします。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Last Loan Product Viewed | Last Value | **イベント:** `Loan Product Viewed`、**プロパティ:** `loan_type` | 離脱したユーザーに、最後に検討していた商品(住宅、自動車、個人向けローン)で再エンゲージします。 | Jinja で挿入した、最後に閲覧した商品をメールやプッシュで届けるリターゲティング Flow を実行します。 |
+| Preferred Investment Category | Last Value | **イベント:** `Investment Successful`、**プロパティ:** `category`(Equity、Debt、Gold、ELSS) | 顧客が示した好みに合った NFO やテーマ型ファンドをおすすめします。 | 顧客の好みのカテゴリに応じてニュースレターのコンテンツを切り替え、好みに合わないファンドのローンチ時には送信対象から外します。 |
+| Distinct Product Categories Held | Aggregation (Count Distinct) | **イベント:** `Product Owned Snapshot`、**プロパティ:** `product_type` | クロスセルの準備ができている単一商品のみの顧客を特定します。 | 単一商品のみの顧客をセグメント化してクロスセルキャンペーンを実施し、すでに 3 つ以上の商品を保有している顧客は除外します。 |
+| Total Card Spend (Last 90 Days) | Aggregation (Sum) | **イベント:** `Card Transaction`、**プロパティ:** `amount` | プレミアムカードへのアップグレードやリワードプログラムの対象となるヘビーカードユーザーを特定します。 | 利用額の多い顧客には限度額引き上げのオファーを、利用額の少ない顧客にはカードの利用を促すメッセージを送信します。 |
+| Loan Pre-Qualified | SQL Computation | **イベント:** `Loan Offer Viewed`、`Documents Submitted`、**プロパティ:** `credit_score`、`income` | 申し込みをしていないものの事前承認の基準を満たしているユーザーを示す複合トレイトです。 | アプリ内メッセージでワンタップの事前承認オファーを表示し、事前承認済みであることを伝えるパーソナライズされたプッシュを送信します。 |
+
+### リスクとライフサイクル
+
+休眠、苦情、保険の期限切れなどの初期シグナルを捉え、解約やエスカレーションに発展する前に対処します。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Last Transaction Date | Last Value | **イベント:** `Any Transaction`、**プロパティ:** `timestamp` | 休眠を検出します。セグメンテーションの日付演算子を使用して、60 日、90 日、120 日で離脱しつつあるユーザーを捉えます。 | 日付演算子を使用して 60 日、90 日、120 日間非アクティブなユーザーのセグメントを作成し、段階的にインセンティブを高める再アクティブ化キャンペーンを実施します。 |
+| Total Transactions (Last 30 Days) | Count | **イベント:** `Any Transaction` | アクティビティの強度を示します。取引の減少は解約リスクの初期シグナルです。 | アクティビティが減少した顧客をセグメント化し、解約する前に状況確認のメッセージを送信します。 |
+| Total Support Tickets Raised | Count | **イベント:** `Support Ticket Raised` | 苦情を申し立てた後にリスクが高まっている可能性のある顧客を特定します。 | チケットの解決から 7 日以内に NPS アンケートとお詫びのオファーを送信する Flow を実行します。 |
+| Days to Policy Expiry | Last Value | `Policy Purchased` イベントの **プロパティ:** `policy_expiry_date` | 顧客ごとに適切なタイミングで更新キャンペーンをトリガーします。 | 日付演算子を使用してセグメントを作成し、保険の期限切れの 30 日前、15 日前、7 日前に更新リマインダーを送信します。 |
+| Policy Renewal Score | SQL Computation | 過去の更新回数、請求件数、エンゲージメントの最新性を組み合わせたもの | 更新の可能性を予測する複合スコアです。スコアが低い顧客にはプレミアムなアプローチを行います。 | スコアの低い更新対象者をセグメント化し、30 日前、15 日前、7 日前に SMS と WhatsApp でリマインダーを送信する Flow を実行します。 |
+
+### エンゲージメント
+
+各顧客がどのように、どこでエンゲージしているかを測定し、デジタルの利用を促進し、顧客が好むチャネルでアプローチします。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Total Digital Sessions (30 Days) | Count | **イベント:** `App Session Started` | デジタルでアクティブなユーザーと休眠ユーザーを特定し、別々のマーケティングトラックを適用します。 | セッションがゼロのユーザーをセグメント化して再アクティブ化キャンペーンを実施し、ライトユーザーには機能の利用を促すメッセージを送信します。 |
+| Total SIPs Completed | Count | **イベント:** `SIP Successful` | 規律ある投資家を称え、支払いを繰り返し逃している顧客を特定します。 | SIP が 6 回、12 回、24 回に達したときにお祝いのメッセージを送信し、支払いを逃した後にはリカバリーを促すメッセージを送信します。 |
+| Rewards Points Balance | Aggregation (Sum) | **イベント:** `Points Balance Updated`、**プロパティ:** `current_balance` | ポイントの引き換えを促進し、ポイント失効による解約を減らします。 | Jinja を使用して、「30 日以内に失効する `{{points_balance}}` ポイントがあります」のように、各顧客にリアルタイムの残高を表示します。 |
+| Preferred Login Channel | Last Value | **イベント:** `App Session Started`、**プロパティ:** `platform` | ユーザーごとにチャネルの組み合わせを最適化します。Web バンキングのみを利用している場合はプッシュを送信しません。 | 各キャンペーンを顧客が利用しているチャネルに合わせ、Web のみのユーザーにはモバイルプッシュを送信しません。 |
+| Preferred Transaction Channel | Last Value | **イベント:** `Transaction Completed`、**プロパティ:** `channel`(App、Web、Branch、IVR) | 顧客が本当に好むチャネルを把握し、実際に利用しているチャネルでメッセージを送信します。 | 顧客が好むチャネルでキャンペーンを送信し、利用したことのないチャネルでのプロモーションは行いません。 |
+
+## 関連ドキュメント
+
+Computed Traits は MoEngage 全体で使用されます。以下のガイドでは、上記の表で言及されている機能について説明しています。
+
+- [セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments): Computed Trait の値からオーディエンスを作成します。
+- [分析](/ja/user-guide/analyze/moengage-analytics/overview): Computed Trait の値でユーザー行動をグループ化およびフィルタリングします。
+- [キャンペーンとチャネル](/ja/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels): ユーザーにアプローチできるチャネルです。
+- [Flows](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows): トレイトに基づいてユーザーを異なるパスに分岐させます。
+- [メッセージのパーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/overview): Jinja を使用してトレイトの値をコンテンツに挿入します。
+- [Data](/ja/user-guide/data/key-concepts/overview-data): これらのトレイトの基盤となるイベントデータを MoEngage が収集・管理する方法です。

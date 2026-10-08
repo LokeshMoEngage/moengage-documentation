@@ -1,0 +1,170 @@
+---
+title: "Freshdesk"
+---
+
+# はじめに
+
+Freshworks のオンライン顧客エンゲージメントソリューションである [Freshdesk](https://freshdesk.com/) を使用すると、カスタマーサービスソフトウェアで企業のカスタマーサポートを効率化でき、事業の拡大に合わせて顧客を効率的に管理できます。
+
+# MoEngage × Freshdesk
+
+MoEngage と Freshdesk の統合により、MoEngage の Flows やキャンペーン内のエンゲージメントから、Freshdesk でのサポートチケットの作成を自動化できます。
+
+たとえば、統合の実装とテストが正常に完了すると、MoEngage は「アプリを楽しんでいますか?」などのフィードバックの質問にユーザーが否定的に回答した場合にサポートチケットを作成し、サポートチームが Freshdesk を使用して顧客にフォローアップできるようにします。
+
+統合は次の 2 つの方法で行えます。
+
+1. ネイティブ統合: MoEngage のコネクタキャンペーンを使用し、Freshdesk API でサポートチケットを作成できます。
+2. Zapier 経由: 次のことができます。
+   - Freshdesk で新しい連絡先が作成されたときに、MoEngage 内でユーザーを作成または更新する
+   - チケットが更新されたときに、カスタムコホート(セグメント)にユーザーを追加または削除する
+
+# Freshdesk API によるネイティブ統合
+
+<Info>
+  - Freshdesk アカウントの管理者アクセス権があることを確認してください。
+  - [Freshdesk API トークン](https://support.freshdesk.com/en/support/solutions/articles/225435-where-can-i-find-my-api-key-)を用意してください。
+  - MoEngage と Freshdesk の間の共通識別子。2 つのプラットフォーム間でユーザーをマッピングするために推奨されます。
+</Info>
+
+## ステップ 1: Freshdesk API トークンを取得する
+
+[How to find your API key](https://support.freshdesk.com/en/support/solutions/articles/215517-how-to-find-your-api-key) に記載されている手順に従います。右上のプロフィール画像をクリックし、「Profile Settings」を選択します。API キーが右側のサイドバーに表示されます。
+
+![ApiKey-Freshdesk.png](/images/partner_9685220297748.png)
+
+この API キーは、コネクタキャンペーン内でペイロードを設定する際に必要になるため、控えておいてください。
+
+## ステップ 2: MoEngage でコネクタキャンペーンを作成する
+
+MoEngage でコネクタキャンペーンを作成するには、
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最適な配信タイプを選択します<img src="/images/partner_49660202470164.png" alt="Custom コネクタが選択された Create campaign ダイアログ" />
+2. キャンペーンのステップ 2 で
+
+- メソッドとして POST を選択します。
+- Webhook URL として次を追加します: `https://<your-domain>.freshdesk.com/api/v2/tickets`
+- Headers に次を追加します。
+  - Authorization: `Basic {{ '<api_token>:X' | base64encode }}`
+  - Content-Type: `application/json`
+
+![ConnectorCampaign.png](/images/partner_9686146670612.png)
+
+- Body では、タイプ、件名、ステータスなどのチケットの詳細を定義する必要があります。チケットの詳細は拡張可能で、[Freshdesk API](https://support.freshdesk.com/en/support/solutions/folders/270563) に基づいてカスタマイズできます。次の例を参考にペイロードを構成し、必要なフィールドを入力してください。
+  <CodeGroup>
+  ```json file name
+  {
+      "description": "<description>",
+      "subject": "<subject>",
+      "email": "{{UserAttribute['Email (Standard)']}}",
+      "priority": 1,
+      "status": 2,
+      "cc_emails": [
+          "ram@freshdesk.com",
+          "diana@freshdesk.com"
+      ],
+      "custom_fields": {
+          "cf_customer_plan": "Enterprise"
+      }
+  }
+  ```
+  </CodeGroup>
+
+## ステップ 3: リクエストをプレビューする
+
+3. これで、キャンペーンをテストして送信する準備が整いました。Create Connector Campaign のステップ 2 にある Test 機能を使用して、コネクタの設定をテストすることもできます。<img src="/images/partner_49660177558804.png" alt="コネクタ設定をテストするための Test campaign ウィジェット" />
+
+Freshdesk を確認することもできます。チケットが正常に作成されていれば、設定は完了です。キャンペーンを公開してください。
+
+## 共通識別子
+
+MoEngage と Freshdesk の間に共通の識別子がある場合は、それを `requester_id` として使用することをお勧めします。これにより、2 つのユーザーセットを統合できます。
+
+共通の識別子がない場合は、名前、メールアドレス、電話番号などの識別属性のセットを渡すことをお勧めします。
+
+# Zapier 経由の統合
+
+<Info>
+  - Freshdesk アカウントの管理者アクセス権があることを確認してください。
+  - この統合を使用するには Zapier アカウントが必要です。[こちら](/ja/partner-guide/data-and-analytics/workflow-automation/zapier/overview#connecting-zapier-to-moengage)に記載されている手順に従って、Zapier アカウントと MoEngage アカウントを接続してください。
+  - MoEngage と Freshdesk の間の共通識別子。2 つのプラットフォーム間でユーザーをマッピングするために推奨されます。
+</Info>
+
+この統合により、次のことができます。
+
+1. MoEngage で Freshdesk の連絡先を作成または更新する
+2. MoEngage のカスタムセグメントに Freshdesk の連絡先を追加または削除する
+
+## A. Freshdesk の連絡先を MoEngage にインポートする
+
+_注意: このワークフローでは [Create or Update User](/ja/partner-guide/data-and-analytics/workflow-automation/zapier/create-or-update-users) アクションを使用します。_
+
+### ステップ 1: トリガーアプリとして Freshdesk を選択する
+
+![Zapier でトリガーアプリとして Freshdesk を選択](/images/partner_9686703863956.png)
+
+1. アプリのリストから Freshdesk を選択します。
+2. 「Event」として「New Contact」を選択します。continue をクリックします。
+3. Freshdesk アカウントを接続します。ドロップダウンから Freshdesk アカウントを選択し、continue をクリックします。
+
+![mceclip0.png](/images/partner_9686746328340.png)
+
+4. 次のステップに入力します。問題がなければ continue をクリックします。
+5. 「Test trigger」をクリックすると、Zapier は最近の連絡先を取得しようとします。continue をクリックして次のステップに進みます。
+
+### ステップ 2: アクションアプリとして MoEngage を選択する
+
+アプリから「MoEngage」を検索して選択します。
+
+![アクションアプリとして MoEngage を検索して選択](/images/partner_8854856527252.png)
+
+1. イベントのドロップダウンから「Create or Update User」を選択します。continue をクリックします。
+2. 前提条件に従っていれば、MoEngage アカウントがすでに一覧に表示されているはずです。それを選択するか、新しいアカウントを接続できます。完了したら continue をクリックします。
+3. 次のステップ「Set up action」では、入力するか前のステップからマッピングする属性とユーザープロパティのリストが表示されます。[詳細はこちら](/ja/api/user/track-user)。要件に応じて、関連するカスタムユーザー属性を追加できます。
+4. マッピングに問題がなければ、「Continue」をクリックします。
+5. 最後のステップで「Test & continue」をクリックします。
+6. API 呼び出しが成功すると、「success」が返されます。
+
+MoEngage ダッシュボードでも確認できます。Freshdesk ユーザーのプロフィールに移動し、カスタム属性を確認します。
+
+![Trigger-Step4.png](/images/partner_9687231631380.png)
+
+これで、関連するユーザー属性を持つユーザーを絞り込んでキャンペーンを送信できます。
+
+## B. MoEngage のカスタムセグメントに連絡先を追加する
+
+_注意: このワークフローでは [Add or Remove User from Cohort (Audience)](/ja/partner-guide/data-and-analytics/workflow-automation/zapier/update-cohorts-audience) アクションを使用します。_
+
+### ステップ 1: トリガーアプリとして Freshdesk を選択する
+
+![Zapier でトリガーアプリとして Freshdesk を選択](/images/partner_9686703863956.png)
+
+1. アプリのリストから Freshdesk を選択します。
+2. 「Event」として「Update Ticket」を選択します。continue をクリックします。
+3. Freshdesk アカウントを接続します。ドロップダウンから Freshdesk アカウントを選択し、continue をクリックします。
+
+![mceclip0.png](/images/partner_9686746328340.png)
+
+4. 次のステップに入力します。問題がなければ continue をクリックします。
+5. 「Test trigger」をクリックすると、Zapier は最近の連絡先を取得しようとします。continue をクリックして次のステップに進みます。
+
+### ステップ 2: アクションアプリとして MoEngage を選択する
+
+アプリから「MoEngage」を検索して選択します。
+
+![アクションアプリとして MoEngage を検索して選択](/images/partner_8854856527252.png)
+
+1. イベントのドロップダウンから「Add or Remove User From Cohort (Audience)」を選択します。continue をクリックします。
+2. 前提条件に従っていれば、MoEngage アカウントがすでに一覧に表示されているはずです。それを選択するか、新しいアカウントを接続できます。完了したら continue をクリックします。
+3. 次のステップ「Set up action」では、入力するか前のステップからマッピングするフォームが表示されます。[詳細はこちら](/ja/api/cohort-sync/sync-cohort-members)。
+4. ユーザーを追加するか削除するかを選択します。すべての必須フィールドに入力すると、この設定をテストするオプションが表示されます。「User ID」または「Anonymous ID」の少なくとも一方を必ず入力してください。詳細については、[Cohort API ドキュメント](/ja/api/cohort-sync/sync-cohort-members)を参照してください。
+5. マッピングに問題がなければ、continue をクリックします。
+6. この設定をテストするオプションが表示されます。
+7. 「Test & continue」をクリックしてこの設定をテストします。
+8. API 呼び出しが成功すると、「success」が返されます。
+
+MoEngage ダッシュボードでも確認できます。MoEngage Dashboard \>\> Segment \>\> Create segment に移動します。「Custom Segment」でユーザーを絞り込むと、新しく作成したコホートが表示されます。
+
+![Trigger-Step5.png](/images/partner_9687377923604.png)
+
+これで Zap が成功したことを確認できます。

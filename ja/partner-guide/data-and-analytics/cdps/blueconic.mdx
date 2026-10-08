@@ -1,0 +1,126 @@
+---
+title: "Blueconic"
+---
+
+## はじめに
+
+[BlueConic](https://www.blueconic.com/) は、データドリブンなビジネスプロセスを強化して成長を加速させます。マーケターがユーザーのオンラインジャーニーを簡単にパーソナライズできる CDP です。
+
+## MoEngage × BlueConic
+
+BlueConic は、顧客の統合ビューを提供します。そのデータを MoEngage 内でアクティブ化する機能と組み合わせることで、ビジネスの成長を共に推進できます。MoEngage と BlueConic の連携により、次のことが可能になります。
+
+- BlueConic から MoEngage にユーザーとイベントを転送する
+- MoEngage から Blueconic のユーザーを作成または更新する
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - Blueconic で Webhook 接続を作成する権限があることを確認してください。
+  - MoEngage ダッシュボードにアクセスできることを確認してください。
+</Info>
+
+### ステップ 1: Blueconic で MoEngage 接続を設定する
+
+![Add Connection オプションが表示された Blueconic の Connections タブ](/images/partner_21203484384404.png)
+
+1. Blueconic アプリのダッシュボードで、**Connections** タブに移動します。
+2. **Add Connection** \> **Webhook connection** をクリックします。
+3. 接続に "MoEngage" という名前を付けます。
+
+### ステップ 2: MoEngage へのインバウンドのユーザーとイベント用に Webhook を設定する
+
+MoEngage へのインバウンドイベントを設定するには、"Requests sent by BlueConic" を設定する必要があります。
+
+1. このリクエストがトリガーされる BlueConic セグメントを選択します。
+2. 次に、この Webhook のトリガーを選択する必要があります。トリガーは次のいずれかです。
+   1. プロファイルプロパティの値の変更 - この Webhook をトリガーするプロパティの変更を選択します。
+   2. タイムラインイベントの発生 - この Webhook をトリガーするイベントを選択します。
+3. トリガーを選択したら、認証方法を選択する必要があります。MoEngage の場合は、"Add credentials via webhook request (step 4)" を選択する必要があります。
+4. 最後に、MoEngage の [User](https://www.moengage.com/docs/api/user/track-user) または [Event](https://www.moengage.com/docs/api/event/track-event) API のペイロード構造に従って Webhook リクエストを設定する必要があります。
+   | フィールド | 説明 |
+   | --- | --- |
+   | **Request URL** | User API URL: `https://api-0X.moengage.com/v1/customer/<Workspace_ID>`<br />Event API URL: `https://api-0X.moengage.com/v1/event/<Workspace_ID>`<br /><br />- `X` をデータセンターの番号に置き換えます。[詳細はこちら](https://www.moengage.com/docs/user-guide/data/key-concepts/data-centers-in-moengage)<br />- `<Workspace_ID>` を MoEngage アカウントの Workspace ID に置き換えます。これは、**Settings** \> **General Settings** \> **Workspace ID (earlier App ID)** で確認できます。 |
+   | **Method** | POST |
+   | **Request Headers** | 1. `Authorization`: `Basic <Basic_Token>`<br />2. `Content-Type`: `application/json`<br />3. `MOE-APPKEY`: `Workspace ID`<br /><br />- `<Basic_Token>` を Basic 認証トークンに置き換えます。オンラインツールを使用して、"Data API ID" をユーザー名、"Data API Key" をパスワードとして Basic 認証を作成します。<br />- MoEngage アカウントの App Key です。これは、**Settings** \> **General Settings** \> **Workspace ID (earlier App ID)** で確認できます。 |
+   | **Request Body** | Request Body は、MoEngage に対して行う呼び出しの種類によって異なります。以下は User API の例です。 |
+   <CodeGroup>
+   ```json JSON
+   {
+     "type": "customer",
+     "customer_id": "{{email}}",
+     "attributes": {
+       "name": "{{fullname}}",
+       "moe_ip_country": "{{geo_country_name}}"
+     }
+   }
+   ```
+   </CodeGroup>
+5. 要件に従って設定が完了したら、"Test the webhook" を選択できます。サンプル値を設定し、"Send test request" ボタンをクリックして MoEngage にリクエストを送信します。
+
+### ステップ 3: MoEngage からのアウトバウンドユーザー用に Webhook を設定する
+
+MoEngage Connector Campaigns を使用すると、MoEngage 内でイベントが取得されたときに、ユーザープロパティを Blueconic に転送できます。
+
+#### ステップ A: Blueconic への MoEngage Connector Campaign を設定する
+
+MoEngage でコネクターキャンペーンを作成するには、以下の手順に従います。
+
+1. **Create Campaign** \> **Connectors** \> **Custom** に移動し、ニーズに最も適した配信タイプを選択します。この例では、**Event Triggered** を選択し、イベントとして **Purchased** を選択します。 <img src="/images/partner_21204099571732.png" alt="MoEngage のコネクターキャンペーン作成ページ" />
+2. キャンペーンのステップ 2 で、以下を行います。
+
+#### BlueConic API を呼び出す
+
+ユーザー属性を BlueConic に送信するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして **POST** を選択します。
+- URL: BlueConic ダッシュボードで受信リクエストを設定する際に、リクエスト URL が表示されます。
+- URL Parameters:
+  - `property`: `email` - Blueconic ダッシュボードから "matching" URL パラメーターを取得します。
+  - `email`: `{{UserAttribute['Email (Standard)']}}` - Blueconic ダッシュボードから "matching" URL パラメーターを取得します。
+  - `apiKey`: `<your_api_key>` - Blueconic ダッシュボードから API キーを取得します。
+  - `createProfile`: `true` - True または False を選択して、プロファイルの作成を許可するかどうかを設定できます。
+  - `legislation`: `GDPR` - 法規制を使用するかどうかを選択できます。法規制を使用しない場合は 'none' を使用します。
+- Headers:
+  - `X-BlueConic-APIKey`: `<api_key>` - Blueconic ダッシュボードから取得します。
+  - `Content-Type`: `application/json`
+- Body: **@** を入力してペイロードをパーソナライズします。
+  <CodeGroup>
+  ```json JSON
+  {
+      "fullname": "{{UserAttribute['Name']}},
+      "country": "{{UserAttribute['Locale Country']}}"
+  }
+  ```
+  </CodeGroup>
+
+![BlueConic ペイロードを使用したコネクターキャンペーンの Body 設定](/images/partner_21204252892436.png)
+
+- 詳細については、[Blueconic API ドキュメント](https://support.blueconic.com/hc/en-us/articles/115004431305-Webhook-Connection#requests-sent-to-blueconic-goals-0-3)を参照してください。
+
+#### リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整います。Create Connector Campaign のステップ 2 にある **Test** 機能を使用して、コネクターの設定をテストすることもできます。
+
+![コネクターキャンペーンリクエストのプレビュー](/images/partner_21204129766676.png)
+
+その後、キャンペーンを公開できます。
+
+#### ステップ B: BlueConic で受信 Webhook を設定する
+
+1. BlueConic 内で設定した MoEngage 接続に移動し、"Receive incoming requests" を選択します。
+2. リクエストから照合する BlueConic の識別子を選択します。上記のコネクターの例では、"Email" を選択しています。
+3. 次に、認証方法として "API key" を選択します。リクエストヘッダーを参照し、MoEngage Connector Campaigns の設定時にそれらを設定できます。
+4. BlueConic には、MoEngage でコネクターキャンペーンを設定する際に入力する必要があるリクエスト URL と、渡す必要がある URL パラメーターも表示されます。
+5. 最後に、受信 Webhook リクエストを設定する必要があります。Connector Campaign のペイロードで設定した属性に基づいて、マッピングを設定できます。
+
+![BlueConic での受信 Webhook リクエストのマッピング](/images/partner_21204395298324.png)
+
+### ステップ 4: BlueConic で接続を有効にする
+
+1. BlueConic ダッシュボードで、有効にするゴールにチェックを入れます。
+2. また、接続を "On" に設定して有効にする必要があります。
+
+![ゴールが選択され、有効化された BlueConic の接続](/images/partner_21204420576404.png)

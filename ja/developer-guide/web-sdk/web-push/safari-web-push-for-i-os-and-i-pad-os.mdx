@@ -1,0 +1,117 @@
+---
+title: "iOS および iPadOS 向け Safari Web Push"
+description: "Progressive Web App を使用して、iOS および iPadOS 16.4 以降の Safari で Web プッシュ通知を設定します。"
+---
+
+Apple は iOS および iPadOS [16.4 以降](https://developer.apple.com/documentation/safari-release-notes/safari-16_4-release-notes)をリリースしました。これには、ユーザーのホーム画面に追加された Web アプリからのモバイル Web プッシュ通知が含まれています。これにより、Web サイトの所有者は、Web サイトから iOS ユーザーに直接プッシュ通知を送信できるようになりました。
+
+## 要件
+
+Web プッシュ通知は、インストール可能な Progressive Web App でのみ機能します。Web プッシュ通知を送信できるようにするには、Web サイトが次の条件を満たしている必要があります。
+
+- Web アプリが Web アプリケーションマニフェストファイルとともに提供されていること。
+- Web アプリがユーザーのホーム画面にインストールされていること。
+- プッシュ権限を求めるプロンプトが表示される前に、ユーザーがアクションを開始する必要があること。
+
+<Info>
+  Web サイトがすでに Progressive Web App（PWA）である場合、iOS の Web プッシュ通知に対応させるための変更は必要ありません。PWA ではない Web サイトの場合は、以下のガイドに従ってください。
+</Info>
+
+## 統合手順
+
+標準の [Web プッシュ統合ガイド](/ja/developer-guide/web-sdk/web-push/configure-and-integrate-web-push)に必ず従ってください。iOS および iPadOS の Safari で Web プッシュ通知をサポートするには、次の手順が必要です。
+
+## iOS/iPadOS Web プッシュ通知用の Web サイトの設定
+
+Web サイトを設定する手順:
+
+1. マニフェストファイルを作成する
+2. マニフェストファイルをリンクする
+3. Service Worker を追加する
+4. アプリをホーム画面に追加する
+5. ネイティブのプッシュプロンプトを表示する
+
+### ステップ 1. マニフェストファイルを作成する
+
+Web アプリマニフェストファイルは、Web アプリをダウンロードするために必要なプレーンな JSON 形式のテキストファイルで、インストール後にアプリがどのように表示されるかに関する情報が含まれています。基本的なマニフェストファイルには、アプリの名前、色、説明、アイコンなどが含まれている必要があります。
+
+Web サイトのルートディレクトリに、次の必須フィールドを含む新しい `manifest.json` ファイルを作成します。
+
+<CodeGroup>
+
+```JSON JSON lines wrap
+{
+  "name": "Moengage PWA",
+  "short_name": "MoengagePWA",
+  "display": "standalone",  "theme_color": "#00237b",  "background_color": "#00237b",
+  "icons": [{
+    "src": "/icon-512x512.png",
+    "sizes": "512x512",    "type": "image/png"
+  }]
+}
+```
+
+</CodeGroup>
+
+サポートされているフィールドの完全なリストは[こちら](https://developer.mozilla.org/en-US/docs/Web/Manifest)で確認できます。
+
+### ステップ 2: マニフェストファイルをリンクする
+
+Web サイトの `<head>` 要素に次の `<link>` タグを追加します。これは、マニフェストファイルがホストされている場所を指します。
+
+<CodeGroup>
+
+```json Manifest.JSON
+<link rel="manifest" href="/manifest.json" />
+```
+
+</CodeGroup>
+
+### ステップ 3: Service Worker を追加する
+
+iOS および iPadOS で Web プッシュ通知を有効にするには、MoEngage の Service Worker をインポートし、ルートファイルに配置します。この手順は、通常の Web プッシュ通知の統合と同じです。詳細については、[Service Worker 統合ドキュメント](/ja/developer-guide/web-sdk/web-push/configure-and-integrate-web-push)を参照してください。
+
+### ステップ 4: ホーム画面に追加する
+
+これは、Web プッシュ通知に関して Safari と他のブラウザとの主な違いです。Chrome や Firefox などの主要なブラウザとは異なり、Safari iOS/iPadOS では、Web サイトがユーザーのホーム画面に追加されていない限り、プッシュ権限をリクエストすることはできません。
+
+[ホーム画面に追加](https://support.apple.com/guide/iphone/bookmark-favorite-webpages-iph42ab2f3a7/ios#iph4f9a47bbc)機能を使用すると、ユーザーは Web サイトをブックマークし、貴重なホーム画面のスペースにアイコンを追加できます。
+
+<img
+  src="/images/Addtohomescreen.png"
+  alt="ホーム画面に追加"
+  style={{ width:"34%" }}
+/>
+
+### ステップ 5: オプトインを表示する
+
+ホーム画面に追加された Web アプリでは、通知を送信する権限をリクエストするために、ユーザーによる直接の操作が必要です。権限をリクエストするには、次のいずれかのオプトインメカニズムを使用できます: 1 ステップ、2 ステップ、Self-Handled。
+
+これは MoEngage ダッシュボードを使用して設定できます。詳細については、[オプトイン管理](https://www.moengage.com/docs/user-guide/campaigns-and-channels/web-push/getting-started-with-web-push/configure-web-push-settings)を参照してください。
+
+<img
+  src="/images/Optin_image.png"
+  alt="オプトイン画像"
+  style={{ width:"41%" }}
+/>
+
+<img
+  src="/images/Optin_image2.png"
+  alt="オプトイン画像 2"
+  style={{ width:"42%" }}
+/>
+
+<Info>
+  - 2 ステップのオプトイン方式を使用することをお勧めします。
+  - 1 ステップのオプトインでは、プロンプトが表示される前にユーザーの操作が必要です。場合によっては、ユーザーが新しいページへのリンクをクリックしたときにプロンプトがトリガーされ、ページが読み込まれる前のごく短い時間だけ表示されることがあります。
+  - Self-Handled オプトインの場合は、オプトインプロンプトを表示する前に、ユーザーがページを操作していることを確認してください。
+</Info>
+
+### テスト
+
+次のことを推奨します。
+
+- マニフェストファイルを実装する
+- Web サイトをホーム画面に追加する
+- プッシュ権限を承認する
+- 自分自身に[プッシュ通知](https://www.moengage.com/docs/user-guide/campaigns-and-channels/web-push/create/create-web-push-campaign)を送信し、想定どおりに機能しているかどうかを検証する

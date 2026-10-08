@@ -1,0 +1,106 @@
+---
+title: "Flows でのパーソナライゼーション"
+description: "ユーザープロパティ、イベント、ビジネスイベント属性、Flow 属性、コンテンツブロック、補助データを使用して MoEngage Flow のメッセージをパーソナライズし、クリック率を高めます。"
+---
+
+# 概要
+
+[MoEngage Flows](/ja/user-guide/flows-cross-channel-messaging/create/create-flows/create-a-flow) は、アプリやウェブサイトでのユーザーのアクションまたは非アクションに基づいてユーザーに送信できる、一連のクロスチャネルキャンペーン (Email、Push、SMS など) です。
+
+"Hey John, you left Nike Sneakers in your cart. Grab them before they are gone!" のようなパーソナライズされたメッセージは、パーソナライズされていないメッセージや、シンプルでフォーマルなメッセージよりもクリック率 (CTR) が高くなります。キャンペーンメッセージは、ユーザープロパティ、ユーザーイベント、ビジネスイベント属性 (ビジネスイベントトリガー型 Flow にのみ適用)、コンテンツブロック、補助データを使用してパーソナライズできます。
+
+たとえば、エンドユーザーに名 (ユーザープロパティ) で呼びかけたり、カートを放棄したユーザーにカート内の製品に言及して再ターゲティングしたりできます。
+
+## パーソナライゼーションの制限事項
+
+ユーザーイベントのパーソナライゼーションは、次のものに限定されます。
+
+  - IF エントリー条件で使用されるプライマリイベント。
+  - *Has Done event* 条件内の *Has Executed event*。
+    - キャンペーンステージで **Has Done Event** ノードのイベントのイベント属性を使用してパーソナライズする場合、パーソナライゼーションは、**Has Done Event** 条件を満たすイベントがユーザーが Flow に参加した後に実行された場合にのみ機能することに注意してください。**Has Done Event** ノードがルックバックウィンドウ (たとえば過去 12 時間) で構成されている場合、ユーザーが Flow に参加する前に実行したイベントに一致することがあります。この場合、条件は正しく評価され、ユーザーは **Yes** パスに移動しますが、イベントの属性はパーソナライゼーションに使用できません。このようなシナリオでは、キャンペーンメッセージ内のイベント属性はすべてフォールバック値に解決されます。
+  - パーソナライゼーション用に選択したプロパティが失敗した場合 (たとえば、ユーザーの名が利用できない場合)、MoEngage はフォールバック値として定義したテキストを使用します。
+
+<Note>
+- カスタム属性の名前が MoEngage の標準属性と同じにならないようにしてください。同じ名前のカスタム属性と標準属性がパーソナライゼーションに使用されると、パーソナライゼーションが正しく行われません。
+- イベントベースのパーソナライゼーション (EventAttribute および MOE\_TRIGGER\_EVENT を使用) は、現在 Facebook Ads および Google Ads チャネル経由で送信されるキャンペーンではサポートされていません。
+</Note>
+
+# 最新のイベントデータによるパーソナライズ
+
+ユーザーの特定のイベントの最新のインスタンスのデータを使用して、キャンペーンをパーソナライズできます。たとえば、ユーザーが午前 10 時にシャツを追加し、午前 10 時 30 分にパンツを追加した場合、`{{EventAttribute['Add to Cart. Product Name']}}` でパーソナライズされたメッセージには、午前 10 時 30 分のイベントが最新であるため "Pant" が表示されます。**Add to Cart** でプッシュ通知をパーソナライズするには、次の手順を実行します。
+
+1. チャネル (Push Notification、Email、Connector など) の **Message title**、**Message body**、**Message summary** のいずれかのボックスに **@** 記号を入力します。
+2. そのキャンペーンのパーソナライゼーション用のダイアログボックスが表示されます。
+3. **Select attribute** リストで、**Search to select** ボックスに属性を入力します。
+4. **EventAttribute** セクションで、目的の属性を選択します。
+5. **Done** をクリックします。  
+    <img alt="2025-08-26_16-48-02 (1).gif" src="/images/moengage_09950d.png" />   
+   パーソナライズされたメッセージが右側のプレビューに表示されます。  
+    <img src="/images/moengage_bd975f.png" />
+
+# トリガーイベントによるパーソナライズ
+
+ユーザーが Flow に参加するきっかけとなった正確なイベント (ユーザーが最初に Flow に参加するきっかけとなった元のイベント) に基づいてメッセージをパーソナライズでき、キャンペーンコンテンツの一貫性と関連性を確保できます。
+
+たとえば、午前 10 時にカートに追加されたシャツによって Flow がトリガーされたとします。ユーザーが午前 10 時 30 分にパンツを追加した場合でも、**`{{EventAttribute['MOE_TRIGGER_EVENT.Add to Cart. Product Id']}}`** でパーソナライズされたメッセージは常にシャツの ID に解決されます。**MOE\_TRIGGER\_EVENT** は、最新のイベント属性と区別するために使用されます。このプレフィックスにより、そのイベントの最新の発生ではなく、Flow を最初にトリガーしたイベントのデータでコンテンツをパーソナライズできます。
+
+**Add to Cart** トリガーイベントのデータでプッシュ通知をパーソナライズするには、次の手順を実行します。
+
+1. チャネル (Push Notification、Email、Connector など) の **Message title**、**Message body**、**Message summary** のいずれかのボックスに **@** 記号を入力します。
+2. そのキャンペーンのパーソナライゼーション用のダイアログボックスが表示されます。
+3. **Select attribute** リストで、**Search to select** ボックスに属性を入力します。
+4. **Flow entry events** セクションから目的の属性を選択します。
+5. **Done** をクリックします。  
+    <img alt="2025-08-26_16-53-01 (1).gif" src="/images/moengage_db7271.png" />   
+   パーソナライズされたメッセージが右側のプレビューに表示されます。  
+    <img src="/images/moengage_b67a53.png" />
+
+## トリガーイベントデータと最新のイベントデータの比較
+
+このオプションを使用すると、最新のユーザーデータでメッセージをパーソナライズするか、Flow を開始した元のイベントのデータでパーソナライズするかを選択できます。トリガーイベントが *Add to Cart* の Flow で、ユーザーが以下の属性値で *Add to Cart* イベントを 2 回実行した場合を考えてみましょう。
+
+| 時刻 | 属性値 |
+| --- | --- |
+| **午前 10:00** (Flow をトリガー) | Product ID: 1234, Product Name: Shirt, Product Company: Allen Solly |
+| **午前 10:30** (後続のイベント) | Product ID: 7890, Product Name: Pant |
+
+ 次の表は、以下のコンテンツを含むキャンペーンで想定される動作を示しています。                                  
+
+| コンテンツ | 想定される動作 |
+| --- | --- |
+| `{{EventAttribute['MOE_TRIGGER_EVENT.Add to Cart. Product Id']}}` | Flow のトリガーイベントのデータを使用するため、1234 に解決されます。 |
+| `{{EventAttribute['Add to Cart. Product Id']}}` | ユーザーの最新のイベントのデータを使用するため、7890 に解決されます。 |
+| `{{EventAttribute['Add to Cart. Product Company']` `default('MOE_NOT_SEND')}}` | 最新の "Add to Cart" イベントインスタンス (午前 10 時 30 分) には 'Product Company' 属性がないため、MoEngage はこの Jinja を含むキャンペーンを送信せず、"Personalization error" を表示します。 |
+
+# Flow 属性によるパーソナライズ
+
+Flow の名前、ID、ユーザーが現在いるステージなど、Flow 自体に関するメタ情報でメッセージをパーソナライズし、それらの詳細を Connected Apps や Connectors などの外部システムに渡すことができます。たとえば、Connector ペイロードに Flow 名とステージを含めることで、外部システムで各メッセージをトリガーした Flow とステージを記録できます。
+
+Flow 属性は、以下の表に示すように、Jinja の `CampaignAttribute` 名前空間を使用します。
+
+Flow 属性で Connected App または Connector のメッセージをパーソナライズするには、次の手順を実行します。
+
+1. Connected App または Connector ステージで、パーソナライズしたいフィールドに **@** 記号を入力します。**Webhook URL** ボックス、および **URL Parameters** と **Headers** の下の値ボックスはすべてパーソナライゼーションに対応しています。
+
+  <img src="/images/connector-configure-content.png" alt="Webhook URL、URL Parameters、Headers フィールドを表示している Configure Connector パネル" />
+  そのキャンペーンのパーソナライゼーション用のダイアログボックスが表示されます。
+2. **Select attribute** リストで、**Search to select** ボックスに属性を入力します。
+3. **Flow Attributes** セクションから目的の属性を選択します。
+
+   | 属性 | Jinja |
+   | --- | --- |
+   | Flow Name | `{{CampaignAttribute['Flow Name']}}` |
+   | Flow Id | `{{CampaignAttribute['Parent Flow Id']}}` |
+   | Version Name | `{{CampaignAttribute['Version Name']}}` |
+   | Flow Tags | `{{CampaignAttribute['Flow Tags']}}` |
+   | Stage Name | `{{CampaignAttribute['Stage Name']}}` |
+   | Stage Id | `{{CampaignAttribute['Stage Id']}}` |
+
+   Flow に複数のタグが付いている場合、**Flow Tags** はカンマ区切りのリストに解決されます。Jinja を使用して、出力するタグを制御してください。
+4. **Done** をクリックします。
+
+<img src="/images/flow-attributes-personalization.png" alt="Select attribute リスト内の Flow Attributes セクションと Done ボタンを表示している Connector Personalization ウィンドウ" />
+
+<Info>
+  Connected Apps と Connectors にはライブプレビューがありません。Test Campaign 機能を使用して、これらの属性が実際の値でどのように解決されるかを確認してください。
+</Info>

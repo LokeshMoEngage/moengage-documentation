@@ -1,0 +1,189 @@
+---
+title: "Konnectify"
+description: "MoEngage と Konnectify を連携して、Webhook と API を使用してワークフローを自動化し、ユーザーデータを同期し、プラットフォーム間のアクションをトリガーする方法を説明します。"
+---
+
+# はじめに
+
+[Konnectify](https://www.konnectify.co/) は、ソフトウェアスタックを接続し、それらの間に自動化を設定することで、時間を節約し生産性を高めることができる統合プラットフォームです。
+
+# MoEngage × Konnectify
+
+MoEngage × Konnectify の連携により、MoEngage アカウントを Salesforce、HubSpot、Stripe など、Konnectify のアプリマーケットプレイスに掲載されているさまざまなサードパーティの送信先に接続し、さまざまなアクションを自動化できます。
+
+## ユースケース
+
+1. Salesforce のリードを MoEngage に転送し、タイムリーなキャンペーンで獲得する
+2. MoEngage から Konnectify 上の任意のアプリにデータを送信する
+
+## Actions
+
+Konnectify Actions を使用すると、新しい連絡先やリードの作成、新しい商品の追加など、連携したアプリでさまざまな操作を実行できます。現在 MoEngage で利用できる Actions は次のとおりです。
+
+1. MoEngage でユーザーを作成または更新する
+2. MoEngage でイベントを作成する
+
+## Lookups
+
+Konnectify Lookups を使用すると、連携したアプリやシステムから特定の情報を簡単に取得できます。特定の条件に基づいて、商品の詳細、連絡先情報、レコードなどの情報を取得できます。
+
+## Triggers
+
+MoEngage の [Connecter Campaigns](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign) を使用すると、MoEngage からさまざまな目的で Konnector をトリガーできます。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  - Konnectify アカウントにアクセスできることを確認してください。
+</Info>
+
+## Konnectify に MoEngage アカウントを追加する
+
+新しい Konnector の作成を開始する前に、Konnectify を MoEngage アカウントに接続する必要があります。Konnectify ダッシュボードで次の操作を行います。
+
+1. 右上の _+ New_ >> _New Account_ をクリックします。
+2. ドロップダウンから「MoEngage」を選択します。
+3. MoEngage アプリの認証情報を入力する必要があります。
+
+![](/images/partner_23551975406100.png)
+
+| フィールド | 説明 |
+| --- | --- |
+| Account name | このアカウントに識別しやすい名前を付けます。 |
+| Base URL | MoEngage REST API ホストの URL です。REST API URL の詳細については、[Data centers in MoEngage](https://www.moengage.com/docs/user-guide/data/key-concepts/data-centers-in-moengage) を参照してください。例: [https://api-01.moengage.com](https://api-01.moengage.com) |
+| DATA API ID | Data API ID を入力するか、コピーして貼り付けます。MoEngage アカウントの Data API ID と Workspace ID は同じです。MoEngage アカウントの Workspace ID は、**Settings - > Account -> APIs ->Workspace ID** で確認できます。MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+| DATA API KEY | Data API Key を入力するか、コピーして貼り付けます。MoEngage アカウントの Data API キーは、Settings - > Account -> APIs -> API keys >**Data** API settings で確認できます。 |
+| API SECRET | Data API Key と同じです。 |
+
+4. 「Validate your account」をクリックして接続をテストし、アカウントを保存します。
+
+## 新しい Konnector を作成する
+
+次の例では、Salesforce から MoEngage にリードを送信します。これらのユーザーは、MoEngage キャンペーンのターゲティングに使用できます。
+
+### ステップ 1: 新しい Salesforce トリガーを作成する
+
+1. 右上の _+ New_ >> _New Konnector_ をクリックします。
+2. Trigger アプリとして「Salesforce」を選択します。
+3. 以前に Salesforce に接続していない場合は、Salesforce アカウントの詳細を入力するよう求められます。アカウントを検証して保存します。すでにアカウントがある場合は、新しいリードを取得するアカウントを選択します。
+4. トリガーイベントとして「new-lead-trigger」を選択します。
+
+![](/images/partner_23552237212948.png)
+
+5. 「Trigger output fields」をクリックして、Salesforce からサンプルリードを取得します。
+6. サンプルリードを取得したら、「Save configuration」をクリックします。
+
+### ステップ 2: 新しい Action を作成する
+
+1. Konnector ページで、「+ Add Action」をクリックします。
+2. 「MoEngage」アプリを選択します。
+3. 先ほど追加した MoEngage アカウントを選択します。
+4. イベントとして「upsert-user-action」を選択します。
+
+![](/images/partner_23553021063572.png)
+
+各マッピングについて、次の 2 つのオプションから選択できます。
+
+- Source: 前のトリガーやルックアップのフィールドをマッピングできます。この値をマッピングするトリガーを選択します。
+- Fixed: 固定値をマッピングする場合は、このオプションを選択し、マッピングする値を入力します。
+
+| フィールド | 説明 |
+| --- | --- |
+| Type | タイプとして「Fixed」を選択し、固定値として「customer」を入力します。 |
+| Email | MoEngage でユーザーを識別または作成するために使用される一意の識別子です。 |
+| Name | ユーザーのフルネームです。 |
+| First_Name | ユーザーの名です。 |
+| Last_Name | ユーザーの姓です。 |
+| Age | ユーザーの年齢です |
+| Gender | ユーザーの性別です |
+| Mobile | ユーザーの携帯電話番号です。例: 918888444411 |
+| Platform | ユーザーのプラットフォームです: ANDROID、IOS など。 |
+| Active | ユーザーのアクティブなプラットフォームに基づく値です。タイプとして「Fixed」を選択し、固定値として「true」または「false」を入力します。 |
+
+カスタム属性をマッピングすることもできます。カスタム属性を追加するには、「Select CustomField」テキストボックスにカスタム属性名をカンマ区切りで入力します。例: 「field1,field2」
+
+### ステップ 3: Konnector を保存する
+
+Konnector を設定したら、名前を付けて「Save」をクリックし、この Konnector を保存して有効にします。
+
+![](/images/partner_23553137981076.png)
+
+Konnector を有効にすると、Salesforce CRM の新しいリードが新規ユーザーとして MoEngage に直接インポートされます。他のアプリについても同様のマッピングを設定できます。
+
+## MoEngage をトリガーとして使用する
+
+MoEngage Connector Campaigns を使用すると、Konnectify 上の多くのアプリにデータを送信できます。次の例では、MoEngage から Salesforce にユーザーを送信します。これらのユーザーは、フォームを送信するたびに Salesforce CRM に追加されます。
+
+### ステップ 1: 新しい Webhook トリガーを作成する
+
+1. 右上の _+ New_ >> _New Konnector_ をクリックします。
+2. Trigger アプリとして「Webhook」を選択します。
+3. Konnector のタイプが「Webhook based」に変更されます。
+4. 「Generate URL」をクリックします。この URL は MoEngage からデータを取得するために使用されます。この Webhook URL をコピーします。
+
+![](/images/partner_23553514630292.png)
+
+### ステップ 2: MoEngage で新しい Connector Campaign を設定する
+
+Konnector の設定を進めるには、上記で提供された URL に対する Connector Campaign を設定する必要があります。
+
+1. MoEngage Dashboard に移動します。
+2. 次のいずれかの方法を使用します。
+   1. **All Campaigns** ページで、**Create Campaign** をクリックします。
+      Create Campaign ページが表示されます。
+      <img src="/images/partner_23553544446996.png" alt="CreateCampaign_RightNav.png" />
+   2. **Create New** > **Campaign** をクリックします。
+      Create Campaign ページが表示されます。
+      <img src="/images/partner_23553514632212.png" alt="CreateCampaignLeftNav.png" />
+3. Connectors の下にある **Custom** をクリックします。
+4. キャンペーンの配信タイプとして「Event-Triggered」を選択します。
+   - 配信タイプの詳細については、[Delivery Types](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/introduction/delivery-types-moengage-channels) を参照してください。
+5. 次の画面でキャンペーンに名前を付け、Criteria として「Form submitted」を選択します（これはユーザーイベントの例です。ユースケースに応じて任意のものを選択できます）。
+6. トリガーには「immediately」を選択します。
+
+![](/images/partner_23553514634516.png)
+
+7. このユースケースでは、オーディエンスとして「All users」を選択します。問題がなければ「next」をクリックします。
+8. コンテンツ画面で、ペイロードと前のステップで取得した Webhook URL を定義します。
+9. メソッドとして「POST」を選択します。
+10. 先ほどコピーした Webhook URL を入力します。
+11. 要件に応じてヘッダーとパラメーターを定義します。このユースケースでは、ペイロードの Body のみを定義します（@ を入力してパーソナライズされた値を挿入することもできます）。
+
+![](/images/partner_23553514636692.png)
+
+12. 次に、この Webhook をテストする必要があります。下にスクロールしてテストユーザーのデータを入力し、「test」をクリックします。
+13. テストが成功したことを示す新しいモーダルが表示されます。
+
+![UseCase2-Step5.png](/images/partner_23553544458260.png)
+
+14. Konnectify ダッシュボードに戻ります。
+
+### ステップ 3: Konnectify で Webhook を取得する
+
+MoEngage でテストキャンペーンを送信したら、次の操作を行います。
+
+1. Konnectify ダッシュボードで、「Trigger output fields」をクリックしてレスポンスを取得します。
+2. サンプルデータが Konnectify に表示されます。
+3. 「Save configuration」をクリックして、この Webhook を保存します。
+
+### ステップ 4: Salesforce を新しい Action として作成する
+
+1. 「+ Add Action」をクリックします。
+2. Action アプリとして「Salesforce」を選択します。
+3. 以前に Salesforce に接続していない場合は、Salesforce アカウントの詳細を入力するよう求められます。アカウントを検証して保存します。すでにアカウントがある場合は、新しいリードを取得するアカウントを選択します。
+4. アクションイベントとして「new-contact」を選択します。
+
+![](/images/partner_23553544462228.png)
+
+5. 要件に応じて、Salesforce の連絡先フィールドをマッピングします。
+6. 完了したら「Save」をクリックします。
+
+### ステップ 5: Konnector を保存する
+
+Konnector を設定したら、名前を付けて「Save」をクリックし、この Konnector を保存して有効にします。
+
+![](/images/partner_23553137981076.png)
+
+Konnector を有効にすると、フォームを送信したユーザーは新しい連絡先として Salesforce に直接インポートされます。他のアプリについても同様のマッピングを設定できます。

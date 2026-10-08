@@ -1,0 +1,110 @@
+---
+title: "Open Loyalty"
+description: "Open Loyalty を MoEngage と統合して、Connector キャンペーンでイベントを転送し、Content API を使用して動的なクーポンコードをキャンペーンに表示します。"
+---
+
+# 概要
+
+[Open Loyalty](https://www.openloyalty.io/) は、パーソナライズされたロイヤルティプログラムを開発するための柔軟な構成要素のセットを提供します。顧客のリテンションで成功を収めたいグローバルブランド向けのヘッドレスソリューションです。
+
+# MoEngage × Open Loyalty
+
+MoEngage と Open Loyalty の統合により、MoEngage キャンペーン内でクーポンコードを動的に表示できます。また、Connector キャンペーンを使用して MoEngage から Open Loyalty にイベントを転送することもできます。これを活用して、MoEngage のさまざまなチャネルでロイヤルティプログラムを展開できます。
+
+# 統合
+
+<Info>
+  - Open Loyalty の API を使用するには、Open Loyalty のトークンが必要です。
+  - Open Loyalty のホストエンドポイントを把握しておく必要があります。
+</Info>
+
+## MoEngage のイベントを Open Loyalty に転送する
+
+MoEngage の Connector キャンペーンを使用すると、ユーザーがアプリまたは Web サイトで購入したときに、イベントを Open Loyalty に転送できます。
+
+MoEngage で Connector キャンペーンを作成するには、次の手順を実行します。
+
+1. Create Campaign \> Connectors \> Custom に移動し、ニーズに最も適した配信タイプを選択します。この例では、「Event Triggered」を選択し、イベントとして「Purchased」を選択します。 <img src="/images/partner_19877118701076.png" />
+2. キャンペーンのステップ 2 で、次の操作を行います。
+
+### Open Loyalty API を呼び出す
+
+イベントを Open Loyalty に送信するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして POST を選択します。
+- Headers
+  - `Authorization`: Open Loyalty の Authorization API から取得したトークンを、`Bearer <your_token>` の形式で渡す必要があります。
+  - `Content-Type`: `application/json`
+- Webhook URL としてエンドポイントを追加します: `https://<openloyalty_host>/api/{storeCode}/customEvent` - このイベントをトラッキングするストアのストアコードを入力します。
+- Body:\
+  @ を入力してペイロードをパーソナライズします。
+  <CodeGroup>
+  ```json JSON
+  {
+      "event": {
+          "type": "string",
+          "customerData": {
+              "customerId": "{{UserAttribute['ID']}}",
+              "email": "{{UserAttribute['Email (Standard)']}}",
+              "phone": "{{UserAttribute['Mobile Number (Standard)']}}",
+              "loyaltyCardNumber": "{{UserAttribute['LoyaltyCardNumber']}}"
+          },
+          "eventDate": "{{EventAttribute['current_time']}}",
+          "body": {
+              "event_attribute": "{{EventAttribute['my_attribute']}}"
+          }
+      }
+  }
+  ```
+  </CodeGroup>
+
+![](/images/partner_19877055777556.png)
+
+- 詳細については、[Open Loyalty の API ドキュメント](https://apidocs.openloyalty.io/#operation/customEventPost)を参照してください。
+
+### リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整っています。Connector キャンペーン作成のステップ 2 にあるテスト機能を使用して、コネクタの設定をテストすることもできます。<img src="/images/partner_19877118702484.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+
+その後、キャンペーンを公開できます。
+
+## MoEngage キャンペーンで動的なクーポンコードを表示する
+
+MoEngage の Content API を使用すると、MoEngage キャンペーン内でクーポンコードを動的に取得し、よりパーソナライズされた体験を提供できます。
+
+### ステップ 1: MoEngage Content API を設定する
+
+1. **Settings** \> **Advanced settings** \> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。<img src="/images/partner_21979528374036.png" alt="ContentAPI_Navogation.png" />
+2. エンドポイント URL に Open Loyalty API を追加します。エンドポイントはユースケースによって異なります。
+
+![](/images/partner_19877613896084.png)
+
+クーポンコードの報酬を表示するには、Open Loyalty の [Get Coupon List API](https://apidocs.openloyalty.io/#operation/couponGetList) を使用します。
+
+Content API の設定時に、次の URL を挿入します。
+
+`https://<openloyalty_host>/api/{storeCode}/reward/{reward}/coupon`
+
+URL Parameters に次の内容を追加します。
+
+1. `_itemsOnPage`: `1`
+
+Headers に次の内容を追加します。
+
+1. `Authorization`: Open Loyalty の Authorization API から取得したトークンを、`Bearer <your_token>` の形式で渡す必要があります。
+2. `Content-Type`: `application/json`
+3. 「Save」をクリックし、成功のレスポンスが表示されたら「Done」をクリックします。
+
+<Note>
+  API をテストすることもできます。API をテストするには、Content API のアクションメニューから「Test」をクリックします。API のレスポンスをテストして検証できます。
+</Note>
+
+### ステップ 2: MoEngage キャンペーン内でクーポンを表示する
+
+MoEngage キャンペーンでこの API を使用するには、次の手順を実行します。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 1 で設定した Open Loyalty の Content API を選択できます。
+3. [MoEngage テンプレート言語](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。 <img src="/images/partner_19877975892884.png" />
+4. Preview タブをクリックすると、リアルタイムのパーソナライゼーションでキャンペーンを確認できます。 <img src="/images/partner_19877992759956.png" />
+5. その後、キャンペーンを公開できます。

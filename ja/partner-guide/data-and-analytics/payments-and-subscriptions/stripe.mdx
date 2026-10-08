@@ -1,0 +1,98 @@
+---
+title: "Stripe"
+description: "Webhook を介して Stripe から MoEngage にチェックアウト、請求書、サブスクリプションのライフサイクルイベントを転送し、統合プロファイルを構築してリアルタイムのエンゲージメントを促進します。"
+keywords: ["Stripe", "payments", "subscriptions", "webhooks", "MoEngage integration"]
+---
+
+[Stripe](https://stripe.com/) は、企業がオンラインで支払いの受け付け、サブスクリプションの管理、請求処理を行えるようにする決済インフラストラクチャプラットフォームです。チェックアウト、請求書、サブスクリプションのライフサイクルイベントについて Webhook 通知を提供するため、支払いアクティビティにリアルタイムで対応できます。
+
+# MoEngage × Stripe
+
+MoEngage と Stripe の連携では、リアルタイムの支払いおよびサブスクリプションデータを使用して統合ユーザープロファイルを構築し、パーソナライズされたエンゲージメントを促進します。Stripe から MoEngage に支払いライフサイクルイベントを転送することで、セグメンテーションを改善し、マーケティングスタック全体でデータの一貫性を維持できます。
+
+## ユースケース
+
+Stripe を MoEngage と連携すると、次のユースケースに対応できます。
+
+- **失われた売上の回復**: 支払いが失敗した場合やチェックアウトセッションの有効期限が切れた場合に、パーソナライズされた通知 (プッシュ、メール、または SMS) を自動的にトリガーし、ユーザーが購入を完了するよう誘導します。
+- **サブスクリプションライフサイクルのジャーニー**: `customer.subscription.created` でオンボーディングフローを、サブスクリプションが一時停止されたときに再エンゲージメントキャンペーンを、`customer.subscription.deleted` で呼び戻しシーケンスをトリガーします。
+- **よりスマートなセグメンテーション**: リアルタイムのサブスクリプションステータスとプランデータを使用して動的セグメントを構築し、関連する購入後のオファーを提供します。
+
+## 主な機能
+
+Stripe 連携は、MoEngage 内で次の機能を提供します。
+
+- **リアルタイムのデータ同期**: Stripe から MoEngage にチェックアウト、請求書、サブスクリプションのイベントを即座に同期し、タイムリーでデータドリブンなキャンペーンをトリガーします。
+- **顧客プロファイルの拡充**: 連絡先情報 (メール、名前、電話番号) と Stripe の顧客 ID でユーザープロファイルを自動的に更新し、データを最新の状態に保ち、イベント間でアイデンティティを解決します。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  Stripe Dashboard への管理者アクセス権があることを確認してください。
+</Info>
+
+## ステップ 1: 認証情報を生成する
+
+Stripe が MoEngage にデータを送信するために使用する認証情報を生成するには、次の手順を実行します。
+
+1. MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。
+2. **Workspace ID (earlier App ID)** の下にある ID をコピーします。
+3. **API keys** セクションで、**Data** タイルの API キーをコピーします。
+4. Workspace ID と Data API Key を MoEngage エンドポイントに挿入して Webhook URL を構築し、`0X` をデータセンター番号に置き換えます (例: DC-01 の場合は `api-01`)。次の形式を使用します。
+   ```text wrap
+   https://<YOUR_WORKSPACE_ID>:<YOUR_DATA_API_KEY>@api-0X.moengage.com/v1/partner/stripe/events/?configName=<config_name>
+   ```
+
+![Workspace ID および Data API Key フィールドが表示された MoEngage の APIs 設定ページ](/images/moengage-api-credentials.png)
+
+<Info>
+  一意の取り込みエンドポイントについて MoEngage サポートに問い合わせる前に、プライマリアイデンティティとして使用する顧客識別子 (メールまたは Stripe Customer ID) を決定してください。データ同期中に重複したプロファイルが作成されないように、現在の MoEngage のアイデンティティ設定と一致していることを確認してください。
+</Info>
+
+## ステップ 2: Stripe で Webhook を設定する
+
+エンドポイント URL と認証情報を取得したら、Stripe Dashboard で Webhook を設定します。Webhook を設定するには、次の手順を実行します。
+
+1. Stripe Dashboard にログインし、**Developers** \> **Webhooks** に移動します。
+2. **Event destinations** ページで、**Add destination** をクリックします。
+
+   ![Add destination ボタンが強調表示された Stripe の Event destinations ページ](/images/stripe-add-destination.png)
+
+3. **Select events** ステップで、デフォルトの **API version** のままにし、**Events** で次のイベントを追加します。
+
+   | イベントグループ | サポートされているイベント |
+   | --- | --- |
+   | Checkout | `checkout.session.completed`, `checkout.session.expired`, `checkout.session.async_payment_succeeded`, `checkout.session.async_payment_failed` |
+   | Invoice | `invoice.paid`, `invoice.payment_succeeded`, `invoice.payment_failed` |
+   | Subscriptions | `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.paused`, `customer.subscription.resumed`, `customer.subscription.deleted` |
+
+   ![イベント検索にチェックアウトイベントが表示された Stripe の Create an event destination 画面](/images/stripe-select-events.png)
+
+4. **Continue** をクリックします。
+5. **Choose destination type** ステップで、**Webhook endpoint** を選択し、**Continue** をクリックします。
+
+   ![Webhook endpoint が選択され Continue が強調表示された Stripe の Choose destination type ステップ](/images/stripe-destination-type.png)
+
+6. **Configure your destination** ステップで、**Endpoint URL** ボックスに [認証情報を生成する](/ja/partner-guide/data-and-analytics/payments-and-subscriptions/stripe#step-1-generate-authentication-credentials)セクションで構築した MoEngage エンドポイント URL を貼り付け、**Destination name** ボックスにわかりやすい名前を入力します。
+
+   ![Endpoint URL および Destination name フィールドが表示された Stripe の Configure your destination 画面](/images/stripe-configure-destination.png)
+
+7. **Save destination** をクリックします。
+
+<Info>
+  MoEngage のプロファイルは、メールをアイデンティティとして使用するチェックアウトイベントと請求書イベントの際に作成または更新されます。サブスクリプションイベントでは、プロファイルの更新に Stripe Customer ID が使用されます。サブスクリプションデータを正常に取り込むには、ワークスペースでマルチ ID 解決が有効になっていることを確認してください。
+</Info>
+
+## ステップ 3: MoEngage でイベントを確認する
+
+MoEngage にイベントがリアルタイムで表示されることを確認するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、**Segment** \> **Search Users** に移動します。
+2. **Search Users** ボックスで、**Customer ID** (チェックアウトイベントと請求書イベントの場合はメール、サブスクリプションイベントの場合は Stripe Customer ID) でテストユーザーを検索します。
+3. ユーザープロファイルを開き、イベント履歴で Stripe のイベント名と、支払い金額、通貨、サブスクリプションステータスなどの属性を確認します。
+
+Stripe 側で配信を確認することもできます。宛先の **Event deliveries** タブでは、配信が成功すると `200 OK` ステータスと、`request_id`、`"name": "stripe"`、`"description": "Successfully submitted for processing"` を含むレスポンスボディが表示されます。
+
+![200 OK の配信と MoEngage のレスポンスボディが表示された Stripe の Event deliveries タブ](/images/stripe-verify-event.png)

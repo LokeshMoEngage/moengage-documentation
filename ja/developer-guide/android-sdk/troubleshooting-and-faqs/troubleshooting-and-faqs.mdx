@@ -1,0 +1,387 @@
+---
+title: "トラブルシューティングと FAQ"
+description: "デバッグ、ロギング、統合に関する MoEngage Android SDK のよくある質問への回答をご覧ください。"
+---
+
+この記事では、よくある質問とトラブルシューティングの手順について説明します。
+
+## MoEngage SDK Logger の使用方法
+
+SDKLogger は、MoEngage Android SDK の実装に関する問題のデバッグに役立ちます。ビルドをサポートチームと共有する必要はありません。SDKlogger をオンにした状態で問題を再現し、セッション ID を共有するだけで、さらなるサポートを受けられます。この Logger により、解決までの時間を平均で約 2 日短縮できると見込んでいます。
+
+<iframe src="https://www.youtube.com/embed/BdZoU5gYREw" title="YouTube 動画プレーヤー" frameborder="0" className="w-full aspect-video rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen />
+
+<Info>
+  MoEngage SDK Logger は、以下の SDK バージョンからサポートされています。
+
+  - Android SDK 13.04.00
+  - React Native SDK 10.3.0
+  - Flutter SDK 9.0.0
+  - Capacitor SDK 5.0.0
+  - Cordova SDK 9.0.0
+</Info>
+
+MoEngage SDK Logger を使用するには、[MoEngage SDK Logger の使用方法](https://www.moengage.com/docs/developer-guide/android-sdk/troubleshooting-and-faqs/how-to-use-the-moengage-sdk-logger)を参照してください。
+
+## 署名済み/未署名ビルドで MoEngage SDK のデバッグログを有効にするには?
+
+詳細レベルのログを表示するには、初期化時に詳細ログの設定を追加してください。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+
+val moEngage = MoEngage.Builder(
+        application = this,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureLogs(LogConfig(logLevel = LogLevel.VERBOSE, isEnabledForReleaseBuild = true))
+    .build()
+```
+
+
+```Java Java
+
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+              .configureLogs(new LogConfig(LogLevel.VERBOSE, true))
+              .build();
+```
+
+
+```Java ReactNative
+
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+              .configureLogs(LogConfig(LogLevel.VERBOSE, true))
+```
+
+
+```Java Flutter
+
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+              .configureLogs(LogConfig(LogLevel.VERBOSE, true))
+```
+
+</CodeGroup>
+
+<Warning>
+  アプリケーションを本番環境にリリースする前に、上記の行を必ず削除してください。
+</Warning>
+
+## ダッシュボードにデータが表示されないのはなぜですか?
+
+<iframe src="https://www.youtube.com/embed/dzPoaCBDEzM" title="YouTube 動画プレーヤー" frameborder="0" className="w-full aspect-video rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen />
+
+ダッシュボードにデータが表示されない場合は、以下の手順を正しく実装しているかを確認してください。
+
+- SDK を正しく初期化します。初期化の検証の詳細については、[SDK の初期化](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization)を参照してください。
+- 正しい環境で確認しているかを確認します。
+
+Test/デバッグビルド --\> データは Test 環境に送信されます\
+署名済み/Live ビルド --\> データは Live 環境に送信されます。
+
+## React Native でコンテキスト InApps を使用するには?
+
+<iframe src="https://www.youtube.com/embed/Pc6NkbGL8uE" title="YouTube 動画プレーヤー" frameborder="0" className="w-full aspect-video rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen />
+
+## Flutter アプリケーションの特定の画面でコンテキスト InApps を使用するには?
+
+<iframe src="https://www.youtube.com/embed/Ft7_NSLTHDM" title="YouTube 動画プレーヤー" frameborder="0" className="w-full aspect-video rounded-xl" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen />
+
+## イベントが Test 環境では表示されるのに Live 環境では表示されないのはなぜですか?
+
+データが Test 環境では表示され、Live 環境では表示されない場合、テスト/デバッグビルドを使用している可能性が高いです。\
+SDK は、ビルドがデバッグ/テストビルドか署名済みビルドかを検出します。ビルドの種類に基づいて、データはそれぞれの環境に送信されます。
+
+Test/デバッグビルド --\> データは Test 環境に送信されます\
+署名済み/Live ビルド --\> データは Live 環境に送信されます。
+
+## SDK はデータを Test 環境と Live 環境のどちらに送信するかをどのように決定しますか?
+
+SDK はインストールされたアプリケーションのビルドタイプを検出し、それに基づいてデータを MoEngage プラットフォームの Test 環境と Live 環境のどちらに送信するかを決定します。
+
+| ビルドタイプ | 環境 |
+| ---------- | ----------- |
+| Debug      | Test        |
+| Signed     | Live        |
+
+## lifecycle-process ライブラリが重要な理由
+
+MoEngage SDK は、データの同期やアプリ内メッセージなどの主要な機能で lifecycle-process ライブラリに依存しています。lifecycle-process に必要な androidx ライブラリを追加するには、[こちら](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)のドキュメントを参照してください。アプリ内メッセージやデータトラッキングなどの機能が期待どおりに動作しない場合は、いくつかのトラブルシューティング手順を実行する必要があります。
+
+1. MoEngage SDK のログを確認し、lifecycle process ライブラリに関連する例外がないことを確認します。
+2. マニフェストファイルを確認し、Initialisation provider を削除していないことを確認します。Initialization provider を適切に処理する方法の詳細については、[こちら](https://developer.android.com/jetpack/androidx/releases/lifecycle#2.4.0)を参照してください。
+
+## アプリで空白のプッシュ通知を受信するのはなぜですか?
+
+空白のプッシュ通知は、以下の理由で発生する可能性があります。
+
+1. 複数のサーバーからのプッシュが処理されていない: 異なるサーバーから受信したプッシュを正しく処理しないと、空白のプッシュ通知が表示されます。通知が MoEngage からのものである場合、アプリが通知を表示しようとしないようにしてください。詳細については、[プッシュ通知](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+2. 通知のカスタム処理: アプリで通知のカスタム処理を行っている場合は、サイレントプッシュ (アンインストールの検出に使用) がアプリで処理されていることを確認してください。
+
+## Inbox から通知を削除するには?
+
+Inbox から通知を削除するには、[通知センター](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/notification-center)を参照してください。
+
+## 1 つのキャンペーンで複数の通知が表示されるのはなぜですか?
+
+複数の通知が表示されるのは、アプリと MoEngage SDK の両方が通知を表示しようとした場合のみです。ペイロードが MoEngage からのものである場合、アプリはペイロードを MoEngage SDK に渡し、それ以外のアクションは実行しないでください。\
+詳細については、[プッシュ通知](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+
+## 複数のレシーバーを修正するには?
+
+複数のレシーバーとは、マニフェストにインテントフィルター **com.google.firebase.MESSAGING_EVENT** を持つ複数のサービスが含まれている状況です。\
+理想的には、マニフェストファイルには上記のインテントフィルターを持つサービスが 1 つだけ含まれている必要があります。詳細については、[プッシュ通知](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/notification-center)を参照してください。
+
+## プッシュの送信が失敗するのはなぜですか?
+
+プッシュの送信は、以下の理由で失敗する可能性があります。
+
+1. アクティブなデバイストークンがない - プッシュトークンが MoEngage SDK に渡されていないか、更新されたトークンが渡されていません。プッシュトークンを渡す方法の詳細については、[プッシュ通知](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+2. Not Registered - アプリケーションがアンインストールされているため、プッシュを送信できません。アプリケーションを再インストールしてから試してください。
+3. Mismatch Sender Id - 指定された送信者 ID とサーバーキーが異なる GCM/FCM プロジェクトのものです。送信者 ID とサーバーキーを確認してください。FCM プロジェクトの場合、送信者 ID は `google-services.json` ファイルに含まれています。
+4. Invalid Registration - 渡されたプッシュトークンの形式が正しくありません。トークンを渡すロジックを確認してください。
+
+## 送信に成功したにもかかわらずプッシュが表示されないのはなぜですか?
+
+送信に成功したにもかかわらずプッシュが表示されない理由として、以下が考えられます。
+
+- プッシュペイロードが MoEngage に渡されていない - アプリが独自のプッシュレシーバーを持っていて、ペイロードを MoEngage SDK に渡していない場合に発生することがあります。詳細については、[プッシュ通知](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+- インターネット接続 - デバイスのインターネット接続を確認してください。ネットワーク接続を一度オフにしてからオンにし、再度試すことをお勧めします。
+- デバイス固有の問題 - 一部の OEM では、最近使ったアプリ/概要画面からアプリケーションを削除すると、アプリが強制停止されます。アプリケーションがバックグラウンドで実行されていることを確認してください。
+- ビルドが正しい環境に属していない - SDK は、ビルドがデバッグ/テストビルドか署名済みビルドかを検出します。ビルドの種類に基づいて、データはそれぞれの環境に送信されます。
+- スモールアイコンが追加されていない - 通知を表示するにはスモールアイコンが必須です。プッシュ通知に必要なメタデータを追加していることを確認してください。詳細については、[プッシュ通知](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+
+Test/デバッグビルド --\> Test 環境を使用してデバイスに通知を送信します。\
+署名済み/Live ビルド --\> Live 環境を使用してデバイスに通知を送信します。
+
+## プッシュは表示されるのにクリックが記録されないのはなぜですか?
+
+クリックイベントが MoEngage で記録されない理由は以下のとおりです。
+
+1. プッシュペイロードが SDK に渡されていない - プッシュペイロードがアプリケーションによって消費され、アプリケーションがプッシュの表示を処理しています。これは、ペイロードを MoEngage SDK に渡すために使用しているライブラリの種類によって異なります。
+2. データが MoEngage サーバーに同期されていない - クリックアトリビューションデータは、アプリケーションがバックグラウンドに移行したときにのみ MoEngage サーバーに送信されます。アプリケーションをバックグラウンドに移行し、数分待ってください。
+
+## MoEngage SDK にプッシュ登録を任せることを推奨する理由
+
+プッシュトークンの登録は、プッシュ通知を送信するために非常に重要です。\
+プッシュ登録は、トークンの登録とトークンの更新の 2 つで構成されます。\
+トークンの登録は、インターネット接続が不安定な場合や、登録 API が null を返した場合に失敗することがあります。このような場合は、次のアプリ起動を待つのではなく、指数バックオフ時間の経過後にプッシュの登録を再試行する必要があります。\
+トークンの更新は、OEM レベルのカスタマイズにより見逃されることがあります。多くの中国の OEM では、最近使ったアプリからアプリを削除すると、アプリが強制停止されます。その結果、トークン更新のコールバックが失われます。\
+MoEngage SDK には、上記の問題を克服するためのフォールバックがあります。そのため、MoEngage のプッシュ登録メカニズムを使用することをお勧めします。\
+MoEngage SDK は、アプリがプッシュトークンを取得できるコールバックを提供します。詳細については、[MoEngage によるプッシュ登録](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+
+## Android Vitals で MoEAlarmReceiver が過剰なウェイクアップを引き起こしていると報告されます。MoEngage がアラームを使用してデバイスをウェイクアップしているのはなぜですか?
+
+Android Vitals は、アプリが使用するすべてのアラームを報告します。一般に、アラームはサーバーとのデータのダウンロード/アップロードなどのバックグラウンドタスクをトリガーするために使用され、デバイスがアイドル状態の場合は CPU をウェイクアップしてバッテリーを消耗させます。\
+MoEngage SDK の MoEAlarmReceiver は、トラッキングされたイベントと属性を MoEngage サーバーに送信するために使用されます。このアラームは、アプリケーションがバックグラウンドに移行してから 3～5 秒以内にトリガーされます。CPU はそれほどすぐにはスリープしないため、ここで追加のバッテリー消耗は発生しません。OEM による特定のカスタマイズにより、遅延がないとデータの正確性が問題になるため、SDK はデータの正確性を確保するために意図的にこの同期を 3～5 秒遅らせています。
+
+## リダイレクト後にエクストラを取得するには?
+
+Activity が Activity 名で起動された場合、キャンペーン作成時に渡されたすべての追加パラメーターはバンドルのエクストラに含まれます。Activity がディープリンク URL を使用して起動された場合、すべてのエクストラは URL のクエリパラメーターに含まれます。
+
+## トークンのドロップとは何ですか? また、その修正方法は?
+
+詳細については、[トークンのドロップを修正するには?](https://www.moengage.com/docs/developer-guide/android-sdk/troubleshooting-and-faqs/how-to-fix-token-drop)を参照してください。
+
+## Failed resolution of: Landroidx/lifecycle/ProcessLifecycleOwner
+
+<CodeGroup>
+
+```Java Java wrap
+java.lang.NoClassDefFoundError: Failed resolution of: Landroidx/lifecycle/ProcessLifecycleOwner;
+        at com.moe.pushlibrary.MoEHelper.r(:1005)
+        at com.moengage.core.MoEngage.a(:210)
+```
+
+</CodeGroup>
+
+上記のスタックトレースが表示される場合は、アプリケーションに `androidx.lifecycle:lifecycle-process` の依存関係を追加し忘れています。\
+`androidx.lifecycle:lifecycle-process` を追加すると問題が解決します。SDK に必要な依存関係の詳細については、[SDK の統合](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)のドキュメントを参照してください。
+
+## Xiaomi Push の場合に一部のコンポーネントが `export=true` とマークされているのはなぜですか? セキュリティ上の懸念はありますか?
+
+以下のコンポーネントには export=true フラグが必要です。そうしないと、基本的なプッシュ機能に影響します。
+
+`com.xiaomi.mipush.sdk.PushMessageHandler`
+
+- 通知バーで通知をクリックすると、アプリの UI 画面に遷移する前に、SDK はまず PushMessageHandler を通じてインテントの内容を解析し、startActivity() を実行して遷移します。
+- インテントの内容は暗号化されており、偽造されたインテントは復号処理を通過できないため、セキュリティ上の問題はありません。
+
+`com.xiaomi.push.service.receivers.NetworkStatusReceiver`
+
+- システムのネットワーク変更ブロードキャストを受信し、長時間接続のステータスを通知・変更します。システムブロードキャストであるため、ブロードキャストが偽造される心配はありません。
+
+`com.moengage.mi.MoEMiPushReceiver`
+
+- 登録、エイリアスの設定、購読などのインターフェースの結果コールバックを受信します。
+- 権限による保護とインテントの暗号化による保護が追加されており、偽造されたインテントは復号処理を通過できないため、セキュリティ上の問題はありません。
+
+## MoEDebuggerActivity とは何ですか?
+
+`MoEDebuggerActivity` は、MoEngage SDK のデバイス上でのデバッグを支えるコンポーネントです。MoEngage ダッシュボードにアクセスできるユーザーであれば誰でも、新しいビルドを配布することなく、特定のデバイスからライブの SDK ログをキャプチャできます。新しい統合の検証や、プッシュ、アプリ内メッセージ、データトラッキング、初期化に関する問題の診断に役立ちます。MoEngage ダッシュボードで生成されたそのデバイス用のデバッグリンクを開くと、この Activity が起動し、ロギングセッションを有効化、延長、または停止できます。
+
+**リモートで無効にできますか?** いいえ。このコンポーネントはアプリにコンパイルされているため、そのバージョンをすでにダウンロードしたユーザーに対して無効にすることはできません。
+
+**今後のビルドから除外するには:** これが組織のセキュリティポリシーやコンプライアンスポリシーに適合しない場合は、アプリの `build.gradle` で `sdk-debugger` モジュールを除外します。
+
+```kotlin
+implementation(platform("com.moengage:android-bom:<bomVersion>")) {
+    exclude(group = "com.moengage", module = "sdk-debugger")
+}
+```
+
+これにより、今後はアプリから `sdk-debugger` モジュールが削除され、そのアプリでこのデバッグ機能を使用することもできなくなります。
+
+## メインスレッドで SDK を初期化すると、アプリケーションの起動時間に影響しますか?
+
+いいえ、初期化にかかる時間は平均で約 10～15 ミリ秒です。詳細については、[SDK のパフォーマンス](https://www.moengage.com/docs/developer-guide/android-sdk/performance/sdk-performance)のドキュメントを参照してください。
+
+## MoEngage SDK が WebView の設定で setAllowFileAccess(true) を使用しているのはなぜですか?
+
+MoEngage SDK は、WebView を使用して HTML InApps を読み込んで表示します。**_MoEInAppHelper.getInstance().showInApp(context)_** が呼び出されるたびに、SDK は HTML InApps で使用される動的な画像、CSS、その他のファイルをダウンロードしてアプリの内部ストレージに保存します。これらのアセットをローカルストレージから WebView に読み込むために、setAllFileAccess(true) が必要です。
+
+## WebView で JavaScript を無効化/有効化するには?
+
+デフォルトでは、WebView での JavaScript の使用は有効になっています。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+configureJavascriptUsage(JavaScriptConfig(isJavaScriptEnabled))
+```
+
+
+```Java Java
+import static com.moengage.core.MoESdkStateHelper.configureJavascriptUsage;
+    
+configureJavascriptUsage(new JavaScriptConfig(isJavaScriptEnabled));
+```
+
+</CodeGroup>
+
+<Warning>
+  WebView で JavaScript の使用を無効にすると、RichLanding URL や HTML InApp がデバイス上で正しくレンダリングされない場合があります。
+</Warning>
+
+## SDK の初期化を Application クラスの onCreate() 内のメインスレッドで行う必要があるのはなぜですか?
+
+一般に、どの SDK も、SDK の API やメソッドが呼び出される前に初期化する必要があります。MoEngage SDK も同様で、MoEngage SDK の API を呼び出す前に SDK が初期化されていることが重要です。SDK が初期化されていない場合、呼び出された API に渡されたデータは SDK によって拒否され、データを返すことが期待される API は `null` またはデフォルト値 (false や -1 など) を返します。
+
+実装を容易にするため、アプリケーションでは Application クラスの `onCreate()` で MoEngage SDK を初期化することをお勧めします。メインスレッドの onCreate() で初期化するとは、コールバックなどの内部ではなく、同期的に初期化することを意味します。このように SDK を初期化することで、以前の状態に関係なく、アプリケーションのどこでも SDK が初期化され使用可能な状態であることを常に保証できます。Android システムは、プロセスの作成時に最初に実行される処理の 1 つとして `onCreate()` を呼び出します。そのため、`onCreate()` で初期化することで、SDK が常に初期化され、イベントやキャンペーンを処理できる状態になります。
+
+これは、アプリケーションが強制終了状態にあるときにユーザーにプッシュキャンペーンが送信される場合に特に重要です (OS や OEM によるバッテリーの最適化により、アプリは使用されない状態が 1 時間ほど続くと強制終了されます)。
+
+アプリケーションの起動時間は非常に重要であり、SDK の初期化に時間がかかるとアプリケーションのエクスペリエンスに影響する可能性があることは承知しています。SDK の初期化時間は最小限に抑えられています。詳細については、[パフォーマンスマトリックス](https://www.moengage.com/docs/developer-guide/android-sdk/performance/sdk-performance)を参照してください。私たちはこれをさらに改善するために継続的に取り組んでいます。
+
+#### 代替方法
+
+何らかの制約により `onCreate()` で SDK を初期化できない場合は、`passPushPayload()`、`trackEvent()` などの SDK API が呼び出される前に SDK が初期化されていることを確認してください。
+
+SDK が初期化されていない場合、メソッドの呼び出しは処理されず、データが破棄されたり、キャンペーンの配信率が低下したりします。SDK は、SDK が初期化されているかどうかを確認するための API [isSdkInitialised()](https://moengage.github.io/android-api-reference/core/com.moengage.core/is-sdk-initialised.html) を提供しています。この API を使用して初期化が完了しているかを確認し、必要に応じて初期化してください。
+
+Application クラスの `onCreate()` で SDK を初期化しない場合は、[IntentPreProcessingListener](https://moengage.github.io/android-api-reference/core/com.moengage.core.listeners/-intent-pre-processing-listener/index.html) を実装し、`onCreate()` で [registerPreProcessingListener](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-e-core-helper/register-pre-processing-listener.html) を使用してこのリスナーを登録し、インターフェースの `onIntentRecieved()` で SDK を初期化してください。これは、アプリケーションが強制終了状態にあるときに通知のクリックを処理するために重要です。
+
+## 通知をスタックするには?
+
+デフォルトでは、Android は古い通知を新しい通知に置き換えます。ユーザーにスタックされた通知を表示したい場合は、SDK の初期化時に通知設定で isMultipleNotificationInDrawerEnabled = true を有効にできます。その他のオプションについては、[通知設定](https://moengage.github.io/android-api-reference/core/com.moengage.core.config/-notification-config/index.html)を参照してください。
+
+## アプリがバックグラウンドに移行したらジオフェンシングを停止すべきですか?
+
+MoEngage は、システムトリガーを使用してユーザーの位置と、ユーザーがジオフェンスに出入りしたタイミングを検出します。そのため、アプリがバックグラウンドに移行したときにジオフェンスの監視を停止するメソッドを呼び出すことはお勧めしません。ただし、ビジネス上、特定のケースでジオフェンスの変化を監視したくない場合は、ジオフェンスの監視を停止するメソッドを呼び出すことができます。MoEngage はユーザーの位置の変化を検出するために追加のポーリングを行わないため、アプリでジオフェンスの監視を停止しなくてもバッテリーには影響しません。
+
+## タイマー通知が機能しないのはなぜですか?
+
+リッチ通知の依存関係を追加していること、そしてさらに重要な点として、マニフェストファイルに以下の行を追加する必要があることを確認してください。[こちら](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/push-templates#schedule-exact-alarm-permission)のドキュメントを確認してください。
+
+```xml wrap
+<uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
+```
+
+Android 14 以降では、顧客から明示的にアラーム権限を取得する必要があります。詳細については、[こちら](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/push-templates#schedule-exact-alarm-permission)を参照してください。
+
+## プッシュ通知にカスタムサウンドを追加するには?
+
+Android O 以降では、カスタムサウンドを追加できる通知チャネルを作成できます。ただし、通知でカスタムサウンドを使用するには、事前に以下の 3 つを行う必要があります。
+
+1. アプリにカスタムチャネルを追加します。
+2. このカスタムチャネルにサウンドを追加します。
+3. MoEngage ダッシュボードでチャネル名を追加し、通知の送信時に使用します。
+
+カスタムチャネルを作成してサウンドを追加するコードを以下に示します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+
+private fun createCustomNotificationChannel(channelName: String) {
+   val channel = NotificationChannel(channelName, channelName, NotificationManager.IMPORTANCE_HIGH)
+
+   val soundUri = Uri.parse("android.resource://" + App.application?.packageName + "/" + R.raw.sound_file)
+
+// sound_file will be added in the App's code
+
+   soundUri?.let {
+       val audioAttributes = AudioAttributes.Builder()
+           .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+           .setUsage(AudioAttributes.USAGE_ALARM)
+           .build()
+
+       channel.setSound(soundUri, audioAttributes)
+   }
+
+   val manager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+   manager.createNotificationChannel(channel)
+}
+```
+
+</CodeGroup>
+
+## GAID ポリシーの変更に関する FAQ
+
+### GAID ポリシーの変更に準拠している MoEngage SDK のバージョンはどれですか?
+
+| Android          | ReactNative | Flutter | Cordova | Unity | Capacitor | Segment |
+| ---------------- | ----------- | ------- | ------- | ----- | --------- | ------- |
+| 11.6.2 & \>12.2+ | 7.4.1       | 4.2.0   | 7.3.3   | 2.3.0 | 1.0.2     | 6.2.0   |
+
+### GAID ポリシーとは何ですか?
+
+GAID ポリシーの詳細については、[こちら](https://www.moengage.com/docs/user-guide/data/privacy/android-advertising-id-tracking#what-is-the-policy)を参照してください。
+
+### MoEngage のクライアントとして、GAID ポリシーはどのような影響がありますか?
+
+[こちら](https://www.moengage.com/docs/user-guide/data/privacy/android-advertising-id-tracking#what-is-the-policy)の「**How does it affect my app?**」を確認してください。
+
+### GAID をトラッキングするには?
+
+まず、MoEngage SDK をお使いのフレームワークに対応するバージョンに更新します。GAID のトラッキングには、ユーザーからの明示的な同意が必要であることに注意してください。
+
+### GAID をトラッキングしていない場合、バージョン \<11.6 のままでもよいですか?
+
+いいえ。Play ストアでアプリを更新しようとすると、Google は MoEngage SDK バージョンの非準拠としてアプリケーションにフラグを立てます。MoEngage SDK の最新バージョンに更新することをお勧めします。
+
+### Play ストアでアプリを更新しない場合、\<11.6 のままでもよいですか?
+
+現時点では \<11.6.2 のままでも問題ありません。ただし、Google が無効なバージョンの SDK についてすべてのアプリのスキャンを開始した場合、SDK バージョンの非準拠としてアプリケーションにフラグが立てられる可能性があります。
+
+### リジェクトの理由は何ですか? また、公開時に Google Play ストアからアプリケーションがリジェクト/警告された場合はどうすればよいですか?
+
+開発者 (およびより広く関係者) には、本番以外のトラックにも対処していることを確認するようお勧めします。通知を受け取った開発者は、本番トラックまたは本番以外のトラック (内部/クローズド/オープンテスト) のいずれかにあるアプリのすべてのアクティブなバージョンが、非準拠の SDK バージョンから移行済みであるか、SDK が削除されていることを確認する必要があります。開発者は、新規提出時に、問題に対処していないアプリのアクティブなバージョンを含むトラックを無効化することでも問題を解決できます。
+
+非準拠バージョンの APK を更新するための以下の標準的な手順を開発者と共有してください。
+
+ 1. Play Console に移動します。
+ 2. アプリを選択します。
+ 3. App bundle explorer に移動します。
+ 4. 右上のドロップダウンメニューで違反している APK/App Bundle の App version を選択し、どのリリースに含まれているかをメモします。
+ 5. 違反があるトラックに移動します。\
+    Internal / Closed / Open testing または Production のいずれかです。
+ 6. ページの右上付近にある Create new release をクリックします (最初に Manage track をクリックする必要がある場合があります)。\
+    違反している APK を含むリリースが下書き状態の場合は、そのリリースを破棄します。
+ 7. 新しいバージョンの App Bundle または APK を追加します。\
+    非準拠バージョンの App Bundle または APK が、現在のリリースの Not included セクションにあることを確認してください。
+ 8. Save をクリックします。これにより、リリースに加えた変更が保存されます。
+ 9. リリースの準備が完了したら、Review release を選択し、リリースを 100% に展開します。
+10. 違反している APK が複数のトラックにリリースされている場合は、各トラックで手順 5～9 を繰り返します。
+

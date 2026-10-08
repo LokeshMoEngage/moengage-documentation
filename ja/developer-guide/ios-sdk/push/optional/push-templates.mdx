@@ -1,0 +1,264 @@
+---
+title: "プッシュテンプレート"
+description: "Notification Content Extension を使用して、iOS アプリにカスタムプッシュ通知テンプレートを追加します。"
+---
+
+Notification Content Extension を使用すると、展開モードでの通知の外観をカスタマイズできます。ダッシュボードでテンプレートを使用してキャンペーンを作成する方法については、[こちら](https://www.moengage.com/docs/user-guide/campaigns-and-channels/mobile-push/create/push-templates)のリンクを参照してください。
+
+<img
+  src="/images/pushtemp1.gif"
+  alt="Pushtemp1"
+  title="Pushtemp1"
+  style={{ width:"36%" }}
+/>
+
+<Note>
+  **前提条件**
+
+  以下の手順に進む前に、プロジェクトでリッチプッシュをサポートするための [App Target](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse) と [Notification Service Extension](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#Optional) の実装が完了していることを確認してください。
+</Note>
+
+Notification Service Extension は、テンプレートで使用される画像、音声、または動画をダウンロードします。転送、形式、サイズの要件については、[メディア要件](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#media-requirements)を参照してください。
+
+# 手順:
+
+これらのカスタムプッシュテンプレートをサポートするには、プロジェクトに Notification Content Extension が必要です。以下の手順に従って Content Extension を作成し、MoEngage テンプレートをサポートするように設定します。
+
+## 1. Notification Content Extension を作成する
+
+<img
+  src="/images/pushtemp2.png"
+  alt="Pushtemp2"
+  title="Pushtemp2"
+  style={{ width:"80%" }}
+/>
+
+ターゲットが作成されたら、プロンプトが表示された際に Extension のスキームをアクティブにします。
+
+<img
+  src="/images/pushtemp3.png"
+  alt="Pushtemp3"
+  title="Pushtemp3"
+  style={{ width:"82%" }}
+/>
+
+これで拡張機能がプロジェクトに追加され、作成時に指定した拡張機能名のクラスと、それに関連付けられた .plist ファイルが表示されます。
+
+## 2. デプロイメントターゲットを設定する
+
+デプロイメントターゲットをメインアプリのターゲットと同じに設定します。
+
+## 3. 必要な Capabilities を追加する
+
+Capabilities セクションで **App Groups** を追加し、App ターゲットと Notification Service Extension ターゲットで構成したものと同じ App Group ID を選択します。
+
+<img
+  src="/images/pushtemp4.png"
+  alt="Pushtemp4"
+  title="Pushtemp4"
+  style={{ width:"85%" }}
+/>
+
+メインターゲットでの App Group ID の設定の詳細については、[ドキュメント](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse)の **Set AppGroup ID** セクションを参照してください。
+
+## 4. Info.plist の変更
+
+![Pushtemp5](/images/pushtemp5.png)
+
+上記のように Notification Content Extension の `Info.plist` を変更し、NSExtensionAttributes を以下のように設定します。
+
+| 属性                                           | 属性値            |
+| :--------------------------------------------- | :---------------- |
+| UNNotificationExtensionCategory                | MOE_PUSH_TEMPLATE |
+| UNNotificationExtensionInitialContentSizeRatio | 1.2               |
+| UNNotificationExtensionDefaultContentHidden    | YES               |
+| UNNotificationExtensionUserInteractionEnabled  | YES               |
+
+<Note>
+  **注意**
+
+  宣言したカテゴリに応じて、UNNotificationExtensionCategory を必要な値に更新してください。
+</Note>
+
+## 5. Storyboard の変更
+
+以下のように、Content Extension の **_MainInterface.storyboard_** を選択し、配置されているデフォルトのラベルを削除して、ビューの背景色をクリアカラーに設定します。
+
+![Pushtemp6](/images/pushtemp6.png)
+
+## 6. MoEngageRichNotification の統合
+
+### Swift Package Manager による統合(推奨)
+
+SPM で統合するには、SDK バージョン 9.23.0 以上の場合は GitHub URL https://github.com/moengage/apple-sdk.git を、それ以外の SDK バージョンの場合は https://github.com/moengage/MoEngage-iOS-SDK.git を使用し、ブランチを master または必要なバージョンに設定します。
+
+### CocoaPod による統合
+
+<Info>
+  **情報**
+
+  CocoaPods は非推奨になりつつあります。MoEngage では、すべての新規統合に Swift Package Manager を使用することを推奨しています。CocoaPods の詳細については、[CocoaPods 統合ガイド](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic/integration-through-cocoa-pods)を参照してください。
+</Info>
+
+CocoaPod で統合する場合は、以下のように Notification Content Extension に **MoEngageRichNotification** pod を含め、pod update / install コマンドを実行します。
+
+<CodeGroup>
+
+```ruby Ruby wrap
+target "NotificationContent" do
+	pod 'MoEngage-iOS-SDK/RichNotification',
+end
+```
+
+</CodeGroup>
+
+<Info>
+  **手動統合**
+
+  - MoEngageRichNotification SDK をプロジェクトに手動で統合するには、こちらの[ドキュメント](https://www.moengage.com/docs/developer-guide/ios-sdk/manual-integration/manual-integration)に従ってください。
+  - App ターゲットの埋め込みバイナリに MoEngageRichNotification を追加し、Notification Content Extension ターゲットにリンクされていることを確認してください。
+</Info>
+
+## 7. Content Extension のコード変更:
+
+<CodeGroup>
+
+```swift Swift wrap
+import UIKit
+import UserNotifications
+import UserNotificationsUI
+import MoEngageRichNotification
+  
+class NotificationViewController: UIViewController, UNNotificationContentExtension {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        // Set App Group ID
+        MoEngageSDKRichNotification.setAppGroupID("Your App Group ID")
+    }
+  
+    
+    func didReceive(_ notification: UNNotification) {
+        // Method to add template to UI
+        MoEngageSDKRichNotification.addPushTemplate(toController: self, withNotification: notification)
+    }
+}
+```
+
+
+```objective-c Objective C wrap
+#import "NotificationViewController.h"
+#import <UserNotifications/UserNotifications.h>
+#import <UserNotificationsUI/UserNotificationsUI.h>
+@import MoEngageRichNotification;
+
+@interface NotificationViewController () <UNNotificationContentExtension>
+
+@end
+
+@implementation NotificationViewController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+    // Set App Group ID
+    [MoEngageSDKRichNotification setAppGroupID:@"Your App Group ID"];
+}
+
+- (void)didReceiveNotification:(UNNotification *)notification {
+    // Method to add template to UI
+    [MoEngageSDKRichNotification addPushTemplateToController:self withNotification:notification];
+}
+
+@end
+```
+
+</CodeGroup>
+
+上記のように、**_NotificationViewController_** クラスで以下の変更を行います。
+
+1. **_viewDidLoad()_** メソッドで、Capabilities で有効にしたものと同じ App Group ID を設定します。
+2. [_addPushTemplate(toController:withNotification:)_ ](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKRichNotification.html#/c:@M@MoEngageRichNotification@objc\(cs\)MoEngageSDKRichNotification\(cm\)addPushTemplateToController:withNotification:)メソッドを呼び出して、**_didReceiveNotification()_** コールバックでテンプレートを追加します。
+
+## 8. アプリでの通知クリックコールバック:
+
+Simple Image Carousel 通知の場合、ユーザーがどのスライドをクリックしたかを知るには、`MOMessagingDelegate` を使用して `notificationClicked(withScreenName: andKVPairs:)` コールバックを取得し、クリックされたスライドに設定されているキーと値のペアおよびスクリーン名を取得します。以下の例を参照してください。ここでは AppDelegate でコールバックを登録しています。
+
+<CodeGroup>
+
+```swift Swift wrap
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, MoEngageMessagingDelegate{
+    
+func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+      // Set the delegate 
+      MoEngageSDKMessaging.sharedInstance.setMessagingDelegate(self)
+ 
+      //Rest of the implementation
+}
+ 
+// Notification Clicked Callback
+func notificationClicked(withScreenName screenName: String?, andKVPairs kvPairs: [AnyHashable : Any]?) {
+        if let screenName = screenName {
+            print("Navigate to Screen:\(screenName)")
+        }
+        
+        if let actionKVPairs = kvPairs {
+            print("Selected Action KVPair:\(actionKVPairs)")
+        }
+}
+  
+// Notification Clicked Callback with Push Payload
+func notificationClicked(withScreenName screenName: String?, kvPairs: [AnyHashable : Any]?, andPushPayload userInfo: [AnyHashable : Any]) {
+        
+        print("Push Payload: \(userInfo)")
+        
+        if let screenName = screenName {
+            print("Navigate to Screen:\(screenName)")
+        }
+        
+        if let actionKVPairs = kvPairs {
+            print("Selected Action KVPair:\(actionKVPairs)")
+        }
+}
+}
+```
+
+
+```objective-c Objective C wrap
+@interface AppDelegate () <UNUserNotificationCenterDelegate, MoEngageMessagingDelegate>
+@end
+ 
+@implementation AppDelegate
+ 
+ 
+- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    // Set the delegate 
+   [[MoEngageSDKMessaging sharedInstance] setMessagingDelegate:self forAppID:@"YOUR_WORKSPACE_ID"];
+ 
+    //Rest of the implementation
+}
+ 
+// Notification Clicked Callback
+-(void)notificationClickedWithScreenName:(NSString *)screenName andKVPairs:(NSDictionary *)kvPairs{
+    if (screenName) {
+        NSLog(@"Screen Name : %@",screenName);
+    }
+    if (kvPairs) {
+        NSLog(@"KV Pairs : %@",kvPairs);
+    }
+}
+ 
+// Notification Clicked Callback with Push Payload
+-(void)notificationClickedWithScreenName:(NSString *)screenName KVPairs:(NSDictionary *)kvPairs andPushPayload:(NSDictionary *)userInfo{
+    NSLog(@"Push Payload: %@",userInfo);
+    if (screenName) {
+        NSLog(@"Screen Name : %@",screenName);
+    }
+    if (kvPairs) {
+        NSLog(@"KV Pairs : %@",kvPairs);
+    }
+}
+ 
+ 
+@end
+```
+
+</CodeGroup>

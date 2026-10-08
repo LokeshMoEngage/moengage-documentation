@@ -3,20 +3,28 @@ title: "S3 Exports"
 description: "Export user events and campaign data from MoEngage to Amazon S3 buckets in JSON format. Analyze exported data for deeper insights into user behavior."
 ---
 
-# Overview
+import StreamsAddOn from '/snippets/streams-add-on.mdx';
+import ExportFailureFaqs from '/snippets/exports-faq-failure.mdx';
+
+<StreamsAddOn />
+
+## Overview
 
 You can export all user events and campaign events that MoEngage receives or generates by using S3 Exports. Analyze the exported data to learn about user behavior, campaign interactions, and customer preferences.
 
-<Info>
-  - S3 automated exports are part of the Streams add-on. Contact your dedicated MoEngage Customer Success Manager (CSM) to enable this feature for your account.
+## How Does MoEngage Work with S3?
+
+[Amazon S3](https://aws.amazon.com/s3/) is a highly scalable storage system offered by Amazon Web Services. Integrating your S3 buckets allows MoEngage to share periodic exports of your data in JSON format.
+
+## Integration
+
+<Tip>
   - If your network configuration requires IP whitelisting, refer [here](/user-guide/settings/account/security/ip-whitelisting-in-moengage) before setting up the S3 integration for data exports.
-</Info>
+</Tip>
 
-# S3 Integration for Data Exports
+Perform the following steps to configure your S3 integration:
 
-[Amazon S3](https://aws.amazon.com/s3/) is a highly scalable storage system offered by Amazon Web Services. Integrating your S3 buckets allows MoEngage to share periodic exports of your data in JSON format. Perform the following steps to configure your S3 integration:
-
-## Step 1: Create an S3 Bucket
+### Step 1: Create an S3 Bucket
 
 Even if you already have an S3 bucket, we recommend creating a new bucket specifically for MoEngage data transfers to enforce strict least-privilege security boundaries.
 
@@ -24,7 +32,7 @@ Even if you already have an S3 bucket, we recommend creating a new bucket specif
 2. Select **S3** from the **Storage** category.
 3. Click **Create Bucket**, type an identifiable name, and select your preferred physical region.
 
-## Step 2: Add an export on the App Marketplace
+### Step 2: Add an Export on the App Marketplace
 
 After you [connect your S3 bucket in the App Marketplace](/partner-guide/data-and-analytics/cloud-storage/amazon-s3#step-3-connect-amazon-s3-on-the-app-marketplace), open the **Amazon S3** page. Under the **Setup exports to S3** section, click **\+ Add export** to open the **Export details** panel.
 
@@ -43,11 +51,11 @@ After you [connect your S3 bucket in the App Marketplace](/partner-guide/data-an
 3. When the test passes, click **Save**. MoEngage displays a confirmation popup that calls out the locked frequency. Review the message and click **Save** again to activate the export.
 4. To discard the configuration without saving, click **Cancel**. <img src="/images/s3-exports-config-panel.png" alt="Export details panel with Test, Save, and Cancel options" />
 
-# Events and Attributes
+## Events and Attributes
 
 With the MoEngage and S3 integration, you can export all events coming into MoEngage to your S3 buckets. By default, MoEngage tracks standard events and user properties through its SDKs. Read about our [standard events and attributes here](/user-guide/data/event-data/derived-events-and-attributes). You can also export any custom user-defined event you track in MoEngage.
 
-# Data Export Format
+## Data Export Format
 
 - **File format**: JSON
 - **Compression type**: GZip
@@ -57,7 +65,7 @@ With the MoEngage and S3 integration, you can export all events coming into MoEn
   - _Single folder_: `s3://<your-bucket-name>/[<folder_path>]/<connection_name>/event_exports_<UNIQUE_ID>.json.gz`
   MoEngage generates the `<UNIQUE_ID>` as a unique identifier for each export file.
 
-# Sample Export Data
+## Sample Export Data
 
 <CodeGroup>
 
@@ -134,7 +142,7 @@ With the MoEngage and S3 integration, you can export all events coming into MoEn
 
 Download a sample file from [here](https://app-cdn.moengage.com/partners-integration-ui/app-marketplace-public/helpdoc/event_exports_sample_files.json.gz). This is a GZIPPED file; extract it before you view the contents.
 
-# Integrate AWS Key Management Service with Amazon S3
+## Integrate AWS Key Management Service with Amazon S3
 
 1. Create an AWS Key Management Service (KMS) Customer Master Key (CMK) by using the AWS Management Console, AWS CLI, or AWS SDKs. Skip this step if your AWS KMS key is already generated.
 2. Enable the AWS KMS key for use with S3 by adding permissions to the AWS KMS key policy. The following example key policy allows the key to be used for S3 encryption:
@@ -180,9 +188,97 @@ Download a sample file from [here](https://app-cdn.moengage.com/partners-integra
   - By specifying the KMS key ARN in the whitelist, you get granular control over which resources can access and use the key, improving the overall security of your key management and encryption processes.
 </Info>
 
-# Frequently Asked Questions (FAQs)
+## Export Failure Policy
+
+MoEngage pauses an export that keeps failing. While it is paused, MoEngage collects the events the export would have delivered, and you replay them after you fix the problem.
+
+### When MoEngage Pauses an Export
+
+MoEngage will retry an export multiple times before marking it as failed. The export will be paused if multiple scheduled exports fail, depending on your chosen export frequency: 
+
+| Export frequency | Condition |
+| --- | --- |
+| 15 minutes | 3 consecutive scheduled export failures |
+| Daily | 1 scheduled export failure |
+| Weekly | 1 scheduled export failure |
+
+When MoEngage pauses an export, it alerts you and shows the export as **Paused** on the App Marketplace.
+
+### What Happens While an Export Is Paused
+
+![A paused Amazon S3 export on the Integrate tab, with Export status turned off and the Paused label beside it](/images/export-paused-card.png)
+
+MoEngage collects the events the export would have delivered and keeps only the most recent 7 days. If the export stays paused for longer than a week, MoEngage drops the oldest days as newer ones come in.
+
+If an export pauses more than once before you replay, MoEngage combines the data from all those pauses, provided it falls within the 7-day window.
+
+### Resume an Export
+
+#### Find the Failure Reason
+
+On the App Marketplace, click the **Integrate** tab, and then hover over the **Paused** label on the export. MoEngage names the reason for the failure, such as a missing write permission on the destination bucket, and tells you how to fix it.
+
+![The Paused label hover on the Integrate tab, showing the failure reason and what you need to do](/images/export-paused-failure-reason.png)
+
+#### Enable the Export
+
+Fix the cause at your end, and then turn on **Export status** for the export. Do this as soon as you can, because the 7-day window keeps moving while the export stays paused.
+
+When you enable the export, MoEngage stops collecting and sets aside what it has: the last 7 days of paused data, or all of it if the pause was shorter. This is the data you can replay. It stays fixed from then on, and does not reduce further even if you wait to replay it.
+
+### Replay Paused Data
+
+#### Request a Replay
+
+MoEngage saves the data it collected while the export was paused. An export with data waiting shows a **Replay available** label on the **Integrate** tab.
+
+To replay, perform the following steps:
+
+1. Hover over the **Replay available** label, or open the kebab menu on the export.
+2. Click **Replay paused data**.
+
+   ![S3 export with a Replay available label on the Integrate tab and the Replay paused data option](/images/export-replay-paused-data.png)
+3. In the **Replay paused data** dialog box, click **Confirm**.
+
+   ![Replay paused data dialog box asking you to confirm, with the Confirm button](/images/export-replay-confirm.png)
+
+A replay sends everything MoEngage collected while the export was paused. MoEngage backfills the data into the date folders it would have written to at the time, rather than writing it to a new location.
+
+You can replay at any time until 30 days from the date the oldest paused data was collected. After that, the data is no longer available.
+
+<Note>
+  Replay before the export pauses again. If it pauses a second time before you replay, MoEngage adds the new paused data to the data still waiting from the first pause. The combined data is then trimmed back to the most recent 7 days, so if the two pauses are more than 7 days apart, the older data is lost.
+
+  For example, your export pauses on day 1. You enable it but do not replay. It pauses again on day 20. Since that is 19 days later, the day 1 data falls outside the 7 day window and is gone, even though its 30 day replay window had not expired. If the second pause had happened within 7 days of the first, the day 1 data would still be included.
+</Note>
+
+#### Replay Results
+
+When the replay finishes, MoEngage emails the user who requested it with one of the following results:
+
+| Result | What it means |
+| --- | --- |
+| Successful | MoEngage delivered all the collected data. The replay option is no longer available. |
+| Partially Successful | MoEngage delivered some of the collected data, and then hit an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+| Failed | MoEngage delivered none of the collected data, because of an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+
+You can run only one replay per export at a time.
+
+#### Avoid Duplicate Data
+
+Every replay sends the whole collection again, because MoEngage does not deduplicate. If you replay more than once, deduplicate at your end on the `event_uuid` field, which is unique for each event. For the fields in the export, refer to the [Data Export Glossary](/user-guide/data/exports/events/data-export-glossary).
+
+### Export Paused Alerts
+
+MoEngage alerts you when it pauses an export, so you can fix the issue and replay the data collected while the export was paused.
+
+MoEngage subscribes workspace admins to the Data Exports system alert by default, and adds the user who creates or updates an export. To subscribe or unsubscribe anyone else, go to the Alert Management page. Subscribing or unsubscribing changes notifications only for that person, and does not affect anyone else's subscription.
+
+
+## Frequently Asked Questions
 
 <AccordionGroup>
+  <ExportFailureFaqs />
   <Accordion title="How soon will I start getting data in my S3 bucket?">
     It typically takes up to 30 minutes for MoEngage to set up the automated data exports for your account and for data to appear in your bucket.
   </Accordion>

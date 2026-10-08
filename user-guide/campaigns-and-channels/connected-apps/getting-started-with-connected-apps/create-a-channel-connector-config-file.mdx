@@ -113,7 +113,7 @@ In addition to the required keys above, the following optional keys are supporte
 | `header` | No | String | Any string | A section heading displayed above the input field on the UI. Use this to group related fields, such as a set of key-value pairs. |
 | `help_text` | No | String | Any string | A short description displayed below the header to guide the user on what to enter. |
 | `is_hidden` | No | Boolean | `true` / `false` | If `true`, the field is hidden from the UI, but its value (including any `default_value`) is still passed to the request. Defaults to `false`. |
-| `default_value` | No | Object / Array | Depends on type | A pre-filled value rendered when the field first loads. For the `key_value` type, this is an array of key-value objects. |
+| `default_value` | No | String | Any string | A pre-filled value rendered when the field first loads. |
 
 ## Visibility Scope
 
@@ -883,6 +883,44 @@ The request format informs MoEngage about the request's payload.
 | `url_params` | Yes | Object | `{ "url_param": "param_value" }` | You can include key-value pairs of custom headers that you want to pass in your API requests.  Input variables' references are supported here.  If you do not have any custom URL parameters to add, you can make this an empty object. |
 | `body_type` | Yes | String | `JSON` | The payload format. |
 | `body` | Yes | String | NIL | It is the payload of your API request. Input variables' references are supported here. |
+
+### Batch Support
+
+MoEngage supports batching to send multiple campaign payloads in a single API request, reducing call overhead.
+
+To enable batching, add these fields to your `request` object:
+
+| Key | Required | Type | Valid Options | Description |
+| --- | --- | --- | --- | --- |
+| `batching` | No | Boolean | `true` / `false` | Enable batch processing. Defaults to `false`. |
+| `batch_size` | Conditional | Number | Positive integer (e.g., `100`) | Number of users per batch. Required if `batching` is `true`. |
+
+**Note on Batching:** When `batching: true`, reference `CampaignCreationFormList` in the `body` and iterate using Jinja templating: `{% for item in CampaignCreationFormList %} ... {% endfor %}`
+
+<CodeGroup>
+
+```json Batching Example
+"request": {
+    "method": "POST",
+    "headers": {
+        "Content-Type": "application/json"
+    },
+    "url": "https://your-api-endpoint.com/batch",
+    "batching": true,
+    "batch_size": 100,
+    "body_type": "JSON",
+    "body": "[{% for item in CampaignCreationFormList %}{\"phone\":\"{{ item.mobile }}\",\"message\":\"{{ item.message }}\",\"email\":\"{{ item.email }}\"}{% if not loop.last %},{% endif %}{% endfor %}]"
+}
+```
+
+</CodeGroup>
+
+**Key Points:**
+- When `batching: true`, MoEngage groups users into chunks of `batch_size` and sends one API request per batch.
+- Use `CampaignCreationFormList` to reference all users in the current batch (this is a list object).
+- Use Jinja templating with `{% for item in CampaignCreationFormList %}` to iterate and construct the payload array.
+- Without batching, MoEngage makes one API call per user.
+
 
 ## Response Handling
 

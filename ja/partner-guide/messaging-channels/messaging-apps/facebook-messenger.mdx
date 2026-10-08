@@ -1,0 +1,90 @@
+---
+title: "Facebook Messenger"
+---
+
+# はじめに
+
+[Facebook Messenger](https://developers.facebook.com/docs/messenger-platform/) は、月間アクティブユーザー数が約 10 億人に達する、世界で最も人気のあるインスタントメッセージングプラットフォームの 1 つです。このプラットフォームを通じて、ブランドは魅力的なチャットボットを作成し、顧客とインテリジェントかつ自動的にやり取りできます。
+
+## MoEngage × Facebook Messenger
+
+MoEngage と Facebook の統合では、MoEngage Connectors を活用し、Messenger Platform API を通じて Facebook Messenger でユーザーにメッセージを送信します。Facebook Messenger プラットフォームは、"既存の取引を円滑にする、その他のカスタマーサポート対応を提供する、または本人が要求したコンテンツを配信する、プロモーション目的ではないメッセージ" を対象としています。詳しくは、[Facebook のプラットフォームガイドライン](https://developers.facebook.com/docs/messenger-platform)および[許容されるユースケースの例](https://developers.facebook.com/docs/messenger-platform/app-review#examples_acceptable)を参照してください。
+
+# 統合
+
+<Info>
+  統合を進める前に、次の点を確認してください。
+
+  - Facebook では、Messenger プラットフォームを使用してマーケティングメッセージを送信することは許可されていません。
+  - ページからのメッセージには、ユーザーの明示的な許可が必要です。
+  - Facebook アプリのテストユーザー以外のユーザーにメッセージを送信するには、アプリが Facebook の[アプリレビュー](https://developers.facebook.com/docs/messenger-platform/app-review)に合格する必要があります。
+</Info>
+
+| 要件 | 説明 |
+| --- | --- |
+| Facebook Messenger ページ | [https://www.facebook.com/pages/create](https://www.facebook.com/pages/create)<br />Facebook ページはボットの ID として使用されます。ユーザーがアプリとチャットすると、ページ名とプロフィール写真が表示されます。 |
+| Facebook Messenger アプリ | [https://developers.facebook.com/apps](https://developers.facebook.com/apps)<br />Facebook アプリには、アクセストークンを含む Messenger ボットの設定が含まれています。 |
+| アプリボットのレビューと承認 | [https://developers.facebook.com/docs/messenger-platform/app-review](https://developers.facebook.com/docs/messenger-platform/app-review)<br />ボットを一般公開する準備ができたら、Facebook に提出してレビューと承認を受ける必要があります。このレビュープロセスにより、Messenger 上のすべてのユーザーに公開する前に、Messenger ボットがポリシーを遵守し、期待どおりに機能することが確認されます。 |
+| ページスコープ ID (PSID) | [https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/messages](https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/messages)<br />Facebook Messenger でメッセージを送信するには、ユーザーの PSID が必要です。ユーザーが Messenger 経由でアプリとやり取りすると、Facebook が PSID を作成します。この PSID は、文字列型のカスタム属性として MoEngage に送信できます。 |
+| ページアクセストークン | [https://developers.facebook.com/docs/messenger-platform/getting-started/app-setup#page\_access\_token](https://developers.facebook.com/docs/messenger-platform/getting-started/app-setup#page_access_token)<br />これらのアクセストークンはユーザーアクセストークンに似ていますが、Facebook ページに属するデータの読み取り、書き込み、変更を行う API への権限を提供する点が異なります。ページアクセストークンを取得するには、ユーザーアクセストークンを取得し、`manage_pagespermission` をリクエストする必要があります。ユーザーアクセストークンを取得したら、Graph API を介してページアクセストークンを取得します。 |
+
+MoEngage の Facebook Messenger コネクターを設定する方法は次のとおりです。
+
+## ステップ 1: 顧客の PSID を収集する
+
+Facebook Messenger でメッセージを送信するには、ユーザーを識別して一貫したやり取りを行うために、ユーザーのページ固有 ID (PSID) を収集する必要があります。PSID はユーザーの Facebook ID とは異なります。Facebook は、顧客にメッセージを送信したとき、または顧客からメッセージを受信したときに、この識別子を作成します。
+
+PSID は、Facebook が提供するさまざまな[エントリーポイント](https://developers.facebook.com/docs/messenger-platform/discovery)のいずれかを使用して確認できます。ユーザーがアプリにメッセージを送信するか、ボタンのタップやメッセージの送信など会話内でアクションを実行すると、その PSID が `sender.id` プロパティに含まれるため、ボットは誰がアクションを実行したかを識別できます。
+
+<CodeGroup>
+
+```json JSON
+{
+  "sender": {
+  	"id": "<PSID>"
+  },
+  "recipient": {
+  	"id": "<PAGE_ID>"
+  },
+  "timestamp": 1458692752478,
+  "message": {
+  	"mid": "mid.1457764197618:41d102a3e1ae206a38",
+    "text": "hello, world!",
+    "quick_reply": {
+    	"payload": "<DEVELOPER_DEFINED_PAYLOAD>"
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+メッセージを送信する際は、メッセージの受信者を識別するために、リクエストの `recipient.id` プロパティに PSID が含まれます。
+
+## ステップ 2: PSID をカスタム属性として MoEngage に保存する
+
+PSID は、Facebook API への [API 呼び出し](https://developers.facebook.com/docs/messenger-platform/reference/send-api)を行うことで取得できる文字列です。PSID の一覧を取得したら、それを MoEngage に送信します。
+
+- 電話番号などのユーザー識別子がある場合は、PSID を `ps_id` というカスタムのトラッキング対象ユーザー属性/プロパティ (電話番号など) として MoEngage に追加できます。このデータは、次のいずれかの方法で MoEngage に保存できます。
+  - [User Data API](/ja/api/user/track-user) を使用する
+  - MoEngage 内の [User Imports](/ja/user-guide/data/imports/manual-uploads) を使用してアップロードする
+- ユーザー識別子がない場合 (つまり、ユーザーが個人情報をボットと共有していない場合) は、[匿名ユーザー](/ja/use-cases/segmentation/find-users-in-moengage)としてアップロードできます。
+
+## ステップ 3: MoEngage でメッセージを送信するためのコネクターキャンペーンを作成する
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最も適した配信タイプを選択します。
+
+![Screenshot\_2022-02-21\_at\_10.48.46\_PM.png](/images/partner_4455800640660.png)
+
+2. ps\_id が存在するユーザーのセグメントを選択します (他のセグメント条件と組み合わせることができます)。
+3. キャンペーンのステップ 2 で、FB の URL を入力し、メッセージのパラメーターとペイロードを追加します。[Facebook Messenger の Send API の詳細はこちら](https://developers.facebook.com/docs/messenger-platform/reference/send-api)をご覧ください。
+
+![Screenshot\_2022-10-18\_at\_4.09.47\_PM.png](/images/partner_10170701003924.png)
+
+4. これで、キャンペーンをテストして送信する準備が整いました。Create Connector Campaign のステップ 2 にある Test 機能を使用して、コネクターの設定をテストすることもできます。
+
+![Screen\_Shot\_2022-02-22\_at\_11.12.42\_AM.png](/images/partner_4460596653716.png)
+
+テストユーザーがメッセージを正常に受信できれば、セットアップは完了です。キャンペーンを公開してください。

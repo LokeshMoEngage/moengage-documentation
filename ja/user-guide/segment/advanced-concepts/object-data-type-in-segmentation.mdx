@@ -1,0 +1,418 @@
+---
+title: "セグメンテーションにおける Object データ型"
+description: "MoEngage で Object データ型を使用してユーザーをセグメント化します。ネストされた属性や、複雑なユーザーおよびイベントのプロパティに対する構造化クエリをサポートしています。"
+---
+
+# 概要
+
+<Note>
+  これは Early Access 機能です。アカウントで有効にするには、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+</Note>
+
+セグメンテーションは、オブジェクト内の属性を識別およびクエリするための構造化された体系的なアプローチを提供します。これにより、オブジェクトの特性に基づいた効果的な分析と意思決定が可能になります。詳細については、[Object データ型のサポート](/ja/user-guide/segment/advanced-concepts/object-data-type-in-segmentation)を参照してください。
+
+- MoEngage ダッシュボードの **Create segment** ページでは、Object データ型のユーザーセグメンテーション機能が、**Select audience** セクションの **User property** タブと **User** **behaviour** タブに表示されます。
+- セグメンテーションは、オブジェクトの配列に対して最大 2 レベルのネストをサポートしています。2 レベルを超えるネストの場合、属性は文字列化された形式で表示されます。
+  ![](/images/moengage_e6d169.png)
+- _オブジェクトの配列_ データ型の属性の場合、セグメンテーションでは高度なクエリのために **With** 演算子と **And** 演算子が提供されます。
+
+# オブジェクトを使用したセグメンテーションクエリの作成
+
+オブジェクトの属性には、任意のプリミティブデータ型を使用できます。このセクションでは、次のデータ型を使用して、ユーザー属性およびイベント属性のシナリオでセグメンテーションクエリを作成するいくつかの例を紹介します。
+
+## String 属性のクエリ
+
+### ユーザー属性
+
+犬を飼っているユーザーをセグメント化したい場合は、string データ型の _Animal.pets_ と演算子 _is_ を使用して、ペットとして犬を飼っているユーザーを取得できます。
+
+![](/images/moengage_4c6cc2.png)
+
+### イベント属性
+
+過去 3 日間に少なくとも 1 回 _Adopted a pet_ を実行し、Membership（String データ）が _Gold_ で、ペットが _Cat_（Object データ）であるユーザーをセグメント化したい場合です。
+
+説明:\
+ここで、Membership は string データ型のイベント属性であり、_Pets.species_ は string の Object データ型を持つ別のイベント属性です。**And** 演算子により、データベースから取得されるユーザーが両方の条件を満たしていることが保証されます。
+
+![](/images/moengage_e47ce6.png)
+
+## セグメンテーションを使用した空文字列値のクエリ
+
+特定の属性に空文字列の値を持つユーザーをセグメント化したい場合です。保存値は "" です（キーは設定されていますが、値は null です）。
+
+説明:\
+ここで、_ListOfPets_ は内部にユーザー属性として _Name_ を持つオブジェクトです。そのため、クエリでは _ListOfPets.Name_ 属性を _is empty_ フィルターとともに使用しています。
+
+![](/images/moengage_3ac74b.png)
+
+## Numeric 属性のクエリ
+
+### ユーザー属性
+
+6 歳未満のペットを飼っているユーザーをセグメント化したい場合です。
+
+説明:\
+ここで、_Pets.age_ は numeric データ型のユーザー属性であり、_less than_ は 6 歳未満のペットを飼っているユーザーをフィルタリングするための関係演算子です。
+
+![](/images/moengage_4e7b30.png)
+
+### イベント属性
+
+\$500 の T シャツを購入したユーザーをセグメント化したい場合です。
+
+説明:\
+ここで、**User behaviour** ドロップダウンには Object 属性 _product.price_ と値 \$500 が表示されています。セグメンテーションクエリには、次のイベント属性が含まれています。
+
+- string データ型の属性としての _Product.Colour_
+- numeric データ型の Object 属性としての _Product.Price_
+- string データ型の Object 属性としての _Product.Currency_
+
+![](/images/moengage_14e0f0.png)
+
+サンプルコード
+
+```json wrap
+[
+{ product: “t-shirt”, price: “$500”, colour: “red”, currency: “USD” },
+{ product: “trouser”, price: “$800”, colour: “white”, currency: “EUR” },
+{ product: “t-shirt”, price: “$300”, colour: “blue”, currency: “EUR” }
+]
+```
+
+## Date Time 属性のクエリ
+
+### イベント属性:
+
+価格が \$500 で、購入日が 2024 年 5 月 30 日より前の赤い T シャツを購入したユーザーをセグメント化したい場合です。
+
+説明:\
+ここで、セグメンテーションクエリには次の Object イベント属性が含まれています。
+
+- _Colour_ は string データ型のイベント属性で、値は Red です。
+- _Product.Price_ は string データ型のイベント属性です。
+- _Product.Purchase-date_ は date データ型の Object イベント属性です。
+
+![](/images/moengage_0d96fe.png)
+
+サンプルコード
+
+```json wrap
+[
+{ product: “t-shirt”, price: “$500”, colour: “blue”, purchase-date: “23-12-2023” },
+{ product: “trouser”, price: “$800”, colour: “white”, purchase-date: “23-12-2023” },
+{ product: “t-shirt”, price: “$300”, colour: “red”, purchase-date: “23-12-2023” }
+]
+```
+
+## Array 属性のクエリ
+
+### イベント属性
+
+過去 60 日間に少なくとも 1 回ワクチン接種を受け、犬種が _Lab_、年齢が 5 歳未満で、好きなおやつが _bone_ である犬を飼っているユーザーをセグメント化したい場合です。
+
+![](/images/moengage_4c1554.png)
+
+サンプルコード
+
+```json wrap
+Pets object array: 
+[ 
+{ species : “Dog”, vaccinated: “Yes”, Age : 2, treats : [‘bone’, ‘candy’, ‘pedigree’] },  
+{ species : “Cat”, vaccinated: “Yes”, Age : 2, treats : [ ‘candy’, fish] }, 
+{ species : “Dog”, vaccinated: “No”, Age : 4, treats : [‘bone’, ‘pedigree’] }
+]
+```
+
+## ネストされたオブジェクトのクエリ
+
+### イベント属性
+
+価格が 300 USD の本を購入したユーザーをセグメント化したい場合です。
+
+<img
+  height="272.57148713901506"
+  src="/images/moengage_b85303.png"
+/>
+
+サンプルコード
+
+```json wrap
+[
+{
+"item-id" : 123,
+"item-type" : "books",
+"item-cost" : { "amount" : 100, "currency" : "USD" }
+},
+{
+"item-id" : 456,
+"item-type" : "fruits",
+"item-cost" : { "amount" : 200, "currency" : "USD" }
+},
+{
+"item-id" : 678,
+"item-type" : "books",
+"item-cost" : { "amount" : 140, "currency" : "USD" }
+}
+]
+```
+
+**Create segment** ページの **Query Results** セクションには、ダッシュボードで実行されたすべてのクエリの履歴が表示されます。各クエリについて、**Query Time**、**Description**、**Source**、**User Count**、**Reachable Users** などの詳細を確認できます。
+
+# "With" 演算子の機能
+
+Object データ型を使用したクエリの作成には、"With" 演算子と AND/OR 演算子の両方を使用できます。AND/OR 演算子はオブジェクト間にわたって属性フィルターを適用するのに対し、With 演算子は 1 つのオブジェクト内で属性フィルターを適用します。
+
+<img
+  height="286.3327046586883"
+  src="/images/moengage_c1ce2a.png"
+/>
+
+## With 演算子の使用
+
+With 演算子を使用して以下のユースケースを実現する例として、次のペットの Object データ型を考えてみましょう。
+
+Pets オブジェクト
+
+```json wrap
+[
+{ Breed: “Lab”, Age: “3”, Treat: “Bone” },
+{ Breed: “Lab”, Age: “5”, Treat: “Fish” },
+{ Breed: “Bulldog”, Age: “3”, Treat: “Pedigree” }
+]
+```
+
+### 例 1
+
+**With** 演算子を使用して、過去 60 日間に 3 回ワクチン接種を受け、犬種が _Lab_ で、年齢が 5 歳未満、好きなおやつが _Bone_ である犬を飼っているユーザーをセグメント化したい場合です。
+
+このユースケースを実現するには、クエリを次のように分解します。
+
+- ペットが犬種 _Lab_ の犬であるユーザーを見つける
+- Lab 種の中から、年齢が \< 5 歳の犬を見つける
+- \< 5 歳の Lab 種の中から、好きなおやつが _Bone_ の犬を見つける
+
+<Frame>
+  ![Userbehavior](/images/userbehavior.png)
+</Frame>
+
+ここで、**with** 演算子はまず親属性（上記の例では pets.age）を検索し、次にその子属性（この場合は pets.treat）にフィルターを適用します。
+
+オブジェクトの配列の中に、年齢が \< 5 歳で好きなおやつが Bone の Lab が存在するため、このクエリは上記のユーザーを返します。
+
+### 例 2
+
+過去 60 日間に 3 回ワクチン接種を受け、犬種が _Lab_ で、年齢が 5 歳未満、好きなおやつが _Fish_ である犬を飼っているユーザーをセグメント化したい場合です。
+
+<Frame>
+  ![Willnotreturn](/images/willnotreturn.png)
+</Frame>
+
+このクエリは上記のユーザーを**返しません**。年齢が \< 5 歳の Lab は存在しますが、その好きなおやつは Fish ではないためです。同時に、好きなおやつが Fish の Lab 種も存在しますが、その年齢は 5 歳未満ではありません。そのため、このユーザーはセグメンテーション時に返されません。
+
+## And 演算子の使用
+
+And 演算子を使用して以下のユースケースの一部を実現する例として、次のペットの Object データ型を考えてみましょう。
+
+Pets オブジェクト
+
+```json wrap
+[
+{ Breed: “Lab”, Age: “3”, Treat: “Bone” },
+{ Breed: “Lab”, Age: “5”, Treat: “Fish” },
+{ Breed: “Bulldog”, Age: “3”, Treat: “Pedigree” }
+]
+```
+
+### 例 1
+
+過去 60 日間に 3 回ワクチン接種を受けた犬を飼っていて、ペットが犬種 _Lab_ の犬であるユーザー AND 年齢が \> 3 歳のペットを飼っているユーザー AND ペットの好きなおやつが _Fish_ であるユーザーをセグメント化したい場合です。
+
+このクエリは、次の条件を満たすユーザーを返します。
+
+- 過去 60 日間に 3 回ワクチン接種を受けたペットを飼っている
+- 犬種 _Lab_ の犬をペットとして飼っている
+- 年齢が \> 3 歳のペットを飼っている
+- 好きなおやつが _Fish_ のペットを飼っている
+
+したがって、オブジェクトの配列全体のどこかに Lab 種のペットが存在し、一部のペットが 3 歳より年上\>であるため、このユーザーはセグメンテーション時に返されます。また、一部のペットは好きなおやつが Fish です。このように、AND 条件の場合に必要とされるとおり、3 つの条件すべてがそれぞれ独立して満たされています。
+
+## OR 演算子の使用
+
+OR 演算子を使用して以下のユースケースの一部を実現する例として、次のペットの Object データ型を考えてみましょう。
+
+Pets オブジェクト
+
+```json wrap
+[
+{ Breed: “Lab”, Age: “3”, Treat: “Bone” },
+{ Breed: “Lab”, Age: “5”, Treat: “Fish” },
+{ Breed: “Bulldog”, Age: “3”, Treat: “Pedigree” }
+]
+```
+
+### 例 1
+
+過去 60 日間に 3 回ワクチン接種を受けた犬を飼っていて、ペットが犬種 _Lab_ の犬であるユーザー OR 年齢が \> 3 歳のペットを飼っているユーザー OR ペットの好きなおやつが _Duck_ であるユーザーをセグメント化したい場合です。
+
+<Frame>
+  ![Filterusers](/images/filterusers.png)
+</Frame>
+
+このクエリは **OR** 演算子の定義（すべての条件のうち少なくとも 1 つが満たされる必要がある）を満たすため、上記のユーザーを返します。この場合、好きなおやつ = _Duck_ という条件のみが満たされていませんが、他の 2 つの条件は満たされているため、セグメンテーション時に上記のユーザーが返されます。
+
+<Info>
+  **With** 演算子を使用すると、前のフィールドと同じネストレベルの属性が表示されます。一貫性を保つため、他のネストレベルの属性は表示されません。このユースケースを実現するには、**And** 演算子を使用できます。
+
+  ![](/images/moengage_4bf4c1.png)
+</Info>
+
+# ネストされたオブジェクトの配列にまたがるクエリ
+
+<Note>
+  これは Early Access 機能です。アカウントで有効にするには、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+</Note>
+
+オブジェクトの配列が別のオブジェクトの配列内にネストされているデータ構造（最大 2 レベル）では、両方のレベルにまたがるクエリを作成して高度なセグメンテーションを実行できます。これにより、同じオブジェクト要素内の親（レベル 1）配列とネストされた（レベル 2）配列の属性の組み合わせに基づいてユーザーを見つけることができます。
+
+ネストされた（レベル 2）配列から属性を選択すると、セグメンテーション UI には 2 つの "With" 演算子が表示されます。
+
+- インデントされた 1 つ目の "With" 演算子では、同じネストレベル（レベル 2）の属性に条件を追加できます。
+- 2 つ目の "With" 演算子では、親レベル（レベル 1）の属性に条件を追加できます。
+
+### 例
+
+オブジェクトの配列であるユーザー属性 "nations" を考えてみましょう。各 nation オブジェクトには、name や population などの詳細に加えて、"cities" と呼ばれるネストされたオブジェクトの配列が含まれています。各 city オブジェクトにも、それぞれ独自の属性が含まれています。
+
+Nations オブジェクトの例
+
+```json wrap
+
+{
+    "nations": [
+        {
+            "name": "India",
+            "capital": "New Delhi",
+            "population": 1.4,
+            "date": "2025-06-04T00:00:00Z",
+            "bool_attr": true,
+            "array_strr": ["one", "two", "three"],
+            "array_number": [1, 2, 3],
+            "last_level": { "key1": "value1", "key2": 123 },
+            "cities": [
+                {
+                    "name1": "Mumbai",
+                    "population1": 20,
+                    "landmarks1": ["Gateway of India1", "Chhatrapati Shivaji Maharaj Terminus"],
+                    "date1": "2025-06-04T00:00:00Z",
+                    "bool_attr1": true,
+                    "array_strr1": ["one", "two", "three"],
+                    "array_number1": [1, 2, 3],
+                    "last_level1": { "key1": "value1", "key2": 123 }
+                },
+                {
+                    "name1": "Bengaluru Urban",
+                    "population1": 8,
+                    "landmarks1": ["Vidhana Soudha", "Lal Bagh"],
+                    "date1": "2025-06-04T00:00:00Z",
+                    "bool_attr1": true,
+                    "array_strr1": ["one", "two", "three"],
+                    "array_number1": [1, 2, 3],
+                    "last_level1": { "key1": "value1", "key2": 123 }
+                }
+            ]
+        },
+        {
+            "name": "India",
+            "date": "2025-06-04T00:00:00Z",
+            "bool_attr": false,
+            "capital": "New Delhi",
+            "population": 1.4,
+            "array_strr": ["one", "two", "three"],
+            "array_number": [1, 2, 3],
+            "cities": [
+                {
+                    "name1": "Bengaluru Rural",
+                    "population1": 7,
+                    "landmarks1": ["Vidhana Soudha", "Lal Bagh"],
+                    "date1": "2025-06-04T00:00:00Z",
+                    "bool_attr1": true,
+                    "array_strr1": ["one", "two", "three"],
+                    "array_number1": [1, 2, 3],
+                    "last_level1": { "key1": "value1", "key2": 123 }
+                }
+            ]
+        },
+        {
+            "name": "Japan",
+            "date": "2025-06-04T00:00:00Z",
+            "bool_attr": true,
+            "capital": "Tokyo",
+            "population": 125,
+            "array_strr": ["one", "two", "three"],
+            "array_number": [1, 2, 3],
+            "cities": [
+                {
+                    "name1": "Tokyo",
+                    "population1": 37,
+                    "landmarks1": ["Tokyo Skytree", "Shibuya Crossing"],
+                    "date1": "2025-06-04T00:00:00Z",
+                    "bool_attr1": true,
+                    "array_strr1": ["one", "two", "three"],
+                    "array_number1": [1, 2, 3],
+                    "last_level1": { "key1": "value1", "key2": 123 }
+                },
+                {
+                    "name1": "Kyoto",
+                    "population1": 1.5,
+                    "landmarks1": ["Kinkaku-ji", "Fushimi Inari-taisha"],
+                    "date1": "2025-06-04T00:00:00Z",
+                    "bool_attr1": true,
+                    "array_strr1": ["one", "two", "three"],
+                    "array_number1": [1, 2, 3],
+                    "last_level1": { "key1": "value1", "key2": 123 }
+                }
+            ]
+        }
+    ]
+}
+```
+
+それでは、ある nation の人口が 10 億を超え、かつ同じ "nation" オブジェクト内に人口が 1,000 万を超える city が存在するユーザーのセグメントを作成してみましょう。
+
+1. **Create Segment** ページで、**User property** タブをクリックします。
+2. まず、属性でフィルタリングします: `nations.population` is greater than 1
+3. インデントされた "With" 演算子が表示されます。これを使用して、`nations.cities.name1` などの city 属性に別の条件を追加できます。
+4. 1 つ目の下に 2 つ目の "With" 演算子が表示されます。これを使用して、レベル 1 属性の条件を追加します: `nations.cities.population1` is greater than 10。
+
+![Screenshot 2025-06-24 at 3.21.59 PM.png](/images/moengage_61c83e.png)
+
+このクエリは "With" 演算子を使用して、両方の条件が同じ "nations" 要素内で満たされるようにします。"India" オブジェクトは人口が 10 億を超えており（1.4 として表現）、人口が 1,000 万を超える city（"Mumbai"、20 として表現）を含んでいるため、このクエリは "India" オブジェクトに関連付けられたユーザーを見つけます。"Japan" オブジェクトは国の人口が 10 億未満であるため除外されます。
+
+# Object データ型に関する考慮事項
+
+Object データ型は強力なセグメンテーション機能を提供しますが、MoEngage における現在の対応範囲を把握しておくことが重要です。これを理解しておくと、データ取り込み戦略を計画し、オブジェクトベースのセグメンテーションで何が実現できるかを把握するのに役立ちます。
+
+- **ファイルアップロード**: Object データ型は現在、_File segment_ アップロード機能ではサポートされていません。
+- **ユーザーエクスポート**: CSV によるユーザーエクスポートは、Object ユーザー属性をサポートしていません。ユーザーデータをエクスポートする際、Object 属性は CSV に含まれません。
+- **集計のサポート**: オブジェクトの配列の集計はサポートされていません。ただし、個々のオブジェクトおよび（配列ではない）ネストされたオブジェクトの集計はサポートされています。
+- **属性の比較**: ユーザー属性の比較では、オブジェクト同士の属性比較はサポートされていません。ただし、オブジェクトとプリミティブの属性比較（例えば、オブジェクト内の値を単純な文字列や数値と比較する）は引き続きサポートされています。
+- **Object データをサポートしていない機能**: 次の MoEngage 機能は現在、Object データ型を完全にはサポートしていません。
+  - カスタムセグメントフィルターベースの public API
+  - Segment payload generator
+  - App marketplace（Sync segment のカスタム宛先）
+  - リアルタイムセグメンテーション
+  - User affinity（Object 属性に直接定義した場合）
+  これらのサポートされていない機能で Object データが必要なシナリオでは、取り込み前にデータをよりシンプルなプリミティブ型に変換することを検討してください。
+
+# よくある質問
+
+<Accordion title="同じ属性に対して、オブジェクトと文字列など異なるデータ型を送信するとどうなりますか？">
+  _同じ_ 属性に対して複数のデータ型が取り込まれた場合、MoEngage は自動的に優先順位を付け、最初に検出したデータ型をクエリ用に選択します。その属性について 2 番目のデータ型の値をクエリすることはできません。
+
+  **回避策:** 類似したデータについてオブジェクトとオブジェクトの配列の両方の値をクエリするには、データ取り込みで 2 つの別々の属性を使用することをお勧めします。データ管理でそれぞれをオブジェクトとして設定し、オブジェクトの値を一方の属性に、オブジェクトの配列の値をもう一方の属性に渡します。これにより、両方を個別にクエリできるようになります。
+</Accordion>
+
+<Accordion title="セグメントの作成時に、Object データ型の属性で値の候補は利用できますか？">
+  はい、Object データ型の属性で Value Suggestions がサポートされるようになりました。セグメントを作成する際、オブジェクト内の特定の値を検索できます。Object データの値の候補は、プリミティブデータ型と同じ生成ルールに従います。詳細については、[こちら](/ja/user-guide/segment/advanced-concepts/value-suggestions)を参照してください。
+</Accordion>

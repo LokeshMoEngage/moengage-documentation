@@ -1,0 +1,118 @@
+---
+title: "Android アプリでカスタム通知音を使用する方法"
+description: "通知チャネルを使用して Android アプリのカスタム通知音を設定し、キャンペーン配信のために MoEngage ダッシュボードにマッピングする方法を説明します。"
+---
+
+# はじめに
+
+プッシュ通知の分野では、最初の目的はユーザーの注意を引くことです。Android の Notification Channels を使用すると、アプリ開発者は通知を分類でき、ユーザーは自分の好みに合わせて通知を調整できます。通知チャネルを作成すると、特定の視覚的および聴覚的な機能を設定できます。これは、カスタムサウンドやその他の Android のメソッドを使用して実現できます。
+
+この記事では、Android アプリにカスタム通知音を組み込む方法について説明します。
+
+<Info>
+  これを実現するには、開発者の協力が必要です。
+</Info>
+
+# カスタムの聴覚設定と視覚設定を使用した通知チャネルの作成
+
+次の手順を実行します。
+
+1. NotificationManager への参照を取得します。\
+   通知チャネルを作成する前に、NotificationManager への参照が必要です。
+   <CodeGroup>
+   ```ruby Code wrap
+   NotificationManager notificationManager = getSystemService(NotificationManager.class);
+   ```
+   </CodeGroup>
+2. 通知チャネルを作成します。
+   <CodeGroup>
+   ```ruby Code wrap
+   String channelId = "my_channel_id";
+   CharSequence channelName = "My Channel";
+   int importance = NotificationManager.IMPORTANCE_HIGH; // Set the importance level
+   NotificationChannel notificationChannel = new NotificationChannel(channelId, channelName, importance);
+   ```
+   </CodeGroup>
+3. 聴覚プロパティを設定します。\
+   次の項目に対して、カスタムサウンドとバイブレーションパターンを設定できます。
+   - **サウンド**:
+     <CodeGroup>
+     ```ruby Code wrap
+     // Define an audio attribute
+     AudioAttributes audioAttributes = new AudioAttributes.Builder()
+     .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+     .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+     .build();
+     // Set the custom sound and audio attributes to the notification channel
+     notificationChannel.setSound(Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "//"
+     + getApplicationContext().getPackageName() + "/" + R.raw.your_sound_file), audioAttributes)
+     ```
+     </CodeGroup>
+   - **バイブレーション**: 
+     <CodeGroup>
+     ```ruby Code wrap
+     long[] vibrationPattern = {100, 200, 300, 400, 500, 400, 300, 200, 400}; // Define your custom pattern
+     notificationChannel.setVibrationPattern(vibrationPattern);
+     notificationChannel.enableVibration(true);
+     ```
+     </CodeGroup>
+
+4. ライトの色、ロック画面での表示、バッジなどの視覚プロパティを設定します。
+   <CodeGroup>
+   ```ruby Code wrap
+   notificationChannel.setLightColor(Color.RED); // Set the light color
+   notificationChannel.enableLights(true); // Enable lights
+   notificationChannel.setLockscreenVisibility(Notification.VISIBILITY_PRIVATE); // Set lock screen visibility
+   notificationChannel.setShowBadge(true); // Enable badges
+   ```
+   </CodeGroup>
+
+6. 通知チャネルをシステムに登録します。\
+   _createNotificationChannel()_ メソッドを使用して通知チャネルを作成します。
+   <CodeGroup>
+   ```ruby Code wrap
+   assert notificationManager != null;
+   notificationManager.createNotificationChannel(notificationChannel);
+   ```
+   </CodeGroup>
+
+8. 通知センターに表示される通知を送信します。\
+   通知を作成する際に、前に指定したチャネル ID を設定します。
+   <CodeGroup>
+   ```ruby Code wrap
+   NotificationCompat.Builder builder = new NotificationCompat.Builder(this, channelId)
+   .setSmallIcon(R.drawable.notification_icon)
+   .setContentTitle("My notification")
+   .setContentText("Hello World!")
+   .setPriority(NotificationCompat.PRIORITY_HIGH); // Set the priority
+   notificationManager.notify(1, builder.build());
+   ```
+   </CodeGroup>
+
+   <Info>
+     - _assert notificationManager != null;_ は、NotificationManager の参照が null の場合に NullPointerException が発生するのを防ぎます。また、ユーザーインターフェイスをブロックしないように、通知処理全体がバックグラウンドスレッドで実行されるようにしてください。
+     - _my\_channel\_id_ をチャネルの一意の ID に置き換え、_My Channel_ はチャネルの人間が読める名前にする必要があります。これらの設定は、チャネルが最初に作成されたときに有効になります。
+     - 通知チャネルを作成した後は、その動作を変更できません。通知設定の最終的な制御権はユーザーにあります。
+   </Info>
+
+# MoEngage での通知チャネルの使用
+
+MoEngage ダッシュボードで通知チャネルを設定する詳細な手順については、[Android Push Notification Channels](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/android-push-notification-channels) を参照してください。
+
+<Tip>
+  Notification Channel を使用するには、MoEngage の Android SDK のバージョンを v8.0.00 に更新する必要もあります。
+</Tip>
+
+1. プッシュ通知のステップ 2「Content」に移動します。
+2. **Basic details** セクションで、通知チャネルを追加します。
+   1. **Notification channel** ドロップダウンリストを展開し、** Manage notification channel** をクリックします。![Android プッシュコンポーザーの Notification Channel ドロップダウンメニュー](/images/usecaseimage.png)
+   2. Manage android notification channel ポップアップウィンドウが表示されます。![チャネル名、ID、重要度のフィールドを表示する Manage notification channel モーダル](/images/add-a-new-channel.gif)
+3. **Manage notification channel** でチャネルを追加する際は、その **Importance** を、開発者がアプリで設定したレベルと一致するように設定します。これにより、マーケターはキャンペーン用のチャネルを選択する前に、どのチャネルでサウンドが鳴るか (Urgent または High)、どのチャネルがサイレントか (Medium、Low、または None) を識別できます。重要度レベルとアプリのコードの対応については、[Android SDK 開発者ドキュメント](https://developer.android.com/develop/ui/views/notifications/channels)を参照してください。
+4. 同じセクションで、通知に適した通知チャネルを選択します。チャネルを追加した後、要件に基づいてキャンペーン用のチャネルをいずれか 1 つ選択します。同じ通知チャネルに投稿されたすべての通知は、同じ動作をします。
+   <Info>
+     無効なチャネル ID が追加された場合、またはチャネル ID の追加を忘れた場合、MoEngage は Android 8.0 (API レベル 26) 以降のユーザーをターゲットにするために General Channel (MoEngage のフォールバックチャネル) を使用します。
+   </Info>
+
+# まとめ
+
+このユースケースでは、Android アプリにカスタム通知音を組み込む方法を説明しました。キャンペーンを公開する前に、**Test Campaign** オプションを使用して動作をテストできます。詳細については、[こちら](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns)を参照してください。

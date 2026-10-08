@@ -1,0 +1,108 @@
+---
+title: "位置情報トリガー"
+description: "MoEngage SDK を使用して、Android アプリでジオフェンスベースの位置情報トリガーのプッシュ通知を設定します。"
+---
+
+# 前提条件
+
+位置情報トリガー（Geofence）のプッシュを使用するには、アプリで以下をリクエストする必要があります。
+
+- ACCESS_FINE_LOCATION
+- ACCESS_BACKGROUND_LOCATION（アプリが Android 10（API レベル 29）以降をターゲットとする場合）
+
+<Info>
+  位置情報トリガーのプッシュが機能するように、アプリケーションで位置情報の権限、Play Services の位置情報ライブラリ、デバイスの位置情報が有効になっていることを確認してください。
+</Info>
+
+詳細については、[Android Request Geofences](https://developer.android.com/training/location/geofencing#RequestGeofences) を参照してください。
+
+# SDK のインストール
+
+## BOM を使用したインストール
+
+BOM を使用した連携が推奨される連携方法です。[BOM を使用したインストール](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)のドキュメントを参照してください。BOM を設定したら、以下のように _app/build.gradle_ ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```Groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:geofence")
+}
+```
+
+</CodeGroup>
+
+BOM を設定したら、アプリケーションに必要な特定の MoEngage モジュールを含めます。\
+注: これらの依存関係にバージョン番号は必要ありません。BOM によって自動的に管理されます。
+
+# Geofence の設定
+
+デフォルトでは、ジオフェンス機能は有効になっていません。この機能を有効にするには、以下の API を呼び出します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEGeofenceHelper.getInstance().startGeofenceMonitoring(context)
+```
+
+
+```java Java
+MoEGeofenceHelper.getInstance().startGeofenceMonitoring(context);
+```
+
+</CodeGroup>
+
+ジオフェンスの監視または機能を停止したい場合は、いつでも以下の API を使用できます。この API は既存のジオフェンスを削除します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEGeofenceHelper.getInstance().stopGeofenceMonitoring(context)
+```
+
+
+```java Java
+MoEGeofenceHelper.getInstance().stopGeofenceMonitoring(context);
+```
+
+</CodeGroup>
+
+## コールバック
+
+MoEngage SDK は、ジオフェンスがトリガーされるたびにアプリケーションに通知できます。リスナーが `true` を返すと、アプリケーションがトリガーを処理し、SDK はそれ以上処理しません。`false` を返すと SDK が通常どおりトリガーを処理するため、リスナーをログ記録や分析のためだけに使用できます。
+
+[`OnGeofenceHitListener`](https://moengage.github.io/android-api-reference/geofence/com.moengage.geofence.listener/-on-geofence-hit-listener/index.html) を実装し、Application クラスの `onCreate()` で [`MoEGeofenceHelper.getInstance().addListener()`](https://moengage.github.io/android-api-reference/geofence/com.moengage.geofence/-mo-e-geofence-helper/add-listener.html) を使用して登録します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+class MyApplication : Application() {
+    override fun onCreate() {
+        super.onCreate()
+
+        MoEGeofenceHelper.getInstance().addListener(OnGeofenceHitListener { geofenceData ->
+            // Log or analytics for the triggered geofence.
+            // Return true to consume the trigger; false lets the SDK process it.
+            false
+        })
+    }
+}
+```
+
+```java Java
+public class MyApplication extends Application {
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        MoEGeofenceHelper.getInstance().addListener(geofenceData -> {
+            // Log or analytics for the triggered geofence.
+            // Return true to consume the trigger; false lets the SDK process it.
+            return false;
+        });
+    }
+}
+```
+
+</CodeGroup>

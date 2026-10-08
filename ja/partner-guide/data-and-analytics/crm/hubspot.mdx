@@ -1,0 +1,124 @@
+---
+title: "HubSpot"
+---
+
+[HubSpot](https://www.hubspot.com/products/crm) は、統合されたツールスイートによってマーケティング、営業、サービス、オペレーションの各チームを一元化する包括的な顧客関係管理（CRM）プラットフォームです。この一元化されたハブにより、企業は顧客とのやり取りやデータを 1 か所で管理し、顧客を引きつけ、エンゲージし、満足させることができます。
+
+## MoEngage × HubSpot
+
+MoEngage と HubSpot の統合により、シームレスなデータ同期を通じてマーケティングと営業の取り組みを強化できます。この統合により、次のことができます。
+
+- HubSpot から MoEngage に連絡先、商談などを同期する。
+- 通話、タスク、ミーティングなどの営業活動を行動イベントとしてインポートする。
+- カスタムモジュールを取り込み、包括的な顧客プロファイリングを行う。
+
+## ユースケース
+
+HubSpot を MoEngage と統合すると、次のユースケースに対応できます。
+
+- **有望なリードを育成する**: HubSpot のリードスコアリングやライフサイクルステージの進行に基づいて、パーソナライズされた MoEngage キャンペーンを送信します。
+- **失注した商談に再エンゲージする**: 商談が **Closed Lost** とマークされたときに、ターゲットを絞ったウィンバックキャンペーンを送信して、見込み顧客に再度エンゲージします。
+- **ライフサイクルキャンペーンをトリガーする**: 連絡先が Customer ライフサイクルステージに移行したときに、ウェルカムシリーズを自動的に送信します。
+
+### 同期モジュール
+
+次の表は、各モジュールのデフォルトの同期タイプの概要です。
+
+| モジュール | MoEngage の同期タイプ |
+| --- | --- |
+| Contacts | ユーザー |
+| Leads | ユーザー |
+| Companies | ユーザー（Contacts および Deals と同期） |
+| Deals | イベント |
+| Tickets | イベント |
+| Tasks | イベント（カスタム） |
+| Calls | イベント（カスタム） |
+| Meetings | イベント（カスタム） |
+| Custom Modules | ユーザー/イベント（カスタム） |
+
+<Info>
+  会社情報: Companies モジュールもサポートされています。データを常に最新の状態に保つため、関連する会社情報はそれぞれ Contacts レコードと Deals レコードとともに同期されます。
+</Info>
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  HubSpot アカウント内のワークフロー機能と Webhook 機能にアクセスできることを確認してください。
+</Info>
+
+## ステップ 1: MoEngage エンドポイントを取得する
+
+統合用の専用エンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストでは、MoEngage とパートナープラットフォームの間でユーザープロファイルを紐付けるために使用する共通の識別子を指定する必要があります。
+
+## ステップ 2: HubSpot でワークフローを作成する
+
+ワークフローを設定するには、次の手順を実行します。
+
+1. **HubSpot** ダッシュボードのサイドバーメニューで、**Automation** アイコン <img src="/images/partner_41087595711636.png" /> にカーソルを合わせます。**Automation** メニューが表示されます。
+2. **Workflows** をクリックします。
+3. **Workflows** ページで、右上隅にある **Create** **workflow** をクリックします。<img src="/images/partner_41087595712532.png" />
+4. **Create workflow** リストで **From scratch** を選択します。<img src="/images/partner_41087550364948.png" />
+5. 次に、ワークフローのイベントタイプとプライマリオブジェクト（**Contact**、**Deal** など）を選択します。
+6. 次に、トリガーを設定し、フィルターを使用して具体的な登録条件を定義します。たとえば、**Contact Property**（Lifecycle Stage）または **Deal Stage** が更新されたときにワークフローをトリガーできます。
+   <Frame>
+     ![Hubsopt](/images/hubsopt.png)
+   </Frame>
+
+## ステップ 3: Webhook アクションを設定する
+
+Webhook アクションを設定するには、次の手順を実行します。
+
+1. トリガーアクションを設定したら、**Next** をクリックして先に進みます。
+2. **Choose an action** セクションで、**Data Ops** \> **Send a webhook** を選択します。
+3. 次の詳細を入力します。
+
+| HubSpot のセクション | 説明 |
+| --- | --- |
+| **Method** | **POST** |
+| **URL** | MoEngage から提供された専用の Webhook URL を次の形式で入力します。<br />`https://api-0X.moengage.com/v1/partner/hubspot/{events/user}/?configName={config_name}` |
+| **Custom Headers** | **Headers**<br /> <ol><li>**Authentication type** リストで **API Key** を選択します。これを選択すると、従属するドロップダウンリストに値が入力されます。</li><li>**Add secret** をクリックします。<br /><br /><img src="/images/partner_41087550365972.png" /><br /><br />**Add secret** ポップアップウィンドウが表示されます。</li><li>**Secret name** ボックスに **Authorization** と入力します。</li><li>**Secret value** ボックスに、生成した Basic トークンを入力します。詳細については、Authorization セクションを参照してください。</li><li>**Save** をクリックします。<br /><br /><img src="/images/partner_41087550366356.png" /><br /><br /></li><li>**API key** リストで、作成したシークレットをリストから選択します。</li><li>**API key location** リストで **Request header** を選択します。<br /><br /><img src="/images/partner_41087595714324.png" /></li></ol> <br /><br />**Authorization**<br />オンラインの [Basic Auth Header Generator ツール](https://www.debugbear.com/basic-auth-header-generator)を使用して、Basic 認証トークンを生成します。ユーザー名として **Workspace ID** を、パスワードとして **Data API Key** を入力する必要があります。認証情報を確認するには、次の手順を実行します。<ol><li>MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。</li><li>**Workspace ID**（**旧 app id**）の下にある ID をコピーします。</li><li>**API keys** の下にある **Data** をコピーします。</li></ol> Basic 認証トークンは、**Workspace ID** と **Data** を組み合わせたものです。たとえば、Basic 認証トークンとして次の値を貼り付けます。<br /><br />`Basic Qk5CR1NNNUR4eHh4eHhWQ1hSRFJEWTdSOlFsWHVoTHVaeHh4eHh4QWQrQnBYUEotNw==`<br /><br />**注**: トークンは余分なスペースを含めず、完全にコピーしてください。 |
+
+## ステップ 4: リクエスト本文を設定する
+
+Webhook のペイロードを設定するには、次の手順を実行します。
+
+1. **Request Body** セクションで、**Customize request body** チェックボックスをオンにします。
+2. 同期タイプ（**Users** または **Events**）に基づいて、次の詳細を追加します。
+
+| フィールド名 | データタイプ | 値 |
+| --- | --- | --- |
+| **Contacts** |  |  |
+| customer\_id | Property | 123456789 |
+| event\_name | Static | User Signed Up |
+| modified\_time | Property | 2025-09-07T11:02:16Z |
+| u\_fn | Property | John |
+| u\_ln | Property | Doe |
+| u\_em | Property | [john.doe@example.com](mailto:john.doe@example.com) |
+| u\_mb | Property | \+1-555-123-4567 |
+
+<img src="/images/partner_41087595714580.png" />\
+必要に応じて、**Add property** オプションと **Add static value** オプションを使用して、特定のユースケース向けに追加のプロパティを追加できます。
+
+<Info>
+  - **customer\_id**: すべての同期にわたって一意かつ永続的な ID である必要があります。
+  - **modified\_time** と **type**: ユーザーデータとイベントデータの両方の同期に必須です。
+  - **event\_name**: MoEngage で適切な分類とセグメンテーションを行うため、イベントデータに必須です。
+  - **ユーザー属性（u\_\*）**: ユーザーデータには必須ですが、イベントデータでは任意です。
+</Info>
+
+## データマッピングのガイドライン
+
+- **一意の識別子（Customer ID）**: HubSpot CRM データから、一貫性があり変更されない一意の識別子（external\_id、メールアドレス、電話番号など）を使用します。この値を MoEngage ペイロードの `customer_id` フィールドにマッピングします。これは、データのマージと重複するユーザープロファイルの防止に不可欠です。
+- **必須フィールド**: すべてのペイロードには、`customer_id`、`modified_time`、`type` フィールドを含める必要があります。これらは、適切なデータ処理、検索、セグメンテーションに不可欠です。
+- **Type**: MoEngage で正確なセグメンテーションとターゲティングを行うため、レコードタイプを "Contacts"、"Leads"、または "Deals" として指定します。
+- **Event Name**: MoEngage でアクションを識別および分類するため、すべてのイベントに `event_name` を含めます。これにより、分析とセグメンテーションのためにすべてのイベントが正確にトラッキングされます。
+
+# レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は HubSpot データの取り込みを、ワークスペースごとに最大 500 リクエスト/秒（RPS）に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、HubSpot のデフォルトの再試行ポリシーを参照してください。
+
+ペイロードサイズやその他の取り込み制限の詳細については、[パートナーデータ取り込みのレート制限](/ja/partner-guide/data-and-analytics/ingestion-rate-limits)を参照してください。

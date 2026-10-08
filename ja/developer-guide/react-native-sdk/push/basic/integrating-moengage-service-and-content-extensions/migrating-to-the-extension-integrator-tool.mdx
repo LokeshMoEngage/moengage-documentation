@@ -1,0 +1,150 @@
+---
+title: "Extension Integrator Tool への移行"
+description: "React Native アプリで、手動による iOS 通知拡張機能のセットアップから MoEngage Extension Integrator Tool に移行します。"
+---
+
+このガイドのすべての手順は Xcode で実行します。先に進む前に、Xcode で `ios/YourApp.xcworkspace` を起動して iOS プロジェクトを開いてください。
+
+既存の手動実装から Integrator Tool に移行するには、以下の手順に従います。
+
+### ステップ 1: 前提条件
+
+先に進む前に、以下が整っていることを確認してください。
+
+- Extension Integrator Tool を利用するには、MoEngage React Native SDK バージョン [12.6.0](/ja/release-notes/sdks/react-native#core-12-6-0) 以降を使用していることを確認してください。
+- **SDK の初期化:** [ファイルベースの初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/file-based-initialization/file-based-initialization)を使用して MoEngage SDK を初期化します。
+  - **App Group の設定:** `sdkConfig.appGroupID` で使用している `AppGroupName` キー（例: `group.com.organization.app`）を指定します。
+- 統合が完了した後、コード署名のためにキーチェーンへのアクセスを求められる場合があります。**常に許可** をクリックしてください。
+  <Frame>
+    <img
+      src="/images/keychain.png"
+      alt="キーチェーン"
+      title="キーチェーン"
+      style={{ width:"48%" }}
+      className="mr-auto"
+    />
+  </Frame>
+
+### ステップ 2: MoEngageRichNotification の統合
+
+以下のいずれかのプッシュ通知機能をサポートする必要がある場合は、`MoEngageRichNotification` を統合します。
+
+- **リッチメディア** — 通知バナーに画像、GIF、動画を表示します
+- **リッチプッシュテンプレート** — カルーセルなどのインタラクティブな通知レイアウトをレンダリングします
+
+<Info>
+  コンテンツ拡張機能を統合している場合、この手順は必須です。
+</Info>
+
+<Tabs>
+  <Tab title="Swift Package Manager (SPM)">
+    SPM を使用して `MoEngageRichNotification` をインストールするには、次の手順を実行します。
+
+    1. **File \> Add Package** に移動します。
+    2. リポジトリ URL を入力します。
+       - `https://github.com/moengage/apple-sdk.git`
+    3. **master** ブランチまたは特定のバージョンを選択し、**Add Package** を選択します。
+    4. パッケージのターゲットをアプリケーションに設定します。
+  </Tab>
+  <Tab title="CocoaPods">
+    <Warning>
+      **情報** CocoaPods は非推奨になりつつあります。MoEngage は、すべての新規統合で Swift Package Manager を使用することをお勧めします。詳細については、[こちら](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration)を参照してください。
+    </Warning>
+
+    1. アプリのターゲット内の `Podfile` に次の行を追加します。
+
+    <Info>
+      `react-native-moengage` パッケージにはすでに `MoEngage-iOS-SDK` が含まれているため、`RichNotification` サブスペックを追加するだけで済みます。
+    </Info>
+
+    ```ruby lines wrap
+    pod 'MoEngage-iOS-SDK/RichNotification'
+    ```
+
+    2. pod install を実行します。
+
+    ```ruby lines wrap
+     pod repo update
+     pod install
+    ```
+  </Tab>
+</Tabs>
+
+### ステップ 3: Extension Integrator Tool の統合
+
+ビルドプロセスにカスタムスクリプトを追加して、拡張機能の設定を自動化します。
+
+1. Xcode でアプリケーションのターゲットを選択し、**Build Phases** に移動して **\+** をクリックし、**New Run Script Phase** を追加します。
+<Frame>
+     <img
+       src="/images/newrunscriptphase.png"
+       alt="New Run Script Phase"
+       title="New Run Script Phase"
+       className="mr-auto"
+       style={{ width:"54%" }}
+     />
+</Frame>
+   <Info>
+     すでにスクリプトフェーズを追加して入力ファイルを設定済みの場合は、以下の手順 3 で説明する実行コマンドを更新するだけで済みます。
+   </Info>
+
+2. **Input Files** セクションに次のパスを追加します。
+
+- `$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)`
+- `$(INSTALL_DIR)/$(INFOPLIST_PATH)`
+
+<Frame>
+  <img
+    src="/images/path-1.png"
+    alt="パス 1"
+    title="パス 1"
+    style={{ width:"54%" }}
+    className="mr-auto"
+  />
+</Frame>
+
+3. 手順 1 で追加した Run Script Phase のシェルスクリプト入力ボックスに、使用している依存関係マネージャーに対応するコマンドを入力し、`$OPTIONS` を目的の設定に置き換えます。
+
+<Tabs>
+  <Tab title="Swift Package Manager (SPM)">
+    ```bash Swift Package Manager (SPM) lines wrap
+    case "$ACTION" in
+      install) SPM_ROOT="$OBJROOT/../../../../.." ;;   # xcodebuild archive
+      *)       SPM_ROOT="$OBJROOT/../.." ;;            # build / run from Xcode
+    esac
+    "$SPM_ROOT/SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration" $OPTIONS
+    ```
+  </Tab>
+  <Tab title="CocoaPods">
+    ```bash CocoaPods lines wrap
+      ${PODS_ROOT}/MoEngageExtensionsIntegration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration $OPTIONS
+    ```
+  </Tab>
+</Tabs>
+
+#### 利用可能なオプション
+
+`$OPTIONS` を次のいずれか 1 つ以上に置き換えます。
+
+| オプション | 説明 |
+| :-- | :-- |
+| `--enable-push-notification-templates` | ステップ 2 のコンテンツ拡張機能を使用する場合に必須です。 |
+| `--notification-service-extension-name $CUSTOM_SERVICE_EXTENSION_NAME` | サービス拡張機能のカスタム名を設定します。カスタムのサービス拡張機能の実装からこのツールに移行する場合に使用します。（デフォルト: `MoEngageNotificationService`） |
+| `--notification-content-extension-name $CUSTOM_CONTENT_EXTENSION_NAME` | コンテンツ拡張機能のカスタム名を設定します。カスタムのコンテンツ拡張機能の実装からこのツールに移行する場合に使用します。（デフォルト: `MoEngageNotificationContent`） |
+
+### ステップ 3: 既存の拡張機能の削除
+
+**Frameworks**、**Libraries**、**Embedded Content** セクションに追加されている既存のサービス拡張機能とコンテンツ拡張機能を削除します。
+
+<Frame>
+  <img
+    src="/images/removeexistingextensions.png"
+    alt="既存の拡張機能の削除"
+    title="既存の拡張機能の削除"
+    style={{ width:"62%" }}
+  />
+</Frame>
+
+<Warning>
+  削除しないと、プッシュ配信のインプレッションとリッチプッシュ通知が機能しなくなります。
+</Warning>

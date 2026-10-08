@@ -1,0 +1,127 @@
+---
+title: "Microsoft Azure Blob"
+---
+
+## はじめに
+
+[Microsoft Azure Blob Storage](https://azure.microsoft.com/en-us/products/storage/blobs/) は、Microsoft が Azure 製品スイートの一部として提供する、非構造化データ向けの大規模スケーラブルなオブジェクトストレージです。
+
+## MoEngage × Microsoft Azure Blob
+
+MoEngage と Microsoft Azure Blob の統合では、MoEngage の S3 データエクスポートを利用して Azure Blob Storage にデータを転送し、さらなる処理と分析を行います。
+
+## 統合
+
+<Info>
+  **前提条件**
+
+  - Microsoft Azure Blob アカウントがあることを確認してください。
+  - アカウントで [S3 データエクスポート](https://www.moengage.com/docs/user-guide/data/exports/events/data-warehouse/s3-exports)が有効になっていることを確認してください。
+</Info>
+
+S3 バケットから Microsoft Azure Blob Storage にデータを転送するスクリプトを設定して、データの取り込みを自動的にスケジュールできます。
+
+### ステップ 1: Azure でストレージアカウントを作成する
+
+Microsoft Azure アカウントで、次の手順を実行します。
+
+1. サイドバーの **Storage Accounts** に移動します。
+2. **\+ Add** をクリックして、新しいストレージアカウントを作成します。
+3. ストレージアカウント名を指定します。その他のデフォルト設定は更新する必要はありません。
+4. **Review \+ Create** を選択します。
+
+すでにストレージアカウントをお持ちの場合でも、MoEngage のデータ専用に新しいストレージアカウントを作成することをお勧めします。
+
+<Frame>
+  ![Microsoft Azure での新しいストレージアカウントの作成](/images/partner_35545663171476.png)
+</Frame>
+
+### ステップ 2: 接続文字列を取得する
+
+ストレージアカウントがデプロイされたら、ストレージアカウントの **Access Keys** メニューに移動し、接続文字列を控えておきます。
+
+Azure では 2 つのアクセスキーが提供されるため、一方のキーを再生成している間も、もう一方のキーを使用して接続を維持できます。必要なのは、どちらか一方の接続文字列のみです。
+
+<Frame>
+  ![Azure ストレージの接続文字列が表示された Access Keys セクション](/images/partner_35545663172756.png)
+</Frame>
+
+### ステップ 3: Blob サービスコンテナーを作成する
+
+1. **Blob Service** \> **Blobs** メニューに移動します。
+2. 先ほど作成したストレージアカウント内に Blob Service Container を作成します。
+3. Blob Service Container の名前を指定します。その他のデフォルト設定は更新する必要はありません。
+
+<Frame>
+  ![Azure での新しい Blob Service Container の作成](/images/partner_35545663173140.png)
+</Frame>
+
+### ステップ 4: MoEngage で AWS データエクスポートを設定する
+
+[こちらに記載されている手順](https://www.moengage.com/docs/user-guide/data/exports/events/data-warehouse/s3-exports#s3-integration-for-data-exports)に従って、S3 へのデータエクスポートがすでに設定されていることを確認してください。S3 へのデータの流入が始まったら、次のステップに進みます。インポートのスキーマを事前に定義する必要があるため、これは重要です。
+
+**サンプルファイル形式:**
+
+`s3://client-moengage-data/event-exports/export_day=2021-07-01/export_hour=06/`
+
+<Info>
+  S3 アカウントをお持ちでない場合は、MoEngage が当社の S3 バケット上で設定し、転送サービスを構成できます。詳細なサポートについては、MoEngage サポートチームにお問い合わせください。
+</Info>
+
+### ステップ 5: S3 から Azure Blob にデータを転送するスクリプト
+
+AWS CLI コマンドを使用して MoEngage S3 からデータを取得し、Azure Blob Storage に取り込むことができます。または、Azure コマンドを直接使用して S3 バケットにアクセスし、データを取得することもできます。
+
+以下は、ミドルウェアを使用してデータを処理し、Azure Blob Storage に取り込むサンプルスクリプトです。このスクリプトは次の処理を行います。
+
+1. S3 から中間の場所（VM）にデータをコピーし、その後 Azure Blob Storage にコピーします。
+2. 1 日後に中間の場所にあるデータを削除します。
+3. 1 時間ごとに実行されます。要件に応じて変更できます。
+
+<Info>
+  これは参考用のスクリプトです。変更したり、お使いのインフラストラクチャと互換性のある他の方法を使用したりできます。
+</Info>
+
+```bash BASH wrap
+# Check az-copy
+if ! [ -x "$(command -v ${AZ_COPY_COMMAND_PATH}/azcopy)" ]; then
+    echo 'Error: azcopy is not installed.' >&2
+    exit 1
+fi
+
+# Get one hour ago date
+ONE_HOUR_AGO=$(date -d '1 hour ago' ${MOENGAGE_PARTITION_FORMAT})
+
+# Get Directory
+YEAR_DIRECTORY='year='$(date -d '8 hour ago' ${YEAR_PARTITION})
+MONTH_DIRECTORY='month='$(date -d '8 hour ago' ${MONTH_PARTITION})
+DAY_DIRECTORY='day='$(date -d '8 hour ago' ${DAY_PARTITION})
+#HOUR_DIRECTORY='hour='$(date -d '8 hour ago' ${HOUR_PARTITION})
+
+PARTITION_DIRECTORY='/'${YEAR_DIRECTORY}'/'${MONTH_DIRECTORY}'/'${DAY_DIRECTORY}'/'
+
+S3_MOENGAGE_FINAL_PATH=${S3_MOENGAGE_BASE_PATH}${PARTITION_DIRECTORY}
+EVENTS_FINAL_DIRECTORY=${EVENTS_BASE_DIRECTORY}${PARTITION_DIRECTORY}
+
+echo "Start of Sync from S3 bucket"
+# Sync data from the Amazon S3 bucket to our local VM
+echo "command run aws s3 sync ${S3_MOENGAGE_FINAL_PATH} ${EVENTS_FINAL_DIRECTORY}"
+/usr/local/bin/aws s3 sync ${S3_MOENGAGE_FINAL_PATH} ${EVENTS_FINAL_DIRECTORY} --profile ${S3_MOENGAGE_AWS_PROFILE} | tee ${LOG_PATH_AWS}/${ONE_HOUR_AGO}.log
+echo "Sync from S3 bucket completed"
+
+echo "Start of Sync to Azure Blob"
+# Sync data from the local VM to Azure Blob
+${AZ_COPY_COMMAND_PATH}/azcopy sync "${EVENTS_BASE_DIRECTORY}/" "${AZURE_BLOB_BASE_PATH}/${AZURE_CONTAINER_NAME}/${AZURE_DIRECTORY_PATH}/?${AZURE_SAS_TOKEN}" --recursive | tee ${LOG_PATH_AZURE}/${ONE_HOUR_AGO}.log
+echo "Sync to Azure Blob completed"
+
+PREVIOUS_DAY=$(date -d '8 hour ago' ${DAY_PARTITION})
+PRESENT_DAY=$(date -d '6 hour ago' ${DAY_PARTITION})
+
+EVENTS_PREVIOUD_DAY_DIRECTORY=${EVENTS_BASE_DIRECTORY}'/year='$(date -d '24 hour ago' ${YEAR_PARTITION})'/month='$(date -d '24 hour ago' ${MONTH_PARTITION})'/day='$(date -d '24 hour ago' ${DAY_PARTITION})'/'
+
+if [ "${PREVIOUS_DAY}" = "${PRESENT_DAY}" ]; then
+    rm -R ${EVENTS_PREVIOUD_DAY_DIRECTORY}
+else
+    echo "this is false"
+fi
+```

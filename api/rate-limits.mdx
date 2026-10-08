@@ -1,7 +1,8 @@
 ---
 title: "Rate Limits"
 description: "Understand API rate limits and payload size caps for the MoEngage REST APIs, how to monitor usage, and what happens when a limit is exceeded."
-keywords: ["rate limit", "API limits", "429", "RPM", "payload size", "throttling"]
+keywords: ["rate limit", "API limits", "429", "RPM", "payload size", "throttling", "OAuth rate limit", "Retry-After"]
+icon: "gauge"
 ---
 
 MoEngage enforces rate limits on its REST APIs to keep the shared platform fast and reliable for every customer. Limits apply **per workspace** unless a specific endpoint states otherwise (some are per client or per consumer), and a request that exceeds its limit is rejected with an `HTTP 429 Too Many Requests` response.
@@ -15,6 +16,19 @@ Most limits below are the defaults. Several limits can be raised for your worksp
 ## Rate limits by endpoint
 
 Endpoints are grouped by product area to match the API reference navigation. When several endpoints share a single pool, the limit is applied across all of them.
+
+### Authentication
+
+| Endpoint | Rate limit |
+| --- | --- |
+| `POST /v1/oauth/token` (Generate Access Token) | 30 requests per 10 minutes, and 5 requests per minute |
+| `POST /v1/oauth/refresh` (Refresh Access Token) | 30 requests per 10 minutes, and 5 requests per minute |
+
+<Note>
+  The OAuth limits apply per `client_id` and `client_secret` pair rather than per workspace, and both endpoints run on the OAuth host (`https://oauth2-{dc}.moengage.com`) rather than your REST API host. A `429` response from either endpoint carries a `Retry-After` header that gives the number of seconds to wait.
+
+  Access tokens are reusable for their full lifetime, so generate one token and reuse it until the token approaches expiry. For the full flow, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+</Note>
 
 ### Data
 
@@ -180,6 +194,9 @@ Endpoints are grouped by product area to match the API reference navigation. Whe
 | `POST /v3/custom-segments` — Create Filter Segment | 50 per minute, 200 per hour, 1,000 per day |
 | `GET /v3/custom-segments` — List Segments | 50 per minute, 200 per hour, 1,000 per day |
 | `GET /v3/custom-segments/{id}` — Get Segment by ID | 100 per minute, 1,000 per hour, 4,000 per day |
+| `PATCH /v3/custom-segments/{id}` — Update Filter Segment | 50 per minute, 200 per hour, 1,000 per day |
+| `PATCH /v2/custom-segments/archive` — Archive Segment | 50 per minute, 200 per hour, 1,000 per day |
+| `PATCH /v2/custom-segments/unarchive` — Unarchive Segment | 50 per minute, 200 per hour, 1,000 per day |
 | `POST /v1/integrations/cohortsync` — Sync Cohort Members | 300 requests per minute |
 
 <Note>
@@ -241,6 +258,9 @@ Payload caps are enforced independently of rate limits. A request larger than th
 | API / endpoint | Maximum payload |
 | --- | --- |
 | Track User (`/customer/{app_id}`) | 128 KB per request |
+| Track Event (`/event/{Workspace_ID}`) | 128 KB per request |
+| Track Device (`/device/{app_id}`) | 128 KB per request |
+| Bulk Import Users and Events (`/transition/{Workspace_ID}`) | 128 KB per request (combined across all user, event, and device operations in the payload) |
 | Merge Users (`/customer/merge`) | 128 KB per request |
 | Cohort sync (`/v1/integrations/cohortsync`) | 128 KB per request |
 | GDPR / CCPA (`/opengdpr_requests/{appId}`) | 128 KB per request; 100 KB per user record |

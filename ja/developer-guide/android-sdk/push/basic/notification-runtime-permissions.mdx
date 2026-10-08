@@ -1,0 +1,114 @@
+---
+title: "通知のランタイム権限"
+description: "MoEngage SDK を使用して、アプリで Android 13 の通知ランタイム権限を処理します。"
+---
+
+Android 13（API レベル 33）以降では、アプリから[適用除外ではない](https://developer.android.com/develop/ui/views/notifications/notification-permission#exemptions)（フォアグラウンドサービス（FGS）を含む）通知を送信するための[ランタイム権限](https://developer.android.com/guide/topics/permissions/overview#runtime) [POST_NOTIFICATIONS](https://developer.android.com/reference/android/Manifest.permission#POST_NOTIFICATIONS) がサポートされています。この変更により、ユーザーは自分にとって最も重要な通知に集中できます。
+
+詳細については、[公式ドキュメント](https://developer.android.com/develop/ui/views/notifications/notification-permission)を参照してください。
+
+以下の API は、MoEngage core Android SDK バージョン **12.3.01** 以降でサポートされています。
+
+Android 13 で実行されるアプリケーションがユーザーに通知を表示するには、ユーザーに通知の権限をリクエストする必要があります。権限の処理を MoEngage に任せるか、独自のコードで通知の権限を処理するかの 2 つの方法があります。
+
+- MoEngage が通知の権限を処理する。
+  - このページに記載されている 1 行のコードを呼び出すだけです。
+- 通知の権限のロジックを独自に管理する。
+  - プッシュ通知の権限が付与された場合は、MoEngage SDK に通知します。
+
+プッシュ通知の権限の処理は MoEngage に任せることをお勧めします。
+
+## 権限の結果を SDK に通知する
+
+アプリケーションがユーザーに通知の権限をリクエストしたら、以下の API を使用してユーザーの応答を SDK に通知します。_通知の権限の処理を MoEngage SDK に任せている場合は、この手順は無視してください。_
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEPushHelper.getInstance().pushPermissionResponse(applicationContext, isGranted)
+```
+
+
+```Java Java wrap
+MoEPushHelper.getInstance().pushPermissionResponse(applicationContext, isGranted);
+```
+
+</CodeGroup>
+
+## 権限リクエスト回数の更新（オプション）
+
+アプリケーションがユーザーに通知の権限をリクエストしたら、リクエストの試行回数を SDK に更新します。
+
+**SDK が権限の試行回数を必要とするのはなぜですか？**
+
+SDK は、権限リクエストが試行された回数を正確にトラッキングするために試行回数を必要とします。ユーザーが権限リクエストを 2 回拒否すると、アプリケーション/SDK はそれ以上権限をリクエストできなくなります。つまり、権限をリクエストしても、ユーザーにリクエストダイアログが表示されることなく自動的に拒否されます。SDK ではユーザーが権限を拒否した回数を確実に把握できないため、試行回数に基づいて権限リクエストの呼び出しを最適化しています。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEPushHelper.getInstance().updatePushPermissionRequestCount(applicationContext, requestCount)
+```
+
+
+```Java Java wrap
+MoEPushHelper.getInstance().updatePushPermissionRequestCount(applicationContext, requestCount);
+```
+
+</CodeGroup>
+
+## 通知チャネルの設定
+
+アプリケーションがすでにユーザーから通知の権限を取得している場合は、以下の API を呼び出して、プッシュ通知を表示するための通知チャネルを設定します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEPushHelper.getInstance().setUpNotificationChannels(context)
+```
+
+
+```Java Java
+MoEPushHelper.getInstance().setUpNotificationChannels(context);
+```
+
+</CodeGroup>
+
+## 通知の権限の処理を MoEngage SDK に任せる
+
+MoEngage SDK には、エンドユーザーに権限リクエストを表示したり、通知を有効にするための設定画面にユーザーを移動させたりするためのヘルパー API が用意されています。
+
+以下の API を使用して、ユーザーに権限リクエストダイアログを表示します。
+
+以下の API を使用すると、SDK は上記の応答のトラッキングや必要な通知チャネルの設定などを自動的に行います。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEPushHelper.getInstance().requestPushPermission(activity)
+```
+
+
+```Java Java
+MoEPushHelper.getInstance().requestPushPermission(activity);
+```
+
+</CodeGroup>
+
+## 通知設定への移動（状況に応じて/オプション）
+
+以下の API を使用して、デバイス上のアプリケーションの通知設定にユーザーを移動させます。
+
+_注_: Android 8（API レベル 26）未満では、ユーザーはアプリケーションのアプリ情報画面に移動します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEPushHelper.getInstance().navigateToSettings(activity)
+```
+
+
+```Java Java
+MoEPushHelper.getInstance().navigateToSettings(activity);
+```
+
+</CodeGroup>

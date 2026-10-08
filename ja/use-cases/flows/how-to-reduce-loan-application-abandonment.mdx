@@ -1,0 +1,73 @@
+---
+title: "ローン申し込みの放棄を減らす方法"
+---
+
+# はじめに
+
+ローン申し込みの放棄を減らし、コンバージョン率を向上させたいとお考えのマーケターの方に最適な内容です。マーケターにとって、ローン申し込みの放棄を減らすことは最優先事項であるべきです。顧客満足度と収益の可能性の向上につながるためです。また、ユーザーに長期ローンを利用してもらうことでユーザーを維持でき、投じた顧客獲得コストからより多くの利益を得られるため、コスト効率の向上にもつながります。
+
+一般的に、ローンの申し込みには、個人情報の入力と関連書類のアップロードという 2 つの段階があります。この記事では、ユーザーが離脱した段階に応じて、ローンの申し込みプロセスを完了するよう促す Flow キャンペーンを作成します。
+
+# 期待される結果
+
+ユーザーは、ローンの申し込みの完了を促すプッシュ通知をスマートフォンで受信します。
+
+<img alt="image-20240120-181047.png"  src="/images/moengage_24a6f7.png"  />
+
+<Tip>
+- ユーザーがローンの申し込みプロセスを開始するアクションと、プラットフォームなどの関連情報を追跡するイベント。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。この例では、「BFSI-applicationFormStarted」というイベント名にします。
+- ユーザーが個人情報の入力や書類のアップロードなど、ローンの申し込みプロセスのさまざまな部分を完了するアクションと、プラットフォーム、ユーザー ID、リード ID、アプリバージョンなどの関連情報を追跡するイベント。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。この例では、イベント名を次のようにします。
+  - BFSI-LoanapplicationPersonalDetailsFilled
+  - BFSI\_LoanDocumentsUploaded
+- ユーザーがローンの申し込みを送信するアクションと、プラットフォーム、ローン金額、期間、顧客 ID、アプリバージョンなどの関連情報を追跡するイベント。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。この例では、「BFSI-applicationFormSubmitted」というイベント名にします。
+- Push、Email、SMS、WhatsApp などの 1 つ以上のチャネルの設定。
+</Tip>
+
+# Flow を作成する
+
+このセクションでは、ローンの申し込みプロセスを完了するよう顧客に促す Flow を作成します。
+
+## Flow の詳細を追加する
+
+1. **Engage** \> **Flows** に移動して **+ Create Flow** をクリックするか、サイドバーに移動して **+ Create new** をクリックしてから **Flow** をクリックします。
+2. **+ Start with a blank canvas** をクリックして、このユースケース用の Flow の作成を開始します。最初のステップ「Details and goals」に移動します。
+3. 次の詳細を入力します。  
+   - **Flow name**: Flow 名を入力します。たとえば、「Loan Application Abandonment」と入力します。
+   - **Flow tags**: 必要な Flow タグを選択します。
+4. **Conversion goal** セクションで、**Exit on conversion** トグルをオンにして、「BFSI-applicationFormSubmitted」イベントを実行してコンバージョンしたユーザーを Flow から退出させます。これは主要なコンバージョン目標であり、ユーザーがフォームを送信したときにトリガーされます。  
+    <img alt="image-20240120-174832.png" src="/images/moengage_0dab7f.png" />
+5. **Next** をクリックして 2 番目のステップ「When will users enter the flow」に進みます。このステップでは、トリガー条件を指定して、ユーザーをいつ Flow に参加させるかを定義します。この例では、イベントは「BFSI-applicationFormStarted」とします。
+6. **Users enter the flow** セクションで **On event trigger** を選択します。
+7. **IF user** セクションで、ユーザーが申し込みプロセスを開始したときにトリガーされるイベント「BFSI-applicationFormStarted」を選択します。 <img alt="image-20240120-174909.png" src="/images/moengage_713ada.png" />
+8. **THEN enter the user** セクションで、**Immediately** オプションを選択します。
+9. **Flow schedule** セクションで、必要に応じて Flow の開始時刻と終了時刻を定義します。デフォルトでは、Flow は「As soon as possible」に開始され、終了しません。
+10. **Limit user entry into this flow** トグルをオンにして、ユーザーが Flow に参加できる最大回数を定義します。   
+    ユーザーはローン申し込み放棄 Flow の参加ルールに頻繁に一致する可能性が高く、Flow に何度も参加してしまうことがある点に注意してください。このような制限を定義すると、ユーザーが繰り返し Flow に再参加するのを制御でき、過剰なメッセージ送信を避けられるため、より良いユーザーエクスペリエンスを提供できます。 <img alt="image-20231125-123528.png" src="/images/moengage_aea9d8.png" />
+11. **Next** をクリックして 3 番目のステップ「Who will enter the flow」に進みます。ここでは、Flow のターゲットオーディエンスを選択します。
+12. **Audience** セクションで **All users** を選択します。イベントトリガー型の Flow に参加する資格を得るには、ユーザーが必要なイベントを実行する前にターゲットオーディエンスに含まれている必要があります。 <img alt="image-20240120-174950.png" src="/images/moengage_d327a0.png" />
+13. **Next** をクリックしてキャンバスセクションに移動します。ここでは、ユーザーが進む Flow の構造を定義できます。
+
+## Flow の構造を定義する
+
+1. **+** アイコンをクリックします。ドロワーが表示されます。
+2. **Conditions** で、エントリー条件として「Conditional Split」を追加します。
+3. ローン申し込み完了プロセスのステップにおけるユーザーの進行状況を、次のように定義します。   
+   - ブランチ 1 で「BFSI-LoanApplicationFormsubmitted」イベントを確認
+   - ブランチ 2 で「BFSI-LoanDocumentsUploaded」イベントを確認
+   - ブランチ 3 で「BFSI-LoanApplicationPersonalDetailsFilled」イベントを確認  
+     チェックを逆の順序で配置する理由は、Conditional Split の各ブランチに優先順位があるためです。詳細については、[Branching of Users via Condition Stages](/ja/user-guide/flows-cross-channel-messaging/create/conditions-and-controls-in-flows/branching-of-users-in-flows) を参照してください。
+4. **Keep evaluating for the next** トグルをオンにして、ユーザーがイベントを実行するのを待つ最大時間を定義します。このユースケースでは、30 分と入力します。 <img alt="image-20240120-175605.png" src="/images/moengage_7d57cf.png" />
+5. Conditional Split の各ブランチに対応するコミュニケーションを追加し、ローンの申し込みが正常に完了したことを伝えて次のアクションを提案するか、現在の段階に基づいてプロセスの次のステップに進むよう促します。  
+   たとえば、ブランチ 3 に進んだユーザーは個人情報の入力を完了していますが、承認のための書類を提出していません。そのため、ブランチ 3 のコミュニケーションではその点に焦点を当てる必要があります。デフォルトブランチに進んだユーザーが最初のステップである個人情報の提供すら完了していない場合は、デフォルトブランチにそれを促すコミュニケーションを配置する必要があります。
+6. ドリップキャンペーンを作成することが戦略であるため、各コミュニケーションステージの後に **Has done event** ステージを配置し、次のステップとしてトリガーされるイベントを確認できます。ステージの「Yes」パスには、前のブランチの最初のコミュニケーションに接続する「Goto」ステージを配置し、「No」パスには別のコミュニケーションを配置できます。  
+   たとえば、デフォルトブランチには「BFSI-LoanApplicationPersonalDetailsFilled」イベントを確認する **Has done event** を配置し、Yes パスにはブランチ 3 の最初のコミュニケーションにユーザーを接続する「Goto」ステージを配置します。No パスには、個人情報の入力を促すために別のコミュニケーションを配置します。  <img alt="image-20240120-181152.png" src="/images/moengage_07f875.png"  />
+7. フィードバックの取得とメッセージの送信の両方についてユーザーに働きかけるため、好みに応じて WhatsApp から Push、OSM、In-App まで、アクションキャンペーンを必要なだけ追加します。特に「Has done events」の Yes パスでは、Wait ステージを使用して各コミュニケーションの間に間隔を空け、ユーザーへの過剰なメッセージ送信を避けてください。詳細については、[Add Controls to Flow](/ja/user-guide/flows-cross-channel-messaging/create/conditions-and-controls-in-flows/force-move-or-delay-users-in-flows) を参照してください。
+8. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、ユーザーが離脱した段階に応じて、ローンの申し込みプロセスを完了するよう促す Flow キャンペーンを作成しました。
+
+- Flow を公開したので、Flow のパフォーマンスを[分析](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/analyze-a-flow)できます。
+- キャンペーンによって Flow に参加したユーザー数を把握できます。「Flow ID」を指定して「User Entered Flow」イベントでセグメンテーションを作成します。詳細については、[Users who have entered/exited the Flow](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/tracking-users-in-flows) を参照してください。
+- キャンペーンによって実際にローンの申し込みを完了したユーザー数も把握できます。「Flow ID」を指定して「Flow Trip Conversion」イベントでセグメンテーションを作成します。詳細については、[Conversion Tracking and Attribution in Flows](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/conversion-attribution-in-flows) を参照してください。

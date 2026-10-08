@@ -1,0 +1,238 @@
+---
+title: 'ファイルベースの初期化'
+---
+
+## 概要
+
+<Info>
+  [v7.0.0](/ja/release-notes/sdks/capacitor#core-7-0-0) 以降、MoEngage Capacitor SDK はファイルベースの初期化をサポートしています。
+</Info>
+
+統合プロセスを効率化し、初期化エラーを最小限に抑えるために、MoEngage はスクリプトベースの初期化をサポートしています。このアプローチでは、App ID と設定をネイティブの設定ファイル内で直接管理できるため、アプリケーションロジックから分離しておくことができます。
+
+## スクリプトベースの初期化
+
+このアプローチでは、フォームベースのインターフェースを使用して、初期化用の検証済みコードスニペットを生成し、モジュール固有の設定にアクセスする方法について説明します。
+
+初期化スクリプトを生成するには、次の手順に従います。
+
+1. [初期化 Web サイト](https://app-cdn.moengage.com/sdk/integration/config/index.html)に移動します。
+2. アプリケーションの要件に基づいて値を設定します。以下の設定パラメータの表を参照してください。
+3. フォームの下部にある **Generate Code** をクリックします。
+
+## Android の設定（XML）
+
+Android では、アプリケーションのリソースディレクトリに XML 設定ファイルを配置することで初期化を行います。
+
+### Android 設定リファレンス
+
+以下は、`moengage.xml` で使用できるキーの包括的な一覧です。
+
+<Accordion title="Android の設定">
+  | カテゴリ | XML キー名 | 型 | 説明 |
+  | :-- | :-- | :-- | :-- |
+  | **Core** | `com_moengage_core_workspace_id` | String | App ID を指定します。このフィールドは必須です。 |
+  |  | `com_moengage_core_file_based_initialisation_enabled` | Boolean | この機能を有効にするには `true` に設定します。 |
+  |  | `com_moengage_core_data_center` | Integer | デフォルト: `1`。詳細については、[データセンターの値](#data-center-values)を参照してください。 |
+  |  | `com_moengage_core_environment` | String | サポートされている値: `default`、`live`、または `test`。 |
+  |  | `com_moengage_core_custom_base_domain` | String | SDK のネットワークトラフィックを独自のサブドメイン経由でルーティングするためのベースカスタムプロキシドメインを指定します。 |
+  |  | `com_moengage_core_integration_partner` | String | コア統合パートナーを指定します。例: `segment` または `mparticle`。 |
+  | **Push** | `com_moengage_push_notification_small_icon` | Drawable | スモールアイコンのリソース ID。 |
+  |  | `com_moengage_push_notification_large_icon` | Drawable | ラージアイコンのリソース ID。 |
+  |  | `com_moengage_push_notification_color` | Color | 通知のアクセントカラー。 |
+  |  | `com_moengage_push_notification_token_retry_interval` | Integer | トークン登録の再試行間隔（秒）。 |
+  |  | `com_moengage_push_kit_registration_enabled` | Boolean | `true` の場合、SDK はプッシュトークンを登録します。 |
+  | **Logs** | `com_moengage_core_log_level` | Integer | `0`（ログなし）～ `5`（詳細）。デフォルト: `3`。 |
+  |  | `com_moengage_core_log_enabled_for_release_build` | Boolean | `true` の場合、リリースビルドでログを出力します。 |
+  | **Security** | `com_moengage_core_storage_encryption_enabled` | Boolean | ローカルストレージの暗号化を有効にします。 |
+  |  | `com_moengage_core_network_encryption_enabled` | Boolean | ネットワーク上のペイロード暗号化を有効にします。 |
+  | **Sync** | `com_moengage_core_periodic_data_sync_enabled` | Boolean | フォアグラウンドでの定期的なデータ同期を有効にします。 |
+  |  | `com_moengage_core_background_data_sync_enabled` | Boolean | バックグラウンドでの定期的なデータ同期を有効にします。 |
+  | **In-App** | `com_moengage_inapp_show_in_new_activity_enabled` | Boolean | 特定の TV/Android セットアップで必要です。 |
+</Accordion>
+
+<Warning>
+  **トラブルシューティング**
+
+  XML ファイルが存在しない場合、または `com_moengage_core_workspace_id` が空の場合、SDK は `ConfigurationMismatchError` をスローします。
+</Warning>
+
+### 設定ファイルの追加
+
+生成された `moengage.xml` ファイルを、Capacitor Android プロジェクトの `android/app/src/main/res/values/` に配置します。
+
+## iOS の設定（Info.plist）
+
+iOS では、`Info.plist` に設定ディクショナリを追加することで初期化を行います。
+
+### iOS 設定リファレンス
+
+以下は、`MoEngage` ディクショナリで使用できるキーの包括的な一覧です。
+
+<Accordion title="iOS の設定">
+  | カテゴリ | Plist キー | 型 | 説明 |
+  | :-- | :-- | :-- | :-- |
+  | **Core** | `WorkspaceId` | String | App ID を指定します。必須フィールドです。 |
+  |  | `IsSdkAutoInitialisationEnabled` | Boolean | SDK の自動初期化を有効にするには `true` に設定します。 |
+  |  | `DataCenter` | Integer | データセンターの値を指定します。これは必須フィールドです。デフォルト値は _1_ です。詳細については、[データセンターの値](#data-center-values)を参照してください。 |
+  |  | `IsTestEnvironment` | String / Boolean | 顧客が選択したオプション（`true`/`false`）。デフォルト値: `$(SWIFT_ACTIVE_COMPILATION_CONDITIONS)`。 |
+  |  | `CustomBaseDomain` | String | SDK のネットワークトラフィックを独自のサブドメイン経由でルーティングするためのベースカスタムプロキシドメインを指定します。 |
+  |  | `IntegrationPartner` | String | 統合パートナーを指定します。例: `segment` または `mparticle`。デフォルト値: なし。 |
+  |  | `AppGroupName` | String | SDK データの共有に使用する App Group 名を指定します。デフォルト値: `""`。 |
+  | **Logs** | `IsLoggingEnabled` | Boolean | SDK ログを有効にするには _true_ に設定します。 |
+  |  | `Loglevel` | Integer | `0` ～ `5`。デフォルト: `2`。 |
+  | **Security** | `IsStorageEncryptionEnabled` | Boolean | ローカルストレージの暗号化を有効にします。デフォルト値: `false`。 |
+  |  | `KeychainGroupName` | String | 暗号化キーの保存に使用するキーチェーングループ名を指定します。`IsStorageEncryptionEnabled` が `true` の場合は必須フィールドです。デフォルト値: `""`。 |
+  |  | `IsNetworkEncryptionEnabled` | Boolean | ペイロード暗号化を有効にします。デフォルト: `false`。 |
+  |  | `EncryptionEncodedTestKey` | String | ダッシュボードで自動入力される文字列。`IsNetworkEncryptionEnabled` が `true` の場合に使用されます。 |
+  |  | `EncryptionEncodedLiveKey` | String | ダッシュボードで自動入力される文字列。`IsNetworkEncryptionEnabled` が `true` の場合に使用されます。 |
+  | **Sync** | `AnalyticsEnablePeriodicFlush` | Boolean | 定期的なデータフラッシュを有効にします。デフォルト: `true`。 |
+  |  | `AnalyticsPeriodicFlushDuration` | Integer | フラッシュ間隔（秒）。デフォルト: `60`。 |
+  | **In-App** | `InAppDisplaySafeAreaInset` | Real | セーフエリアのパディングを表す小数値。デフォルト: `0`。 |
+  |  | `InAppShouldProvideDeeplinkCallback` | Boolean | `true` の場合、ディープリンクでコールバックを提供します。デフォルト: `false`。 |
+</Accordion>
+
+### データセンターの値
+
+お使いのリージョンに対応する整数を設定します。誤った値を設定すると、データが失われます。
+
+| データセンター | ダッシュボードのホスト |
+| --- | --- |
+| 1 | [dashboard-01.moengage.com](http://dashboard-01.moengage.com) |
+| 2 | [dashboard-02.moengage.com](http://dashboard-02.moengage.com) |
+| 3 | [dashboard-03.moengage.com](http://dashboard-03.moengage.com) |
+| 4 | [dashboard-04.moengage.com](http://dashboard-04.moengage.com) |
+| 5 | [dashboard-05.moengage.com](http://dashboard-05.moengage.com) |
+| 6 | [dashboard-06.moengage.com](http://dashboard-06.moengage.com) |
+
+### Info.plist の更新
+
+1. プロジェクトの `Info.plist`（`ios/App/App/Info.plist` にあります）を開きます。
+2. `Dictionary` 型の `MoEngage` という名前の新しいトップレベルキーを作成します。
+3. [初期化 Web サイト](https://app-cdn.moengage.com/sdk/integration/config/index.html)で生成された設定ファイルの内容を追加します。
+
+<Warning>
+  キー `IsSdkAutoInitialisationEnabled` はイギリス式のスペル（'s'）を使用しています。以下に示すキー名を正確に使用してください。そうしないと初期化に失敗します。
+</Warning>
+
+**XML スニペットの表現:**
+
+<CodeGroup>
+
+```xml XML
+<key>MoEngage</key>
+<dict>
+    <key>WorkspaceId</key>
+    <string>YOUR_WORKSPACE_ID</string>
+    <key>IsTestEnvironment</key>
+    <string>$(SWIFT_ACTIVE_COMPILATION_CONDITIONS)|$(GCC_PREPROCESSOR_DEFINITIONS)</string>
+    <key>DataCenter</key>
+    <integer>1</integer>
+    <key>CustomBaseDomain</key>
+    <string>data.example.com</string>
+    <key>IsLoggingEnabled</key>
+    <true/>
+</dict>
+```
+
+</CodeGroup>
+
+## フレームワークレベルの初期化
+
+ネイティブファイルを設定したら、ネイティブラッパーと Capacitor フレームワークの両方で初期化をトリガーする必要があります。
+
+### Android ネイティブのセットアップ
+
+JavaScript から SDK を初期化する前に、Android の Application クラスでネイティブモジュールを初期化します。`android/app/src/main/java\<your_package\>/MainApplication.java (or .kt)` の `onCreate()` 内に次のコードを追加します。 
+
+ファイルベースの初期化（res/values/ の XML（例: moengage.xml）から設定を読み込みます）:
+
+<CodeGroup>
+
+```javascript Java
+import com.moengage.capacitor.MoEInitializer;
+
+@Override
+public void onCreate() {
+    super.onCreate();
+    // ... existing code
+    MoEInitializer.initialiseDefaultInstance(this);
+}
+```
+
+```kotlin Kotlin
+import com.moengage.capacitor.MoEInitializer
+
+override fun onCreate() {
+    super.onCreate()
+    // ... existing code
+    MoEInitializer.initialiseDefaultInstance(this)
+}
+```
+
+</CodeGroup>
+
+### iOS ネイティブのセットアップ
+
+`AppDelegate.swift` がデフォルトインスタンスメソッドを使用して SDK の初期化をトリガーし、`Info.plist` から読み込めるようにしてください。
+
+<CodeGroup>
+
+```swift Swift wrap
+
+import UIKit
+import Capacitor
+
+@UIApplicationMain
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    
+    var window: UIWindow?
+    
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        
+        MoECapacitorInitializer.sharedInstance.initializeDefaultInstance() 
+        
+        return true
+    }
+}
+```
+
+</CodeGroup>
+
+### Capacitor コンポーネントの初期化
+
+Android ネイティブのセットアップ後、他の MoEngage Capacitor API を呼び出す前にブリッジと initConfig が登録されるよう、アプリのエントリーまたはルートコンポーネント（例: `app.component.ts`、`main.ts`、または `index.ts/js`）からプラグインを初期化します。
+
+<CodeGroup>
+
+```typescript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core';
+
+await MoECapacitorCore.initialize({
+  appId: 'YOUR_WORKSPACE_ID',
+  initConfig: {
+    analyticsConfig: {
+      shouldTrackUserAttributeBooleanAsNumber: true,
+    },
+    // Optional — omit if you do not need push click callbacks from JS
+    pushConfig: {
+      shouldDeliverCallbackOnForegroundClick: true,
+    },
+  },
+  // Optional — queues some callbacks until app returns to foreground
+  lifecycleAwareCallbackEnabled: false,
+});
+```
+
+</CodeGroup>
+
+## 移行と優先順位
+
+手動のコードベースの初期化からファイルベースのアプローチに移行するには、[こちら](/ja/developer-guide/capacitor-sdk/sdk-integration/basic/sdk-initialization/file-based-initlialization/migration-and-precedence)を参照してください。
+
+## 環境（テストとライブ）
+
+これらのファイル内でテスト/ライブ環境を設定できます。
+
+- **Android:** キー `<string name="com_moengage_core_environment">test</string>` を使用します。
+- **iOS:** `<key>IsTestEnvironment</key> <true/>` を使用します。

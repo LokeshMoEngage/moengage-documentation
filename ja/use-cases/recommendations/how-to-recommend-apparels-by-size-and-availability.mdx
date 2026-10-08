@@ -1,0 +1,101 @@
+---
+title: "サイズと在庫状況に基づいてアパレルをレコメンドする方法"
+---
+
+# はじめに
+
+マーケターは、在庫切れの商品や、リクエストされたサイズが存在しない商品をレコメンドしてしまうことがよくあります。これはユーザーエクスペリエンスを損ない、ユーザーがエンゲージメントのためのコミュニケーションをクリックする際に疑念を抱く原因となります。
+
+より良いユーザーエクスペリエンスを提供するには、在庫状況とサイズの有無に関してレコメンデーションを管理する必要があります。
+
+この記事では、ユーザーが以前に購入したサイズで、現在在庫がある衣類や靴をレコメンドする AI レコメンデーションを作成します。
+
+# 期待される結果
+
+在庫状況とサイズの有無が正しく反映されたレコメンデーションにより、ユーザーがアプリをダウンロードして商品コレクションを閲覧する際に、より良いエクスペリエンスが得られます。
+
+<Tip>
+- ユーザーが商品を検索する、商品をカートに追加する、商品をウィッシュリストに追加する、購入を完了するといったアクションと、プラットフォーム、商品名、カテゴリー、ブランド、価格など各アクションに関連する情報をトラッキングするイベント。イベントのトラッキング方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+- これらのトラッキングしたイベントと、対応する MoEngage イベントとのマッピング。カスタムイベントを MoEngage イベントにマッピングする方法については、[Map User Actions Settings](/ja/user-guide/content/recommendations/getting-started/map-user-actions-settings) を参照してください。
+- Push、Email、SMS、WhatsApp など 1 つ以上のチャネルの設定。
+</Tip>
+
+# 商品カタログを作成する
+
+このセクションでは、次の見出しと内容でカタログを作成します。ここでは、カテゴリー名をプライマリキーとしています。そのため、カテゴリー名は一意である必要があります。  
+ <img alt="Image 15-10-24 at 10.30 AM.jpeg" src="/images/moengage_549a09.png" />
+
+# レコメンデーションを作成する
+
+このセクションでは、ユーザーのアクションに基づいてレコメンデーションを作成します。
+
+1. MoEngage ダッシュボードに移動し、左側のナビゲーションから **Content** \> **Recommendations** を選択します。Recommendations ページが表示されます。詳細については、[Creating User Action Recommendations](/ja/user-guide/content/recommendations/basic-recommendations/user-actions-model) を参照してください。
+2. 右上の **+ Create recommendation** をクリックします。最初のステップ "Select recommendation model" に移動します。  
+    <img alt="image-20231126-104436.png" src="/images/moengage_16677c.png" />
+3. **Recommended items** モデルを選択し、**Next** をクリックします。2 番目のステップ "Create recommendation" に移動します。次の詳細を入力します。
+   1. **Recommendation name**: レコメンデーションの名前を入力します。
+   2. **Recommendation description**: レコメンデーションの説明を入力します。この説明は、モデルの目的を理解するのに役立ちます。
+   3. **Catalog**: レコメンデーションの対象となるカタログを選択します。
+4. モデルは次のようになります。  
+    <img alt="Image 15-10-24 at 10.33 AM.jpeg" src="/images/moengage_ff5bec.png" />   
+   ここでは、レコメンデーションモデルは AI または機械学習（ML）アルゴリズムに基づいて動作します。レコメンデーションを作成すると、在庫状況とサイズでフィルタリングされます。一般に、在庫状況は数値です。そのため、*greater than*、*less than* などのオプションが表示されます。したがって、在庫状況の条件は 0 より大きい（greater than 0）とするのが理想的です。  
+   サイズについては、顧客の過去の購入を分析します。過去の購入時に、顧客の技術的な環境に応じて、SDK または S2S を介して顧客のサイズをユーザー属性に取得しておく必要があります。S2S 方式は [connectors](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign) を使用して実現できます。コネクタキャンペーンは基本的にイベントトリガー型のキャンペーンで、[User API](/ja/api/user/track-user) を介してイベント属性のサイズをユーザー属性に渡します。  
+   いずれの方式でも、ユーザー属性 **Size** が作成され、これを使用してレコメンデーションをフィルタリングします。
+5. **Create** をクリックして変更を保存し、モデルを実行します。Recommendations のホームページでは、ステータスが Active になります。
+
+レコメンデーションを作成したので、次に Push キャンペーンを作成し、Recommendations を使用してパーソナライズしましょう。
+
+# Push キャンペーンを作成する
+
+このセクションでは、キャンペーンを作成します。
+
+## ステップ 1: ターゲットユーザー
+
+1. 左側のサイドバーで **Engage** \> **Campaigns** をクリックして **+ Create campaign** をクリックするか、**+ Create new** \> **Campaign** をクリックします。
+2. **Outbound** で、**Push** \> **Periodic** を選択します。  
+    <img alt="5.png"  src="/images/moengage_ca82af.png"  />   
+   キャンペーン定義の最初のステップ "Target users" に移動します。
+3. 次の詳細を入力します。
+   - **Team**: 組織のアカウントでチームが有効になっている場合は、チームを選択します。
+   - **Campaign name**: キャンペーンの名前を入力します。
+   - **Campaign tags**: 必要なキャンペーンタグを選択します。
+4. **Target Audience** セクションで **All users** を選択します。  
+    <img alt="7.png" src="/images/moengage_fa591e.png" />
+5. **Target Platforms** セクションで **Android** を選択します。  
+    <img alt="8.png" src="/images/moengage_2a7248.png" />
+6. **Next** をクリックして 2 番目のステップ "Content" に移動し、Push キャンペーンのコンテンツを定義します。
+
+## ステップ 2: コンテンツ
+
+1. 使用するテンプレートを選択します。この例では **Basic notification** を選択します。  
+    <img alt="9.png" src="/images/moengage_a076c9.png" />
+2. **Message title** フィールドにタイトルを入力します。
+3. メッセージを定義する際に、[定義した](/ja/use-cases/recommendations/how-to-recommend-apparels-by-size-and-availability#create-a-recommendation)レコメンデーションによって生成された商品セットを選択します。Push Personalization ポップアップで "@" を入力し、作成したレコメンデーションの名前を検索します。  
+
+   <img alt="Image 15-10-24 at 10.17 AM.jpeg" src="/images/moengage_d36518.png" />
+
+   <img alt="Image 15-10-24 at 10.18 AM.jpeg" src="/images/moengage_86e991.png" />
+
+   レコメンデーションを使用すると、キャンペーンのタイトル、本文、ランディングページをパーソナライズできます。たとえば、顧客が 3 種類のコミュニケーションを希望する場合、それぞれに異なるレコメンデーションを含む 3 種類のコミュニケーションを用意できます。
+
+   同じ順序で Email に配置することもできます。
+
+   <img alt="Image 15-10-24 at 10.20 AM.jpeg" src="/images/moengage_c5a628.png" />
+
+   Row 1 は Choice 1 のレコメンデーション、Row 2 は Choice 2 のレコメンデーション、Row 3 は Choice 3 のレコメンデーションです。これらのレコメンデーションは、在庫状況とサイズに基づいてフィルタリングされます。
+4. **Next** をクリックして 3 番目のステップ "Schedule and goals" に移動し、キャンペーンのスケジュールとゴールを定義します。
+
+## ステップ 3: スケジュールとゴール
+
+1. **Send campaign** セクションで、キャンペーンをユーザーに配信するタイミングと配信の周期を選択します。
+2. 要件に応じて配信設定を変更します。これらの設定の詳細については、[Create Push Campaigns](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns) を参照してください。  
+    <img alt="13.png" src="/images/moengage_ca723f.png" />
+3. **Publish** をクリックします。
+
+ユーザーがコミュニケーションをクリックすると、閲覧ページにリダイレクトされ、さらに多くの商品を探索できます。閲覧が増えることで、購入率の向上につながります。
+
+# まとめ
+
+この記事では、ユーザーが以前に購入したサイズで、現在在庫がある衣類や靴をレコメンドする AI レコメンデーションを作成しました。
+
+レコメンデーションは、アプリの利用を促進し改善するための鍵です。これらのアウトバウンドのレコメンデーションはユーザーにナッジするだけでなく、適切なタイミングで送信することで、より多くのレコメンデーションや商品を試すようユーザーを促します。

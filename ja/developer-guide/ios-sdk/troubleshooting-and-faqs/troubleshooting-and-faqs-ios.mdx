@@ -1,0 +1,110 @@
+---
+title: "トラブルシューティングと FAQ - iOS SDK"
+description: "SDK ログを有効にし、MoEngage iOS SDK の統合とデバッグに関するよくある質問の回答を確認します。"
+---
+
+# SDK ログを有効にする
+
+デフォルトでは、SDK のログは無効になっています。デバッグのためにコンソールで SDK のログを確認したい場合は、以下の構成を追加します。
+
+<CodeGroup>
+```swift Swift wrap
+MoEngageSDKCore.sharedInstance.enableAllLogs()
+
+let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: .data_center_0X)
+// add the below config along with other configs
+sdkConfig.consoleLogConfig = MoEngageConsoleLogConfig(isLoggingEnabled: true, loglevel: .verbose)
+
+#if DEBUG
+    MoEngage.sharedInstance.initializeDefaultTestInstance(sdkConfig)
+#else
+    MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
+#endif
+```
+```objective-c Objective C wrap
+[[MoEngageSDKCore sharedInstance] enableAllLogs];
+
+MoEngageSDKConfig *sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID", dataCenter:MoEngageDataCenterData_center_0X];
+sdkConfig.consoleLogConfig = [[MoEngageConsoleLogConfig alloc] initWithIsLoggingEnabled:YES loglevel:MoEngageLoggerTypeVerbose];
+
+#ifdef DEBUG
+    [[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
+#else
+    [[MoEngage sharedInstance] initializeDefaultLiveInstance:sdkConfig];
+#endif
+```
+</CodeGroup>
+
+_MoEngage のすべてのログには、キーワード "MoEngage" がプレフィックスとして付けられます。_
+
+# FAQ
+
+## ダッシュボードにイベントが表示されない場合
+
+- [SDK の初期化](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)が正しく行われていることを確認してください。初期化メソッドで指定した App ID が正しいかどうかを確認します。
+- App ID を確認したら、正しい MoEngage 環境で確認していることを確認してください。SDK を初期化する際は、プロジェクトで **DEBUG** マクロを使用する必要があります。デフォルトの動作では、ビルド構成が Debug に設定されている場合、イベントは **Test 環境**に表示され、ビルド構成が Release に設定されている場合、イベントは **Live 環境**でトラッキングされます。
+- SDK では、無効なイベント属性を持つイベントは拒否されます。イベント属性の値には文字列、数値、ディクショナリのみを使用できます。それ以外の場合、イベントが拒否される可能性があります。確認するには、SDK ログを有効にし、アプリがバックグラウンドに移行したときに送信されるイベントリストに、トラッキングしているイベントが含まれているかどうかを確認します。含まれていない場合、イベントは SDK によって拒否されています。
+- 上記のいずれにも該当しない場合、ダッシュボードに表示されるまでに少し時間がかかることがあるため、イベントが表示されるまで 10~15 分ほどお待ちください。:)
+
+## あるユーザーのイベントが別のユーザーのプロファイルに表示される場合
+
+- ユーザーの一意 ID のトラッキングが正しく実装されていることを確認してください。[**User Attribute Unique ID**](/ja/developer-guide/ios-sdk/data-tracking/basic/tracking-user-attributes) は、ログインしているユーザーごとに**一意**になるように設定し、この値をハードコードしないでください。
+- SDK がユーザーを区別できるように、アプリのログアウト機能で [resetUser](/ja/developer-guide/ios-sdk/data-tracking/basic/tracking-user-attributes) メソッドが呼び出されていることを確認してください。
+
+## IDFA がトラッキングされない場合
+
+- SDK は、プロジェクトに `AdSupport` フレームワークが含まれている場合にのみ IDFA(広告識別子)をトラッキングします。これは、アプリ内で広告を表示するために `AdSupport` を使用しているアプリに対してのみ IDFA をトラッキングするためです。また、アプリで広告を表示せずに IDFA を使用することには App Store の制限があり、ビルドがリジェクトされる可能性があります。
+- また、ユーザーがデバイスの設定で広告トラッキングを制限していない場合にのみ IDFA をトラッキングします。
+- アプリで広告を表示していない場合は、App Store の審査プロセスでのリジェクトを避けるために、`AdSupport` フレームワークを削除することをお勧めします。
+
+## デバイスでプッシュ通知を受信できない場合
+
+- まず、[実装](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse)が正しく行われているかを確認してください。アプリがプッシュ通知に正しく登録されていること、リモート通知の登録時にデバイストークンを取得できていること、そしてそれが SDK に正しく送信されていることを確認します。
+- こちらの[リンク](/ja/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)を参照し、アップロードした APNS pem ファイルが有効であることを確認してください。
+- ダッシュボードでは通知が送信済みと表示されているのに、デバイスで受信されない場合 - アプリの通知設定が無効になっていないかを確認してください。
+
+## プッシュ通知の送信時に BadDeviceToken エラーが発生する場合
+
+- このエラーは、TEST 環境から App Store/AdHoc ビルドにプッシュ通知を送信しようとした場合、**または** LIVE 環境から開発ビルドに送信しようとした場合に発生します。
+- Build Configuration を正しく設定し、正しい環境でテストしてください。詳細については、[リンク](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)を参照してください。
+
+## プッシュ通知の送信時に DeviceTokenNotForTopic エラーが発生する場合
+
+- このエラーは、プッシュ通知の受信を想定しているビルドの **Bundle-ID** と、ダッシュボードにアップロードした APNS 証明書(`pem` ファイル)の Bundle-ID が異なる場合に発生します。
+
+## プッシュ通知のクリックが更新されない場合
+
+- リモート通知の受信時に呼び出されるコールバックメソッド内で、MoEngage SDK のメソッドを呼び出していることを確認してください。
+
+## プッシュ通知のリッチランディングが機能しない場合
+
+- **HTTP リンクの場合**: iOS9 以降では、plist で明示的に指定しない限り HTTP URL はサポートされません。**Info.plist** に **App Transport Security Settings** ディクショナリを含め、その中で **Allow Arbitrary Loads を YES** に設定してください。
+- リッチランディング URL が有効かどうかを確認してください。
+
+## リッチ通知(iOS10 以降)の画像/動画/音声がプッシュ通知に表示されない場合
+
+- [リッチ通知](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#tracking-and-analytics-verification)機能が正しく実装されていることを確認してください。
+- **HTTP リンクの場合**: iOS9 以降では、plist で明示的に指定しない限り HTTP URL はサポートされません。Notification Service Extension の **Info.plist** に **App Transport Security Settings** ディクショナリを含め、その中で **Allow Arbitrary Loads を YES** に設定してください。
+- 画像/音声/動画の URL が有効かどうかを確認してください。
+- **動画のみが表示されない場合**: 動画の URL が HTTPS を使用していること、およびファイルが Apple の動画添付ファイルのサイズ制限内であることを確認してください。NSE はエラーを報告しないため、通知はタイトルと本文とともに配信されます。[メディア要件](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#media-requirements)を参照してください。
+- **画像が WebP(`.webp`)形式の場合**: iOS は [Apple が通知の添付ファイル用に定めている形式](https://developer.apple.com/documentation/usernotifications/unnotificationattachment#Supported-File-Types)のみをサポートしており、WebP は含まれていません。JPG、PNG、または GIF を使用してください。
+
+## ユーザーがクリックしなかった通知が通知センター(Inbox)に表示されない場合
+
+- SDK のバージョンが 4.4.0 より上であることを確認し、[こちら](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse)に記載されているとおりに Notification Service Extension を実装しているかどうかを確認してください。
+- あわせて、[App Target](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse) と Service Extension ターゲットの両方で App Group ID が正しく設定されていることを確認してください。
+
+## キャンペーン作成時に Navigation Action でスクリーン名のドロップダウンが表示されない場合
+
+- MoEngage iOS SDK は、アプリ内のスクリーン名をトラッキングしません。screenName パラメーターに指定できる値は、開発者がプロジェクト内で定義する必要があります。そのため、iOS の場合はドロップダウンがなく、マーケターがキャンペーン作成時にテキストフィールドにスクリーン名の値を入力する必要があります。MoEngage は入力された値を通知ペイロードで提供します。開発者は、`screenName` パラメーターの値を解析して取得し、指定された画面に遷移する部分を実装する必要があります。
+
+## アプリ内キャンペーンがアプリに表示されない場合
+
+- アプリ内メッセージを表示する箇所で **handleInAppMessage** メソッドが呼び出されていることを確認してください - [リンク](/ja/developer-guide/ios-sdk/in-app-messages/in-app-nativ)
+- アプリ内メッセージが一度だけ表示され、再度表示/テストできない場合。ユーザーエクスペリエンスが損なわれないように SDK で設定しているルールを、表示対象のアプリ内メッセージが満たしていない可能性があります。これらのルールについては、[リンク](/ja/developer-guide/ios-sdk/in-app-messages/in-app-nativ)を参照してください。
+- 画像 URL が HTTP スキームの場合: iOS9 以降では、アプリの `info.plist` で明示的に指定しない限り HTTP URL はサポートされません。Info.plist に **App Transport Security Settings** ディクショナリを含め、その中で **Allow Arbitrary Loads** を **YES** に設定する必要があります。
+- アプリ内メッセージが表示されなかった理由の詳細を確認するには、[SDK ログを有効にし](#enable-sdk-logs)、MoEngage チームと共有してください。
+
+## App Store から Info.plist ファイルに目的文字列がないという警告(Missing Purpose String in Info.plist File)を受け取るのはなぜですか?
+
+最近、ビルドを App Store にアップロードした際に、Apple からこの警告メールを受け取るようになったかもしれません。このメールは、2019 年春から Apple が適用する制限について通知するものです。この問題の修正として、MoEngage-iOS-SDK [バージョン 4.3.0](/ja/release-notes/sdks/ios) から SDK のジオフェンスモジュールを [MOGeofence](http://cocoapods.org/pods/MOGeofence) として分離しており、今後はプロジェクトに個別に統合する必要があります。また、これに伴い、ジオフェンスキャンペーンの実装にいくつかの変更があります。詳細については、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/push/optional/location-triggered)を参照してください。

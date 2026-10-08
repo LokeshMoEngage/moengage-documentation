@@ -1,0 +1,97 @@
+---
+title: "アラートのテスト"
+description: "認証ヘッダー、API キー、カスタム属性を含むサンプルリクエストを送信して、公開前に MoEngage Inform のアラートをテストします。"
+---
+
+アラート作成の 3 番目のステップで、アラートを公開する前にテストできます。このオプションでは、以下に示すように、公開前に選択したチャネルでアラートをテストできます。
+
+![](/images/moengage_9fa9c0.png)
+
+<Info>
+  API 連携が正しく設定され、パーソナライゼーションが適切にレンダリングされることを確認するために、このステップを実施することを推奨します(任意)。
+</Info>
+
+# 公開前にアラートをテストする方法
+
+ダッシュボードからコピーしたリクエストに、いくつかの値を渡す必要があります。これらは、Authorization Header、MOE-APPKEY、リクエスト属性、およびパーソナライゼーション属性(ある場合)です。
+
+## Authorization Header の作成
+
+MoEngage は Basic 認証を使用します。[こちら](/ja/api/transactional-alerts/send-transactional-alert)で説明されているように、Workspace ID と API Secret を使用して HTTP Auth Header を生成します。
+
+## リクエストのコピー
+
+ダッシュボードの Test Request セクションから、サポートされている任意の言語でサンプルリクエストをクリップボードにコピーアイコンを使用してコピーし、外部コンソールでテストすることもできます。
+
+## Workspace ID のコピー
+
+リクエストヘッダーの MOE-APPKEY には、MoEngage アカウントの Workspace ID の値を含める必要があります。
+
+## Test Alert ID
+
+このテストアラートのリクエストを外部コンソールに送信するために、ダッシュボードに Test Alert ID が表示されます。この値はリクエストに自動的に渡されます。
+
+**注**: これは、公開済みアラートの Alert ID とは異なります。
+
+## Test Alert Reference Name
+
+Test Alert Reference Name は、このテストアラートのリクエストを外部コンソールに送信するために、ダッシュボードでアラートを追加する際に設定します。この参照名を使用してアラートをテストできます。
+
+<Info>
+  これは、公開済みアラートの Reference ID とは異なります。
+</Info>
+
+## 属性
+
+リクエストでは、次の属性を渡す必要があります。
+
+| リクエストフィールド | 必須 | 説明 |
+| --- | --- | --- |
+| MOE-APPKEY | はい | MoEngage アカウントの Workspace ID です。Workspace ID は MoEngage ワークスペースを一意に識別します。この値はテストリクエストに自動入力されます(複数の言語でサポート)。 |
+| Authorization | はい | 認証のために渡す必要がある、Base64 でエンコードされた認証ヘッダー(APPID:APISECRET)です。 |
+| alert\_id | はい | 外部コンソールからリクエストをテストするために生成された Test Alert ID です。この値はリクエストに自動入力されます。 |
+| alert\_reference\_name | いいえ | アラートの作成時に追加できる参照 ID です。 |
+| user\_id | いいえ | このフィールドはブランド側で提供し、テストするリクエストに貼り付ける必要があります。このフィールドは Client ID で、アラートの送信先となるユーザーを識別します。イベントをユーザーにマッピングするために不可欠です。 <br />無効な User ID または存在しない User ID が共有され、API リクエストに有効な受信者の詳細が含まれている場合は、有効な受信者の詳細を持つ新しいユーザープロファイルが作成されます。 <br />リクエストに User ID が含まれていない場合でも、受信者の詳細があればリクエストは処理されます。ただし、イベントは MoEngage のどのユーザーにも記録されません。詳細については、[アラート送信のためのユーザー識別](#user-identification-for-sending-the-alert)を参照してください。 |
+| transaction\_id | はい | このフィールドはブランド側で提供し、テストするリクエストに貼り付ける必要があります。このフィールドは、ユーザーに送信されるアラートの対象となるトランザクションを識別します。 MoEngage は、一意に生成されたリクエスト ID に対してトランザクション ID を保存します。ユーザーに送信するリクエストごとに transaction\_id が一意であることを確認してください。これは冪等性のサポートにも使用されます。 |
+| payloads | はい | このフィールドにはチャネルレベルのペイロードが含まれ、その中にユーザーの詳細とパーソナライゼーション属性が含まれます。ペイロードの構造は次のとおりです。 <br />`"payloads": {`<br />`"<Channel_Name>": {`<br />`"recipient": "<pushtoken/mobile number with country code/email id>",`<br />`"locale": "<required locale version to be sent to the user>"`<br />`"personalized_attributes": {<list of the attributes to be personalized>},`<br />`"sender_attributes": {<list of the API attributes used for evaluating the sender to be selected>},`<br />`"personalized_attachments": {<list of the attributes used for sending attachements>},`<br />`"live_activity_attributes": {<list of attributes used to manage the lifecycle, static data, and dynamic state of an iOS Live Activity>},`<br />`}`<br />`}`<br />詳細については、[Payloads](https://moengage.com/docs/#h_01K6Z0J156JJ8RYGGRB87F5ATE) を参照してください。 <br />ペイロードの _recipient_ フィールドは、アラートの送信先となるユーザーを識別します。詳細については、[アラート送信のためのユーザー識別](#user-identification-for-sending-the-alert)を参照してください。 |
+
+### Payloads
+
+| フィールド | 必須 | フォールバック | 説明 |
+| --- | --- | --- | --- |
+| recipient | はい(条件による) | はい | このフィールドは、アラートの送信先となるユーザーの一意の識別子(プッシュトークン、E.164 形式の携帯電話番号、メール ID など)を示します。 渡されない場合、この値はユーザープロファイルから取得されます。ユーザープロファイルに受信者の詳細が含まれていない場合、アラートは送信されません。 |
+| locale | いいえ | はい | このフィールドは、メッセージに必要な特定の言語と地域のバージョンを示します。 渡されない場合、この値はユーザープロファイルから取得されます。 ユーザープロファイルにもロケールの詳細がない場合は、設定されているデフォルトのロケールがメッセージに使用されます。 |
+| sender\_attributes | いいえ | はい | このフィールドには、選択する送信者の評価に使用される API 属性のリストが含まれます。 渡されない場合、アラートはデフォルトの送信者を使用して送信されます。 |
+| personalized\_attributes | はい | はい | このフィールドには、メッセージコンテンツ内のパーソナライゼーションを解決するために使用される属性とその値のリストが含まれます。 [API 属性がユーザー属性をフォールバックとして使用するように設定されている](/ja/user-guide/inform/create/personalize-alert)場合、この値はユーザープロファイルから取得されます。 ユーザープロファイルにこれらの属性が含まれていない場合、アラートは送信されません。 |
+| personalized\_attachments | はい | いいえ | このフィールドにはメールチャネル用のパーソナライズされた添付ファイルが含まれ、base64 でエンコードされた文字列として送信する必要があります。アラートの作成時にメールの添付ファイルを **Uploaded via API** に指定した場合は、このフィールドをペイロードに追加し、アラート作成時に指定した添付ファイルキーを使用して添付ファイルを渡す必要があります。 |
+| live\_activity\_attributes | プッシュアラートの作成時にメッセージタイプとして Live Activity または Live Activity with Push Fallback を選択した場合は、はい。 | いいえ | このフィールドには、iOS Live Activity のライフサイクル、静的データ、動的な状態を管理するために使用される属性が列挙されます。サポートされる値は次のとおりです。 <ul><li>**la-type**: アクティビティのライフサイクルの段階です。サポートされる値は次のとおりです。 <ul><li>**start**: アクティビティを開始します。</li><li>**update**: コンテンツを更新します。</li><li>**end**: アクティビティを終了します。</li></ul></li><li>**attribute-info**: アクティビティ全体を通じて一定のままである静的データ(例: 注文 ID やフライト番号)を含む JSON オブジェクトです。</li><li>**content-state**: リアルタイムで更新される動的データ(例: 配信ステータスや ETA)を含む JSON オブジェクトです。パーソナライゼーションタグを使用してイベントから値を取得し、キーと値のペアとして入力します。</li><li>**stale\_date**: システムがアクティビティを古いと見なすタイムスタンプを示します。</li><li>**dismissal\_date**: システムがユーザーの画面からアクティビティを自動的に削除するタイムスタンプを示します。</li></ul> |
+
+### **アラート送信のためのユーザー識別**
+
+以下に示すように、API はリクエストで共有されたユーザー ID 情報を処理し、コミュニケーションの送信先となるユーザーを識別します。
+
+![UserCreation.png](/images/moengage_7b8885.png)
+
+最初にチャネルレベルのペイロードの recipient フィールドが確認され、そこで指定された受信者の値に基づいて、指定された携帯電話番号/メール ID またはプッシュトークンにアラートが送信されます。受信者の詳細がない場合は、リクエストで `user_id` を渡す必要があり、渡されない場合はリクエストが破棄されます。ペイロードに `user_id`([User Profile](/ja/user-guide/data/user-data/user-profile) の ID フィールド)が含まれ、指定されたチャネルの受信者の詳細(携帯電話番号/メール ID/有効なプッシュトークン)がユーザープロファイルにある場合、アラートが送信されます。
+
+受信者の詳細があり、新しい `user_id` が共有された場合は、受信者の詳細を持つ新しいプロファイルが作成されます。
+
+<Info>
+  - Push チャネルでアラートを送信する際は、ユーザープロファイルにある直近でアクティブなデバイストークンのうち最大 5 つのみが対象となります。
+  - ユーザー属性が有効になっている場合、受信者の詳細はユーザープロファイルから取得されます。詳細については、[ユーザー属性の有効化](/ja/user-guide/settings/miscellaneous/settings-inform)を参照してください。
+</Info>
+
+必要な情報をすべてリクエストに追加したら、外部コンソールからリクエストを送信します。
+
+## Postman でのリクエストのテスト
+
+Postman でテストするには、次の手順に従います。
+
+1. **copy & open Postman** アイコンをクリックして cURL をコピーし、Postman にインポートします。
+2. Authorization セクションを使用して認証の詳細を追加します。ユーザー名として Workspace ID を、パスワードとして API Key を追加します。
+3. インポートした cURL にはペイロードの詳細が含まれています。Email ID、Phone Number、その他の属性(user\_id、transaction\_id、パーソナライゼーション(ある場合))を追加します。
+4. Postman で Send をクリックします。これにより、リクエストが Send Inform API に送信されます。
+
+レスポンス、エラーコード、サンプルレスポンスについては、[Inform API Response](/ja/api/transactional-alerts/send-transactional-alert) を参照してください。
+
+アラートをテストすると、リクエストのステータスに関する詳細が Test Alert Logs に記録されます。詳細については、[テストアラートログ](/ja/user-guide/inform/create/test-alert-logs)を参照してください。

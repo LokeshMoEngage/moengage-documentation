@@ -1,0 +1,352 @@
+---
+title: "Databricks"
+description: "MoEngage と Databricks の連携を設定し、Databricks インスタンスと MoEngage の間でデータの同期、インポート、エクスポートを行います。"
+---
+
+[Databricks](https://www.databricks.com/resources/ebook/maximize-your-organizations-potential-data-and-ai?scid=7018Y000001Fi1AQAS&utm_medium=paid+search&utm_source=google&utm_campaign=15418435374&utm_adgroup=130717555576&utm_content=ebook&utm_offer=maximize-your-organizations-potential-data-and-ai&utm_ad=703594935116&utm_term=databricks&gad_source=1&gclid=CjwKCAjwvr--BhB5EiwAd5YbXpGh4ugWZyyOwJrqbfr-c5cZhP9HVrGMKQmBuZRlVcC_BRLco-zKVxoCmZkQAvD_BwE) は、大量の構造化データおよび半構造化データを、高いスケーラビリティと効率性で保存、分析、処理できるプラットフォームです。独自のアーキテクチャにより、Databricks ではデータを統合し、迅速な分析を行い、すべてのユーザーがアクセスできる価値あるデータドリブンなインサイトを得ることができます。
+
+# MoEngage × Databricks
+
+MoEngage × Databricks 連携により、Databricks インスタンスと MoEngage アプリの間に直接接続を設定し、データを定期的に同期できます。同期を定期的に実行するスケジュールを定義でき、定期同期は高頻度にすることも、月に 1 回などの時間間隔を設けることもできます。同期中、MoEngage はデータウェアハウスインスタンスに直接接続し、指定されたテーブルまたはアクセス権のあるテーブルからすべての新しいデータを取得して、MoEngage ダッシュボード上の対応するデータを更新します。
+
+## ユースケース
+
+Databricks と MoEngage の連携は、以下のユースケースに役立ちます。
+
+- Databricks からリアルタイムのオーディエンスを同期する
+- Databricks からユーザーとイベントをインポートする
+- キャンペーンインタラクションイベントを Databricks にエクスポートする
+
+## メリット
+
+MoEngage との連携により、以下のメリットが得られます。
+
+### 連携にかかる時間の短縮
+
+- MoEngage は Databricks と直接連携するため、適切な ETL（Extract、Transform、Load）ツールを探す必要がなくなります。
+- 長く複雑な ETL パイプラインは、MoEngage がデータに直接アクセスできる一度きりの連携設定に置き換えられます。
+- これにより、技術チームへの依存が大幅に軽減されます。
+
+### データ処理の高速化
+
+- Databricks インフラストラクチャの能力により、膨大な量のデータをほぼリアルタイムで保存、処理、クエリできます。
+- 元のスキーマの変更は、MoEngage 側の構成を変更することなく即座に反映されます。これは従来の ETL パイプラインに対する大きなメリットです。
+- ETL ツールや外部のクラウドプロバイダーが不要なため、インポートのコストは従来のデータパイプラインよりも大幅に低くなります。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  サービスプリンシパルの作成、シークレットの生成、カタログとスキーマに対する権限の付与を行うための、ワークスペース管理者権限を持つ Databricks アカウントがあることを確認してください。
+</Info>
+
+## パート A：認証を設定する
+
+MoEngage を Databricks SQL ウェアハウスに安全に接続するために、MoEngage では **OAuth 2.0 Machine-to-Machine（M2M）認証**を使用して **Databricks サービスプリンシパル（SP）** を構成することを推奨しています。この方法では、ワークスペース管理者権限やカタログ全体の所有権は必要ありません。
+
+<AccordionGroup>
+  <Accordion title="方法 1：OAuth を使用したサービスプリンシパル（推奨）">
+    {/* <Info>
+    Warehouse Segments currently does not support the OAuth method.
+  </Info> */}
+
+    <Note>
+      Warehouse Segments は現在 OAuth 方式をサポートしていません。
+    </Note>
+
+    OAuth 2.0 M2M 認証を使用して Databricks サービスプリンシパル（SP）を設定するには、以下の手順を実行します。
+
+    **Databricks でサービスプリンシパルを追加する**
+
+    1. 管理者として Databricks のアカウントコンソールにサインインします。
+    2. サイドバーで **User Management** をクリックします。
+    3. **Service principals** タブで、**Add Service principal** をクリックします。
+    4. サービスプリンシパルの名前を入力します（例：`moengage-pi-sp`）。
+    5. **Add** をクリックします。
+
+    **サービスプリンシパルの OAuth シークレットを生成する**
+
+    1. サービスプリンシパル管理ダッシュボードで、新しく登録したプリンシパル（例：`moengage-pi`）をクリックします。
+    2. **Secrets** タブをクリックします。
+    3. **Generate secret** をクリックします。**Generate OAuth secret** ダイアログボックスが表示されます。 <img src="/images/Auth1.png" alt="Databricks サービスプリンシパルの Secrets タブにある Generate secret ボタン" />
+    4. **Lifetime (days)** ボックスに有効期間を入力します（1 ～ 730 日の値を指定する必要があります。デフォルト設定は 365 日です）。
+    5. **Generate** をクリックします。 <img src="/images/Auth2.png" alt="Lifetime フィールドがある Generate OAuth secret ダイアログ" />
+
+    <Info>
+      生成された `client_id` と `client_secret` をすぐにコピーし、安全な場所に保存してください。Databricks はシークレットの値を再度表示しません。これらの値は MoEngage での OAuth 認証の設定時に使用します。
+    </Info>
+
+    <Frame>
+      ![生成された client\_id と client\_secret の確認画面](/images/Auth3.png)
+    </Frame>
+
+    以下のクラウド固有の考慮事項に注意してください。
+
+    - **Azure**：Microsoft Entra ID アプリを使用している場合は、まずそれをサービスプリンシパルとして Databricks ワークスペースに同期し、その上で Databricks 管理の OAuth シークレットを生成します。MoEngage に貼り付けるクライアント ID は、Azure Active Directory（AAD）アプリ ID ではなく、Databricks 側の ID です。
+    - **GCP**：Google サービスアカウントの IAM の制約は独立して管理されます。MoEngage は Databricks の OAuth 認証情報のみを使用します。
+    - **プライベートデプロイ / カスタムドメイン**：ワークスペースで、ワークスペースホストとは異なるカスタム OAuth トークンエンドポイントを使用している場合は、カスタムエンドポイントの URL を探してコピーします。MoEngage の任意の **OAuth Token Endpoint** フィールドに入力します。
+  </Accordion>
+
+  <Accordion title="方法 2：パーソナルアクセストークン（PAT）">
+    パーソナルアクセストークン（PAT）は、それを発行した ID のすべての権限を継承します。PAT は、専用のサービスプリンシパルまたは専用のユーザーのいずれかに対して生成できます。
+
+    **パーソナルアクセストークンを有効にする（初回のみの設定）**
+
+    1. ワークスペース管理者として Databricks にサインインします。
+    2. **Settings** \> **Advanced** \> **Personal Access Tokens** に移動し、この機能が有効になっていることを確認します。
+    3. （任意ですが推奨）**Permission settings** で、トークンを作成できるユーザーまたはサービスプリンシパルを制限します。
+
+    **トークンの ID を選択する**
+
+    - **専用のサービスプリンシパル（推奨）**：この ID は特定の個人に紐付かず、最小権限の原則に従い、従業員の退職の影響を受けません。サービスプリンシパルはユーザーインターフェイスにサインインできないため、サービスプリンシパルのトークンは Databricks CLI または Token Management API を使用して生成する必要があります。
+    - **専用のユーザー**：この方法ではユーザーインターフェイスで生成します。ただし、トークンはそのユーザーのすべての権限を持ち、ユーザーが無効化されると機能しなくなります。
+
+    **トークンを生成する**
+
+    - **ユーザーインターフェイスでのユーザートークン：**
+      1. Databricks ワークスペースで、タイトルバーの Databricks ユーザー名を選択し、リストから **Settings** を選択します。
+      2. **Access Tokens** タブで、**Generate New Token** を選択します。
+      3. このトークンを識別するためのコメントを入力し、Lifetime ボックスを空のままにしてトークンの有効期間を無期限に変更します。
+      4. **Generate** をクリックし、生成されたトークンをコピーします。
+      5. **Done** をクリックします。 <img src="/images/partner_35794647020308.png" alt="Screenshot 2025-02-25 at 6.03.21 PM.png" />
+    - **Databricks CLI でのサービスプリンシパルトークン：** ターミナルで以下のコマンドを実行します。
+      ```bash Databricks CLI Token Creation
+      databricks tokens create \
+        --lifetime-seconds <lifetime-seconds> \
+        --comment "<token-description>" \
+        -p <profile-name>
+      ```
+      <Info>
+        返された `token_value` は一度しか表示されないため、すぐにコピーしてください。
+      </Info>
+  </Accordion>
+</AccordionGroup>
+
+## パート B：権限を付与する
+
+必要なデータ権限は、選択した認証方式にかかわらず同じです。このセクションでは、`<grantee>` は以下のいずれかを表します。
+
+- サービスプリンシパルのアプリケーション ID（OAuth またはサービスプリンシパルの PAT を使用する場合）。
+- ユーザーのメールアドレス（ユーザーの PAT を使用する場合）。
+
+接続パスで参照される SQL ウェアハウスに対して **Can use** 権限を割り当てる必要があります。Databricks のユーザーインターフェイスでこれを設定するには、**SQL Warehouses** \> **\<warehouse\>** \> **Permissions** に移動し、**Can use** 権限で `<grantee>` を追加します。
+
+<Tabs>
+  <Tab title="インポートと Warehouse Segments">
+    Databricks のデータに対してクエリを実行する、MoEngage にデータをインポートする、または Warehouse Segments 機能を使用するには、Databricks ウェアハウスに接続する必要があります。Databricks プラットフォームで管理者権限を持っていること、および認証情報に有効期限がないことを確認してください。
+
+    **サービスプリンシパルにデータ読み取りアクセス権を付与する**
+
+    サービスプリンシパルにデータ読み取りアクセス権を付与するには、Databricks で以下の SQL クエリを実行します。
+
+    ```sql Catalog SQL Permission
+    GRANT USE CATALOG ON CATALOG <catalog> TO `<sp_application_id>`;
+    ```
+
+    ![Screenshot 2025-02-25 at 5.37.34 PM.png](/images/partner_35794662935444.png)
+
+    **最小限の権限付与（1 つのソーステーブル）**
+
+    1 つのソーステーブルに対して最小限の権限を付与するには、Databricks で以下の SQL クエリを実行します。
+
+    ```sql wrap
+    GRANT USE SCHEMA ON SCHEMA <catalog>.<source_schema> TO `<sp_application_id>`;
+    GRANT SELECT ON TABLE <catalog>.<source_schema>.<source_table> TO `<sp_application_id>`;
+    ```
+
+    インポートの場合、サービスプリンシパルには `MODIFY`、`CREATE TABLE`、その他の書き込み権限は必要ありません。
+
+    **現在および今後のすべてのテーブルに対する任意の一括権限付与**
+
+    新しいソーステーブルごとに手動で権限を設定する手間を省くためにスキーマ全体へのアクセス権を付与するには、Databricks で以下の SQL クエリを実行します。
+
+    ```sql
+    GRANT SELECT ON SCHEMA <catalog>.<source_schema> TO `<sp_application_id>`;
+    ```
+
+    このスキーマ全体の認可は、単一テーブルの方法よりも範囲が広くなります。テーブルレベルの方法とスキーマレベルの方法のいずれかを選択できますが、両方を構成しないでください。
+  </Tab>
+  <Tab title="エクスポート">
+    MoEngage から Databricks にデータをエクスポートするには、MoEngage を Databricks ウェアハウスに接続する必要があります。Databricks プラットフォームで管理者権限を持っていること、および認証情報に有効期限がないことを確認してください。
+
+    **サービスプリンシパルに書き込みアクセス権を付与する**
+
+    サービスプリンシパルに書き込みアクセス権を付与するには、Databricks で以下の SQL クエリを実行します。
+
+    ```sql Catalog SQL Permission
+    GRANT USE CATALOG ON CATALOG <catalog> TO `<sp_application_id>`;
+    ```
+
+    ![](/images/partner_37121905945748.png)
+
+    **最小限の権限付与（MoEngage がテーブルを作成）**
+
+    MoEngage がターゲットテーブルを自動的に作成して書き込めるようにするには、以下の SQL コマンドを実行してスキーマレベルの権限を付与します。
+
+    ```sql Export SQL Permissions wrap
+    GRANT USE SCHEMA ON SCHEMA <catalog>.<target_schema> TO `<sp_application_id>`;
+    GRANT CREATE TABLE ON SCHEMA <catalog>.<target_schema> TO `<sp_application_id>`;
+    ```
+
+    Unity Catalog は、`CREATE TABLE` コマンドを実行したサービスプリンシパルに新しいテーブルの所有権を自動的に割り当てます。この所有権により、以降の一括挿入や更新に必要な `MODIFY`、`SELECT`、`DROP` 権限がサービスプリンシパルに暗黙的に付与されます。
+
+    **現在および今後のすべてのテーブルに対する任意の一括権限付与**
+
+    スキーマ全体の書き込み権限を付与するには、Databricks で以下の SQL クエリを実行します。
+
+    ```sql
+    GRANT MODIFY ON SCHEMA <catalog>.<target_schema> TO `<sp_application_id>`;
+    ```
+
+    このスキーマレベルの権限付与は、単一テーブルの方法よりも範囲が広くなります。テーブルレベルの方法とスキーマレベルの方法のいずれかを選択できますが、両方を構成しないでください。
+  </Tab>
+</Tabs>
+
+## パート C：トークンとシークレットの管理
+
+安全な接続を維持するために、以下の手順で認証情報を管理・ローテーションします。
+
+### パーソナルアクセストークン（PAT）の有効期間とローテーション
+
+<Info>
+  OAuth の認証情報とは異なり、PAT は静的で自動的に更新されません。トークンの有効期限が切れたり取り消されたりすると、更新するまで MoEngage の接続は機能しなくなります。企業のセキュリティポリシーに沿ったトークンの有効期間を設定し、有効期限のないトークンの使用は避けてください。
+</Info>
+
+有効期限が近づいている、または漏洩した PAT をローテーションするには、以下の手順を実行します。
+
+1. Databricks で新しいトークンを生成します（詳細な生成手順については「方法 2：パーソナルアクセストークン（PAT）」を参照してください）。
+2. 新しく生成されたトークンをコピーします。
+3. MoEngage ダッシュボードにサインインし、アクティブな接続に移動して **Edit** をクリックし、**Access token** ボックスに新しいトークンを貼り付けます。
+4. **Save** をクリックします。
+5. 古いアクセスを終了させるために、Databricks ワークスペースで古いトークンをすぐに取り消します。
+
+### クライアントシークレットをローテーションする
+
+サービスプリンシパルのクライアントシークレットをローテーションするには、以下の手順を実行します。
+
+1. Databricks で、サービスプリンシパルの新しいシークレットを生成します（**Service principals** \> **Secrets** \> **Generate secret** をクリック）。
+2. 新しく生成された `client_secret` をコピーします。
+3. MoEngage ダッシュボードでアクティブな接続を開き、**Edit** をクリックして新しい `client_secret` を貼り付け、**Save** をクリックします。
+4. （任意）新しいシークレットが正しく機能することを確認した後、Databricks で古いシークレットを取り消します。
+
+<Info>
+  MoEngage はシークレットの変更をポーリングしません。構成を保存した後に開始される次のスケジュール済みの MoEngage 同期ジョブで、新しいシークレットが自動的に使用されます。
+
+  シークレットのローテーション中に実行されているアクティブなジョブは、トークンの有効期限が切れるまで（通常 1 時間以内）古いトークンを使用し続けます。これらのジョブでは、ローテーション期間中に一時的なトークン更新の失敗が短時間発生する場合がありますが、次のスケジュール実行は正常に完了します。
+</Info>
+
+### パーソナルアクセストークン（PAT）と OAuth を切り替える
+
+<Warning>
+  認証タイプを変更すると、既存の認証情報は失われます。たとえば、パーソナルアクセストークン（PAT）から OAuth に切り替えると、既存のトークンは完全に削除されます。後で元に戻す場合は、新しい PAT を生成して MoEngage に貼り付ける必要があります。更新された接続の詳細は、次のスケジュール済みジョブから有効になります。アクティブなジョブは、開始時に取得した認証情報を引き続き使用します。
+</Warning>
+
+## ステップ 2：App Marketplace 連携用の Databricks 認証情報を取得する
+
+App Marketplace 用の Databricks 認証情報を取得するには、以下の手順を実行します。
+
+1. Databricks アカウントにサインインします。
+2. 左側のナビゲーションメニューで、**SQL Warehouses** タブをクリックします。
+3. **Serverless Starter Warehouse** をクリックします。 <img src="/images/partner_36367580709652.png" />
+4. **Serverless Starter Warehouse** ページで、**Connection details** タブをクリックします。 <img src="/images/partner_36367580712212.png" />
+5. **Server hostname** と **HTTP path** の認証情報をコピーして、MoEngage App Marketplace に貼り付けます。 <img src="/images/partner_36367580713108.png" />
+   <Info>
+     生成されたアクセストークンを作成するには、パート A の **方法 2：パーソナルアクセストークン（PAT）** セクションに記載されている手順に従うこともできます。
+   </Info>
+
+## ステップ 3：App Marketplace で Databricks を接続する
+
+App Marketplace で Databricks を接続するには、以下の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**App marketplace** をクリックします。
+2. App Marketplace ページで、**Databricks** を検索します。
+
+![](/images/partner_36367541210132.png)
+
+3. **Databricks** タイルをクリックします。
+4. Databricks ページで、**Integrate** タブに移動し、**\+Add Connection** をクリックします。
+5. 以下の詳細を入力します。
+
+| フィールド | 必須 | 説明 |
+| --- | --- | --- |
+| **Connection name** | はい | Databricks 接続の名前を入力します。 |
+| **Host name** | はい | 特定のクラスターに割り当てられた一意の識別子です。接続するホスト名を入力します。サーバーのホスト名を確認するには、Databricks Web コンソールにサインインし、**SQL Warehouses** \> **Connection details** に移動します。 |
+| **Port** | 任意 | Databricks サーバーに接続するポートを入力します。デフォルトは 443 です。 |
+| **HTTP path** | はい | Databricks のコンピュートリソースの HTTP パスを入力します。HTTP パスを確認するには、**SQL Warehouses** \> **Connection details** に移動します。 |
+| **Authentication method** | はい | MoEngage と Databricks を接続する認証方式を選択します。<br />- **OAuth**（安全な OAuth 2.0 M2M 認証情報の検証を使用します。クライアント ID とクライアントシークレットが必要です）<br />- **Access Token**（パーソナルアクセストークンを使用します）。 |
+| **Client ID** | 条件付き | Databricks に登録したサービスプリンシパルのクライアント識別子（Application ID）を入力します。認証方式として OAuth を選択した場合にのみ必須です。 |
+| **Client Secret** | 条件付き | クライアント ID に対応するクライアントシークレットを入力します。認証方式として OAuth を選択した場合にのみ必須です。 |
+| **Catalog** | はい | MoEngage がアクセスする Databricks のカタログ名を入力します。どちらの認証方式でも表示されます。 |
+
+{/* Image placeholder: Databricks Add Connection form showing all fields including OAuth/Access Token authentication method */}
+
+<Frame>
+  ![Databricks の接続](/images/databricks-connection.png)
+</Frame>
+
+6. **Connect** をクリックします。これで Databricks 接続が統合されました。
+
+Databricks 接続を設定した後は、それを使用して MoEngage でさまざまなインポートやエクスポートを設定できます。
+
+### サポートされている日時形式
+
+| 日付と時刻の形式 | 例 |
+| --- | --- |
+| `"datetime_format": "YYYY-MM-DD"` | <ul><li>2022-01-22</li></ul> |
+| `"datetime_format": "YYYY/MM/DD"` | <ul><li>2022/01/22</li></ul> |
+| `"datetime_format": "DD/MM/YYYY"` | <ul><li>22/01/2022</li></ul> |
+| `"datetime_format": "DD-MM-YYYY"` | <ul><li>22-01-2022</li></ul> |
+| `"datetime_format": "DD-MM-YYYY hh:mm:ss"` | <ul><li>31-12-2022 12:10:33</li></ul> |
+| `"datetime_format": "DD/MM/YYYY hh:mm:ss"` | <ul><li>31/12/2022 12:10:33</li></ul> |
+| `"datetime_format": "YYYY-MM-DD hh:mm:ss"` | <ul><li>2019-02-22 17:54:14</li></ul> |
+| `"datetime_format": "YYYY/MM/DD hh:mm:ss"` | <ul><li>2019/02/22 17:54:14</li></ul> |
+| `"datetime_format": "DD-MM-YYYYThh:mm:ss.s"` | <ul><li>31-12-2022T12:10:33.882</li></ul> |
+| `"datetime_format": "DD/MM/YYYYThh:mm:ss.s"` | <ul><li>31/12/2022T12:10:33.882</li></ul> |
+| `"datetime_format": "DD-MM-YYYYThh:mm:ssTZD"` | <ul><li>31-12-2022T12:10:33Z</li><li>31-12-2022T12:10:33\+08:00</li><li>31-12-2022T12:10:33-08:00</li></ul> |
+| `"datetime_format": "DD/MM/YYYYThh:mm:ssTZD"` | <ul><li>31/12/2022T12:10:33Z</li><li>31/12/2022T12:10:33\+08:00</li><li>31/12/2022T12:10:33-08:00</li></ul> |
+| `"datetime_format": "YYYY-MM-DD hh:mm:ss.s"` | 2019-02-22 17:54:14.933 |
+| `"datetime_format": "YYYY/MM/DD hh:mm:ss.s"` | 2019/02/22 17:54:14.933 |
+| `"datetime_format": "YYYY-MM-DDThh:mm:ssTZD"` | <ul><li>2019-11-14T00:01:02Z</li><li>2019-11-14T00:01:02\+08:00</li><li>2019-11-14T00:01:02Z-08:00</li></ul> |
+| `"datetime_format": "YYYY/MM/DDThh:mm:ssTZD"` | <ul><li>2019/11/14T00:01:02Z</li><li>2019/11/14T00:01:02\+08:00</li><li>2019/11/14T00:01:02-08:00</li></ul> |
+| `"datetime_format": "YYYY-MM-DDThh:mm:ss.sTZD"` | <ul><li>2019-02-22T17:54:14.957Z</li><li>2019-02-22T17:54:14.957299-08:00</li><li>2019-02-22T17:54:14.957299\+08:00</li></ul> |
+| `"datetime_format": "YYYY/MM/DDThh:mm:ss.sTZD"` | <ul><li>2019/02/22T17:54:14.957Z</li><li>2019/02/22T17:54:14.957299-08:00</li><li>2019/02/22T17:54:14.957299\+08:00</li></ul> |
+
+## ステップ 4：ネットワークセキュリティと IP 許可リスト
+
+Databricks ワークスペースでネットワークアクセスを制限している場合や IP アクセスリストを使用している場合は、データセンター（DC）の地域に基づいて、MoEngage に割り当てられた送信元 IP ブロックを許可リストに明示的に追加する必要があります。
+
+<Info>
+  データベース実行トラフィックの Databricks ルーティングはワークスペースのホスト URL を通じて解決されるため、ワークスペースホストをカバーする単一の許可リストエントリで、データベースとクエリのトラフィックを網羅できます。ワークスペースのデータセンターに対応するリージョンの送信元 IP ブロックを取得するには、MoEngage サポートにお問い合わせください。
+</Info>
+
+## ステップ 5：接続の検証とトラブルシューティング
+
+サービスプリンシパルと権限付与を構成した後、MoEngage の **App marketplace** タブに移動して接続をテストします。テストが成功すれば、認証とサービスプリンシパルの権限が正しく構成されていることが確認できます。
+
+検証ステップが失敗した場合は、以下の診断ガイドを使用して一般的な問題を解決してください。
+
+| 発生した接続エラー | 原因と解決方法 |
+| --- | --- |
+| **Invalid OAuth client credentials** | `client_id` または `client_secret` に入力ミスがあるか、Databricks でアクティブなシークレットがローテーションまたは削除されています。認証情報を確認して再試行してください。 |
+| **Service principal lacks workspace permissions** | サービスプリンシパルに、指定された SQL ウェアハウスに対する _Can use_ 権限がないか、カタログに対する _USE CATALOG_ 権限がありません。 |
+| **Invalid Catalog** | MoEngage で指定したカタログ名が正しくないか、サービスプリンシパルにカタログレベルのトラバーサル権限はあるものの、その下のスキーマまたはテーブルの権限がありません。 |
+
+## Databricks を使用した Warehouse Segments
+
+Databricks は Warehouse Segments で利用できます。詳細については、[Warehouse Segments](https://www.moengage.com/docs/user-guide/segment/create-segments/warehouse-segments) を参照してください。
+
+## Databricks から MoEngage にユーザーとイベントをインポートする
+
+アカウントで MoEngage × Databricks のインポートを設定するには、[Databricks インポートガイド](https://www.moengage.com/docs/user-guide/data/imports/data-warehouses-imports/databricks-imports)を参照してください。
+
+## MoEngage から Databricks にイベントをエクスポートする
+
+MoEngage から Databricks のテーブルにイベントをエクスポートできます。エクスポートを設定するには、[Databricks エクスポートガイド](https://www.moengage.com/docs/user-guide/data/exports/events/data-warehouse/databricks-exports)を参照してください。
+
+## 参考ドキュメント
+
+- [Databricks: OAuth machine-to-machine (M2M) authentication](https://docs.databricks.com/en/dev-tools/auth/oauth-m2m.html)
+- [Databricks: Manage service principals](https://docs.databricks.com/en/admin/users-groups/service-principals.html)
+- [Databricks: SQL warehouse permissions](https://docs.databricks.com/aws/en/security/auth/access-control/#sql-warehouse-acls)
+- [Databricks: Cluster-level access control permissions](https://docs.databricks.com/en/security/auth-authz/access-control/index.html)

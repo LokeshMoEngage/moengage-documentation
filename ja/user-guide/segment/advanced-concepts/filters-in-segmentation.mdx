@@ -1,0 +1,371 @@
+---
+title: "セグメンテーションのフィルター"
+description: "MoEngage ダッシュボード全体で、イベント、属性、ユーザープロパティのフィルターがどのように機能するかを、サポートされるデータ型とフィルター演算子を含めて説明します。"
+---
+
+MoEngage ダッシュボードのさまざまなページで、イベント、イベント属性、ユーザー属性のフィルターを使用して、目的の分析を行ったりユーザーをセグメント化したりできます。適切な分析と適切なユーザーセットを得るためには、フィルターを理解しておくことが非常に重要です。
+
+この記事では、これらのフィルターの仕組みと、ページによって動作やフィルターに違いがあるかどうかについて説明します。
+
+# データ型
+
+MoEngage ダッシュボードには、7 つの主要なデータ型があります。
+
+- **String**: 文字列は文字のシーケンスです。文字列は通常、単語やテキストを表すために使用されます。文字列内の文字には、アルファベットの文字、数字、句読点、空白などを使用できます。
+- **Boolean**: Boolean データ型は、**true** と **false** の値を持つことができます。
+- **Numeric** : 数値は数字のシーケンスです。Numeric データ型は通常、金額、数量、価格を表すために使用されます。
+- **Geo Location**: Geo-location は、緯度と経度を使用して地図上の位置を表します。
+- **Date Time**: Date time データ型は、イベントやアクションの日付と時刻を表します。
+- **Array:** データ要素のコレクションです。MoEngage は **String Arrays** と **Numeric Arrays** の 2 種類をサポートしており、フィルタリング時に選択可能な値として配列あたり最大 254 要素まで指定できます。
+- **Object**: Object データ型は、単一のオブジェクト内に含まれる複数の関連属性を識別およびクエリするための構造化された方法を提供します。これらの属性は、string、numeric、date などの任意のプリミティブデータ型にすることができ、2 レベルまでネストできます。詳細については、[セグメンテーションにおける Object データ型](/ja/user-guide/segment/advanced-concepts/object-data-type-in-segmentation)を参照してください。
+
+## 知っておくべき用語
+
+| **用語** | **説明** |
+| --- | --- |
+| Key | Key はデータベース内のレコードです。 |
+| Key is set | 属性の値を保持するフィールドです。 |
+| Key not set | 属性の値を保持するフィールドが存在しない状態です。 |
+| Stored Value | MoEngage アプリケーションに保存されているユーザー行動またはユーザープロパティの値です。例: App/Site Opened、Last Seen、Email Clicked。詳細については、Derived Events & Attributes を参照してください。 |
+| Filter Value | 選択した保存値に基づいてフィルタリングするために選択する値です。例えば、フィルター at least を選択し、App/Site が開かれた期間や回数を入力または選択できます。 |
+
+# String フィルター
+
+| 演算子 | 説明 |
+| --- | --- |
+| is | 保存値がいずれかのフィルター値と一致します。 |
+| exists | 保存値が存在します。これには、Empty String や N/A を含むすべての値が含まれます。保存値が存在する（Key is set）ユーザーまたはイベントをフィルタリングします。 |
+| contains | 保存値にいずれかのフィルター値が含まれています。 |
+| contains spaces | 保存値にスペースが含まれています。スペースは値の先頭、途中、末尾のいずれにあってもかまいません。これには、Empty String や N/A を含むすべての値が含まれます。保存値にスペースが含まれるユーザーまたはイベントをフィルタリングします。<br />**注:** contains spaces フィルターは、ID、Mobile number、Email ID、MoEngage ID などの一意識別子（UID）属性の場合に特に有用です。また、String および Array of string データ型にも非常に有用です。その他のデータ型には適切なユースケースがなく、期待どおりの結果が得られない場合があります。 |
+| starts with | 保存値がいずれかのフィルター値で始まります。 |
+| ends with | 保存値がいずれかのフィルター値で終わります。 |
+| is not | 保存値がどのフィルター値とも一致しません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| does not exist | 保存値が存在しません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| does not contain | 保存値がどのフィルター値とも部分一致しません（含まれていません）。このフィルターは、利用できない値（Key is not set）を含む、保存された属性のすべての値に適用されます。 |
+| does not start with | 保存値がどのフィルター値でも始まりません。（Key not set）このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| does not end with | 保存値がどのフィルター値でも終わりません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| is empty | 保存値が "" です（Key が設定されており、値が null）。 |
+| is not empty | Key が設定されているかどうかにかかわらず、保存値が "" ではありません（保存値が null ではありません）。 |
+
+# Boolean フィルター
+
+| **演算子** | **説明** |
+| --- | --- |
+| is | 保存値がフィルター値と完全に一致します。 |
+| is not | 保存値がフィルター値と一致しません。保存値には、値が存在しない（Key is not set）属性が含まれます。 |
+| exists | 保存値が存在します。これには、Empty Boolean や N/A を含むすべての値が含まれます。 |
+| does not exist | 保存値が存在しません（Key is not set）。 |
+
+# Numeric フィルター
+
+以下の表では、N、N1、N2 は数値で、N2 \> N1 です。
+
+| **演算子** | **説明** |
+| --- | --- |
+| is equal to | 保存値がいずれかのフィルター値と一致します。 |
+| is not equal to | 保存値がどのフィルター値とも一致しません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| is between | 保存値が 1 番目のフィルター値と 2 番目のフィルター値の間にあります。N1 \<= 保存値 AND 保存値 \< N2。N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。 |
+| is not between | 保存値が 1 番目と 2 番目のフィルター値の間にありません。N1 \> 保存値 OR 保存値 \>= N2。N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。 |
+| is less than | 保存値がフィルター値より小さいです。保存値 \< フィルター値 |
+| is greater than | 保存値がフィルター値より大きいです。保存値 \> フィルター値 |
+| exists | 保存値が存在します。これには、Empty Numeric や N/A を含むすべての値が含まれます。保存値が存在する（Key is set）ユーザーまたはイベントをフィルタリングします。 |
+| does not exist | 保存値が存在しません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+
+# イベント発生フィルター
+
+次の前提を考えます。
+
+- ユーザーがイベントを実行した、または実行しなかった回数: n
+- 対象のイベント: Viewed Product
+- 今日の日付 - 2023 年 12 月 14 日
+- セグメンテーションのイベント保持期間 - 30 日（2023 年 11 月 14 日）
+
+| **演算子** | **説明** |
+| --- | --- |
+| exactly | ユーザーが指定された回数ちょうどイベントを実行しています。<br />例: **Has Executed Viewed Product exactly 2 times**<br />このフィルターは、フィルター条件に追加された指定の日付範囲内で、商品をちょうど 2 回閲覧したユーザーを取得します。 |
+| at least | ユーザーがイベントを少なくとも n 回（\>= n）実行しています。<br />例: **Has Executed Viewed Product at least 1 times**<br />このフィルターは、フィルター条件に追加された指定の日付範囲内で、商品を少なくとも 1 回閲覧したユーザーを取得します。 |
+| at most | ユーザーがイベントを最大 n 回（\<= n）実行しています。<br />例: **Has Executed Viewed Product at most 4 times**<br />このフィルターは、フィルター条件に追加された指定の日付範囲内で、商品を最大 4 回（\<=4）閲覧したユーザーを取得します。 |
+| for the first time | ユーザーが指定の日付範囲内で初めてイベントを実行しています。<br />例: **Has Executed Viewed Product for the first time in the last 4 days**<br />このフィルターは、過去 4 日間（2023 年 12 月 10 日まで）に初めて商品を閲覧し、それ以前には商品を閲覧していない（2023 年 12 月 10 日より前に viewed product を実行していない（ここでの対象期間 - 2023 年 11 月 14 日から 2023 年 12 月 10 日））ユーザーを取得します。<br />**注:** この演算子は、ワークスペースに適用されるイベントデータ保持期間に従って実行されます。 |
+| for the last time | ユーザーが指定の日付範囲内で最後にイベントを実行しています。<br />例: **Has Executed Viewed Product for the last time**<br />このフィルターは、フィルター条件に追加された指定の日付範囲内で最後に商品を閲覧したユーザーを取得します。<br />**注:** この演算子は、ワークスペースに適用されるイベントデータ保持期間に従って実行されます。 |
+
+# 位置トリガーフィルター
+
+| **演算子** | **説明** |
+| --- | --- |
+| Point with Radius | 保存された位置情報の値が、地点と半径で定義された円の内側にあります。 |
+
+# Date Time フィルター
+
+date-time データ型のフィルター演算子を理解するには、まずいくつかの関数を理解する必要があります。
+
+- now = ミリ秒までの現在のタイムスタンプ
+- start\_of\_day(timestamp) = 選択した日/日付の 00:00:00
+- end\_of\_day(timestamp) = 選択した日/日付の 23:59:59
+- n days = n \* 24 時間
+- 以下の表では、n、n1、n2 は数値で、n2 \> n1 です。
+
+### 例
+
+- now が 2001 年 1 月 5 日 7:30:05 PM であると仮定すると、
+  - now - 3 days = now - (3\* 24) hours = 7:30:05 PM, 2 Jan 2001
+  - now \+ 3 days = now \+ (3\* 24) hours = 7:30:05 PM, 8 Jan 2001
+  - start of the day (now) = 12:00:00 AM, 5 Jan 2001
+  - end of the day (now) = 11:59:59 PM, 5 Jan 2001
+- 日付が 2001 年 1 月 1 日であると仮定すると、
+  - start of day (date) = 12:00:00 AM, 1 Jan 2001
+  - start of day (date \+ 1 day) = 12:00:00 AM, 2 Jan 2001
+  - start of day (date - 1 day) = 12:00:00 AM, 31 Dec 2000
+  - end of day (date) = 11:59:59 PM, 1 Jan 2001
+  - end of day (date \+ 1 day) = 11:59:59 PM, 2 Jan 2001
+  - end of day (date - 1 day) = 11:59:59 PM, 31 Dec 2000
+
+<Info>
+  すべての date-time フィルターは、Settings で指定されたアプリのタイムゾーンで動作します。\
+  （Settings -\> App -\> General -\> General Settings -\> Account Settings -\> TimeZone）
+</Info>
+
+| **演算子** | **フィルター値の種類** | **説明** |
+| --- | --- | --- |
+| in the last | n days | 保存値は<br />From = Start of day(Now - N days)、<br />To = Now。<br />N はフィルター値です。<br />例: Now = 11:30:30 AM, 7 Sep 2022 かつ N = 3 の場合。<br />From = 12:00:00 AM, 4 Sep 2022。<br />To = 11:30:30 AM, 7 Sep 2022。 |
+|  | n hours | 保存値は<br />From = Start of the hour (Now - N hours)、<br />To = Now<br />N はフィルター値です。<br />例: Now = 11:30:30 AM, 7 Sep 2022 かつ N = 3 の場合。<br />From = 8:00:00 AM, 7 Sep 2022。<br />To = 11:30:30 AM, 7 Sep 2022。 |
+|  | n weeks | 保存値は<br />From = Start of the week (Monday of (Now - N weeks))、<br />To = Now<br />N はフィルター値です。<br />例: Now = 11:30:30 AM, 7 Sep 2022 かつ N = 2 の場合。<br />From = 12:00:00 AM, 22 Aug 2022（月曜日）<br />To = 11:30:30 AM, 7 Sep 2022。 |
+|  | n months | 保存値は<br />From = Start of the month (Now - N months)、<br />To = Now<br />N はフィルター値です。<br />例: Now = 11:30:30 AM, 7 Sep 2022 かつ N = 2 の場合。<br />From = 12:00:00 AM, 1 Jul 2022。<br />To = 11:30:30 AM, 7 Sep 2022。 |
+| on | date | 保存値は<br />From = Start of day (Date chosen)、<br />To = End of day (Date chosen)<br />例: Now = 11:30:30 AM, 7 Sep 2022 で、選択した日付が今日の場合。<br />From = 12:00:00 AM, 7 Sep 2022。<br />To = 11:30:30 AM, 7 Sep 2022。 |
+|  | days ago | 保存値は<br />From = Start of day (Now - N days)、<br />To = End of day (Now - N days)<br />N はフィルター値です<br />例: Now = 11:30:30 AM, 7 Sep 2022 かつ N=3 の場合。<br />From = 12:00:00 AM, 4 Sep 2022。<br />To = 11:59:59 PM, 4 Sep 2022。 |
+|  | days from now | 保存値は<br />From = Start of day(Now \+ N days)、<br />To = End of day(Now \+ N days)。<br />N はフィルター値です。<br />例: Now = 11:30:30 AM, 7 Sep 2022 かつ N=3 の場合。<br />From = 12:00:00 AM, 10 Sep 2022。<br />To = 11:59:59 PM, 10 Sep 2022。 |
+| in between | date | 保存値は<br />From = Start of day(Date 1)、<br />To = End of day(Date 2)。<br />Date 1 と Date 2 はそれぞれ開始日と終了日です。<br />例: 選択した Date1 = 7 Sep 2022 かつ Date2 = 15 Sep 2022 の場合。<br />From = 12:00:00 AM, 7 Sep 2022。<br />To = 11:59:59 PM, 15 Sep 2022。 |
+|  | days ago | 保存値は<br />From = Start of day (Now - N2 days)、<br />To = End of day (Now - N1 days)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 11:30:30 AM, 7 Sep 2022、N1 = 3、N2 = 5 の場合。<br />From = 12:00:00 AM, 2 Sep 2022。<br />To = 11:59:59 PM, 4 Sep 2022。 |
+|  | days from now | 保存値は<br />From = Start of day(Now \+ N1 days)、<br />To = End of day(Now \+ N2 days)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 11:30:30 AM, 7 Sep 2022、N1 = 3、N2 = 5 の場合。<br />From = 12:00:00 AM, 10 Sep 2022。<br />To = 11:59:59 PM, 12 Sep 2022。 |
+| before | date | 保存値は<br />To = End of day (Date chosen - 1 day)<br />例: Now = 11:30:30 AM, 7 Sep 2022 で、選択した日付が今日の場合。<br />To = 11:59:59 PM, 6 Sep 2022。 |
+|  | days ago | 保存値は<br />To = End of day(Now - (N\+1) days)<br />N はフィルター値です。<br />例: Now = 11:30:30 AM, 7 Sep 2022 かつ N = 3 の場合。<br />To = 11:59:59 PM, 3 Sep 2022。 |
+| after | date | 保存値は<br />From = Start of day (Date chosen \+ 1 day)、<br />例: Now = 11:30:30 AM, 7 Sep 2022 で、選択した日付が今日の場合。<br />From = 12:00:00 AM, 8 Sep 2022。 |
+|  | days from now | 保存値は<br />From = Start of day(now \+ (N\+1) days)<br />N はフィルター値です。<br />例: 選択した Date = 7 Sep 2022 かつ N = 3 の場合。<br />From = 12:00:00 AM, 11 Sep 2022。 |
+| in the next | days | 保存値は<br />From = Now、<br />To = End of day(now \+ N days)。<br />N はフィルター値です。<br />例: Now = 11:30:30 AM, 7 Sep 2022 かつ N =3 の場合。<br />From = 11:30:30 AM, 7 Sep 2022。<br />To = 11:59:59 PM, 10 Sep 2022。 |
+| today |  | 保存値は<br />From = Start of day(Today)、<br />To = Now<br />例: Now = 11:30:30 AM, 7 Sep 2022 の場合。<br />From = 12:00:00 AM, 7 Sep 2022。<br />To = 11:30:30 AM, 7 Sep 2022。 |
+| yesterday |  | 保存値は<br />From = Start of day(Now - 1 day)、<br />To = End of day(Now - 1 day)<br />例: Now = 11:30:30 AM, 7 Sep 2022 の場合。<br />From = 12:00:00 AM, 6 Sep 2022。<br />To = 11:59:59 PM, 6 Sep 2022。 |
+| this week |  | 保存値は<br />From = Start of week (Monday of the current week)、<br />To = Now<br />例: Now = 11:30:30 AM, 7 Sep 2022 の場合。<br />From = 12:00:00 AM, 5 Sep 2022。<br />To = 11:30:30 AM, 7 Sep 2022。 |
+| last week |  | 保存値は<br />From = Start of week (Now - 7 days)、<br />To = End of week (Now - 7 days)<br />例: Now = 11:30:30 AM, 7 Sep 2022 の場合。<br />From = 12:00:00 AM, 29 Aug 2022。（月曜日）<br />To = 11:59:59 PM, 3 Sep 2022。 |
+| this month |  | 保存値は<br />From = Start of Month (1st of current month)、<br />To = End of Month (Now)<br />例: Now = 11:30:30 AM, 7 Sep 2022 の場合。<br />From = 12:00:00 AM, 1 Sep 2022。<br />To = 11:30:30 AM, 7 Sep 2022。 |
+| last month |  | 保存値は<br />From = Start of Month (Now - 1 month)、<br />To = End of Month (Now - 1 month)<br />例: Now = 11:30:30 AM, 7 Sep 2022 の場合。<br />From = 12:00:00 AM, 1 Aug 2022。<br />To = 11:59:59 PM, 31 Aug 2022。 |
+| exists |  | 保存値が存在します。これには、Empty Date Time や N/A を含むすべての値が含まれます。<br />保存値が存在する（Key is set）ユーザーまたはイベントをフィルタリングします。 |
+| does not exist |  | 保存値が存在しません。<br />このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+
+## 特殊な日付フィルター
+
+特殊な日付フィルターは、特定の時間、曜日、月、月内の日付、年内の日付でフィルタリングします。これは、年をまたいだ誕生日や、月をまたいだ請求日を抽出する場合に便利です。
+
+特殊な日付フィルターは、User property および User behavior セクションの日付属性の横にあるドロップダウンで利用できます。
+
+![attribute.png](/images/moengage_491dc6.png)
+
+![event.png](/images/moengage_2bab79.png)
+
+| **演算子** | **ダッシュボード上のテキスト** | **説明** |
+| --- | --- | --- |
+| Date | Date | 保存された日付をフィルタリングします。 |
+| Hour of the day | Daily where the hour/s | 保存された日付を時間に基づいてフィルタリングします。<br />特定の時間（例: 12 AM - 1 AM）を持つ日付をフィルタリングするには、このオプションを使用します。<br />このフィルターを使用すると、映画の時間やヨガクラスの時間が 8 AM - 9 AM の間にあるすべてのユーザーをセグメント化できます。 |
+| Day of the week | Weekly where the day/s | 保存された日付を曜日に基づいてフィルタリングします。<br />特定の曜日（例: 月曜日）の日付をフィルタリングするには、このオプションを使用します。<br />このフィルターを使用すると、金曜日に食事を注文したりタクシーを予約したりしたすべてのユーザーをセグメント化できます。 |
+| Day of the month | Monthly where the day/s | 保存された日付を日に基づいてフィルタリングします。<br />任意の月の特定の日（例: 5 日）の日付をフィルタリングするには、このオプションを使用します。<br />このフィルターを使用すると、毎月の請求支払日やサブスクリプション更新日が 15 日のユーザーをセグメント化できます。 |
+| Month of the year | Yearly where the month/s | 保存された日付を月に基づいてフィルタリングします。<br />任意の年の特定の月（例: 1 月）に実行されたアクションには、このオプションを使用します。<br />このフィルターを使用すると、誕生日や年間サブスクリプションの有効期限が 3 月のすべてのユーザーをセグメント化できます。 |
+| Date Month | Yearly where the date/s | 保存された値を日付と月の組み合わせに基づいてフィルタリングします。<br />特定の日付と月の組み合わせ（例: 01 Feb）を持つ日付をフィルタリングするには、このオプションを使用します。<br />これは誕生日や記念日のフィルタリングに使用できます。例えば、誕生日や請求日が 9 月 15 日のユーザーをセグメント化できます。 |
+
+特殊な日付フィルターは、データ型が 'date' のユーザー属性とイベント属性でのみ利用できます。特殊な日付フィルターは、Affinity Segmentation および Analytics のフィルターでは利用できません。
+
+## Hour of the day - Daily where the hours
+
+Hour of the day について、例を使ってこれらのフィルターの定義を詳しく見ていきましょう。
+
+| **演算子** | **フィルター値** | **説明** |  |
+| --- | --- | --- | --- |
+| in the following | -- | 保存された日付の時間の値がいずれかのフィルター値と一致します。 |  |
+| on | hour | 保存値は<br />From = Start of the hour(Hour)、<br />To = End of the hour(Hour)。<br />Hour はフィルターの時間です。<br />例: 選択した Hour = 12 AM の場合。<br />From = 12:00:00 AM、<br />To = 12:59:59 AM。（日付に関係なく） |  |
+|  | hours ago | 保存値は<br />From = Start of the hour(Now - N hours)、<br />To = End of the hour(Now - N hours)。<br />N はフィルター値です。<br />例: Now = 11:30:30 AM かつ N =3 の場合。From = 8:00:00 AM、To = 8:59:59 AM。（日付に関係なく） |  |
+|  | hours from now | 保存値は<br />From = Start of hour(Now \+ N hours)、<br />To = End of hour(Now \+ N hours)。<br />N はフィルター値です。<br />例: Now = 11:30:30 AM かつ N =3 の場合。From = 02:00:00 PM、<br />To = 02:59:59 PM。（日付に関係なく） |  |
+| In between | hour | 保存値は<br />From = Start of the hour(Hour 1)、<br />To = End of the hour(Hour 2)。<br />Hour 1 と Hour 2 はそれぞれ開始時間と終了時間です。<br />例: 選択した Hour1 = 01 AM かつ Hour2 = 05 PM の場合。<br />From = 01:00:00 AM、<br />To = 05:59:59 PM。（日付に関係なく） |  |
+|  | hours ago | 保存値は<br />From = Start of the hour(Now - N2 hours)、<br />To = End of the hour(Now - N1 hours)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 11:30:30 AM、N1 = 3、N2 = 5 の場合。<br />From = 06:00:00 AM、<br />To = 8:59:59 AM。（日付に関係なく） |  |
+|  | hours from now | 保存値は<br />From = Start of hour(Now \+ N1 hours)、<br />To = End of hour(Now \+ N2 hours)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 11:30:30 AM、N1 = 3、N2 = 5 の場合。<br />From = 02:00:00 PM、<br />To = 04:59:59 PM。<br />（日付に関係なく） |  |
+| in the last | n hours | 保存値は<br />From = Start of the hour(Now - N hours)、<br />To = End of the hour(Now)<br />N はフィルター値です。<br />例: Now = 11:30:30 AM かつ N =3 の場合。<br />From = 8:00:00 AM、<br />To = 11:59:59 AM。（日付に関係なく） |  |
+| in the next | n hours | 保存値は<br />From = Start of hour(Now)、<br />To = End of hour(Now \+ N hours)<br />N はフィルター値です。<br />例: Now = 11:30:30 AM かつ N =3 の場合。<br />From = 11:00:00 AM、<br />To = 02:59:59 PM。<br />（日付に関係なく） |  |
+
+## Day of the week - Weekly where the day
+
+Day of the week について、例を使ってこれらのフィルターの定義を詳しく見ていきましょう。
+
+| **演算子** | **フィルター値** | **説明** |  |
+| --- | --- | --- | --- |
+| is today | -- | 保存値は<br />From = Start of weekday(Now)、<br />To = End of weekday(Now)<br />例: Now = 04:30:30 PM, 1 Jan 2001, Monday の場合。<br />From = Monday 12:00:00 AM、<br />To = Monday 11:59:59 PM。<br />（日付に関係なく） |  |
+| in the following | -- | 保存された日付の曜日の値がいずれかのフィルター曜日と一致します。 |  |
+| on | day | 保存値は<br />From = Start of weekday(Day)、<br />To = End of weekday(Day)<br />Day はフィルターの曜日です。<br />例: Day = Wednesday の場合。<br />From = Wednesday 12:00:00 AM、<br />To = Wednesday 11:59:59 PM。<br />（日付に関係なく） |  |
+|  | days ago | 保存値は<br />From = Start of weekday(Now - N days)、<br />To = End of weekday(Now - N days)。<br />N はフィルター値です。<br />例: Now = 04:30:30 PM, 1 Jan 2001, Monday かつ N = 3 の場合<br />From =  Friday 12:00:00 AM、<br />To = Friday 11:59:59 PM。<br />（日付に関係なく） |  |
+|  | days from now | 保存値は<br />From = Start of weekday(Now \+ N days)、<br />To = End of weekday(Now \+ N days)<br />N はフィルター値です。<br />例: Now = 04:30:30 PM, 1 Jan 2001, Monday かつ N = 3 の場合<br />From =  Thursday 12:00:00 AM、<br />To = Thursday 11:59:59 PM。<br />（日付に関係なく） |  |
+| In between | day | 保存値は<br />From = Start of weekday(Day 1)、<br />To = End of weekday(Day 2)<br />Day 1 と Day 2 はそれぞれ開始曜日と終了曜日です。<br />例: Now = 04:30:30 PM, 1 Jan 2001, Monday、Day 1 = Tuesday、Day 2 = Tuesday の場合。<br />From =  Tuesday 12:00:00 AM、<br />To = Thursday 11:59:59 PM。<br />（日付に関係なく） |  |
+|  | days ago | 保存値は<br />From = Start of weekday(Now - N2 days)、<br />To = End of weekday(Now - N1 days)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 04:30:30 PM, 1 Jan 2001, Monday、N1 = 2、N2 = 4 の場合。<br />From = Thursday 12:00:00 AM<br />To = Saturday 11:59:59 PM<br />（日付に関係なく） |  |
+|  | days from now | 保存値は<br />From = Start of weekday(Now \+ N1 days)、<br />To = End of weekday(Now \+ N2 days)<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 04:30:30 PM, 1 Jan 2001, Monday、N1 = 2、N2 = 4 の場合。<br />From = Wednesday 12:00:00 AM、<br />To = Friday 11:59:59 PM。<br />（日付に関係なく） |  |
+| in the last | N days | 保存値は<br />From = Start of day(Now - N days)、<br />To = End of day(Now) N はフィルター値です。<br />例: Now = 04:30:30 PM, 1 Jan 2001, Monday かつ N = 3 の場合。<br />From = Friday 12:00:00 AM、<br />To = Monday 11:59:59 PM。<br />（日付に関係なく） |  |
+| in the next | N days | 保存値は<br />From = Start of the day (Now)、<br />To = End of day(Now \+ N days)<br />N はフィルター値です。<br />例: Now = 04:30:30 PM, 1 Jan 2001, Monday かつ N = 3 の場合。<br />From = Monday 12:00:00 AM、<br />To = Thursday 11:59:59 PM。<br />（日付に関係なく） |  |
+
+## Day of the month - Monthly where the day
+
+Day of the week について、例を使ってこれらのフィルターの定義を詳しく見ていきましょう。\
+ここで Date(DD) は数値の日付の値です（例: 11、23、05）。
+
+| **演算子** | **フィルター値** | **説明** |  |
+| --- | --- | --- | --- |
+| is today | -- | 保存値は<br />From = Start of day(Now)、<br />To = End of day(Now)<br />例: Now = 4:30 PM, 11 Jan 2001 の場合。<br />From = 11th 12:00:00 AM<br />To = 11th 11:59:59 PM<br />（月と年に関係なく） |  |
+| in the following | -- | 保存された日付の Date(DD) の値がいずれかのフィルター日付と一致します。 |  |
+| on | day | 保存値は<br />From = Start of day(Date)、<br />To = End of day(Date)<br />Date(DD) はフィルターの日付です。<br />例: 選択した Date = 7th の場合。<br />From = 7th 12:00:00 AM、<br />To = 7th 11:59:59 PM。<br />（月と年に関係なく） |  |
+|  | days ago | 保存値は<br />From = Start of day(Now - N days)、<br />To = End of day(Now - N days)。<br />N はフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001 かつ N = 3 の場合。<br />From = 8th 12:00:00 AM、<br />To = 8th 11:59:59 PM。<br />（月と年に関係なく） |  |
+|  | days from now | 保存値は<br />From = Start of day(Now \+ N days)、<br />To = End of day(Now \+ N days)<br />N はフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001 かつ N = 3 の場合。<br />From = 14th 12:00:00 AM、<br />To = 14th 11:59:59 PM。<br />（月と年に関係なく） |  |
+| In between | day | 保存値は<br />From = Start of day(Date1)、<br />To = End of day(Date2) Date1(DD) と Date 2(DD) はそれぞれ開始日と終了日です。<br />例: Date1 = 14th かつ Date2 = 23rd の場合。From = 14th 12:00:00 AM、<br />To = 23rd 11:59:59 PM。<br />（月と年に関係なく） |  |
+|  | days ago | 保存値は<br />From = Start of day(Now - N2 days)、<br />To = End of day(Now - N1 days)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001、N1 = 11、N2=19 の場合。<br />From = 23rd 12:00:00 AM、<br />To = 31th 11:59:59 PM。<br />（月と年に関係なく） |  |
+|  | days from now | 保存値は<br />From = Start of day(Now \+ N1 days)、<br />To = End of day(Now \+ N2 days)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001、N1 = 11、N2=19 の場合。<br />From = 22nd 12:00:00 AM、<br />To = 30th 11:59:59 PM。<br />（月と年に関係なく） |  |
+| in the last | N days | 保存値は<br />From = Start of day(Now - N days)、<br />To = End of day(Now)。<br />N はフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001 かつ N = 3 の場合。<br />From = 8th 12:00:00 AM、<br />To = 11th 11:59:59 PM。<br />（月と年に関係なく） |  |
+| in the next | N days | 保存値は<br />From = Start of the day (Now)、<br />To = End of day(Now \+ N days)。<br />N はフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001 かつ N = 3 の場合。<br />From = 11th 12:00:00 AM、<br />To = 14th 11:59:59 PM。<br />（月と年に関係なく） |  |
+
+## Month of the year - Yearly where the month
+
+Month of the year について、例を使ってこれらのフィルターの定義を詳しく見ていきましょう。
+
+| **演算子** | **フィルター値** | **説明** |
+| --- | --- | --- |
+| is this month | -- | 保存値は<br />From = Start of month(Now)、<br />To = End of month(Now)<br />例: Now = 4:30 PM, 11 Jan 2001 の場合。<br />From = 1st Jan 12:00:00 AM To = 31st Jan 11:59:59 PM<br />（年に関係なく） |
+| in the following | -- | 保存された日付の月の値がいずれかのフィルター月と一致します。 |
+| on | month | 保存値は<br />From = Start of month(Month)、<br />To = End of month(Month)<br />Month はフィルターの月です。<br />例: 選択した Month = May の場合。<br />From = 1st May 12:00:00 AM<br />To = 31st May 11:59:59 PM<br />（年に関係なく） |
+|  | months ago | 保存値は<br />From = Start of month(Now - N months)、<br />To = End of month(Now - N months)<br />N はフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001 かつ N = 3 の場合。<br />From = 1st Oct 12:00:00 AM、<br />To = 30th Oct 11:59:59 PM。<br />（年に関係なく） |
+|  | months from now | 保存値は<br />From = Start of month(Now \+ N months)、<br />To = End of month(Now \+ N months)。<br />N はフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001 かつ N = 3 の場合。<br />From = 1st Apr 12:00:00 AM、<br />To = 30th Apr 11:59:59 PM。<br />（年に関係なく） |
+| In between | month | 保存値は<br />From = Start of month(Month 1)、<br />To = End of month(Month 2)。<br />Month1 と Month2 はそれぞれ開始月と終了月です。<br />例: Month1 = March、Month2= October の場合。<br />From = 1st Mar 12:00:00 AM、<br />To = 30th Oct 11:59:59 PM。<br />（年に関係なく） |
+|  | month ago | 保存値は<br />From = Start of month(Now - N2 months)、<br />To = End of month(Now - N1 months)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001、N1 = 4、N2 = 7 の場合。<br />From = 1st Jun 12:00:00 AM、<br />To = 30th Sep 11:59:59 PM。<br />（年に関係なく） |
+|  | month from now | 保存値は<br />From = Start of month(Now \+ N1 months)、<br />To = End of month(Now \+ N2 months)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001、N1 = 4、N2 = 7 の場合。<br />From = 1st May 12:00:00 AM、<br />To = 31th Aug 11:59:59 PM。<br />（年に関係なく） |
+| in the last | n months | 保存値は<br />From = Start of month(Now - N months)、<br />To = End of month(Now)。<br />N はフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001 かつ N = 3 の場合。<br />From = 1st Oct 12:00:00 AM、<br />To = 31th Jan 11:59:59 PM。<br />（年に関係なく） |
+| in the next | n months | 保存値は<br />From = Start of month(Now)、<br />To = End of month(Now \+ N months)。<br />N はフィルター値です。<br />例: Now = 4:30 PM, 11 Jan 2001 かつ N = 3 の場合。<br />From = 1st Jan 12:00:00 AM、<br />To = 30th Apr 11:59:59 PM。<br />（年に関係なく） |
+
+## Date-Month of the year - Yearly where the date
+
+Date month of the year について、例を使ってこれらのフィルターの定義を詳しく見ていきましょう。
+
+| **演算子** | **フィルター値** | **説明** |  |
+| --- | --- | --- | --- |
+| is today | -- | 保存値は<br />From = Start of day(Now)、<br />To = End of day(Now)<br />例: Now = 4:30 PM, 11 Jan 2001 の場合。<br />From = 11th Jan 12:00:00 AM、<br />To = 11th Jan 11:59:59 PM。<br />（年に関係なく） |  |
+| on | date month | 保存値は<br />From = Start of day(Date-Month)、<br />To = End of day(Date-Month)。<br />例: Date-Month = 04 May の場合。<br />From = 4th May 12:00:00 AM、<br />To = 4th May 11:59:59 PM。<br />（年に関係なく） |  |
+|  | days ago | 保存値は<br />From = Start of day(Now - N days)、<br />To = End of day(Now - N days)<br />N はフィルター値です。<br />例: Now = 11 Jan 2001, 4:29 PM かつ N = 3 の場合。<br />From = 8th Jan 12:00:00 AM、<br />To = 8th Jan 11:59:59 PM。<br />（年に関係なく） |  |
+|  | days from now | 保存値は<br />From = Start of day(Now \+ N days)、<br />To = End of day(Now \+ N days)。<br />N はフィルター値です。<br />例: Now = 11 Jan 2001, 4:29 PM かつ N = 3 の場合。<br />From = 14 Jan 12:00:00 AM、<br />To = 14 Jan 11:59:59 PM。<br />（年に関係なく） |  |
+| In between | day | 保存値は<br />From = Start of day(Date-Month1)、<br />To = End of day(Date-Month2)<br />Date-Month1 と Date-Month2 はそれぞれ開始日と終了日です。<br />例: Date-Month1 = 03 March かつ Date-Month1 = 10 October の場合。<br />From = 3rd Mar 12:00:00 AM、<br />To = 10th Oct 11:59:59 PM。<br />（年に関係なく） |  |
+|  | days ago | 保存値は<br />From = Start of day(Now - N2 days)、<br />To = End of day(Now - N1 days)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 11 Jan 2001, 4:29 PM、N 1 = 4、N2 = 7 の場合。<br />From = 4th Jan 12:00:00 AM、<br />To = 7th Jan 11:59:59 PM。<br />（年に関係なく） |  |
+|  | days from now | 保存値は<br />From = Start of days(Now \+ N1 days)、<br />To = End of days(Now \+ N2 days)。<br />N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。<br />例: Now = 11 Jan 2001, 4:29 PM、N 1 = 4、N2 = 7 の場合。<br />From = 15th Jan 12:00:00 AM、<br />To = 18th Jan 11:59:59 PM。<br />（年に関係なく） |  |
+| in the last | N days | 保存値は<br />From = Start of days(Now - N days)、<br />To = End of days(Now)。<br />N はフィルター値です。<br />例: Now = 11 Jan 2001, 4:29 PM かつ N = 3 の場合。<br />From = 8th Jan 12:00:00 AM、<br />To = 11th Jan 11:59:59 PM。<br />（年に関係なく） |  |
+| in the next | N days | 保存値は<br />From = Start of days(Now)、<br />To = End of days(Now \+ N days)。<br />N はフィルター値です。<br />例: Now = 11 Jan 2001, 4:29 PM かつ N = 3 の場合。<br />From = 11th Jan 12:00:00 AM、<br />To = 14th Jan 11:59:59 PM。<br />（年に関係なく） |  |
+
+# Array フィルター
+
+2 種類の配列フィルターを利用できます。
+
+配列フィルターは以下ではサポートされていません。
+
+1. Analytics Suite 全体
+2. Preference management、Conversion goals、Personalization 属性
+
+## Array of Strings
+
+文字列の配列フィルターの説明は以下のとおりです。
+
+| フィルター名 | **説明** |
+| --- | --- |
+| (any of) is | いずれかの保存値が、少なくとも 1 つのフィルター値と完全に一致します。 |
+| (all of) is | 配列のすべての保存値が、すべてのフィルター値と一致します。 |
+| (any of) is empty | 配列の保存値の少なくとも 1 つが空文字列です。 |
+| (all of) is empty | 配列のすべての保存値が空文字列です。 |
+| is not | 配列のすべての保存値が、どのフィルター値とも一致しません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| is not empty | 保存値が空ではありません。String インスタンスの長さが 0 より大きいです。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| exists | 保存値が存在します。これには、Empty Array や N/A を含むすべての値が含まれます。保存値が存在する（Key is set）ユーザーまたはイベントをフィルタリングします。 |
+| contains | 配列のすべての保存値に、すべてのフィルター値が含まれています。 |
+| does not exist | 保存値が存在しません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| (any of) contains | 配列の保存値の 1 つにフィルター値が含まれています。 |
+| (all of) contains | すべての保存値にフィルター値が含まれています |
+| does not contain | すべての保存値にフィルター値が含まれていません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| (any of) starts with | いずれかの保存値がフィルター値で始まります。 |
+| (all of) starts with | すべての保存値がフィルター値で始まります。 |
+| does not start with | すべての保存値がフィルター値で始まりません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| (any of) ends with | いずれかの保存値がフィルター値で終わります。 |
+| (all of) ends with | すべての保存値がフィルター値で終わります。 |
+| does not end with | すべての保存値がフィルター値で終わりません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+
+## Array of Numbers
+
+数値の配列フィルターの説明は以下のとおりです。
+
+| フィルター名 | **説明** |
+| --- | --- |
+| (any of) is equal to | いずれかの保存値が、少なくとも 1 つのフィルター値と完全に一致します。 |
+| (all of) is equal to | 保存値がすべてのフィルター値と完全に一致します。 |
+| is not equal to | いずれかの保存値が、どのフィルター値とも一致しません。このフィルターは、利用できない値（Key is not set）を含む、属性のすべての値に適用されます。 |
+| (any of) is between | 配列の保存値の 1 つが、1 番目のフィルター値と 2 番目のフィルター値の間にあります。N1 \<= 配列の保存値の少なくとも 1 つ AND 同じ値が \< N2。N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。 |
+| (all of) is between | 配列のすべての保存値が、1 番目のフィルター値と 2 番目のフィルター値の間にあります。N1 \<= 配列のすべての保存値 AND 配列のすべての保存値 \< N2。N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。 |
+| is not between | 配列のどの保存値も、1 番目のフィルター値と 2 番目のフィルター値の間にありません。N1 \> 配列のすべての保存値 OR 配列のすべての保存値 \>= N2。N1 と N2 はそれぞれ 1 番目と 2 番目のフィルター値です。 |
+| (any of) is less than | 配列の保存値の 1 つがフィルター値より小さいです。 |
+| (all of) is less than | 配列のすべての保存値がフィルター値より小さいです。 |
+| (any of) is greater than | 配列の保存値の 1 つがフィルター値より大きいです。 |
+| (all of) is greater than | 配列のすべての保存値がフィルター値より大きいです。 |
+| exists | 保存値が存在します。これには、Empty Array や N/A を含むすべての値が含まれます。保存値が存在する（Key is set）ユーザーまたはイベントをフィルタリングします。 |
+| contains | 保存値にいずれかのフィルター値が含まれています。 |
+| does not exist | 保存値がフィルター値に存在しません（Key not set）。 |
+
+# 属性の比較
+
+ユーザー属性を別の _ユーザー属性_ または _定数値_ と比較できるようになりました。\
+次の表に、属性の比較をサポートするフィルターとデータ型を示します。
+
+| データ型 | 属性の比較をサポートするフィルター |
+| --- | --- |
+| String | is, is not |
+| Boolean | is, is not |
+| Date | On, before, after, in the next, in the last  **注**: date データ型の場合、MoEngage は日付のみを照合し、正確なタイムスタンプは照合しません。 |
+| Number | is equal to, is not equal to, is greater than, is less than |
+| Array of Strings | (any of) is, (all of) is, is not, (any of) contains, (all of) contains, does not contain, (any of) starts with, (all of) starts with, does not start with, (any of) ends with, (all of) ends with, does not end with |
+| Array of Numbers | (any of) is equal to, (all of) is equal to, is not equal to, (any of) is less than, (all of) is less than, (any of) is greater than, (all of) is greater than |
+
+## 属性と属性の比較
+
+特定のデータ型のユーザー属性を、同じデータ型の別のユーザー属性と比較できるようになりました。
+
+**例 1**: アプリをインストールしてから一度も使用していないユーザーを特定したいマーケターを考えてみましょう。ユーザーの **First Seen** と **Last Seen** のユーザー属性を比較することで、マーケターはインストール以降アプリでアクティブになっていないユーザーを特定できます。
+
+![AttributeComparison\_Example1.gif](/images/moengage_355801.png)
+
+**例 2**: 未返済のローンがある顧客を特定したい銀行を考えてみましょう。各顧客について、**outstanding\_loan\_amount** と **loan\_amount\_paid\_till\_date** は、支払われたローン総額と、顧客がこれまでに返済したローン総額を表すユーザー属性です。未返済のローンがあるユーザーのセグメントを特定するために、銀行は次の例のようにこれらのユーザー属性を比較できます。
+
+![AttributeComparison\_Example2.gif](/images/moengage_c5866e.png)
+
+## 属性と定数値の比較
+
+ユーザー属性を事前定義された定数値と比較できるようになりました。
+
+**例 1**: アプリのアップグレード時にプラットフォームで \$1000 を超える金額を支出したユーザーを特定したい E コマース事業者を考えてみましょう。ユーザー属性 _total\_amount\_for\_upgrade_ は、各ユーザーがこれまでにプラットフォームのアップグレードに支出した合計金額を表します。ユーザーを「高額支出者」としてセグメント化するために、E コマース事業者は以下のようにこのユーザー属性を定数値 1000 と比較できます。
+
+![constant value.gif](/images/moengage_2ed81c.png)
+
+# 制限事項
+
+次の機能は現在、新しいセグメンテーションフィルター（first/last seen、contains spaces、is empty/not empty、ユーザー属性の比較）をサポートしていません。
+
+- Conversion Goal
+- Business Event
+- Smart Trigger & Dynamic Condition
+- Flows
+
+上記の機能では新しいフィルターを利用できませんが、新しいフィルターを使用したカスタムセグメントを **Create segment** ページから作成し、上記の機能で使用することは可能です。今後のフェーズで、ダッシュボードのすべての機能で新しいフィルターをサポートする予定です。
+
+# よくある質問（FAQ）
+
+<Accordion title='"Is Empty" と "Does Not Exist" の違いは何ですか？'>
+  違いは、**フィールドが存在しない**か、**値が空白**かという点です。
+
+  - **Does Not Exist**: 属性キーがユーザーに対して作成または追跡されたことがありません（例えば、"Loyalty\_ID" フィールドが User A のプロファイルにまったく存在しない場合）。
+  - **Is Empty**: 属性キーはプロファイルに存在しますが、保存されている値が空文字列です（例えば、User B には "Loyalty\_ID" フィールドがありますが、テキストが含まれていない場合: ""）。
+</Accordion>
+
+<Accordion title="特定の属性に実際の空でない値を持つユーザーを正確に見つけるには、どうすればよいですか？">
+  実際のデータを持つユーザーを確実にターゲットにするには、常に **Exists** 演算子と **Is Not Empty** 演算子を AND ロジックで組み合わせてください。これにより、その属性をまったく持たないユーザーが誤って含まれることを防げます。
+
+  - **例:** 有効な電話番号を持つユーザーを見つけるには、次を使用します: (Phone Number EXISTS) AND (Phone Number IS NOT EMPTY)
+  - **これが機能する理由:** Exists はフィールドがプロファイルに存在することを確認し、Is Not Empty はフィールドが単なる空白文字列ではないことを保証します。
+</Accordion>

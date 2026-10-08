@@ -1,0 +1,87 @@
+---
+title: "WhatsAppキャンペーンの一般的なエラー"
+description: "内部エラー、BSPエラー、配信の問題など、MoEngageにおけるWhatsAppキャンペーンの一般的なエラーのトラブルシューティングと、それぞれの解決策を説明します。"
+---
+
+WhatsAppメッセージの送信と配信は、無効なテンプレートやGupshup側の古いユーザーオプトインステータスなど、さまざまな理由で失敗することがあります。最も頻繁に発生するエラーとその理由は次のとおりです。
+
+<Info>
+  - WhatsAppテンプレートの承認とメッセージの配信ステータスは、Business Solution Provider(BSP)が管理します。MoEngageはBSPを通じてテンプレートとメッセージを送信し、返されたステータスとエラーの詳細を表示します。ただし、MoEngageがこれらの結果を承認、却下、または上書きすることはできません。
+  - テンプレートが却下された場合は、BSPまたはMeta Business Managerのアカウントを開いて却下理由を確認し、それに応じてテンプレートを編集して、再度承認を申請してください。 
+</Info>
+
+# 内部エラー
+
+WhatsAppメッセージの送信中に、MoEngageの内部システムによって生成されるエラーがいくつかあります。
+
+| エラー | 説明 |
+| --- | --- |
+| Personalization Failed | メッセージのパーソナライズが失敗し、フォールバックメッセージが設定されていない場合に発生します。システムはユーザーにメッセージを送信せず、Personalization Failedエラーを生成します。 |
+| Invalid Mobile Number | 次のシナリオで発生します。   <br />- 携帯電話番号フィールドがEmpty、None、N/A、undefined、null、または0(ゼロ)の場合。 <br />- 携帯電話番号フィールドにUnicode文字が含まれている場合、または長さが4未満の場合。 <br />- 携帯電話番号をE.164形式に変換できない場合。想定される携帯電話番号の形式を設定するには、[携帯電話番号の標準化](/ja/user-guide/settings/advanced-settings/mobile-number-standardization)を参照してください。 |
+| Users removed due to Global Control Group | ユーザーがGlobal Control Groupに含まれているため、MoEngageがユーザーにメッセージを送信しなかった場合に発生します。 |
+| Rejected because of DND | 設定されたDND時間中に、ユーザーがイベントトリガーメッセージの対象となった場合に発生します。この場合、MoEngageはユーザーにメッセージを送信しません。 |
+| Not sent due to campaign level min delay | ユーザーが2つのメッセージまたは同じキャンペーンのメッセージの対象となったものの、キャンペーンの最小遅延設定によりメッセージが送信されない場合に発生します。 |
+| Users removed due to campaign frequency limit | キャンペーンの **Limit Message** 設定で許可されている最大数のメッセージをすでに受信していたため、ユーザーが除外されました。詳細については、[定期キャンペーンおよびトリガーキャンペーンのメッセージ制限](/ja/user-guide/settings/channels/delivery-controls/limit-messages-for-periodic-and-triggered-campaigns)を参照してください。 |
+
+# BSP/WSPエラー
+
+MoEngageがWhatsAppメッセージをエンドユーザーに配信するためにWSPに引き渡した時点で、WhatsApp Service Provider(WSP)が認識したエラーにより、メッセージの配信が失敗することがあります。
+
+エラーの一覧は次のとおりです。
+
+<Info>
+  この一覧はすべてを網羅しているわけではありません。例外が発生し、詳細情報が必要な場合は、ベンダーのアカウントマネージャーにお問い合わせください。
+
+  Infobipについては、[こちら](https://www.infobip.com/docs/essentials/response-status-and-error-codes#chat-error-codes)のドキュメントを参照してください。
+</Info>
+
+| エラーメッセージ | 説明 | 解決策 |
+| --- | --- | --- |
+| Message does not match WhatsApp HSM template or INTERACTIVE BUTTON TEMPLATE MISMATCH | テンプレートデータの問題により発生します。テンプレートで送信されたパラメーターが想定外であるか、MoEngageに追加したテンプレートがベンダー側で承認されたものと一致していません。 | MoEngageのテンプレートを確認し、ベンダーのポータルで承認されたテンプレートに合わせて更新します。 |
+| Authentication failed due to invalid userId or password | MoEngageでGupshupの送信者を追加する際に、無効なユーザーIDまたはパスワードを追加した場合に発生します。Gupshupチームに連絡して確認してください。 | 送信者の追加時に指定したユーザーIDとパスワードを確認します。<br />**注:** 必ずWABA設定のユーザーIDを追加してください(Gupshupポータルのログイン情報ではありません)。ユーザーIDは通常2xxxxxxxxxのパターンです。 |
+| UNKNOWN\_SUBSCRIBER: Unknown/invalid number/does not exist on WhatsApp or Phone number not subscribed | MoEngageに保存されているユーザーの番号がWhatsApp番号ではない場合に発生します。 | 携帯電話番号が有効かどうか、およびその携帯電話番号がWhatsAppに存在するかどうかを確認します。<br />今後のキャンペーンからこのようなユーザーを除外するには、MoEngageプラットフォームでOPTINステータスをFalseに更新します。 |
+| The method "SENDMESSAGE" is not supported | MoEngageに送信者として保存されているWhatsApp電話番号が有効な番号ではない場合に発生します。詳細については、Gupshupチームにお問い合わせください。 | 送信者番号、つまりWABAビジネス番号を確認します。同じである場合は、ベンダーにお問い合わせください。 |
+| The "INTERNATIONAL\_PHONE" service is disabled for you. Kindly get the service enabled before using this action | 国際番号にメッセージを送信しようとしていて、WhatsAppビジネス番号でそのサービスが有効になっていない場合に発生します。Gupshupに連絡して国際サービスを有効にしてください。 | ベンダーに連絡して、アカウントの国際サービスを有効にしてください。 |
+| Message length exceeded. The Max limit for type TEMPLATE is 1024 | 本文テキストの長さが規定の上限である1024文字を超えたために発生します。 | 本文テキストを1024文字未満に減らします。 |
+| WhatsApp connector API generic failure | InfobipのWhatsApp送信者の詳細に有効なURLを追加しなかった場合に発生します。 | InfobipのURLが `https://` プレフィックスで始まっているかを確認します。 |
+| Generic Error from Gupshup | ベンダーから正確なエラーの詳細が共有されない場合に発生します。 | ベンダーに連絡して、正確なエラーを確認してください。 |
+| Invalid credentials | 認証情報が有効でない場合に発生します。 | 認証情報を確認し、それでも問題が解決しない場合はベンダーにお問い合わせください。 |
+| Invalid phone number or Invalid mobile number | MoEngageに保存されているユーザーの番号が有効な携帯電話番号ではない、または有効なWhatsApp番号ではない場合に発生します。 | 携帯電話番号が有効かどうか、およびその携帯電話番号がWhatsAppに存在するかどうかを確認します。想定される携帯電話番号の形式を設定するには、[携帯電話番号の標準化](/ja/user-guide/settings/advanced-settings/mobile-number-standardization)を参照してください。 |
+| Mobile number is not Opted In | MoEngageに保存されているユーザーの番号が、WhatsAppメッセージの受信にオプトインしていない場合に発生します。 | ユーザーの同意がある場合は、MoEngageとBusiness Service Provider(BSP)でオプトインステータスを更新します。 |
+| Validity of your SMS pack has expired | その送信者IDまたはWABA番号のSMSまたはWhatsAppの有効期限が切れた場合に発生します。 | ベンダーに連絡して、パックの有効期限を延長してください。 |
+| WA Compatibility | ユーザーが古いバージョンのWhatsAppを使用している場合、またはユーザーの電話番号がWhatsAppに登録されなくなった場合に発生します。 | ユーザーがWhatsAppを最新バージョンに更新すると、自動的に解決されます。 |
+| User Part of Experiment | WhatsAppのユーザーごとのマーケティングテンプレートメッセージ制限により、メッセージが配信されない場合に発生します。 | [こちら](https://www.moengage.com/blog/whatsapps-latest-deliverability-rules/)に記載されているプラクティスの一部を使用して、質の高いエクスペリエンスを作成できます。 |
+| invalid destination source | WhatsApp BSP/WSP側でIPがホワイトリストに登録されていない場合に発生します。 | 静的IPを設定するには、[こちら](/ja/user-guide/settings/account/security/ip-whitelisting-in-moengage)を参照してください。 |
+| Unauthorized | Karix WhatsAppコネクターの認証ヘッダーがKarix側でホワイトリストに登録されていない場合に発生します。このエラーはMoEngageではなく、Karixから直接返されます。 | Karixチームに連絡してアカウントの認証ヘッダーをホワイトリストに登録してもらい、再試行してください。 |
+
+<Info>
+  WSPでのエラーについて、さらにサポートやガイダンスが必要な場合は、WSPにお問い合わせいただくことをお勧めします。
+</Info>
+
+# よくある質問
+
+<Accordion title="WhatsAppで動的なボタンリンクを送信するにはどうすればよいですか?">
+  WhatsAppメッセージで動的なボタンリンクを設定するには、次の手順を実行します。
+
+  1. Gupshup、Infobip、Karix、Kaleyra、Exotel、AiSensy、Value First、Route Mobile、Gallaboxなどの必要なパートナーポータルに移動し、ボタンリンクをdynamicまたはdynamic link trackingオプションとしてテンプレートを作成し、承認を申請します。
+  2. テンプレートが承認されたら、MoEngageのテンプレート作成画面に移動し、dynamicまたはdynamic link trackingオプションでテンプレートを追加します。
+  3. キャンペーンの作成時に、次の手順を実行します。
+     - Dynamic: URL内の必要な値のみを選択します。たとえば、ボタンのエンドユーザー向けURLがmoengage.com/landingpage=whatsappで、承認申請したURLがmoengage.com/landingpage=`{{1}}`である場合は、対象ユーザーの値としてWhatsAppまたはSMSを選択するユーザー属性のみを選択します。
+     - Dynamic Link Tracking: このオプションでは、URL全体を入力し、shorten & track URLをクリックできます。これらのリンクのクリックは、キャンペーン分析のクリックトラッキングセクションに表示されます。
+</Accordion>
+
+<Accordion title="配信および既読の統計が表示されないのはなぜですか?">
+  MoEngageは、配信および既読の詳細の受信をパートナーに依存しています。パートナー側で、配信またはDelivery Receipt(DLR)コールバックが必要なWebhook URLに設定されているかどうかを確認してください。<br />アカウントのDLR Webhookは、WhatsApp Sender detailsセクションで確認できます。
+
+  <Info>
+    キャンペーン分析が表示されるまでに最大30分かかる場合があります。
+  </Info>
+</Accordion>
+
+<Accordion title="クリック指標が表示されないのはなぜですか?">
+  MoEngageは、クリックの詳細の受信をパートナーに依存しています。パートナー側で、メッセージまたはインバウンドコールバックが必要なWebhook URLに設定されているかどうかを確認してください。<br />インバウンドWebhook URLは、DLRコールバックWebhook URLと同じです。アカウントのインバウンドWebhook URLは、WhatsApp Sender detailsセクションで確認できます。
+
+  <Info>
+    キャンペーン分析が表示されるまでに最大30分かかる場合があります。
+  </Info>
+</Accordion>

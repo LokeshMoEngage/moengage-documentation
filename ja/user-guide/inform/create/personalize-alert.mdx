@@ -1,0 +1,157 @@
+---
+title: "アラートのパーソナライズ"
+description: "MoEngage Inform で、パーソナライゼーションエディターまたは属性フォールバック付きの Jinja テンプレートを使用して、トランザクションアラートのコンテンツをパーソナライズします。"
+---
+
+アラートは、アラート作成のコンテンツ作成ステップで、_Text personalization_ ボタンまたは JINJA を使用してパーソナライズできます。
+
+# パーソナライゼーションエディターを使用したパーソナライズ
+
+パーソナライズするには、次の手順に従います。
+
+1. アラート作成のステップ 2: Content で、**Text personalization** ボタンをクリックします。 <img src="/images/moengage_e78ee6.png" alt="text personalize.png" />
+2. 表示される画面の **Personalisation Attribute** フィールドに、パーソナライズする属性を追加します。
+3. パーソナライズされた属性のフォールバックとして、ユーザー属性を指定できます。注: このオプションを利用するには、Inform Settings で User Attributes を有効にする必要があります。詳細については、[User Attribute settings](/ja/user-guide/settings/miscellaneous/settings-inform#user-attribute-settings) を参照してください。 <img src="/images/moengage_7f5104.png" alt="PersonalizationEditor.png" />
+4. **Copy & Close** をクリックして、パーソナライズされた属性をクリップボードにコピーします。
+5. 標準のキーボードショートカットを使用して、コピーした値をメッセージエディターに貼り付けます。
+
+<Info>
+  パーソナライゼーション用に追加するユーザー属性の名前には、文字列、英字と数字の組み合わせ、アンダースコアのみを使用できます。たとえば、パーソナライズする属性名として _username_、_user\_name、usernmae1_ は使用できますが、_user name_ や _user name1_ は使用できません。属性名に文字列、アンダースコア、英数字以外の文字(スペース、数字のみ、特殊文字など)が含まれている場合、パーソナライゼーションは機能しません。
+</Info>
+
+<Tabs>
+  <Tab title="フォールバックとしてのユーザー属性">
+    次のフロー図は、ユーザー属性をフォールバックとして使用した場合のパーソナライゼーションの仕組みを示しています。
+
+    ![UserAttributesas\_Fallback.png](/images/moengage_99043f.png)
+
+    以下は、ユーザーの名前と注文 ID を、ユーザー属性をフォールバックとしてパーソナライズしたメッセージ本文のサンプルです。
+
+    **サンプルメッセージ本文**
+
+    `Hi {{username|default("{{UserAttribute['USER_ATTRIBUTE_USER_NAME']|default('user')}}")}}!`
+
+    Your order `{{orderid}}` has been placed successfully.
+
+    Happy Shopping!
+
+    Team MoEngage
+  </Tab>
+  <Tab title="ユーザー属性なし">
+    次のフロー図は、ユーザー属性が無効になっている場合のパーソナライゼーションの仕組みを示しています。
+
+    ![UserAttributesas\_Disabled.png](/images/moengage_8565a9.png)
+
+    **注:** ユーザー属性が(有効化後に)無効にされた場合、以降の API リクエストには標準の SLA が適用されます。
+
+    以下は、ユーザーの名前と注文 ID をパーソナライズしたメッセージ本文のサンプルです。
+
+    **サンプルメッセージ本文**
+
+    Hi `{{firstname}}`!
+
+    Your order `{{orderid}}` has been placed successfully.
+
+    Happy Shopping!
+
+    Team MoEngage
+  </Tab>
+</Tabs>
+
+## パーソナライゼーションを含むサンプルペイロード
+
+JSON
+
+```json wrap
+{
+"user_id": "john_doe",
+"payloads": {
+        "SMS": {
+            "recipient": "+1555555555",
+            "personalized_attributes": {
+                "firstname": "John",
+                "orderid": "#order HXY-12345-ZSDF"
+            }
+        },
+        "EMAIL": {
+            "recipient": "john.doe@moengage.com",
+            "personalized_attributes": {
+                "firstname": "John",
+                "orderid": "#order HXY-12345-ZSDF"
+            }
+        }
+    }
+```
+
+リクエストをトリガーする際には、firstname と orderid を送信する必要があります。
+
+## 顧客が受信したパーソナライズされたアラート
+
+<Tabs>
+  <Tab title="ユーザーが受信したアラート SMS">
+    ![AlertSMS.jpg](/images/moengage_2d42e0.png)
+  </Tab>
+  <Tab title="ユーザーが受信したアラートメール">
+    ![AlertEmail.png](/images/moengage_0f97c9.png)
+  </Tab>
+  <Tab title="ユーザーが受信したアラートプッシュ通知">
+    ![Personalized\_Notification\_\_1\_.png](/images/moengage_c62675.png)
+  </Tab>
+</Tabs>
+
+# Content Blocks を使用したパーソナライズ
+
+Content Blocks は、アラートで使用できる再利用可能なコンテンツです。_Content Blocks_ 機能を活用してアラートをパーソナライズすることで、ユーザーエンゲージメント、効率、および全体的な顧客体験が向上します。アラート用のコンテンツブロックの作成について詳しくは、[Content Blocks](/ja/user-guide/content/content-blocks/content-blocks) を参照してください。
+
+## コンテンツブロックの追加
+
+1. コンテンツブロックを追加するには、**Text personalization** ボタンをクリックします。Inform のパーソナライゼーションポップアップウィンドウが表示されます。 <img src="/images/moengage_f4feab.png" alt="21.png" />
+2. **Content block** タブに移動します。
+3. **Select content block** ドロップダウンから目的のコンテンツブロックを選択します。 <img src="/images/moengage_be7257.png" alt="22.png" />
+4. 次のトグルを使用して、コンテンツブロックのコンテンツのみを挿入することもできます。 <img src="/images/moengage_293f39.png" alt="23.png" /> この場合、既存のコンテンツブロックから切り離されてコンテンツのみが挿入され、今後の更新は反映されません。
+5. **Copy & Close** をクリックして、パーソナライズされた属性をクリップボードにコピーします。
+6. 標準のキーボードショートカットを使用して、コピーした値をメッセージエディターに貼り付けます。
+
+# JINJA を使用したパーソナライズ
+
+JINJA を使用してアラートをパーソナライズするには、コンテンツ作成ステップでテンプレートエディターに JINJA を追加し、JINJA で使用する属性をリクエストペイロードの \_personalized\_attributes\_object で渡します。
+
+## パーソナライゼーションを含むサンプルペイロード
+
+サンプルメールペイロード
+
+```json
+{  
+    "alert_id": "652fba0290f2820d05e12852",
+    "user_id": "John_Doe",
+    "transaction_id": "135671868",
+    "payloads": {
+        "EMAIL": {
+            "recipient": "john.doe@example.com",
+            "personalized_attributes": {
+                "items": [
+                  {  
+                    "name": "iPhone 15",
+                    "price": "2500 AED",
+                    "image": "https://yourbrand.com/iPhone.jpg"
+                  },
+                  {
+                    "name": "Macbook Air",
+                    "price": "3000 AED",
+                    "image": "https://yourbrand.com/MacbookAir.jpg"
+                  },
+                  {
+                    "name": "Airpods",
+                    "price": "800 AED",
+                    "image": "https://yourbrand.com/Airpods.jpg"
+                  }
+                ],
+           }
+        }
+    }
+}
+```
+
+## 顧客が受信したパーソナライズされたアラート
+
+![JINJAPersonalization\_Email.png](/images/moengage_d09832.png)

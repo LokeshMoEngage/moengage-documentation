@@ -1,0 +1,83 @@
+---
+title: "Android 広告 ID のトラッキング"
+description: "MoEngage で Google の広告 ID ポリシーに準拠します。ユーザーの同意を得て Android 広告 ID を使用したパーソナライゼーションをオプトインする方法を説明します。"
+---
+
+# 概要
+
+2022 年 4 月の Google ユーザーデータポリシーの更新により、広告 ID は、いかなる広告目的においても永続的なデバイス識別子（SSAID、MAC アドレス、IMEI など）と関連付けることができなくなりました。広告 ID は、ユーザーの明示的な同意がある場合にのみ、個人を特定できる情報と関連付けることができます。
+
+MoEngage は Google Play デベロッパー プログラム ポリシーに記載されたガイドラインに準拠しており、ユーザーの明示的な同意を得た後にのみ広告 ID を使用したパーソナライゼーションをオプトインできる業界標準の API を SDK に組み込んでいます。
+
+この記事では、Google Play デベロッパー プログラム ポリシーに記載されたデータプライバシー要件の詳細と、MoEngage の使用時にそれらに準拠する方法に関する推奨事項について説明します。これらのポリシーに従うことで、Google Play におけるアプリの良好な状態を維持し、ユーザーを保護できます。
+
+# ポリシーの内容
+
+[Android 広告 ID (AAID) または Google 広告 ID (GAID)](https://support.google.com/googleplay/android-developer/answer/9857753) は、Google Play 開発者サービスが提供する、ユーザーがリセット可能な広告用の一意の ID です。2022 年 4 月の Google Play 開発者サービスの更新により、広告 ID は、ユーザーの明示的な同意を得た後にのみ、個人を特定できる情報と関連付けたり、永続的なデバイス識別子と関連付けたりできるようになりました。
+
+<Info>
+[Android 識別子を使用する際のベストプラクティス](https://developer.android.com/training/articles/user-data-ids#best-practices-android-identifiers)では、[ユーザーの明示的な同意](https://support.google.com/googleplay/android-developer/answer/11150561)を得た後にのみ、広告 ID を個人を特定できる情報と関連付けるよう記載されています。
+</Info>
+
+Google Play ストアに掲載されているすべての Android アプリが影響を受けます。データ要件やユーザーフローに応じて、永続的なデバイス識別子を生成して AAID とマッピングしており、[ユーザーデータポリシー](https://support.google.com/googleplay/android-developer/answer/10144311?visit_id=637570411965975172-4240498562&rd=1)に従ってユーザーから適切な同意を得ていない場合、2022 年 8 月末以降、Google Play Console でアプリの新しいバージョンを公開できなくなります。
+
+# アプリへの影響
+
+MoEngage SDK は、パーソナライズされたコンテンツを配信するためにデバイス ID（永続的なデバイス識別子）を使用してユーザーを一意に識別し、アプリで許可されている場合はこれを AAID と関連付けます。
+
+AAID は、MoEngage が以下を改善するために使用するデバイス属性の 1 つです。
+
+- プッシュ通知を送信するための到達可能なデバイスの正確な識別。ユーザーが AAID トラッキングをオプトアウトすると、プッシュ通知で到達可能なユーザー数が増加する可能性があります。
+- ユーザーの再インストールの長期的な追跡。ユーザーが AAID トラッキングをオプトアウトすると、再インストールが新規インストールとして追跡される可能性があります。
+
+適切な同意なしに AAID が MoEngage SDK に渡されると、Google Play チームから次の警告を受け取る場合があります。
+
+#### メールメッセージ
+
+Your app includes SDK `com.moengage:moe-android-sdk` or an SDK that one of your libraries depends on, which collects personal or sensitive data that includes but is not limited to Advertising ID identifiers that may not be linked to other personal and sensitive user data or resettable device identifiers as described in the User Device policy.
+
+これは警告にすぎず、2022 年 8 月末まではアプリのユーザーエクスペリエンスや Play ストアの掲載情報に影響はありません。お客様によって異なる日付が通知されているため、アプリの正確な日付については Google から受信したメールを確認してください。この期間中に、以下の推奨ソリューションを実装して Google Play ストアのガイドラインへの準拠を確保できます。
+
+# MoEngage SDK で広告 ID トラッキングを有効にする
+
+## MoEngage SDK バージョン 12.2.01 以降の場合
+
+2022 年 4 月にリリースされた Android SDK バージョン 12.2.01 では、ユーザーの同意を得た後にのみ指定された識別子のトラッキングを有効にするために必要な API とサポートを追加しました。詳細については、[広告 ID トラッキングの有効化](https://www.moengage.com/docs/developer-guide/android-sdk/data-tracking/basic/enable-advertising-identifier-tracking)を参照してください。
+
+Google Play チームは MoEngage SDK バージョン 12.2.01 をレビューし、承認しています。
+
+Android ネイティブ以外のフレームワークについては、2022 年 7 月 31 日までにリリース予定の各フレームワーク向けの新しい SDK バージョンで、AAID のトラッキングを有効にする同様のメソッドを提供します。
+
+## MoEngage SDK バージョン 12.0.00 以前の場合
+
+MoEngage SDK バージョン 12.0.00 以前では、デフォルトで広告 ID を追跡し、永続的な識別子とマッピングします。このマッピングは最新のユーザーデータポリシーに従っています。
+
+AAID トラッキングのオプトインとオプトアウトを容易にするため、MoEngage は最新バージョンへの更新を強く推奨します。
+
+### すぐに SDK を最新バージョンに更新できない場合はどうすればよいですか？
+
+警告を受け取ったものの、すぐに MoEngage SDK をアップグレードしてオプトイントラッキングを適切に有効にできない場合は、SDK の初期化時に MoEngage SDK でのデバイス識別子のトラッキングをオプトアウトできます。ユーザーの同意を得た後に再度トラッキングを有効にするには、必要な構成で SDK を再初期化する必要があります。詳細については、[開発者向けドキュメント](https://www.moengage.com/docs/developer-guide/android-sdk/data-tracking/advanced-or-optional/configuring-opt-outs)を参照してください。
+
+この方法では MoEngage SDK の再初期化が必要となり、以前の初期化構成はすべて破棄されるため、推奨される方法ではありません。
+
+また、Google Play のユーザーデータポリシーに関するその他のご質問については、MoEngage カスタマーサクセスマネージャー (CSM) またはサポートチームにお問い合わせください。
+
+# よくある質問
+
+<Accordion title="AAID のトラッキングについてユーザーに同意を求めるにはどうすればよいですか？">
+
+[Android 識別子を使用する際のベストプラクティス](https://developer.android.com/training/articles/user-data-ids#best-practices-android-identifiers)に記載されているとおり、[ユーザーの明示的な同意](https://support.google.com/googleplay/android-developer/answer/11150561)を得た後にのみ、広告 ID を個人を特定できる情報と関連付ける必要があります。
+
+</Accordion>
+
+<Accordion title="AAID のトラッキングを無効にすべきですか？">
+
+AAID をトラッキングすることで、MoEngage はこの記事に記載されたユースケースにおいて正確なデータを維持できます。MoEngage SDK を更新し、上記で推奨された方法で広告 ID トラッキングを実装すれば、どのような場合でも無効にする必要はありません。
+
+</Accordion>
+
+<Accordion title="データトラッキングやキャンペーンに影響はありますか？">
+
+プッシュ通知やアプリ内メッセージなどのキャンペーンがユーザーに配信される方法には影響しません。プッシュの到達可能性や再インストールの追跡など、一部のレポートデータに影響する可能性があります。
+
+</Accordion>

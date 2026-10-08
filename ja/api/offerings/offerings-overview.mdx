@@ -1,0 +1,250 @@
+---
+title: "Offerings の概要"
+description: "MoEngage の Offer Decisioning 用のオファリングを作成、更新、一覧表示します。"
+icon: "gift"
+---
+
+import ApiAuthentication from '/ja/snippets/api-authentication.mdx';
+
+MoEngage Offerings API を使用すると、オファリングを管理できます。期間限定のプロモーションやパーソナライズされたコンテンツの作成、既存のオファリングのスケジュールやターゲティングの更新、レポートやオーケストレーションのワークフロー向けのオファリングの一覧表示、オファリングコンテンツで使用可能なパーソナライズテンプレートの一覧表示を行うことができます。
+
+<Info>
+  アカウントでこの API が有効になっていない場合は、MoEngage カスタマーサクセスマネージャー（CSM）またはサポートチームに連絡して、有効化をリクエストしてください。
+</Info>
+
+## オファリングのライフサイクル
+
+オファリングは、スケジュール期間に基づいて自動的にさまざまな状態に移行します。個別の公開ステップはありません。スケジュール期間が現在の時刻を含む場合、オファリングは作成と同時に公開されます。
+
+| 状態 | 意味 |
+| :--- | :--- |
+| `scheduled` | `start_datetime` が未来であることを示します。オファリングはまだディシジョニングの対象ではありません。 |
+| `active` | 現在時刻が `start_datetime` と `expiry_datetime` の間にあることを示します。オファリングはディシジョニングの対象です。 |
+| `expired` | `expiry_datetime` を過ぎたことを示します。オファリングは配信されなくなり、API で更新することはできません。 |
+| `archived` | オファリングがダッシュボードから手動でアーカイブされたことを示します。オファリングはディシジョニングから除外され、API で更新することはできません。 |
+| `draft` | オファリングがまだ公開されていないことを示します。API で作成されたオファリングが `draft` 状態になることはありません。 |
+
+## エンドポイント
+
+Offerings API は、次のエンドポイントで構成されています。
+
+- [List Offerings](/ja/api/public-offerings/list-offerings): ID、名前、ステータス、タグ、日付範囲、作成者によるフィルタリングを使用して、ページ分割されたオファリングの一覧を返します。
+- [Create Offering](/ja/api/public-offerings/create-offering): コンテンツ、スケジュール、セグメンテーション、バリエーション設定を含むオファリングをワークスペースに作成します。
+- [Update Offering](/ja/api/public-offerings/update-offering): 既存のオファリングを部分的に更新します。リクエストボディに含まれるフィールドのみが変更されます。
+- [List Offer Templates](/ja/api/public-offerings/list-offer-templates): ワークスペースで使用可能なパーソナライズテンプレートのページ分割された一覧を返します。テンプレートの `id` を、オファリングコンテンツの `meta.templateId` として使用します。
+
+<Note>
+  ID で単一のオファリングを取得するエンドポイントはありません。
+</Note>
+
+## 認証
+
+<ApiAuthentication />
+
+<Note>
+  この API 用の API キーを作成する際は、**Select APIs for access** で **Offerings** チェックボックスが選択されていることを確認してください。選択したキーの権限によってアクセスレベルが決まります。
+  - 読み取りエンドポイント（オファリングとテンプレートの一覧表示）には **View**
+  - オファリングの作成と更新には **Create & Manage**
+  - オファリングの公開には **Create, Manage & Publish**
+  - オファリングレポートのダウンロードには **Download**
+</Note>
+
+## レート制限
+
+レート制限はコンシューマーごとに適用されます。各エンドポイントには独自の制限があります。
+
+| エンドポイント | メソッド | レート制限 |
+| :--- | :--- | :--- |
+| `/v5/offers` | GET | 150 リクエスト/分、500/時間、1000/日 |
+| `/v5/offers/templates` | GET | 150 リクエスト/分、500/時間、1000/日 |
+| `/v5/offers` | POST | 100 リクエスト/分、300/時間、600/日 |
+| `/v5/offers/{offer_id}` | PATCH | 100 リクエスト/分、300/時間、600/日 |
+
+制限を超えると、再試行までに待機する秒数を示す `Retry-After` ヘッダーとともに `429` レスポンスが返されます。
+
+## 冪等性
+
+Create エンドポイントと Update エンドポイントには、`Idempotency-Key` ヘッダー（UUID v4）が必要です。24 時間以内に同じキーを再利用すると、操作を再実行せずに元のレスポンスが返されるため、ネットワーク障害時の再試行を安全に行えます。
+
+次の 2 つの競合ケースでは `409` が返されます。
+
+- **`DUPLICATE_IDEMPOTENCY_KEY`** - 同じキーを持つリクエストが既に処理中です。完了するまで待ってから再試行してください。
+- **`IDEMPOTENCY_CONFLICT`** - このキーは 24 時間以内に異なるリクエストボディで既に使用されています。変更したペイロードを送信するには、新しい UUID v4 キーを使用してください。
+
+**同じキー**は、ネットワーク障害やタイムアウトの後に同一のリクエストを再試行する場合にのみ使用してください。ペイロードが変更されたリクエストを含め、論理的に異なる操作ごとに**新しいキー**を使用してください。
+
+## エラー
+
+Offerings API は標準的な HTTP ステータスコードを使用し、すべてのエラーを一貫した JSON エンベロープで返します。
+
+### HTTP ステータスコード
+
+| コード | 意味 |
+| :--- | :--- |
+| `200` | 成功（GET、PATCH）。 |
+| `201` | オファリングが作成されました（POST）。 |
+| `400` | 検証に失敗しました。1 つ以上のフィールドが無効、欠落している、またはビジネスルールに違反しています。 |
+| `401` | 認証に失敗しました。認証情報が欠落しているか無効です。 |
+| `403` | 禁止されています。機能が有効になっていないか、オファリングが期限切れまたはアーカイブ済みです。 |
+| `404` | オファリングが見つかりません。パス内の `offer_id` がこのワークスペースに存在しません。 |
+| `409` | 冪等性の競合。[冪等性](#idempotency) を参照してください。 |
+| `429` | レート制限を超えました。`Retry-After` ヘッダーに示された秒数が経過した後に再試行してください。 |
+| `503` | ゲートウェイが利用できません。一時的なエラーとして扱い、指数バックオフで再試行してください。 |
+
+### エラーレスポンスの形式
+
+すべての `4xx` および `5xx` レスポンスは、次の形式の JSON ボディを返します。
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "One or more fields failed validation.",
+    "target": "scheduling.expiry_datetime",
+    "details": [
+      {
+        "code": "REQUIRED_FIELD_MISSING",
+        "target": "variation_meta",
+        "message": "variation_meta is required."
+      },
+      {
+        "code": "INVALID_SCHEDULING",
+        "target": "scheduling",
+        "message": "expiry_datetime must be after start_datetime."
+      }
+    ],
+    "doc_url": "https://www.moengage.com/docs/api/offerings/offerings-overview"
+  },
+  "response_id": "resp_c5f83262-3127-4e23-bc1b-9efd4c929e12"
+}
+```
+
+| フィールド | 説明 |
+| :--- | :--- |
+| `error.code` | `ALL_CAPS_SNAKE_CASE` 形式の機械可読なエラーコード。コード内で特定のエラーに応じて処理を分岐させるために使用します。 |
+| `error.message` | 人間が読めるエラーの説明。 |
+| `error.target` | エラーの原因となったフィールドまたはリソース（ドット表記、例: `scheduling.expiry_datetime`）。 |
+| `error.details[]` | `400 VALIDATION_FAILED` レスポンスにおけるフィールドごとの違反内容。API はレスポンスを返す前にすべてのエラーを収集するため、1 つの `400` に複数のエントリが含まれる場合があります。 |
+| `error.doc_url` | このエラーコードに関するドキュメントへのリンク。 |
+| `response_id` | このレスポンスのトレース識別子。エラー時も含め常に含まれます。問題を報告する際は、これを MoEngage サポートに提供してください。 |
+
+<Note>
+  `details` 配列は、`400 VALIDATION_FAILED` レスポンスにのみ含まれます。その他のエラーコードでは、最上位の `error` オブジェクトのみが返されます。
+</Note>
+
+### 一般的なエラーコード
+
+エンドポイントごとのエラーコードの完全な一覧については、各エンドポイントのページを参照してください。Offerings API のすべての操作で最もよく発生するコードは次のとおりです。
+
+| コード | HTTP | 意味 |
+| :--- | :--- | :--- |
+| `VALIDATION_FAILED` | 400 | 1 つ以上のリクエストフィールドが検証に失敗しました。完全な一覧は `error.details` を確認してください。 |
+| `REQUIRED_FIELD_MISSING` | 400 | 必須フィールドがありません。`error.target` でどのフィールドかを確認できます。 |
+| `INVALID_SCHEDULING` | 400 | `expiry_datetime` が `start_datetime` より後ではないか、日時が過去です。 |
+| `INVALID_OFFER_NAME` | 400 | `name` に英字、数字、アンダースコア以外の文字が含まれています。 |
+| `DUPLICATE_OFFER_NAME` | 400 | `name` がワークスペース内のアーカイブされていない既存のオファリングと一致しています。 |
+| `INVALID_TAG_ID` | 400 | `tags` 内の 1 つ以上のタグ ID がワークスペースに存在しません。 |
+| `IMMUTABLE_FIELD` | 400 | ステータスによってロックされたフィールドを変更しようとしました。 |
+| `MISSING_IDEMPOTENCY_KEY` | 400 | `Idempotency-Key` ヘッダーがありません。 |
+| `INVALID_IDEMPOTENCY_KEY` | 400 | `Idempotency-Key` が有効な UUID v4 ではありません。 |
+| `DUPLICATE_IDEMPOTENCY_KEY` | 409 | 同じキーを持つリクエストが処理中です。 |
+| `IDEMPOTENCY_CONFLICT` | 409 | キーが異なるリクエストボディで再利用されました。 |
+| `EXPIRED_OFFERING` | 403 | オファリングは `expiry_datetime` を過ぎているため、変更できません。 |
+| `ARCHIVED_OFFERING` | 403 | オファリングはアーカイブされているため、変更できません。 |
+| `OFFER_NOT_FOUND` | 404 | 指定された ID のオファリングがこのワークスペースに存在しません。 |
+
+## よくある質問
+ 
+### はじめに
+ 
+<AccordionGroup>
+  <Accordion title="API を使用する前に何か必要な作業はありますか？">
+    はい。ワークスペースで Offer Decisioning 機能が有効になっていることを確認してください。有効になっていない場合、すべての API 呼び出しで `403 FORBIDDEN` が返されます。有効化をリクエストするには、MoEngage CSM またはサポートチームにお問い合わせください。
+    Create Offering API を呼び出す前に、次のワークスペースリソースが既に存在することを確認してください。
+ 
+    - **タグ** — MoEngage ダッシュボードの **Settings → Advanced Settings → Tags** で作成および管理します。`tags` 配列で渡すタグ ID は既に存在している必要があります。
+    - **オファリング属性** — ダッシュボードの **Offer Decisioning → Attributes** で設定します。その ID を `offering_attribute_configuration` で渡します。
+    - **パーソナライズテンプレート** — `GET /v5/offers/templates` を使用して使用可能なテンプレートを一覧表示し、返された `id` をコンテンツの `meta.templateId` として使用します。
+  </Accordion>
+  <Accordion title="API キーと Workspace ID はどこで確認できますか？">
+    MoEngage ダッシュボードで **Settings** \> **Account** \> **API keys** に移動し、Workspace ID をコピーして、Personalize API へのアクセス権を持つキーを作成します。Workspace ID を Basic Auth のユーザー名として、API キーをパスワードとして使用します。詳しい手順については、[認証](#authentication) を参照してください。
+  </Accordion>
+</AccordionGroup>
+### オファリングのライフサイクル
+ 
+<AccordionGroup>
+  <Accordion title="オファリングにはどのような状態がありますか？">
+    オファリングは常に、`scheduled`、`active`、`expired`、`archived`、`draft` の 5 つの状態のいずれかにあります。
+    状態の完全な一覧については、上記の [オファリングのライフサイクル](#offering-lifecycle) セクションを参照してください。
+  </Accordion>
+  <Accordion title="ID で単一のオファリングを取得できますか？">
+    現在、専用の `GET /v5/offers/{offer_id}` エンドポイントはありません。特定のオファリングを取得するには、`id` クエリパラメーターにオファリングの ID（`offer_` プレフィックスを含む）を設定して [List Offerings](/ja/api/public-offerings/list-offerings) を呼び出します。これにより、そのオファリングのみを含む一覧が返されます。
+  </Accordion>
+</AccordionGroup>
+### Create Offering
+ 
+<AccordionGroup>
+  <Accordion title="オファリングの作成に最低限必要なものは何ですか？">
+    必須の最上位フィールドは、`name`、`priority`、`delivery`、`created_by`、`scheduling`（`start_datetime` と `expiry_datetime` の両方を含む）、`segment_info`、`offer_content`、`variation_meta` です。その他のフィールド（`tags`、`capping_rules`、`conversion`、`imp_track_hours`、`offering_attribute_configuration`）はすべてオプションで、省略できます。
+  </Accordion>
+  <Accordion title="作成後に variation_meta を変更できますか？">
+    オファリングのステータスとバリエーションの `type` によって異なります。
+
+    - オファリングが `scheduled` の間は、`variation_meta` オブジェクト全体を編集できます。
+    - オファリングが `active` になると、`type` と `variantsPerLocale` のキーセットはロックされます。`SMV` の場合は、引き続き `smv_distribution` の分割割合と `control_group.percentage` を更新できます。`DMV` の場合は、`control_group.percentage` のみを編集できます。
+
+    ロックされたフィールドを編集すると、`IMMUTABLE_FIELD` が返されます。バリエーションタイプは `SMV`（ユーザーが制御する静的な割り当て）と `DMV`（MoEngage が最適化する動的な割り当て）です。
+  </Accordion>
+  <Accordion title="1 回の Create リクエストにすべてのフィールドを含めるのですか？それとも段階的に構築するのですか？">
+    1 回の Create リクエストにすべてのフィールドを含めます。段階的な構築やドラフト作成のフローはありません。オファリングの初期ステータスはスケジュールの日付に基づいて設定されます。`start_datetime` が未来の場合は `scheduled`、現在時刻がスケジュール期間内の場合は `active`、`start_datetime` が既に過去の場合は `expired` になります。
+  </Accordion>
+  <Accordion title="priority は何を制御しますか？">
+    priority は 1～100 の整数で、Decision Policy がユーザーに対して対象となるオファリングをランク付けするために使用されます。値が大きいほど、priority が低い他のオファリングと比べて上位にランク付けされます。正確なランク付けの動作は、関連する Decision Policy で設定されたスコアリング式や、`offering_attribute_configuration` のスコアにも依存します。
+  </Accordion>
+  <Accordion title="オファリング名にはどのような文字を使用できますか？">
+    オファリング名は 5～100 文字で、英字、数字、アンダースコアのみを含める必要があります。スペース、ハイフン、特殊文字は使用できません。名前はワークスペース内で一意である必要があります。有効な名前の例: `Summer_Sale_Promo_2026`。
+  </Accordion>
+</AccordionGroup>
+### Update Offering
+ 
+<AccordionGroup>
+  <Accordion title="作成後に更新できるフィールドはどれですか？">
+    `name`、`description`、`priority`、`tags`、`scheduling`（以下の状態に基づくルールの範囲内）、`segment_info`、`offer_content`、`capping_rules`、`is_global_control_enabled`、`imp_track_hours`、`offering_attribute_configuration`、`conversion` を更新できます。`variation_meta` も更新できますが、以下で説明するステータスとタイプに基づくルールの範囲内に限られます。
+  </Accordion>
+  <Accordion title="オファリングが active の場合と scheduled の場合で、何を変更できますか？">
+    | フィールド | `scheduled` | `active` |
+    | :--- | :--- | :--- |
+    | `scheduling.start_datetime` | ✅ 編集可能 | ❌ ロック |
+    | `scheduling.expiry_datetime` | ✅ 編集可能 | ✅ 編集可能 |
+    | `conversion` | ✅ 編集可能 | ❌ ロック |
+    | `offer_content` | ✅ 編集可能 | ✅ 編集可能 |
+    | `name`、`tags`、`priority`、`segment_info` | ✅ 編集可能 | ✅ 編集可能 |
+    | `variation_meta.type`、`variantsPerLocale` | ✅ 編集可能 | ❌ ロック |
+    | `variation_meta.smv_distribution`（`SMV`） | ✅ 編集可能 | ✅ 編集可能 |
+    | `variation_meta.smv_distribution`（`DMV`） | ✅ 編集可能 | ❌ ロック |
+    | `variation_meta.control_group.percentage` | ✅ 編集可能 | ✅ 編集可能 |
+  </Accordion>
+  <Accordion title="更新時にオファリングのペイロード全体を送信する必要がありますか？">
+    いいえ。Update エンドポイントは PATCH であり、リクエストボディに含めたフィールドのみが変更されます。省略したフィールドは現在の値が保持されます。ただし、`tags` と `offering_attribute_configuration` は、含めた場合にマージされるのではなく**完全に置き換えられます**。タグを 1 つ追加するには、現在のタグリストに新しいタグを加えて送信します。すべてのタグを削除するには、空の配列を送信します。
+  </Accordion>
+  <Accordion title="期限切れまたはアーカイブ済みのオファリングを更新できますか？">
+    いいえ。API は `EXPIRED_OFFERING` または `ARCHIVED_OFFERING` とともに `403` を返します。更新できるのは、`active` および `scheduled` 状態のオファリングのみです。
+  </Accordion>
+  <Accordion title="Update リクエストで使用するオファリング ID はどこで確認できますか？">
+    `offer_id`（`offer_` プレフィックスを含む）は、Create Offering レスポンスの `data.id` フィールドで返されます。[List Offerings](/ja/api/public-offerings/list-offerings) を呼び出し、名前またはステータスでフィルタリングして取得することもできます。
+  </Accordion>
+</AccordionGroup>
+### 冪等性
+ 
+<AccordionGroup>
+  <Accordion title="同じ Idempotency-Key を使用すべき場合と、新しいキーを使用すべき場合はいつですか？">
+    **同じキー**は、ネットワークエラーやタイムアウトによって失敗したリクエストを再試行する場合、つまりサーバーが元のリクエストを処理したかどうかがわからない場合にのみ使用してください。24 時間以内に同じキーを再利用すると、操作を再実行せずに元のレスポンスが返されます。
+    論理的に異なる操作ごと、およびリクエストボディが前回の試行から変更された再試行には、**新しいキー**を使用してください。
+  </Accordion>
+  <Accordion title="異なるリクエストボディで Idempotency-Key を再利用するとどうなりますか？">
+    API は `409 IDEMPOTENCY_CONFLICT` を返します。元の操作は再実行されず、新しいペイロードも処理されません。新しい UUID v4 キーを生成して再送信してください。
+  </Accordion>
+  <Accordion title="Idempotency-Key にはどのような形式が必要ですか？">
+    UUID v4（例: `550e8400-e29b-41d4-a716-446655440000`）です。自動化されたワークフローでは、個別の操作ごとに新しい UUID v4 を生成してください。キーをリクエストペイロードから派生させないでください。ペイロードが以前のリクエストと同一の場合、意図的な再実行がキャッシュされたレスポンスを返してしまいます。
+  </Accordion>
+</AccordionGroup>

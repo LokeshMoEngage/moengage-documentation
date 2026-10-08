@@ -1,0 +1,124 @@
+---
+title: "Meiro"
+description: "Meiro のプライバシーファーストな CDP から統合された顧客データとセグメントを MoEngage に同期し、コンプライアンスに準拠したパーソナライズされたリアルタイムエンゲージメントを実現します。"
+keywords: ["Meiro", "CDP", "data privacy", "unified profile", "audience sync", "MoEngage integration"]
+---
+
+[Meiro](https://www.meiro.io/integrations/) は、規制の厳しい地域の企業向けに構築された、コンポーザブルでプライバシーファーストな顧客データプラットフォーム(CDP)です。オンライン、オフライン、トランザクションのデータを含む複雑な顧客データを、コンプライアンスに準拠した単一のビューに統合します。
+
+## MoEngage × Meiro
+
+この連携により、Meiro の安全で高精度な顧客データを使用して、MoEngage のリアルタイムエンゲージメントプラットフォームを強化できます。キャンペーンを高度にパーソナライズし、データレジデンシー要件("Meta Region" コンプライアンス)に完全に準拠させることができます。
+
+この連携により、次のことが可能になります。
+
+- **Audience Sync(アウトバウンド)**: 高度にセグメント化され、コンプライアンスが検証済みのオーディエンスを Meiro から MoEngage にプッシュします。
+- **User and Attribute Sync(アウトバウンド)**: エンリッチされたプロファイルと Meiro の Calculated Attributes(例: Customer Lifetime Value(CLV)スコア)を MoEngage に送信します。
+- **Engagement Stream(インバウンド)**: 開封やクリックなどの MoEngage キャンペーンデータを Meiro CDP にフィードバックし、分析やオーディエンスの改善に活用します。
+
+## ユースケース
+
+Meiro を MoEngage と連携すると、次のユースケースに役立ちます。
+
+- **パーソナライゼーションの強化**: MoEngage のセグメントに Meiro の予測スコア(Churn Propensity、LTV Tier)を使用して関連性の高いメッセージを配信し、プロアクティブな AI 駆動のジャーニーを実現します。
+- **コンプライアンスファーストのアクティベーション**: すべての MoEngage のターゲティングを Meiro の Single Customer View でフィルタリングし、顧客のプライバシー同意フラグと厳格なデータレジデンシー規則を遵守します。
+- **クローズドループの最適化**: Meiro にストリーミングされた MoEngage キャンペーンのエンゲージメントデータ(開封、クリック)を使用して、オーディエンスのメンバーシップを即座に改善し、エンゲージしていないユーザーをリターゲティングします。
+- **統合された顧客ビュー:** オフラインとオンラインのデータのギャップを埋めます。Meiro は、安全なトランザクション履歴と CRM 履歴を含む統合プロファイルを MoEngage に提供します。
+
+# 連携
+
+<Info>
+  設定を開始する前に、次のものがあることを確認してください。
+
+  - 有効な Meiro CDP のデプロイメント(VPC または Private Cloud)と Meiro Integrations へのアクセス権。
+  - API キーとデータセンター情報にアクセスできる有効な MoEngage アカウント。
+</Info>
+
+| 連携の範囲 | 詳細 |
+| --- | --- |
+| Meiro のオーディエンスを MoEngage に同期する | Meiro Integrations の [Reverse ETL(抽出、変換、ロード)] を使用して、ターゲットキャンペーン用にセグメントをカスタム属性またはリストとしてプッシュします。 |
+| Meiro のデータ(ユーザーと属性)を MoEngage に送信する | CLV、Churn Propensity、プライバシー同意フラグなどの属性で MoEngage のプロファイルをエンリッチします。 |
+| MoEngage のキャンペーンデータを Meiro CDP に送り返す | クローズドループ分析のために、Meiro Events を通じてエンゲージメントイベント(開封、クリック)を取り込みます。 |
+
+# アウトバウンド連携(Meiro から MoEngage)
+
+このセクションでは、Meiro Integrations を通じて Meiro の Reverse ETL を使用し、MoEngage を宛先として設定する方法について説明します。
+
+## ステップ 1: MoEngage のエンドポイントを取得する
+
+MoEngage の API 認証情報を取得するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、**Settings** > **Account** > **APIs** をクリックします。
+2. APIs ページで、次の認証情報をコピーします。
+   1. **Workspace ID**(**以前の app id)**
+   2. **API key**
+3. ダッシュボードの URL からデータセンターコードを確認します。次の表は、データセンター名と URL を示しています。
+
+| データセンター名 | ダッシュボード URL |
+| --- | --- |
+| DC-01 | [https://dashboard-01.moengage.com](https://dashboard-01.moengage.com) |
+| DC-02 | [https://dashboard-02.moengage.com](https://dashboard-02.moengage.com) |
+| DC-03 | [https://dashboard-03.moengage.com](https://dashboard-03.moengage.com) |
+| DC-04 | [https://dashboard-04.moengage.com](https://dashboard-04.moengage.com) |
+| DC-05 | [https://dashboard-05.moengage.com](https://dashboard-05.moengage.com) |
+| DC-06 | [https://dashboard-06.moengage.com](https://dashboard-06.moengage.com) |
+
+詳細については、[Data Centers in MoEngage](https://moengage-user-guide.mintlify.app/user-guide/data/key-concepts/data-centers-in-moengage) を参照してください。
+
+![](/images/partner_44423775125012.png)
+
+## ステップ 2: Meiro Integrations で新しい宛先を作成する
+
+新しい宛先を作成するには、次の手順を実行します。
+
+1. Meiro Integrations ダッシュボードにログインします。
+2. **Destinations** に移動し、**+ Add New Destination** をクリックします。
+3. **MoEngage** タイルを検索して選択します。
+4. **Destination Name** を入力し、**MoEngage API Key**、**Workspace ID**、**Data Center** コードを貼り付けます。
+5. **Save Configuration** をクリックします。
+
+## ステップ 3: データプッシュを有効化する
+
+1. **Meiro Integrations** ダッシュボードで **Workspaces** に移動します。
+2. 既存のワークフローを開くか、**+ Create New Workspace** をクリックします。
+3. **Loader Component** を追加し、設定済みの **MoEngage Destination** を選択します。
+4. **Source Fields**(Meiro の Single Customer View の属性)を **Destination Fields**(MoEngage の Custom Attributes)にマッピングします。
+   - _プライマリ識別子_ [customer_id または Email (Raw)] は必ずマッピングする必要があります。
+5. データ同期の **Schedule**(例: Hourly または Daily)を設定します。
+6. **Activate** をクリックします。エンリッチされたオーディエンスデータが MoEngage に安全にストリーミングされるようになります。
+
+# インバウンド連携(MoEngage から Meiro)
+
+このセクションでは、キャンペーンのエンゲージメントデータを **Meiro Events**(ME)プラットフォームに送り返すように MoEngage Streams を設定する方法について詳しく説明します。
+
+<Info>
+  この機能には MoEngage の Streams アドオンが必要です。有効にするには、MoEngage の CSM にお問い合わせください。
+</Info>
+
+## ステップ 1: Meiro Events の Webhook 認証情報を生成する(ソース)
+
+Meiro Events の Webhook 認証情報を生成するには、次の手順を実行します。
+
+1. Meiro ダッシュボードにログインし、**Integrations** > **Sources** に移動します。
+2. **+Add New Source** をクリックし、**MoEngage Events Stream**(Customer Engagement Channels の下)を選択します。
+3. わかりやすい名前(例: MoEngage_Feedback)を入力します。
+4. 作成後、**Implementation Details** タブにアクセスします。
+5. 生成された **API URL**(Webhook URL)と **WRITE KEY** をコピーします。
+
+## ステップ 2: MoEngage Streams を有効化する
+
+MoEngage Streams を有効化するには、次の手順を実行します。
+
+1. **Meiro API URL** と **WRITE KEY** を MoEngage の Customer Success Manager(CSM)に提供します。
+2. MoEngage の CSM に連絡して、エンゲージメントイベント(例: Email_Opened、Campaign_Clicked)をこの Meiro エンドポイントに転送するように MoEngage Streams を設定してもらいます。
+
+## ステップ 3: Meiro でデータの使用状況を確認する
+
+1. Meiro ダッシュボードで、**Integrations** > **Sources** に移動します。
+2. **PREVIEW DATA** タブを選択して、ストリームを確認します。受信したエンゲージメントデータによって **Single Customer View** が即座に更新され、**Meiro Audience Center** でクローズドループのオーディエンスを作成し、パーソナライズされたジャーニーをトリガーできるようになります。
+
+# レート制限
+
+MoEngage は、Meiro がワークスペースに送信するデータに対して、取り込みレート制限とペイロードの上限を適用します。ワークスペースが制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。レート制限がデータフローにどのように影響するかについては、Meiro のデフォルトの再試行ポリシーを参照してください。
+
+Meiro のオーディエンス同期と、ユーザーまたは属性の同期では制限が異なるため、使用する同期タイプの数値を確認してください。現在の制限については、[Partner Data Ingestion Rate Limits](/ja/partner-guide/data-and-analytics/ingestion-rate-limits) を参照してください。

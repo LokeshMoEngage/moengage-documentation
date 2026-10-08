@@ -1,0 +1,159 @@
+---
+title: "Punchh"
+description: "Punchh を MoEngage と連携して、Webhook 経由でロイヤルティイベントを転送し、新規ユーザーを Punchh に送信し、キャンペーンで Punchh の動的クーポンコードを表示します。"
+---
+
+# はじめに
+
+[Punchh](https://punchh.com/) は、ブランドが店舗とオンラインの両方でオムニチャネルの顧客ロイヤルティプログラムを提供できるようにするロイヤルティおよびエンゲージメントプラットフォームです。
+
+# MoEngage × Punchh
+
+MoEngage と Punchh を組み合わせて使用すると、2 つのプラットフォーム間でデータを同期し、ロイヤルティとクーポンのワークフローを強化できます。この連携により、次のことが可能になります。
+
+- Punchh から MoEngage にロイヤルティデータをリアルタイムで転送する
+- MoEngage 内で新規ユーザーを取得して Punchh に送信し、パーソナライズされたロイヤルティプログラムを作成する
+- Punchh で生成された動的クーポンコードを MoEngage キャンペーン内に表示する
+
+# 連携
+
+<Info>
+  - Punchh ダッシュボードへのアクセス権。
+  - Punchh の API および Webhooks Manager へのアクセス権。Punchh Webhook Manager へのアクセス権がない場合は、Punchh の担当者にお問い合わせください。
+  - MoEngage ダッシュボードへのアクセス権。
+</Info>
+
+# A. Punchh から MoEngage にイベントを転送する
+
+## ステップ 1: Punchh ユーザーに external\_source\_id を追加する
+
+連携を開始する前に、Punchh 内で新規ユーザーを作成する際に `external_source_id` フィールドを設定していることを確認してください。これは 2 つのプラットフォーム間の共通識別子として機能し、MoEngage ユーザープロファイルの ID フィールドに同期されます。
+
+Punchh には、ユーザーの `external_source_id` を更新するためのエンドポイントがいくつか用意されています。新規ユーザーおよび既存ユーザーに対する設定方法については、[Punchh のヘルプドキュメント](https://developers.partech.com/)を参照してください。
+
+## ステップ 2: MoEngage エンドポイントを取得する
+
+連携専用のエンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストでは、MoEngage とパートナープラットフォーム間でユーザープロファイルを紐付けるために使用する共通識別子を指定する必要があります。
+
+## ステップ 3: Punchh でエンドポイントを Webhook として設定する
+
+すでに [Webhooks Manager](https://developers.partech.com/docs/dev-portal-webhooks-manager) へのアクセス権がある場合は、次の手順を実行します。
+
+1. Punchh ダッシュボードの _Left Navigation_ \>\> **_Webhook Manager_** に移動します。\\
+   ![](/images/partner_32138600315668.png)
+2. Webhooks セクションで、管理者が **_Base URL_** ボタンをクリックしてベース URL と名前を設定する必要があります。このベース URL は Webhook の設定時に表示されます。ベース URL は MoEngage のデータセンターによって異なります。
+
+| **データセンターリージョン** | **ベース URL** |
+| --- | --- |
+| DC-01 | [https://api-01.moengage.com](https://api-01.moengage.com) |
+| DC-02 | [https://api-02.moengage.com](https://api-02.moengage.com) |
+| DC-03 | [https://api-03.moengage.com](https://api-03.moengage.com) |
+| DC-04 | [https://api-04.moengage.com](https://api-04.moengage.com) |
+
+3. Webhooks セクションで、**_Create Webhook_** ボタンをクリックして新しい Webhook を作成します。
+
+| フィールド | 説明 |
+| --- | --- |
+| Name and Description | この Webhook を識別できる名前と説明を入力します（例:「MoEngage」）。 |
+| Base URL | 上記で作成した MoEngage のベース URL を選択します。 |
+| Webhook Endpoint | カスタマーサクセスマネージャーから提供された MoEngage エンドポイントの残りの部分を入力します。例: `/v1/partner/punchh/events/?configName=xxxx` |
+| Authentication | 認証方式として「Basic」を選択します。 |
+| Username | MoEngage ワークスペースの Workspace ID を入力します。これは **Settings -\> Account -\> APIs -\> Workspace ID** で確認できます。MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+| Password | MoEngage ワークスペースのシークレットキーを入力します。シークレットキーは MoEngage アカウントの Data API キーで、**Settings -\> Account -\> APIs -\> API keys -\> Data API settings** で確認できます。 |
+| Events Selection | MoEngage に転送するイベントを選択します。 |
+
+4. **_Submit_** ボタンをクリックして保存します。問題がある場合は、エラーメッセージが表示されます。
+5. 作成時に検証が完了すると、Webhook は「Active」ステータスになり、購読したイベントを受信できる状態になります。検証が成功しなかった場合、ステータスは「Inactive」のままとなり、その Webhook にデータはプッシュされません。
+6. Webhook 一覧で、Actions 列の省略記号ボタンから別の操作を選択し、ダミーのイベントサンプルでテストできます。ここから Webhook の編集や削除、選択した Webhook 固有のログの確認も行えます。
+
+## MoEngage にエクスポート可能なイベント
+
+1. Users
+2. Loyalty check-ins
+3. Gift check-ins
+4. Redemptions
+5. Rewards
+6. Redeemables
+7. Marketing notifications
+8. Transactional notifications
+9. Coupons
+
+エクスポート可能なイベントの最新一覧は[こちら](https://developers.partech.com/docs/dev-portal-webhooks-manager/b0c0e04de5b63-events-framework-overview-of-webhooks-manager#events-available-with-the-current-release)で確認できます。
+
+## ステップ 4: MoEngage でイベントを確認する
+
+Punchh から送信される各イベントには、次のメタデータが追加されます。
+
+| **MoEngage イベント属性** | **Punchh の値** | **説明** |
+| --- | --- | --- |
+| Event name | `event_name` | user、check-ins、redemption などのイベント名 |
+| `event_type` | `event_type` | イベントのタイプ（例: check-ins の場合は gift または loyalty など） |
+| Event time | `timestamp` | メッセージが作成された UTC エポック時間（ミリ秒） |
+| `business_id` | `business_id` | Punchh プラットフォームにおけるビジネス識別子 |
+| `business_uuid` | `business_uuid` | Punchh プラットフォームで設定されたビジネスの UUID。このコードは POS 連携に使用されます。 |
+| `business_slug` | `business_slug` | Punchh 側で iFrame 用に設定された URL 内の、ビジネスの一意の識別子またはラベル。スラッグは Punchh プラットフォームで設定されます。この Punchh プラットフォームの設定を更新するには、Punchh の担当者にお問い合わせください。 |
+| `action` | `action` | イベントに関連付けられた操作（例: user の場合は create/update/delete、check-ins の場合は POS/console/online など） |
+| `user` | `user` | このアクションを実行した Punchh ユーザーに関連付けられたユーザープロパティ。 |
+
+イベントが MoEngage に取り込まれたら、MoEngage の強力なセグメンテーション機能を使用してセグメントを作成し、分析を行ってさらに深く実用的なインサイトを得ることができます。
+
+# B. MoEngage から Punchh にユーザーを作成する
+
+## Punchh の Create users API に接続する MoEngage キャンペーンを作成する
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. **Create Campaign \> Connectors \> Custom** に移動し、ニーズに最も適した配信タイプを選択します。
+
+![](/images/partner_25285771888020.png)
+
+2. キャンペーンのステップ 2 で、[Punchh Create Users API](https://developers.partech.com/docs/dev-portal-online-ordering/58f18dfdd2a3d-create-new-user) に接続します。まず、Punchh ダッシュボードで OAuth アプリを設定する必要があります。[Punchh の詳細なドキュメント](https://support.punchh.com/s/article/How-do-I-create-a-Client-ID-and-Secret-in-a-Punchh-environment)を参照してください。
+
+- Method: POST
+- URL: [https://server\_name\_goes\_here.punchh.com/api/auth/customers.json](https://server_name_goes_here.punchh.com/api/auth/customers.json)
+- Headers:
+
+| **キー** | **説明** | **デフォルト値** |
+| --- | --- | --- |
+| Accept | クライアントが理解できるコンテンツタイプを通知します | application/json |
+| Content-Type | このヘッダーを application/json に設定します。 | application/json |
+| User-Agent | 詳細については、[User Agent](https://developers.partech.com/docs/dev-portal-online-ordering/ZG9jOjQ0OTU0NzY3-user-agent) を参照してください。 | Punchh/OnlineOrder/1.0/Web/BrowserVersion/OS\_Type |
+| x-pch-digest | API 呼び出しの[署名](https://developers.partech.com/docs/dev-portal-online-ordering/ZG9jOjUwMjg0OTYx-generating-x-pch-digest-header-for-online-ordering-ap-is) | -- |
+
+- Body:
+
+```json
+{  
+  "user": {  
+    "email": "{{UserAttribute['email']}}",  
+    "first_name": "{{UserAttribute['First Name']}}",  
+    "last_name": "{{UserAttribute['Last Name']}}",  
+    "password": "{{UserAttribute['Password']}}",  
+    "birthday": "{{UserAttribute['Birthday']}}",  
+    "anniversary": "{{UserAttribute['Anniversary']}}",  
+    "phone": "{{UserAttribute['Mobile']}}",  
+    "terms_and_conditions": true,  
+    "send_compliance_sms": true,  
+    "external_source": "{{UserAttribute['external_source']}}",  
+    "external_source_id": "{{UserAttribute['customer_id']}}",  
+    "signup_channel": "WebEmail",  
+    "age_verified_status": true  
+  },  
+  "client": "CLIENT_GOES_HERE"  
+}
+```
+
+<Note>
+  - ここで、`external_source` と `external_source_id` は任意のフィールドです。
+  - 上記の例では、`customer_id` が MoEngage における一意の識別子であるため、`external_source_id` に渡しています。すでに使用している別の一意のユーザー識別子がある場合は、`customer_id` の代わりにそれを渡すことができます。
+</Note>
+
+### リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整っています。コネクターキャンペーン作成のステップ 2 にあるテスト機能を使用して、コネクターの設定をテストすることもできます。
+
+<Frame>
+  ![Screen Shot 2022 02 22 At 11 12 42 AM](/images/Screen-Shot-2022-02-22-at-11.12.42-AM.png)
+</Frame>
+
+その後、キャンペーンを公開できます。

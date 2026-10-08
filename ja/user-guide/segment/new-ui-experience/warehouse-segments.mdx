@@ -1,0 +1,446 @@
+---
+title: "Warehouse セグメント"
+description: "データを移動することなく、データウェアハウスのデータから MoEngage でオーディエンスセグメントを作成します。数回のクリックで、ウェアハウスデータを使用したターゲットキャンペーンを開始できます。"
+---
+
+Warehouse セグメントを使用すると、データウェアハウスのデータを MoEngage にコピーまたは移動する手間をかけずに、そのデータに基づいて MoEngage でセグメントを作成できます。
+
+たとえば、独自のロジックで算出したエンゲージメントスコアに基づいて、ロイヤルな買い物客に限定割引を提供したいとします。このデータはデータウェアハウスに保存されており、そこからのみアクセスできます。Warehouse セグメントを使用すると、ウェアハウスからこのデータに直接アクセスし、MoEngage でオーディエンスを構築して、数回のクリックで MoEngage からキャンペーンを送信できます。
+
+Warehouse セグメントでは、同期の遅延なくウェアハウスデータにリアルタイムでアクセスできるため、オーディエンス生成が加速し、タイムリーなエンゲージメントが可能になります。さらに、データはウェアハウス内に安全に保存されたままなので、Warehouse セグメントはデータセキュリティを確保し、プライバシー規制や業界標準へのコンプライアンスを簡素化します。
+
+# Warehouse セグメントを作成する
+
+## ステップ 1: データソースをセットアップする
+
+Big Query Snowflake Databricks Redshift
+
+以下の手順に従って、BigQuery の特定のテーブルへの読み取りアクセス権を MoEngage に付与します。さらに、BigQuery Jobs API へのアクセス権を付与し、MoEngage がジョブを送信してクエリ結果をダウンロードできるようにする方法についても説明します。
+
+これらの手順は、Google Cloud Platform、特に BigQuery データセットとジョブをホストしているプロジェクトにおいて、管理者権限を持っていることを前提としています。
+
+### MoEngage 用のサービスアカウントを作成する
+
+1. [Google Cloud](https://console.cloud.google.com) Console を開きます。
+2. **BigQuery** データセットとジョブを含むプロジェクトに移動します。
+3. **IAM & Admin** セクションに移動し、**Service Accounts** を選択します。  
+    <img  src="/images/moengage_3ca091.png"  />
+4. **Create Service Account** をクリックします。
+5. サービスアカウントの名前を入力します（例: moengage-access）。  
+    <img  src="/images/moengage_787267.png"  />
+6. サービスアカウントに適切なロールとして **BigQuery Job User** を設定します。  
+    <img  src="/images/moengage_de35bd.png"  />
+7. サービスアカウントを作成します。
+8. **サービスアカウント**に移動し、**KEYS** タブを選択します。
+9. **ADD** KEY ドロップダウンをクリックし、Create new key を選択します。**<img  src="/images/moengage_188c21.png"  />**
+10. ポップアップでキーのタイプとして **JSON** を選択します。
+11. CREATE をクリックして、JSON キーファイルを生成してダウンロードします。
+12. JSON ファイルを安全に保管し、以下のとおり MoEngage と共有します。
+
+ワークスペースで Warehouse セグメントを有効にするには、以下の詳細を [warehousesegments@moengage.com](mailto:warehousesegments@moengage.com) に共有してください。
+
+1. 上記の手順に従って MoEngage 用に作成したサービスアカウントの JSON キーファイル
+2. MoEngage のワークスペース名とデータクラスター (DC)
+3. BigQuery のロケーション
+
+### 特定のテーブルへのアクセス権を MoEngage と共有する
+
+1. BigQuery コンソールで、MoEngage にアクセスさせたいテーブルを含むデータセットに移動します。
+2. **SHARING** ドロップダウンをクリックし、**Permissions** を選択します。  
+     
+    <img  src="/images/moengage_6314e3.png"  />
+3. サービスアカウントのメールアドレス（JSON キーファイルに記載）を、"BigQuery Data Viewer" ロールを持つメンバーとして追加します。<img src="/images/moengage_d9bc93.png" />
+4. **Save** をクリックして、データセットへのアクセス権を付与します。
+
+### BigQuery Jobs API へのアクセス権を付与する
+
+最初のステップですでにアクセス権を付与している場合は、この手順をスキップしてください。
+
+1. Google Cloud Console で **IAM & Admin** セクションに移動し、IAM を選択します。
+2. **Grant Access** をクリックして新しいメンバーを追加します。
+3. サービスアカウントのメールアドレス（JSON キーファイルに記載）を入力します。
+4. BigQuery Jobs API とのやり取りを可能にするため、**Role** として **BigQuery Job User** を割り当てます。
+5. **Save** をクリックして、API へのアクセス権を付与します。  
+    <img  src="/images/moengage_996567.png"  />
+
+<Accordion title="特定のテーブルへのアクセスを制限する（任意）">
+
+1. MoEngage と共有した JSON キーファイルを開きます。
+2. JSON の内容から private\_key\_id 属性を見つけます。
+3. BigQuery コンソールで、対象のテーブルを含むデータセットを開きます。
+4. アクセスを制限したいテーブルを選択し、コンテキストメニューから "Share Table" をクリックします。
+5. サービスアカウントのメールアドレスをメンバーとして追加し、これらのテーブルに対してのみロールを "BigQuery Data Viewer" に制限します。
+
+上記の手順に従うことで、BigQuery の特定のテーブルへの読み取りアクセス権を MoEngage に正常に付与できました。
+
+さらに、BigQuery Jobs API へのアクセスを承認したことで、ジョブの送信とクエリ結果のダウンロードが可能になりました。データセキュリティを維持するため、アクセス権限を定期的に見直し、管理することが重要です。
+
+Snowflake のデータに対してクエリを実行するには、まず MoEngage を Snowflake データウェアハウスに接続する必要があります。
+
+### 新しい Snowflake 接続を作成する手順
+
+1. MoEngage ダッシュボードで、**App Marketplace** に移動します。
+2. Snowflake を検索します。<img  src="/images/moengage_7e00d5.png"  />
+3. **Integrate タブ**に移動し、**Add Connection** をクリックします。
+4. Snowflake データウェアハウスの詳細を入力します。
+
+<img  src="/images/moengage_922051.png"  />
+
+Snowflake で以下のフィールドを入力します。
+
+1. **Connect Name:** この接続に識別しやすい名前を付けます（例: My Snowflake Prod）。
+2. **Snowflake Account Identifier**
+   - 常に Snowflake URL の先頭にあります（例: https://ACCOUNT_IDENTIFIER.snowflakecomputing.com）。
+   - 形式は Snowflake アカウントの作成時期によって異なる場合があります。詳細については、[Snowflake のドキュメントを参照してください。](https://docs.snowflake.com/en/user-guide/admin-account-identifier.html)
+3. Snowsight を使用している場合は、左側のナビゲーションの下部で**アカウント名**を確認できます。インポート元のアカウントを選択し、"copy" アイコンをクリックして Account ID をコピーします。最新の情報と詳細については、[Snowflake のドキュメントを参照してください。](https://docs.snowflake.com/en/user-guide/admin-account-identifier.html) <img  src="/images/moengage_8c2baa.png"  />
+4. **Warehouse:** MoEngage がクエリの実行に使用するウェアハウスの名前です。例: COMPUTE \_WAREHOUSE
+5. **Database:** MoEngage がテーブルの読み取りに使用するデータベースです。スキーマは、Warehouse セグメント/インポート/エクスポートのセットアップ時に選択できます。例: MY\_DEMO\_DB
+6. **Username:** MoEngage がテーブルの読み取りに使用するデータベースです。スキーマは、Warehouse セグメント/インポート/エクスポートのセットアップ時に選択できます。
+7. **Authentication Method:** MoEngage は、次の 2 つの方法で Snowflake インスタンスに接続できます。
+   - **Password:** パスワードを選択した場合は、上記で入力したデータベースユーザー (username) のパスワードを入力します。
+   - **Key:** 認証方法として "Key" を選択した場合は、以下の手順を実行します。
+   - "Generate Key" をクリックすると、MoEngage に公開鍵が表示されます。この公開鍵をデータベースユーザーに追加する必要があります。設定するには、[Snowflake のヘルプドキュメント](https://docs.snowflake.com/en/user-guide/key-pair-auth#assign-the-public-key-to-a-snowflake-user)に記載されている手順に従ってください。**Key** - MoEngage は、キーペア認証方式を使用して Snowflake インスタンスに接続できます。この方法を使用するには:  
+      <img alt="img 1.png" src="/images/moengage_648b05.png" />
+   - このキーをデータベースユーザーに追加したら、"Test connection" をクリックすると、MoEngage が認証情報の検証を試みます。
+8. MoEngage はキーのローテーションにも対応しています。IT ポリシーでキーのローテーションが求められる場合は、以下の手順で実行できます。
+   - **App Marketplace** \> **Snowflake** \> **Integrate に移動し、接続を編集します。**
+   - 新しいキーを生成するアイコンをクリックします: <img alt="img 2.png" src="/images/moengage_10f7e1.png" />
+   - 確認画面が表示されます。手順をよくお読みください。新しく生成したキーで接続を保存すると、MoEngage は以前のキーを使用しなくなります。ローテーションを正しく機能させるには、新しいキーが 2 つ目の RSA キーとしてデータベースユーザーに関連付けられていることを確認する必要があります（キーのローテーションについては [Snowflake](https://docs.snowflake.com/en/user-guide/key-pair-auth#configuring-key-pair-rotation) のヘルプドキュメントを参照してください）。接続の保存後に新しいキーが関連付けられていない場合、インポートとエクスポートが失敗する可能性があります: **<img src="/images/moengage_f37637.png" />**
+   - 新しいキーが生成されて表示されます。この時点で、[Snowflake のヘルプドキュメント](https://docs.snowflake.com/en/user-guide/key-pair-auth#configuring-key-pair-rotation)に記載されている手順に従って、この新しいキーをコピーし、Snowflake データベースユーザーに追加のキーとして関連付けることを強くお勧めします。新しいキーを関連付けたら、接続テストを成功させてローテーションを完了する必要があります。
+   - 新しいキーの生成後に編集フォームを閉じた場合、または **Connect** をクリックしなかった場合は、以前の（既存の）キーが引き続き使用され、新しく生成されたキーはシステムから削除されます。
+9. **Role:** このロールは、MoEngage からクエリを実行する際に使用されます。
+
+Snowflake 接続をセットアップしたら、それを使用して MoEngage で Warehouse セグメント、インポート、エクスポートをセットアップできます。Snowflake インスタンスがパブリックではなく AWS 上にある場合は、MoEngage の AWS アカウントとの間で [AWS Private Link](https://docs.snowflake.com/en/user-guide/admin-security-privatelink) をセットアップすることをお勧めします。詳細については、アカウントマネージャーにお問い合わせください。
+
+Databricks のデータに対してクエリを実行するには、MoEngage を Databricks ウェアハウスに接続する必要があります。Databricks プラットフォームで管理者権限を持っていることを確認してください。
+
+### MoEngage に読み取りアクセス権を付与する手順
+
+1. [Databricks でサービスプリンシパルを追加する](/ja/user-guide/segment/create-segments/warehouse-segments)
+2. [サービスプリンシパルを Databricks ワークスペースに割り当てる](/ja/user-guide/segment/create-segments/warehouse-segments)
+3. [サービスプリンシパルにデータ読み取りアクセス権を付与する](/ja/user-guide/segment/create-segments/warehouse-segments)
+4. [SQL ウェアハウスのコンピューティング権限をサービスプリンシパルに付与する](/ja/user-guide/segment/create-segments/warehouse-segments)
+5. [個人用アクセストークン (PAT) を作成する](/ja/user-guide/segment/create-segments/warehouse-segments)
+6. [HTTP パスとホスト名を取得する](/ja/user-guide/segment/create-segments/warehouse-segments)
+7. [App Marketplace で Databricks を接続する](/ja/user-guide/segment/create-segments/warehouse-segments)
+
+### Databricks でサービスプリンシパルを追加する
+
+アカウント管理者は、アカウントコンソールを使用して Databricks アカウントにサービスプリンシパルを追加できます。詳細については、[こちら](https://docs.databricks.com/aws/en/admin/users-groups/service-principals#add-service-principals-to-your-account-using-the-account-console)を参照してください。
+
+サービスプリンシパルを追加するには、以下の手順を実行します。
+
+1. 管理者として Databricks の[アカウントコンソール](https://accounts.cloud.databricks.com/)にログインします。
+2. サイドバーで **User Management** をクリックします。
+3. **Service principals** タブで **Add Service principal** をクリックします。
+4. サービスプリンシパルの名前を入力します。
+5. **Add** をクリックします。
+
+### サービスプリンシパルを Databricks ワークスペースに割り当てる
+
+管理者として、[アカウントコンソール](https://accounts.cloud.databricks.com/)を使用してサービスプリンシパルをワークスペースに割り当てます。詳細については、[こちら](https://docs.databricks.com/aws/en/admin/users-groups/service-principals#assign-a-service-principal-to-a-workspace-using-the-account-console)を参照してください。
+
+権限を割り当てるには、以下の手順を実行します。
+
+1. 管理者として Databricks のアカウントコンソールにログインします。
+2. サイドバーで **Workspaces** をクリックします。
+3. ワークスペース名をクリックします。
+4. **Permissions** タブで **Add permissions** をクリックします。
+5. サービスプリンシパルを検索して選択し、権限レベル（Workspace **User**）を割り当てます。ワークスペース管理者設定ページで[ワークスペース管理者ロール](https://docs.databricks.com/aws/en/admin/users-groups/service-principals#add-sp-admin-console)を割り当てることもできます。
+6. **Save** をクリックします。
+
+### サービスプリンシパルにデータ読み取りアクセス権を付与する
+
+以下に示すように、ワークスペース全体または個々のスキーマに対するデータ読み取りアクセス権をサービスプリンシパルに付与し、MoEngage でクエリを実行したいテーブルがスキーマ内で利用可能であることを確認します。
+
+<img alt="Screenshot 2025-02-25 at 5.37.34 PM.png" src="/images/moengage_8e7bfb.png" />
+
+### SQL ウェアハウスでのコンピューティング権限をサービスプリンシパルに付与する
+
+コンピューティング権限を付与するには、以下の手順を実行します。
+
+1. Databricks ダッシュボードで、**Settings \> Compute \> SQL warehouses** をクリックします。
+2. サービスプリンシパルがアクセスする必要のあるウェアハウスを選択します。
+3. **Permissions** をクリックします。リストで、サービスプリンシパルに対して *Can use* を選択します。
+
+<img src="/images/moengage_e929fc.png" />
+
+</Accordion>
+## 
+
+### 個人用アクセストークン (PAT) を作成する
+
+Databricks CLI を使用して、サービスプリンシパル用の PAT を作成できます。詳細については、[こちら](https://docs.databricks.com/aws/en/dev-tools/auth/pat#step-1-as-a-databricks-admin-create-a-pat-for-your-databricks-service-principal-from-the-cli)を参照してください。
+
+<Accordion title="ユーザー用の PAT を作成する（任意）">
+
+ユーザーを作成し、そのユーザーに適切なアクセス権を割り当てて、そのユーザーのロールから MoEngage がウェアハウスにアクセスできるようにすることもできます。ただし、Databricks はサービスプリンシパルによる方法を推奨しています。ユーザー用の個人用アクセストークンを作成する場合は、以下の手順に従ってください。
+
+1. Databricks ワークスペースで、タイトルバーの Databricks ユーザー名を選択し、ドロップダウンリストから **Settings** を選択します。
+2. **Access Tokens** タブで **Generate New Token** を選択します。
+3. このトークンを識別するためのコメントを入力し、Lifetime ボックスを空のままにして、トークンの有効期間を無期限に変更します。
+4. **Generate** をクリックし、生成されたトークンをコピーします。
+5. **Done** をクリックします。<img alt="Screenshot 2025-02-25 at 6.03.21 PM.png" src="/images/moengage_4f1d44.png" />
+
+### HTTP パスとホスト名を取得する
+
+MoEngage が Databricks ワークスペースにアクセスするために必要な HTTP パスとサーバーホスト名を取得するには、以下の手順を実行します。
+
+1. Databricks ワークスペースで、**SQL warehouses** を選択します。
+2. ウェアハウスを選択します。
+3. **Connection details** タブをクリックし、MoEngage に必要なホスト名と HTTP パスをコピーします。
+
+<img alt="image (1).png" src="/images/moengage_fe54e9.png" />
+
+### App Marketplace で Databricks を接続する
+
+App Marketplace で Databricks を接続するには、以下の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**App marketplace** をクリックします。
+2. App Marketplace ページで **Databricks** を検索します。<img src="/images/moengage_e2ec5b.png" />
+3. **Databricks** タイルをクリックします。
+4. Databricks ページで **Integrate** タブに移動し、+**Add Connection** をクリックします。
+5. 以下の詳細を入力します。  
+
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | **Connection name** | はい | Databricks 接続の名前を入力します。 |
+   | **Host name** | はい | 特定のクラスターに割り当てられた一意の識別子です。接続するホスト名を入力します。サーバーホスト名を確認するには、Databricks Web コンソールでクラスターを見つけます。次に、Advanced options を展開して JDBC/ODBC タブに移動します。 |
+   | **Port** | 任意 | Databricks サーバーに接続するポートを入力します。デフォルトは 443 です。 |
+   | **HTTP path** | はい | Databricks 上のコンピューティングリソースの HTTP パスを入力します。HTTP パスを確認するには、Databricks ワークスペースでウェアハウスを見つけ、Connection details タブから HTTP パスを取得します。 |
+   | **Access token** | はい | Databricks API に安全にアクセスするために使用される認証トークンです。必要な権限を持つ Databricks サーバーへの承認済みリクエストを行うためのアクセストークンを入力します。Databricks ワークスペースで、**Settings** \> **Developer** \> **Access tokens** \> **Manage tokens** に移動します。 |
+   | **Catalog** | はい | MoEngage がアクセスできる Databricks Catalog 名を入力します。 |
+
+     
+    <img src="/images/moengage_9fc001.png" />
+6. **Connect** をクリックします。これで Databricks 接続が統合されました。
+
+Databricks 接続をセットアップしたら、それを使用して MoEngage でさまざまなインポートとエクスポートをセットアップできます。
+
+<Info>
+MoEngage が Classic および Pro SQL インスタンスに接続する際は、2～5 分程度のウォームアップ時間を見込んでください。接続のセットアップとテスト、および Warehouse セグメントのクエリ実行、セグメント作成、更新の際に遅延が発生する場合があります。サーバーレス SQL インスタンスを使用すると、ウォームアップ時間が最小限に抑えられ、クエリのスループットが向上しますが、統合コストがわずかに高くなる場合があります。
+</Info>
+
+Redshift のデータに対してクエリを実行するには、MoEngage を Redshift ウェアハウスに接続する必要があり、Redshift プラットフォームで管理者権限を持っていることを確認する必要があります。
+
+<Info>
+- Redshift プラットフォームでの管理者権限
+- MoEngage から取得した Trust Policy JSON
+</Info>
+
+### IAM ロールを作成して MoEngage にアクセス権を付与する手順
+
+<Info>
+以前に Redshift 接続を作成している場合は、以下に記載されている[現在の権限](/ja/user-guide/segment/create-segments/warehouse-segments)があることを確認してください。
+</Info>
+
+### ステップ 1: アカウントで Identity and Access Management (IAM) ロールを作成する
+
+1. **AWS Management Console** で AWS アカウントにサインインします。
+2. **Find Services** 検索ボックスで IAM を検索します。IAM ダッシュボードに移動します。  
+    <img src="/images/moengage_f80d3b.png" />
+3. IAM ダッシュボードで **Roles** タブを選択します。
+4. **Create role** をクリックします。
+5. **AWS account** を選択します。
+6. **Select trusted entity** セクションで、**Custom trust policy** を選択します。**<img src="/images/moengage_dde296.png" />**
+7. 以下に示すように、MoEngage から取得した Trust Policy JSON を貼り付けます。MoEngage の AWS Account ID は 612427630422 です。この ID が信頼関係の JSON に含まれていることを確認してください。   
+
+   ```
+   {
+   "Version": "2012-10-17",
+   "Statement": [
+   {
+   "Effect": "Allow",
+   "Principal": {
+   "Service": [
+   "redshift.amazonaws.com",
+   "ec2.amazonaws.com"
+   ]
+   },
+   "Action": "sts:AssumeRole"
+   },
+   {
+   "Effect": "Allow",
+   "Principal": {
+   "AWS": "arn:aws:iam::612427630422:root"
+   },
+   "Action": "sts:AssumeRole"
+   }
+   ]
+   }
+   ```
+8. **Allow assuming roles** from this account オプションを選択します。
+9. **Next** \> **Permissions** をクリックします。
+10. ctvtvgd4t 以下の権限を追加します。
+    ```
+    redshift_finegrained (customer-managed policy)
+    ```
+
+    ```
+    {
+    "Version": "2012-10-17",
+    "Statement": [
+    {
+    "Sid": "DataAPIPermissions",
+    "Action": [
+    "redshift-data:ExecuteStatement",
+    "redshift-data:CancelStatement",
+    "redshift-data:ListStatements",
+    "redshift-data:GetStatementResult",
+    "redshift-data:DescribeStatement",
+    "redshift-data:ListDatabases",
+    "redshift-data:ListSchemas",
+    "redshift-data:ListTables",
+    "redshift-data:DescribeTable"
+    ],
+    "Effect": "Allow",
+    "Resource": "\*"
+    },
+    {
+    "Sid": "Redshiftminimal",
+    "Action": [
+    "redshift:Get\*",
+    "redshift:Describe\*"
+    ],
+    "Effect": "Allow",
+    "Resource": "\*"
+    },
+    {
+    "Effect": "Allow",
+    "Action": "iam:CreateServiceLinkedRole",
+    "Resource": "arn:aws:iam::\*:role/aws-service-role/redshift.amazonaws.com/AWSServiceRoleForRedshift",
+    "Condition": {
+    "StringLike": {
+    "iam:AWSServiceName": "redshift.amazonaws.com"
+    }
+    }
+    }
+    ]
+    }
+    ```
+
+    ```
+    stsAssumerRole (customer-managed policy)
+    ```
+
+    ```
+    {
+    "Version": "2012-10-17",
+    "Statement": [
+    {
+    "Sid": "123",
+    "Effect": "Allow",
+    "Action": [
+    "sts:AssumeRole"
+    ],
+    "Resource": [
+    "\*"
+    ]
+    }
+    ]
+    }
+    ```
+11. 必要に応じて、ポリシーエディターでオプションを選択し、特定の db-groups とユーザーへのアクセスを制限できます。   
+     <img src="/images/moengage_3a38ef.png" />
+12. **Next** をクリックします。
+13. **Add tags** セクションで、Add new tag ボタンをクリックして、この IAM ロールに必要なタグを追加します。<img src="/images/moengage_c5e8c5.png" />
+14. **Next** \> **Review** をクリックします。
+15. **Role name** ボックスに、ロールの名前を入力します（例: moengage-redshift-data-access-role"）。  
+     <img src="/images/moengage_c2d5ec.png" />
+16. **Create IAM role** をクリックします。  
+     <img src="/images/moengage_73a8d5.png" />
+
+### ステップ 2: MoEngage に詳細を共有する
+
+ワークスペースで Redshift の Warehouse セグメントを有効にするには、以下の詳細を *[warehousesegments@moengage.com](mailto:warehousesegments@moengage.com)* に共有してください。
+
+- **ARN** (Amazon Resource Name):
+  - AWS Management Console で IAM ダッシュボードに移動し、ステップ 1 で作成した IAM ロールを選択します。
+  - IAM ロールの ARN をコピーします。
+
+    MoEngage はこの ARN を使用してアカウント内の IAM ロールを引き受け、Redshift クラスターにアクセスします。
+
+    <img src="/images/moengage_6d0501.png" />
+- **Database name:** 実行されるクエリに使用されるデフォルトの Redshift データベース名です。データベースごとに個別の接続を作成することをお勧めします。
+- **Redshift Cluster Identifier name:** プロビジョニングされた Redshift クラスターごとに個別の接続を作成することをお勧めします。
+
+  ```
+  #{
+  "role_arn" : "arn:aws:iam::5822XXXX730:role/Segmentation_Redshift",
+  "aws_regions" : "ap-south-1",
+  "cluster_identifier" : "redshift-segmentation-cluster",
+  "default_db" : "dev",
+  }
+  ```
+
+</Accordion>
+## ステップ 2: ウェアハウスクエリを実行する
+
+1. MoEngage のサイドバーメニューで、**Segment** メニュー項目 <img alt="Screenshot 2025-06-16 at 3.25.14 PM.png"  src="/images/moengage_10177f.png"  /> にカーソルを合わせます。**Segment** メニューが表示されます。
+2. **Warehouse segment** をクリックします。  
+    <img alt="Screenshot 2025-06-17 at 2.15.43 PM.png"  src="/images/moengage_9b41d7.png"  />
+3. ここでは、上部の **Source** ドロップダウンから、前のステップでセットアップしたデータウェアハウス接続を選択できます。
+4. ソースを選択すると、データウェアハウスの**スキーマ**（データベース、テーブル、列）が左側のパネルに表示されます。ここから、クエリで使用したいデータベース、テーブル、列を検索できます。
+5. 右側の **SQL editor** に SQL クエリを入力できます。最適な結果を得るために、複数テーブルの結合、サブクエリ、エイリアスなど、必要に応じて任意の操作を実行できます。
+6. **Run Query** をクリックして、データウェアハウスで SQL クエリを実行します。下の Query results セクションに新しい行が追加されます。<img alt="2024-11-26_17-24-56.gif" src="/images/moengage_b97fa4.png" />
+7. **Query results** セクションには、最近実行したウェアハウスクエリの一覧が、実行時間、スキャンされたデータ量、特定のクエリによってデータウェアハウスから返されたデータの行数などのクエリメトリクスとともに表示されます。これらのメトリクスは、データウェアハウスクエリのパフォーマンスを測定するのに役立ち、MoEngage でクエリを作成する際の最適化に使用できます。
+   1. Snowflake では、クエリごとの使用クレジットを確認できます。
+   2. Databricks では、クエリ実行時に使用されたクレジットが提供されないため、[使用量](https://docs.databricks.com/aws/en/admin/account-settings/usage)を定期的に監視することをお勧めします。
+   3. Redshift では、クエリ実行時にスキャンされたデータ量が提供されないため、使用量を定期的に監視することをお勧めします。
+8. Query results セクションには、MoEngage から実行された各ウェアハウスクエリのステータスも表示されます。ステータスは、成功、失敗、または処理済みのいずれかです。
+9. クエリが正常に実行されると、Query results セクションで行を展開して、各クエリのサンプル結果を確認できます。各クエリについて、最大 100 行、10 列のデータが表示されます。
+10. 各クエリ結果には、各行の 3 点メニューからアクセスできる一連のアクションもあります。
+    - **Insert in SQL editor:** Query results セクションから特定の SQL クエリをエディターに直接挿入できます。  
+      このアクションを実行すると、エディター内の既存のクエリが置き換えられることに注意してください。
+    - **Create a custom segment:** 任意のクエリ結果から直接カスタムセグメントを作成できます。ただし、カスタムセグメントとして保存するには、クエリが ID（MoEngage に ID として存在する一意のユーザー識別子）の単一列を返す必要があります。そのため、このオプションは単一列を返すクエリに対してのみ有効になります。
+    - **Copy query:** このアクションでは、クエリがクリップボードにコピーされます。
+    - **Run query:** Run query アクションを使用して、Query results から直接クエリを実行できます。新しい実行分として、Query results セクションの上部に新しい行が追加されます。
+    - **Download results:** Download results アクションを使用して、クエリの結果をダウンロードできます。ダウンロードされるファイルには、最大 100 行、100 列のデータが含まれます。<img src="/images/moengage_74c04f.png" />
+11. **Preview Table:** スキーマセクションに表示されている任意のテーブルから、いくつかのサンプル行をワンクリックでプレビューできるようになりました。スキーマ内のテーブル名にカーソルを合わせると目のアイコンが表示され、これをクリックするとテーブルに対してサンプルクエリが実行され、最大 10 行のデータがプレビューとして表示されます。
+
+<Warning>
+1. カスタムセグメントとして保存するには、SQL クエリが ID の単一列を返す必要があります。クエリが複数の列を返す場合、セグメントはユーザーを返しません。
+
+2. SQL クエリはデータウェアハウス上で直接実行されます。この機能を利用する場合、データウェアハウスでのクエリ実行に関連するコストが発生することに注意してください。
+
+3. SQL クエリは 15 分でタイムアウトします。この制限を設定するには、CSM にお問い合わせください。
+
+4. SQL クエリは、ご利用の DWH と互換性がある必要があります。BigQuery で Warehouse セグメントを使用している場合、SQL クエリは [GoogleSQL](https://cloud.google.com/bigquery/docs/introduction-sql) でサポートされている必要があります。同様に、Snowflake はクエリに [Standard SQL](https://docs.snowflake.com/guides-overview-queries) を、Databricks は [ANSI standard SQL](https://www.databricks.com/blog/2021/11/16/evolution-of-the-sql-language-at-databricks-ansi-standard-by-default-and-easier-migrations-from-data-warehouses.html) を、Redshift は [PostgreSQL](https://docs.aws.amazon.com/redshift/latest/dg/c_SQL_commands.html) をサポートしています。
+</Warning>
+
+## ステップ 3: ウェアハウスカスタムセグメントを定義する
+
+SQL クエリが確定したら、カスタムセグメントの作成に進むことができます。カスタムセグメントのクエリは、ID（MoEngage に ID として存在する一意のユーザー識別子）の単一列を返す必要があります。セグメントの名前と説明を入力します。
+
+<img alt="Screenshot 2024-06-26 at 3.37.51 PM.png" src="/images/moengage_c25d77.png" />
+
+## ステップ 4: ウェアハウスカスタムセグメントを使用する
+
+Warehouse セグメントを使用して作成されたカスタムセグメントのタイプは Warehouse - SQL です。これらは All Segments ページに一覧表示されます。
+
+<img src="/images/moengage_a07516.png" />
+
+### 外部カスタムセグメントで実行可能なアクション:
+
+- **View** - セグメント情報ページでカスタムセグメントの詳細を表示します。ここでは次の操作を実行できます。
+  - セグメントを定義する SQL クエリを表示する
+  - カスタムセグメントを実行してユーザー数を更新する - このとき、MoEngage はデータウェアハウスに接続して SQL クエリを実行し、ユーザー数を更新します。
+- **Edit** - カスタムセグメントの定義に使用された SQL クエリを編集できます。
+- **Create campaign** - All Segments ページから直接キャンペーンを作成できます。キャンペーン作成のターゲットオーディエンスセクションには、選択したカスタムセグメントが入力されます。
+- 外部データウェアハウスセグメントは、他のカスタムセグメントや、MoEngage で取得したユーザー属性および行動と組み合わせることもできます。
+
+# Warehouse セグメントのユーザー数を更新する
+
+外部データウェアハウスセグメントのユーザー数は、次の 2 つの方法で更新できます。
+
+- **キャンペーン実行時** - キャンペーンのターゲットオーディエンスに含まれるデータウェアハウスセグメントは、キャンペーン実行時に自動的に更新されます。
+- **セグメント情報ページからカスタムセグメントを実行する** - セグメント情報ページからセグメントを手動で実行することもできます。
+
+<img alt="nandhini scr rec2.gif" src="/images/moengage_3de8f4.png" />
+
+# 考慮事項
+
+- 1 つの Warehouse セグメントは、1 つのデータウェアハウス接続に対して定義できます。異なるソースを参照する複数のカスタムセグメントを組み合わせて、新しいカスタムセグメントを作成できます。
+- 分析（Behaviour、Funnel など）を実行しても、Warehouse セグメントのユーザー数は更新されません。Warehouse セグメントを含むターゲットオーディエンスは、次のいずれかになります。
+  - セグメントが一度も実行されていない場合は 0 を返します。
+  - セグメントが以前に実行されたことがある場合は、前回の実行時のユーザー数を返します。

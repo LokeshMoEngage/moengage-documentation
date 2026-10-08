@@ -1,0 +1,372 @@
+---
+title: "Salesforce に MoEngage アプリをセットアップする"
+---
+
+## はじめに
+
+<Info>
+  この連携は Salesforce CRM 有料アドオンの一部です。お使いのアカウントで有効にするには、担当の MoEngage カスタマーサクセスマネージャー（CSM）にお問い合わせください。
+</Info>
+
+| 連携ステップ | ユースケース |
+| --- | --- |
+| MoEngage アプリをインストールする | Salesforce から MoEngage、MoEngage から Salesforce の両方の連携に必要です。 |
+| 接続アプリケーションを作成する | MoEngage から Salesforce への連携にのみ必要です。Salesforce から MoEngage へのデータフローには**不要**です。 |
+
+## MoEngage アプリをインストールする
+
+<Steps>
+  <Step title="Salesforce AppExchange にアクセスする">
+    Web ブラウザを開き、Salesforce AppExchange の Web サイトにアクセスします。
+  </Step>
+  <Step title="ログインする">
+    まだログインしていない場合は、**Log In** をクリックして Salesforce の認証情報を入力します。
+  </Step>
+  <Step title="MoEngage を検索する">
+    検索バーに _MoEngage_ と入力して Enter キーを押します。MoEngage アプリをクリックして詳細ページを開きます。
+  </Step>
+  <Step title="インストールを開始する">
+    MoEngage アプリのページで **Get It Now** をクリックします。
+  </Step>
+  <Step title="Salesforce 組織を選択する">
+    適切な Salesforce 組織（例：Production）を選択します。次に **Install in Production** をクリックして続行します。
+  </Step>
+  <Step title="インストールの詳細を確認する">
+    - 表示されたインストールの詳細を確認します。
+    - 該当するチェックボックスを選択して、利用規約に同意します。
+  </Step>
+  <Step title="インストールを完了する">
+    **Confirm and Install** をクリックしてインストールプロセスを開始します。
+  </Step>
+  <Step title="組織にインストールする">
+    MoEngage を **Admins only**、**All Users**、**Specific Profiles** のいずれにインストールするかを選択します。選択したオプションによっては、ユーザーに関連する [MoEngage アプリの権限](#permission-sets-required-for-the-moengage-app)を付与する必要があります。**Install** をクリックします。
+
+    **Install** をクリックした後、MoEngage のデータセンターに対応する 4 つの API エンドポイントのチェックボックスを選択して、リモートサイト設定を承認します。
+  </Step>
+</Steps>
+
+<Note>
+  一覧に MoEngage が表示されない場合は、担当のカスタマーサクセスマネージャーにお問い合わせください。アプリのビルドを別途共有します。
+</Note>
+
+### MoEngage アプリに必要な権限セット
+
+MoEngage アプリには以下の権限セットが含まれています。
+
+| 権限セット | 権限 |
+| --- | --- |
+| **MoEngage Admin Permission** | 同期を作成・管理するユーザーに割り当てます。管理者ユーザーには追加の権限は必要ありません。<br />この権限では以下にアクセスできます。<ul><li>Salesforce 内での MoEngage Connections の管理</li><li>同期とマッピングの管理</li><li>Sync Queue へのアクセスと手動再試行の使用</li><li>Delete Processed Sync Scheduler の管理</li></ul> |
+| **MoEngage User Permission** | 同期対象のオブジェクト（例：Leads、Contacts）を作成または更新して操作するユーザーに割り当てます。<br />この権限では以下にアクセスできます。<ul><li>パッケージのカスタムオブジェクトとフィールド</li><li>カスタム設定とメタデータ</li><li>Apex クラスへのアクセス</li></ul> |
+
+インストールの種類に応じて、以下のように設定します。
+
+#### 管理者ユーザーのみにインストールする場合
+
+- マッピングされたオブジェクトのレコードを作成または更新するすべての非管理者ユーザーに、**MoEngage User Permission** 権限セットを割り当てます。
+- 管理者ユーザーは、基本的な使用には追加の権限セットは必要ありません。
+
+#### すべてのユーザーにインストールする場合
+
+- **カスタムプロファイルのユーザー**：権限セットを割り当てる必要はありません。
+- **標準プロファイルのユーザー**：マッピングされたオブジェクトのレコードを作成または更新するユーザーに、**MoEngage User Permission** 権限セットを割り当てます。
+- **管理者ユーザー**：一般的なアクセスには権限は必要ありません。構成設定へのアクセスが必要な特定の管理者に **MoEngage Admin Permission** セットを割り当てます。
+
+<Accordion title="カスタムビューによるユーザー権限の管理">
+  権限を簡単に管理するために、リストビューを作成することをおすすめします。Salesforce ダッシュボードから以下の手順を実行します。
+
+  <Steps>
+    <Step title="Setup を開く">
+      右上の**歯車アイコン**をクリックし、**Setup** を選択します。
+    </Step>
+    <Step title="Users を探す">
+      **Quick Find** ボックスに _Users_ と入力し、**Users** を選択します。
+    </Step>
+    <Step title="新しいビューを作成する（任意）">
+      関連するリストビューが存在しない場合にのみ **Create New View** をクリックします。存在する場合は既存のビューを使用します。
+    </Step>
+    <Step title="ビューを構成する">
+      - 新しいリストビューの **Label** を入力します。
+      - （任意）特定のユーザーを対象にするために **Filter Criteria** を調整します。
+      - リストビューに表示する **Available Fields** を選択します。
+      - 希望する **Validity** オプションを選択し、**Save** をクリックしてリストビューを作成します。
+    </Step>
+  </Steps>
+
+  次に、MoEngage アプリの権限を割り当てます。
+
+  <Steps>
+    <Step title="Setup を開く">
+      右上の**歯車アイコン**をクリックし、**Setup** を選択します。
+    </Step>
+    <Step title="Permission Sets を開く">
+      **Quick Find** ボックスに _Permission Sets_ と入力し、**Permission Sets** を選択します。
+    </Step>
+    <Step title="権限セットを選択する">
+      **MoEngage Admin Permission** または **MoEngage User Permission** をクリックします。
+    </Step>
+    <Step title="割り当てを管理する">
+      **Manage Assignments** をクリックし、次に **Add Assignments** をクリックします。
+    </Step>
+    <Step title="リストビューを選択する">
+      先ほど作成したリストビューを選択して、関連するユーザーを表示します。
+    </Step>
+    <Step title="権限を割り当てる">
+      権限セットを割り当てるユーザーの各行の先頭にあるチェックボックスを選択し、**Next** をクリックします。選択内容を確認し、**Assign** をクリックして処理を完了します。
+    </Step>
+  </Steps>
+</Accordion>
+
+### 重要な注意事項
+
+インストール後、パッケージは自動的に以下を実行します。
+
+1. 必要な構成カスタム設定レコードを作成（または検証）します。
+2. **Delete Processed Syncs** ジョブをスケジュールします。
+
+<Note>
+  インストール時に作成された場合、このジョブの所有者はパッケージのインストーラーになります。**Setup** \> **Scheduled Jobs** \> **Delete Processed Syncs** \> **Manage** \> **Reschedule Job** に移動し、管理者ユーザー（_MoEngage Admin Permission_ セットが割り当てられたユーザー）でジョブを再スケジュールしてください。
+</Note>
+
+同じ名前のジョブがすでに存在する場合、システムはジョブを重複して作成しません。
+
+## MoEngage アプリを有効にした Sandbox の作成
+
+以下の手順に従うことで、要件に応じて Sandbox 環境で同期をアクティブにするか非アクティブにするかを制御できます。
+
+### Full Copy および Partial Copy Sandbox
+
+- MoEngage の同期がアクティブな本番環境から Full Copy または Partial Copy Sandbox を作成すると、MoEngage パッケージが自動的にインストールされ、同期はデフォルトで有効になります。
+- Sandbox 環境での同期を防ぐには、MoEngage パッケージに関連付けられたすべての接続を無効化してください。
+- Sandbox テンプレートを使用し、作成時に MoEngage パッケージのオブジェクトを同期対象から除外した場合：
+  - パッケージの接続は Sandbox にコピーされません。
+  - この場合、無効化の手順は必要ありません。
+
+### Developer および Developer Pro Sandbox
+
+- Developer および Developer Pro Sandbox では、標準オブジェクトやカスタムオブジェクトのデータはコピーされないため、同期データも Sandbox にコピーされません。
+- カスタム設定データ（接続と認証情報）のみがコピーされます。これらの Sandbox では接続が表示されますが、マッピングレコードは存在しません。
+- これらの Sandbox タイプでは無効化は不要です。ただし、作成前に接続を無効化することをおすすめします。
+
+## カスタム設定の構成
+
+アプリをインストールすると、以下のデフォルト値を持つ公開構成カスタム設定が作成されます。管理者はこれらの値をいつでも調整できます。
+
+カスタム設定にアクセスするには、以下の手順を実行します。
+
+<Steps>
+  <Step title="Setup を開く">
+    **Setup** に移動し、**Quick Find** 検索バーに _Custom Settings_ と入力します。
+  </Step>
+  <Step title="Custom Settings を開く">
+    結果から **Custom Settings** をクリックします。
+  </Step>
+  <Step title="Configuration を開く">
+    **Configuration** をクリックします。設定を表す 6 行のリスト/詳細ビューが表示されます。
+
+    <Frame>
+      ![MoEngage アプリの 6 つの構成値を表示している Salesforce のカスタム設定構成ページ](/images/partner_41649939572628.png)
+    </Frame>
+  </Step>
+</Steps>
+
+| 設定名 | デフォルト | 目的 | 有効な値 |
+| --- | --- | --- | --- |
+| Flex Queue Limit | `50` | 組織の Flex Queue のジョブ数がこの数未満の場合にのみ、新しい同期バッチが送信されます。 | `100` 未満の正の整数。負の値や小数は使用できません。 |
+| Historic Sync Scheduler Time (minutes) | `5` | Flex Queue がいっぱいの場合、Historical Sync ジョブはこの遅延時間の後に再スケジュールされます。 | 正の整数。負の値や小数は使用できません。 |
+| Record Deletion Batch Size | `2000` | クリーンアップジョブで使用されるバッチサイズです。 | 正の整数。負の値や小数は使用できません。 |
+| Record Deletion Interval (days) | `7` | 成功した Sync Queue レコード（および関連する Exceptions）をクリーンアップ前に保持する期間です。 | 正の整数。負の値や小数は使用できません。 |
+| Sync Queue Batch Size | `20` | リアルタイム処理のデフォルトのバッチサイズです。 | 正の整数。負の値や小数は使用できません。 |
+| Sync Queue Scheduler Time (minutes) | `5` | Flex Queue がいっぱいの場合、リアルタイム処理ジョブはこの遅延時間の後に再スケジュールされます。 | 正の整数。負の値や小数は使用できません。 |
+
+これらの値はインストール後スクリプトによって自動的に作成されます。管理者は、組織固有の要件に合わせていつでも確認・調整できます。
+
+## 接続アプリケーションを作成する
+
+<Note>
+  Salesforce から MoEngage にデータを送信するだけの場合は、これらの手順をスキップしてください。これらの手順は双方向連携、つまり MoEngage から Salesforce にイベントデータを送り返す場合にのみ必要です。
+</Note>
+
+### ステップ 1：ドメイン URL を取得する
+
+<Steps>
+  <Step title="Setup を開く">
+    右上の**歯車アイコン**をクリックし、**Setup** を選択します。
+
+    <Frame>
+      ![Setup がハイライトされた Salesforce の歯車アイコンメニュー](/images/partner_30688827310612.png)
+    </Frame>
+  </Step>
+  <Step title="My Domain を開く">
+    **Quick Find** ボックスに _My Domain_ と入力し、**My Domain** を選択します。
+
+    <Frame>
+      ![結果に My Domain が表示されている Salesforce Setup の検索](/images/partner_30688853320724.png)
+    </Frame>
+  </Step>
+  <Step title="ドメイン URL を保存する">
+    ドメイン URL を保存します。MoEngage から Salesforce へのデータフローを設定する際に必要になります。
+
+    <Frame>
+      ![現在のドメイン URL を表示している Salesforce の My Domain 設定ページ](/images/partner_30688853321620.png)
+    </Frame>
+  </Step>
+</Steps>
+
+### ステップ 2：新しい接続アプリケーションを作成する
+
+<Steps>
+  <Step title="Setup を開く">
+    右上の**歯車アイコン**をクリックし、**Setup** を選択します。
+
+    <Frame>
+      ![Setup がハイライトされた Salesforce の歯車アイコンメニュー](/images/partner_30688827310612.png)
+    </Frame>
+  </Step>
+  <Step title="App Manager を開く">
+    **Quick Find** ボックスに _App Manager_ と入力し、**App Manager** を選択します。
+
+    <Frame>
+      ![結果に App Manager が表示されている Salesforce Setup の検索](/images/partner_30688853322388.png)
+    </Frame>
+  </Step>
+  <Step title="新しい接続アプリケーションを作成する">
+    **New Connected App** をクリックします。
+
+    <Frame>
+      ![New Connected App ボタンがハイライトされた Salesforce App Manager](/images/partner_30688827316628.png)
+    </Frame>
+  </Step>
+  <Step title="アプリの詳細を入力する">
+    接続アプリケーションの名前やその他の詳細を入力します。
+
+    <Frame>
+      ![基本情報フィールドを含む Salesforce の New Connected App フォーム](/images/partner_30688853322900.png)
+    </Frame>
+  </Step>
+  <Step title="OAuth 設定を有効にする">
+    **API (Enable OAuth Settings)** セクションまでスクロールし、**Enable OAuth Settings** を選択します。
+  </Step>
+  <Step title="コールバック URL を設定する">
+    **Callback URL** フィールドに `https://api-0X.moengage.com` を入力します（`0X` はお使いのデータセンター識別子に置き換えてください）。
+  </Step>
+  <Step title="OAuth スコープを構成する">
+    **Manage user data via APIs (api)** スコープを **Available OAuth Scopes** から **Selected OAuth Scopes** に移動します。
+
+    <Frame>
+      ![api スコープが選択された Salesforce 接続アプリケーションの OAuth スコープ構成](/images/partner_30688853323540.png)
+    </Frame>
+  </Step>
+  <Step title="PKCE と Client Credentials を有効にする">
+    **Require PKCE** と **Enable Client Credentials Flow** の両方を選択します。
+  </Step>
+  <Step title="保存する">
+    ページ下部の **Save** をクリックします。
+  </Step>
+</Steps>
+
+<Info>
+  保存後、確認ページが表示されます。アプリの処理には 10 分ほどかかる場合があります。アプリを管理するには、App Manager に戻ります。
+</Info>
+
+### ステップ 3：コンシューマーキーとコンシューマーシークレットを取得する
+
+アプリが作成されると、**API (Enable OAuth Settings)** セクションで **Consumer Key** と **Consumer Secret** にアクセスできます。これらは MoEngage から Salesforce へのデータフローを設定するために不可欠です。
+
+<Steps>
+  <Step title="App Manager に戻る">
+    **App Manager** を開きます。
+  </Step>
+  <Step title="アプリを表示する">
+    アプリの横にあるドロップダウン矢印をクリックし、**View** を選択します。
+
+    <Frame>
+      ![接続アプリケーションの View オプションを含む Salesforce App Manager のドロップダウンメニュー](/images/partner_30688853324948.png)
+    </Frame>
+  </Step>
+  <Step title="Manage Consumer Details を開く">
+    **API (Enable OAuth Settings)** セクションまでスクロールし、**Manage Consumer Details** をクリックします。
+
+    <Frame>
+      ![Salesforce 接続アプリケーションの OAuth 設定セクションにある Manage Consumer Details ボタン](/images/partner_30688827319188.png)
+    </Frame>
+  </Step>
+  <Step title="認証情報をコピーする">
+    **Consumer Key** と **Consumer Secret** フィールドの下にある **Copy** をクリックして、それぞれの値をコピーします。
+
+    <Frame>
+      ![Consumer Key と Consumer Secret の Copy ボタンがある Salesforce のコンシューマー詳細ページ](/images/partner_30688827319572.png)
+    </Frame>
+  </Step>
+</Steps>
+
+### ステップ 4：MoEngage Sync Configuration 権限セットを追加する
+
+<Steps>
+  <Step title="Setup を開く">
+    右上の**歯車アイコン**をクリックし、**Setup** を選択します。
+
+    <Frame>
+      ![Setup がハイライトされた Salesforce の歯車アイコンメニュー](/images/partner_30688827310612.png)
+    </Frame>
+  </Step>
+  <Step title="Users を探す">
+    **Quick Find** ボックスに _Users_ と入力し、**Users** を選択します。
+
+    <Frame>
+      ![結果に Users が表示されている Salesforce Setup の検索](/images/partner_30688853329684.png)
+    </Frame>
+  </Step>
+  <Step title="ユーザーを選択する">
+    権限を割り当てるユーザーのユーザー名を選択します。
+
+    <Frame>
+      ![権限の割り当て対象としてユーザーが選択された Salesforce のユーザーリスト](/images/partner_30688853330196.png)
+    </Frame>
+  </Step>
+  <Step title="Permission Set Assignments を開く">
+    **Permission Set Assignments** をクリックします。
+
+    <Frame>
+      ![Permission Set Assignments リンクが表示されている Salesforce のユーザー詳細ページ](/images/partner_30688853330964.png)
+    </Frame>
+  </Step>
+  <Step title="割り当てを編集する">
+    ページが自動的に **Permission Set Assignments** までスクロールします。**Edit Assignments** をクリックします。
+
+    <Frame>
+      ![Edit Assignments ボタンがハイライトされた Permission Set Assignments セクション](/images/partner_30688853331220.png)
+    </Frame>
+  </Step>
+  <Step title="権限セットを割り当てる">
+    **Available Permission Sets** 列で **MoEngage Sync Configuration Permission** を選択し、**Add** をクリックします。権限セットが **Enabled Permission Sets** 列に表示されます。
+
+    <Frame>
+      ![有効な権限に MoEngage Sync Configuration Permission が追加された権限セットの選択画面](/images/partner_30688853331988.png)
+    </Frame>
+  </Step>
+  <Step title="保存する">
+    **Save** をクリックします。
+
+    <Warning>
+      正しい権限セットが割り当てられていない場合、以下のようなエラーメッセージが表示されます。
+
+      <Frame>
+        ![MoEngage 権限セットの割り当てが不足していることを示す Salesforce のエラーメッセージ](/images/partner_30688827324180.png)
+      </Frame>
+    </Warning>
+  </Step>
+</Steps>
+
+## 次のステップ
+
+次に、データ同期を構成します。
+
+<CardGroup cols={2}>
+  <Card title="Salesforce オブジェクトを MoEngage に同期する" icon="arrow-right-to-bracket" href="/ja/partner-guide/data-and-analytics/crm/salesforce-crm-native/sync-salesforce-objects-to-moengage">
+    任意の Salesforce オブジェクトをユーザーまたはイベントとして MoEngage に同期します。新規作成または更新されたレコードはリアルタイムで同期されます。
+  </Card>
+
+  <Card title="MoEngage から Salesforce にデータを同期する" icon="arrow-right-from-bracket" href="/ja/partner-guide/data-and-analytics/crm/salesforce-crm-native/sync-data-from-moengage-to-salesforce">
+    MoEngage Streams を通じて、MoEngage のイベントを Activities または任意の標準・カスタム Salesforce オブジェクトとして Salesforce に転送します。
+  </Card>
+</CardGroup>

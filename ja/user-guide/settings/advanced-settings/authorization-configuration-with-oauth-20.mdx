@@ -1,0 +1,107 @@
+---
+title: "OAuth 2.0 による認可設定"
+description: "MoEngage で OAuth 2.0 認証を設定し、カスタムコネクターや Content API 連携のアクセストークンを一元管理します。"
+---
+
+MoEngage では、アクセストークンを取得・更新する OAuth 2.0 認証サービスを設定し、一元管理できます。設定が完了すると、Custom Connectors や Content APIs などのさまざまなサービスを設定する際に、これらの認証設定をドロップダウンメニューから簡単に選択できます。
+
+マーケターは、カスタムコネクターキャンペーンの作成時（ステップ 2 の Content）やカスタム SMS コネクターの設定時に、認証として OAuth 2.0 を使用できます。詳細については、[コネクターキャンペーンの作成](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign)および[カスタムコネクター（サービスプロバイダー）の設定](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-custom-connector-for-sms)を参照してください。
+
+この記事では、OAuth 2.0 設定の構成方法と管理方法について説明します。
+
+# OAuth 2.0 設定の追加
+
+1. MoEngage ダッシュボードに移動し、**Settings** \> **Advanced settings** \> **Authorization configuration** を選択します。Authorization configuration ページが表示されます。
+2. **\+ Add OAuth config** をクリックします。Setup Authorization ページが表示されます。 <img src="/images/moengage_9eb1f2.png" alt="setup OAuth.png" />
+
+OAuth 2.0 設定の追加は、次の手順で構成されます。
+
+1. [OAuth details](/ja/user-guide/settings/advanced-settings/authorization-configuration-with-oauth-20#step-1-oauth-details)：キャンペーンのターゲットオーディエンスを定義します。
+2. [Response settings](/ja/user-guide/settings/advanced-settings/authorization-configuration-with-oauth-20#step-2-response-settings)：送信するコネクターキャンペーンまたはカスタム SMS コネクターのコンテンツを定義します。
+
+## ステップ 1：OAuth Details
+
+OAuth details タブで、次の詳細を入力します。
+
+1. **OAuth name**：OAuth 設定の名前を入力します。これらの設定は、キャンペーン作成時に選択できるようになります。
+2. **Grant type**：現在、Client Credential グラントタイプがサポートされています。その他のグラントタイプを使用している場合は、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+3. **Token type**：トークンタイプを選択します。サポートされている値は次のとおりです。
+   - Opaque：トークン発行者が Opaque トークンを使用する場合は、このオプションを選択します。この場合、発行者からのレスポンスには、Opaque アクセストークンとともに有効期限が含まれます。
+   - JWT：このオプションを選択すると、ステップ 2 の Response settings で、アクセストークンと有効期限がレスポンス内で JSON Web Token（JWT）としてエンコードされます。有効期限を取得するには、レスポンスをデコードする必要があります。
+4. **API details** で、アクセストークンの取得に必要な詳細を入力します。実装予定の OAuth サービスの API ドキュメントを確認してください。
+5. **API URL**：API URL を入力します。
+6. **Method**：API メソッドを選択します。サポートされているメソッドと、各メソッドで使用できるフィールドは次のとおりです。
+   | メソッド | サポートされるフィールド |
+   | --- | --- |
+   | GET | <ul><li>URL parameters</li><li>Headers</li></ul> |
+   | POST | <ul><li>URL parameters</li><li>Headers</li><li>Body type</li></ul> |
+   | PUT | <ul><li>URL parameters</li><li>Headers</li><li>Body type</li></ul> |
+   | DELETE | <ul><li>URL parameters</li><li>Headers</li><li>Body type</li></ul> |
+7. **URL parameters**：**\+ KV pair** をクリックし、API のパラメーターを入力します。
+8. **Headers**：**\+ KV pair** をクリックし、API のヘッダーを入力します。
+9. **Body type**：次のオプションを使用して、リクエストのボディを設定します。
+   <Tabs>
+     <Tab title="Form">
+       Webhook のフォームエンコードされたシリアル化に基づいてボディを作成します。 <img src="/images/moengage_a112fc.png" alt="OAuth Form.png" />。
+     </Tab>
+     <Tab title="JSON">
+       JSON 形式を使用してボディを作成します。JSON コンテンツを追加するには、**\+ KV pair** をクリックします。 <img src="/images/moengage_46e3db.png" alt="OAuth JSON.png" />
+     </Tab>
+     <Tab title="Raw">
+       Raw テキスト形式を使用してボディを作成します。 <img src="/images/moengage_e7c385.png" alt="OAuth Raw.png" />
+     </Tab>
+   </Tabs>
+10. **Send test & continue** をクリックして設定をテストし、2 番目のステップ "Response settings" に進みます。
+
+<Info>
+  **Send test & continue** をクリックした後にエラーが発生した場合は、OAuth サービスプロバイダーのドキュメントで API 設定を確認してください。
+</Info>
+
+## ステップ 2：Response Settings
+
+Response settings タブで、次の詳細を入力します。
+
+1. **OAuth delivery response**：このセクションのフィールドは、ステップ 1 の OAuth details で選択したトークンタイプによって異なります。
+
+<Tabs>
+  <Tab title="Opaque">
+    - ステップ 1 の OAuth details で **Token type** ドロップダウンリストから "Opaque" を選択した場合、**OAuth delivery response** フィールドは 1 つだけ表示されます。OAuth delivery response には、エンコードされていない有効期限を持つキーが含まれています。
+    - レスポンスを受信した日時も確認できます。 <img src="/images/moengage_7ec5d3.png" alt="Opaque.png" />
+    - **Expiry** ドロップダウンリストから有効期限のオプションを選択し、2 番目のドロップダウンリストから値を選択します。
+    - **Expiry** ドロップダウンリストの値は、受信したレスポンスの種類によって異なります。 <img src="/images/moengage_69e003.png" alt="Expiry.png" />
+  </Tab>
+  <Tab title="JWT">
+    - ステップ 1 の OAuth details で Token type ドロップダウンリストから "JWT" を選択した場合、**OAuth delivery response** フィールドが 2 つ表示されます。 <img src="/images/moengage_3a65c2.png" alt="JWT.png" />
+    - 1 つ目の **OAuth delivery response** フィールドでは、レスポンスに有効期限を持つキーが含まれていますが、有効期限はエンコードされています。
+    - レスポンスを受信した日時も確認できます。
+    - **Access token** ドロップダウンリストから有効期限を持つキーを選択し、**Decode token type** をクリックします。トークンタイプがデコードされると、2 つ目の **OAuth delivery response** フィールドにもう 1 つのレスポンスが表示されます。
+    - **Expiry** ドロップダウンリストから有効期限のオプションを選択し、2 番目のドロップダウンリストから値を選択します。**Expiry** ドロップダウンリストの値は、受信したレスポンスの種類によって異なります。 <img src="/images/moengage_69e003.png" alt="Expiry.png" />
+  </Tab>
+</Tabs>
+
+2. **Preferred prefix**：OAuth 設定の優先プレフィックスを選択します。\
+   マーケターは、デフォルトのオプションに加えてカスタムプレフィックスを作成できます。これらのプレフィックスは、カスタムコネクターの作成時やカスタム SMS コネクターの設定時に使用でき、キャンペーンレベルで上書きできます。
+3. **Preferred error codes**：**OAuth error code** フィールドに、トークンの有効期限切れによる認可失敗時の OAuth 設定の優先エラーコードを入力します。このエラーコードは、コネクターキャンペーンまたはカスタム SMS コネクターの再試行に使用できます。
+4. **Save** をクリックします。これで、この OAuth 設定がアクティブになります。この OAuth 設定は、[カスタムコネクターキャンペーンの作成](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign)時や[カスタム SMS コネクターの設定](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-custom-connector-for-sms)時に使用できるようになります。
+
+# OAuth 設定の管理
+
+1. MoEngage ダッシュボードに移動し、**Settings** \> **Advanced settings** \> **Authorization configuration** を選択します。Authorization configuration ページが表示されます。設定済みの既存の OAuth 設定を確認できます。 <img src="/images/moengage_a27134.png" alt="OAuth settings.png" />
+2. 特定の OAuth 設定が使用されている場所を確認するには、対象の設定の View list をクリックします。関連する Content APIs、PII 設定、Connector Campaigns の一覧が表示されます。 <img src="/images/moengage_0fa906.png" alt="viewlist.gif" />
+   <Info>
+     - "Failed" の OAuth 設定は、OAuth 設定がレスポンスを取得できないことを意味します。OAuth 設定を編集し、再度テストを送信する必要があります。コネクターキャンペーンの作成時やカスタム SMS コネクターの設定時に、失敗した OAuth 設定を使用しないでください。
+     - コネクターやキャンペーンの設定時にドロップダウンで選択できるのは、ステータスが "Active" の設定のみです。
+     - アクティブな OAuth 設定の有効期限が切れると、ステータスが "Failed" に変わります。この期限切れの設定を使用しているキャンペーンまたはコネクターを編集するとエラーメッセージが表示されるため、新しいアクティブな OAuth 設定を選択する必要があります。
+   </Info>
+3. OAuth 設定を編集するには、対象の OAuth 設定の省略記号アイコンをクリックし、**Edit** をクリックします。
+4. OAuth 設定を削除するには、対象の OAuth 設定の省略記号アイコンをクリックし、**Delete** をクリックします。OAuth 設定に関連付けられているキャンペーンがある場合は、削除できません。関連するキャンペーンの一覧とともに警告が表示されます。 <img src="/images/moengage_a7c2c0.png" alt="cannot delete.png" />
+
+# サポートマトリックス
+
+ここで設定した OAuth 2.0 設定は、次の機能でリクエストを認証するために使用できます。
+
+- **Connector Campaigns**：コネクターキャンペーンを保護します。詳細については、[コネクターキャンペーンの作成](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign)を参照してください。
+- Custom Connectors：カスタム SMS キャンペーンを保護します。詳細については、[SMS 用カスタムコネクターの設定](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-custom-connector-for-sms)を参照してください。
+- **Content APIs**：リアルタイムのパーソナライズに使用される API 呼び出しを認証します。詳細については、[Content API の追加](/ja/user-guide/settings/advanced-settings/add-a-content-api)を参照してください。
+- **PII Tokenized Sending**：キャンペーン配信時に顧客の PII を取得するために使用される API を保護します。詳細については、[PII Tokenized Sending](/ja/user-guide/data/privacy/personal-data-or-personally-identifiable-information-pii/pii-tokenized-sending)を参照してください。
+- **Streams**：MoEngage Streams がイベントデータを転送する API エンドポイントを認証します。詳細については、[Streams](/ja/api/data/moengage-streams)を参照してください。

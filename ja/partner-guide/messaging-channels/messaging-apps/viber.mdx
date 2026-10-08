@@ -1,0 +1,399 @@
+---
+title: "Viber"
+---
+
+## はじめに
+
+[Viber](https://www.viber.com/en/) は、安全かつ高速で、すべてのデバイス間で同期されるクロスプラットフォームの VoIP およびインスタントメッセージングアプリケーションです。Viber を通じて、ブランドはユーザーが簡単に操作できるリッチなメッセージングを使用してユーザーとエンゲージできます。
+
+## MoEngage と Viber
+
+MoEngage と Viber の統合により、高度なセグメンテーション、予測機能、パーソナライズ、トリガー機能を活用して、[Viber REST Bot API](https://developers.viber.com/docs/api/rest-bot-api/) を通じて Viber Bot でユーザーにメッセージを送信できます。
+
+## ユースケース
+
+MoEngage との統合は、次のようなユースケースに役立ちます。
+
+- **パーソナライズされたメッセージング:** ユーザーの好みに基づいて、パーソナライズされたメッセージを送信できます。
+- **リッチメディアコンテンツ**: Viber メッセージで画像、動画、ファイルを使用して、メッセージをより視覚的にすることができます。
+- **自動化されたキャンペーン**: スケジュールされた時刻にメッセージを自動的に送信したり、ユーザーのアクションに基づいてメッセージをトリガーしたりできます。
+
+## Viber 統合でメッセージを送信する方法
+
+Viber 統合では、次の方法でメッセージを送信できます。
+
+- [ネイティブ API](#integration-via-native): MoEngage キャンペーンを使用して、Viber API でメッセージを送信できます。
+- [Infobip コネクター](#integration-via-infobip): Infobip コネクターを使用して、Viber ユーザーにメッセージを送信できます。
+- [8x8 コネクター](#integration-via-8x8-connector): 8x8 Chat Apps API を使用して、Viber でユーザーとエンゲージできます。このコネクターを使用すると、テキスト、メディア (画像、動画、ファイル)、Call-to-Action (CTA) ボタン付きのメッセージを MoEngage キャンペーンから直接送信できます。
+
+## ネイティブによる統合 {#integration-via-native}
+
+<Info>
+  **前提条件**
+
+  - **Viber ボット**: この統合を使用するには、Viber ボットが必要です。Viber メッセージを送信すると、メッセージは Viber ボットの公式アカウントに関連付けられ、ユーザーにはボットの詳細が表示されます。ボットの作成について詳しくは、[Viber Partners ポータル](https://partners.viber.com/login)を参照してください。
+  - **有効な認証トークン**: ボットをサポートする有効な Viber アカウント (iOS または Android)。アカウント作成時に、その Viber アカウントがアカウント管理者として設定されます。
+  - **アカウント認証トークン**: この一意のアカウント識別子により、すべての API リクエストでアカウントが検証されます。アカウントを作成すると、アカウントの情報編集画面に認証トークンが表示されます (管理者のみ)。
+  - **Viber ユーザー ID**: 各 Viber ユーザーに関連付けられた一意の ID です。\
+    **注**: ユーザーが Viber ボットを購読した後、[Viber Users API](https://developers.viber.com/docs/api/rest-bot-api/#get-user-details) を通じてユーザーの ID にアクセスできます。
+  - **アカウントの Webhook の設定**: メッセージの処理を構成するために、アカウントの設定時に Webhook とレスポンスの設定を定義します。
+  - Viber は Connected Channels アドオンの一部です。アカウントで有効にするには、MoEngage の担当 CSM (カスタマーサクセスマネージャー) にお問い合わせください。
+</Info>
+
+Viber では、ブランドがユーザーの同意を得ていれば、プロモーションメッセージと非プロモーションメッセージの両方をユーザーに送信できます。メッセージを受信するには、ユーザーが Viber ボットを購読している必要があります。
+
+<Note>
+  - ユーザーが Viber ボットに最初のメッセージを送信すると、自動的に購読されます。
+  - パーソナライズされたキャンペーンは、ユーザー識別子 (電話番号) を保持しているユーザーにのみ送信できます。
+  - Viber ボットは、ユーザーにデフォルトの電話番号を割り当てません。電話番号は次の 2 つの方法で取得できます。
+    - ユーザーの Viber ID にブロードキャストメッセージを送信して、ユーザーに直接リクエストする必要があります。
+    - Viber の Business Messages サービスを利用している場合は、電話番号に直接アクセスできます。
+</Note>
+
+### ステップ 1: App Marketplace で Viber を接続する
+
+App marketplace で Viber を接続するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**App marketplace** をクリックします。
+2. App Marketplace ページで **Viber** を検索します。 <img src="/images/partner_35131833803284.png" alt="Viber が表示された App marketplace の検索結果" />
+3. **Viber** タイルをクリックします。
+4. Viber ページで、**Integrate** タブに移動します。
+5. \+ Add integration の下矢印キーをクリックし、**Send messages (Native)** をクリックします。 <img src="/images/partner_42711159673620.png" alt="Send messages (Native) が選択された統合ドロップダウン" />
+6. 次の詳細を入力します。
+
+| フィールド | 必須 | 説明 |
+| --- | --- | --- |
+| **Connection name** | はい | Viber 接続の名前です。 |
+| **Viber Auth Token** | はい | Viber の認証トークンです。認証トークンはボットの作成時に生成され、アカウントの管理者はボットの "edit info" 画面または Viber Admin Panel で確認できます。詳細については、[Authentication token](https://developers.viber.com/docs/api/rest-bot-api/#authentication-token) を参照してください。 |
+| **Sender Name** | はい | 表示される送信者名です。 |
+| **Sender Avatar URL** | いいえ | 送信者のアバターの URL です。**注**: アバターの最大サイズは 100 KB を超えてはなりません。推奨解像度は 720x720 ピクセルです。 |
+
+![ネイティブ接続の詳細フォーム](/images/partner_35131834786068.png)
+
+7. **Connect** をクリックします。これで Viber 接続が統合されました。
+
+#### ステップ 1.1: ユーザーの Viber ID を収集する
+
+Viber でメッセージを送信するには、ユーザーを識別して一貫したやり取りを行うために、ユーザーの Viber ID を収集する必要があります。Viber ユーザー ID は Viber によって生成され、[Viber API](https://developers.viber.com/docs/api/rest-bot-api/#send-message) とやり取りする際に使用できます。
+
+#### ステップ 1.2: **ユーザーの Viber ID を MoEngage に保存する**
+
+Viber ユーザー ID の一覧を取得したら、カスタムのトラッキング対象ユーザー属性またはプロパティである **viber\_id** として MoEngage に追加する必要があります。次のいずれかを実行できます。
+
+- [User Data API](/ja/api/user/track-user) を使用してこのデータを MoEngage に渡す。
+- MoEngage 内の **User Imports** を使用してアップロードする。
+
+### ステップ 2: MoEngage で Viber キャンペーンを作成する
+
+MoEngage でキャンペーンを作成するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. **All campaigns** ページで、**\+ Create campaign** をクリックします。
+3. **Create campaign** ダイアログボックスの **Connected Apps** で **Viber** をクリックし、最も適した配信タイプをクリックします。 <img src="/images/partner_35131834786580.png" alt="Viber と配信タイプが選択された Create campaign ダイアログ" />
+4. **Select audience** で **Filter users by** をクリックします。
+5. **User property** タブで、**Viber\_id** が存在するユーザーのセグメントを選択します (他のセグメント条件と組み合わせることができます)。
+6. キャンペーン作成のステップ 2 (**Content**) で、ネイティブメッセージコネクターを選択し、送信するコンテンツを指定します。 
+7. 次の詳細を入力します。 <img src="/images/partner_35131833805588.png" alt="ネイティブコネクターのコンテンツ設定" />
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | **Connector** | はい | この一覧で **Send messages (Native)** を選択します。 |
+   | **Connections** | はい | MoEngage App marketplace に追加した接続を選択します。 |
+   | **Receiver ID** | はい | Receiver ID を入力します。これは受信者の一意の Viber ユーザー ID です。ここではパーソナライズも使用できます。 |
+   | **Tracking ID** | はい | アカウントがメッセージとユーザーの返信を追跡できるようにします。送信された tracking\_data の値は、ユーザーの返信とともに返されます。最大 4096 文字まで入力できます。 |
+8. 送信する **Message type** を選択します。サポートされているタイプは **Text**、**Picture**、**Video** です。タイプに応じて、以下のセクションのフィールドに入力します。
+
+<Tabs>
+  <Tab title="テキストメッセージ">
+    **Text** を選択した場合は、次の詳細を入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | Message Content | はい | 送信するメッセージのテキストです。ここではパーソナライズも使用できます。**注**: 最大 7000/768 文字まで入力できます。 |
+    | Media URL | いいえ | 空白のままにします。 |
+    | Video Size | いいえ | 空白のままにします。 |
+    | Video Duration | いいえ | 空白のままにします。 |
+  </Tab>
+  <Tab title="画像メッセージ">
+    **Picture** を選択した場合は、次のフィールドに入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | Message Content | はい | 画像メッセージの説明です。ここではパーソナライズも使用できます。<br />**注**: 最大 7000/768 文字まで入力できます。 |
+    | Media URL | はい | 送信する画像の URL です。_https://_ または _http://_ で始まる有効な URL である必要があります。サポートされている画像の種類は .jpg、.jpeg、.png です。推奨解像度は 800  x 800 ピクセルです。ここではパーソナライズも使用できます。 |
+    | Video Size | いいえ | 空白のままにします。 |
+    | Video Duration | いいえ | 空白のままにします。 |
+  </Tab>
+  <Tab title="動画メッセージ">
+    **Video** を選択した場合は、次のフィールドに入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | Message Content | いいえ | 空白のままにします。 |
+    | Media URL | はい | 送信する動画の URL です。_https://_ または _http://_ で始まる有効な URL である必要があります。サポートされている動画の種類は 3gp、m4v、mov、mp4 です。ここではパーソナライズも使用できます。<br />**注**: 動画の最大サイズは 200 MB です。 |
+    | Video Size | はい | 動画のサイズ (バイト単位) です。 |
+    | Video Duration | はい | 動画の長さです。必須項目で、上限は 180 秒です。 |
+  </Tab>
+</Tabs>
+
+詳細については、[こちら](https://developers.viber.com/docs/api/rest-bot-api/#send-message)を参照してください。
+
+9. これで、キャンペーンをテストして送信する準備が整いました。_Test_ 機能を使用して、コネクターの設定をテストすることもできます。 <img src="/images/partner_35131833806612.png" alt="ネイティブコネクターのテストキャンペーンウィジェット" /> テストユーザーがメッセージを正常に受信できれば、セットアップは完了です。
+10. キャンペーンを公開します。
+
+---
+
+## Infobip による統合 {#integration-via-infobip}
+
+<Info>
+  **前提条件**
+
+  - **Viber ボット**: この統合を使用するには、Viber ボットが必要です。Viber メッセージを送信すると、メッセージは Viber ボットの公式アカウントに関連付けられ、ユーザーにはボットの詳細が表示されます。ボットの作成について詳しくは、[こちら](https://partners.viber.com/login)を参照してください。
+  - **Infobip API**: 接続された Viber ボットとの Viber 接続を確立し、Infobip API にアクセスできるようにします。
+</Info>
+
+### ステップ 1: App marketplace で Viber を接続する
+
+App marketplace で Viber を接続するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**App marketplace** をクリックします。
+2. App Marketplace ページで **Viber** を検索します。 <img src="/images/partner_35131833803284.png" alt="Viber が表示された App marketplace の検索結果" />
+3. **Viber** タイルをクリックします。
+4. Viber ページで、**Integrate** タブに移動します。
+5. \+Add integration ドロップダウンをクリックし、**Send messages (Infobip)** をクリックします。 <img src="/images/partner_42711159677844.png" alt="Send messages (Infobip) が選択された統合ドロップダウン" />
+6. 次の詳細を入力します。
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | **Connection name** | はい | Viber 接続の名前です。 |
+   | **API Base URL** | はい | 各 API リクエストの送信元を識別するために、Infobip の各クライアントに提供される一意の API ベース URL です。詳細については、[こちら](https://www.infobip.com/docs/essentials/base-url)を参照してください。 |
+   | **API Key** | はい | Infobip の API キーです。詳細については、[こちら](https://www.infobip.com/docs/essentials/api-essentials/api-authentication#api-key-header)を参照してください。 |
+   ![Integrate](/images/integrate.png)
+7. **Connect** をクリックします。これで Viber 接続が統合されました。
+
+#### ステップ 1.1: **ユーザーの Viber ID を収集する**
+
+Viber でメッセージを送信するには、ユーザーを識別して一貫したやり取りを行うために、ユーザーの Viber ID を収集する必要があります。Viber ユーザー ID は Viber によって生成され、[Viber API](https://developers.viber.com/docs/api/rest-bot-api/#send-message) とやり取りする際に使用できます。
+
+#### ステップ 1.2: **ユーザーの Viber ID を MoEngage に保存する**
+
+Viber ユーザー ID の一覧を取得したら、カスタムのトラッキング対象ユーザー属性またはプロパティである **viber\_id** として MoEngage に追加する必要があります。次のいずれかを実行できます。
+
+- [User Data API](/ja/api/user/track-user) を使用してこのデータを MoEngage に渡す
+- MoEngage 内の User Imports を使用してアップロードする。
+
+### ステップ 2: **MoEngage で Viber キャンペーンを作成する**
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. **All campaigns** ページで、**\+ Create campaign** をクリックします。
+3. **Create campaign** ダイアログボックスの **Connected Apps** で **Viber** をクリックし、最も適した配信タイプをクリックします。 <img src="/images/partner_35131834786580.png" alt="Viber と配信タイプが選択された Create campaign ダイアログ" />
+4. **Select audience** で **Filter users by** をクリックします。
+5. **User property** タブで、**viber\_id** が存在するユーザーのセグメントを選択します (他のセグメント条件と組み合わせることができます)。
+6. キャンペーン作成のステップ 2 (**Content**) で、Infobip のメッセージ送信コネクターを選択し、送信するコンテンツを指定します。
+7. 次の詳細を入力します。
+
+![Infobip コネクターのコンテンツ設定](/images/partner_35131833807892.png)
+
+| フィールド | 必須 | 説明 |
+| --- | --- | --- |
+| **Connector** | はい | この一覧で **Send messages (Native)** を選択します。 |
+| **Connections** | はい | MoEngage App marketplace に追加した接続を選択します。 |
+| **Sender ID** | はい | Sender ID を入力します。これは Viber アカウントの一意の識別子です。英数字または数字を使用できます。ここではパーソナライズも使用できます。 <br />**注**: 最大 11 文字まで入力できます。 |
+| **User mobile number** | はい | ユーザーの携帯電話番号を入力します。ここではパーソナライズも使用できます。**注**: <ul><li>インドで登録された電話番号に SMS メッセージを送信するには、Distributed Ledger Technology (DLT) パラメーターを使用する必要があります。</li><li>トルコで登録された電話番号に SMS メッセージを送信するには、IYS 規制のパラメーターを使用する必要があります。</li><li>韓国で登録された電話番号に SMS メッセージを送信するには、ユースケースに応じたパラメーターを使用する必要があります。</li></ul> |
+
+8. **Message type** として **Text**、**Image**、**Video**、**File** のいずれかを選択します。タイプに応じて、以下のセクションのフィールドに入力します。
+
+<Tabs>
+  <Tab title="テキストメッセージ">
+    **Text** を選択した場合は、次のフィールドに入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | Message | はい | 送信するメッセージの内容です。ここではパーソナライズも使用できます。**注**: 最大 1000 文字まで入力できます。 |
+    | Button Text | いいえ | アクションボタンに表示されるテキストです。ここではパーソナライズも使用できます。ボタンを追加する場合にのみ必須です。**注**: 最大 30 文字まで入力できます。 |
+    | Button Action URL | いいえ | アクションボタンを押したときにユーザーが移動する URL、または実行されるアクションです。ここではパーソナライズも使用できます。ボタンを追加する場合にのみ必須です。<br />**注**: 最大 1000 文字まで入力できます。 |
+    | Media URL | いいえ | 空白のままにします。 |
+    | Video Duration | いいえ | 空白のままにします。 |
+    | Thumbnail URL | いいえ | 空白のままにします。 |
+    | File name | いいえ | 空白のままにします。 |
+  </Tab>
+  <Tab title="画像メッセージ">
+    **Image** を選択した場合は、次のフィールドに入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | Message | いいえ | 画像とともに表示されるテキストです。ボタンと画像を含むメッセージを送信する場合は必須です。ここではパーソナライズも使用できます。 |
+    | Button Text | いいえ | アクションボタンに表示されるテキストです。ここではパーソナライズも使用できます。ボタンを追加する場合にのみ必須です。<br />**注**: 最大 30 文字まで入力できます。 |
+    | Button Action URL | いいえ | アクションボタンを押したときにユーザーが移動する URL、または実行されるアクションです。ここではパーソナライズも使用できます。ボタンを追加する場合にのみ必須です。<br />**注**: 最大 1000 文字まで入力できます。 |
+    | Media URL | はい | 送信する画像の URL です。_https://_ または _http://_ で始まる有効な URL である必要があります。サポートされている画像の種類は .jpg、.jpeg、.png です。推奨解像度は 800  x 800 ピクセルです。 |
+    | Video Duration | いいえ | 空白のままにします。 |
+    | Thumbnail URL | いいえ | 空白のままにします。 |
+    | File name | いいえ | 空白のままにします。 |
+  </Tab>
+  <Tab title="動画メッセージ">
+    **Video** を選択した場合は、次のフィールドに入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | Message | いいえ | 空白のままにします。 |
+    | Button Text | いいえ | アクションボタンに表示されるテキストです。ここではパーソナライズも使用できます。<br />**注**: 最大 30 文字まで入力できます。 |
+    | Button Action URL | いいえ | アクションボタンを押したときにユーザーが移動する URL、または実行されるアクションです。ここではパーソナライズも使用できます。ボタンを追加する場合にのみ必須です。<br />**注**: 最大 1000 文字まで入力できます。 |
+    | Media URL | はい | 送信する動画の URL です。https:// または http:// で始まる有効な URL である必要があります。サポートされている動画の種類は 3gp、m4v、mov、mp4 です。動画の最大サイズは 200 MB です。**注**: 最大 1000 文字まで入力できます。 |
+    | Video Duration | はい | 動画の長さで、上限は 180 秒です。ここではパーソナライズも使用できます。例: `PT5S` |
+    | Thumbnail URL | はい | 送信するサムネイルの URL です。_https://_ または _http://_ で始まる有効な URL である必要があります。サポートされているサムネイルの種類は .jpg、.jpeg、.png です。推奨解像度は 800 x 800 ピクセルです。ここではパーソナライズも使用できます。 |
+    | File name | いいえ | 空白のままにします。 |
+  </Tab>
+  <Tab title="ファイルメッセージ">
+    **File** を選択した場合は、次のフィールドに入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | Message | いいえ | 空白のままにします。 |
+    | Button Text | いいえ | 空白のままにします。 |
+    | Button Action URL | いいえ | 空白のままにします。 |
+    | Media URL | はい | 送信するファイルの URL です。https:// または http:// で始まる有効な URL である必要があります。サポートされているファイルの種類は .doc、.docx、.rtf、.dot、.dotx、.odt、.odf、.fodt、.txt、.info、.pdf、.xps、.pdax、.eps、.xls、.xlsx、.ods、.fods、.csv、.xlsm、.xltx です。<br />**注**: ファイルの最大サイズは 200 MB です。 |
+    | Video Duration | いいえ | 空白のままにします。 |
+    | Thumbnail URL | いいえ | 空白のままにします。 |
+    | File name | はい | 送信する添付ファイルの名前 (ファイル拡張子を含む) です。サポートされているファイル拡張子は \*\\.(docx?\|dotx?\|xlsx?\|f?ods\|f?odt\|rtf\|odf\|txt\|info\|pdf\|xps\|pdax\|eps\|csv\|xlsm\|xltx)\$ です。ここではパーソナライズも使用できます。 |
+  </Tab>
+</Tabs>
+
+詳細については、[こちら](https://www.infobip.com/docs/api/channels/viber/viber-business-messages/send-viber-messages)を参照してください。
+
+9. これで、キャンペーンをテストして送信する準備が整いました。_Test_ 機能を使用して、コネクターの設定をテストすることもできます。 <img src="/images/partner_35131833806612.png" alt="Infobip コネクターのテストキャンペーンウィジェット" /> テストユーザーがメッセージを正常に受信できれば、セットアップは完了です。
+10. キャンペーンを公開します。
+
+---
+
+## 8x8 コネクターによる統合 {#integration-via-8x8-connector}
+
+<Info>
+  **前提条件**
+
+  このコネクターを設定する前に、次のものが揃っていることを確認してください。
+
+  - **8x8 Connect アカウント**: 有効な 8x8 Connect ポータルアカウントが必要です。
+  - **Viber チャネルの有効化**: 8x8 のサブアカウントで Viber がプロビジョニングされている必要があります。Viber チャネルのプロビジョニングについては、8x8 のアカウントマネージャーまたは 8x8 サポートにお問い合わせください。
+  - **8x8 API アクセス**: 8x8 Connect ポータル内で API キーを生成し、サブアカウント ID を確認できるアクセス権が必要です。
+</Info>
+
+### **ステップ 1: App Marketplace で Viber を接続する**
+
+App marketplace で 8x8 コネクターを接続するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、**App marketplace** をクリックします。
+2. App Marketplace ページで **Viber** を検索します。
+3. **Viber** タイルをクリックします。
+4. Viber ページで、**Integrate** タブに移動します。
+5. **Add integration** の下矢印キーをクリックし、**Send messages (8x8)** をクリックします。 <img src="/images/partner_42711159678484.png" alt="Send messages (8x8) が選択された統合ドロップダウン" />
+6. 次の詳細を入力します。
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | **Connection name** | はい | このコネクターインスタンスの名前です。MoEngage 内での参照用です。 |
+   | **8x8 Subaccount ID** | はい | 8x8 Chat Apps API のサブアカウント ID です。8x8 Connect ポータルにログインし、**Messaging App**s の **Channels** セクションに移動して、**Subaccount ID** の値をコピーします。 |
+   | **8x8 API Token** | はい | 8x8 Chat Apps API の認証トークンです。8x8 Connect ポータルにログインし、**API Keys** セクションに移動して、トークンとして使用する **API Key** をコピーします。 |
+7. フィールドに入力したら、**Connect** をクリックしてコネクターの設定を完了します。 <img src="/images/partner_42711136446228.png" alt="8x8 接続の詳細フォーム" />
+
+### **ステップ 2: MoEngage で 8x8 コネクターキャンペーンを作成する**
+
+MoEngage でキャンペーンを作成するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. **All campaigns** ページで、**\+ Create campaign** をクリックします。
+3. **Create campaign** ダイアログボックスの **Connected Apps** で **Viber** をクリックし、最も適した配信タイプをクリックします。 <img src="/images/partner_35131834786580.png" alt="Viber と配信タイプが選択された Create campaign ダイアログ" />
+4. **Select audience** で **Filter users by** をクリックします。
+5. **User property** タブで、**viber\_id** が存在するユーザーのセグメントを選択します (他のセグメント条件と組み合わせることができます)。
+6. キャンペーン作成のステップ 2 (**Content**) で、8x8 Viber コネクターを選択し、送信するコンテンツを指定します。
+7. 次の詳細を入力します。 <img src="/images/partner_42711159682964.png" alt="8x8 コネクターのコンテンツ設定" />
+
+<Tabs>
+  <Tab title="テキストメッセージ">
+    **Text** を選択した場合は、次のフィールドに入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | **Recipient Mobile Number** | はい | 受信者の携帯電話番号を E.164 国際形式で入力します。番号には国番号を含める必要があります (例: 14155552671)。 |
+    | **Message Text** | はい | メッセージのテキストコンテンツです。CTA ボタンと組み合わせることができます。 |
+    | **Media URL** | いいえ | 空白のままにします (テキストメッセージには適用されません)。 |
+    | **Video Content Details** | いいえ | 空白のままにします (テキストメッセージには適用されません)。 |
+    | **Button Caption** | 条件付き | CTA ボタンに表示するタイトルです (例: **Shop Now**)。**Button Action URL** を指定した場合は必須です。 |
+    | **Button Action URL** | 条件付き | ユーザーがボタンをタップしたときにリダイレクトされる HTTPS の遷移先 URL です。**Button Caption** を指定した場合は必須です。 |
+  </Tab>
+  <Tab title="画像メッセージ">
+    **Image** を選択した場合は、次のフィールドに入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | **Recipient Mobile Number** | はい | 受信者の携帯電話番号を E.164 国際形式で入力します。番号には国番号を含める必要があります (例: 14155552671)。 |
+    | **Message Text** | いいえ | メッセージのテキストコンテンツです。画像や CTA ボタンと組み合わせることができます。 |
+    | **Media URL** | はい | 画像の公開 HTTPS URL です。**Content Type** が **Image** に設定されている場合、このフィールドは必須です。 |
+    | **Video Content Details** | いいえ | 空白のままにします (画像メッセージには適用されません)。 |
+    | **Button Caption** | 条件付き | CTA ボタンに表示するタイトルです (例: **Shop Now**)。**Button Action URL** を指定した場合は必須です。 |
+    | **Button Action URL** | 条件付き | ユーザーがボタンをタップしたときにリダイレクトされる HTTPS の遷移先 URL です。**Button Caption** を指定した場合は必須です。 |
+  </Tab>
+  <Tab title="動画メッセージ">
+    **Video** を選択した場合は、次のフィールドに入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | **Recipient Mobile Number** | はい | 受信者の携帯電話番号を E.164 国際形式で入力します。番号には国番号を含める必要があります (例: 14155552671)。 |
+    | **Message Text** | いいえ | メッセージのテキストコンテンツです。動画や CTA ボタンと組み合わせることができます。 |
+    | **Media URL** | はい | 動画の公開 HTTPS URL です。**Content Type** が **Video** に設定されている場合、このフィールドは必須です。 |
+    | **Video Content Details** | はい | Content Type が 'Video' の場合にのみ必須です。次のキーを含む JSON オブジェクトを指定する必要があります。 <ul><li>`filesize`: (Integer) 動画ファイルのサイズ (バイト単位)。</li><li>`duration`: (Integer) 動画の長さ (秒単位)。</li><li>`thumbnail`: (String) 動画のサムネイル画像の公開 HTTPS URL。</li></ul> 詳細については、[こちら](https://developer.8x8.com/connect/docs/usage-samples-viber/#video-only)を参照してください。 |
+    | **Button Caption** | 条件付き | CTA ボタンに表示するタイトルです (例: **Shop Now**)。**Button Action URL** を指定した場合は必須です。 |
+    | **Button Action URL** | 条件付き | ユーザーがボタンをタップしたときにリダイレクトされる HTTPS の遷移先 URL です。**Button Caption** を指定した場合は必須です。 |
+
+    **Video Content Details** の JSON の例:
+
+    ```json
+    {
+      "filesize": 200000,
+      "duration": 15,
+      "thumbnail": "https://example.com/thumb.jpg"
+    }
+    ```
+  </Tab>
+  <Tab title="ファイルメッセージ">
+    **File** を選択した場合は、次のフィールドに入力します。
+
+    | フィールド | 必須 | 説明 |
+    | --- | --- | --- |
+    | **Recipient Mobile Number** | はい | 受信者の携帯電話番号を E.164 国際形式で入力します。番号には国番号を含める必要があります (例: 14155552671)。 |
+    | **Message Text** | いいえ | 空白のままにします (ファイルメッセージには適用されません)。 |
+    | **Media URL** | はい | ファイルの公開 HTTPS URL です。**Content Type** が **File** に設定されている場合、このフィールドは必須です。 |
+    | **Video Content Details** | いいえ | 空白のままにします (ファイルメッセージには適用されません)。 |
+    | **Button Caption** | いいえ | 空白のままにします (このプラットフォームでは、ファイルメッセージでボタンはサポートされていません)。 |
+    | **Button Action URL** | いいえ | 空白のままにします (このプラットフォームでは、ファイルメッセージでボタンはサポートされていません)。 |
+  </Tab>
+</Tabs>
+
+### **メッセージの組み合わせ**
+
+このコネクターは、さまざまなコンテンツの組み合わせをインテリジェントに処理します。
+
+- **テキスト \+ ボタン**: CTA ボタン付きのテキストメッセージを送信します。
+- **画像 \+ ボタン**: 画像と CTA ボタンを含むメッセージを送信します。
+- **動画 \+ ボタン**: CTA ボタンも含む動画またはファイルのメッセージを送信します。
+- **メディアのみ**: **Image**、**Video**、**File** のみを含むメッセージを送信するには、**Content Type** を選択し、**Media URL** (および該当する場合は Video Content Details) を指定します。
+
+### **分析と配信の追跡**
+
+8x8 コネクターは、キャンペーンの配信ステータスを自動的に追跡します。8x8 からの API レスポンスに基づいて、次の MoEngage イベントが作成されます。
+
+- **Connected App Campaign Sent**: このイベントは、8x8 API がメッセージリクエストを正常に受け付けた (200 OK レスポンスを受信した) ときにトリガーされます。
+- **Connected App Campaign Failed**: このイベントは、8x8 API が何らかのエラー (200 以外のレスポンスコード) を返した場合にトリガーされ、メッセージを送信できなかったことを示します。
+
+これらのイベントを使用して、分析ダッシュボードの作成、キャンペーンパフォーマンスの追跡、フォローアップアクションの設定を行うことができます。
+
+# **チャネルまたはグループに Viber メッセージを送信する**
+
+1. チャネルまたはグループにメッセージを送信するために、MoEngage で新しいユーザーを作成します。ここでの Viber ID がチャネル ID またはグループ ID であることを確認してください。
+2. そのユーザー用のセグメントを作成してユーザーを選択します。セグメントには 1 人のユーザーのみが含まれるようにしてください。キャンペーンに複数のユーザーが選択されていると、メッセージがチャネルまたはグループに何度も送信されます。
+3. Create Campaign のステップ 2 で、チャネルまたはグループの Viber ID を入力します。ここではパーソナライズも使用できます。
+
+# **キャンペーン分析**
+
+MoEngage のキャンペーンでは、キャンペーンのパフォーマンスを分析できる強力な分析機能を提供しています。MoEngage の各チャネルには、キャンペーン目標を定量化するのに役立つ詳細な指標が用意されています。MoEngage の分析機能の詳細については、[キャンペーン分析](/ja/user-guide/campaigns-and-channels/connected-apps/analyze/connected-apps-campaign-analytics)を参照してください。
+
+Viber キャンペーンでは、デフォルトで次の指標が提供されます。
+
+- **Attempted**: フリークエンシーキャップ (FC) を超過したユーザーを除外した後、_Attempted_ は Viber キャンペーンの対象となり、メッセージの送信を試みたユーザーの数として計算されます。
+- **Failed:** Viber がメッセージを送信しなかったユーザー、またはキャンペーンで使用されたユーザー属性やイベント属性に対する値が見つからなかったユーザーの数です。

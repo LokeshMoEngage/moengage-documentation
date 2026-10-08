@@ -1,0 +1,248 @@
+---
+title: "Snowflake"
+---
+
+# はじめに
+
+[Snowflake](https://docs.snowflake.com/en/user-guide-getting-started) は、大量の構造化データおよび半構造化データを、高いスケーラビリティと効率性をもって保存、分析、処理できるデータプラットフォームです。独自のアーキテクチャにより、Snowflake を使用すると、組織はデータを統合し、迅速な分析を行い、すべてのユーザーがアクセスできる価値あるデータドリブンなインサイトを得ることができます。
+
+# MoEngage × Snowflake
+
+MoEngage × Snowflake 連携を使用すると、Snowflake インスタンスと MoEngage アプリの間に直接接続を設定し、定期的にデータを同期できます。同期を定期的に実行するスケジュールを定義でき、同期の頻度は最短で1時間ごと、最長で月に1回まで設定できます。同期が実行されると、MoEngage はデータウェアハウスインスタンスに直接接続し、指定されたテーブルからすべての新しいデータを取得して、MoEngage ダッシュボード上の対応するデータを更新します。
+
+## メリット
+
+### 連携にかかる時間の短縮
+
+- MoEngage は Snowflake と直接連携するため、適切な ETL ツールを探す必要がなくなります。
+- 長く複雑な ETL パイプラインは、実際のデータフローなしで MoEngage がデータに直接アクセスできる1回限りの連携設定に置き換えられます。
+- これにより、技術チームへの依存が大幅に軽減されます。
+
+### より高速なデータ処理
+
+- Snowflake インフラストラクチャの能力により、膨大な量のデータをほぼリアルタイムで保存、処理、クエリできます。
+- 元のスキーマの変更は、MoEngage 側で設定を変更することなく即座に反映されます。これは従来の ETL パイプラインに比べて大きな利点です。
+- ETL ツールや外部クラウドプロバイダーが不要なため、インポートのコストは従来のデータパイプラインよりも大幅に低くなります。
+
+## 連携のユースケース
+
+- Snowflake からリアルタイムのオーディエンスを同期する
+- Snowflake アカウントのユーザーデータを使用して、MoEngage のユーザーを最新の状態に保つ。
+- Snowflake アカウントから MoEngage にイベントデータを直接インポートする。
+- MoEngage にユーザーをインポートし、カスタムセグメントを使用してリターゲティングする。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  新しいユーザー、スキーマ、またはテーブルを作成するための十分な権限を持つ Snowflake アカウントがあることを確認してください。
+</Info>
+
+## 新しい Snowflake 接続を設定する
+
+Snowflake からインポートまたはエクスポートするには、まず MoEngage を Snowflake データウェアハウスに接続する必要があります。新しい Snowflake 接続を作成するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードで、App Marketplace に移動します。
+2. "Snowflake" を検索します。 <img src="/images/partner_18716690092052.png" alt="App Marketplace で Snowflake を検索" />
+3. **Integrate** タブに移動し、**\+ Add Connection** をクリックします。
+4. Snowflake データウェアハウスの詳細を入力します。 <img src="/images/partner_23948983262100.png" alt="Snowflake 接続フォーム" />
+   | フィールド | 説明 | 例 |
+   | --- | --- | --- |
+   | Connection Name | この接続に識別しやすい名前を付けます。 | My Snowflake Prod |
+   | Snowflake Account Identifier | Snowflake アカウントのアカウント識別子です。 <ul><li>常に Snowflake URL の先頭にあります (`https://ACCOUNT_IDENTIFIER.snowflakecomputing.com`)。</li><li>形式は Snowflake アカウントの作成時期によって異なる場合があります。詳細については、[Snowflake のドキュメントを参照してください](https://docs.snowflake.com/en/user-guide/admin-account-identifier.html)。</li></ul> Snowsight を使用している場合は、左側のナビゲーションの下部にあるアカウント名をクリックします。インポート元のアカウントを選択し、"コピー" アイコンをクリックして Account Identifier をコピーします。最新情報については、[Snowflake のドキュメント](https://docs.snowflake.com/en/user-guide/admin-account-identifier#finding-the-organization-and-account-name-for-an-account)を参照してください。<br /><img src="/images/snowflake.png" alt="Snowflake" title="Snowflake" /> | 形式は次のとおりです: `ACCOUNT_IDENTIFIER.snowflakecomputing.com` |
+   | Warehouse | MoEngage がクエリの実行に使用するウェアハウスの名前です。 | COMPUTE\_WAREHOUSE |
+   | Database | MoEngage がテーブルの読み取りに使用するデータベースです。スキーマはインポート/エクスポートの設定時に選択できます。 | MY\_DEMO\_DB |
+   | Username | 読み取りアクセス権を持つ既存のデータベースユーザー名を使用するか、MoEngage 用に新しいユーザー名を作成します。 | — |
+   | Authentication Method | MoEngage は次の2つの方法で Snowflake インスタンスに接続できます。 <ol><li>**Password** - 上記で入力したデータベースユーザー (ユーザー名) のパスワードを入力してください。</li><li>**Key** - MoEngage はキーペア認証方式を使用して Snowflake インスタンスに接続できます。</li></ol> | — |
+   | Role | このロールは、MoEngage からクエリを実行する際に使用されます。**Test connection** をクリックして詳細をテストするか、直接 **Save connection** をクリックして続行できます。 | — |
+   | <img src="/images/partner_18323283260564.png" alt="Snowflake アカウント識別子の例" /> |  |  |
+   | キーペア認証の場合: |  |  |
+   1. 認証方式として **Key** を選択します。
+   2. **Generate Key** をクリックすると、MoEngage に公開鍵が表示されます。この公開鍵をデータベースユーザーに追加する必要があります。設定するには、[Snowflake のヘルプドキュメント](https://docs.snowflake.com/en/user-guide/key-pair-auth#assign-the-public-key-to-a-snowflake-user)に記載されている手順に従ってください。 <img src="/images/partner_23949032071828.png" alt="キー生成 UI" />
+   3. このキーをデータベースユーザーに追加したら、**Test connection** をクリックします。MoEngage が認証情報の検証を試みます。MoEngage はキーのローテーションもサポートしています。IT ポリシーでキーのローテーションが必要な場合は、次の手順で実行できます。
+   4. **App Marketplace** \> **Snowflake** \> **Integrate** に移動し、接続を編集します。
+   5. 新しいキーを生成するアイコンをクリックします。 <img src="/images/partner_23949032074388.png" alt="新しいキーの生成アイコン" />
+   6. 確認画面が表示されます。手順をよくお読みください。新しく生成したキーで接続を保存すると、MoEngage は以前のキーを使用しなくなります。ローテーションを正しく機能させるには、新しいキーがデータベースユーザーに2つ目の RSA キーとして関連付けられていることを確認する必要があります (キーのローテーションに関する Snowflake のヘルプドキュメントを参照してください)。接続の保存後に新しいキーが関連付けられていない場合、インポートとエクスポートが中断される可能性があります。 <img src="/images/partner_23948983277332.png" alt="キーローテーションの確認" />
+   7. 新しいキーが生成されて表示されます。この時点で、[Snowflake のヘルプドキュメント](https://docs.snowflake.com/en/user-guide/key-pair-auth#configuring-key-pair-rotation)に記載されている手順に従って、この新しいキーをコピーし、Snowflake データベースユーザーに追加のキーとして関連付けることを強くお勧めします。新しいキーを関連付けたら、ローテーションを完了するために接続のテストを成功させる必要があります。
+   8. 新しいキーの生成後、編集フォームを閉じた場合や **Connect** をクリックしなかった場合は、古い (既存の) キーが引き続き以前と同様に使用され、新しく生成されたキーはシステムから削除されます。
+5. Snowflake 接続を設定すると、それを使用して MoEngage でさまざまなインポートとエクスポートを設定できます。
+
+Snowflake インスタンスがパブリックではなく AWS 上にある場合は、MoEngage の AWS アカウントとの間で [AWS Private Link](https://docs.snowflake.com/en/user-guide/admin-security-privatelink) を設定することをお勧めします。詳細については、アカウントマネージャーにお問い合わせください。
+
+### サポートされている日時形式
+
+| 日時形式 | 例 |
+| --- | --- |
+| `"datetime_format": "YYYY-MM-DD"` | <ul><li>2022-01-22</li></ul> |
+| `"datetime_format": "YYYY/MM/DD"` | <ul><li>2022/01/22</li></ul> |
+| `"datetime_format": "DD/MM/YYYY"` | <ul><li>22/01/2022</li></ul> |
+| `"datetime_format": "DD-MM-YYYY"` | <ul><li>22-01-2022</li></ul> |
+| `"datetime_format": "DD-MM-YYYY hh:mm:ss"` | <ul><li>31-12-2022 12:10:33</li></ul> |
+| `"datetime_format": "DD/MM/YYYY hh:mm:ss"` | <ul><li>31/12/2022 12:10:33</li></ul> |
+| `"datetime_format": "YYYY-MM-DD hh:mm:ss"` | <ul><li>2019-02-22 17:54:14</li></ul> |
+| `"datetime_format": "YYYY/MM/DD hh:mm:ss"` | <ul><li>2019/02/22 17:54:14</li></ul> |
+| `"datetime_format": "DD-MM-YYYYThh:mm:ss.s"` | <ul><li>31-12-2022T12:10:33.882</li></ul> |
+| `"datetime_format": "DD/MM/YYYYThh:mm:ss.s"` | <ul><li>31/12/2022T12:10:33.882</li></ul> |
+| `"datetime_format": "DD-MM-YYYYThh:mm:ssTZD"` | <ul><li>31-12-2022T12:10:33Z</li><li>31-12-2022T12:10:33\+08:00</li><li>31-12-2022T12:10:33-08:00</li></ul> |
+| `"datetime_format": "DD/MM/YYYYThh:mm:ssTZD"` | <ul><li>31/12/2022T12:10:33Z</li><li>31/12/2022T12:10:33\+08:00</li><li>31/12/2022T12:10:33-08:00</li></ul> |
+| `"datetime_format": "YYYY-MM-DD hh:mm:ss.s"` | <ul><li>2019-02-22 17:54:14.933</li></ul> |
+| `"datetime_format": "YYYY/MM/DD hh:mm:ss.s"` | <ul><li>2019/02/22 17:54:14.933</li></ul> |
+| `"datetime_format": "YYYY-MM-DDThh:mm:ssTZD"` | <ul><li>2019-11-14T00:01:02Z</li><li>2019-11-14T00:01:02\+08:00</li><li>2019-11-14T00:01:02Z-08:00</li></ul> |
+| `"datetime_format": "YYYY/MM/DDThh:mm:ssTZD"` | <ul><li>2019/11/14T00:01:02Z</li><li>2019/11/14T00:01:02\+08:00</li><li>2019/11/14T00:01:02-08:00</li></ul> |
+| `"datetime_format": "YYYY-MM-DDThh:mm:ss.sTZD"` | <ul><li>2019-02-22T17:54:14.957Z</li><li>2019-02-22T17:54:14.957299-08:00</li><li>2019-02-22T17:54:14.957299\+08:00</li></ul> |
+| `"datetime_format": "YYYY/MM/DDThh:mm:ss.sTZD"` | <ul><li>2019/02/22T17:54:14.957Z</li><li>2019/02/22T17:54:14.957299-08:00</li><li>2019/02/22T17:54:14.957299\+08:00</li></ul> |
+
+## Snowflake を使用した Warehouse Segments
+
+Snowflake は Warehouse Segments で利用できるようになりました。詳細については、[Warehouse Segments](https://www.moengage.com/docs/user-guide/segment/create-segments/warehouse-segments) を参照してください。
+
+## Snowflake から MoEngage にユーザーとイベントをインポートする
+
+アカウントで MoEngage × Snowflake のインポートを設定するには、[Snowflake インポートガイド](https://www.moengage.com/docs/user-guide/data/imports/data-warehouses-imports/snowflake-imports)をお読みください。
+
+Snowflake はウェアハウスセグメントで利用できるようになりました。詳細はこちら。
+
+## MoEngage から Snowflake にイベントをエクスポートする
+
+<Info>
+  **前提条件**
+
+  - Snowflake インスタンス、ロール、ポリシーを作成/編集するための適切な権限を持つ Snowflake アカウントがあることを確認してください。新しいユーザーの作成は任意ですが、Snowflake データベースで新しいユーザーを作成するアクセス権が必要です。
+  - システムで IP ホワイトリストが必要な場合は、MoEngage の IP をホワイトリストに登録する必要があります。詳細については、[こちら](https://www.moengage.com/docs/user-guide/settings/account/security/ip-whitelisting-in-moengage#campaign-sending)を参照してください。
+  - App Marketplace に [Snowflake 接続](#set-up-a-new-snowflake-connection)があることを確認してください。
+  - Snowflake へのエクスポートは Streams アドオンの一部です。アカウントで有効にするには、担当の MoEngage CSM (カスタマーサクセスマネージャー) にお問い合わせください。
+</Info>
+
+### ステップ 1: ユーザーに割り当てられたロールに必要な権限があることを確認する
+
+MoEngage が Snowflake データベースにデータを書き込めるように、データベースへの `WRITE` アクセス権が必要です。これらの権限を既存のデータベースユーザーに付与するか、MoEngage 専用の新しいデータベースユーザーを作成するかを選択できます。
+
+```sql wrap
+-- Create a role for the MoEngage user
+CREATE ROLE MOENGAGE_ROLE;
+-- Allow the user to run queries in the warehouse
+GRANT USAGE ON WAREHOUSE <YOUR_WAREHOUSE_NAME> TO ROLE MOENGAGE_ROLE;
+-- Let the user see this database
+GRANT USAGE ON DATABASE <YOUR_DATABASE_NAME> TO ROLE MOENGAGE_ROLE;
+-- Let the user see all schemas in this database
+GRANT USAGE ON SCHEMA <YOUR_DATABASE_NAME>.<YOUR_SCHEMA_NAME> TO ROLE MOENGAGE_ROLE;
+-- Let the user create a table in your schema
+GRANT CREATE TABLE ON SCHEMA <YOUR_DATABASE_NAME>.<YOUR_SCHEMA_NAME> TO ROLE MOENGAGE_ROLE;
+-- Let the user insert data in your tables
+GRANT INSERT, SELECT ON ALL TABLES IN SCHEMA <YOUR_DATABASE_NAME>.<YOUR_SCHEMA_NAME> TO ROLE MOENGAGE_ROLE;
+
+-- Create the MoEngage user (MOENGAGE_USER is username here)
+CREATE USER MOENGAGE_USER WITH DEFAULT_ROLE = MOENGAGE_ROLE DEFAULT_WAREHOUSE = <YOUR_WAREHOUSE_NAME> PASSWORD = '<YOUR_PASSWORD>';
+-- Grant the role to the user
+GRANT ROLE MOENGAGE_ROLE TO USER MOENGAGE_USER;
+```
+
+次の値を変更することを忘れないでください。
+
+1. `<YOUR_WAREHOUSE_NAME>` - クエリの実行時に MoEngage に使用させるウェアハウスの名前。
+2. `<YOUR_DATABASE_NAME>` - データのインポート元となるデータベースの名前。
+3. `<YOUR_PASSWORD>` - 新しく作成したデータベースユーザーに強力なパスワードを設定します。
+
+### ステップ 2: App Marketplace で新しいエクスポートを作成する
+
+<Info>
+  - エクスポートされるイベントと属性の完全なリストについては、[Data Exports Glossary](https://www.moengage.com/docs/user-guide/data/exports/events/data-export-glossary) を参照してください。
+  - エクスポートされるイベントの `event_time` は常に UTC であることにご注意ください。
+</Info>
+
+![Snowflake エクスポートの設定](/images/partner_23588156333588.png)
+
+MoEngage ダッシュボードで、**App Marketplace** \> **Snowflake** に移動します。
+
+1. **Integrate** \> **Add Integration** をクリックします。
+2. Snowflake 接続を選択します。
+3. MoEngage が新しいテーブルを作成し、イベントをエクスポートする先のスキーマを選択します。
+4. Snowflake にエクスポートするイベントと追加のユーザープロパティを選択します。
+5. **Save Export** をクリックします。
+
+MoEngage は、新しく作成されたテーブルへのイベントの書き出しを1時間ごとに開始します。
+
+### エクスポートのプロセスと頻度
+
+エクスポートを保存すると、MoEngage はスキーマに宛先テーブルを作成します。その後、新しいイベントデータが1時間間隔でこの同じテーブルに追加されます。
+
+- **初回のアクション**: 最初のエクスポートがトリガーされたときに、MoEngage がテーブルを作成します。
+- **定期的なアクション**: MoEngage は1時間ごとに同じテーブルにデータを追加 (追記) します。
+
+### テーブル構造のサンプル
+
+MoEngage は、次の形式を使用してスキーマに単一のテーブルを作成します。
+
+`moe_events_<table_creation_timestamp>`
+
+<Note>
+  このテーブルは接続ごとに1回作成されます。1つの接続で設定された1時間ごとのエクスポートとさまざまなイベントタイプはすべて統合され、この同じテーブルに追加されます。
+</Note>
+
+テーブルの全体的な構造は、すべてのタイプのイベントで固定されています。エクスポートされる新しいユーザープロパティまたはイベント属性は、それぞれ `user_attributes` 列または `event_attributes` 列に含まれます。分析しやすいように、すべてのイベントは、イベント名やイベント時刻などの必要な情報を含む単一のテーブルに統合されます。
+
+| フィールド | 型 | NL |
+| --- | --- | --- |
+| `app_name` | VARCHAR | NN |
+| `event_name` | VARCHAR | NN |
+| `event_code` | VARCHAR | NN |
+| `event_uuid` | VARCHAR | NN |
+| `event_time` | TIMESTAMP\_NTZ | NN |
+| `event_type` | VARCHAR | NN |
+| `event_source` | VARCHAR | NN |
+| `uid` | VARCHAR | NULL |
+| `user_attributes_moengage_user_id` | VARCHAR | NULL |
+| `device_attributes_moengage_device_id` | VARCHAR | NULL |
+| `push_id` | VARCHAR | NULL |
+| `email_address` | VARCHAR | NULL |
+| `mobile_number` | VARCHAR | NULL |
+| `event_attributes_app_version` | VARCHAR | NULL |
+| `event_attributes_sdk_version` | VARCHAR | NULL |
+| `event_attributes_platform` | VARCHAR | NULL |
+| `event_attributes_campaign_id` | VARCHAR | NULL |
+| `event_attributes_campaign_name` | VARCHAR | NULL |
+| `event_attributes_campaign_type` | VARCHAR | NULL |
+| `event_attributes_campaign_channel` | VARCHAR | NULL |
+| `event_attributes_readable_campaign_id` | VARCHAR | NULL |
+| `event_attributes_parent_campaign_id` | VARCHAR | NULL |
+| `event_attributes_parent_flow_id` | VARCHAR | NULL |
+| `event_attributes_parent_flow_name` | VARCHAR | NULL |
+| `event_attributes_variation_id` | VARCHAR | NULL |
+| `event_attributes_locale_id` | VARCHAR | NULL |
+| `event_attributes_locale_name` | VARCHAR | NULL |
+| `event_attributes_url` | VARCHAR | NULL |
+| `event_attributes_timestamp` | TIMESTAMP\_NTZ | NULL |
+| `event_attributes_first_session` | BOOLEAN | NULL |
+| `event_attributes_logged_in_status` | VARCHAR | NULL |
+| `event_attributes` | VARIANT | NULL |
+| `user_attributes` | VARIANT | NULL |
+| `device_attributes` | VARIANT | NULL |
+
+### エクスポート頻度
+
+MoEngage は1時間間隔でデータを書き出します。
+
+# よくある質問
+
+<AccordionGroup>
+  <Accordion title="データの受信はいつから始まりますか?">
+    通常、アカウントで自動データエクスポートが設定され、データが表示され始めるまでに最大30分かかります。
+  </Accordion>
+
+  <Accordion title="後から追加のイベントをエクスポートできますか?">
+    はい。後から新しいイベントをエクスポートする必要がある場合は、いつでも App Marketplace で設定を編集し、新しいイベントをエクスポートに追加できます。
+  </Accordion>
+
+  <Accordion title="Automated Data Exports を使用して過去のデータをエクスポートできますか?">
+    現時点では、Automated Data Exports を使用して過去のデータをエクスポートすることはできません。設定後、エクスポートを有効にした時点からの各イベントのデータが表示されるようになります。
+  </Accordion>
+
+  <Accordion title="Automated Data Exports には料金がかかりますか?">
+    ご利用の料金プランにまだ含まれておらず、後から有効にする必要がある場合は、カスタマーサクセスマネージャーと協力して料金プランに含める必要があります。MoEngage が毎月データウェアハウス/パートナー/API に配置するデータ量に応じて、追加料金が発生する場合があります。
+  </Accordion>
+
+  <Accordion title="Data Exports は最新のユーザー属性を保証しますか?">
+    いいえ。Data Exports は主にイベントをほぼリアルタイムでエクスポートするために構築されており、MoEngage のユーザー属性は非同期で更新されるため、現時点ではエクスポートにおけるユーザー属性の最新値を保証することはできません。
+  </Accordion>
+</AccordionGroup>

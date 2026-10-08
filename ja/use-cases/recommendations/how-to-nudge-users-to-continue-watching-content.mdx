@@ -1,0 +1,119 @@
+---
+title: "コンテンツの続きを視聴するようユーザーにナッジする方法"
+---
+
+# はじめに
+
+"Continue Watching" は、OTT の Web サイトやアプリでよく見られるセクションの 1 つです。このセクションは、ユーザーが視聴を開始したシリーズや映画を最近の順に表示し、最後まで視聴するよう興味を引きます。同様に、同じ内容を伝えるコミュニケーションを送信することで、視聴時間などの指標を改善し、ユーザーをスムーズにエンゲージさせることができます。
+
+長期的には、提案が適切な順序で行われていれば、このようなコミュニケーションはユーザーを維持し、夢中にさせ続けるのに役立ちます。また、これらのコミュニケーションへのエンゲージメントから、ユーザーが何をいつ視聴したいかといった行動や、その他の関連するインサイトを予測できます。さらに、ユーザーにリマインドするだけでなく、アプリがユーザーを理解していることをさりげなく伝えることもできます。これにより、より優れたカスタマーエクスペリエンスが提供され、結果としてアプリへのロイヤルティが高まります。
+
+この戦略で実現できるユースケースの例は次のとおりです。
+
+- ユーザーが高く評価したコンテンツをレコメンドし、再視聴を提案する
+- ユーザーが過去 30 日間に「後で見る」に追加したが、まだ視聴を開始していないコンテンツをレコメンドする
+
+この記事では、次に何を視聴すべきかをユーザーにレコメンドする Push キャンペーンを作成します。Product Catalogue 機能を活用し、クロスチャネルメッセージングを利用して、視聴したが最後まで見ていないコンテンツについてユーザーにナッジします。
+
+# 期待される結果
+
+ユーザーのスマートフォンに、コンテンツの続きを視聴するよう促すレコメンデーションを含むプッシュ通知が届きます。
+
+<img
+  src="/images/moengage_6dd8bc.png"
+  alt="1.png"
+  style={{ width:"66%" }}
+/>
+
+<Tip>
+  - ユーザーがコンテンツを検索する、コンテンツを視聴する、コンテンツを「後で見る」に追加する、コンテンツを評価する、コンテンツを最後まで視聴するといったアクションと、ジャンル、タイトル、タイプ、進捗、評価、プラットフォームなど各アクションに関連する情報をトラッキングするイベント。イベントのトラッキング方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。手順は使用している SDK によって異なる場合があります。
+  - 上記でトラッキングしたイベントと、対応する MoEngage イベントとのマッピング。これらのイベントをマッピングすることで、アクションを理解してレコメンデーションモデルを実行し、その上でモデルにクエリを発行して期待される出力を作成できます。カスタムイベントを MoEngage イベントにマッピングする方法については、[こちら](/ja/user-guide/content/recommendations/getting-started/map-user-actions-settings) を参照してください。この例では、コンテンツの視聴開始というカスタムイベントを "Product Viewed" に、コンテンツの視聴完了というカスタムイベントを "Product Purchased" にマッピングします。
+  - 利用可能なコンテンツのリストと、名前やタイトルから監督、キャスト、説明、各部門で受賞した賞まで、関連するすべての情報を含むカタログとそれに対応するフィード。最新の情報を維持できるよう、フィードを適切な間隔で更新するように設定してください。詳細については、[Catalogs](/ja/user-guide/content/recommendations/getting-started/catalogs) を参照してください。
+  - Push、Email、SMS、WhatsApp など 1 つ以上のチャネルの設定。
+</Tip>
+
+# レコメンデーションを作成する
+
+このセクションでは、ユーザーのアクションに基づいてレコメンデーションを作成します。
+
+1. MoEngage ダッシュボードに移動し、左側のナビゲーションから **Content** \> **Recommendations** を選択します。Recommendations ページが表示されます。詳細については、[Creating User Action Recommendations](/ja/user-guide/content/recommendations/basic-recommendations/user-actions-model) を参照してください。
+2. 右上の **\+ Create recommendation** をクリックします。最初のステップ "Select recommendation model" に移動します。 <img src="/images/moengage_f7aba6.png" alt="2.png" />
+3. **Filter by user action and item attributes** セクションで、**User Actions** モデルを選択します。
+4. **Next** をクリックします。2 番目のステップ "Create recommendation" に移動します。次の詳細を入力します。
+   - **Recommendation name**: レコメンデーションの名前を入力します。例: "OTT\_ContinueWatching"。この名前を使用して、このレコメンデーションモデルの出力を参照します。
+   - **Recommendation description**: レコメンデーションの説明を入力します。この説明は、モデルの目的を理解するのに役立ちます。
+   - **Catalog**: プラットフォームで提供しているすべてのコンテンツのリストと、タイトルから監督名、キャスト、ジャンル、受賞歴まで関連するすべての情報を含むカタログを選択します。 <img src="/images/moengage_9e9139.png" alt="3.png" />
+5. **Filter recommendations by user actions** セクションで、ユーザーが視聴を開始したが完了していないコンテンツを絞り込みます。
+   1. **Item where user performed** ドロップダウンリストから "Product Viewed" を選択します。
+   2. **Exclude** チェックボックスを選択します。
+   3. **Exclude** の下の **Item where user performed** ドロップダウンリストから "Product Purchased" を選択します。 <img src="/images/moengage_56dfae.png" alt="4.png" /> このクエリにより、ユーザーが過去 10 日間に視聴を開始したが、過去 10 日間に完了していないコンテンツのリストが得られます。
+   4. **Sort the filtered items** セクションで、**Order results by** ドロップダウンリストから "Most Recent" を選択します。
+6. **Create** をクリックして変更を保存し、レコメンデーションを作成します。Recommendations ページでは、ステータスが "Active" になります。
+7. Recommendation エンジンは、ユーザーが過去 10 日間に開始したが完了していないコンテンツのセットを、新しい順に並べて共有します。
+
+レコメンデーションを作成したので、次に視聴したが完了していないコンテンツについてユーザーにナッジするキャンペーンを作成しましょう。
+
+# Push キャンペーンを作成する
+
+このセクションでは、OTT コンテンツの続きを視聴するようユーザーにレコメンドするキャンペーンを作成します。
+
+## ステップ 1: ターゲットユーザー
+
+1. 左側のサイドバーで **Engage** \> **Campaigns** をクリックして **\+ Create campaign** をクリックするか、**\+ Create new** \> **Campaign** をクリックします。
+2. **Outbound** で、**Push** \> **Periodic** を選択します。 <img src="/images/moengage_915650.png" alt="5.png" /> キャンペーン定義の最初のステップ "Target users" に移動します。
+3. 次の詳細を入力します。
+   - **Team**: 組織のアカウントでチームが有効になっている場合は、チームを選択します。詳細については、[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。例: "UseCases"。
+   - **Campaign name**: キャンペーンの名前を入力します。例: "Continue Watching"。
+   - **Campaign tags**: 必要なキャンペーンタグを選択します。 <img src="/images/moengage_e7a9f8.png" alt="6.png" />
+4. **Target Audience** セクションで **All users** を選択します。 <img src="/images/moengage_768c3d.png" alt="7.png" />
+5. **Target Platforms** セクションで **Android** を選択します。 <img src="/images/moengage_e0d4e5.png" alt="8.png" />
+6. **Next** をクリックして 2 番目のステップ "Content" に移動し、Push キャンペーンのコンテンツを定義します。
+
+## ステップ 2: コンテンツ
+
+1. 使用するテンプレートを選択します。この例では **Single Image Carousel** を選択します。 <img src="/images/moengage_345678.png" alt="9.png" />
+2. **Message title** フィールドにタイトルを入力します。
+3. メッセージを定義する際に、[定義した](/ja/use-cases/recommendations/how-to-nudge-users-to-continue-watching-content#create-a-recommendation)レコメンデーションによって生成された商品セットを選択します。Push Personalization ポップアップで "@" を入力し、作成したレコメンデーションの名前である "OTT\_ContinueWatching" を検索します。 <img src="/images/moengage_84abc1.png" alt="10.png" />
+4. **Done** をクリックします。**Message** フィールドに次の JINJA コードが挿入されます。 <img src="/images/moengage_1c58e5.png" alt="11.png" />
+5. コードを編集して各コンテンツをループ処理し、最初の 5 件のタイトルを一覧表示するようにします。最終的な JINJA コードは次のようになります。
+   <CodeGroup>
+   ```ruby JINJA
+       {% if ProductSet.OTT_ContinueWatching%}
+       {% for product in ProductSet.OTT_ContinueWatching[0:5]%}
+       {{product.title }}
+       {%\n%}
+       {% endfor %}
+       {% else %}
+       MOE_NOT_SEND
+       {% endif %}
+   ```
+   </CodeGroup>
+   3 行目の `{{product.title }}` には、各フィードについて Catalog で渡したタイトルが入ります。ループは、レコメンデーションが提供する商品リストを順に処理します。リストを新しい順に並べ替えるよう選択したため、ここでは最初の 5 件のみをループ処理しています。
+6. レコメンドされたコンテンツの画像を取得するには、次のコードを入力します。
+   1. **Carousel Content** セクションで、タイトルの画像を 5 枚追加します。
+   2. **Image URL** オプションを選択し、以下の説明に従って 2 行目を変更しながら、各スライドに次の JINJA コードを入力します。\
+      スライド 1 のコードは次のとおりです。
+      <CodeGroup>
+      ```ruby JINJA
+          {% if ProductSet.OTT_ContinueWatching%}
+          {% for product in ProductSet.OTT_ContinueWatching[0:1]%}
+          {{product.image_link}}
+          {% endfor %}
+          {% else %}
+           MOE_NOT_SEND
+          {% endif %}
+      ```
+      </CodeGroup>
+      2 行目では、最初のアイテムのみを処理するループを定義しており、3 行目の `{{product.image_link}}` が画像へのリンクを提供します。\
+      同様に、スライド 2 では 2 行目が `{% for product in ProductSet.OTT_ContinueWatching[1:2]%}` のように変わり、以降も同様です。 <img src="/images/moengage_a8019c.png" alt="12.png" />
+7. **Next** をクリックして 3 番目のステップ "Schedule and goals" に移動し、キャンペーンのスケジュールとゴールを定義します。
+
+## ステップ 3: スケジュールとゴール
+
+1. **Send campaign** セクションで、キャンペーンをユーザーに配信するタイミングと配信の周期を選択します。
+2. 要件に応じて配信設定を変更します。これらの設定の詳細については、[Create Push Campaigns](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns) を参照してください。 <img src="/images/moengage_34f102.png" alt="13.png" />
+3. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、次に何を視聴すべきかをユーザーにレコメンドする Push キャンペーンを作成しました。Recommendations を使用してこのユースケースのキャンペーンを公開したので、[MoEngage の Recommendations](/ja/user-guide/content/recommendations/advanced-recommendations/overview-advanced-recommendations) のその他の活用方法も確認してみましょう。

@@ -1,0 +1,430 @@
+---
+title: "Radar"
+---
+
+<Info>
+  Radar 統合を使用するには、**Enterprise プラン**が必要です。
+</Info>
+
+## はじめに
+
+[Radar](https://www.onradar.com/) は、ジオフェンシング、ジオコーディング、マップを提供する包括的な位置情報プラットフォームで、世界中の数百万台のデバイスで位置情報ベースの体験を実現しています。主要な製品には、Geofences、Trip Tracking、Geo APIs があります。
+
+## MoEngage と Radar
+
+MoEngage と Radar の統合では、位置情報ベースのデータの力を活用してマーケティングキャンペーンを強化します。Radar の Geo APIs を使用して MoEngage キャンペーンで近くの場所を表示し、関連性の高いコンテキストに即した情報をユーザーに提供できます。 
+
+この統合により、次のことが可能になります。
+
+- 位置情報をトリガーとするメッセージや位置情報でターゲティングしたメッセージを送信して、エンゲージメントとコンバージョンを高めます。
+- Radar から MoEngage にユーザー属性とイベントを同期します。
+- ユーザーが実店舗の近くにいるときにキャンペーンを自動化します。
+- ユーザーの移動を追跡し、移動データに基づいてキャンペーンをトリガーします。
+
+## ユースケース
+
+Radar を MoEngage と統合すると、次のユースケースに対応できます。
+
+- **位置情報をトリガーとするエンゲージメント**: ユーザーが実店舗周辺のジオフェンスに入ったり出たりしたときに、来店を促すプロモーションメッセージや特別オファーなどのパーソナライズされたキャンペーンをトリガーします。
+- **位置情報でターゲティングしたキャンペーン**: 特定の店舗やイベントの近くにいるユーザーに位置情報ベースのメッセージを送信し、関連性の高いコンテキストに即した情報でエンゲージメントとコンバージョンを促進します。
+- **ユーザーデータとイベントデータの同期**: Radar から MoEngage にユーザー属性とイベントを自動的に同期します。これにより、両方のプラットフォームにわたる統合されたユーザープロファイルが得られ、ターゲットマーケティングに活用できます。
+
+## 統合
+
+<Info>
+  **前提条件**
+
+  - Radar の公開可能な API キー。詳細については、[Radar のドキュメント](https://docs.radar.com/home)を参照してください。
+</Info>
+
+### ステップ 1: Radar で MoEngage を設定する
+
+MoEngage を Radar に接続するには、次の手順を実行します。
+
+1. MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。
+2. **Workspace ID**（旧 App ID）の値をコピーします。
+3. **API keys** セクションで、**Data** タイルの API キーをコピーします。
+   ![Workspace ID と Data API キーのフィールドが表示された MoEngage の Settings ページ](/images/partner_43168327059988.png)
+4. Radar ダッシュボードで **Integrations** ページに移動し、**MoEngage** をクリックします。
+5. **Enabled** オプションを **Yes** に設定し、**Workspace ID** と **Data API Key** をそれぞれのフィールドに貼り付けます。
+6. MoEngage のデータセンターに対応する **API Endpoint** を選択します（たとえば、アカウントが `https://api-01.moengage.com` 上にない場合は、正しいエンドポイントを選択します）。
+   この設定後、Radar はカスタムイベントとユーザー属性をリアルタイムで MoEngage に自動送信します。
+7. 各 Radar ユーザーに `moengage:customer_id` メタデータキーを設定し、対応する MoEngage ユーザープロファイルにマッピングします。
+   <CodeGroup>
+   ```kotlin Android wrap
+   Radar.setMetadata(JSONObject().put("moengage:customer_id", "example@radar.com"))
+   ```
+   ```swift iOS
+   Radar.setMetadata(["moengage:customer_id": "example@radar.com"])
+   ```
+   </CodeGroup>
+
+### ユーザーとイベントを MoEngage に送信する
+
+このセクションでは、ユーザー属性とイベントが Radar から MoEngage にどのように送信されるかを説明します。
+
+#### ユーザー属性のマッピング
+
+次の表は、Radar のユーザーフィールドが MoEngage のユーザー属性にどのようにマッピングされるかを示しています。
+
+| Radar ユーザーフィールド | MoEngage ユーザー属性 | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `metadata[moengage:customer_id]` | `ID` | `string` | `"example@radar.com"` |
+| `_id` | `radar_id` | `string` | `"5b2c0906f5874b001aecfd8d"` |
+| `locationAuthorization` | `radar_location_authorization` | `string` | `"GRANTED_FOREGROUND"` |
+| `locationAccuracyAuthorization` | `radar_location_accuracy_authorization` | `string` | `"FULL"` |
+| `updatedAt` | `radar_updated_at` | `timestamp` | `"25 Jul 2025, 10:36:17 am"` |
+| `segments[*].externalId` | `radar_segment_external_ids` | `array[string]` | `["starbucks-visitors"]` |
+| `topChains[*].slug` | `radar_top_chain_slugs` | `array[string]` | `["starbucks", "walmart"]` |
+| `topChains[*].externalId` | `radar_top_chain_external_ids` | `array[string]` | `["123", "456"]` |
+| `geofences[*]._id` | `radar_geofence_ids` | `array[string]` | `["5b2c0906f5874b001aecfd8e"]` |
+| `geofences[*].description` | `radar_geofence_descriptions` | `array[string]` | `["Store #123"]` |
+| `geofences[*].tag` | `radar_geofence_tags` | `array[string]` | `["store"]` |
+| `geofences[*].externalId` | `radar_geofence_external_ids` | `array[string]` | `["123"]` |
+| `place._id` | `radar_place_id` | `string` | `"59302bcf8f27e8a156bd4f91"` |
+| `place.name` | `radar_place_name` | `string` | `"Starbucks"` |
+| `place.categories` | `radar_place_categories` | `array[string]` | `["food-beverage", "cafe", "coffee-shop"]` |
+| `place.chain.slug` | `radar_place_chain_id` | `string` | `"starbucks"` |
+| `place.chain.name` | `radar_place_chain_name` | `string` | `"Starbucks"` |
+| `country.code` | `radar_region_country_code` | `string` | `"US"` |
+| `country.name` | `radar_region_country_name` | `string` | `"United States"` |
+| `state.code` | `radar_region_state_code` | `string` | `"MD"` |
+| `state.name` | `radar_region_state_name` | `string` | `"Maryland"` |
+| `dma.code` | `radar_region_dma_code` | `string` | `"26"` |
+| `dma.name` | `radar_region_dma_name` | `string` | `"Baltimore"` |
+| `postalCode.code` | `radar_region_postal_code` | `string` | `"21014"` |
+| `trip.externalId` | `radar_trip_external_id` | `string` | `"299"` |
+| `trip.destinationGeofenceTag` | `radar_trip_destination_geofence_tag` | `string` | `"store"` |
+| `trip.destinationGeofenceExternalId` | `radar_trip_destination_geofence_external_id` | `string` | `"123"` |
+| `beacons[*]._id` | `radar_beacon_ids` | `array[string]` | `["5b2c0906f5874b001aecfd8f"]` |
+| `beacons[*].description` | `radar_beacon_descriptions` | `array[string]` | `["Store #123 - Drive-Thru"]` |
+| `beacons[*].tag` | `radar_beacon_tags` | `array[string]` | `["drive-thru"]` |
+| `beacons[*].externalId` | `radar_beacon_external_ids` | `array[string]` | `["123"]` |
+
+#### イベント属性のマッピング
+
+次の表は、Radar のイベントフィールドが MoEngage のユーザー属性にどのようにマッピングされるかを示しています。
+
+**イベントのマッピング**
+
+| Radar イベント | コンテキストタイプ | MoEngage イベント |
+| --- | --- | --- |
+| `user.entered_geofence` | Geofences | `[Radar] Geofence Entered` |
+| `user.exited_geofence` | Geofences | `[Radar] Geofence Exited` |
+| `user.dwelled_in_geofence` | Geofences | `[Radar] Dwelled in Geofence` |
+| `user.entered_place` | Places | `[Radar] Place Entered` |
+| `user.exited_place` | Places | `[Radar] Place Exited` |
+| `user.entered_region_country` | Regions | `[Radar] Country Entered` |
+| `user.exited_region_country` | Regions | `[Radar] Country Exited` |
+| `user.entered_region_state` | Regions | `[Radar] State Entered` |
+| `user.exited_region_state` | Regions | `[Radar] State Exited` |
+| `user.entered_region_dma` | Regions | `[Radar] DMA Entered` |
+| `user.exited_region_dma` | Regions | `[Radar] DMA Exited` |
+| `user.started_trip` | Trip Tracking | `[Radar] Started Trip` |
+| `user.updated_trip` | Trip Tracking | `[Radar] Updated Trip` |
+| `user.approaching_trip_destination` | Trip Tracking | `[Radar] Approaching Trip Destination` |
+| `user.arrived_at_trip_destination` | Trip Tracking | `[Radar] Arrived at Trip Destination` |
+| `user.stopped_trip` | Trip Tracking | `[Radar] Stopped Trip` |
+| `user.entered_beacon` | Beacons | `[Radar] Beacon Entered` |
+| `user.exited_beacon` | Beacons | `[Radar] Beacon Exited` |
+
+##### **\[Radar\] Geofence Entered**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `geofence._id` | `geofence_id` | `string` | `"5b2c0906f5874b001aecfd8e"` |
+| `geofence.description` | `geofence_description` | `string` | `"Store #123"` |
+| `geofence.tag` | `geofence_tag` | `string` | `"store"` |
+| `geofence.externalId` | `geofence_external_id` | `string` | `"123"` |
+| `geofence.metadata[{key}]` | `geofence_metadata_{key}` | `type` | `{value}` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+Regions が有効な場合、Radar は次の属性を送信します。
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `country.code` | `country_code` | `string` | `"US"` |
+| `country.name` | `country_name` | `string` | `"United States"` |
+| `state.code` | `state_code` | `string` | `"MD"` |
+| `state.name` | `state_name` | `string` | `"Maryland"` |
+| `dma.code` | `dma_code` | `string` | `"26"` |
+| `dma.name` | `dma_name` | `string` | `"Baltimore"` |
+| `postalCode.code` | `postal_code` | `string` | `"21014"` |
+
+##### **\[Radar\] Geofence Exited**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `geofence._id` | `geofence_id` | `string` | `"5b2c0906f5874b001aecfd8e"` |
+| `geofence.description` | `geofence_description` | `string` | `"Store #123"` |
+| `geofence.tag` | `geofence_tag` | `string` | `"store"` |
+| `geofence.externalId` | `geofence_external_id` | `string` | `"123"` |
+| `geofence.metadata[{key}]` | `geofence_metadata_{key}` | `type` | `{value}` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `duration` | `duration` | `number (minutes)` | `42.1` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+Regions が有効な場合、Radar は次の属性を送信します。
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `country.code` | `country_code` | `string` | `"US"` |
+| `country.name` | `country_name` | `string` | `"United States"` |
+| `state.code` | `state_code` | `string` | `"MD"` |
+| `state.name` | `state_name` | `string` | `"Maryland"` |
+| `dma.code` | `dma_code` | `string` | `"26"` |
+| `dma.name` | `dma_name` | `string` | `"Baltimore"` |
+| `postalCode.code` | `postal_code` | `string` | `"21014"` |
+
+##### **\[Radar\] Dwelled in Geofence**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `geofence._id` | `geofence_id` | `string` | `"5b2c0906f5874b001aecfd8e"` |
+| `geofence.description` | `geofence_description` | `string` | `"Store #123"` |
+| `geofence.tag` | `geofence_tag` | `string` | `"store"` |
+| `geofence.externalId` | `geofence_external_id` | `string` | `"123"` |
+| `geofence.metadata[{key}]` | `geofence_metadata_{key}` | `type` | `{value}` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `duration` | `duration` | `number (minutes)` | `5` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+Regions が有効な場合、Radar は次の属性を送信します。
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `country.code` | `country_code` | `string` | `"US"` |
+| `country.name` | `country_name` | `string` | `"United States"` |
+| `state.code` | `state_code` | `string` | `"MD"` |
+| `state.name` | `state_name` | `string` | `"Maryland"` |
+| `dma.code` | `dma_code` | `string` | `"26"` |
+| `dma.name` | `dma_name` | `string` | `"Baltimore"` |
+| `postalCode.code` | `postal_code` | `string` | `"21014"` |
+
+##### **\[Radar\] Place Entered**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `place._id` | `place_id` | `string` | `"59302bcf8f27e8a156bd4f91"` |
+| `place.name` | `place_name` | `string` | `"Starbucks"` |
+| `place.chain.slug` | `place_chain_id` | `string` | `"starbucks"` |
+| `place.chain.name` | `place_chain_name` | `string` | `"Starbucks"` |
+| `place.chain.externalId` | `place_chain_external_id` | `string` | `"123"` |
+| `place.chain.metadata[{key}]` | `place_chain_metadata_{key}` | `type` | `{value}` |
+| `place.categories` | `place_categories` | `string (comma-separated)` | `"food-beverage,cafe,coffee-shop"` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+Regions が有効な場合、Radar は次の属性を送信します。
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `country.code` | `country_code` | `string` | `"US"` |
+| `country.name` | `country_name` | `string` | `"United States"` |
+| `state.code` | `state_code` | `string` | `"MD"` |
+| `state.name` | `state_name` | `string` | `"Maryland"` |
+| `dma.code` | `dma_code` | `string` | `"26"` |
+| `dma.name` | `dma_name` | `string` | `"Baltimore"` |
+| `postalCode.code` | `postal_code` | `string` | `"21014"` |
+
+##### **\[Radar\] Place Exited**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `place._id` | `place_id` | `string` | `"59302bcf8f27e8a156bd4f91"` |
+| `place.name` | `place_name` | `string` | `"Starbucks"` |
+| `place.chain.slug` | `place_chain_id` | `string` | `"starbucks"` |
+| `place.chain.name` | `place_chain_name` | `string` | `"Starbucks"` |
+| `place.chain.externalId` | `place_chain_external_id` | `string` | `"123"` |
+| `place.chain.metadata[{key}]` | `place_chain_metadata_{key}` | `type` | `{value}` |
+| `place.categories` | `place_categories` | `string (comma-separated)` | `"food-beverage,cafe,coffee-shop"` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `duration` | `duration` | `number (minutes)` | `42.1` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+Regions が有効な場合、Radar は次の属性を送信します。
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `country.code` | `country_code` | `string` | `"US"` |
+| `country.name` | `country_name` | `string` | `"United States"` |
+| `state.code` | `state_code` | `string` | `"MD"` |
+| `state.name` | `state_name` | `string` | `"Maryland"` |
+| `dma.code` | `dma_code` | `string` | `"26"` |
+| `dma.name` | `dma_name` | `string` | `"Baltimore"` |
+| `postalCode.code` | `postal_code` | `string` | `"21014"` |
+
+##### **\[Radar\] Country Entered**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `region.code` | `region_code` | `string` | `"US"` |
+| `region.name` | `region_name` | `string` | `"United States"` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] Country Exited**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `region.code` | `region_code` | `string` | `"US"` |
+| `region.name` | `region_name` | `string` | `"United States"` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] State Entered**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `region.code` | `region_code` | `string` | `"MD"` |
+| `region.name` | `region_name` | `string` | `"Maryland"` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] State Exited**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `region.code` | `region_code` | `string` | `"MD"` |
+| `region.name` | `region_name` | `string` | `"Maryland"` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] DMA Entered**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `region.code` | `region_code` | `string` | `"26"` |
+| `region.name` | `region_name` | `string` | `"Baltimore"` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] DMA Exited**
+
+| Radar イベントフィールド | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `region.code` | `region_code` | `string` | `"26"` |
+| `region.name` | `region_name` | `string` | `"Baltimore"` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] Started Trip**
+
+| Radar イベント属性 | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `trip.externalId` | `trip_external_id` | `string` | `"299"` |
+| `trip.metadata[{key}]` | `trip_metadata_{key}` | `type` | `{value}` |
+| `trip.destinationGeofenceTag` | `trip_destination_geofence_tag` | `string` | `"store"` |
+| `trip.destinationGeofenceExternalId` | `trip_destination_geofence_external_id` | `string` | `"123"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] Updated Trip**
+
+| Radar イベント属性 | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `trip.externalId` | `trip_external_id` | `string` | `"299"` |
+| `trip.metadata[{key}]` | `trip_metadata_{key}` | `type` | `{value}` |
+| `trip.destinationGeofenceTag` | `trip_destination_geofence_tag` | `string` | `"store"` |
+| `trip.destinationGeofenceExternalId` | `trip_destination_geofence_external_id` | `string` | `"123"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] Approaching Trip Destination**
+
+| Radar イベント属性 | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `trip.externalId` | `trip_external_id` | `string` | `"299"` |
+| `trip.metadata[{key}]` | `trip_metadata_{key}` | `type` | `{value}` |
+| `trip.destinationGeofenceTag` | `trip_destination_geofence_tag` | `string` | `"store"` |
+| `trip.destinationGeofenceExternalId` | `trip_destination_geofence_external_id` | `string` | `"123"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] Arrived at Trip Destination**
+
+| Radar イベント属性 | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `trip.externalId` | `trip_external_id` | `string` | `"299"` |
+| `trip.metadata[{key}]` | `trip_metadata_{key}` | `type` | `{value}` |
+| `trip.destinationGeofenceTag` | `trip_destination_geofence_tag` | `string` | `"store"` |
+| `trip.destinationGeofenceExternalId` | `trip_destination_geofence_external_id` | `string` | `"123"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] Stopped Trip**
+
+| Radar イベント属性 | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `trip.externalId` | `trip_external_id` | `string` | `"299"` |
+| `trip.metadata[{key}]` | `trip_metadata_{key}` | `type` | `{value}` |
+| `trip.destinationGeofenceTag` | `trip_destination_geofence_tag` | `string` | `"store"` |
+| `trip.destinationGeofenceExternalId` | `trip_destination_geofence_external_id` | `string` | `"123"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] Beacon Entered**
+
+| Radar イベント属性 | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `beacon._id` | `beacon_id` | `string` | `"5b2c0906f5874b001aecfd8f"` |
+| `beacon.description` | `radar_beacon_description` | `string` | `"Store #123 - Drive-Thru"` |
+| `beacon.tag` | `radar_beacon_tag` | `string` | `"drive-thru"` |
+| `beacon.externalId` | `radar_beacon_external_id` | `string` | `"123"` |
+| `beacon.metadata[{key}]` | `radar_beacon_metadata_{key}` | `type` | `{value}` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+##### **\[Radar\] Beacon Exited**
+
+| Radar イベント属性 | MoEngage イベントプロパティ | タイプ | 値の例 |
+| --- | --- | --- | --- |
+| `beacon._id` | `beacon_id` | `string` | `"5b2c0906f5874b001aecfd8f"` |
+| `beacon.description` | `radar_beacon_description` | `string` | `"Store #123 - Drive-Thru"` |
+| `beacon.tag` | `radar_beacon_tag` | `string` | `"drive-thru"` |
+| `beacon.externalId` | `radar_beacon_external_id` | `string` | `"123"` |
+| `beacon.metadata[{key}]` | `radar_beacon_metadata_{key}` | `type` | `{value}` |
+| `confidence` | `confidence` | `string` | `"high"` |
+| `foreground` | `foreground` | `boolean` | `true` |
+
+## MoEngage キャンペーンで近くの場所を表示する
+
+Radar Geo APIs を使用して、キャンペーンメッセージ内に近くの場所を直接表示するなど、動的な位置情報ベースの情報でキャンペーンを充実させることができます。これには、Radar の _Search Places_ API を呼び出す MoEngage Content API を設定します。
+
+### ステップ 1: MoEngage Content API を設定する
+
+MoEngage Content API を設定するには、次の手順を実行します。
+
+1. MoEngage UI で、**Settings** \> **Advanced settings** \> **Content API** に移動します。
+2. 右上にある **\+ Add content API** をクリックします。**Add content API** ダイアログボックスが表示されます。
+   ![Add content API ボタンが強調表示された MoEngage の Content API リスト](/images/partner_43168327060500.png)
+3. API エンドポイント URL を設定します。
+   1. **API name** ボックスに、API のわかりやすい名前（例: `RadarNearbyPlaces`）を入力します。
+   2. **Method** で **GET** を選択します。
+   3. **URL** ボックスに、ユーザーの緯度と経度をパラメーターとして含む Radar Search Places エンドポイントを貼り付けます。
+      ```text wrap
+      https://api.radar.io/v1/search/places?near={{UserAttribute['Latitude']}},{{UserAttribute['Longitude']}}&chains=starbucks&limit=5
+      ```
+      エンドポイント URL はユースケースによって異なります。サポートされているすべてのパラメーターについては、[Radar Search Places API リファレンス](https://radar.com/documentation/api#search-places)を参照してください。
+4. **URL Parameters** セクションで、チェーンを指定します。
+   <Note>
+     プロジェクトにチェーンマッピングがある場合は、チェーンのスラッグではなくマッピングされた ID を使用してください。
+   </Note>
+5. **Headers** で、必要なキーと値のペア（例: `Authorization: <your-api-key>`）を指定します。
+   ![Radar 用に URL パラメーターとヘッダーが設定された MoEngage の Add content API ダイアログ](/images/partner_23074987194772.png)
+6. **Dynamic values** セクションで、キーとそれに対応する値を定義します。
+7. **Save** をクリックします。
+
+Content API の詳細については、[Content APIs](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を参照してください。
+
+### ステップ 2: MoEngage キャンペーン内に場所を表示する
+
+Content API を設定した後、キャンペーンでそれを使用して近くの場所を表示します。
+
+1. キャンペーン作成のステップ 2 で、`@` を入力します。**Personalization** ダイアログボックスが表示されます。
+2. **Select attribute** リストで、前のステップで設定した Radar Nearby Places Content API をクリックします。
+3. [MoEngage Templating Language](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を使用して API レスポンスを解析し、そのコンテンツをキャンペーンに含めます。以下の Jinja スニペットは、場所のリストを反復処理してその名前を出力します。
+   ```jinja wrap
+   {% set response = ContentApi.RadarNearbyPlaces({"params":{"near":"{{UserAttribute['Latitude']}},{{UserAttribute['Longitude']}}","chains":"target,walmart"},"static_params":{},"dynamic_params":{},"request_body":{}}) %}
+   {% for place in response.places %}
+   {{ place.name }}
+   {% endfor %}
+   ```
+4. **Preview** をクリックすると、リアルタイムのパーソナライズが適用されたキャンペーンが表示されます。
+   ![Radar Content API から返された近くの場所が表示された MoEngage のキャンペーンプレビュー](/images/partner_23075330470676.png)

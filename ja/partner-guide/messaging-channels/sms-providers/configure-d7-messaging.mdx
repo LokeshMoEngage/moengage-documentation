@@ -1,0 +1,108 @@
+---
+title: "D7 Messaging の設定"
+---
+
+# はじめに
+
+D7Messaging は、企業が複数のチャネルにわたる双方向のマーケティングやカスタマーケアのやり取りをインテリジェントにパーソナライズできるようにする、モバイルエンゲージメントおよびコミュニケーションプロバイダーです。この記事では、MoEngage ダッシュボードで D7Messaging コネクターを設定する方法について説明します。
+
+<Info>
+  **前提条件**
+
+  [D7Messaging](https://app.d7networks.com/api-tokens) のダッシュボードにアクセスでき、D7Messaging アカウントの [API キー](https://app.d7networks.com/api-tokens) を用意していることを確認してください。
+</Info>
+
+# D7Messaging をカスタム SMS コネクター (サービスプロバイダー) として設定する
+
+<Info>
+  この記事では、MoEngage ダッシュボードで D7Messaging をカスタムコネクター (サービスプロバイダー) として設定する手順について説明します。
+</Info>
+
+1. **Settings** \> **Channel** \> **SMS** \> **Sender configuration** に移動します。
+2. 右上隅にある **\+ Add Sender** をクリックします。Add Sender 画面では、\
+   新しいカスタムサービスプロバイダーを追加するか、設定済みのサービスプロバイダーに送信者を追加できます。
+3. **\+ Add custom service provider** をクリックします。
+4. Sender Details 画面で詳細と設定を追加します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **Mark as default** | このトグルをオンにすると、この送信者が D7Messaging のデフォルト送信者としてマークされます。デフォルトとしてマークすると、キャンペーン作成時に別の送信者を選択しない限り、MoEngage からのすべての SMS キャンペーンの送信にこの送信者が使用されます。これは必須ではありません。 |
+| **Service provider name** | このフィールドは MoEngage ダッシュボードで設定するサービスプロバイダーを識別するもので、一意である必要があります。ここにサービスプロバイダーの名前を入力します。D7Messaging と入力します。 |
+| **Sender name** | このフィールドは、キャンペーンやアラートの作成時に使用できる、読みやすい送信者名を識別します。 |
+| **Sender type** | 送信者タイプは **Promotional** または **Transactional** のいずれかです。<ul><li>ブランドに関する情報の送信、お得な情報のプロモーション、またはユーザーとのエンゲージメントに送信者を使用する予定の場合は、Promotional を選択します。</li><li>取引に関するアラート、OTP、セキュリティ情報、またはトランザクションとして分類できる情報を送信する場合は、送信者タイプとして Transactional を選択します。</li></ul> |
+
+![Image 10-10-24 at 3.17 PM.jpeg](/images/partner_31131217560084.png)
+
+5. 次の詳細を追加して Webhook を設定します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **API URL** | このフィールドには、送信者に API リクエストを送信する際に使用する URL の情報が含まれます。この情報は送信者の API ドキュメントから取得できます。ここに送信者の API エンドポイントを入力します。D7Messaging の API URL は次のとおりです。<br />[https://api.d7networks.com/messages/v1/send](https://api.d7networks.com/messages/v1/send) |
+| **Method** | HTTP メソッドとして **POST** を選択します。 |
+| **Headers** | このオプションを使用して、API に渡すリクエストヘッダーをキーと値のペアとして追加します。<ul><li>Authorization: Bearer the\_token\_from: [https://app.d7networks.com/api-tokens](https://app.d7networks.com/api-tokens)</li><li>**Content-Type**: application/JSON <img src="/images/partner_31131241335444.png" alt="Image 10-10-24 at 3.17 PM (1).jpeg" /></li></ul> |
+
+6. **Body Type** で **Raw** を選択し、次の詳細を追加します。
+   ```json
+   {
+   "messages": [
+   {
+   "originator": "SignOTP",
+   "recipients": ["Moesms_destination"],
+   "content": "Moesms_message",
+   "client_ref": "MoEngage"
+   }
+   ]
+   }
+   ```
+   ![Raw.png](/images/partner_31157502381972.png)
+7. **Send test SMS** をクリックして、設定を確認します。Send Test SMS ダイアログボックスが表示されます。
+   1. Mobile Number に携帯電話番号を入力します。
+   2. Message ボックスにメッセージを入力します。
+   3. **Send** をクリックして、設定をテストします。
+   4. **OK** をクリックして、ダイアログボックスを閉じます。
+   5. **Save** をクリックして、送信者設定を保存します。
+
+## 配信トラッキング
+
+MoEngage ダッシュボードで送信者を作成した後、配信トラッキングを設定できます。
+
+1. 設定した D7Messaging を開き、ステップ 3「Delivery tracking (optional)」に移動します。
+2. Delivery Tracking URL をコピーします。 <img src="/images/partner_31131222382484.png" alt="Image 10-10-24 at 3.17 PM (3).jpeg" /> **Delivery tracking URL** フィールドに、次の URL を入力します。\
+   \[[https://api-0X.moengage.com/sms/dlr/custom/2759791019\\\](](https://api-0X.moengage.com/sms/dlr/custom/2759791019]\()[https://api-0X.moengage.com/sms/dlr/custom/2759791019](https://api-0X.moengage.com/sms/dlr/custom/2759791019\)) \
+   X はデータセンター (DC) の番号です。
+   - これは D7 のユーザーダッシュボードで Report URL として設定するか、Previous をクリックしてメッセージボディを更新し、そこに追加することができます。
+   - 最終的なメッセージの Raw ボディは次のようになります。
+
+<CodeGroup>
+
+```json JSON wrap
+{
+    "messages": [
+    {
+        "originator": "SignOTP",
+        "recipients": ["Moesms_destination"],
+        "content": "Moesms_message",
+        "report_url": "https://api-01.moengage.com/sms/dlr/custom/2759791019", "client_ref": "MoEngage"
+    }
+]
+}
+```
+
+</CodeGroup>
+
+- URL を追加した後、配信レポートを受信するには、**Map attributes of the delivery response** で属性をマッピングする必要があります。詳細については、[カスタムコネクターの配信トラッキング](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-custom-connector-for-sms) を参照してください。
+- **Map fields from the delivery response** または **Map fields manually** を選択します。後者を選択した場合は、次の値を設定します。
+  - **Attribute storing unique ID of the sent response** : _request\_id_ を入力します。
+  - **Attribute storing Unique delivery ID field of delivery response** : _request\_id_ を入力します。
+  - **Attribute storing delivery status** : _status_ を入力します。
+  - **Success values for delivery status** : _delivered_ を入力します。
+  - **Attribute storing failure reason** : _status_ を入力します。
+
+3. Delivery Tracking URL のパラメーターを確認し、**Save** をクリックします。
+
+# 次のステップ
+
+- [SMS キャンペーン作成のスタートガイド](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/create-an-sms-campaign) を使用して SMS キャンペーンを作成します。
+- [SMS のフリークエンシーキャップ](/ja/user-guide/settings/channels/delivery-controls/frequency-capping) を設定します。
+- [現在のサービスプロバイダー](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-an-sms-sender) を設定します。
+- [キャンペーン分析の詳細はこちら。](/ja/user-guide/campaigns-and-channels/connectors/analyze/connector-campaign-analytics)

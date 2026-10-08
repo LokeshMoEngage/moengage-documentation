@@ -1,0 +1,56 @@
+---
+title: "SFMC で MoEngage Event アクティビティを作成する"
+description: "Salesforce Marketing Cloud で MoEngage Event カスタムアクティビティを設定し、ジャーニー内の任意のコンタクトに対して MoEngage のイベントトリガーキャンペーンをトリガーします。"
+keywords: ["sfmc", "moengage event activity", "event triggered campaign", "custom activity"]
+---
+
+## はじめに
+
+このガイドでは、SFMC で MoEngage Event カスタムアクティビティを作成するための詳細な手順を説明します。
+
+<Info>
+  **前提条件**
+
+  - Salesforce Marketing Cloud へのアクセス：SFMC へのアクセス権があることを確認してください。
+</Info>
+
+## インテグレーション
+
+このインテグレーションでは、SFMC の MoEngage Event カスタムアクティビティを活用して、MoEngage でイベントトリガーキャンペーンをトリガーします。
+
+| コンテキスト | 説明 |
+| --- | --- |
+| MoEngage イベントトリガーキャンペーン | MoEngage で特定のイベントがトラッキングされたときに、パーソナライズされたメッセージ（プッシュ、メール、SMS など）を自動的に送信できます。これらのキャンペーンは、イベント発生直後（注文確認など）、または特定の遅延後に送信するように設定でき、一連のイベントに基づいて送信することもできます。 |
+| SFMC の MoEngage Event アクティビティ | MoEngage Event カスタムアクティビティは、SFMC キャンバスに追加されるコンポーネントです。ジャーニー内でコンタクトがこのアクティビティに到達すると、MoEngage のイベント API を介して指定されたイベントがトリガーされ、MoEngage でそのコンタクトに対してイベントが登録されます。 |
+
+つまり、ジャーニー内でコンタクトがこのアクティビティに到達すると、MoEngage にイベントが送信され、MoEngage 内で設定された関連キャンペーンを開始できます。
+
+## 手順
+
+### ステップ 1：MoEngage イベントトリガーキャンペーンを作成する
+
+MoEngage でイベントトリガーキャンペーンを作成するには、[こちらのガイドを参照してください](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/triggers/event/create-an-event-triggered-campaign)。トリガー条件として、SFMC から送信するイベントを選択できます。キャンペーンコンテンツで使用するパーソナライゼーションは、イベント属性として SFMC から渡すことができます。
+
+### ステップ 2：MoEngage Event を設定する
+
+1. SFMC ジャーニーで、「MoEngage Event」アクティビティをドラッグ＆ドロップします。
+
+   ![SFMC で MoEngage Event アクティビティをドラッグ＆ドロップする](/images/partner_36577606370324.png)
+
+2. 「MoEngage Event」をクリックします。
+3. イベントの関連詳細を入力します。
+
+| フィールド | フィールド名 | 説明 |
+| --- | --- | --- |
+| Workspace details | Workspace Name | ワークスペース名を入力します。MoEngage ダッシュボードのヘッダーに表示されています。<br /><br /><img src="/images/partner_36577620538644.png" alt="MoEngage ダッシュボードのヘッダーに表示されるワークスペース名" /><br /><br /><em>注：ワークスペース名は、「MoEngage User Authentication Page」CloudPage で入力したものと同じである必要があります。ワークスペース名を確認するには、「MoEngage Credentials DE」という名前のデータエクステンションに移動し、「MoEngage Credentials」を開きます。</em> |
+| Event Details | Event Name | MoEngage でイベントトリガーキャンペーンの作成に使用したイベントの名前です。<br /><br /><em>注：Event Name がイベントトリガーキャンペーンと一致していることを確認してください。</em> |
+| Event Details | User Identifier | MoEngage でユーザーを識別するために使用する属性と値を選択します。 |
+| Event Attributes | Campaign ID [任意] | MoEngage のイベントトリガーキャンペーンの ID です。キャンペーン作成時のフィルター条件として使用できます。これは、正しいキャンペーンをトリガーしていることを確認するためだけのものです。 |
+| Event Attributes | Campaign Name [任意] | MoEngage のイベントトリガーキャンペーンの名前です。キャンペーン作成時のフィルター条件として使用できます。これは、正しいキャンペーンをトリガーしていることを確認するためだけのものです。 |
+| Event Attributes | Custom Attributes [任意] | ハイパーパーソナライゼーションやターゲティングのために MoEngage に渡す必要がある、SFMC データエクステンションのその他のデータポイントです。<ul><li>キーと値のペアは手動で追加できます。</li><li>構造：<ul><li>キー：MoEngage でイベント属性として使用できるようにするキー名を入力します。</li><li>値：ハードコードされた値、またはコンタクト固有のデータエクステンションの任意の値を指定できます。</li><li>動的な値の形式：データエクステンションのフィールド名を mustache 構文で <code>&#123;&#123;Field Name&#125;&#125;</code> の形式で使用できます。</li></ul></li></ul><em>注：フィールド名がターゲット DE と完全に一致していることを確認してください。フィールド名が正しい場合は、ターゲット DE の対応する値が入力されます。正しくない場合は、プレースホルダー <code>&#123;&#123;Field Name&#125;&#125;</code> がそのまま表示されます。</em> |
+
+カスタムアクティビティのセットアップが完了したら、ジャーニーを続行できます。
+
+### ステップ 3：MoEngage でキャンペーンを表示する
+
+All Campaigns ページに移動して、作成されたすべてのキャンペーンを表示できます。これらは MoEngage で API トリガーのプッシュキャンペーンとして作成されます。

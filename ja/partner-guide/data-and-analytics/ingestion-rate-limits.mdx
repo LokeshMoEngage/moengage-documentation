@@ -1,0 +1,69 @@
+---
+title: "パートナーデータ取り込みのレート制限"
+description: "CDP、コホート同期、接続済みソース、ファイル、データウェアハウスから MoEngage にインポートされるデータの取り込みレート制限とペイロード上限について説明します。"
+keywords: ["partner ingestion limits", "CDP rate limit", "cohort sync limit", "file import limit", "data warehouse import limit", "payload size", "RPS", "RPM", "HTTP 429"]
+---
+
+MoEngage は、パートナーがワークスペースに送信するデータに対して、取り込みレート制限とペイロード上限を適用します。レート制限は、パートナーとインポートタイプに応じて、1秒あたりのリクエスト数 (RPS) または1分あたりのリクエスト数 (RPM) で測定されます。ユーザーとイベントを送信するパートナーと、同じパートナーがコホートを同期する場合とでは制限が異なるため、このページではインポートタイプごとに制限をまとめています。
+
+## カスタマーデータプラットフォーム (CDP) のインポート制限
+
+これらの制限は、mParticle、Twilio Segment、Adobe Real-Time CDP などの CDP が MoEngage に転送するユーザーとイベントに適用されます。次の表は、各エンティティの制限を示しています。
+
+| エンティティ | 取り込みレート制限 | ペイロードサイズ | 超過時の動作 |
+| --- | --- | --- | --- |
+| Users | 500 RPS | 128 KB | MoEngage は `429 (Too Many Requests)` エラーを返します。パートナー側で自動的に再試行を処理することが想定されています。 |
+| Events | 500 RPS | 128 KB | MoEngage は `429 (Too Many Requests)` エラーを返します。パートナー側で自動的に再試行を処理することが想定されています。 |
+
+## コホート同期のインポート制限
+
+これらの制限は、パートナーが MoEngage に同期するコホートとオーディエンスに適用されます。レート制限はパートナーによって異なります。次の表は、各パートナーの制限を示しています。
+
+| パートナー | エンティティ | 取り込みレート制限 | ペイロードサイズ | コホートサイズ | 超過時の動作 |
+| --- | --- | --- | --- | --- | --- |
+| mParticle, Amplitude, Hightouch, Zeotap, AppsFlyer | Cohort | 300 RPM | 128 KB | 5M | - MoEngage は `429 (Too Many Requests)` エラーを返します。パートナー側で自動的に再試行を処理することが想定されています。<br />- これらのパートナーを通じて同期したコホートは、ファイルセグメントの一種であるカスタムセグメントになります。各セグメントは最大500万ユーザーをサポートします。セグメントが1,000万ユーザーを超えると、MoEngage はそのセグメントの更新を停止します。 |
+| Twilio Segment, Adobe Real-Time CDP | Cohort | 500 RPS | 128 KB | - | MoEngage は `429 (Too Many Requests)` エラーを返します。パートナー側で自動的に再試行を処理することが想定されています。 |
+
+## その他のパートナーのインポート制限
+
+これらの制限は、Ventrata、RevenueCat、Zoho CRM、HubSpot CRM、Olo などの接続済みソースおよびその他のパートナー連携に適用されます。次の表は、各エンティティの制限を示しています。
+
+| エンティティ | 取り込みレート制限 | ペイロードサイズ | コホートサイズ | 超過時の動作 |
+| --- | --- | --- | --- | --- |
+| Users, Events, and Cohorts | 500 RPS | 128 KB | 5M | - MoEngage は `429 (Too Many Requests)` エラーを返します。パートナー側で自動的に再試行を処理することが想定されています。<br />- これらのパートナーを通じて同期したコホートは、ファイルセグメントの一種であるカスタムセグメントになります。各セグメントは最大500万ユーザーをサポートします。セグメントが1,000万ユーザーを超えると、MoEngage はそのセグメントの更新を停止します。 |
+
+## ファイルインポートの制限
+
+これらの制限は、S3、SFTP、および手動アップロードからのインポートに適用されます。次の表は、各エンティティの1時間あたりおよび1日あたりの制限を示しています。
+
+| エンティティ | 1時間あたりの制限 | 1日あたりの制限 | 超過時の動作 |
+| --- | --- | --- | --- |
+| Users | 600K | 14M | 制限がリセットされるまで、MoEngage はファイルをキューに入れます。 |
+| Events | 5M | 40M | 制限がリセットされるまで、MoEngage はファイルをキューに入れます。 |
+| Auxiliary Data | 1.5M | 25M | 制限がリセットされるまで、MoEngage はファイルをキューに入れます。 |
+
+## データウェアハウスのインポート制限
+
+これらの制限は、Snowflake、Databricks、BigQuery からのインポートに適用されます。ユーザーとイベントは同じプールを共有するため、両方のエンティティタイプが1つの制限から消費されます。次の表は、各インポートタイプの1時間あたりおよび1日あたりの制限を示しています。
+
+| タイプ | エンティティ | 1時間あたりの制限 | 1日あたりの制限 | 超過時の動作 |
+| --- | --- | --- | --- | --- |
+| Historical | Users and Events | 15M | 50M | MoEngage はベストエフォートでインポートを処理します。 |
+| Normal | Users and Events | 600K | 14M | MoEngage はベストエフォートでインポートを処理します。 |
+
+<Note>
+  取り込み量が定期的にこれらの制限に近づく場合は、MoEngage のカスタマーサクセスマネージャー (CSM) に連絡して要件についてご相談ください。
+</Note>
+
+## 関連する連携
+
+特定のパートナーを設定するには、次の連携ガイドを参照してください。
+
+- [Adobe Real-Time CDP](/ja/partner-guide/data-and-analytics/cdps/adobe-real-time-cdp/overview)
+- [mParticle](/ja/partner-guide/data-and-analytics/cdps/mparticle/getting-started/overview)
+- [Twilio Segment](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/getting-started/moengage-source)
+- [Data Imports](/ja/user-guide/data/imports/overview-imports)
+
+<Note>
+  このページの制限がパートナー独自の連携ガイドに記載されている制限と異なる場合は、パートナーのガイドに記載されている数値を実際の値として参照してください。
+</Note>

@@ -1,0 +1,73 @@
+---
+title: "スマート TV との統合"
+description: "分析とメッセージングのために、MoEngage Web SDK を LG webOS および Samsung Tizen のスマート TV と統合します。"
+---
+
+MoEngage Web SDK は、**LG TV (webOS)** と **Samsung Tizen OS TV** で、ユーザーデータとイベントをトラッキングして分析を強化し、On-site メッセージを表示できます。
+
+完全な技術リファレンスについては、[JavaScript ドキュメント](https://www.moengage.com/docs/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)を参照するか、[LG TV](https://github.com/moengage/webSDK-sample/tree/master/lg-web-os) と [Samsung TV](https://github.com/moengage/webSDK-sample/tree/master/samsung-tizen-os/samsungTizenOs) のサンプルアプリで、TV 上で動作する Web SDK をご確認ください。
+
+<Check>
+  1. ここではプッシュ通知が機能しないため、serviceworker.js ファイルは追加しないでください。
+  2. SDK がプッシュ通知モジュールを初期化しないように、初期化設定に `disable_web_push: true` を渡してください。詳細は[こちら](https://www.moengage.com/docs/developer-guide/web-sdk/web-push/configure-and-integrate-web-push#Rename-the-Service-worker-custom-filename)をご覧ください。
+  3. Cookie の使用を無効にするには、`disableCookies: true` を渡してください。
+</Check>
+
+## サポートされている機能
+
+- [データトラッキング](https://www.moengage.com/docs/developer-guide/web-sdk/data-tracking)
+- [On-site Messaging](https://www.moengage.com/docs/user-guide/campaigns-and-channels/on-site-message/create/create-osm-campaign-for-tv)
+
+## 統合
+
+TV アプリには URL がなく、SDK はページ/画面の変更時に多くの処理を行う必要があるため、ページ/画面が変更されたことを SDK に通知する必要があります。そのため、画面の変更時にヘルパー関数 `Moengage.handlePageChange()` を呼び出す必要があります。
+
+## On-site Messaging (OSM) での TV リモコンによるナビゲーション
+
+現在、テンプレートでは水平方向のナビゲーションのみをサポートしています。OSM キャンペーンの作成で、ステップ 1 でプラットフォームとして TV を選択すると、利用可能な限られたテンプレートのみを使用できます。これらのテンプレートでは、水平方向のナビゲーションのみを使用できます。
+
+## OSM テンプレートでのディープリンク
+
+TV では、ブラウザのようにデフォルトでハイパーリンクのリダイレクトを行うことができないため、リンクがクリックされるとテンプレートからイベントが発行されます。そのイベントをリッスンしてリダイレクトを処理できます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+<script type="text/javascript">
+window.addEventListener('MOE_AUTOMATED_EVENTS', function (event) {
+  if(event.detail) {
+    if(event.detail.name === 'MOE_ONSITE_CLICKED') {
+      console.log(event.detail.data);
+      // {
+      //   deeplink: 'https://google.com',
+      //   label: 'Click Me',
+      //   campaignName: 'Test Campaign'
+      // }
+    }
+    if(event.detail.name === 'MOE_ONSITE_DISMISSED') {
+      console.log(event.detail.data);
+      // {
+      //   label: 'Click Me',
+      //   campaignName: 'Test Campaign'
+      // }
+    }
+  }
+});
+</script>
+```
+
+</CodeGroup>
+
+## サンプルコード
+
+参考として、以下のサンプルアプリを作成しています。
+
+1. [LG Web OS](https://github.com/moengage/webSDK-sample/tree/master/lg-web-os)
+2. [Samsung Tizen OS](https://github.com/moengage/webSDK-sample/tree/master/samsung-tizen-os/samsungTizenOs)
+
+<Info>
+  Web SDK は、以下の TV OS バージョンをサポートしています。
+
+  - LG webOS TV 5.0 以降
+  - Samsung Tizen 4.0 以降
+</Info>

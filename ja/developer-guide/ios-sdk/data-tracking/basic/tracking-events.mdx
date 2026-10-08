@@ -1,0 +1,223 @@
+---
+title: "イベントのトラッキング"
+description: "MoEngage SDKを使用して、iOSアプリでカスタムユーザーイベントとその属性をトラッキングします。"
+---
+
+イベントトラッキングは、アプリ内のユーザー行動をトラッキングするために使用されます。トラッキングした行動に基づいて、後でそれらのユーザーをターゲットに関連性の高い通知を送信できます。プロダクトマネージャーやマーケターがアプリユーザーをセグメント化し、ターゲットを絞ったキャンペーンを作成できるよう、ビジネスに関連するすべてのイベントをトラッキングしてください。たとえば、ユーザーが何を購入しているか、ユーザーがカートに商品を追加したかどうかなどをトラッキングできます。
+
+<Info>
+  - SDKでは特定のイベントをデフォルトでトラッキングしているため、同じシナリオで新しいイベントをトラッキングするのではなく、デフォルトイベントを使用してください。SDKがトラッキングするデフォルトイベントの一覧は[こちら](/ja/user-guide/getting-started/integration/default-ios-sdk#default-events)を参照してください。
+  - SDKはMoEngageのFUPポリシーに準拠しています。詳細については、[公正利用ポリシー](/ja/user-guide/data/key-concepts/fair-usage-policy-fup)を参照してください。
+</Info>
+
+# イベントをトラッキングする方法
+
+すべてのイベントは、イベントの「**名前**」とイベントの **プロパティ/属性** の2つの部分で構成されます。イベントとその属性をトラッキングするには、[_MoEngageProperties_](https://moengage.github.io/ios-api-reference/Classes/MoEngageProperties.html) を使用する必要があります。
+
+たとえば、次のコードは `Successful Purchase` イベントをトラッキングします。トラッキングするイベントを説明する属性として、Product NameやBrand Nameなどを含めています。
+
+<CodeGroup>
+
+```swift Swift wrap
+var eventAttrDict: [String: any Sendable] = [:]
+eventAttrDict["ProductName"] = "iPhone XS Max"
+eventAttrDict["BrandName"] = "Apple"
+eventAttrDict["Items In Stock"] = 109
+
+let eventProperties = MoEngageProperties(withAttributes: eventAttrDict)
+
+eventProperties.addAttribute(87000.00, withName: "price")
+eventProperties.addAttribute("Rupees", withName: "currency")
+eventProperties.addAttribute(true, withName: "in_stock")
+eventProperties.addDateEpochAttribute(1439322197, withName: "Time added to cart")
+eventProperties.addDateISOStringAttribute("2020-02-22T12:37:56Z", withName: "Time of checkout")
+eventProperties.addDateAttribute(Date(), withName: "Time of purchase")
+
+eventProperties.addLocationAttribute(MoEngageGeoLocation.init(withLatitude: 12.23, andLongitude: 9.23), withName: "Pickup Location")
+
+/// JSON is supported from MoEngage-iOS-SDK v9.17.5
+eventProperties.addAttribute(["merchantId": "abcdef","business_model": [ "admin_email": "abc@email.com","admin_comment": "payment" ]],withName: "merchant")
+eventProperties.addAttribute([["merchantId": "abcdef", "business_model": ["admin_email": "abc@email.com", "admin_comment": "first"]], ["merchantId": "ghijk", "business_model": ["admin_email": "def@email.com", "admin_comment": "second"]]], withName: "retries")
+      
+MoEngageSDKAnalytics.sharedInstance.trackEvent("Successful Purchase", withProperties: eventProperties)
+```
+
+```objective-c Objective C wrap
+// track event example
+NSMutableDictionary* eventAttrDict = [NSMutableDictionary dictionary];
+eventAttrDict[@"ProductName"] = @"iPhone XS Max";
+eventAttrDict[@"BrandName"] = @"Apple";
+eventAttrDict[@"Items In Stock"] = @109;
+
+MoEngageProperties* eventProperties = [[MoEngageProperties alloc] initWithAttributes:eventAttrDict];
+[eventProperties addAttribute:@(87000.00) withName:@"price"];
+[eventProperties addAttribute:@"Rupees" withName:@"currency"];
+[eventProperties addAttribute:[NSNumber numberWithBool:true] withName:@"in_stock"];
+
+[eventProperties addDateEpochAttribute:1439322197 withName:@"Time added to cart"];
+[eventProperties addDateISOStringAttribute:@"2020-02-22T12:37:56Z" withName:@"Time of checkout"];
+[eventProperties addDateAttribute:[NSDate date] withName:@"Time of purchase"];
+
+MoEngageGeoLocation* pickupLocation = [[MoEngageGeoLocation alloc] initWithLatitude:12.23 andLongitude:9.23];
+[eventProperties addLocationAttribute:pickupLocation withName:@"Pickup Location"];
+      
+/// JSON is supported from MoEngage-iOS-SDK v9.17.5
+[eventProperties addAttribute:@{@"merchantId": @"abcdef",@"business_model": @{@"admin_email": @"abc@email.com",@"admin_comment": @"payment"}} withName:@"merchant"];
+[eventProperties addAttribute:@[@{@"merchantId":@"abcdef",@"business_model":@{@"admin_email":@"abc@email.com",@"admin_comment":@"first"}},@{@"merchantId":@"ghijk",@"business_model":@{@"admin_email":@"def@email.com",@"admin_comment":@"second"}}] withName:@"retries"];
+
+[[MoEngageSDKAnalytics sharedInstance] trackEvent:@"Successful Purchase" withProperties:eventProperties];
+```
+
+</CodeGroup>
+
+<Note>
+  iOS SDK [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) 以降：
+  - `MoEngageProperties(withAttributes:)` と `addAttribute(_:withName:)` は、`Any` ではなく `any Sendable` の値を受け取ります。属性ディクショナリは `[String: any Sendable]` として宣言してください。`[String: Any]` はコンパイルできません。
+  - `trackEvent(_:withProperties:)` は `Void` ではなく型付きのタスクオブジェクト（`MoEngageTrackEventTask`）を返すため、`.onSuccess` / `.onFailure` または非同期の `result()` メソッドを通じて呼び出しごとの成功または失敗を監視できます。上記のような直接の呼び出しは変更なしでコンパイルされます。
+</Note>
+
+<Info>
+  **非インタラクティブイベント**
+
+  MoEngage Analyticsのセッション時間の計算に一切影響を与えるべきでないイベントは、非インタラクティブイベントとしてマークする必要があります。詳細については、[こちら](https://www.moengage.com/docs/developer-guide/ios-sdk/data-tracking/advanced/session-and-source-tracking)を参照してください。
+</Info>
+
+属性がない場合は、2番目の引数に **nil** を渡すだけです。例：
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.trackEvent("Event Name", withProperties: nil)
+```
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] trackEvent:@"Event Name" withProperties:nil];
+```
+
+</CodeGroup>
+
+## 検証と制限
+
+イベント属性には、`DEBUG` ビルドとリリースビルドの両方に適用される2つのレイヤーの検証があります。
+
+- **命名とフォーマットのルール** — ビルド構成に関係なく常に適用されます。以下の[命名とフォーマットのルール](#naming-and-format-rules)を参照してください。
+- **型の検証** — 無効な属性値（`null`、カスタムモデル、`NaN`、`Infinity`、空のコレクション、ArrayまたはDictionary内にネストされた `Date`/`MoEngageGeoLocation` などのサポートされていない型）は、`DEBUG` ビルドでは致命的な例外を引き起こし、リリースビルドではペイロードから通知なく破棄されます。イベントの残りの部分はトラッキングされます。以下の[サポートされている属性値の型](#supported-attribute-value-types)を参照してください。
+
+<Info>
+  iOS SDKにおける `DEBUG` モードとは、SDKが `initializeDefaultTestInstance(_:)`（TESTワークスペース）を使用して初期化され、アプリがXcodeに接続された状態で実行されていることを意味します。これは、デバッグシンボルが有効になっているリリースビルドとは異なります。
+</Info>
+
+### 命名とフォーマットのルール
+
+- **属性名は空にできません。** 属性名として空の文字列（`""`）を渡すと、`DEBUG` ビルドでは致命的な例外が発生します。リリースビルドでは、その属性は破棄されます。
+- **予約済みプレフィックス。** イベント、イベント属性、ユーザー属性の名前に `moe_` をプレフィックスとして使用することはできません。これはシステムプレフィックスであり、使用すると事前の連絡なく定期的にブロックリストに登録される場合があります。
+
+### サポートされている属性値の型
+
+属性値は、`String`、`Number`、`Date`、`MoEngageGeoLocation`、`Dictionary`（文字列キーとサポートされている値を持つもの）、`Array`（サポートされている値の配列）のいずれかである必要があります。サポートされていない値が渡された場合：
+
+- `DEBUG` ビルドでは、開発の早い段階でデータの問題を明らかにするため、SDKが致命的な例外をスローしてアプリをクラッシュさせます。
+- ReleaseビルドおよびTestFlightビルドでは、SDKは該当する無効な属性を通知なく破棄し、問題をログに記録します。イベントペイロードの残りの部分は引き続きトラッキングされます。
+
+`DEBUG` 例外の一般的な原因：
+
+- `null`（`NSNull()`）を渡す。
+- カスタムモデルやUI要素（例：`UIColor`、`UIImage`）を渡す。
+- `NaN` や `Infinity` などの無効な数値を渡す。
+- 空のArrayまたはDictionaryを渡す。
+- ArrayまたはDictionary内に `Date` または `MoEngageGeoLocation` オブジェクトをネストする。これらは値として直接渡す必要があります。
+
+<Info>
+  アップグレード中にこれらの `DEBUG` 検証によってアプリがクラッシュする場合は、SDKを初期化する前に `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` を呼び出して一時的にオプトアウトしてください。問題が修正されたら、この呼び出しを削除してください。
+</Info>
+
+### サポートされていない属性値のフィルタリング
+
+新しいバージョンのiOS SDKにアップグレードする際に、呼び出し箇所で型が検証されていない属性値をアプリが渡している場合は、`MoEngageProperties` オブジェクトを構築する前に型チェックのガードを追加してください。これにより `DEBUG` でのクラッシュを防ぎ、すべてのビルドで有効なデータのみがSDKに届くようになります。
+
+<CodeGroup>
+
+```swift Swift wrap
+// Helper to check if a value is a supported event attribute type.
+  // Call this before passing any dynamically-typed value to addAttribute(_:withName:).
+  // Starting with iOS SDK 11.0.0, addAttribute(_:withName:) requires `any Sendable` instead of `Any`.
+  func isSupportedEventAttributeValue(_ value: any Sendable) -> Bool {
+      switch value {
+      case let d as Double: return !d.isNaN && !d.isInfinite
+      case let f as Float:  return !f.isNaN && !f.isInfinite
+      case is String, is Bool, is Int, is Int8, is Int16, is Int32, is Int64,
+           is UInt, is UInt8, is UInt16, is UInt32, is UInt64, is NSNumber:
+          return true
+      case let arr as [Any]:        return !arr.isEmpty
+      case let dict as [String: Any]: return !dict.isEmpty
+      default: return false
+      }
+  }
+
+  // Usage — value comes from a server response, external model, or unknown source
+  let properties = MoEngageProperties()
+  if isSupportedEventAttributeValue(dynamicValue) {
+      properties.addAttribute(dynamicValue, withName: "attribute_name")
+  }
+
+```
+
+```objective-c Objective C wrap
+// Check if a value is a supported event attribute type before passing to the SDK.
+  - (BOOL)isSupportedEventAttributeValue:(id)value {
+      if ([value isKindOfClass:[NSString class]] || [value isKindOfClass:[NSNumber class]]) {
+          // Guard against NaN / Infinity for floating-point NSNumbers
+          if ([value isKindOfClass:[NSNumber class]]) {
+              double d = [(NSNumber *)value doubleValue];
+              if (isnan(d) || isinf(d)) return NO;
+          }
+          return YES;
+      }
+      if ([value isKindOfClass:[NSArray class]])      return [(NSArray *)value count] > 0;
+      if ([value isKindOfClass:[NSDictionary class]]) return [(NSDictionary *)value count] > 0;
+      return NO;
+  }
+
+  // Usage
+  MoEngageProperties *properties = [[MoEngageProperties alloc] init];
+  if ([self isSupportedEventAttributeValue:dynamicValue]) {
+      [properties addAttribute:dynamicValue withName:@"attribute_name"];
+  }
+
+```
+
+</CodeGroup>
+
+<Note>
+  `Date` と `MoEngageGeoLocation` の値は、ディクショナリベースの `withAttributes:` イニシャライザーや `addAttribute:withName:` ではなく、専用の `addDateAttribute`、`addDateEpochAttribute`、`addDateISOStringAttribute`、`addLocationAttribute` メソッドを使用して渡す必要があります。
+</Note>
+
+# 手動同期
+
+トラッキングしたイベントを即座に同期するには、以下のように [_flush()_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAnalytics.html#/c:@M@MoEngageAnalytics@objc\(cs\)MoEngageSDKAnalytics\(im\)flush) メソッドを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAnalytics.sharedInstance.flush()
+```
+
+```objective-c Objective C wrap
+[[MoEngageSDKAnalytics sharedInstance] flush];
+```
+
+</CodeGroup>
+
+# 統合後のイベントのテスト
+
+アプリ用に提供された認証情報でMoEngageアカウントにログインします。
+
+左上を確認し、**Test** 環境に切り替えます。テストデータをLiveデータと分離しておくため、テストは必ずテスト環境で行ってください。[SDKを初期化](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)していることを確認してください。
+
+上記のようにアプリにイベントトラッキングを追加した後、Dashboard \> Recent Events にアクセスして、イベントがトラッキングされているかどうかを確認できます。
+
+_イベントがダッシュボードに表示されるまでに最大20分かかる場合があります_
+
+テスト中は、[デバッグモードでのログ](https://www.moengage.com/docs/developer-guide/ios-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs-ios)を有効にすることをお勧めします。
+
+SDKは現在のフラッシュで同期されたすべてのイベントの一覧を出力するため、トラッキングしたイベントがバックエンドに送信されているかどうかは、いつでもログで確認できます。また、ログにはバックエンドとの同期が成功したかどうかの情報も含まれます（失敗した場合、SDKはトラッキングしたすべてのイベントを保存し、次回のフラッシュ時に再度同期を試みます）。

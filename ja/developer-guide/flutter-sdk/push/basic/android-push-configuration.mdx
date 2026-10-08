@@ -1,0 +1,87 @@
+---
+title: "Android プッシュの設定"
+description: "FCM のセットアップや権限を含め、Flutter アプリで Android 向けのプッシュ通知を設定します。"
+---
+
+# 基本セットアップ
+
+MoEngage を使用して Android デバイスでプッシュ通知を有効にするには、このセクションで説明する基本セットアップに従ってください。
+
+- **MoEngage ダッシュボードでの FCM セットアップ -** FCM 認証は、Android デバイスにインストールされたアプリにプッシュ通知を送信できるようにするための方法です。MoEngage が Firebase サービスにアクセスできるよう認証するには、[こちらの記事](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)に記載されている方法を使用してください。
+- **プッシュ通知のメタデータの追加 -** [こちらの記事](/ja/developer-guide/android-sdk/push/basic/push-configuration)の方法を使用して、スモールアイコンとラージアイコンの drawable、およびプッシュ通知を処理するためのその他のオプションを設定します。
+- **Android 通知のランタイム権限** - アプリケーションが Android 13 で実行されている場合、ユーザーに通知を表示するには、アプリケーションがユーザーに通知権限をリクエストする必要があります。権限リクエストを処理するには、[こちらの記事](/ja/developer-guide/flutter-sdk/push/basic/android-notification-runtime-permissions)の方法を参照してください。
+- **プッシュの登録と受信** - Flutter アプリケーションでプッシュ通知を使用するには、Firebase を設定する必要があります。要件に応じて、以下のいずれかの方法を参照してプッシュの登録と受信を有効にしてください。
+
+<Tabs>
+  <Tab title="MoEngage にプッシュを処理させる（推奨）">
+    **メッセージングサービスの追加**
+
+    バージョン [10.4.0](https://github.com/moengage/Flutter-SDK/releases/tag/moengage_flutter-v10.4.0) 以降、SDK は Firebase サービスの宣言を `AndroidManifest.xml` に自動的に追加します。競合を防ぐため、`MoEFireBaseMessagingService` は `AndroidManifest.xml` ファイル内で低い優先度（android:priority="-1"）で宣言されています。
+
+    | 統合シナリオ    | システムの動作                                                                               | 必要なアクション                                                                                                                                                                                                                                                                                                         |
+    | ----------------------- | --------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+    | MoEngage のみ           | SDK は組み込みのサービスを使用して、プッシュペイロードとトークンの更新を自動的に処理します。     | 更新とビルド: 最新の SDK バージョンを使用していることを確認し、ビルド前に `flutter clean` を実行してください。マニフェストの変更は不要です。                                                                                                                                                                                       |
+    | 複数のプッシュプロバイダー | Android システムは、`MoEFireBaseMessagingService` よりもアプリのメッセージングサービスを優先します。 | データを手動で渡す: カスタムの `FirebaseMessagingService` でペイロードとトークンを受け取ります。データが MoEngage プラットフォームから送信されたものである場合は、[それらを MoEngage SDK](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display) の API に渡してください。 |
+
+    <Info>
+      10.4.0 未満のバージョンでは、MoEngage SDK が通知を表示するために、`AndroidManifest.xml` ファイルに `MoEFireBaseMessagingService` を追加する必要があります。[こちら](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display)を参照してください。
+    </Info>
+    **トークン登録時のコールバック（オプション）**\
+    新しいトークンが登録されたとき、またはトークンが更新されたときにオプションのコールバックを受け取るには、[こちら](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#token-callback-access-to-push-token-optional)の方法を参照してください。
+
+    **通知クリック時のコールバック**\
+    プッシュがクリックされたときにコールバックを受け取り、リダイレクトをカスタム処理するには、[こちらの記事](/ja/developer-guide/android-sdk/push/advanced/callbacks-and-customisation#notification-clicked-callback)の方法を使用してください。
+  </Tab>
+  <Tab title="Android ネイティブでプッシュを処理する">
+    **MoEngage の登録をオプトアウトする方法**\
+    MoEngage SDK はプッシュトークンの登録を試みます。アプリケーション側でプッシュを処理する場合は、[こちらの記事](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#how-to-opt-out-of-moengage-push-token-registration)の方法を使用して、SDK のトークン登録をオプトアウトする必要があります。
+
+    **プッシュトークンを MoEngage SDK に渡す** - FCM からプッシュトークンを受信した後、[こちらの記事](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#how-to-opt-out-of-moengage-push-token-registration)の方法を使用してプッシュトークンを MoEngage SDK に渡し、MoEngage プラットフォームに設定します。
+
+    **プッシュペイロードを MoEngage SDK に渡す** - アプリでプッシュペイロードを受信した後、[こちらの記事](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display#passing-the-push-payload-to-the-moengage-sdk)の方法を使用してデバイスにプッシュ通知を送信します。
+  </Tab>
+  <Tab title="Flutter でプッシュを処理する（非推奨）">
+    <Warning>
+      プッシュペイロードを MoEngage SDK に渡す際は、Flutter/Dart API ではなく Android ネイティブ API を使用することをお勧めします。アプリケーションが強制終了状態にある場合、Flutter Engine が初期化されない可能性があり、プッシュの到達率や配信率の低下につながります。
+    </Warning>
+    - [プッシュトークンを MoEngage SDK に渡す](/ja/developer-guide/flutter-sdk/push/basic/android-push-configuration#passing-push-token)
+    - [プッシュペイロードを MoEngage SDK に渡す](/ja/developer-guide/flutter-sdk/push/basic/android-push-configuration#basic-setup)
+    - [コールバックとカスタマイズ](/ja/developer-guide/flutter-sdk/push/basic/android-push-configuration#customizing-push-notification)
+
+    **通知クリック時のコールバック -** MoEngage の Flutter プラグインは、[こちらの記事](/ja/developer-guide/flutter-sdk/push/basic/push-callback)の方法で、プッシュクリック時のコールバックをオプションで提供します。
+  </Tab>
+</Tabs>
+
+# プッシュ用の Flutter API
+
+MoEngage にプッシュトークンの登録と表示を処理させる場合、または Android ネイティブのメソッドを使用してトークンとペイロードを MoEngage SDK に渡す場合は、このセクションを完全にスキップできます。
+
+MoEngage SDK の Flutter API を使用してトークンとペイロードを MoEngage SDK に渡したい場合は、引き続きお読みください。
+
+<Warning>
+  プッシュペイロードを MoEngage SDK に渡す際は、Flutter/Dart API ではなく Android ネイティブ API を使用することをお勧めします。アプリケーションが強制終了状態にある場合、Flutter Engine が初期化されない可能性があり、プッシュの到達率や配信率の低下につながります。
+</Warning>
+
+## プッシュトークンを渡す
+
+<CodeGroup>
+
+```auto Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.passFCMPushToken();
+```
+
+</CodeGroup>
+
+## プッシュ通知のカスタマイズ
+
+必要に応じて、アプリケーションはネイティブ Android コード（Java/Kotlin）を使用して通知の動作をカスタマイズできます。カスタマイズの詳細については、[高度なプッシュ設定](/ja/developer-guide/android-sdk/push/advanced/callbacks-and-customisation)のドキュメントを参照してください。上記のドキュメントに記載されている **_PushMessageListener_** を拡張する代わりに、**_PluginPushCallback._** を拡張してください。
+
+Push Amp+、プッシュテンプレート、ジオフェンスについては、以下のドキュメントを参照してください。
+
+- [Push Amplification](/ja/developer-guide/android-sdk/push/optional/push-amplification)
+- [Push Amp Plus](/ja/developer-guide/android-sdk/push/optional/push-amp-plus/push-amp-plus-integration)
+- [プッシュテンプレート](/ja/developer-guide/android-sdk/push/optional/push-templates)
+- [ジオフェンスプッシュ](/ja/developer-guide/android-sdk/push/optional/location-triggered)

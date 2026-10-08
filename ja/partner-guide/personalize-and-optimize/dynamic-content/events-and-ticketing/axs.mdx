@@ -1,0 +1,57 @@
+---
+title: "AXS"
+description: "Content API を使用して、TicketsData アグリゲーターフィード経由で AXS のライブイベントとチケット在庫を MoEngage キャンペーンに取り込みます。"
+---
+
+[AXS](https://www.axs.com) は、米国、英国、ヨーロッパ、および海外市場でコンサート、スポーツ、フェスティバル向けに展開しているグローバルなライブイベントチケッティングプラットフォームです。AXS は、多くの NBA、NHL、プレミアリーグのクラブを含む多数の主要会場やスポーツフランチャイズの公式チケッティングパートナーであり、独自のモバイルファーストのチケット配信システムを運営しています。
+
+## MoEngage × AXS
+
+AXS は現在、キャンペーンのパーソナライゼーション向けの公開イベント検索 API を提供していません。既存の開発者ツールは、入場管理やチケットの引き換えなど、会場運営者のユースケースに限定されています。ご希望に応じて、次の 2 つの方法を利用できます。
+
+- **直接アクセス** : [solutions.axs.com/us/partnerships-integrations](https://solutions.axs.com/us/partnerships-integrations/) から AXS のパートナーシップチームに連絡し、個別の API アクセスについてご相談ください。
+- **TicketsData 経由** : 他の主要プラットフォームとともに AXS を含む統合フィードを構築しているサードパーティのアグリゲーターである [TicketsData](https://ticketsdata.com) を通じて接続します。以下の統合手順では、この方法について説明します。
+
+# 統合
+
+<Warning>
+  **公開 API はありません**
+
+  キャンペーンのパーソナライゼーションに使用できる AXS の公開イベント検索 API は、現在直接提供されていません。以下の手順では TicketsData を利用する方法について説明しており、TicketsData のフィードで AXS のサポートが開始され次第、設定できるようになります。最新の状況については [TicketsData AXS integration overview](https://ticketsdata.com/blog/axs-tickets-api) を確認するか、[solutions.axs.com/us/partnerships-integrations](https://solutions.axs.com/us/partnerships-integrations/) から AXS のパートナーシップチームに直接お問い合わせください。
+</Warning>
+
+## ステップ 1: TicketsData の認証情報を取得する
+
+TicketsData は、Ticketmaster、StubHub、SeatGeek などの複数の主要プラットフォームの在庫データを単一のエンドポイントに正規化する、統合チケッティングデータ API です。AXS のサポートは、専用プランで近日提供予定とされています。
+
+1. [ticketsdata.com/blog/axs-tickets-api](https://ticketsdata.com/blog/axs-tickets-api) または [ticketsdata.com/docs](https://ticketsdata.com/docs) で、AXS が TicketsData フィードに追加される時期に関する最新情報を確認します。
+2. 利用可能になったら、[ticketsdata.com](https://ticketsdata.com) で TicketsData アカウントに登録し、API 認証情報（ユーザー名とパスワード）を取得します。
+3. キャンペーンのパーソナライゼーションの対象とする特定の AXS イベント URL を特定します。TicketsData は、ライブプラットフォームのイベント URL をキーとして在庫を取得します。例: `https://www.axs.com/events/12345/artist-name-tickets`
+
+## ステップ 2: MoEngage で Content API を設定する
+
+- **Dashboard \> Settings \> APIs** に移動し、**Content API** タブを開きます。
+- _Add Content API_ をクリックします。
+- 以下の表を参考に詳細を入力します。
+
+| キー | 値 |
+| --- | --- |
+| **Name** | わかりやすい名前を選択します（例: `AXS Events via TicketsData`）。この名前は、キャンペーンテンプレート内で API を参照する際の識別に使用されます。 |
+| **Method** | GET |
+| **API URL** | `https://ticketsdata.com/fetch`  これは TicketsData の統合 fetch エンドポイントです。プラットフォーム名とイベント URL をクエリパラメーターとして渡すと、正規化されたチケット在庫が返されます。パラメーターの詳細については、[TicketsData API documentation](https://ticketsdata.com/docs) を参照してください。 |
+| **Key Value Parameters** |  |
+
+| パラメーター | 値の例 | 備考 |
+| --- | --- | --- |
+| `username` | _TicketsData のメールアドレス_ | TicketsData アカウントのメールアドレスです。静的な値にしてください。 |
+| `password` | _TicketsData のパスワード_ | TicketsData アカウントのパスワードです。安全に保管してください。 |
+| `platform` | `axs` | ソースプラットフォームとして AXS を指定します。静的な値として設定してください。 |
+| `event_url` | `https://www.axs.com/events/...` | 特定のイベントの AXS イベントページの完全な URL です。Content API の設定ごとに静的な値にできます。 |
+
+- **Validate** をクリックしてプラットフォームからレスポンスが返されることを確認し、**Save** をクリックします。これで、サポートされているすべてのチャネルのあらゆるキャンペーンで Content API を参照できるようになります。
+
+保存後、キャンペーンテンプレート内でレスポンスフィールドを参照する方法については、MoEngage ドキュメントの [キャンペーンでの Content API の使用](/ja/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を参照してください。
+
+## API レスポンスについて
+
+TicketsData API は、プラットフォームの生のレスポンスを標準のエンベロープでラップします。AXS のデータが利用可能になった際にキャンペーンテンプレートで最もよく使用されるフィールドを以下に示します。正確なフィールド名は、AXS のサポートが開始された時点で [TicketsData documentation](https://ticketsdata.com/docs) にて確認されます。

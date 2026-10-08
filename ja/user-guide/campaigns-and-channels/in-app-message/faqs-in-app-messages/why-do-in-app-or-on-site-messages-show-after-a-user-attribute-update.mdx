@@ -1,0 +1,39 @@
+---
+title: "ユーザー属性を更新した後も In-App または On-Site メッセージが表示されるのはなぜですか？"
+description: "ユーザーを除外するはずのユーザー属性が変更された後も In-App または On-Site キャンペーンが表示される理由と、リアルタイムの適格性チェックを強制する方法について説明します。"
+keywords: "in-app eligibility, cached segment, user attribute update, re-evaluate campaign eligibility, MOE_NOT_SEND, on-site messaging"
+---
+
+## 問題
+
+キャンペーンのターゲットセグメントからユーザーを除外するはずのユーザー属性を更新しても、そのユーザーに In-App または On-Site メッセージが表示され続けます。
+
+## この問題が発生する理由
+
+ユーザー属性ベースのセグメントをターゲットとするキャンペーンの場合、MoEngage は In-App および On-Site メッセージの適格性を、最新の属性値ではなくキャッシュされたセグメントの状態に基づいて評価します。最近の属性変更はリアルタイムには反映されないため、更新後もしばらくの間はユーザーが適格な状態のままとなる場合があります。
+
+これはデフォルト設定における想定どおりの動作です。
+
+## In-App キャンペーンでリアルタイムの適格性を取得する
+
+In-App キャンペーンを作成する際に、**Re-evaluate campaign eligibility before displaying** をオンにします。このトグルをオンにすると、キャンペーンがトリガーされた時点で SDK がバックエンドに対してユーザーの現在の属性を確認し、ユーザーが適格でなくなっている場合はキャンペーンを破棄します。
+
+詳細については、[キャンペーンの適格性の再評価](/ja/user-guide/campaigns-and-channels/in-app-message/create/create-in-app-campaign#re-evaluate-campaign-eligibility)を参照してください。
+
+<Info>
+  再評価は、一度に最大 5 つの In-App キャンペーンに対してオンにできます。
+</Info>
+
+## Jinja でメッセージを抑制する
+
+キャンペーンで再評価を利用できない場合（たとえば、5 つのキャンペーンの上限に達している場合など）は、この方法を使用します。
+
+キャンペーンのターゲットをすべてのユーザーに設定し、ユーザー属性に対して Jinja を使用してコンテンツを表示するかどうかを判定します。
+
+```text wrap
+{% if User.plan == 'free' %}Upgrade to Pro today{% else %}MOE_NOT_SEND{% endif %}
+```
+
+条件が `MOE_NOT_SEND` に解決されると、MoEngage はメッセージを配信しません。Jinja はメッセージのレンダリング時に評価されるため、キャッシュされたセグメントではなく現在の属性値が読み取られます。この方法は、HTML キャンペーンと非 HTML キャンペーンの両方で機能します。
+
+詳細については、[Jinja テンプレート言語を使用したコンテンツのパーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/overview#personalize-content-using-the-jinja-templating-language)を参照してください。

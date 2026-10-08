@@ -1,0 +1,199 @@
+---
+title: "ダークモードとライトモードに基づくアプリ内 HTML テンプレートの設定"
+description: "MoEngage で CSS メディアクエリと prefers-color-scheme を使用して、カスタム HTML アプリ内テンプレートのダークモードとライトモードの自動切り替えを設定します。"
+---
+
+# 概要
+
+この記事では、任意のカスタム HTML アプリ内テンプレートでライトモードとダークモードを自動的に切り替える方法について説明します。この方法はどのような HTML 構造にも使用でき、独自のアプリ内メッセージテンプレートをユーザーのシステムカラースキーム設定に合わせて調整できます。
+
+ユーザーのシステム設定に基づいてカスタム HTML テンプレートのライトモードとダークモードを自動的に切り替えるには、CSS メディアクエリを使用できます。この軽量なアプローチにより、アプリ内メッセージがユーザーの設定にシームレスに適応します。使用する主な CSS ツールは、`prefers-color-scheme` メディアクエリと `color-scheme` プロパティです。
+
+- `prefers-color-scheme` **メディアクエリ**: この CSS 機能は、ユーザーのシステムがライトモードとダークモードのどちらに設定されているかを検出します。このメディアクエリを使用して、システム設定に応じて異なるスタイルを適用し、洗練されたユーザーフレンドリーなアプリ内メッセージ体験を提供できます。このメディアクエリは最新のブラウザーと WebView で動作し、アプリ内メッセージとの互換性が確保されています。
+- `color-scheme` **プロパティ**: このプロパティは、テンプレートがライトモードとダークモードの両方をサポートしていることをブラウザーに伝え、特定の要素（フォームコントロールなど）のレンダリングを改善できます。\
+  これらのツールを使用すると、テンプレートはユーザーのシステム設定に基づいて外観を動的に調整し、ユーザビリティとアクセシビリティが向上します。
+
+# 実装手順
+
+## ステップ 1: カスタム HTML テンプレートから始める
+
+既存の HTML コードをベースとして使用します。ライトモードとダークモード用に別々のファイルを用意する必要はありません。1 つのテンプレート内で CSS が切り替えを処理します。アプリ内 HTML テンプレートの詳細については、[HTML アプリ内テンプレート](/ja/user-guide/campaigns-and-channels/in-app-message/templates/html-in-app-templates)および[サンプル HTML アプリ内テンプレート](/ja/user-guide/campaigns-and-channels/in-app-message/templates/sample-html-in-app-templates)を参照してください。
+
+## ステップ 2: ライトモードとダークモード用に CSS を構成する
+
+ライトモードとダークモードの両方のスタイルを定義するように CSS を整理します。
+
+- **基本スタイルを定義する**: 特定のカラースキームが検出されない場合、またはユーザーのシステムがライトモードの場合に適用されるデフォルトのスタイルです。通常は、これがライトモードのスタイルになります。背景、テキスト、ボタン、コンテナーなど、テンプレート内のすべての主要な要素のスタイルを含めてください。
+- **メディアクエリでダークモードのスタイルを追加する**: ダークモード専用のスタイルを上書きまたは追加するには、`@media
+  (prefers-color-scheme: dark)` クエリを使用します。これらのスタイルは、ユーザーのシステムがダークモードに設定されている場合に有効になります。
+
+CSS の構成例を次に示します。
+
+CSS
+
+```css wrap
+/* Base styles (default for light mode) */
+body {
+background-color: #ffffff; /* White background */
+color: #000000; /* Black text */
+}
+.container {
+background-color: #f0f0f0; /* Light gray container */
+}
+button {
+background-color: #007bff; /* Blue button */
+color: #ffffff; /* White text */
+}
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+body {
+background-color: #121212; /* Dark background */
+color: #ffffff; /* White text */
+}
+.container {
+background-color: #333333; /* Dark gray container */
+}
+button {
+background-color: #ffffff; /* White button */
+color: #000000; /* Black text */
+}
+}
+```
+
+### 主なポイント
+
+上記のコードでは、次のようになっています。
+
+- **基本スタイル**: デフォルトで適用され、ライトモードでテンプレート内のすべての要素をカバーする必要があります。
+- **ダークモードのスタイル**: メディアクエリがダークモード用にスタイルを調整し、ユーザーの設定が変更されたときにスムーズに切り替わるようにします。
+- **柔軟性**: クラス名（例: container や button）やプロパティは、テンプレートの構造に合わせて調整してください。
+
+## ステップ 3: color-scheme プロパティを使用する
+
+CSS のルートに `color-scheme` プロパティを追加して、テンプレートが両方のモードをサポートしていることを示します。
+
+CSS
+
+```css
+css
+:root {
+color-scheme: light dark;
+}
+```
+
+これにより、次のことが可能になります。
+
+- コンテンツがライトモードとダークモードの両方に対応していることをブラウザーが理解できるようになります。
+- ネイティブ要素（フォーム入力、スクロールバーなど）がユーザーの設定に合わせて自動的に調整されます。
+
+これを CSS ファイルの先頭に含めてください。
+
+## ステップ 4: テンプレートの要素のスタイルをカスタマイズする
+
+HTML テンプレートはそれぞれ固有であるため、カラースキームに適応させる必要がある要素を特定します。スタイルを設定する一般的な要素は次のとおりです。
+
+- **背景**: body、セクション、モーダル、その他のコンテナー。
+- **テキスト**: 見出し、段落、リンク、ラベル。
+- **インタラクティブ要素**: ボタン、フォーム、ナビゲーション項目。
+- **オーバーレイ**: モーダルの背景やポップアップ。
+
+各要素について、次の手順に従います。
+
+- 基本スタイル（ライトモード）では、明るい背景に適した色（例: 明るい背景に暗いテキスト）を使用します。
+- ダークモードのメディアクエリでは、暗い背景に合わせて色を調整します（例: 暗い背景に明るいテキスト）。
+
+テンプレートで CSS フレームワーク（例: Bootstrap）を使用している場合は、ダークモードのメディアクエリでフレームワーク固有のクラスを上書きする必要がある場合があります。例:
+
+CSS
+
+```css
+css
+  /* Light mode default */
+  .bg-custom {
+  background-color: #e9ecef;
+  }
+  /* Dark mode styles */
+  @media (prefers-color-scheme: dark) {
+  .bg-custom {
+  background-color: #444444;
+  }
+  }
+```
+
+![Screenshot 2025-03-19 at 2.42.27 PM.png](/images/moengage_d25be3.png)
+
+![Screenshot 2025-03-19 at 2.46.54 PM.png](/images/moengage_9d5a96.png)
+
+## ステップ 5. CSS を HTML にリンクする
+
+CSS が HTML ファイルの `<head>` セクションでリンクされていることを確認します。
+
+HTML
+
+```css wrap
+<link rel="stylesheet" href="path/to/your/custom.css">
+```
+
+テンプレートですでに他のスタイルシートを使用している場合は、カスタム CSS をそれらの後に配置して、独自のスタイルが優先されるようにします。
+
+## ステップ 6. 実装をテストする
+
+テンプレートが想定どおりに動作することを確認するために、両方のモードでテストします。
+
+- **ライトモード**: システムをライトモードに設定し、基本スタイルが正しく適用されていることを確認します。
+  <img
+    alt="Screenshot 2025-03-19 at 2.19.11 PM.png"
+    src="/images/moengage_351014.png"
+    style={{ width:"42%" }}
+  />
+- **ダークモード**: ダークモードに切り替え、メディアクエリのスタイルが基本スタイルを適切に上書きしていることを確認します。
+  <img
+    alt="Screenshot 2025-03-19 at 2.18.11 PM.png"
+    src="/images/moengage_558f0f.png"
+    style={{ width:"43%" }}
+  />
+
+詳細については、[アプリ内キャンペーンのテスト](/ja/user-guide/campaigns-and-channels/in-app-message/create/test-your-in-app-campaign)を参照してください。
+
+# 例
+
+カスタム HTML 構造でどのようになるかを示すテンプレートの例を次に示します。
+
+HTML
+
+```html wrap
+<!DOCTYPE html><html lang="en"><head><title>Lunar - Free Bootstrap Modal and Popups</title><!-- Required meta tags --><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no"><!-- Bootstrap CSS --><link rel="stylesheet" href="https://campaign-assets-pp.moengage.com/html-template2/assets/bootstrap/css/bootstrap.min.css"><!-- Lunar CSS --><link rel="stylesheet" href="https://campaign-assets-pp.moengage.com/html-template2/assets/css/lunar.css"><!-- Fonts --><link rel="stylesheet" href="https://campaign-assets-pp.moengage.com/html-template2/assets/css/animate.min.css"><link href="https://fonts.googleapis.com/css?family=Work+Sans:600" rel="stylesheet"><link href="https://fonts.googleapis.com/css?family=Overpass:300,400,600,700,800,900" rel="stylesheet"><link rel="icon" type="image/x-icon" href="https://campaign-assets-pp.moengage.com/html-template2/assets/img/lunar.png" /><link rel="icon" href="https://campaign-assets-pp.moengage.com/html-template2/assets/img/lunar.png" type="image/png" sizes="16x16"><!-- Custom CSS for light and dark mode --><style>:root {color-scheme: light dark;}/* Base styles for light mode */body {background-color: #ffffff;color: #000000;}.modal-content {background-color: #ffffff;}.modal-body {color: #000000;}.text-muted {color: #6c757d !important;}.btn-cstm-dark {background-color: #343a40;color: #ffffff;}.btn-cstm-dark:hover {background-color: #23272b;}.modal-backdrop {background-color: rgba(0, 0, 0, 0.5);}/* Dark mode styles */@media (prefers-color-scheme: dark) {body {background-color: #121212;color: #ffffff;}.modal-content {background-color: #1e1e1e;}.modal-body {color: #ffffff;}.text-muted {color: #a9a9a9 !important; /* Lighter gray for muted text */}.btn-cstm-dark {background-color: #ffffff;color: #000000;}.btn-cstm-dark:hover {background-color: #e0e0e0;}.modal-backdrop {background-color: rgba(255, 255, 255, 0.2);}/* Adjust image for dark mode if needed */img {filter: brightness(0.8); /* Optional: slightly dim image for dark mode */}}</style></head><body class="modal-open"><!-- Modal --><div class="modal show" id="demoModal" tabindex="-1" role="dialog" aria-labelledby="demoModal" aria-hidden="true" style="display: block;"><div class="modal-dialog modal-dialog-centered" role="document"><div class="modal-content"><button type="button" id="close-btn" class="close close-btn light" data-dismiss="modal" onclick="moengage.trackDismiss('close-btn'); moengage.dismissMessage()" aria-label="Close"><span aria-hidden="true">×</span></button><div class="py-5 text-center rounded-top" style="background-color: #3E4676; background-size: 10px; background-repeat: repeat-x; background-position: 0 100.1%;"><img src="https://campaign-assets-pp.moengage.com/html-template2/assets/img/onboard.svg" alt="Welcome Image"></div><div class="modal-body"><div class="text-center"><h3 class="pt-3">Welcome On Board</h3><p class="text-muted">Ready to discover what's possible?</p><a href="#" id="get started cta" class="btn btn-cstm-dark btn-cta" data-dismiss="modal" aria-label="Close" onclick="moengage.openRichLanding('https://www.moengage.com'); moengage.trackClick('get started cta'); moengage.dismissMessage()">Get Started</a></div></div></div></div></div><!-- Modal Ends --><div id="image"></div><script src="https://campaign-assets-pp.moengage.com/html-template2/assets/js/jquery.min.js"></script><script src="https://campaign-assets-pp.moengage.com/html-template2/assets/js/popper.min.js"></script><script src="https://campaign-assets-pp.moengage.com/html-template2/assets/bootstrap/js/bootstrap.min.js"></script><script src="https://campaign-assets-pp.moengage.com/html-template2/assets/js/lunar.js"></script><div class="modal-backdrop show"></div></body></html>
+```
+
+この例では、次のようになっています。
+
+- 基本スタイルでライトテーマを定義しています。
+- ダークモードのメディアクエリでダークテーマ用にスタイルを調整しています。
+
+# その他の考慮事項
+
+### 画像とアイコンの扱い
+
+テンプレートに、両方のモードで見栄えがよくない画像やアイコン（例: 暗い背景上の暗いアイコン）が含まれている場合は、次のようにします。
+
+- モードごとに代替バージョンを用意し、CSS を使用して切り替えます。
+- CSS フィルターを使用して視認性を調整します。
+
+CSS
+
+```css
+css
+@media (prefers-color-scheme: dark) {
+.custom-icon {
+filter: invert(1); /* Inverts the icon color */
+}
+}
+```
+
+### アクセシビリティの確保
+
+選択した色が両方のモードで十分なコントラストを提供していることを確認し、外部ツールで読みやすさを検証してください。
+
+### フレームワーク固有の調整
+
+テンプレートで CSS フレームワークを使用している場合は、自動的に適応しないフレームワークのクラスを上書きしてください。HTML 内でこれらのクラスを特定し、必要に応じてダークモードのメディアクエリで調整します。

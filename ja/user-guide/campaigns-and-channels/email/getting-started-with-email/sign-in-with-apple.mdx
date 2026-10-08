@@ -1,0 +1,72 @@
+---
+title: "Sign In With Apple"
+description: "Sign in with Apple ユーザーに Eメールを配信するために Apple デベロッパーアカウントを構成します。MoEngage でプライベートリレー Eメールアドレスからのバウンスを防止します。"
+---
+
+アプリまたはウェブサイトが Sign in with Apple をサポートしている場合は、Apple デベロッパーアカウントを構成する必要があります。これにより、Apple Relay ID (@privaterelay.appleid.com で終わる Eメールアドレス) を使用するユーザーに Eメールが確実に配信されます。この構成を行わないと、Apple のプライベートリレーサービスによって Eメールがバウンスまたは隔離され、ユーザーが受信トレイでメッセージを受け取れなくなる可能性があります。詳細については、[Sign In With Apple](https://support.apple.com/en-us/HT210318)を参照してください。
+
+# Sign In with Apple
+
+<img
+  alt="SignInWithApple.png"
+  src="/images/moengage_d154ab.png"
+  style={{ width:"84%" }}
+/>
+
+iOS 13 のリリースに伴い、Apple は Sign in with Apple 機能を導入しました。これにより、ユーザーは Apple ID を使用してウェブサイトやアプリで認証またはサインインできます。このリリースでは、_Hide My Email_ と呼ばれるプライバシー機能が利用可能になりました。実際の Eメールアドレスを共有したくないユーザーは、アプリ固有の一意の Eメールアドレスを作成できます。これらは _Apple private relay_ Eメールアドレスと呼ばれ、次の形式を使用します: _`<unique-alphanumeric-string>@privaterelay.appleid.com_`。詳細については、[Hide My Email](https://support.apple.com/en-gb/HT210425)を参照してください。
+
+**Apple Relay ID はどのように機能しますか？**
+
+ユーザーがサービスに Eメールアドレスを公開したくない場合は、"Apple private relay" Eメールアドレスと呼ばれるアプリ固有の Eメールアドレスを作成して、アドレスを非表示にできます。この場合、サービスが参照できるのは Apple Relay ID のみであり、それを Eメールコミュニケーションに使用できます。これらの Apple リレーアドレスに送信された Eメールは、ユーザーのメールボックスに自動的に転送されます。
+
+<Info>
+  送信者が、自身のサービスに関連付けられていない別のプライベートリレーアドレスに Eメールを送信しようとしたとします。その場合、Eメールは '_unauthorized sender'._ という理由でバウンスされます。これにより、プライベートリレーアドレスが共有された場合でも、スパム Eメールがユーザーのメールボックスに届かないようになっています。
+</Info>
+
+# Apple デベロッパー構成
+
+ユーザーのアプリ固有の Eメールアドレスに Eメールが確実に配信されるよう、Apple は Eメールを正常に配信するために送信者/開発者が実行する必要がある一連の手順を定めています。
+
+1. Apple Developer アカウントにログインします。
+2. Apple Developer アカウントで **Certificates, Identifiers & Profiles** に移動します。詳細については、[Apple Resources](https://developer.apple.com/account/resources)を参照してください。
+3. サイドバーで **Services** をクリックします。
+4. Sign in with Apple for Email Communication の下にある **Configure** をクリックします。
+5. **Email Sources** セクションで、追加ボタン (**\+**) をクリックします。
+6. Eメールコミュニケーションに使用する "Individual Email Addresses" または "return-path/envelope domains" のカンマ区切りリストを入力します。
+   - [SendGrid 構成の個別 Eメールアドレスを確認する](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/sign-in-with-apple#find-the-individual-email-addresses-for-sendgrid-configuration)
+   - [その他の構成のエンベロープドメインを確認する](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/sign-in-with-apple#find-the-envelope-domains-for-other-configurations) 
+7. **Next** をクリックします。
+8. 入力した Eメールソースを確認し、**Register** をクリックします。登録された Eメールソースが SPF チェックに合格したかどうかがテーブルに表示されます。
+
+<Info>
+  SPF 失敗と表示されるソースがある場合は、[DNS 構成](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-authentication-basics#what-are-dns-records)を確認してください。
+</Info>
+
+## SendGrid 構成の個別 Eメールアドレスを確認する
+
+Sign In With Apple アドレスの形式は [_bounces\+12345@mail.example.com_](mailto:bounces+12345@mail.example.com) です。ここで、_12345_ は SendGrid アカウント ID、_mail.example.com_ は SendGrid アカウントで認証済みのドメインです。
+
+1. SendGrid アカウントにログインします。
+2. **Settings** \> **Sender Authentication** \> **Domain Authentication** に移動します。
+3. Sign In With Apple Address をコピーします。
+   ![Apple 1.png](/images/moengage_0fee29.png)
+
+<Info>
+  SendGrid アカウントに複数のドメインを設定している場合は、それぞれを追加する必要があります。
+</Info>
+
+MoEngage-SendGrid アカウントの場合は、Apple Developer アカウントに追加する必要がある "Sign In With Apple Address" について、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームにお問い合わせください。
+
+## その他の構成のエンベロープドメインを確認する
+
+1. 構成済みのすべてのドメインから、自分宛て (できれば Gmail ID 宛て) に Eメールを送信します。
+2. 以下に示すように、送信者 ID の下にある小さな逆三角形の記号をクリックします。
+   ![Apple 2.png](/images/moengage_ae97a9.png)
+3. ヘッダー情報で **mailed-by** フィールドを確認します。これが送信ドメインのリターンパス/エンベロープドメインです。
+4. 構成済みのすべての "from addresses" についてこれを繰り返します。
+
+<Info>
+  認証エラーがある場合は、まず [DNS レコード](https://moengage-user-guide.mintlify.app/user-guide/campaigns-and-channels/email/getting-started-with-email/email-authentication-basics#what-are-dns-records)を構成してください。
+</Info>
+
+MoEngage-\<service\_provider\> アカウントの場合は、Apple Developer アカウントに追加する必要がある "Sign In With Apple Address" について、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームにお問い合わせください。

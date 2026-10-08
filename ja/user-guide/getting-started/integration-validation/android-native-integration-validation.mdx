@@ -1,0 +1,405 @@
+---
+title: "Android ネイティブ連携の検証"
+description: "MoEngage Android SDK の連携をダッシュボードから直接検証します。プッシュ通知などの機能実装をテストし、問題をより迅速に修正できます。"
+---
+
+# 概要
+
+_Integration Validation_ 機能は、MoEngage ダッシュボードから Android SDK の機能実装を直接検証できるインターフェースを提供することで、MoEngage Android SDK と対象アプリケーションの連携を簡素化します。\
+開発者は、複雑な手順や要件の誤解により、Android SDK の機能実装で課題に直面することがよくあります。たとえば、プッシュ通知の設定時に、リッチ通知などのいくつかの重要な設定を見落とす場合があります。\
+この機能により、開発者とマーケターは実装を独自にテストおよび検証でき、正確性を確保しながらサポートチームへの依存を減らすことができます。連携プロセスを強化し、エラーを最小限に抑え、シームレスなマーケティングコミュニケーションとユーザーエンゲージメントを実現します。
+
+# 対象範囲
+
+連携検証機能では、次の機能を検証できます。
+
+- データトラッキング
+- プッシュ通知
+- プッシュテンプレート
+
+連携検証では、次の機能は検証できません。
+
+- In-App Messaging
+- Cards
+- Push
+  - Location Triggered Push
+  - Push Notification Centre
+  - Push Amplification
+  - HMS Push
+- データ
+  - カスタム属性: 属性名とその値の名前、構文、データ型の検証は対象外です。
+  - カスタムイベント: イベント名、イベント属性名、およびそれらの値の名前、構文、データ型の検証は対象外です。
+
+<Tip>
+  **前提条件**
+
+  連携検証機能は、13.4.00 以降にリリースされたすべての SDK バージョンをサポートしています。
+</Tip>
+
+# 連携検証用のデバイスを登録する
+
+連携検証用にデバイスを登録するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Test & Debug** をクリックし、**Integration validation** をクリックします。 <img src="/images/moengage_c8d13c.png" alt="GIF1.gif" />
+2. **Integration Validation** ページで、モバイルデバイスの任意の QR リーダーアプリを使用して QR コードをスキャンし、デバイスを登録します。
+3. ランディングページで **Click here** を選択して続行すると、候補のアプリからアプリケーションを選択できます。
+   <Info>
+     - 目的のアプリケーションを表示するには、正しい SDK バージョン(13.4.00 以上)であることを確認してください。
+     - MoEngage システムに **system Debugger** ページが表示され、アプリがデバッガーモードになり、検証の準備が整います。
+   </Info>
+   #### デバッガーモードのエラーパス
+   目的のアプリで **system Debugger** ページが表示されない理由は次のとおりです。
+   - 誤ったダッシュボードをスキャンした。
+   - ダッシュボードのテスト環境をスキャンした。
+   - 誤ったアプリ ID またはデータセンター(DC)を設定した。詳細については、[こちら](/ja/developer-guide/unity-sdk/sdk-integration/sdk-initialization/sdk-initialization)を参照してください。
+4. デバイスを登録すると、MoEngage システムは MoEngage ダッシュボードに **Session Logs** を読み込みます。 <img src="/images/moengage_3ce0e9.png" alt="Imagggggeeeeeeeeeeeee.png" />
+5. 対象のアプリを開き、更新アイコン <Icon icon="arrow-rotate-right" iconType="solid" /> をクリックしてセッションログを更新できます。ここでは、セッションに関連付けられた情報を確認できます。_SDK Logger_ 機能を使用すると、セッションに関連付けられた生データを確認できます。詳細については、[こちら](/ja/developer-guide/android-sdk/troubleshooting-and-faqs/how-to-use-the-moengage-sdk-logger)を参照してください。 <img src="/images/moengage_9c0982.png" alt="Integrationvalidation2.gif" />
+   | フィールド | 説明 |
+   | --- | --- |
+   | Session Details | デバイス ID、セッションの開始日時を示します。 |
+   | Device Name | デバイス名を示します。 |
+   | Status | セッションのステータスを示します: <br />**_Live_**: セッションはライブ状態で、セッションの有効期限までの残り時間を確認できます。連携を検証できます。 <br />**_Timed out_**: セッションの有効期限が切れています。セッションの詳細は確認できますが、検証操作は実行できません |
+   <Info>
+     アプリケーションをインストールした直後の場合、MoEngage システムがユーザーのデバイス詳細を取得するまでに約 5 分のバッファ期間が必要です。
+   </Info>
+6. 該当するセッションをクリックすると、関連する **session** ページが開きます。 <img src="/images/moengage_7c1321.png" alt="Integrationbalidation3.gif" />
+
+# 連携検証セッション
+
+1. **session** ページで **User Info.** をクリックすると、ライブセッションに関連付けられたユーザーの詳細を確認できます。**User Profile** ページにリダイレクトされます。 <img src="/images/moengage_51f49e.png" alt="Integrationvalidation4final.gif" />
+2. **Activity Info** をクリックすると、現在のユーザーが実行したすべてのイベントの詳細な概要を確認できます。 <img src="/images/moengage_9a3f05.png" alt="Integrationvalidation5.gif" />
+   <Info>
+     **User Info** タブと **Activity Info** タブには、ダッシュボードユーザーではなく、現在のセッションユーザーに関する詳細が表示されます。
+   </Info>
+3. **session** ページでは、次の情報を確認できます。 <img src="/images/moengage_1fd43c.png" alt="Integrationvalidation7.gif" />
+
+<Tabs>
+  <Tab title="Device Info">
+    | フィールド | 説明 |
+    | --- | --- |
+    | OS Version | デバイスのオペレーティングシステムのバージョンを示します。 |
+    | API level | デバイスの Android API レベルを示します。 |
+    | Model Name | ユーザーデバイスのモデル名を示します。 |
+    | Manufacturer | デバイスの製造元を示します。 |
+    | Google Advertising Identifier (GAID) | デバイスの広告用の一意の識別子を示します。詳細については、[こちら](/ja/user-guide/data/privacy/android-advertising-id-tracking)を参照してください。 |
+    | Device Density | デバイスの画面密度を示します。 |
+    | Device Width | デバイス画面の幅(ピクセル単位)を示します。 |
+    | Device Height | デバイス画面の高さ(ピクセル単位)を示します。 |
+    | Network Type | デバイスが接続しているネットワークの種類(Wi-Fi、モバイルデータなど)を示します。 |
+    | Device Timezone | デバイスに設定されているタイムゾーンを示します。 |
+    | App version | デバイスにインストールされているアプリのバージョンを示します。 |
+    | FCM Push token | プッシュ通知用の Firebase Cloud Messaging (FCM) トークンを示します。詳細については、[こちら](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)を参照してください。 |
+    | Push permission | デバイスでプッシュ通知の権限が有効になっているかどうかを示します。 |
+  </Tab>
+  <Tab title="SDK Config">
+    | フィールド | 説明 |
+    | --- | --- |
+    | SmallIcon | 通知バーに表示される小さいアイコンが設定されているかどうかを示します。 |
+    | largeIcon | 展開された通知ビュー内に表示される大きいアイコンが設定されているかどうかを示します。 |
+    | notificationcolor | 通知アイコンまたは背景の色が設定されているかどうかを示します。 |
+    | isMultipleIntegrationInDrawerEnabled | ドロワーで複数の連携が有効になっているかどうかを示します。 |
+    | IsBuildingBackStackEnabled | ナビゲーション用のバックスタックが構築されるかどうかを示します。 |
+    | isLargeIconDisplayEnabled | 通知に大きいアイコンが表示されるかどうかを示します。 |
+  </Tab>
+  <Tab title="Modules Integrated">
+    この実装の一部として統合されているすべてのモジュールは、**Modules integrated** セクションで確認できます。
+
+    | モジュール | バージョン |
+    | --- | --- |
+    | moe-android-sdk | 13.05.01 |
+    | core | 7.5.0 |
+    | cards-core | 2.3.1 |
+    | cards-ui | 2.4.1 |
+    | encrypted-storage | 2.1.0 |
+    | geofence | 4.2.1 |
+    | pushbase | 8.3.0 |
+    | rich-notifications | 5.1.0 |
+    | pushkit | 5.1.1 |
+    | moe-push-firebase | 7.2.0 |
+    | inapp | 8.7.0 |
+    | inbox-core | 3.2.1 |
+    | inbox-ui | 3.2.1 |
+    | integration-verifier | 5.3.1 |
+    | pushAmp | 5.2.1 |
+    | realtime-trigger | 3.4.1 |
+    | sdk-debugger | 1.2.0 |
+    | security | 3.2.0 |
+    | trigger-evaluator | 1.3.0 |
+    | richNotification | 5.1.1 |
+  </Tab>
+</Tabs>
+
+# 検証手順
+
+<Info>
+  _Not Received_ ステータスは、ログの生成が不十分なことが原因である可能性があります。その場合は、アクションを再度実行するか、アプリをバックグラウンドモードとフォアグラウンドモードの間で切り替えてみてください。ステータスが _Not Received_ のままの場合は、検証に失敗したことを示します。解決方法については、各手順のエラーパスを参照してください。
+</Info>
+
+各検証手順の進捗を追跡するために、次のステータスを確認できます。
+
+| ステータス | 説明 |
+| --- | --- |
+| Not started | この手順の検証が開始されていないことを示します。 |
+| Processing | 手順を追跡するためにアプリでアクションが実行されたことを示します。タイマーが完了するまで待つと、結果を確認できます。 |
+| Validated | この手順の検証が完了したことを示します。 |
+| Not received | 想定されたデータまたはレスポンスを受信していないことを示します。 |
+| Failed | この手順の検証が失敗したことを示します。参考として、この記事では各検証手順で考えられるすべてのエラーパスを記載しています。 |
+
+## データトラッキング
+
+データトラッキングは 5 つの検証手順で構成され、対象アプリのカスタム属性とカスタムイベントを検証できます。データトラッキングを検証するには、**Data tracking** ドロップダウンリストを展開し、次の操作を行います。
+
+![Integrationvalidation888.gif](/images/moengage_ab278f.png)
+
+### カスタム属性
+
+カスタム属性では、希望言語、住所、メンバーシップステータスの確認など、カスタム属性のトラッキングを検証できます。また、MoEngage システムがユーザー定義のデータポイントを正確に取得していることも確認できます。
+
+カスタム属性を検証するには、次の手順を実行します。
+
+1. 対象のアプリを開き、アプリでカスタム属性を設定します。
+2. カスタム属性を設定したら、**Yes, I performed the action** をクリックします。\
+   60 秒間の待機期間があり、その間に MoEngage システムがバックエンドでアクションを検証します。
+3. 検証が完了すると、ステータスが _Not Validated_ から _Validated_ に変わります。
+4. 実装にエラーがある場合、ステータスは _Not Validated_ から _Not Received_ に変わります。その場合は、次のエラーが発生している可能性があります。
+
+#### カスタム属性検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Not Received | アプリケーションで必要なアクションを実行していない場合は、アクションを完了してトラッキングを有効にしてください。 | カスタム属性の実装を確認してください。カスタム属性のトラッキングの詳細については、[こちら](/ja/developer-guide/android-sdk/data-tracking/basic/track-user-attributes)を参照してください。 |
+|  | アクションを実行してもステータスが更新されない場合は、カスタム属性のトラッキングが統合されていない可能性があります。 |  |
+
+### カスタムイベント
+
+カスタムイベントでは、ボタンのクリックや動画の再生などのユーザー定義のインタラクションが正確に記録されていることを検証できます。たとえば、_Product Added to Cart_ イベントが正しい商品 ID でトラッキングされていることを確認します。
+
+カスタム属性を検証するには、次の手順を実行します。
+
+1. 対象のアプリを開き、アプリでカスタムイベントを設定します。
+2. カスタム属性を設定したら、**Yes, I performed the action** をクリックします。\
+   60 秒間の待機期間があり、その間に MoEngage システムがバックエンドでアクションを検証します。
+3. 検証が完了すると、ステータスが _Not Validated_ から _Validated_ に変わります。
+4. 実装にエラーがある場合、ステータスは _Not Validated_ から _Not Received_ に変わります。その場合は、次のエラーが発生している可能性があります。
+
+#### カスタムイベント検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Failed | カスタムイベントがトラッキングされていません(Android ネイティブ)。 | _TrackEvent_ メソッドがカスタムイベントで呼び出されていることを確認してください。 |
+| Failed | カスタムイベントがトラッキングされていません。 | _TrackEvent_ メソッドが SDK の初期化前に呼び出されています。先に SDK を初期化してください。 |
+
+### GAID トラッキング
+
+GAID トラッキングでは、ターゲット広告や分析のために一意の広告識別子が正確に取得および送信されていることを確認できます。GAID トラッキングには、デバイスログの確認と広告プラットフォームとの連携の検証が含まれます。\
+GAID トラッキングのステータスは、デバイスの設定に基づいて自動的に Validated と表示されます。
+
+#### GAID トラッキング検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Not Received | Google Ads ライブラリがありません。 | Google Ads ライブラリを連携に追加してください。詳細については、[こちら](/ja/developer-guide/android-sdk/data-tracking/basic/enable-advertising-identifier-tracking)を参照してください。 |
+|  | `enableAdIdTracking()` メソッドが呼び出されていません。 | AD ID トラッキングを有効にするメソッド呼び出しを追加してください。詳細については、[こちら](/ja/developer-guide/android-sdk/data-tracking/basic/enable-advertising-identifier-tracking)を参照してください。 |
+
+### ログイン
+
+ログインでは、ユーザー認証イベントがログまたは分析システムに正確に記録されていることを確認できます。ログインには、イベントトリガー、ユーザーデータ、セッション作成の検証が含まれます。
+
+ログインを検証するには、次の手順を実行します。
+
+1. 対象のアプリにログインします。
+2. ログインしたら、**Yes, I performed the action** をクリックします。\
+   60 秒間の待機期間があり、その間に MoEngage システムがバックエンドでアクションを検証します。
+3. 検証が完了すると、ステータスが _Not Validated_ から _Validated_ に変わります。
+4. 実装にエラーがある場合、ステータスは _Not Validated_ から _Not Received_ に変わります。その場合は、次のエラーが発生している可能性があります。
+
+#### ログイン検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Failed | ログインメソッドが呼び出されていません。 | コードで `setUniqueId` を呼び出してください。詳細については、[Track User Attributes.](/ja/developer-guide/android-sdk/data-tracking/basic/track-user-attributes) を参照してください。 |
+
+### ログアウト
+
+ログアウトでは、ユーザーのサインアウトイベントが正しくログに記録され、セッションが無効化されていることを確認できます。ログアウトには、ログエントリ、セッションのクリーンアップ、API レスポンスのテストが含まれます。
+
+ログアウトを検証するには、次の手順を実行します。
+
+1. 対象のアプリからログアウトします。
+2. ログアウトしたら、**Yes, I performed the action** をクリックします。\
+   60 秒間の待機期間があり、その間に MoEngage システムがバックエンドでアクションを検証します。
+3. 検証が完了すると、ステータスが _Not Validated_ から _Validated_ に変わります。
+4. 実装にエラーがある場合、ステータスは _Not Validated_ から _Not Received_ に変わります。その場合は、次のエラーが発生している可能性があります。
+
+#### ログアウト検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Failed | ログアウトメソッドが呼び出されていません。 | ログアウトメソッドが呼び出されていることを確認してください。詳細については、[Track User Attributes.](/ja/developer-guide/android-sdk/data-tracking/basic/track-user-attributes) を参照してください。 |
+
+## プッシュ
+
+プッシュは次の 2 つのセクションで構成されています。
+
+- Basic Push
+- Push Templates
+
+## Basic Push
+
+Basic Push は 6 つの検証手順で構成され、小さいアプリアイコン、大きいアプリアイコン、プッシュ権限、およびさまざまなアプリ状態での通知の設定を検証できます。プッシュを検証するには、**Basic** **Push** ドロップダウンリストを展開し、次の操作を行います。
+
+![Integrationvalidation9.gif](/images/moengage_ef077f.png)
+
+### 小さいアプリアイコン
+
+小さいアプリアイコンでは、さまざまなデバイスで通知エリア内に小さいアプリアイコンが正しく表示されることを検証できます。たとえば、アイコンが鮮明に表示され、ブランドガイドラインに沿っており、歪みなく適切に拡大縮小されることを確認します。\
+小さいアプリアイコンのステータスは、デバイスの設定に基づいて自動的に _Validated_ と表示されます。
+
+#### 小さいアプリアイコン検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Failed | 小さいアプリアイコンが設定されていません。 | SDK の初期化時に _NotificationConfig_ を追加し、小さいアイコンを含めてください。詳細については、[Push Configuration](/ja/developer-guide/android-sdk/push/basic/push-configuration) を参照してください。 |
+| Failed | 小さいアプリアイコンが想定どおりに表示されません。 | 小さいアイコンのガイドラインに準拠した新しい小さいアイコンを追加してください。詳細については、[Push Configuration](/ja/developer-guide/android-sdk/push/basic/push-configuration) を参照してください。 |
+
+### 大きいアプリアイコン
+
+大きいアプリアイコンでは、通知を展開したときに大きいアプリアイコンが意図どおりに表示されることを検証できます。たとえば、アイコンが明瞭さを保ち、サイズ要件を満たしながら、通知の視覚的な魅力を高めていることを確認します。\
+大きいアプリアイコンのステータスは、デバイスの設定に基づいて自動的に _Validated_ と表示されます。
+
+#### 大きいアプリアイコン検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Failed | 大きいアプリアイコンが設定されていません。 | SDK の初期化時に _NotificationConfig_ を追加し、パラメーターに大きいアイコンを含めてください。詳細については、[Push Configuration.](/ja/developer-guide/android-sdk/push/basic/push-configuration) を参照してください。 |
+
+### プッシュ権限
+
+プッシュ権限では、アプリがシームレスかつユーザーフレンドリーな方法でユーザーにプッシュ通知の権限をリクエストしていることを検証できます。たとえば、権限プロンプトが適切にトリガーされ、アプリのフローに沿っていることを確認します。
+
+プッシュ権限を検証するには、次の手順を実行します。
+
+1. アプリを開き、通知のランタイム権限をトリガーするアクションを実行して、リクエストを承認します。
+2. リクエストを承認したら、**Yes, I performed the action** をクリックします。\
+   60 秒間の待機期間があり、その間に MoEngage システムがバックエンドでアクションを検証します。
+3. 検証が完了すると、ステータスが _Not Validated_ から _Validated_ に変わります。
+4. 実装にエラーがある場合、ステータスは _Not Validated_ から _Not Received_ に変わります。その場合は、次のエラーが発生している可能性があります。
+
+#### プッシュ権限検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Failed | ユーザーへの権限リクエストに失敗しました。ダイアログが表示されませんでした。 | ランタイムでユーザーにプッシュ権限をリクエストしてください。詳細については、[Notification Runtime Permissions](/ja/developer-guide/android-sdk/push/basic/notification-runtime-permissions) を参照してください。 |
+| Failed | ダイアログは表示されましたが、プッシュ権限がまだ更新されていません。 | ユーザーが権限を許可したか拒否したかを SDK に通知してください。詳細については、[Notification Runtime Permissions](/ja/developer-guide/android-sdk/push/basic/notification-runtime-permissions) を参照してください。 |
+| Failed | ユーザーがプッシュ権限ダイアログを拒否したため、ダイアログが表示されなくなりました。 | ユーザーを設定ページにリダイレクトし、手動で権限をリクエストしてください。詳細については、[Notification Runtime Permissions](/ja/developer-guide/android-sdk/push/basic/notification-runtime-permissions) を参照してください。 |
+
+### アプリがフォアグラウンドの状態でプッシュをテストする
+
+アプリがフォアグラウンドの状態でのプッシュテストでは、アプリが開いて使用中のときにプッシュ通知が受信され、正しくレンダリングされることを検証できます。たとえば、通知がユーザーの操作を妨げることなく、控えめながらも目に留まるように表示されることを確認します。
+
+アプリがフォアグラウンドの状態でプッシュ通知を検証するには、次の手順を実行します。
+
+1. 対象のアプリをフォアグラウンド状態で開きます。
+2. ダッシュボードで **Send test push** をクリックします。\
+   60 秒間の待機期間があり、その間に MoEngage システムがバックエンドでアクションを検証します。
+3. 通知を受信したときにアプリがフォアグラウンドにあった場合は、**Confirm app in foreground** をクリックして手順を検証します。そうでない場合は、**Reset** をクリックして検証を再開します。
+4. 検証が完了すると、ステータスが _Not Validated_ から _Validated_ に変わります。
+5. 実装にエラーがある場合、ステータスは _Not Validated_ から _Not Received_ に変わります。その場合は、次のエラーが発生している可能性があります。
+
+#### アプリがフォアグラウンドの状態でのプッシュテスト検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Failed | プッシュ通知が表示されません。 | MoEngage ペイロードを処理する Firebase サービスが追加されていません。MoEngage Service ファイルを追加してください。詳細については、[Push token registration and display](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display) を参照してください。 |
+| Failed | プッシュ通知が表示されません。 | カスタムサービスファイルがペイロードを SDK に渡していません。詳細については、[Push token registration and display](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display) を参照してください。 |
+| Failed | プッシュ通知が表示されません。 | アプリが通知を作成しましたが、SDK に通知していません。詳細については、[Push Display Handled by Application.](/ja/developer-guide/android-sdk/push/advanced/push-display-handled-by-application) を参照してください。 |
+
+### アプリがバックグラウンドの状態でプッシュをテストする
+
+アプリがバックグラウンドの状態でのプッシュテストでは、アプリがバックグラウンドで実行されているときにプッシュ通知が正しく配信および表示されることを検証できます。たとえば、通知が正確なコンテンツとアイコンで通知センターに表示されることを確認します。
+
+アプリがフォアグラウンドの状態でプッシュ通知を検証するには、次の手順を実行します。
+
+1. 対象のアプリをバックグラウンド状態で開きます。
+2. ダッシュボードで **Send test push** をクリックします。\
+   60 秒間の待機期間があり、その間に MoEngage システムがバックエンドでアクションを検証します。
+3. 通知を受信したときにアプリがバックグラウンドにあった場合は、**Confirm app in background** をクリックして手順を検証します。そうでない場合は、**Reset** をクリックして検証を再開します。
+4. 検証が完了すると、ステータスが _Not Validated_ から _Validated_ に変わります。
+5. 実装にエラーがある場合、ステータスは _Not Validated_ から _Not Received_ に変わります。その場合は、次のエラーが発生している可能性があります。
+
+#### アプリがバックグラウンドの状態でのプッシュテスト検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Failed | プッシュ通知が表示されません。 | MoEngage ペイロードを処理する Firebase サービスが追加されていません。MoEngage Service ファイルを追加してください。詳細については、[Push token registration and display](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display) を参照してください。 |
+| Failed | プッシュ通知が表示されません。 | カスタムサービスファイルがペイロードを SDK に渡していません。詳細については、[Push token registration and display](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display) を参照してください。 |
+| Failed | プッシュ通知が表示されません。 | アプリが通知を作成しましたが、SDK に通知していません。詳細については、[Push Display Handled by Application](/ja/developer-guide/android-sdk/push/advanced/push-display-handled-by-application) を参照してください。 |
+
+### アプリが終了した状態でプッシュをテストする
+
+アプリが終了した状態でのプッシュテストでは、アプリが閉じられている、または実行されていない場合でもプッシュ通知が正常に配信されることを検証できます。たとえば、操作時に通知がアプリに正しく通知され、シームレスなユーザーエクスペリエンスが提供されることを確認します。
+
+アプリが終了した状態でプッシュを検証するには、次の手順を実行します。
+
+1. デバイスで開いているアプリケーションの一覧からアプリをスワイプして終了します。
+2. ダッシュボードで **Send test push** をクリックします。\
+   60 秒間の待機期間があり、その間に MoEngage システムがバックエンドでアクションを検証します。
+3. 通知を受信したときにアプリが終了状態だった場合は、**Confirm app in killed state** をクリックして手順を検証します。そうでない場合は、**Reset** をクリックして検証を再開します。
+4. 検証が完了すると、ステータスが _Not Validated_ から _Validated_ に変わります。
+5. 実装にエラーがある場合、ステータスは _Not Validated_ から _Not Received_ に変わります。その場合は、次のエラーが発生している可能性があります。
+
+#### アプリが終了した状態でのプッシュテスト検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Failed | プッシュ通知が表示されません。 | MoEngage ペイロードを処理する Firebase サービスが追加されていません。MoEngage Service ファイルを追加してください。詳細については、[Push token registration and display](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display) を参照してください。 |
+| Failed | プッシュ通知が表示されません。 | カスタムサービスファイルがペイロードを SDK に渡していません。詳細については、[Push token registration and display](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display) を参照してください。 |
+| Failed | プッシュ通知が表示されません。 | アプリが通知を作成しましたが、SDK に通知していません。詳細については、[Push Display Handled by Application](/ja/developer-guide/android-sdk/push/advanced/push-display-handled-by-application) を参照してください。 |
+| Failed | プッシュ通知が表示されません。 | アプリケーションクラスの _onCreate()_ メソッドで SDK を初期化してください。詳細については、[SDK initialization](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization) を参照してください。 |
+| Failed | プッシュ通知が表示されません。 | サードパーティライブラリがペイロードを SDK に渡せませんでした。ライブラリが終了状態で想定どおりに動作するか確認してください。 |
+
+## プッシュテンプレート
+
+プッシュテンプレートは 2 つの検証手順で構成され、正確なアラームの権限とプッシュテンプレートの統合を検証できます。プッシュテンプレートを検証するには、ドロップダウンを展開し、次の操作を行います。
+
+![Integrationvalidation10.gif](/images/moengage_d50b5e.png)
+
+### プッシュテンプレートをテストする
+
+プッシュテンプレートのテストでは、デプロイ前にプッシュ通知テンプレートの構造とコンテンツを検証できます。たとえば、必要なすべてのフィールドが正しく設定されていることを確認し、エラーを減らしてユーザーエンゲージメントのエクスペリエンスを向上させます。
+
+プッシュテンプレートを検証するには、次の手順を実行します。
+
+1. 検証済みの場合は、**Send test push** をクリックして通知を開始します。
+2. 通知が送信されたら、インタラクションがトラッキングされるまで 60 秒待ちます。
+3. アプリで通知を受信したら:
+   - 画像バナーテンプレートが表示された場合は、**Yes, notification has image banner** をクリックして検証します。
+   - 基本テンプレートが表示された場合は、**No, notification has basic template** をクリックします。
+
+#### プッシュテンプレートテスト検証のエラーパス
+
+| **ステータス** | **条件** | **次のアクション** |
+| --- | --- | --- |
+| Failed | 基本のプッシュ通知が表示されています。 | Push Templates ライブラリがアプリに統合されていません。詳細については、[Push Templates.](/ja/developer-guide/android-sdk/push/optional/push-templates) を参照してください。 |
+| Failed | 基本のプッシュ通知が表示されています。 | ライブラリが追加されている場合は、ネットワークの問題を確認し、ネットワークを変更して再試行してください。 |
+| Failed | 一部のデバイスではプッシュ通知に白または黒のシステム境界が表示され、他のデバイスでは全面が覆われます。 | これは Android 12 以降の想定された動作変更です。 |
+
+### タイマーの正確なアラーム権限が設定されているかどうか
+
+タイマーの正確なアラーム権限の検証では、タイマーの正確なアラーム機能が設定されているかどうかを検証できます。たとえば、時間が重要なシナリオでアラームが正確にトリガーされることを確認し、ユーザーにとっての信頼性とスケジュールの精度を高めます。
+
+タイマーの正確なアラーム権限を検証するには、次の手順を実行します。
+
+1. 連携ステータスは自動的に検証されます。
+2. 検証済みの場合は、**Send test push** をクリックします。通知の送信が試行されます。
+3. 正常に試行された場合は、インタラクションのトラッキングのために 60 秒待ちます。
+4. 通知に Timer with Progress Bar テンプレートが表示されるか確認します。
+   - 表示された場合は、**Yes, notification has Timer with progress bar** をクリックします。
+   - 表示されず、基本テンプレートが表示された場合は、**No, notification has basic template** をクリックします。
+
+#### タイマーの正確なアラーム権限設定検証のエラーパス
+
+| ステータス | 条件 | 次のアクション |
+| --- | --- | --- |
+| Failed | プッシュ通知にプログレスバーが表示されません | 権限の追加漏れです。詳細については、[Push Templates](/ja/developer-guide/android-sdk/push/optional/push-templates) を参照してください |
+| Failed | プッシュ通知にプログレスバーが表示されません | ユーザーがランタイムで権限を有効にする必要があります。詳細については、[Push Templates](/ja/developer-guide/android-sdk/push/optional/push-templates) を参照してください。 |

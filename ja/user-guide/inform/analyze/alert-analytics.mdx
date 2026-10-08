@@ -1,0 +1,170 @@
+---
+title: "アラート分析"
+description: "リクエストレベルおよびチャネルレベルの指標、期間フィルター、エラーの内訳を使用して、MoEngage Informでトランザクションアラートのパフォーマンスを分析します。"
+---
+
+アラート分析は、次の2つのセクションで構成されています。
+
+- [Request Performance](/ja/user-guide/inform/analyze/alert-analytics#request-performance)
+- [Channel Performance](/ja/user-guide/inform/analyze/alert-analytics#channel-performance)
+
+# リクエストをフィルタリングする
+
+Date Rangeオプションを使用してパフォーマンスを分析する期間を指定することで、表示される統計情報をフィルタリングできます。
+
+Date Rangeフィルターでは、次のオプションを使用できます。
+
+- Today
+- Yesterday
+- Last 7 Days
+- This Week
+- Last Week
+- Last 30 Days
+- This Month
+- Last Month
+- Custom Range
+- Last 'X' Days/Weeks/Months
+
+# Request Performance
+
+ダッシュボードのRequest Performanceセクションでは、受信したリクエストの数、そのステータス、リクエストのエラー統計、および傾向に関する情報を確認できます。
+
+このセクションは、以下に示すように、APIレベルの指標とパフォーマンスを把握するのに役立ちます。
+
+![Request\_Performance.png](/images/moengage_5dc609.png)
+
+## 利用可能な統計情報
+
+このセクションには、特定のAlert IDに対してAlert APIが受信したリクエストの数が表示され、次の指標が含まれます。
+
+1. 受信したリクエストの総数
+2. MoEngageによって正常に処理された（選択したEmail / SMSサービスプロバイダーに送信された）リクエストの件数と割合
+3. MoEngageによる処理および送信に失敗したリクエストの件数と割合
+
+## エラーテーブル
+
+リクエスト（APIレベル）のエラーは、以下に示すようにテーブルに表示されます。
+
+エラーテーブルには、次の情報が含まれます。
+
+1. Error code\
+   このフィールドには、リクエストに対してAPIが返したエラーコードが含まれます。
+2. Error\
+   このフィールドには、リクエストの処理中に発生したエラーの種類に関する情報が含まれます。
+3. Description\
+   このフィールドには、リクエストに対してAPIが返したエラーの説明が含まれます。
+4. Count(%)\
+   このフィールドには、エラーの種類ごとに発生したエラーの件数と割合（エラー総数に対する割合）が含まれます。
+
+たとえば、リクエストに無効なAlert IDが含まれている場合（停止したアラートのAlert IDがリクエストで使用された場合）、エラーテーブルは次のようになります。
+
+![ErrorTable.png](/images/moengage_01626b.png)
+
+## 発生する可能性のあるエラーの一覧
+
+APIレベルで発生する可能性のあるエラーの一覧を次に示します。
+
+| エラーコード | エラー | 説明 |
+| --- | --- | --- |
+| 400 | Bad Request | このレスポンスは、次の場合に返されます。 <ol><li>ペイロードが空であるか、余分な値が含まれている場合（Emailが設定されているのにSMSが送信された場合、または不明なチャネル名がペイロードに追加された場合）</li><li>無効なAlert ID（inform\_id）が送信された場合、またはテストアラートがLiveエンドポイントに送信された場合（およびその逆の場合）</li><li>ペイロード内のチャネル情報が正しくない場合（アラートで設定されていないチャネルに関する情報がペイロードに含まれている場合）</li><li>transaction idが許可された文字数の上限を超えている場合</li><li>一時停止、停止、またはアーカイブされたアラートのAlert IDがリクエストで使用された場合</li></ol> |
+| 401 | Authorization Failed | このレスポンスは、APPKEYとHTTP Auth Headerの値が正しくないために認証に失敗した場合に返されます。 |
+| 409 | Duplicate Request | このレスポンスは、5分以内に、以前に成功したリクエストまたは処理中のリクエストと同じtransaction idでリクエストが送信された場合に返されます。 |
+| 429 | Rate Limit Reached | このレスポンスは、1分あたりのリクエスト数が10kを超えた場合に返されます。 |
+| 500 | Internal Server error | このレスポンスは、システムで予期しないエラーが発生した場合に返されます。 |
+
+## 時間的傾向
+
+Trendsセクションには、次の粒度に基づくアラートのパフォーマンスが表示されます。
+
+- Hours
+- Days
+- Weeks
+- Months
+
+たとえば、以下の画像では、アラートで受信したリクエストの数と送信されたリクエストの数が週単位の時間間隔で表示されています。
+
+![RequestPerformance\_Trends.png](/images/moengage_2afe16.png)
+
+# Channel Performance
+
+チャネルのパフォーマンスは、アラートで設定されたすべてのチャネルについて確認できます。
+
+## 利用可能な統計情報
+
+このセクションの内容はチャネルによって異なります。チャネルレベルの指標とエラーの詳細をここで確認できます。
+
+<Tabs>
+  <Tab title="SMSの統計情報">
+    SMSチャネルでは、次の統計情報を確認できます。
+
+    1. **Total Requests Received**\
+       ペイロードの一部としてSMSチャネルの詳細を含む、特定のアラートで受信したリクエストの総数です。複数のチャネルを持つアラートの場合、この数値はSMSを含むリクエストの数を示します。
+    2. **Requests Processed Successfully (Sent)**\
+       正常に処理された、またはベンダーに正常に送信されたSMSリクエストの総数です。
+    3. **Delivered**\
+       ユーザーに配信されたリクエストの総数です。これは、MoEngageのネイティブSMSコネクターを使用するアラートでのみ確認できます。
+    4. **Clicks**\
+       メッセージを受信したすべてのユーザーによる、メッセージ内のリンクのクリックの総数です。メッセージに複数のリンクが含まれている場合は、すべてのリンクのクリック総数の合計が表示されます。
+    5. **Delivery Failed**\
+       SMS通知が配信されなかったリクエストの総数です。この情報はSMSベンダーから渡され、受信者に到達できない、受信トレイがいっぱいであるなど、さまざまな理由を表す場合があります。詳細については、[Common SMS Errors](https://moengage.com/docs/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/analyze-sms-campaigns)を参照してください。
+  </Tab>
+  <Tab title="Emailの統計情報">
+    Emailチャネルでは、次の統計情報を確認できます。
+
+    1. **Total Requests Received**\
+       ペイロードの一部としてEmailチャネルの詳細を含む、特定のアラートで受信したリクエストの総数です。複数のチャネルを持つアラートの場合、この数値はEmailを含むリクエストの数を示します。
+    2. **Requests Processed Successfully (Sent)**\
+       正常に処理された、またはベンダーに正常に送信されたEメールリクエストの総数です。割合は、受信したリクエスト全体に対する正常に処理されたリクエストの割合を示します。
+    3. **Delivered**\
+       ユーザーに配信されたEメールの総数です。これは、ベンダーとしてSendGridおよびAmazon SESを使用するアラートでのみ確認できます。割合は、受信したリクエスト全体に対する正常に配信されたEメールの割合を示します。詳細については、[Common Email Errors](/ja/user-guide/campaigns-and-channels/email/analyze/email-analytics-and-info)を参照してください。
+    4. **Clicks**\
+       メッセージを受信したすべてのユーザーによる、Eメール本文内のリンクのクリックの総数です。
+    5. **Opened**\
+       送信されたEメールの開封の総数です。これは、アラートのEメールが送信されたすべてのユーザーを対象にカウントされます。
+    6. **Delivery Failed**\
+       Eメールが配信されなかったリクエストの総数です。
+    7. **Bounces**
+       Emailチャネルのハードバウンスの総数です。
+
+    詳細については、[Email Channel Stats](/ja/user-guide/campaigns-and-channels/email/analyze/email-analytics-and-info)を参照してください。
+  </Tab>
+  <Tab title="Pushの統計情報">
+    Pushチャネルでは、次の統計情報を確認できます。
+
+    <Info>
+      **Push** アラートのターゲットプラットフォームとして **iOS** を選択すると、**Type** ドロップダウンリストが表示されます。これを使用して、**All (Live Activity \+ Fallback)**、**Live Activity**、**Fallback** などの通知タイプで指標をフィルタリングできます。オプションを選択すると、ダッシュボードが更新され、その選択に固有の指標が表示されます。
+    </Info>
+
+    1. **Total Requests Received**\
+       ペイロードの一部としてPushチャネルの詳細を含む、特定のアラートで受信したリクエストの総数です。複数のチャネルを持つアラートの場合、この数値はペイロードにPushを含むリクエストの数を示します。
+    2. **Total Device Tokens Applicable**\
+       リクエストごとに通知を受信する対象となるユーザーデバイスの総数です。**注**: Pushチャネルでアラートを送信する際は、User Profileで利用可能な、直近でアクティブなデバイストークン最大5件のみが対象となります。
+    3. **Requests Processed Successfully**\
+       正常に処理された、またはベンダーに正常に送信されたプッシュ通知リクエストの総数です。割合は、受信したリクエスト全体に対する正常に処理されたリクエストの割合を示します。
+    4. **Total Request Delivered(Impressions)**\
+       通知を受信したユーザーデバイスの総数です。
+    5. **Total Clicks**\
+       受信したリクエストごとに、通知の配信後にユーザーがクリックした通知の総数です。
+    6. **Delivery Failed**\
+       GCM/APNSへのメッセージ送信時のエラーにより、通知が配信されなかったリクエストの総数です。詳細については、[Common Push Errors](/ja/user-guide/campaigns-and-channels/mobile-push/analyze/push-analytics-and-info)を参照してください。
+    7. **Live Activities Started**\
+       これらの指標は、メッセージタイプが **Live Activity Only** または **Live Activity with Push Fallback** のプッシュアラートを作成した場合にのみ表示されます。この値は、デバイスに正常に表示された一意のLive Activityの数を表します。
+
+    詳細については、[Push Channel Stats](/ja/user-guide/campaigns-and-channels/mobile-push/analyze/push-analytics-and-info)を参照してください。
+  </Tab>
+  <Tab title="WhatsAppの統計情報">
+    WhatsAppチャネルでは、次の統計情報を確認できます。
+
+    1. **Total Requests Received**\
+       ペイロードの一部としてWhatsAppチャネルの詳細を含む、特定のアラートで受信したリクエストの総数です。複数のチャネルを持つアラートの場合、この数値はWhatsAppメッセージを含むリクエストの数を示します。
+    2. **Requests Processed Successfully (Sent)**\
+       正常に処理されたWhatsAppリクエストの総数です。
+    3. **Delivered**\
+       ユーザーに配信されたWhatsAppリクエストの総数です。
+    4. **Read**
+       ユーザーが既読にしたWhatsAppメッセージの総数です。\
+       詳細については、[WhatsApp Stats](/ja/user-guide/campaigns-and-channels/whatsapp/analyze/analyze-whatsapp-campaign)を参照してください。
+    5. **Clicks**\
+       メッセージを受信したすべてのユーザーによる、WhatsAppメッセージ内のリンクのクリックの総数です。メッセージに複数のリンクが含まれている場合は、すべてのリンクのクリック総数の合計が表示されます。
+  </Tab>
+</Tabs>

@@ -1,0 +1,97 @@
+---
+title: "Notification Content Extension を使用しない場合に iOS プッシュ通知（SDK バージョン 7.x.x）でプッシュテンプレートの問題を回避するには"
+description: "Notification Content Extension を作成して、SDK 7.x.x での iOS プッシュテンプレートの表示の問題（カルーセル、色、フォント）を修正します。完全なセットアップガイドを掲載しています。"
+keywords: ["push template not displaying iOS", "Notification Content Extension", "carousel template", "template colors and fonts", "iOS SDK 7.x.x", "rich push template setup"]
+---
+
+## 問題
+
+Notification Content Extension が実装されていない場合、プッシュテンプレート（カルーセル画像、背景色、フォントの色など）がプッシュ通知で正しく表示されません。
+
+## 手順
+
+次の手順を実行します。
+
+1. Notification Content Extension ターゲットを作成します。
+   ![NCE.png](/images/moengage_71e025.png)
+   - **Product Name** ボックスに Extension ターゲットの名前を入力します。
+   - **Language** リストで言語をクリックします。**Swift** は Objective-C プロジェクトでもシームレスに動作するため、言語として推奨されます。
+     ![name swift.png](/images/moengage_35e6b6.png)
+   - **Signing & Capabilities** タブで、Notification Content Extension の設定に _AppGroupId_ を追加します。
+     ![signing.png](/images/moengage_ac6bfb.png)
+   - **Minimum Deployments** で、Notification Content Extension の最小デプロイ iOS バージョンをメインアプリの iOS バージョンに合わせて設定します。
+     ![deployment.png](/images/moengage_5c1797.png)
+2. MORichNotification フレームワークを Notification Content Extension ターゲットに統合します。
+   - podfile で Notification Content Extension を別のターゲットとして追加し、MORichNotification フレームワークをインストールします。
+     ```swift Swift
+     target 'MoEngageDemo' do
+       use_frameworks!
+       pod 'MoEngage-iOS-SDK'
+     end
+     target 'MoEngageNotificationService' do
+       use_frameworks! #use use_frameworks only if included in main target as in above scenario
+       pod 'MORichNotification'
+     end
+     target 'MoegageRichContent" do
+       use_frameworks! #use use_frameworks only if included in main target as in above scenario
+       pod 'MORichNotification'
+     end
+     ```
+3. **NotificationViewController.swift** ファイルのコード変更。
+   ```swift Swift
+   import UIKit
+   import UserNotifications
+   import UserNotificationsUI
+   import MORichNotification
+   class NotificationViewController: UIViewController, UNNotificationContentExtension {
+       @IBOutlet var label: UILabel?
+       
+       override func viewDidLoad() {
+           super.viewDidLoad()
+           MORichNotification.setAppGroupID("group.com.XXXXXXXXXXXXXXXX")
+       }
+       
+       func didReceive(_ notification: UNNotification) {
+           if #available(iOSApplicationExtension 12.0, *) {
+               MOPushTemplateHandler.sharedInstance().addPushTemplate(to: self, with: notification)
+           } else {
+               // Fallback on earlier versions
+           }
+       }
+   }
+   ```
+4. Content Extension で **MainInterface.storyboard** を選択し、デフォルトのラベルを削除して、View の背景色を透明（clear）に設定します。
+   ![main.png](/images/moengage_771662.png)
+5. Info.plist の変更：
+   ```swift Swift
+   <key>NSExtensionAttributes</key> 
+   <dict>
+         <key>UNNotificationExtensionCategory</key>
+         <string>MOE_PUSH_TEMPLATE</string>
+         <key>UNNotificationExtensionDefaultContentHidden</key>
+         <true/>
+         <key>UNNotificationExtensionInitialContentSizeRatio</key>
+         <real>1.2</real>
+         <key>UNNotificationExtensionUserInteractionEnabled</key>
+         <true/>
+   </dict>
+   ```
+   ![NSExtension.png](/images/moengage_054a69.png)
+6. メインアプリターゲットの Build Phases を確認します。
+   - Embed App Extensions/Embed Foundation Extensions で、**Copy only when installing** チェックボックスをオフにします。
+     ![copy only.png](/images/moengage_968bdb.png)
+7. 構成間で _appGroupId_ を統一します。
+   - プロジェクト内のすべてのスキームと構成（例：Debug/Release/QA/UAT）で _appGroupId_ が一致していることを確認します。
+8. ビルド構成を揃えます。
+   - プロジェクトを実行またはアーカイブする際は、メインターゲット、Notification Service Extension、Notification Content Extension ターゲットのビルド構成が同じスキームまたは構成を指していることを確認します。
+      <img src="/images/moengage_62d0a0.png" alt="debug.png" />
+   <img
+     src="/images/moengage_c31f9e.png"
+     alt="target.png"
+     style={{ width:"94%" }}
+   />
+   <img
+     src="/images/moengage_9ee69a.png"
+     alt="duplicate.png"
+     style={{ width:"93%" }}
+   />

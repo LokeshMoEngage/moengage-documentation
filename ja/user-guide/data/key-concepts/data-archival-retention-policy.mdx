@@ -1,0 +1,151 @@
+---
+title: "データアーカイブ（保持）ポリシー"
+description: "パフォーマンスの最適化、データ衛生の維持、規制へのコンプライアンスを確保するために、非アクティブなユーザープロファイル、イベント、デバイスを削除する MoEngage のデータアーカイブポリシーについて説明します。"
+---
+
+{/* TODO: Verify keywords/full frontmatter against the live MDX source — this was reconstructed from the rendered page, since the raw file wasn't available. */}
+
+## 概要
+
+データアーカイブとは、非アクティブまたは休眠状態のユーザーデータを体系的に削除するプロセスです。これにより、マーケティングワークスペースを無駄のない状態に保ち、真のエンゲージメント機会とビジネス価値をもたらすユーザーのみに集中できます。
+
+MoEngage は、プラットフォームのパフォーマンスとグローバルなプライバシー基準のバランスを取るために、データアーカイブを実施しています。
+
+- **パフォーマンスとデータ衛生：** MoEngage は、到達可能でマーケティング可能なユーザーのみで構成される、無駄のない高パフォーマンスな環境を維持します。この高精度なデータセットにより、セグメンテーションクエリが高速化され、より正確な分析が可能になります。停滞した機能しないレコードによって歪められることなく、インサイトが真のユーザーの意図を反映するためです。
+- **規制へのコンプライアンス（GDPR、CCPA、インドの DPDP 法）：** このポリシーは、GDPR の保存制限およびデータ最小化の原則に沿っています。ユーザーデータは、正当なビジネス目的がある間のみ保持されるべきです。ユーザーが到達不能またはマーケティング不可能になった時点でデータをアーカイブすることで、法的責任が軽減され、ユーザーのプライバシーが保護されます。これがインドのデジタル個人データ保護（DPDP）法 2023 にどのように対応するかについては、[データ保持とインドの DPDP 法 2023](#data-retention-and-indias-dpdp-act-2023) を参照してください。
+
+<Info>
+  **アーカイブの頻度**
+
+  MoEngage は 14 日ごとに、非アクティブで到達不能なユーザー、イベント、デバイスを MoEngage のサービスから削除するプロセスを実行します。各エンティティには個別のアーカイブポリシーがあり、アーカイブされるとデータポイントは完全に削除されます。
+</Info>
+
+## アーカイブの基準
+
+### ユーザープロファイル
+
+MoEngage は、プロファイルにアクティブな識別子があるかどうかに基づいて、すべてのユーザープロファイルを **Registered** または **Anonymous** に分類します。これは [Identity Resolution](/ja/user-guide/data/user-data/unified-identity-identity-resolution) で使用され、ダッシュボードの他の場所にも表示されるものと同じ分類です。アーカイブで別のルールが適用されることはありません。
+
+1. **登録済みユーザー：** アクティブな識別子が少なくとも 1 つ存在するプロファイル。
+   - Identity Resolution が有効になっていないワークスペースでは、ID が唯一のアクティブな識別子です。ID が存在する場合、ユーザーは登録済みとなります。
+   - Identity Resolution が有効になっているワークスペース（ID、Email ID、Mobile Number など、最大 5 つの識別子を構成可能）では、アクティブな識別子のいずれか 1 つが存在する場合、ユーザーは登録済みとなります。
+   これらは長期的な価値の可能性が高い既知の顧客であるため、MoEngage は登録済みプロファイルを[より長い非アクティブ期間](/ja/user-guide/data/key-concepts/data-archival-retention-policy#archival-rules)の後にアーカイブします。
+2. **匿名ユーザー：** アクティブな識別子が 1 つも存在しないプロファイル。ワークスペースを無駄のない状態に保ち、意図の高いオーディエンスに集中できるよう、MoEngage は匿名プロファイルを[より短い非アクティブ期間](/ja/user-guide/data/key-concepts/data-archival-retention-policy#archival-rules)の後にアーカイブします。
+
+- **アクティビティ：** アプリやウェブサイトとのあらゆるインタラクション（標準イベントまたはカスタムイベント）は、意図のシグナルとして機能します。あらゆるイベントまたはユーザーの更新がアクティビティと見なされます。
+- **キャンペーンエンゲージメント：** このポリシーは、コミュニケーションに積極的に反応するユーザーを保持することを目的としています。開封やクリックなどのインタラクションは、エンゲージメントのシグナルとして機能します。MoEngage が生成するイベントや内部のキャンペーン処理イベント（配信失敗やコントロールグループイベントなど）はエンゲージメントとしてカウントされません。完全なリストは以下を参照してください。
+
+以下の内部イベントおよびシステム生成イベントは、キャンペーンに関連付けられていても、アーカイブのカウントをリセットすることはありません。
+
+| イベント                                              | カテゴリ                     |
+| :------------------------------------------------- | :--------------------------- |
+| `MOE_NOTIFICATION_SEND_PUSH_FAILED`                | Push                         |
+| `MOE_NOTIFICATION_SEND_FAILED_IOS`                 | Push                         |
+| `MOE_NOTIFICATION_SEND_FAILED_ANDROID`             | Push                         |
+| `MOE_NOTIFICATION_SEND_FAILED_WEB`                 | Push                         |
+| `MOE_EMAIL_DEFERRED`                               | Email                        |
+| `MOE_EMAIL_DROP`                                   | Email                        |
+| `MOE_EMAIL_SOFT_BOUNCE`                            | Email                        |
+| `MOE_EMAIL_HARD_BOUNCE`                            | Email                        |
+| `MOE_EMAIL_ESP_DROPPED`                            | Email                        |
+| `MOE_EMAIL_SPAM`                                   | Email                        |
+| `MOE_SMS_DELIVERY_FAILED`                          | SMS                          |
+| `MOE_SMS_SENT_FAILED`                              | SMS                          |
+| `MOE_WHATSAPP_DELIVERY_FAILED`                     | WhatsApp                     |
+| `MOE_WHATSAPP_SENDING_FAILED`                      | WhatsApp                     |
+| `MOE_RCS_DELIVERY_FAILED`                          | RCS                          |
+| `MOE_RCS_SENT_FAILED`                              | RCS                          |
+| `MOE_MMS_DELIVERY_FAILED`                          | MMS                          |
+| `TELEMARKETING_SENT`                               | テレマーケティング                |
+| `TELEMARKETING_FAILED`                             | テレマーケティング                |
+| `TELEMARKETING_SUPPRESSED`                         | テレマーケティング                |
+| `USER_ENTERED_FLOW`                                | Flows                        |
+| `USER_EXITED_FLOW`                                 | Flows                        |
+| `USER_FLOW_ADVANCEMENT`                            | Flows                        |
+| `MOE_CAMPAIGN_CONTROL_GROUP`                       | コントロールグループ                |
+| `MOE_CAMPAIGN_USER_REMOVED_DUE_TO_CONTROL_GROUP`   | コントロールグループ                |
+| `MOE_USER_REMOVED_FROM_CONTROL_GROUP`              | コントロールグループ                |
+| `MOE_FB_AUDIENCE_SYNC`                             | オーディエンス同期                |
+| `MOE_GOOGLE_ADS_AUDIENCE_SYNC`                     | オーディエンス同期                |
+| `GAM_SEGMENT_SENT`                                 | オーディエンス同期                |
+| `WEBHOOK_SENT`                                     | Connected apps と Webhook  |
+| `Connected App Campaign Sent`                      | Connected apps と Webhook  |
+| `Connected App Campaign Failed`                    | Connected apps と Webhook  |
+| `MOE_CAMPAIGN_EVENT_STATS`                         | キャンペーン統計とレポート |
+| `MOE_CAMPAIGN_SEGMENT_STATS`                       | キャンペーン統計とレポート |
+| `MOE_CAMPAIGN_FLOWS_STATS`                         | キャンペーン統計とレポート |
+| `MOE_CAMPAIGN_FAILURE_STATS`                       | キャンペーン統計とレポート |
+| `MOE_CAMPAIGN_CONVERSION_STATS`                    | キャンペーン統計とレポート |
+| `MOE_CAMPAIGN_META_INFO`                           | キャンペーン統計とレポート |
+| `MOE_COUPONS_REPORT`                               | キャンペーン統計とレポート |
+| `n_c_s`                                            | 内部                     |
+
+{/* TODO: This list is reproduced verbatim from the engineering fixes doc. Flagging for review — confirm this level of internal event detail is meant for a customer-facing page, or whether a shorter representative list / no list is preferred. The Category column is a docs-side grouping derived from the event names, not an engineering-defined taxonomy. */}
+
+### アーカイブのルール
+
+アーカイブに適用されるルールの概要は以下のとおりです。
+
+| タイプ                              | ユーザーの基準                                                                                                     | アーカイブの基準                                                                                                                                                                                                                                    |
+| :-------------------------------- | :------------------------------------------------------------------------------------------------------------------ | :----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **登録済み（識別済み）ユーザー** | アクティブな識別子が少なくとも 1 つ存在するユーザー（ID、または Identity Resolution が有効なワークスペースでは構成済みの任意の識別子）。 | **アクティビティ：** <ul><li>直近のデータ保持ポリシー（DRP）期間（デフォルトは 365 日）に、カスタムイベントまたは標準イベントがなく、ユーザー属性の更新もない</li></ul> **キャンペーンエンゲージメント：** <ul><li>直近の DRP 期間（デフォルトは 365 日）に、ユーザーがどのキャンペーンにも反応していない</li></ul> |
+| **匿名（ゲスト）ユーザー**       | アクティブな識別子が 1 つも存在しないユーザー。                                                                  | **アクティビティ：** <ul><li>最終アクセスが 60 日より前</li><li>直近 60 日間、MoEngage がカスタムイベントまたは標準イベントを追跡していない</li></ul> **キャンペーンエンゲージメント：** <ul><li>直近 60 日間、ユーザーがどのキャンペーンにも反応していない</li></ul>            |
+
+<Info>
+  **データ保持ポリシー（DRP）**
+
+  - 登録済みユーザープロファイルの保持期間は、ワークスペースの DRP によって決まります。デフォルトの DRP は 365 日です。
+  - 登録済みユーザープロファイルには、カスタムの DRP 値を選択できます。MoEngage カスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。 {/* TODO: existing custom-override workspaces are slated to eventually move to a single standard DRP — confirm with PM whether/when to communicate this deprecation to customers, or keep this page silent on it until closer to the date. */}
+  - 匿名ユーザーの保持期間は 60 日に固定されており、DRP の対象外です。
+  - ワークスペースがプロファイルベースまたはハイブリッドの料金体系を利用している場合、MoEngage は登録済みユーザープロファイルを 10 年間保持します。 {/* TODO: confirm the customer-facing name for "profile-based/hybrid pricing" matches billing/contract terminology used elsewhere in docs or on the pricing page. */}
+</Info>
+
+## 例
+
+以下の例は、アクティビティとキャンペーンエンゲージメントの基準を組み合わせて、プロファイルがアーカイブされるかどうかがどのように決まるかを示しています。
+
+| #  | ユーザータイプ  | アクティビティのステータス                                                      | キャンペーンエンゲージメント                      | アーカイブされるか                                  |
+| :- | :--------- | :------------------------------------------------------------------- | :--------------------------------------- | :----------------------------------------- |
+| 1. | 登録済み | 直近 365 日間にイベントも属性の更新もない                      | 直近 365 日間にキャンペーンへの反応なし | はい                                        |
+| 2. | 登録済み | 直近 365 日間にイベントはないが、10 日前に属性が更新された | 直近 365 日間にキャンペーンへの反応なし | いいえ（属性の更新によりカウントがリセットされる） |
+| 3. | 匿名  | 直近 60 日間にイベントなし                                            | 直近 60 日間にキャンペーンへの反応なし  | はい                                        |
+| 4. | 匿名  | 直近 60 日間にカスタムイベントあり                                        | 直近 60 日間にキャンペーンへの反応なし  | いいえ                                         |
+
+### イベント
+
+デフォルトでは、イベントは 60 日間利用できます。これにより、ユーザー行動を分析するためにどこまで遡れるかが決まります（例：「過去 2 か月間に購入したユーザー」）。
+
+イベントの保持期間（データ保持ポリシー（DRP）とも呼ばれます）は、リクエストに応じて延長できます。担当の MoEngage カスタマーサクセスマネージャーまたはサポートチームにお問い合わせください。この DRP 設定は、登録済みユーザープロファイルの保持期間も決定します（[ユーザープロファイル](#user-profiles)を参照）。デバイスの保持期間や匿名ユーザープロファイルの保持期間には影響せず、これらは引き続きそれぞれの固定期間に従います。
+
+### デバイス
+
+MoEngage は、60 日間非アクティブなデバイスをアーカイブします。非アクティブで到達不能なデバイスを削除することで、Push キャンペーンの処理が高速化され、アクティブなデバイスのみに配信されるようになります。
+
+<Info>
+  1. アーカイブプロセスは定期的に実行されるため、実際のアーカイブ期間は記載の日数よりもわずかに長くなる（+14 日）場合があります。
+  2. アーカイブポリシーはカスタマイズできます。詳しくは、MoEngage カスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+  3. MoEngage では、データ保持ポリシー（DRP）を超えるデータの取り込みが可能ですが、Segmentation サービスでは DRP に基づいてのみデータをクエリできます。データストレージサービスは、DRP を超えるデータを定期的に削除します。
+</Info>
+
+## データ保持とインドの DPDP 法 2023
+
+インドのデジタル個人データ保護（DPDP）法 2023 は、インド国内の個人の個人データの収集、処理、保持の方法に関するガイドラインを定めています。MoEngage は、インドのエンドユーザーが同法に基づく権利を行使した際に対応できるよう、API と制御機能を提供しています。
+
+- **保持：** MoEngage は、収集された目的を果たすために必要な期間のみ個人データを保持します。このページで説明するアーカイブポリシーは、非アクティブなユーザープロファイル、イベント、デバイスをプラットフォームから自動的に削除することで、これをサポートします。
+- **消去リクエスト：** エンドユーザーからデータの削除を求められた場合は、[GDPR/CCPA データリクエスト API](/ja/api/gdpr/submit-a-gdpr-ccpa-data-request) を使用して、そのユーザーに関連するすべての個人データを MoEngage から削除します。
+
+MoEngage の法的なデータ保持条件の全文と、苦情処理およびデータ保護責任者の連絡先を含むインドのデータ主体が利用できる権利については、[MoEngage プライバシーポリシー](https://www.moengage.com/privacy-policy/)の **Additional Information for Indian Residents** および **Data Retention** セクションを参照してください。
+
+## よくある質問
+
+<Accordion title="アーカイブされたユーザーがプラットフォームに戻ってきた場合、MoEngage はユーザーの同意とサブスクリプションステータスを保持しますか？">
+  いいえ。ユーザーがアーカイブされると、MoEngage はそのユーザーをすべての MoEngage サービスから削除します。ユーザーが戻ってきた場合、MoEngage は新しいユーザーとして扱い、同意やサブスクリプションステータスを含む以前の属性は一切保持されません。
+</Accordion>
+
+<Accordion title="ユーザー属性を更新すると、アーカイブのカウントはリセットされますか？">
+  はい。SDK、Data API、またはファイルインポートを通じてユーザー属性の更新を送信すると、標準イベントやカスタムイベントと同様にアクティビティとしてカウントされ、アーカイブのカウントがリセットされます。
+</Accordion>
+
+<Accordion title="MoEngage はユーザーをアーカイブする前に、到達可能性（有効なメールアドレスや携帯電話番号など）を確認しますか？">
+  いいえ。アーカイブは非アクティブ状態のみに基づいて行われます。つまり、ユーザーの最後のイベント、属性の更新、またはキャンペーンへの反応からの経過時間です。MoEngage は、ユーザーの連絡先情報が有効か、または到達可能かどうかを確認しません。
+</Accordion>

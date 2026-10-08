@@ -1,0 +1,160 @@
+---
+title: "SDK バージョン 6.0.0 への移行"
+description: "初期化と API が更新された MoEngage iOS SDK バージョン 6.0.0 に統合を移行します。"
+---
+
+SDK バージョン 6.0.0 では多くの変更を行いました。以前のバージョンの SDK を使用していて、バージョン 6.0.0 以上への移行を計画している場合は、移行時に次の変更を行ってください。
+
+# iOS 8.\* のサポート終了
+
+SDK バージョン `6.0.0` から、デプロイメントターゲットを `iOS 9.0` に設定したため、`iOS 8.*` のサポートを終了しました。iOS 8.0 のユーザーベースは非常に少なく、ほとんどの開発者が既にアプリのデプロイメントターゲットを iOS 9.0 より上に設定しているため、この決定を行いました。
+
+# 初期化メソッドの非推奨化
+
+以前の初期化メソッドを非推奨とし、新しいメソッドを導入しました。これは、メソッドの引数の数を減らして初期化を簡素化するためです。
+
+**非推奨のメソッド**
+
+<CodeGroup>
+
+```objective-c Objective C wrap
+/**
+ For TEST Environment
+ @warning This method is deprecated and will be removed from SDK Version 7.0.0. Use initializeDevWithAppID:withLaunchOptions instead
+ */
+-(void)initializeDevWithApiKey:(NSString *_Nonnull)apiKey inApplication:(UIApplication *_Nullable)application withLaunchOptions:(NSDictionary *_Nullable)launchOptions openDeeplinkUrlAutomatically:(BOOL)openUrl __deprecated_msg("Use initializeDevWithAppID:withLaunchOptions instead.");
+
+/**
+ For LIVE Environment
+ @warning This method is deprecated and will be removed from SDK Version 7.0.0. Use initializeProdWithAppID:withLaunchOptions: instead
+ */
+-(void)initializeProdWithApiKey:(NSString *_Nonnull)apiKey inApplication:(UIApplication *_Nullable)application withLaunchOptions:(NSDictionary *_Nullable)launchOptions openDeeplinkUrlAutomatically:(BOOL)openUrl __deprecated_msg("Use initializeProdWithAppID:withLaunchOptions: instead.");
+```
+
+</CodeGroup>
+
+**新しいメソッド**
+
+<CodeGroup>
+
+```objective-c Objective C wrap
+// For TEST Environment
+-(void)initializeDevWithAppID:(NSString *_Nonnull)appID withLaunchOptions:(NSDictionary *_Nullable)launchOptions;
+
+// For LIVE Environment
+-(void)initializeProdWithAppID:(NSString *_Nonnull)appID withLaunchOptions:(NSDictionary *_Nullable)launchOptions;
+```
+
+</CodeGroup>
+
+SDK の初期化の詳細については、次の[ドキュメント](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)を参照してください。
+
+# Analytics モジュールの変更
+
+## イベントのトラッキング：
+
+すべてのイベント属性をトラッキングするために `MOProperties` クラスを導入しました。そのため、以前のメソッドを非推奨とし、イベントをトラッキングするための `trackEvent:withProperties:` を追加しました。詳細については、こちらの[リンク](/ja/developer-guide/ios-sdk/data-tracking/basic/tracking-events)を参照してください。
+
+**非推奨のメソッド**
+
+<CodeGroup>
+
+```objective-c Objective C wrap
+/**
+ @warning This method is deprecated and will be removed in SDK version 7.0.0. Use trackEvent:withProperties: instead.
+ */
+-(void)trackEvent:(NSString *_Nonnull)name andPayload:(NSMutableDictionary *_Nullable)payload __deprecated_msg("Use trackEvent:withProperties: instead.");
+
+/**
+ @warning This method is deprecated and will be removed in SDK version 7.0.0. Use trackEvent:withProperties: instead.
+ */
+-(void)trackEvent:(NSString *_Nonnull)name builderPayload:(MOPayloadBuilder *_Nullable)payload __deprecated_msg("Use trackEvent:withProperties: instead.");
+```
+
+</CodeGroup>
+
+**新しいメソッド**
+
+<CodeGroup>
+
+```objective-c Objective C wrap
+/**
+Call this method to track events.
+@param name Event name to be tracked
+@param properties of type MOProperties. See MOProperties for more details.
+@version Available from SDK version 6.0.0 and above
+*/
+-(void)trackEvent:(NSString *_Nonnull)name withProperties:(MOProperties *_Nullable)properties;
+```
+
+</CodeGroup>
+
+## ユーザー属性のトラッキング：
+
+SDK で日付のユーザー属性をトラッキングするためのメソッドをいくつか追加しました。詳細については、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/data-tracking/basic/tracking-user-attributes)を参照してください。
+
+<CodeGroup>
+
+```objective-c Objective C wrap
+/**
+ Use this method to set a user attribute which is NSDate instance.
+ @param date The NSDate instance value to track.
+ */
+-(void)setUserAttributeDate:(NSDate* _Nonnull)date forKey:(NSString *_Nonnull)key;
+
+/**
+ Use this method to set a user attribute which is NSDate instance.
+ @param dateStr Date String in ISO date format [yyyy-MM-dd'T'HH:mm:ss'Z'].
+ */
+-(void)setUserAttributeISODateString:(NSString* _Nonnull)dateStr forKey:(NSString *_Nonnull)key;
+```
+
+</CodeGroup>
+
+# Messaging モジュールの変更
+
+## 通知受信メソッドの非推奨化：
+
+<Info>
+  **AppDelegate スウィズリング：**
+
+  SDK バージョン 5.0.0 から、SDK 内に AppDelegate のスウィズリングを実装したため、SDK はデフォルトで通知に関連するすべてのコールバックを取得します。そのため、AppDelegate スウィズリングが有効な場合、開発者は通知のコールバックで SDK のメソッドを呼び出す必要はありません。詳細については、次の[リンク](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#verify-dashboard-configuration)を参照してください。
+</Info>
+
+`didReceieveNotificationinApplication:withInfo:openDeeplinkUrlAutomatically:` を非推奨としました。代わりに `didReceieveNotificationinApplication:withInfo:` を使用してください。
+
+**非推奨のメソッド**
+
+<CodeGroup>
+
+```objective-c Objective C wrap
+/**
+ Call this method in AppDelegate in didReceiveRemoteNotification
+ @warning This method is deprecated and will be removed from SDK Version 7.0.0. Use didReceieveNotificationinApplication:withInfo: instead
+ */
+-(void)didReceieveNotificationinApplication:(UIApplication*_Nullable)application withInfo:(NSDictionary* _Nonnull)userInfo openDeeplinkUrlAutomatically:(BOOL)openUrl __deprecated_msg("Use didReceieveNotificationinApplication:withInfo: instead.");
+```
+
+</CodeGroup>
+
+**新しいメソッド**
+
+<CodeGroup>
+
+```objective-c Objective C wrap
+/**
+ Call this method in AppDelegate in didReceiveRemoteNotification
+ */
+-(void)didReceieveNotificationinApplication:(UIApplication*_Nullable)application withInfo:(NSDictionary* _Nonnull)userInfo;
+```
+
+</CodeGroup>
+
+# InApp モジュールの変更
+
+- InApp モジュールは全面的に刷新され、多くの変更が含まれています。主な変更点は、モジュールを `MoEngage-iOS-SDK` から分離したことです。そのため、アプリで In-App を使用するには、プロジェクトに `MoEngageInApp` モジュールを統合する必要があります。InApp モジュールの統合については、こちらの[リンク](/ja/developer-guide/ios-sdk/in-app-messages/in-app-nativ)を参照してください。
+- 既存のテンプレートは**横向き**と **iPad** を考慮して作成されておらず、これらのシナリオでは表示が崩れる可能性があるため、これらでの InApp の**サポートを終了**しました。
+- **コンテキストベースの InApp** のサポートを追加しました。InApp にタグを付け、SDK に設定された現在のコンテキストに基づいて InApp を表示できます。詳細については、こちらの[リンク](/ja/developer-guide/ios-sdk/in-app-messages/in-app-nativ)を参照してください。
+- プラットフォーム間で一貫性を保つため、以前のメソッドのほとんどのサポートを終了し、新しいメソッドに置き換えました。使用する API の違いについては、以下のリンクを参照してください。
+- [SDK バージョン 6.0.0 以上の InApp API](/ja/developer-guide/ios-sdk/in-app-messages/in-app-nativ)
+- [SDK バージョン 5.2.6 以前の InApp API](https://developers.moengage.com/hc/en-us/articles/4404155414676)

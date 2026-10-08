@@ -1,0 +1,250 @@
+---
+title: "Manifest ベースからコードベースの連携への移行"
+description: "MoEngage Android SDK のセットアップを Manifest メタデータからコードベースの初期化に移行します。"
+---
+
+Manifest の設定/タグによる MoEngage SDK の連携は非推奨になりました。\
+最新の連携方法では、アプリの Application クラスの `onCreate()` で SDK を初期化する必要があります。以下は、削除する必要があるメタデータフラグと、Application クラスの `onCreate()` で呼び出す必要がある同等の API です。\
+すでに Application クラスでコードを使用して SDK を初期化している場合は、この内容は無視してかまいません。
+
+# App Id の追加
+
+## 以前
+
+```xml wrap
+{/*  MANDATORY FIELD: APP ID AS SEEN ON MOENGAGE DASHBOARD APP SETTINGS PAGE  */}
+<meta-data
+    android:name="APP_ID"
+    android:value="YOUR_WORKSPACE_ID" />
+```
+
+## 現在
+
+```java wrap
+// this is the instance of the application class and "YOUR_WORKSPACE_ID" is the Workspace ID from the dashboard.
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+            .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+# ライフサイクルコールバックの追加
+
+## 以前
+
+```java wrap
+MoEHelper.getInstance(getApplicationContext()).autoIntegrate(this);
+```
+
+## 現在
+
+Application クラスから上記の行を削除してください。
+
+# プッシュ通知用のメタタグを Manifest に追加
+
+## 以前
+
+```xml wrap
+{/*  MANDATORY FIELD: SENDER ID , i.e. THE PROJECT NUMBER AS MENTIONED ON GOOGLE CLOUD CONSOLE PROJECTS PAGE  */}
+<meta-data
+    android:name="SENDER_ID"
+    android:value="id:XXXXXXXXXXXX" />
+
+{/*  MANDATORY FIELD: THE NOTIFICATION SMALL ICON WHICH WILL BE USED TO SET TO NOTIFICATIONS POSTED  */}
+<meta-data
+    android:name="NOTIFICATION_ICON"
+    android:value="@drawable/ic_launcher" />
+
+{/*  MANDATORY FIELD: THE NOTIFICATION LARGE ICON WHICH WILL BE USED TO SET TO NOTIFICATIONS POSTED  */}
+<meta-data
+   android:name="NOTIFICATION_LARGE_ICON"
+   android:value="@drawable/large_icon" />
+```
+
+## 現在
+
+```java wrap
+MoEngage moEngage =
+        new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+            .setSenderId("xxxxxxx") // required only if you are using GCM.
+            .setNotificationSmallIcon(R.drawable.icon)
+            .setNotificationLargeIcon(R.drawable.ic_launcher)
+            .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+# GCM 登録をスキップするメタタグの追加
+
+## 以前
+
+```xml wrap
+<meta-data
+    android:name="SKIP_GCM_REGISTRATION"
+    android:value="true" />
+```
+
+## 現在
+
+```java wrap
+        new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+            .setSenderId("xxxxxxx") // required only if you are using GCM.
+            .setNotificationSmallIcon(R.drawable.icon)
+            .setNotificationLargeIcon(R.drawable.ic_launcher)
+            .optOutTokenRegistration()
+            .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+# 複数の通知を一度に表示
+
+## 以前
+
+```xml wrap
+{/*  OPTIONAL FIELD: THE NOTIFICATION TYPE WHICH WILL BE USED, SINGLE OR MULTIPLE. DEFAULT BEHAVIOR IS SINGLE  */}
+<meta-data
+    android:name="NOTIFICATION_TYPE"
+    android:value="@integer/notification_type_multiple" />
+```
+
+## 現在
+
+```java wrap
+MoEngage moEngage =
+        new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+            .setSenderId("xxxxxxx") // required only if you are using GCM.
+            .setNotificationSmallIcon(R.drawable.icon)
+            .setNotificationLargeIcon(R.drawable.ic_launcher)
+            .setNotificationType(R.integer.notification_type_multiple)
+            .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+# 通知の色の設定
+
+## 以前
+
+```xml wrap
+<color name="moe_notification_color">[hex code of color]</color>
+```
+
+## 現在
+
+```java wrap
+MoEngage moEngage =
+        new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+            .setSenderId("xxxxxxx") // required only if you are using GCM.
+            .setNotificationSmallIcon(R.drawable.icon)
+            .setNotificationLargeIcon(R.drawable.ic_launcher)
+            .setNotificationColor(R.color.colorAccent)
+            .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+# 通知の BackStack 作成のオプトアウト
+
+## 以前
+
+```java wrap
+PushManager.getInstance().optoutBackStackBuilder(true);
+```
+
+## 現在
+
+```java wrap
+    MoEngage moEngage =
+        new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+            .optOutBackStackBuilder()
+            .build();
+    MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+# Activity トラッキングのオプトアウト
+
+## 以前
+
+```xml wrap
+<activity
+    android:name=".SplashScreen"
+    android:label="@string/app_name">
+    <intent-filter>
+        <action android:name="android.intent.action.MAIN" />
+        <category android:name="android.intent.category.LAUNCHER" />
+    </intent-filter>
+    <meta-data
+        android:name="OPT_OUT_TRACKING"
+        android:value="true"/>
+</activity>
+```
+
+## 現在
+
+```java wrap
+ArrayList<Class> trackingOptOut = new ArrayList<>();
+trackingOptOut.add(SettingsActivity.class);
+
+MoEngage moEngage =
+    new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+        .setTrackingOptOut(trackingOptOut)
+        .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+# NavBar のオプトアウト
+
+## 以前
+
+```java wrap
+InAppManager.getInstance().optOutNavBar(this,true);
+```
+
+## 現在
+
+```java wrap
+    MoEngage moEngage =
+        new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+            .optOutNavBar()
+            .build();
+    MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+# Activity での InApp 表示のオプトアウト
+
+## 以前
+
+```xml wrap
+<activity
+ android:name="[your_activity]">
+  <meta-data
+    android:name="showInApp"
+    android:value="false" />
+</activity>
+```
+
+## 現在
+
+```java wrap
+ArrayList<Class> inAppOptOut = new ArrayList<>();
+inAppOptOut.add(MainActivity.class);
+MoEngage moEngage =
+    new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+        .setInAppOptOut(inAppOptOut)
+        .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+# ディープリンクでの MoEngage extras のオプトアウト
+
+## 以前
+
+```java wrap
+PushManager.getInstance().optOutMoEngageExtras(true);
+```
+
+## 現在
+
+```java wrap
+    MoEngage moEngage =
+        new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+            .optOutMoEngageExtras()
+            .build();
+    MoEngage.initialiseDefaultInstance(moEngage);
+```

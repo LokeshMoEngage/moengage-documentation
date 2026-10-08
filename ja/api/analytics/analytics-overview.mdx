@@ -1,0 +1,64 @@
+---
+title: "Custom Dashboards の概要"
+description: "MoEngage の Custom Dashboards にプログラムでアクセスし、チャートの背後にある分析データを取得します。"
+icon: "file-magnifying-glass"
+keywords: ["custom dashboards", "charts", "analytics api", "dashboard api", "chart data"]
+---
+
+import ApiAuthentication from '/ja/snippets/api-authentication.mdx';
+
+MoEngage Custom Dashboards API を使用すると、[Custom Dashboards](/ja/user-guide/analyze/dashboards/custom-dashboards) とそこに含まれる分析チャートに、読み取り専用でプログラムからアクセスできます。これらのエンドポイントを使用して、ワークスペース内のダッシュボードを検出し、ダッシュボードの構造を取得し、各チャートの背後にあるデータを取得できます。これにより、MoEngage の分析データを外部ツール、定期レポート、自動化されたワークフローに取り込むことができます。
+
+すべてのエンドポイントは `GET` リクエストであり、データを変更することはありません。
+
+## エンドポイント
+
+Custom Dashboards API には、以下のエンドポイントが含まれます。
+
+- [List Dashboards](/ja/api/dashboards/list-dashboards): ワークスペースからアクセス可能なダッシュボードを取得します。
+- [Get Dashboard Charts](/ja/api/dashboards/get-dashboard-charts): ダッシュボードの詳細と、そのダッシュボード上のチャートの一覧を取得します。
+- [Get Chart Data](/ja/api/dashboards/get-chart-data): 単一のチャートのデータを取得します。
+
+## 一般的なワークフロー
+
+3 つのエンドポイントは、順番に使用するように設計されています。
+
+1. **List Dashboards** を呼び出して目的のダッシュボードを見つけ、その `_id` を控えます。
+2. そのダッシュボード ID を指定して **Get Dashboard Charts** を呼び出し、チャートの一覧を取得して各チャートの `_id` を控えます。
+3. ダッシュボード ID とチャート ID を指定して **Get Chart Data** を呼び出し、基になるデータを取得します。
+
+## 認証
+
+<ApiAuthentication />
+
+<Note>
+  この API 用の API キーを作成する際は、**Select APIs for access** で **Dashboard & Analyze** チェックボックスが選択されていることを確認してください。
+</Note>
+
+## アクセスと権限
+
+これらのエンドポイントは、ワークスペースレベル(公開)のダッシュボードのみを返します。プライベートダッシュボードはこの API では利用できません。アーカイブされたダッシュボードも除外されます。ダッシュボードの表示範囲と共有の詳細については、[Custom Dashboards](/ja/user-guide/analyze/dashboards/custom-dashboards) を参照してください。
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="これらの API はどのダッシュボードを対象としていますか?">
+    これらの API は Custom Dashboards を対象としています。MoEngage のデフォルトダッシュボードは、これらのエンドポイントでは利用できません。これには、Inbuilt Lifecycle Engagement(ILE)、Campaign Stats、Best Time to Send、Reachability が含まれます。
+  </Accordion>
+  <Accordion title="List Dashboards のレスポンスにダッシュボードが含まれていないのはなぜですか?">
+    アーカイブされたダッシュボードやプライベートダッシュボードは除外されます。ワークスペースレベル(公開)のダッシュボードのみが返されます。
+  </Accordion>
+  <Accordion title="チャートデータはどの期間とオーディエンスを反映していますか?">
+    チャートデータは、期間、セグメント、フィルター、ブレークダウンなど、チャートに保存された設定を反映します。このエンドポイントは読み取り専用で、期間やセグメントのパラメータを受け付けないため、チャートが返す内容を変更するには、MoEngage ダッシュボードでチャートを編集して保存してください。
+  </Accordion>
+  <Accordion title="キャッシュされたデータではなく最新のデータを取得するにはどうすればよいですか?">
+    チャートデータは、デフォルトではサーバー側のキャッシュから提供されます。チャートを再計算するには、`cache` クエリパラメータを `false` に設定して [Get Chart Data](/ja/api/dashboards/get-chart-data) を呼び出してください。
+  </Accordion>
+  <Accordion title="チャートごとに異なるフィールドが返されるのはなぜですか?">
+    各行のフィールドは、チャートの分析タイプ(Behavior、Funnels、Retention、User、Session and Source)によって異なります。チャートは共通フィールド以外のフィールドを返す場合があるため、レスポンスは行ごとに柔軟なキーのセットとして扱ってください。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+事前設定済みの Postman コレクションを使用して、これらのエンドポイントをすばやくテストできます: [MoEngage Analytics Custom Dashboard API コレクションを表示](https://www.postman.com/moengage-dev/api-docs/collection/rjb0r1e/moengage-analytics-custom-dashboard-apis)。

@@ -1,0 +1,130 @@
+---
+title: "MoEngage をトリガーとして使用する"
+description: "MoEngage の Connector Campaigns を Zapier のトリガーとして使用し、ユーザーのアンインストール、カスタムイベント、その他の行動シグナルに応じて 5,000 以上の Zapier アプリでワークフローを起動します。"
+keywords: ["zapier", "trigger", "webhook", "connector campaign", "moengage zapier"]
+---
+
+## はじめに
+
+[Zapier](https://zapier.com/) は、使用しているアプリやサービスを接続してワークフローを自動化できるオンラインプラットフォームです。MoEngage と Zapier の連携を使用すると、Zapier 上の 5,000 以上のアプリを対象にカスタムのワークフロー自動化を作成できます。
+
+MoEngage の [Connector Campaigns](https://www.moengage.com/docs/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign) を使用すると、MoEngage からさまざまな目的で Zapier のワークフローをトリガーできます。
+
+## ユースケース
+
+利用を開始するためのアイデアをいくつか紹介します。
+
+1. MoEngage でのアンインストールイベントごとに Slack メッセージを投稿する。
+2. MoEngage で特定のイベントが発生したときに、Google Sheet にデータを追加する。
+3. ユーザーが MoEngage でカスタムイベントを実行したときに、ユーザーごとに Zendesk で新しいチケットを作成する。
+4. ユーザーが MoEngage でイベントを実行したときに、そのユーザーを MoEngage のコホートに追加する。
+
+<Info>
+  **前提条件**
+
+  Zapier アカウントにアクセスでき、そのアカウントを MoEngage アカウントに接続済みであることを確認してください。[こちらの手順に従って Zapier を MoEngage に接続](/ja/partner-guide/data-and-analytics/workflow-automation/zapier/overview#connecting-zapier-to-moengage)できます。
+</Info>
+
+## 連携
+
+このユースケースでは、MoEngage の [Connector Campaigns](https://www.moengage.com/docs/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign) を活用します。このチュートリアルでは、ユースケース #1「MoEngage でのアンインストールごとに Slack メッセージを投稿する」を取り上げます。[Zapier ダッシュボード](https://zapier.com/app/dashboard)で、左上隅にある「+ Create Zap」をクリックします。
+
+### ステップ 1: トリガーアプリとして Webhook by Zapier を選択する
+
+トリガーとして「Webhook by Zapier」と入力して選択します。これが zap を開始するトリガーになります。
+
+![トリガーアプリとして Webhook by Zapier を選択](/images/partner_7926866117268.png)
+
+### ステップ 2: トリガーアプリを設定する
+
+1. ドロップダウンからイベント「Catch Hook」を選択します。Continue をクリックします。
+2. 「Set up trigger」ステップでは、「Pick off a Child Key」を空白のままにします。Continue をクリックします。
+3. 固有の Webhook URL が表示されます。
+
+![Zapier の設定画面に表示された固有の Webhook URL](/images/partner_7926954721812.png)
+
+4. この URL を控えておいてください。Connector Campaigns の設定に必要になります。
+
+### ステップ 3: MoEngage で Connector Campaign を設定する
+
+1. MoEngage ダッシュボードに移動します。
+2. 次のいずれかのオプションを使用します。
+   1. **All Campaigns** ページで、**Create Campaign** をクリックします。Create Campaign ページが表示されます。
+
+      ![All Campaigns ページの右側ナビゲーションにある Create Campaign ボタン](/images/partner_4491322708756.png)
+
+   2. **Create New > Campaign** をクリックします。Create Campaign ページが表示されます。
+
+      ![左側ナビゲーションの Create New Campaign オプション](/images/partner_4491307125908.png)
+
+3. Connectors の下にある **Custom** をクリックします。
+4. キャンペーンの配信タイプとして「Event-Triggered」を選択します。
+   - 配信タイプの詳細については、[配信タイプ](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/introduction/delivery-types-moengage-channels)を参照してください。
+5. 次の画面で、キャンペーンに名前を付け、Criteria として「Device Uninstall」を選択します。
+6. トリガーには「immediately」を選択します。
+
+![Device Uninstall 条件を使用したコネクターキャンペーンの設定](/images/partner_7927058977300.png)
+
+7. このユースケースでは、オーディエンスとして「All users」を選択します。問題がなければ「next」をクリックします。
+8. コンテンツ画面で、ペイロードと前のステップで取得した Webhook URL を定義します。
+9. メソッドとして「POST」を選択します ([Zapier の Webhook](https://zapier.com/help/create/code-webhooks/trigger-zaps-from-webhooks) について詳しく知る)。
+10. 先ほどコピーした Webhook URL を入力します。
+11. 要件に応じてヘッダーとパラメーターを定義します。このユースケースでは、ペイロードの本文のみを定義します (@ を入力してパーソナライズされた値を挿入することもできます)。
+
+![メソッド、Webhook URL、ペイロードを表示するコネクターキャンペーンのコンテンツステップ](/images/partner_7927086198932.png)
+
+12. 次に、この Webhook をテストする必要があります。下にスクロールしてテストユーザーのデータを入力し、「test」をクリックします。
+13. テストが成功したことを示す新しいモーダルが表示されます。
+
+![Webhook テスト成功の確認モーダル](/images/partner_7927131912084.png)
+
+14. Zapier エディターに戻ります。
+
+### ステップ 4: Zapier で Webhook の設定をテストする
+
+1. 「Test Trigger」をクリックして、MoEngage から先ほど送信したテストキャンペーンを取得します。
+2. このデータに問題がなければ、MoEngage で Connector Campaign を公開できます。
+3. Zapier に戻り、Continue をクリックしてワークフローに次のステップを追加します。
+
+![MoEngage のペイロードを表示する Zapier のテストトリガー結果](/images/partner_7927184596756.png)
+
+![解析されたフィールドを含むテストトリガーの詳細](/images/partner_7927154337940.png)
+
+### ステップ 5: アクションアプリとして Slack を追加する
+
+「+」をクリックして新しいステップを追加します。次に、アプリから「Slack」を検索して選択します。
+
+![Zapier でアクションアプリとして Slack を追加](/images/partner_7927158176660.png)
+
+### ステップ 6: Slack アクションを設定する
+
+1. イベントのドロップダウンから「Send Direct Message」を選択します。Continue をクリックします。
+2. 次に、Slack に接続する必要があります。完了したら、ドロップダウンから接続済みのアカウントを選択し、Continue をクリックします。
+3. 次のステップ「Set up action」では、入力するか前のステップからマッピングするためのフォームが表示されます。ここでは「To Username」と「Message Text」の値のみを入力します。「Send as a bot?」には必ず「Yes」を選択してください。
+
+前のステップからデータをマッピングすることもできます。
+
+![前のステップのデータを Slack アクションのフィールドにマッピング](/images/partner_7927271509908.png)
+
+フォームは次のようになります。
+
+![ユーザー名とメッセージテキストが入力された Slack アクションの設定フォーム](/images/partner_7927482584980.png)
+
+![ボットのトグルを含む Slack アクション設定の続き](/images/partner_7927343636756.png)
+
+![Slack アクション設定の最終プレビュー](/images/partner_7927343615508.png)
+
+4. この設定をテストするオプションが表示されます。
+
+![Slack アクションの設定をテストするオプション](/images/partner_7927379699732.png)
+
+5. 「Test & continue」をクリックしてこの設定をテストします。
+6. API 呼び出しが成功すると、「success」が返されます。
+
+![Slack アクションのテスト成功レスポンス](/images/partner_7927375976980.png)
+
+Slack でも確認できます。新しいメッセージが表示されているはずです。
+
+![Slack ワークスペースで確認された新しい Slack メッセージ](/images/partner_7927447035412.png)
+
+7. すべてが正常に動作することを確認したら、「Publish Zap」をクリックします。これにより、新しいアンインストールが発生するたびに Zap が実行され、Slack で通知されます。

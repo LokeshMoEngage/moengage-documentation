@@ -1,0 +1,37 @@
+---
+title: "移行と優先順位"
+description: "MoEngage Flutter SDKをコードベースの初期化からファイルベースの設定に移行します。"
+---
+
+### Androidの移行手順
+
+手動のコードベースの初期化からXMLファイルベースの方法に移行するには、以下の手順に従います。
+
+1. **設定ファイルを追加する：** 生成された `moengage.xml` ファイルを `android/app/src/main/res/values/` に配置します。
+2. **Applicationクラスを更新する：** Applicationクラスから既存の初期化コード（手動の `MoEngage.Builder` ロジック）を削除し、XMLファイルからの読み込みを有効にするデフォルトインスタンスの初期化に置き換えます。
+
+| コード言語 | 既存のコード                                                                                                                                                                                          | 置き換え後                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------- |
+| Kotlin        | <code>val moEngage: MoEngage.Builder = MoEngage.Builder(this,"YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X) <br /> MoEInitializer.initialiseDefaultInstance(context = this, builder = moEngage)</code> | <code>MoEInitializer.initializeDefaultInstance(application) </code>   |
+| Java          | <code>MoEngage.Builder moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", YOUR_DATA_CENTER); MoEInitializer.initialiseDefaultInstance(this, moEngage); </code>                                 | <code>MoEInitializer.INSTANCE.initializeDefaultInstance(this);</code> |
+
+### iOSの移行手順
+
+コードベースの初期化から `Info.plist` ベースの方法に移行するには、以下の手順に従います。
+
+1. **Info.plistを更新する**：`Info.plist` ファイルの _MoEngage_ キー内に、必要なMoEngage設定キー（WorkspaceId、DataCenterなど）を追加します。
+2. **AppDelegateを更新する**：`AppDelegate` クラスから既存の初期化コード（手動のMoEngageSDKConfigロジック）を削除し、`Info.plist` ファイルからの読み込みを有効にするデフォルトインスタンスの初期化に置き換えます。
+
+| コード言語 | 既存のコード                                                                                                          | 置き換え後                                                                    |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Swift         | <code>MoEngageInitializer.sharedInstance.initializeDefaultInstance(sdkConfig, launchOptions: launchOptions)   </code>  | <code> MoEngageInitializer.sharedInstance.initializeDefaultInstance()   </code> |
+| Objective-C   | <code>[[MoEngageInitializer sharedInstance] initializeDefaultInstance:sdkConfig launchOptions:launchOptions];  </code> | <code>[MoEngageInitializer.sharedInstance initializeDefaultInstance]; </code>   |
+
+### 優先順位のルール
+
+設定のソースは、ネイティブコードで呼び出される初期化関数によって決まります。
+
+- **Android**：
+  - **ファイルベースの初期化：** `MoEInitializer.initializeDefaultInstance(context)` を呼び出すと、SDKは `moengage.xml` ファイルを検索して読み込みます。
+  - **コードベースの初期化：** `MoEInitializer.initialize(context, moEngage.Builder)` を呼び出すと、パラメーターで渡された設定オブジェクトを使用してSDKが初期化され、XMLファイルが存在していても無視されます。
+- **iOS：** 自動初期化（`Info.plist` 経由）が最初に行われます。ただし、その後コード内で設定オブジェクトを指定して手動の `initialize` メソッドを呼び出すと、現在のインスタンスの設定が更新されます。

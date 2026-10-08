@@ -1,0 +1,80 @@
+---
+title: "iOS SDKの初期化"
+description: "MoEngageInitializerインスタンスを使用して、iOSのAppDelegateでMoEngage Flutter SDKを初期化します。"
+---
+
+# 初期化
+
+ダッシュボードの設定にあるMoEngage Workspace IDを使用してiOSアプリケーションを初期化します。プロジェクトの **_AppDelegate_** ファイルで、以下のように **_applicationdidFinishLaunchingWithOptions()_** 内で **\_MoEngageInitializer \_**インスタンスのいずれかの **_initialize()_** を呼び出します。
+
+<Info>
+  SDKの初期化時には、正しいデータセンターを設定してください。詳細については、次の[リンク](/ja/developer-guide/ios-sdk/sdk-integration/basic/data-center)を参照してください。
+</Info>
+
+<CodeGroup>
+
+```swift Swift
+/// Method to initialize MoEngage SDK
+/// - Parameters:
+///   - config: MoEngageSDKConfig instance for SDK configuration
+///   - launchOptions: Launch Options dictionary
+func initializeDefaultInstance(_ config: MoEngageSDKConfig, launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil)
+/// Method to initialize MoEngage SDK with SDK state
+/// - Parameters:
+///   - config: MoEngageSDKConfig instance for SDK configuration
+///   - sdkState: Bool indicating if SDK is Enabled/Disabled
+///   - launchOptions: Launch Options dictionary
+func initializeDefaultInstance(_ config: MoEngageSDKConfig, sdkState: Bool = true, launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil)
+```
+
+</CodeGroup>
+
+**_applicationdidFinishLaunchingWithOptions()_** で初期化するサンプルコード
+
+<CodeGroup>
+
+```swift Swift
+// Import SDK frameworks
+import moengage_flutter_ios
+import MoEngageSDK
+@UIApplicationMain
+@objc class AppDelegate: FlutterAppDelegate {
+  override func application(
+    _ application: UIApplication,
+    didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+  ) -> Bool {
+//Workspace ID: You can be obtain it from App Settings in MoEngage Dashboard.
+    let sdkConfig = MoEngageSDKConfig(withAppID: YOUR_WORKSPACE_ID, dataCenter: DATA_CENTER) 
+    sdkConfig.enableLogs = true
+    MoEngageInitializer.sharedInstance.initializeDefaultInstance(sdkConfig, launchOptions: launchOptions)
+    GeneratedPluginRegistrant.register(with: self)
+    return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+}
+```
+
+
+```objectivec Objective-C
+// Import SDK frameworks
+#import <MoEngageSDK/MoEngageSDK.h>
+#import <moengage_flutter_ios/moengage_flutter_ios-Swift.h>
+@implementation AppDelegate
+- (BOOL)application:(UIApplication *)application
+didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+    MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppID:@"Workspace ID"dataCenter: DATA_CENTER];
+    sdkConfig.enableLogs = true;
+   [[MoEngageInitializer sharedInstance] initializeDefaultInstance:sdkConfig launchOptions:launchOptions];
+   [GeneratedPluginRegistrant registerWithRegistry:self];
+   // Override point for customization after application launch.
+   return [super application:application didFinishLaunchingWithOptions:launchOptions];
+}
+@end
+```
+
+</CodeGroup>
+
+# データセンター
+
+データ規制ポリシーなどの理由でアプリのデータを特定のゾーンにリダイレクトする必要がある場合は、MOSDKConfigオブジェクトでゾーンを設定してください。
+
+データセンターの詳細については、[こちら](/ja/developer-guide/ios-sdk/sdk-integration/basic/data-center)を参照してください。

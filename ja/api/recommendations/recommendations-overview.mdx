@@ -1,0 +1,53 @@
+---
+title: "Recommendations の概要"
+description: "レコメンデーションのメタデータを取得し、パーソナライズされたアイテムの結果を取得します。"
+icon: "file-magnifying-glass"
+---
+
+MoEngage Recommendation API を使用すると、レコメンデーションエンジンを操作できます。特定のレコメンデーション設定の構成メタデータを取得したり、「Similar Items」、「Frequently Bought Together」、「Trending」などのさまざまなモデルに基づいて、特定のユーザー向けに実際のおすすめアイテムを取得したりできます。
+
+<Info>
+  この API がお使いのアカウントで有効になっていない場合は、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームに有効化をリクエストしてください。
+</Info>
+
+## エンドポイント
+
+Recommendation API は、以下のエンドポイントで構成されています。
+
+- [Fetch All Recommendations](/ja/api/recommendations/fetch-all-recommendations): ワークスペース内のレコメンデーションを、ページネーションとステータスフィルター付きで一覧表示します。
+- [Fetch Recommendation Details](/ja/api/recommendations/fetch-recommendation-details): 構成の詳細、ステータス、ロジックを取得します。
+- [Fetch Recommendation Results](/ja/api/recommendations/fetch-recommendation-results): ユーザー向けにパーソナライズされたアイテムを取得します。
+
+## よくある質問
+
+### レコメンデーション全般に関する質問
+
+<AccordionGroup>
+  <Accordion title="Recommendation ID はどこで確認できますか？">
+    `recommendation_id` は、MoEngage の Recommendation モジュールでレコメンデーションを作成したときに生成される一意の識別子です。この ID は、MoEngage ダッシュボードの各レコメンデーションの概要ページで確認するか、[Fetch All Recommendations](/ja/api/recommendations/fetch-all-recommendations) を呼び出して確認できます。
+  </Accordion>
+  <Accordion title="アーカイブされたレコメンデーションが 404 ではなく 400 を返すのはなぜですか？">
+    Fetch Recommendation Details と Fetch Recommendation Results はいずれも、処理できない `recommendation_id` に対して `400` を返します。アーカイブされたレコメンデーションも、作成されたことのないレコメンデーションも、どちらも `400` を返します。`recommendation_id` と、MoEngage ダッシュボードでのレコメンデーションのステータスを確認してください。
+  </Accordion>
+  <Accordion title="'include_fields' パラメーターを使用すべきなのはなぜですか？">
+    デフォルトでは、API はカタログ内のアイテムに関連付けられたすべての属性を返します。属性が多いカタログでは、レスポンスサイズとレイテンシーが大幅に増加する可能性があります。必要なフィールドのみを指定する（例: `["title", "price", "image_link"]`）ことで、パフォーマンスが向上します。
+  </Accordion>
+</AccordionGroup>
+
+### 結果の取得
+
+<AccordionGroup>
+  <Accordion title="リクエストボディで item_id が必須になるのはどのような場合ですか？">
+    `item_id` は、協調フィルタリングモデルのアンカーとして機能します。`RECOMMENDATION-TYPE` が `similar_item`、`frequently_viewed_together`、または `frequently_bought_together` に設定されている場合は必須です。
+  </Accordion>
+  <Accordion title="MoEngage にまだ存在しないユーザーの結果を取得できますか？">
+    API には有効な `user_id` が必要です。ユーザーが不明な場合や、インタラクションが記録されていない場合、ダッシュボードの「fallback」設定に応じて、レコメンデーションエンジンはデフォルトのアイテム（トレンドアイテムなど）または空のリストを返すことがあります。
+  </Accordion>
+  <Accordion title="ペイロードサイズが 1MB を超えるとどうなりますか？">
+    API は `413 Request Entity Too Large` エラーを返します。これは通常、`include_fields` リストが極端に長い場合や、非常に多数のアイテムがリクエストされた場合（該当する場合）に発生します。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+Postman コレクションを使用して、Recommendation API をすぐにテストできます。[Postman コレクションを表示](https://www.postman.com/moengage-dev/api-docs/collection/35sr4cv/moengage-recommendation-public-api)

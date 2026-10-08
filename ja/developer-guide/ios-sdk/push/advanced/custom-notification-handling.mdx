@@ -1,0 +1,184 @@
+---
+title: "カスタム通知処理"
+description: "MoEngage SDKを使用して、iOSプッシュのバッジリセット、通知サウンド、アクション処理をカスタマイズします。"
+---
+
+# バッジリセットの無効化
+
+デフォルトでは、SDKはアプリアイコンのバッジを通知センター内のMoEngage通知の数に設定します。
+
+バッジを自分で管理するには、アプリの `Info.plist` に `MoEngageBadgeUpdateEnabled` キーを追加し、`false` に設定します。このキーはiOS SDK [10.13.0](/ja/release-notes/sdks/ios#25th-may-2026) からサポートされています。
+
+```xml Info.plist
+<key>MoEngageBadgeUpdateEnabled</key>
+<false/>
+```
+
+<Warning>
+  `MoEngageSDKMessaging.disableBadgeReset(_:)` はiOS SDK [10.13.0](/ja/release-notes/sdks/ios#25th-may-2026) から非推奨となり、効果はありません。この呼び出しをすべて削除し、代わりに `Info.plist` キーを使用してください。
+</Warning>
+
+# 通知のカスタムサウンド
+
+アプリの通知にカスタムの通知音を設定できます。iOSプラットフォームでは、カスタム通知音として .aiff、.caf、.wav ファイルがサポートされています。そのためには、通知音のサウンドファイルがアプリバンドルに含まれていることを確認してください。これが完了したら、以下に示すように、ダッシュボードでキャンペーンを作成する際に通知サウンド(Rich Contentセクション内)にサウンドファイル名を指定すると、動作するようになります。
+
+![Customnot1](/images/Customnot1.png)
+
+# 通知アクション
+
+MoEngageは、ユーザーエンゲージメントとインタラクションを強化するためにプッシュ通知に含めることができるいくつかのアクションを提供しています。MoEngageのプッシュ通知で提供されるアクションの一部を以下に示します。
+
+1. RichLanding: 指定されたURLは、Safari View Controllerを使用してアプリ内で開かれます。これにより、ユーザーはURLにアクセスしている間もアプリケーション内にとどまります。この機能はSDKによって処理されます。
+2. Navigate To Screen: [ドキュメント](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse)の **Notification Click Callback in the App** に記載されているコールバックメソッドを実装して、必要なアクションを実行します。
+3. Deeplink: モバイルアプリ内の特定の場所やコンテンツにユーザーを直接移動させるために使用されます。
+
+アプリケーションがiOS 13未満の場合、ディープリンクのコールバックは以下の **_AppDelegate_** メソッドで受信されます。
+
+<CodeGroup>
+
+```swift Swift wrap
+import UIKit
+
+// Custom Scheme Link
+func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey : Any] = [:]) -> Bool {
+  
+  //Call only if MoEngageAppDelegateProxyEnabled is NO in Info.plist
+  MoEngageSDKAnalytics.sharedInstance.processURL(url) 
+}
+
+// Universal Links
+func application(_ application: UIApplication, continue userActivity: NSUserActivity, restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void) -> Bool {
+  if userActivity.activityType == NSUserActivityTypeBrowsingWeb ,
+    let incomingURL = userActivity.webpageURL{
+    //Call only if MoEngageAppDelegateProxyEnabled is NO in Info.plist
+    MoEngageSDKAnalytics.sharedInstance.processURL(incomingURL) 
+  }
+  //rest of the implementation
+  return true
+}
+```
+
+
+```objective-c Objective C wrap
+// Custom Scheme Link
+- (BOOL)application:(UIApplication *)app openURL:(NSURL *)url options:(NSDictionary<uiapplicationopenurloptionskey,id> *)options {
+  
+  return  true;
+}
+
+// Universal Link
+- (BOOL)application:(UIApplication *)application continueUserActivity:(NSUserActivity *)userActivity restorationHandler:(void (^)(NSArray * _Nullable))restorationHandler {
+  
+  return true;
+}
+@end
+```
+
+</CodeGroup>
+
+アプリケーションがiOS 13以上の場合、ディープリンクのコールバックは以下の **_SceneDelegate_** メソッドで受信されます。
+
+<CodeGroup>
+
+```swift Swift wrap
+import UIKit
+
+// Custom Scheme Link
+func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+    let url = URLContexts.first?.url
+    MoEngageSDKAnalytics.sharedInstance.processURL(url)
+}
+
+// Universal Scheme Link
+func scene(_ scene: UIScene, continue userActivity: NSUserActivity) {
+    if let url = userActivity.webpageURL {
+        MoEngageSDKAnalytics.sharedInstance.processURL(url)
+    }
+}
+```
+
+</CodeGroup>
+
+<Note>
+  **注**
+
+  - ディープリンクを実装する際は、アプリをホワイトリストに登録するため、Info.plistの **LSApplicationQueriesSchemes** 配列にアプリのURLスキームを追加していることを確認してください。これを行わないと、iOS 9以降ではディープリンクが機能しません。
+</Note>
+
+# 通知ペイロード
+
+アプリに送信されるプッシュペイロードの例:
+
+<CodeGroup>
+
+```json iOS Push Payload wrap
+{
+  "aps": {
+    "alert": {
+      "title": "Notification Title",
+      "subtitle": "Notification Subtitle",
+      "body": "Notification Body"
+    },
+    "badge": 1,
+    "sound": "default",
+    "category": "INVITE_CATEGORY",
+    "content-available": 1,
+    "mutable-content": 1
+  },
+  "app_extra": {
+    "moe_deeplink": "moeapp://screen/settings",
+    "screenName": "Screen Name",
+    "screenData": {
+      "key1": "val1",
+      "key2": "val2"
+    }
+  },
+  "moengage": {
+    "silentPush": 1,
+    "cid": "55f2ba15a4ab4104a287bf88",
+    "app_id": "DAO6UGZ73D9RTK8B5W96TPYN_DEBUG",
+    "moe_campaign_id": "55f2ba15a4ab4104a287bf88",
+    "moe_campaign_name": "Campaign Name",
+    "inbox_expiry": "1571905058",
+    "webUrl": "https://google.com",
+    "couponCode": "APP200",
+    "media-attachment": "https://image.moengage.com/testImg.png",
+    "media-type": "image"
+  }
+}
+```
+
+</CodeGroup>
+
+ペイロード内の各キーの説明:
+
+- **aps**: このキーはiOSが通知を表示するために使用します。このキーには次のキーが含まれます。
+- **alert** : メッセージの内容。
+  - **title** : 通知のタイトルを示します。
+  - **subtitle** : 通知のサブタイトルを示します。
+  - **body** : 通知のメッセージ本文を示します。
+- **badge**: アプリアイコンの上に表示されるバッジ番号を示します。MoEngageプラットフォームでは、0/1の2つの値のみがサポートされています。値が1の場合、SDKはアプリアイコンのバッジ番号をインクリメントし、0の場合はバッジ番号がリセットされ、アプリアイコンにバッジは表示されません。
+- **sound**: このキーは、通知の受信時に再生されるオーディオファイルのファイル名を示します。キャンペーン作成時にファイル名が指定されていない場合、OSのデフォルトサウンドを再生するために、このキーの値は "default" に設定されます。
+- **category**: このキーは、通知に表示するアクションボタンのセットを決定するためにOSが使用します。また、存在する場合は、どのNotification Content Extensionターゲットを表示するかを決定するためにも同じカテゴリーがOSによって使用されます。
+- **content-available**: このキーの値が1に設定されている場合、アプリがバックグラウンドにあると、バックグラウンドでアプリのコンテンツを更新するためのコールバック(`application:didReceiveRemoteNotification:fetchCompletionHandle`)を受け取ります。このキーは、バックグラウンドでプッシュ通知を処理する必要がある場合にのみ使用してください。デフォルトでは、このキーは設定されていません。
+- **mutable-content**: このキーは、すべてのキャンペーンでデフォルトで1に設定されています。これは、MORichNotificationで処理される通知の受信時に、Notification Service Extensionターゲットがコールバックを受け取るようにするためです。0に設定すると、拡張ターゲットはコールバックを受け取りません。
+- **app_extra**: このキーには、アプリ開発者が使用するキー、つまりカスタムのキーと値のペアや、ナビゲーション用のscreenNameが含まれます。
+- **moe_deeplink**: キャンペーン作成時に指定された場合、このキーにはディープリンクURLが含まれます。SDKはこのキーを処理し、ディープリンクURLが有効であれば開こうとします。
+- **screenName**: このキーは、通知をクリックしたときにユーザーを移動させる画面名を示します。このナビゲーションはSDKでは行われません。このパラメーターに指定できる値は、アプリ開発者がプロジェクト内で定義する必要があります。キャンペーン作成時に指定された場合、通知ペイロードに含まれます。`screenName` パラメーターの値を解析して取得し、指定された画面に移動する部分は、アプリ開発者が実装する必要があります。
+- **screenData**: キャンペーン作成時に入力されたカスタムのキーと値のペアが含まれます。アプリ開発者は任意のユースケースにこれを利用できます。
+- **moengage** : SDKが使用するキーが含まれます。アプリ開発者は、ペイロードのこの部分に変更を加えないでください。また、必要に応じてペイロードのこの部分の構造を更新する可能性があるため、この部分の使用も避けてください(ただし、cid、media-attachment、media-type、app_idは変更しません)。
+- **silentPush**: MoEngageから送信されるサイレントプッシュの場合、このキーが存在し、`1` に設定されます。
+- **cid**: キャンペーンの一意のID。
+- **app_id**: キャンペーンが作成されたアカウントのApp ID。
+- **moe_campain_id** および **moe_campaign_name** : 通知関連イベントの属性をトラッキングするためにAnalyticsモジュールで使用されます。
+- **inbox_expiry**: このキーは、通知がアプリのInboxから削除されるタイムスタンプを示します。
+- **webUrl**: キャンペーン作成時に指定された場合、このキーにはRich-landing URLが含まれます。SDKはこのキーを処理し、URL(有効な場合)をSFSafariViewControllerのインスタンスで開きます。プッシュ通知のクリック時にアプリ内でWebページを開きたい場合は、Rich-landingアクションを使用してください。例: `webUrl` - [https://www.google.com](https://www.google.com/)。
+- **couponCode**: キャンペーン作成時に指定された場合、このキーにはクーポンコードが含まれます。通知をクリックしたときにこのキーがプッシュペイロードに存在すると、SDKはクーポンコードを含むアラートを表示し、ユーザーにクーポンをOSのクリップボードにコピーするオプションを提供します。例: `couponCode` - APP200。
+- **media-attachment:** ペイロード内のmedia-attachmentキーは、ダウンロード可能なメディアのURLを示します。
+- **media-type**: media-attachmentで指定されたURLに含まれるメディアのタイプ(image/audio/video)。
+
+<Warning>
+  **HTTP URL**
+
+  HTTP URLは、plistで明示的に指定しない限りサポートされません。Info.plistに **_App Transport Security Setting_** **s** ディクショナリを含め、その中で **_Allow Arbitrary Loads_** を **_YES_** に設定する必要があります。
+</Warning>

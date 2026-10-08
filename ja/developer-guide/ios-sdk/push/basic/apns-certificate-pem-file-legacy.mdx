@@ -1,0 +1,148 @@
+---
+title: "APNS証明書/PEMファイル(レガシー)"
+description: "MoEngageでiOSプッシュ通知を送信するために、PEM形式のレガシーAPNs証明書を作成してアップロードします。"
+---
+
+<Note>
+  **注**
+
+  2026年1月15日をもって、MoEngageはレガシーのAPNs Provider Certificate(.pem)方式を非推奨にします。この日以降、既存の証明書は更新できなくなり、新規のアップロードはすべて[APNs認証キー(.p8)](/ja/developer-guide/ios-sdk/push/basic/apns-authentication-key)を使用する必要があります。
+
+  サービスを中断なく利用できるよう、MoEngageはできるだけ早く.p8認証キーに移行することを強く推奨します。このアップグレードには次のメリットがあります。
+
+  - **永続的な有効性**: 認証キーは有効期限がないため、毎年の証明書更新が不要になります。
+  - **より高速な配信**: ステートレスなトークンベースの認証により、証明書ベースの方式よりも高速な通信が可能になります。
+  - **最新機能のサポート:** 新しい標準では、Live ActivitiesなどのiOS独自の機能がサポートされます。
+</Note>
+
+アプリにプッシュ通知を送信するには、アプリ用のAPNS証明書が必要です。この証明書を `.pem` 形式に変換し、ダッシュボードにアップロードする必要があります。次の手順に従ってください。
+
+# APNS証明書の作成
+
+## 証明書署名要求(CSR)の生成
+
+まず、Macで **Keychain Access** を開き、以下に示すようにメニューオプション **Request a Certificate from a Certificate Authority** を選択します。
+
+<img
+  src="/images/apnspem1.png"
+  alt="Apnspem1"
+  title="Apnspem1"
+  style={{ width:"83%" }}
+/>
+
+以下のウィンドウが表示されます。ここにメールアドレスを入力し、Common Nameにアプリ名を入力します。`Saved to disk` をオンにしてContinueをクリックします。ファイルを「.certSigningRequest」として保存します。
+
+<Frame>
+  <img
+    src="/images/pemfile2.png"
+    alt="Pemfile2"
+    title="Pemfile2"
+    style={{ width:"81%" }}
+  />
+</Frame>
+
+## 開発者アカウントでのAPNS証明書の作成
+
+開発者アカウントにログインし、**Certificates, Identifiers and Profiles** に移動します。**Certificates** セクションを選択し、_\+_ アイコンをクリックして新しい証明書を作成します。**Create a New Certificate** 画面で、以下に示すように `Apple Push Notification service SSL(Sandbox & Production)` を選択してContinueをクリックします。
+
+![Pemfile3](/images/pemfile3.png)
+
+次に、APNS証明書を作成するApp ID(App Bundle ID)を選択し、Continueをクリックします。
+
+![Pemfile4](/images/pemfile4.png)
+
+<Warning>
+  **APP ID選択に関する注意**
+
+  APNS証明書を作成するアプリ(選択したApp ID)で **Push Notification** 機能が有効になっていることを確認してください。
+</Warning>
+
+次に、以下に示すように、最初の手順で作成した `certificate signing request` ファイルを選択してContinueをクリックします。
+
+![Penfile5](/images/penfile5.png)
+
+以上で完了です。APNS証明書が正常に作成されました。証明書をダウンロードして開き、Macの `Keychain Access` に追加してください。
+
+![Pemfile6](/images/pemfile6.png)
+
+# 証明書のPEM形式への変換
+
+前の手順で取得したAPNS証明書を `.pem` ファイルに変換するには、次の手順に従ってください。
+
+1. まず、**Keychain Access** に移動してAPNS証明書を選択し、右クリックして **Export** オプションを選択します。証明書を `.p12` 形式でエクスポートします。`.p12` のパスワードの入力を求められるので、入力します。
+2. 以下に示すように **openssl** コマンドを使用して、前の手順で取得した `.p12` ファイルを `.pem` ファイルに変換します。ここで `Import Password` を入力する必要があります。
+
+   <CodeGroup>
+
+   ```ruby Ruby wrap
+   openssl pkcs12 -in p12Cert.p12 -out pemAPNSCert.pem -nodes -legacy
+   Enter Import Password:
+   MAC verified OK
+   ```
+
+   </CodeGroup>
+
+<Info>
+  **注**
+
+  [こちら](https://www.sslshopper.com/ssl-converter.html)のSSL Converterにアクセスして、`.p12` ファイルを `.pem` に変換することもできます。
+</Info>
+
+# .pemファイルの検証
+
+証明書をMoEngageダッシュボードにアップロードする前に、取得した `.pem` ファイルを検証します。
+
+1. まず、テキストエディターで `.pem` を開いて内容を確認します。証明書の内容は以下に示す形式になっている必要があります。pemファイルに証明書の内容(`BEGIN CERTIFICATE` から `END CERTIFICATE` まで)と証明書の秘密鍵(`BEGIN PRIVATE KEY` から `END PRIVATE KEY` まで)の両方が含まれていることを確認してください。
+
+   <CodeGroup>
+
+   ```text Text
+   Bag Attributes
+       friendlyName: Apple Push Services:<Bundle ID>
+       localKeyID: <>
+   subject=<>
+   -----BEGIN CERTIFICATE-----
+   
+   <Certificate Content>
+   
+   -----END CERTIFICATE-----
+   Bag Attributes
+       friendlyName: <>
+       localKeyID: <>
+   Key Attributes: <No Attributes>
+   -----BEGIN PRIVATE KEY-----
+   
+   <Certificate Private Key>
+   
+   -----END PRIVATE KEY-----
+   ```
+
+   </CodeGroup>
+2. また、SSLShopperの[Certificate Decoder](https://www.sslshopper.com/certificate-decoder.html)にアクセスして証明書の内容(`BEGIN CERTIFICATE` から `END CERTIFICATE` まで)を貼り付けると、以下に示すように証明書に関するすべての情報を取得して、証明書の有効性を確認できます。
+
+   <Frame>
+     ![Pemfile7](/images/pemfile7.png)
+   </Frame>
+   ご覧のとおり、Common Nameには **Apple Push Services** とアプリのBundle IDが含まれている必要があります。組織の情報と証明書の **Validity** を確認してください。すべての確認が完了したら、証明書をダッシュボードにアップロードします。
+
+# MoEngageダッシュボードへのPEMファイルのアップロード
+
+1. **Settings \> Channels \> Push \> App Push** に移動します。
+2. 上部のメニューにあるPlatformsでiOS (APNS)を選択します。
+3. **APNS provider certificate** をクリックします。
+4. _.pem_ ファイルをアップロードします。_.pem_ ファイルのパスワードを入力します。パスワードがない場合は空白のままにします。
+
+   <Frame>
+     ![Pemfile8](/images/pemfile8.png)
+   </Frame>
+
+<Info>
+  **iPadのサポート**
+
+  iPhoneとiPadで異なるアプリ(異なるBundle ID)がある場合は、すべてのデバイスにメッセージを送信できるように、ダッシュボードでiOSとiPadの両方の証明書を個別に設定してください。
+</Info>
+
+# Test/Liveビルド
+
+- **Test FlightまたはApp Storeのライブビルド** でアプリをテストしている場合は、ad-hocまたはproductionのpemをダッシュボードにアップロードしてください。また、この場合はアカウントの **Live環境** からプッシュ通知を送信する必要があります。
+- 開発ビルドの場合は、developmentまたはproductionの証明書をダッシュボードにアップロードできますが、Live環境から開発ビルドにプッシュ通知を送信することはできないため、キャンペーンは必ず **Test環境** で作成してください。

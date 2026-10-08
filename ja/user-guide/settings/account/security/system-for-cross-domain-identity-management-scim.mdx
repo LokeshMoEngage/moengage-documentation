@@ -1,0 +1,581 @@
+---
+title: "System for Cross-domain Identity Management (SCIM)"
+description: "SCIM 連携により、MoEngage でのユーザープロビジョニングとロール管理を自動化します。ID プロバイダーからユーザーを自動的に同期できます。"
+---
+
+# はじめに
+
+System for Cross-domain Identity Management (SCIM) は、ID プロバイダー (IdP) と MoEngage の間でユーザー ID 情報の交換を自動化するオープン標準です。SCIM 連携では、プロビジョニング、ロールの更新、アクセスの取り消しをすべてのプラットフォーム間で自動的に同期することで、ユーザー管理を効率化します。
+
+## サポートされている操作
+
+SCIM では、IdP から次のユーザー管理操作を実行できます。
+
+- **ユーザーの作成**: MoEngage に新しいユーザーをプロビジョニングします。
+- **ユーザーの更新**: ロールの更新を自動的に同期します。
+- **ユーザーの取得**: MoEngage ユーザーの一覧を取得します。
+- **アクセスの取り消し**: ユーザーのアクセスを取り消します。
+
+## SCIM のメリット
+
+SCIM を利用するメリットは次のとおりです。
+
+- **ライフサイクル管理の自動化**: ユーザーのプロビジョニングを自動的に管理します。
+- **ロール割り当ての一元化**: デフォルトロールやカスタムロールなどの MoEngage ロールを、組織の ID プロバイダーから直接割り当てます。
+- **効率の向上**: ユーザーを個別に MoEngage ワークスペースに招待する手作業が不要になります。
+
+# ID プロバイダー (IdP)
+
+MoEngage は ID プロバイダーを利用して、ログインを簡素化・一元化します。MoEngage は SCIM 2.0 標準に基づく SCIM プロビジョニングをサポートしているため、このプロトコルをサポートする任意の ID プロバイダーで動作します。このガイドでは、次のプラットフォームの詳細な設定手順を説明します。
+
+- Okta
+- Azure (Microsoft Entra ID)
+- JumpCloud
+
+<Tip>
+  **前提条件**
+
+  設定を開始する前に、次の条件を満たしていることを確認してください。
+
+  - MoEngage ワークスペースで シングルサインオン (SSO) の設定が正常に機能していること。
+  - **Security Settings** コンポーネントに対する **Setup & manage** 権限を持つ Admin ロールがあること。\
+    **注**: **Login Settings** コンポーネントは **Security Settings** に名称変更されています。
+  - Google Chrome ブラウザーを使用すること。他のブラウザーではメタデータや XML 文字列が切り捨てられたり破損したりして、連携に失敗する可能性があります。
+  - SCIM を有効にする前に SSO の設定を完了すること。詳細については、[Single Sign-On (SSO)](/ja/user-guide/settings/account/security/single-sign-on-sso) を参照してください。
+</Tip>
+
+<Tabs>
+  <Tab title="Okta">
+    # Okta で SCIM を設定する
+
+    ## ステップ 1: SSO アプリケーションを見つけて確認する
+
+    SSO の設定を確認するには、次の手順を実行します。
+
+    1. **Okta Admin Console** に移動します。
+    2. 左側のナビゲーションメニューで、**Applications** \> **Applications** に移動します。
+    3. **Applications** ページで、一覧からアプリケーションを探すか、**Search for people, apps, and groups** ボックスを使用して検索します。
+    4. 一覧から、SCIM を設定するアプリケーション名をクリックします。 <img src="/images/moengage_cfa82d.png" />
+    5. **General** タブをクリックします。
+    6. **SAML Settings** セクションまでスクロールし、SAML の設定内容が MoEngage ワークスペースのメタデータと一致していることを確認します。 <img src="/images/moengage_12c519.png" />
+
+    ## ステップ 2: Okta のアプリ設定で SCIM を有効にする
+
+    次に、Okta で SCIM を有効にするには、次の手順を実行します。
+
+    1. [ステップ 1](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-1-locate-and-verify-the-sso-application) の手順 2 から 5 を繰り返します。
+    2. **App Settings** セクションで、右上の **Edit** をクリックします。
+    3. **SCIM** ラジオボタンをクリックし、**Save** をクリックします。 <img src="/images/moengage_ecaee6.png" /> **Sign On** タブの隣に **Provisioning** タブが表示されます。 <img src="/images/moengage_16d44c.png" />
+
+    ## ステップ 3: MoEngage で SCIM を設定してトークンを生成する
+
+    MoEngage で SCIM を設定してトークンを生成するには、次の手順を実行します。
+
+    1. MoEngage ワークスペースの左側のナビゲーションメニューで、**Settings** \> **Account** \> **Security** をクリックします。
+    2. **Security** ページで、**Login** タブをクリックします。
+    3. **Single Sign On (SSO) only** をクリックします。
+    4. **Automate user provisioning** セクションまでスクロールします。
+    5. **Automate user provisioning** トグルをオンにします。
+       <Frame>
+         ![Step3ist](/images/step3ist.png)
+       </Frame>
+       \
+       **Configure provisioning method** ダイアログボックスが表示されます。
+    6. 設定タイプとして **SCIM configuration** をクリックします。
+       <Frame>
+         ![Step32ndimage](/images/step32ndimage.png)
+       </Frame>
+    7. **Base Connector URL** をコピーして保存します ([ステップ 4](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-4-configure-scim-on-okta) で使用します)。
+    8. **Default role** リストで、必要なロール (デフォルトロールまたはカスタムロール) を選択します。
+    9. **Expiry Date** フィールドで、SCIM アクセストークンの有効期限を選択します。\
+       **注**: MoEngage では、**Expiry date** の期間を 1 年に設定することを推奨しています。
+    10. **Save** をクリックします。\
+        **Save your configuration** ダイアログボックスが表示され、設定の確認を求められます。
+    11. **Confirm** をクリックします。\
+        **Successfully generated SCIM token** メッセージと **Generate access token** ダイアログボックスが表示されます。**注**: トークンは一度しか表示されないため、すぐにコピーしてください。
+    12. **Okay** をクリックします。
+        <Frame>
+          ![Step3image3rdimage](/images/step3image3rdimage.png)
+        </Frame>
+
+    ## ステップ 4: Okta で SCIM を設定する
+
+    Okta で SCIM を設定するには、次の手順を実行します。
+
+    1. **Okta Admin Console** に戻り、**Provisioning** タブをクリックします。
+    2. 左側のナビゲーションペインで **Integration** をクリックし、**Edit** をクリックします。
+    3. 接続の詳細を入力します。
+       1. **SCIM connector base URL**: [ステップ 3](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-3-configure-scim-in-moengage-and-generate-token) で MoEngage ワークスペースからコピーした URL を貼り付けます。
+       2. **Unique identifier field for users**: **email** と入力します。
+    4. **Configure Supported Provisioning Actions** セクションで、適切なチェックボックスを選択してデータフローを定義します。5 つすべてを有効にして個々のユーザーとグループの両方を自動化することも、次の要件に基づいて選択することもできます。
+       - **Import New Users and Profile Updates**: MoEngage の既存ユーザーを Okta に取り込む場合に選択します。
+       - **Push New Users**: Okta で新しいユーザーがアプリケーションに割り当てられたときに、MoEngage ユーザーを自動的に作成する場合に選択します。
+       - **Push Profile Updates**: **Role** の更新などの属性の変更を Okta から MoEngage に同期する場合に選択します。
+       - **Push Groups**: Okta のグループとそのユーザーリストを MoEngage に同期する場合に選択します。
+       - **Import Groups**: MoEngage の既存グループを Okta に取得する場合に選択します。
+    5. **Authentication Mode** リストで、**HTTP Header** をクリックします。
+    6. **HTTP Header** セクションの **Authorization** ボックスに、[ステップ 3](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-3-configure-scim-in-moengage-and-generate-token) で MoEngage ワークスペースからコピーした生成済みのアクセストークンを貼り付けます。
+    7. **Test Connector Configuration** をクリックします。 <img src="/images/moengage_16e62d.png" /> **Test Connector Configuration** ダイアログボックスが表示されます (この処理には最大 30 秒かかる場合があります)。コネクターが正常に設定されたことを示すメッセージが表示され、コネクターで検出された次のプロビジョニング機能の一覧を確認できます。
+       - **User Import** と **Import Profile Updates**: Okta が MoEngage からユーザーデータを取得することを確認します。
+       - **Create Users** と **Update User Attributes**: Okta が新しいユーザーとプロファイルの変更を MoEngage に送信することを確認します。
+       - **Push Groups** と **Import Groups**: グループメンバーシップとロールが同期されることを確認します。
+    8. **Close** をクリックし、**Save** をクリックします。 <img src="/images/moengage_d46f81.png" /> <img src="/images/moengage_792899.png" />
+
+    <Info>
+      **Push New Users** を選択しない場合、MoEngage は新しく割り当てられたユーザーを作成しないため、それらのユーザーはサインインできません。**Push Groups** を選択すると、Okta の詳細に基づいて MoEngage のユーザーグループに特定の権限を自動的に割り当てることができ、手動でのユーザー管理が不要になります。
+    </Info>
+
+    ## ステップ 5: プロビジョニングアクションを有効にする
+
+    ID データが Okta から MoEngage に正しく流れるようにするには、To App 設定で Create、Update、Deactivate のプロビジョニングアクションを有効にする必要があります。プロビジョニングアクションを有効にするには、次の手順を実行します。
+
+    1. **Provisioning** タブの左側のナビゲーションペインで、**Settings** の下にある **To App** をクリックします。
+    2. **Provisioning to App** セクションの横にある **Edit** をクリックします。
+    3. 次のアクションの **Enable** チェックボックスを選択します。
+       - **Create Users**: MoEngage でユーザーを作成する権限を Okta に付与します。
+       - **Update User Attributes**: プロファイルの更新を Okta から MoEngage に同期します。
+       - **Deactivate Users**: Okta でユーザーの割り当てが解除されたときに、MoEngage へのアクセスを直ちに取り消します。 <img src="/images/moengage_34a867.png" />
+
+    ## ステップ 6: 属性マッピングを作成する
+
+    Okta で特定の書き込み権限を付与し、role 属性をマッピングすることで、ユーザーが MoEngage で正しい権限でプロビジョニングされるようにします。ユーザーにロールを正しく割り当てるには、MoEngage でロールを作成しておく必要があります。この属性マッピングにより、ユーザーは先ほど設定した **Default** ロールではなく、意図したアクセスレベルを受け取ることができます。
+
+    ### ステップ 6.1: プロファイル属性を設定する
+
+    <Info>
+      **情報**
+
+      MoEngage は、外部名前空間を介して渡される属性を優先します。複数の role 属性が設定されている場合、MoEngage は次の順序で解決します。
+
+      - **extension.role (urn:ietf:params:scim:schemas:extension:moengage:2.0:User.role):** 2.0 名前空間で定義された属性 (最優先)。
+      - **standard role.role**: role 名前空間で定義された属性。(このパラメーターは今後のリリースで非推奨になる予定です。
+      - **Default Role**: SCIM でロールが渡されない場合、システムは MoEngage ワークスペースで設定されたデフォルトロールを使用します ([ステップ 3](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-3-configure-scim-in-moengage-and-generate-token))。
+    </Info>
+
+    カスタムの role 属性を設定するには、次の手順を実行します。
+
+    1. **Okta Admin Console** に移動します。
+    2. 左側のナビゲーションメニューで、**Directory** \> **Profile Editor** をクリックします。\\ <img src="/images/moengage_8b3c03.png" />
+    3. **Profile Editor** ページで、一覧からアプリケーションを探すか、**Search for people, apps, and groups** ボックスを使用して一覧から適切なアプリケーションを検索して選択します。 <img src="/images/moengage_b6ae58.png" />
+    4. **Attributes** セクションで、**\+ Add Attribute** をクリックします。 <img src="/images/moengage_f75ddd.png" /> **Add Attribute** ダイアログボックスが表示されます。
+    5. **Add Attribute** ダイアログボックスで、次の詳細を設定します。
+       1. **Data type** リストで、**string** をクリックします。
+       2. **Display name** ボックスに、role (例: MoEngage role) と入力します。
+       3. **Variable name** ボックスに、role と入力します (クライアント側で任意の値を定義できます)。
+       4. **External name** ボックスに、role と入力します (これはスキーマ内で渡される特定の名前です)。
+       5. **External namespace** に、_urn:ietf:params:scim:schemas:extension:moengage:2.0:User_ と入力します。 <img src="/images/moengage_4f66ba.png" />
+    6. 下にスクロールして、次の項目を設定します。
+       1. **Attribute required**: **Yes** チェックボックスを選択して、Okta でのユーザー招待時にロールの指定を必須にします。\
+          **注**: これは **Yes** に設定する必要があります。ロールなしでメールアドレスが招待された場合、MoEngage が MoEngage ワークスペースからデフォルトロールを取得できるように、**Attribute required** が有効になっている必要があります。これにより、テスト時にデフォルトロールとカスタムロールの両方のシナリオが機能します。
+       2. **Attribute type:**
+          - **個別に割り当てる場合**: **Personal** ラジオボタンを選択します。
+          - **グループで割り当てる場合 (一括更新)**: **Group** ラジオボタンを選択します。
+    7. **Save** をクリックします。 <img src="/images/moengage_1de290.png" /> これで、MoEngage の **Role** がアプリケーションの属性リストに追加されます。
+
+    ### ステップ 6.2: グループの作成とロールの更新
+
+    グループのロールを効果的に更新するには、次の手順を順番に実行します。
+
+    ### ステップ 6.2.1: グループを作成する
+
+    1. **Okta Admin Console** に移動します。
+    2. 左側のナビゲーションメニューで、**DirectoryGroups** をクリックします。
+    3. **Add group** をクリックします。 <img src="/images/moengage_5f9dd0.png" /> **Add group** ダイアログボックスが表示されます。
+       1. **Name** ボックスに、グループ名を入力します。
+       2. **Description** ボックス (任意) に、説明を入力します。
+    4. **Save** をクリックします。 <img src="/images/moengage_fe1a1e.png" />
+    5. グループが作成されたら、そのグループをクリックし、ブラウザーの URL から Group ID をコピーします (これはマッピングロジックに必要な一意の識別子です)。 <img src="/images/moengage_55631c.png" />
+
+    ### ステップ 6.2.2: ユーザーを割り当てる
+
+    1. **Groups** ページで、**Assign People** をクリックします。 <img src="/images/moengage_02be42.png" />
+    2. このグループを通じて MoEngage ロールを更新または割り当てる必要がある各ユーザーの横にある **\+** (プラス) アイコンをクリックします。 <img src="/images/moengage_0c4d72.png" />
+
+    ### ステップ 6.2.3: Okta のユーザー属性を更新する
+
+    1. **Directory** \> **Profile Editor** に移動します。 <img src="/images/moengage_8b3c03.png" /> **Profile Editor** ページでは、デフォルトで **All** フィルターが選択されています。
+    2. **Okta** フィルターをクリックし、**Okta User (default)** プロファイルをクリックします。 <img src="/images/moengage_197455.png" />
+    3. ページの最後までスクロールし、[ステップ 6.1](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-6-1-configure-profile-attributes) で作成した role 属性が存在するかどうかを確認します。属性がない場合は、**\+ Add Attribute** をクリックします。
+    4. **Add Attribute** ダイアログボックスで、次の設定で role 属性を追加します。
+       1. **Data type** リストで、string をクリックします。
+       2. **Display name** ボックスに、role と入力します。
+       3. **Variable name** ボックスに、role と入力します。
+       4. **Description** (任意) ボックスに、ロールの説明を入力します。 <img src="/images/moengage_6f78f6.png" />
+       5. **User permission** セクションで、**Read-Write** ラジオボタンを選択します。
+    5. **Save** をクリックします。 <img src="/images/moengage_a0704d.png" />
+
+    ### ステップ 6.2.4: アプリケーションの属性マッピングを更新する
+
+    1. **Profile Editor** で、**Apps** フィルターをクリックしてアプリケーションを探します。
+    2. **Mappings** をクリックします。 <img src="/images/moengage_a66f02.png" />
+    3. **Okta User to** \[**Your Application Name**\] (例: **Okta User to DC 03**) タブを選択します。 <img src="/images/moengage_9d9d61.png" />
+    4. リストの一番下にある **role** 属性までスクロールします。
+    5. **expression** ボックスに、Okta グループを MoEngage ロールにマッピングする次のロジックに従って role 属性を入力します (isMemberOfGroup("group\_id") ? "Admin" : "User")。
+       1. **group\_id**: [ステップ 6.2.1](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-6-2-1-create-a-group) でコピーした ID を貼り付けます。
+       2. **Role**: MoEngage ワークスペースで定義されている特定のロール名です。
+    6. role 属性の詳細 (名前空間と外部名) が、[ステップ 6.1](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-6-1-configure-profile-attributes) で定義した必須の値と一致していることを確認して貼り付けます。
+    7. **Save Mappings** をクリックし、**Apply updates** をクリックします。 <img src="/images/moengage_5c332a.png" />
+
+    ## ステップ 7: グループをプッシュする
+
+    このオプションを使用すると、グループ全体を MoEngage に一括プッシュできます。これにより、MoEngage ワークスペースにグループの全メンバーが一度に作成されます。
+
+    1. **Push Groups** タブをクリックします。
+    2. **\+ Push Groups** \> **Find groups by name** をクリックします。 <img src="/images/moengage_de1858.png" />
+    3. **Push groups by name** の **Enter a group to push** フィールドに、MoEngage ワークスペースに割り当てられたグループの名前を入力します。
+    4. **Push group memberships immediately** チェックボックスが選択されていることを確認します。 <img src="/images/moengage_083657.png" />
+    5. **Save** をクリックします。Okta は、すべてのメンバーを同期するバックグラウンドジョブを開始します。
+
+    ## ステップ 8: 最終的な強制同期
+
+    手動で強制同期を行うと、マッピングされたプロパティとロールが、割り当てられたすべてのユーザーに対して即座に更新されます。
+
+    1. **Provisioning** タブをクリックし、左側のナビゲーションペインの **Settings** で **To App** をクリックします。
+    2. **Attribute Mappings** セクションまで下にスクロールします。
+    3. **Force Sync** をクリックします。 <img src="/images/moengage_27e19e.png" /> これによりグローバル同期が開始され、新しくマッピングされた属性データが即座にプッシュされ、グローバル属性が同期された状態になります。Force Sync は割り当てられたすべてのユーザーを対象とするため、**Assignments** タブで個々のユーザーを別途同期する必要はありません。
+
+    ## ステップ 9: 検証
+
+    MoEngage ワークスペース (**Settings** \> **Account** \> **Team Management**) で次の点を確認します。
+
+    - **ユーザーの招待**: ユーザーが正常に招待され、ステータスが Joined になっていることを確認します。
+      <Frame>
+        ![Userinvitation1](/images/userinvitation1.png)
+      </Frame>
+    - **デフォルトロールの更新**: Okta から特定のロールが渡されなかった場合に、[ステップ 3](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-3-configure-scim-in-moengage-and-generate-token) で設定したデフォルトロールがシステムによって正しく割り当てられていることを確認します。
+    - **ロールの正確性**: Okta から送信された特定のロール (グループメンバーシップのロジックに基づく) が、ワークスペースで割り当てられたロールと一致していることを確認します。
+      <Frame>
+        ![Userinvitation2](/images/userinvitation2.png)
+      </Frame>
+  </Tab>
+  <Tab title="Azure">
+    # Azure で SCIM を設定する
+
+    ## ステップ 1: SSO アプリケーションを見つけて確認する
+
+    SCIM プロビジョニングを正しく設定するには、まず Microsoft Entra ID に有効な Enterprise Application があることを確認する必要があります。
+
+    1. SCIM を有効にする前に、MoEngage と Azure の間の SSO 接続が正常に設定されていることを確認します。詳細については、[Single Sign-On (SSO)](/ja/user-guide/settings/account/security/single-sign-on-sso) を参照してください。
+    2. エンタープライズアプリケーションを確認するには、
+       1. **Azure Admin Console** に移動します。
+       2. Azure services ページで、**Microsoft Entra ID** をクリックします。 <img src="/images/moengage_f71f14.png" />
+       3. Overview ページで、左側のナビゲーションメニューに移動し、**Manage** \> **Enterprise applications** をクリックします。 <img src="/images/moengage_126d95.png" />
+       4. **Enterprise applications | All applications** ページで、一覧からアプリケーションを探すか、**Search by application name or object ID** ボックスを使用して検索し、一覧から設定するアプリケーション名を選択します。 <img src="/images/moengage_9e6764.png" />
+
+    ## ステップ 2: Azure で SCIM プロビジョニングを設定する
+
+    SCIM 2.0 プロトコルを使用して Microsoft Entra ID と MoEngage API の間に安全なハンドシェイクを確立し、自動ユーザー管理を有効にする必要があります。
+
+    ### ステップ 2.1: MoEngage で SCIM を有効にしてトークンを生成する
+
+    MoEngage で SCIM を有効にしてトークンを生成するには、次の手順を実行します。
+
+    1. MoEngage ワークスペースの左側のナビゲーションメニューで、**Settings** \> **Account** \> **Security** をクリックします。
+    2. **Security** ページで、**Login** タブをクリックします。
+    3. **Single Sign On (SSO) only** をクリックします。
+    4. **Automate user provisioning** セクションまでスクロールします。
+    5. **Automate user provisioning** トグルをオンにします。
+       <Frame>
+         ![Step3ist 1](/images/step3ist-1.png)
+       </Frame>
+       \
+       **Configure provisioning method** ダイアログボックスが表示されます。
+    6. 設定タイプとして **SCIM configuration** をクリックします。
+       <Frame>
+         ![Step32ndimage 1](/images/step32ndimage-1.png)
+       </Frame>
+    7. **Base Connector URL** をコピーして保存します ([ステップ 3](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-3-configure-provisioning-credentials-in-azure) で使用します)。
+    8. **Default role** リストで、必要なロールを選択します。
+    9. **Expiry Date** フィールドで、SCIM アクセストークンの有効期限を選択します。\
+       **注**: MoEngage では、**Expiry date** の期間を 1 年に設定することを推奨しています。
+    10. **Save** をクリックします。\
+        **Save your configuration** ダイアログボックスが表示され、設定の確認を求められます。
+    11. **Confirm** をクリックします。\
+        **Successfully generated SCIM token** メッセージと **Generate access token** ダイアログボックスが表示されます。**注**: トークンは一度しか表示されないため、すぐにコピーしてください。
+    12. **Okay** をクリックします。
+        <Frame>
+          ![Step3image3rdimage 1](/images/step3image3rdimage-1.png)
+        </Frame>
+
+    ## ステップ 3: Azure でプロビジョニングの資格情報を設定する
+
+    Azure でプロビジョニングの資格情報を設定するには、次の手順を実行します。
+
+    1. Azure アプリケーションに戻り、**Overview** ページで左側のナビゲーションメニューに移動し、**Manage** \> **Provisioning** をクリックします。
+    2. **Provisioning Mode** で、**Automatic** をクリックします。 <img src="/images/moengage_f3e7fc.png" />
+    3. **Admin Credentials** を展開し、次の内容を入力します。
+       1. **Tenant URL** ボックスに、先ほど MoEngage ワークスペースからコピーした **Base Connector URL** を貼り付けます。
+       2. **Secret Token** ボックスに、[ステップ 2.1](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-2-1-activate-scim-in-moengage-and-generate-token) で生成した **SCIM Access Token** を貼り付けます。
+       3. **Test Connection** をクリックして、Microsoft Entra ID が MoEngage API に安全に接続できることを確認します。\
+          **注**: 接続テストが成功すると、MoEngage ワークスペースの SCIM ステータスが自動的に _Inactive_ から _Active_ に更新されます。
+       4. 上部の **Save** をクリックします。 <img src="/images/moengage_22aa54.png" />
+
+    ## ステップ 4: 属性マッピングを設定する
+
+    <Info>
+      **情報**
+
+      MoEngage でユーザーが正しい権限でプロビジョニングされるようにするには、Azure に書き込み権限を付与し、カスタムの role 属性をマッピングする必要があります。Microsoft Entra ID にはデフォルトで MoEngage 互換の "role" フィールドが含まれていないため、ロールをマッピングする前に属性リストを手動で拡張する必要があります。
+    </Info>
+
+    ### ステップ 4.1: 属性リストを作成する
+
+    MoEngage の role 拡張を属性リストに追加するには、次の手順を実行します。
+
+    1. 次のいずれかの方法で **Attribute Mapping** ページにアクセスします。
+       - Azure アプリケーションの **Provisioning** セクションで、**Mappings** を展開し、**Attribute mapping (Preview)** をクリックします。 <img src="/images/moengage_908a62.png" /> または
+       - 左側のナビゲーションから、**Attribute mapping (Preview)** をクリックします。
+       - **Name** 列で、**Provision Microsoft Entra ID Users** をクリックします。 <img src="/images/moengage_1d67bd.png" />
+    2. Attribute Mapping ページの最後までスクロールし、**Show advanced options** チェックボックスを選択します。
+    3. **Edit attribute list for (your app name)** をクリックします。 <img src="/images/moengage_dbfebb.png" />
+    4. **Edit Attribute List** ウィンドウで、表の一番下までスクロールし、次の技術的な値で新しい行を追加します。
+       - **Name**: 属性名を入力します。_urn:ietf:params:scim:schemas:extension:moengage:2.0:User:role_
+       - **Type**: ドロップダウンリストで **String** をクリックします。\
+         **注**: 属性名を入力する前に、MoEngage の role 拡張がすでにリストに存在するかどうかを確認してください。すでに存在する属性名を追加しようとすると、Microsoft Entra ID は属性名が一意である必要があることを示すエラーを表示します。
+    5. ペインの上部にある **Save** をクリックします。 <img src="/images/moengage_350ca4.png" />
+    6. 確認ボックスで **Yes** をクリックします。\
+       Microsoft Entra ID がプロビジョニング設定を正常に更新すると、**Updating user provisioning settings** の成功メッセージが表示されます。
+
+    ### ステップ 4.2: ユーザーの role 属性をマッピングする
+
+    属性がリストに追加されたら、式を使用してマッピングし、Azure の App Roles を MoEngage にリンクする必要があります。次の手順を実行します。
+
+    1. **Attribute Mapping** ページで、**Add New Mapping** をクリックします。 <img src="/images/moengage_cea83c.png" />
+    2. **Edit Attribute** セクションで、次の詳細を設定します。
+       1. **Mapping Type** リストで、**Expression** をクリックします。
+       2. **Expression** ボックスに、式 **SingleAppRoleAssignment(\[appRoleAssignments** を入力します。\
+          **注**: この式は手動で入力してください。コピーして貼り付けると、エラーの原因となるサポートされていない非表示の文字が含まれる場合があります。
+       3. **Target Attribute** リストで、[ステップ 4.1](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-4-1-create-attribute-list) で作成した属性をクリックします。
+       4. **Apply this mapping** リストで、**Always** をクリックします。
+    3. **OK** をクリックします。 <img src="/images/moengage_488f84.png" />
+    4. 上部の **Save** をクリックします。
+
+    ## ステップ 5: ロールの作成
+
+    ロールをユーザーに割り当てて MoEngage と同期するには、事前にグローバルディレクトリレベルでロールを作成しておく必要があります。
+
+    ### ステップ 5.1: App Roles を作成する
+
+    MoEngage ワークスペースの権限に対応する必要なロールを作成するには、次の手順を実行します。
+
+    1. **Home** \> **Microsoft Entra ID** \> **Manage** \> **App registrations** に移動します。
+    2. **All Applications** タブをクリックし、アプリケーションを選択します。 <img src="/images/moengage_9a819c.png" />
+    3. 左側のナビゲーションメニューで、**Manage** \> **App roles** をクリックします。
+    4. **\+ Create app role** をクリックします。 <img src="/images/moengage_ef2561.png" />
+    5. 次の詳細を設定します。
+       1. **Display name box** に、ロール名 (例: Analyst) を入力します。
+       2. **Allowed member types** セクションで、**(Users/Groups)** チェックボックスをクリックします。
+       3. **Value** ボックスに、MoEngage のロールの値を入力します。\
+          **注**: ロールの Value を入力する際は、MoEngage ワークスペースで定義されているロール名と完全に一致させてください。Microsoft Entra ID は、SCIM ハンドシェイク中にこの値を使用して正しい権限データを渡します。
+       4. **Description** ボックスに、このロールが提供する権限の簡単な説明を入力します。
+       5. **Do you want to enable this app role?** チェックボックスを選択します。
+       6. ペインの下部にある **Apply** をクリックします。 <img src="/images/moengage_a5d2e9.png" />
+
+    ### ステップ 5.2: App Roles をユーザーに割り当てる
+
+    ロールを作成したら、Enterprise application 内の特定のユーザーにロールを割り当てる必要があります。次の手順を実行します。
+
+    1. **Home** \> **Microsoft Entra ID** \> **Manage** \> **Enterprise applications** に移動し、アプリケーションを選択します。 <img src="/images/moengage_9e6764.png" />
+    2. **Getting started** セクションの **Assign users and groups** タイルで、**Assign users and groups** リンクをクリックします。 <img src="/images/moengage_9bdfa4.png" />
+    3. 更新するユーザーのチェックボックスを選択し、上部のメニューバーにある **Edit assignment** アイコン <Icon icon="pencil" iconType="solid" /> をクリックします。 <img src="/images/moengage_f84f85.png" />
+    4. 左側の **Select a role** で、**None Selected** リンクをクリックします。\
+       右側に **Select a role** ダイアログボックスのペインが表示されます。\[ステップ 5.1\](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-5-1-create-app-roles) で作成したカスタムの App Roles の一覧が表示されます。
+    5. 一覧から適切なロールを選択し、**Select** をクリックします。\
+       **注**: ロールを Default Access のままにしないでください。Microsoft Entra ID は、SCIM 同期中に正しい権限データを MoEngage に渡すために、特定のロールの値を必要とします。 <img src="/images/moengage_408b82.png" />
+    6. **Edit Assignment** ページの下部にある **Assign** をクリックします。 <img src="/images/moengage_c8824c.png" /> Microsoft Entra ID がユーザーを正常に更新すると、右上に _Application assignment succeeded_ メッセージが表示されます。
+    7. 割り当てを確認するには、ユーザー名をクリックして **Overview** ページを開きます。**Basic info** セクションにユーザーの **User principal name** が表示され、**Assigned roles** の数が更新されていることを確認できます。 <img src="/images/moengage_c26bf6.png" />
+
+    ## ステップ 6: 同期
+
+    Microsoft Entra ID の自動同期サイクルは一定ではなく、変更が反映されるまでに 40 分から 1 時間かかることがよくあります。ユーザープロファイルの更新やロールの変更を MoEngage ワークスペースに即座にプッシュするには、Provision on demand 機能を使用します。
+
+    1. Azure アプリケーションに戻り、**Overview** ページで左側のナビゲーションメニューに移動し、**Manage** \> **Provisioning** をクリックします。
+    2. 上部のメニューバーで、**Provision on demand** をクリックします。 <img src="/images/moengage_1fb5d9.png" />
+    3. **Search for a user or group** ボックスに、[ステップ 5.2](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-5-2-assign-app-roles-to-users) で割り当てたユーザーの名前またはメールアドレスを入力します。
+    4. 検索結果からユーザーを選択します。
+    5. ページ下部の **Provision** をクリックします。Microsoft Entra ID は、カスタムの MoEngage ロールマッピングを含むユーザー ID の即時「強制プッシュ」を開始します。\
+       **注**: 処理が完了すると、エクスポートされた属性の詳細を含む成功メッセージが表示されます。MoEngage ワークスペースの SCIM ステータスにこれらの更新が反映されます。 <img src="/images/moengage_ea88ef.png" />
+
+    ## ステップ 7: 検証
+
+    MoEngage ワークスペース (**Settings** \> **Account** \> **Team Management**) で次の点を確認します。
+
+    1. **ユーザーの招待**: ユーザーが正常に招待され、ステータスが Joined になっていることを確認します。
+       <Frame>
+         ![Userinvitation1 1](/images/userinvitation1-1.png)
+       </Frame>
+    2. **デフォルトロールの更新**: Microsoft Entra ID から特定のロールが渡されなかった場合に、[ステップ 3](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-3-configure-provisioning-credentials-in-azure) で設定したデフォルトロールがシステムによって正しく割り当てられていることを確認します。
+    3. **ロールの正確性**: Microsoft Entra ID から送信された特定のロール (App Role のマッピングに基づく) が、ワークスペースで割り当てられたロールと一致していることを確認します。
+       <Frame>
+         ![Userinvitation2 1](/images/userinvitation2-1.png)
+       </Frame>
+  </Tab>
+  <Tab title="JumpCloud">
+    # JumpCloud で SCIM を設定する
+
+    ## ステップ 1: SSO アプリケーションを見つけて確認する
+
+    SSO の設定を確認するには、次の手順を実行します。
+
+    1. **JumpCloud Admin Portal** に移動します。
+    2. 左側のナビゲーションメニューで、**Access** \> **SSO Applications** をクリックします。
+    3. **SSO Applications** ページで、一覧からアプリケーションを探すか、検索ボックスを使用して検索します。
+    4. 一覧から、SCIM を設定するアプリケーション名をクリックします。
+    5. アプリケーションの SSO タブにある SAML 設定が、MoEngage ワークスペースのメタデータと一致していることを確認します。\
+       **注**: JumpCloud で SSO をまだ設定していない場合は、続行する前に [Single Sign-On (SSO)](/ja/user-guide/settings/account/security/single-sign-on-sso) を参照してください。
+
+    ## ステップ 2: MoEngage で SCIM を設定してトークンを生成する
+
+    MoEngage で SCIM を設定してトークンを生成するには、次の手順を実行します。
+
+    1. MoEngage ワークスペースの左側のナビゲーションメニューで、**Settings** \> **Account** \> **Security** をクリックします。
+    2. **Security** ページで、**Login** タブをクリックします。
+    3. **Single Sign On (SSO) only** をクリックします。
+    4. **Automate user provisioning** セクションまでスクロールします。
+    5. **Automate user provisioning** トグルをオンにします。
+       <Frame>
+         ![Step3ist](/images/step3ist.png)
+       </Frame>
+       \
+       **Configure provisioning method** ダイアログボックスが表示されます。
+    6. 設定タイプとして **SCIM configuration** をクリックします。
+       <Frame>
+         ![Step32ndimage](/images/step32ndimage.png)
+       </Frame>
+    7. **Base Connector URL** をコピーして保存します ([ステップ 3](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-3-configure-scim-provisioning-in-jumpcloud) で使用します)。
+    8. **Default role** リストで、必要なロール (デフォルトロールまたはカスタムロール) を選択します。
+    9. **Expiry Date** フィールドで、SCIM アクセストークンの有効期限を選択します。\
+       **注**: MoEngage では、**Expiry date** の期間を 1 年に設定することを推奨しています。
+    10. **Save** をクリックします。\
+        **Save your configuration** ダイアログボックスが表示され、設定の確認を求められます。
+    11. **Confirm** をクリックします。\
+        **Successfully generated SCIM token** メッセージと **Generate access token** ダイアログボックスが表示されます。**注**: トークンは一度しか表示されないため、すぐにコピーしてください。
+    12. **Okay** をクリックします。
+        <Frame>
+          ![Step3image3rdimage](/images/step3image3rdimage.png)
+        </Frame>
+
+    ## ステップ 3: JumpCloud で SCIM プロビジョニングを設定する
+
+    JumpCloud で SCIM プロビジョニングを設定するには、次の手順を実行します。
+
+    1. JumpCloud アプリケーションに戻り、**Provisioning** タブをクリックします。
+    2. **Base URL** ボックスに、[ステップ 2](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-2-configure-scim-in-moengage-and-generate-token) で MoEngage からコピーした **Base Connector URL** を貼り付けます。
+    3. **Token Key** ボックスに、[ステップ 2](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-2-configure-scim-in-moengage-and-generate-token) で生成した SCIM アクセストークンを貼り付けます。
+    4. **Test User Email** ボックスに、MoEngage にまだ存在しないテストユーザーのメールアドレスを入力します。
+    5. **Test Connection** をクリックして、JumpCloud が MoEngage SCIM API に接続できることを確認します。\
+       **注**: 接続テストが成功すると、MoEngage ワークスペースの SCIM ステータスが _Inactive_ から _Active_ に更新されます。
+    6. **Enable management of User Groups and Group Membership in this application** トグルをオフにします。
+    7. **Activate** をクリックします。\
+       JumpCloud は、MoEngage SCIM API に対して Create、Get、Update、Delete のユーザー操作のプロビジョニングテストを実行します。
+    8. **Activate** ボタンの上に表示されたエラーを解決し、もう一度 **Activate** をクリックします。
+    9. **Save** をクリックします。
+
+    <Info>
+      MoEngage では、JumpCloud でグループオブジェクトをプロビジョニングする必要はありません。JumpCloud はユーザーを個別にプロビジョニングし、ロールの割り当ては [ステップ 4](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-4-map-the-role-attribute) で説明するカスタム属性を使用して処理されます。
+    </Info>
+
+    ## ステップ 4: role 属性をマッピングする
+
+    ユーザーにカスタム属性を追加し、それを MoEngage の role 拡張にマッピングすることで、プロビジョニング時に JumpCloud が各ユーザーに MoEngage のロールを渡せるようにします。
+
+    <Info>
+      **情報**
+
+      MoEngage は、外部名前空間を介して渡される属性を優先します。複数の role 属性が設定されている場合、MoEngage は次の順序で解決します。
+
+      - **extension.role (urn:ietf:params:scim:schemas:extension:moengage:2.0:User.role):** 2.0 名前空間で定義された属性 (最優先)。
+      - **standard role.role**: role 名前空間で定義された属性。(このパラメーターは今後のリリースで非推奨になる予定です。)
+      - **Default Role**: SCIM でロールが渡されない場合、システムは MoEngage ワークスペースで設定されたデフォルトロールを使用します ([ステップ 2](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-2-configure-scim-in-moengage-and-generate-token))。
+    </Info>
+
+    ### ステップ 4.1: ユーザーにカスタム属性を追加する
+
+    このカスタム属性は、新しいユーザーを招待するときに追加することも、既存のユーザーに追加することもできます。既存のユーザーに追加するには、次の手順を実行します。
+
+    1. JumpCloud Admin Portal の左側のナビゲーションメニューで、**Identity Management** \> **Users** をクリックします。
+    2. ロールを割り当てるユーザーを選択します。
+    3. **Details** タブで **Custom Attributes** までスクロールし、**add new custom attribute** をクリックします。
+       <Frame>
+         ![ユーザーのカスタム属性](/images/usercustomattribute.gif)
+       </Frame>
+    4. **Attribute Name** ボックスに、role と入力します。
+    5. **Attribute Value** ボックスに、MoEngage ワークスペースで設定されているロール名を正確に入力します。\
+       **注**: この値は大文字と小文字が区別され、MoEngage ワークスペースにロールとしてすでに存在している必要があります。
+    6. **Save User** をクリックします。
+
+    ### ステップ 4.2: Export Attribute Mapping で属性をマッピングする
+
+    1. JumpCloud アプリケーションで、**Provisioning** タブをクリックします。
+    2. **Export Attribute Mapping** を展開し、**Edit** をクリックします。
+    3. **Optional Mappings** テーブルの一番下までスクロールし、**\+Add Attribute** をクリックします。
+       <Frame>
+         ![属性マッピング](/images/attributemapping.gif)
+       </Frame>
+    4. **Mapping Type** で **Direct Mapping (JSON Path)** をクリックします。**Source** で **Custom User Attribute** をクリックし、デフォルト値を [ステップ 4.1](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-4-1-add-a-custom-attribute-to-the-user) で使用した属性名 (例: role) に正確に置き換えます。
+    5. 宛先属性ボックスに、urn:ietf:params:scim:schemas:extension:moengage:2.0:User.role と入力します。\
+       **注**: `role` の前にはコロンではなくピリオドを使用してください。他の IdP で使用される構文とは異なり、JumpCloud は `role` をフラットな属性名としてではなく、`moengage:2.0:User` 拡張のプロパティとして読み取ります。
+    6. **Update** をクリックしてマッピングを適用し、更新された属性を既存のユーザーにプッシュします。
+
+    ## ステップ 5: 検証
+
+    MoEngage ワークスペース (**Settings** \> **Account** \> **Team Management**) で次の点を確認します。
+
+    - **ユーザーの招待**: ユーザーが正常に招待され、ステータスが Joined になっていることを確認します。
+      <Frame>
+        ![Userinvitation1](/images/userinvitation1.png)
+      </Frame>
+    - **デフォルトロールの更新**: JumpCloud から特定のロールが渡されなかった場合に、[ステップ 2](/ja/user-guide/settings/account/security/system-for-cross-domain-identity-management-scim#step-2-configure-scim-in-moengage-and-generate-token) で設定したデフォルトロールがシステムによって正しく割り当てられていることを確認します。
+    - **ロールの正確性**: JumpCloud から送信された特定のロール (カスタム属性のマッピングに基づく) が、ワークスペースで割り当てられたロールと一致していることを確認します。
+      <Frame>
+        ![Userinvitation2](/images/userinvitation2.png)
+      </Frame>
+  </Tab>
+</Tabs>
+
+# 操作 (属性情報)
+
+次の表は、SCIM 操作で使用される属性の詳細を示しています。この情報を使用して、ID プロバイダーと MoEngage 間のデータ交換を理解し、一貫性と適切な設定を確保してください。
+
+<Info>
+  これらの表は参考用として提供されています。
+</Info>
+
+### ユーザーの作成
+
+SCIM を通じてユーザーを作成すると、ID プロバイダーは特定の属性セットを含むリクエストを MoEngage に送信します。次の表は、ユーザー作成リクエストに含めることができるパラメーターを定義しています。
+
+| パラメーター | 必須 | 更新可能 | 説明 |
+| --- | --- | --- | --- |
+| userName | はい | はい | ユーザーのメールアドレス。このフィールドは SCIM プロトコルで必須であり、emails の値と一致する必要があります。 |
+| givenName | はい | いいえ | MoEngage UI に表示されるユーザーの名 |
+| familyName | はい | いいえ | MoEngage UI に表示されるユーザーの姓。 |
+| emails | はい | いいえ | ユーザーのメールアドレス。MoEngage でプライマリ識別子として機能します。 |
+| role | はい | はい | MoEngage でのユーザーのロール。この値は大文字と小文字が区別され、プラットフォームにすでに存在している必要があります。 |
+
+### ユーザーアクセスの更新または取り消し
+
+ユーザーアクセスを更新または取り消すと、ID プロバイダーは MoEngage にリクエストを送信します。単一の API がこの処理を担い、ユーザー情報を更新するか、active 属性を変更してアクセスを取り消します。
+
+| パラメーター | 必須 | 更新可能 | 説明 |
+| --- | --- | --- | --- |
+| userName | はい | いいえ | ユーザーのメールアドレス。このフィールドは SCIM プロトコルで必須であり、emails の値と一致する必要があります。 |
+| givenName | はい | いいえ | MoEngage に表示されるユーザーの名。 |
+| familyName | はい | いいえ | MoEngage に表示されるユーザーの姓。 |
+| emails | はい | いいえ | ユーザーのメールアドレス。MoEngage でプライマリ識別子として機能します。 |
+| role | はい | はい | MoEngage でのユーザーのロール。この値は大文字と小文字が区別され、MoEngage で利用可能である必要があります。 |
+| active | はい | はい | この値は、ユーザーが MoEngage にアクセスできるかどうかを決定します。ユーザーの作成時、この値はデフォルトで _true_ に設定されます。ユーザーのアクセスを取り消すには、_false_ に設定します。 |
+
+# FAQ
+
+<Accordion title="ID プロバイダーからロールを更新できません。">
+  **External namespace** が **role** に設定され、**Attribute required** 設定が有効 (True に設定) になっていることを確認してください。
+</Accordion>
+
+<Accordion title="MoEngage で誤ったロールが更新されます。">
+  これは、ID プロバイダーがスキーマ内で 2 つの "role" 属性を渡す場合に発生します。MoEngage はデフォルト属性よりもカスタム属性の role を優先します。ID プロバイダーのログとスキーマを確認して競合を解決してください。両方の属性が必要な場合は、同一のロール値が含まれていることを確認してください。
+</Accordion>
+
+<Accordion title="グループを使用する場合にユーザープロビジョニングで問題が発生します。">
+  グループ (ロール) が MoEngage で割り当てまたは作成される前に、ユーザーアカウントが MoEngage で作成されていることを確認してください。
+</Accordion>

@@ -1,0 +1,215 @@
+---
+title: "プッシュトークンの登録と表示（レガシー）"
+description: "15.03.00 未満の MoEngage Android SDK バージョンで、FCM を使用したプッシュトークンの登録と通知の表示を設定します。"
+keywords: ["レガシー プッシュトークン登録", "15.03.00 未満の Android プッシュ", "MoEngage FCM トークン登録", "passPushToken Android"]
+---
+
+<Warning>
+  このページは、15.03.00 未満の MoEngage Android SDK バージョンに適用されます。
+
+  MoEngage Android SDK 15.03.00 以降、MoEngage SDK によるプッシュトークンの登録はサポートされなくなりました。現在の連携方法については[プッシュトークンの登録と表示](/ja/developer-guide/android-sdk/push/basic/push-token-registration-and-display)を、アップグレードする場合は [Firebase Installation ID への移行](/ja/developer-guide/android-sdk/migration/migrating-to-firebase-installation-id)を参照してください。
+</Warning>
+
+## 前提条件
+
+開始する前に、以下の設定を完了してください。
+
+- アプリケーション用の Firebase プロジェクトを作成し、`google-services.json` 設定ファイルを追加します。[Firebase Android セットアップガイド](https://firebase.google.com/docs/android/setup)を参照してください。
+- FCM の認証情報を生成し、MoEngage ダッシュボードに追加します。[FCM 認証](/ja/developer-guide/android-sdk/push/basic/fcm-authentication)および[プッシュの設定](/ja/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+
+## 概要
+
+プッシュ通知には、2 つの必須ステップがあります。
+
+1. **プッシュトークンの登録。** デバイスがプッシュに登録し、Firebase がプッシュトークンを生成します。
+2. **プッシュの表示。** アプリケーションが Firebase Cloud Messaging（FCM）からプッシュペイロードを受信し、デバイスに通知を表示します。
+
+MoEngage では、両方のステップを SDK で処理することをお勧めします。FCM のダウンタイムやネットワークエラーによってトークンの登録が失敗した場合、SDK は登録を再試行します。
+
+SDK は、アプリケーションがトークンを登録して通知ペイロードを受信する連携方法もサポートしています。
+
+このドキュメントでは、両方の連携方法について説明します。
+
+- [MoEngage SDK によるプッシュトークンの登録と表示](#push-token-registration-and-display-by-the-moengage-sdk)では、MoEngage SDK がトークンを登録して通知を表示するために必要な手順について説明します。
+- [アプリケーションによるプッシュトークンの登録とペイロードの処理](#push-token-registration-and-payload-handling-by-the-application)では、アプリケーションがトークンを登録して通知ペイロードを受信するために必要な手順について説明します。
+
+## MoEngage SDK によるプッシュトークンの登録と表示
+
+<Warning>
+  **重要**
+
+  - MoEngage SDK がトークンを登録する場合は、`com.google.firebase:firebase-messaging` 23.0.0 以上を使用してください。
+  - アプリケーションのマニフェストファイルでは、`com.google.firebase.MESSAGING_EVENT` インテントフィルターを持つサービスを 1 つだけ宣言してください。マニフェストでそのようなサービスが複数宣言されている場合、最初のサービスのみがコールバックを受け取ります。その結果、MoEngage SDK はプッシュペイロードを受信できず、配信率が低下します。
+</Warning>
+
+MoEngage SDK が通知を受信できるように、マニフェストファイルに以下のサービスを追加します。
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<service android:name="com.moengage.firebase.MoEFireBaseMessagingService"
+      android:exported="false">
+    <intent-filter>
+         <action android:name="com.google.firebase.MESSAGING_EVENT" />
+    </intent-filter>
+</service>
+```
+
+</CodeGroup>
+
+以下の 2 つのセクションはオプションです。アプリケーションで記載されている動作が必要な場合にのみ適用してください。
+
+### トークンコールバック
+
+MoEngage がアプリケーションに代わって登録したプッシュトークンにアクセスするには、トークンコールバックを実装します。MoEngage SDK が登録を処理する場合、トークンを登録または更新するたびにコールバックが提供されます。
+
+[_TokenAvailableListener_](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.listener/-token-available-listener/index.html) インターフェースを実装し、[_MoEFireBaseHelper.getInstance().addTokenListener()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/add-token-listener.html) を使用して登録します。
+
+アプリケーションがバックグラウンドにある間も SDK がコールバックを呼び出す可能性があるため、コールバックは Application クラスの `onCreate()` メソッドで登録してください。
+
+### MoEngage 以外のペイロードのプッシュ表示
+
+アプリケーションが MoEngage 以外から送信された通知を処理する場合は、このコールバックを実装します。マニフェストファイルで SDK のサービスを宣言すると、SDK は MoEngage プラットフォーム以外のサーバーから受信したプッシュペイロードごとにコールバックを提供します。
+
+[_NonMoEngagePushListener_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase.listener/-non-mo-engage-push-listener/index.html) インターフェースを実装し、[_MoEFireBaseHelper.getInstance().addNonMoEngagePushListener()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/add-non-mo-engage-push-listener.html) を使用して登録します。
+
+アプリケーションがバックグラウンドにある間も SDK がコールバックを呼び出す可能性があるため、コールバックは Application クラスの `onCreate()` メソッドで登録してください。
+
+## アプリケーションによるプッシュトークンの登録とペイロードの処理
+
+MoEngage SDK がプッシュトークンの登録と表示を処理する場合は、このセクションをスキップしてください。
+
+MoEngage SDK はデフォルトでプッシュトークンを登録します。アプリケーションがトークンを登録する場合は、まず MoEngage のトークン登録をオプトアウトしてください。
+
+### MoEngage のトークン登録のオプトアウト
+
+[_MoEngage.Builder_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) オブジェクトの [_configureFcm()_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-fcm.html) API を使用して、トークンの登録を無効にします。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.FcmConfig
+import com.moengage.core.config.NotificationConfig
+
+val moEngage = MoEngage.Builder(
+        application = this,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureNotificationMetaData(
+        NotificationConfig(
+            smallIcon = R.drawable.small_icon,
+            largeIcon = R.drawable.large_icon,
+            notificationColor = R.color.notiColor,
+            isMultipleNotificationInDrawerEnabled = true,
+            isBuildingBackStackEnabled = true,
+            isLargeIconDisplayEnabled = true
+        )
+    )
+    .configureFcm(FcmConfig(isRegistrationEnabled = false))
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```Java Java
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+import com.moengage.core.config.FcmConfig;
+import com.moengage.core.config.NotificationConfig;
+
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNotificationMetaData(new NotificationConfig(R.drawable.small_icon, R.drawable.large_icon, R.color.notiColor, true, true, true))
+    .configureFcm(new FcmConfig(false))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+### プッシュトークンを MoEngage SDK に渡す
+
+MoEngage プラットフォームがデバイスに通知を配信するにはトークンが必要なため、アプリケーションは FCM から受信したプッシュトークンを MoEngage SDK に渡す必要があります。[_passPushToken()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/pass-push-token.html) API を使用します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.firebase.MoEFireBaseHelper
+
+MoEFireBaseHelper.getInstance().passPushToken(applicationContext, token)
+```
+
+
+```Java Java
+import com.moengage.firebase.MoEFireBaseHelper;
+
+MoEFireBaseHelper.getInstance().passPushToken(getApplicationContext(), token);
+```
+
+</CodeGroup>
+
+<Info>
+  FCM がトークンを更新するたびに、トークンを MoEngage SDK に渡してください。MoEngage プラットフォームへの移行には、アプリケーションの更新時にトークンを渡すことが必要です。
+</Info>
+
+### プッシュペイロードを MoEngage SDK に渡す
+
+SDK はリッチプッシュ通知を含む通知をレンダリングするため、アプリケーションが独自のサービスを宣言している場合でも、MoEngage プラットフォームからのペイロードを MoEngage SDK に渡してください。
+
+Firebase サービスの `onMessageReceived()` メソッドから [_passPushPayload()_](https://moengage.github.io/android-api-reference/moe-push-firebase/com.moengage.firebase/-mo-e-fire-base-helper/pass-push-payload.html) API を呼び出します。渡す前に、[_isFromMoEngagePlatform()_](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase/-mo-e-push-helper/is-from-mo-engage-platform.html) API を使用して、ペイロードが MoEngage プラットフォームから送信されたものかどうかを確認してください。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+import com.moengage.firebase.MoEFireBaseHelper
+import com.moengage.pushbase.MoEPushHelper
+
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(remoteMessage.data)) {
+    MoEFireBaseHelper.getInstance().passPushPayload(applicationContext, remoteMessage.data)
+} else {
+    // Your application's logic for displaying its own notification.
+}
+```
+
+
+```Java Java
+import com.moengage.firebase.MoEFireBaseHelper;
+import com.moengage.pushbase.MoEPushHelper;
+
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(remoteMessage.getData())) {
+    MoEFireBaseHelper.getInstance().passPushPayload(getApplicationContext(), remoteMessage.getData());
+} else {
+    // Your application's logic for displaying its own notification.
+}
+```
+
+</CodeGroup>
+
+## リッチランディング
+
+リッチランディングページは、プッシュキャンペーンからアプリケーション内で Web URL を開きます。どのコンポーネントがプッシュトークンの登録と表示を処理するかに関係なく、リッチランディングページを表示するにはこの手順が必要です。
+
+<Info>
+  以下の宣言は、現在の SDK バージョンに含まれています。`MoEActivity` の親 Activity を変更する必要がある場合にのみ追加してください。
+</Info>
+
+AndroidManifest.xml ファイルに以下の Activity を追加します。
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<activity
+  android:name="com.moe.pushlibrary.activities.MoEActivity"
+  android:label="[ACTIVITY_NAME]"
+  android:parentActivityName="[PARENT_ACTIVITY_NAME]" >
+</activity>
+```
+
+</CodeGroup>
+
+| パラメーター | 説明 |
+| --- | --- |
+| `[ACTIVITY_NAME]` | リッチランディングページに表示されるラベルです。 |
+| `[PARENT_ACTIVITY_NAME]` | `MoEActivity` の親 Activity です。 |

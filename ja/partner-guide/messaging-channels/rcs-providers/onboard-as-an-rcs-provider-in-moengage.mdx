@@ -1,0 +1,631 @@
+---
+title: "MoEngage で RCS プロバイダーとしてオンボーディングする"
+description: "RCS テンプレートメッセージを送信するための標準ペイロード形式と、MoEngage にコールバック情報を配信するための標準コールバック形式について説明します。"
+---
+
+この記事では、MoEngage が RCS テンプレートメッセージの送信に使用する標準ペイロード形式と、MoEngage にコールバック情報を配信するための標準コールバック形式について説明します。
+
+この記事では、MoEngage で RCS プロバイダーとしてオンボーディングする方法について説明します。MoEngage が RCS テンプレートメッセージの送信に使用する標準ペイロード形式と、MoEngage にコールバック情報を配信するための標準コールバック形式を示します。
+
+## ネイティブ RCS サービスプロバイダーとしてオンボーディングする
+
+MoEngage で RCS プロバイダーになるには、次のプロセスに従ってください。
+
+1. 各セクションで共有されている形式を使用して、MoEngage のリクエストおよびコールバックのペイロード形式に一致するように、社内のメッセージングインフラストラクチャの実装と開発を完了します。
+
+2. 実装後、MoEngage は RCS モジュールが有効になったステージング環境を提供します。この環境にアクセスするには、MoEngage パートナーシップチームにお問い合わせください。
+
+3. MoEngage のステージング環境内で API とコールバックの連携を設定します。その後、MoEngage が提供する特定のテストシナリオを実行して検証し、メッセージ配信とステータスレポートが正しく機能することを確認する必要があります。
+
+4. MoEngage でのコネクターの設定や、お客様のプラットフォームでのコールバックの設定などを網羅したユーザーガイドを共有します。
+
+5. テストケースの実行結果を MoEngage と共有します。
+
+6. テストケースの実行結果とユーザーガイドを共有すると、次のことが行われます。
+   - MoEngage のエンジニアリングチーム (QA) がテストケースの実行結果をレビューし、連携を検証します。
+   - MoEngage のドキュメントチームがユーザーガイドをレビューします。
+
+7. 品質チェックが完了すると、MoEngage はお客様を MoEngage のネイティブ RCS プロバイダーの 1 つとして掲載し、ユーザーガイドを MoEngage のパートナーガイドとして公開します。
+
+## メッセージペイロードの詳細
+
+このセクションでは、MoEngage がお客様の API に送信するリクエスト内のメッセージペイロードについて詳しく説明します。
+
+### API エンドポイント/URL
+
+MoEngage がメッセージペイロードを送信する RCS パートナーの API エンドポイントまたは API URL です。RCS パートナーはこの URL を提供する必要があります。
+
+### リクエストヘッダーのサンプル
+
+API Key、Workspace ID、Authorization など、リクエストに追加するヘッダーに関する情報を共有する必要があります。たとえば、使用する認証が Bearer 認証の場合、次のサンプルに示すように、MoEngage はリクエストの Authorization ヘッダーに同じものを追加します。
+
+**ヘッダーのサンプル**
+
+```text
+--header 'Authentication: Bearer <client auth token to be used by vendor>' \
+```
+
+### リクエストボディ
+
+MoEngage がお客様の API に送信するリクエストです。
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| messages | 必須 | Array | 送信するメッセージを含むオブジェクトの配列で、一括または単一のオブジェクトにできます。上限は 50 メッセージです。 |
+| destination | 必須 | String | RCS メッセージの送信先の電話番号を示すフィールドです。E.164 形式であることを確認してください。 |
+| callback_data | 必須 | String | すべてのコールバックで MoEngage に返される文字列です。照合に役立ちます。 |
+| fallback_order | 必須 | String | RCS のみの場合は `["rcs"]` として送信されます。SMS をフォールバックとする RCS の場合は `["rcs","sms"]` として送信されます。 |
+| rcs | 必須 | Object | RCS メッセージを含むオブジェクトを示すフィールドで、RCS 固有のキーと RCS メッセージのタイプが含まれます。詳細については、[rcs](#rcs) を参照してください。 |
+| sms | 任意 | Object | SMS メッセージの詳細を示すフィールドです。詳細については、[sms](#sms) を参照してください。**注:** クライアントが SMS へのフォールバックを選択した場合にのみ存在します。 |
+
+#### rcs
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| rcs["bot_id"] | 必須 | String | RCS メッセージの送信用に登録されたエージェント ID を示すフィールドです。 |
+| rcs["template_id"] | 任意 | String | このフィールドは、インドの携帯電話番号に送信されるメッセージにのみ存在します。 |
+| rcs["message_content"] | 必須 | Object | RCS テンプレートのコンテンツ全体を示すフィールドです。 |
+
+#### sms
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| sms["sender"] | 必須 | String | SMS の登録済み送信者を示すフィールドです。 |
+| sms["template_id"] | 任意 | String | このフィールドは、インドの携帯電話番号に送信されるメッセージにのみ存在します。 |
+| sms["message"] | 必須 | String | SMS のコンテンツ全体を示すフィールドです。 |
+
+### ペイロードのサンプル
+
+すべての RCS ベンダー連携での互換性を確保するため、MoEngage は標準化された汎用ペイロードを使用します。このペイロードは、現在ベンダーが使用している 2 つの主要な処理方法に対応するように設計されています。
+
+- **パラメーターベースの処理:** ベンダーは、動的なメッセージコンテンツを個別のパラメーターのセットとして受け取ることを想定しています。
+- **解決済みテキストの処理:** ベンダーは、完全に解決されたメッセージテキスト (MoEngage が送信前に動的コンテンツを完全なテキスト文字列にマージしたもの) を受け取ることを想定しています。
+
+以下に示すペイロードには、両方の要件を満たすために必要なデータが含まれています。ベンダーは、サポートする方法に従ってペイロードを抽出して処理できます。
+
+RCS メッセージを送信するためのペイロードのサンプルは次のとおりです。
+
+```json
+{
+ "messages":[
+          {
+        "destination": "phone number", // sent in E.164 format
+        "callback_data": CALLBACK_DATA, // string to be sent back in callback
+        "fallback_order": ["RCS","SMS"]
+        "rcs": {
+            "bot_id": "bot id entered" // Agent id registered for RCS messages
+            "template_id": "template id", // Optional string for Indian templates
+            "message_content": MESSAGE_CONTENT
+           }
+        "sms": {
+            "sender": "sender id of fallback"
+            "message": "Message text", // resolved message
+            "template_id": "template id" // Optional string for Indian templates 
+            }
+         },
+           {
+             ...
+           }
+       ]
+  }
+```
+
+### インドのユーザー向けペイロードのサンプル
+
+インドのユーザーに RCS メッセージを送信するためのペイロードのサンプルは次のとおりです。
+
+```json
+{
+ "messages":[
+       {
+      "destination": "+9191986468797",
+      "callback_data": "1235_Moe123_0602947568495588_22455667qwrt888qq9",
+      "fallback_order": ["RCS","SMS"],
+      "rcs": {
+          "bot_id": "AjyAJTVPcvlFzpMR",
+          "template_id": "Onboarding_1",
+          "message_content": {
+                     "type": "CARD",
+                     "data": {
+                     "media": {
+                          "media_url":
+                           "https://cdn.openart.ai/uploads/image_MZNLY6Kp_1732684235696_raw.jpg",
+                           "content_type": "IMAGE"
+              },
+                    "title": "Welcome John to Moengage",
+                    "description": "John is happily welcomed to Moengage and will be a crucial part of
+the Product team",
+                    "orientation": "HORIZONTAL",
+                    "height": "",
+                    "alignment": "LEFT",
+                    "parameters": {
+                       "name": "John",
+                       "company": "Moengage",
+                       "teamname": "Product"
+                   }
+                },
+         "suggestions": {
+                  "type": "REPLY",
+                  "text": "STOP Messaging",
+                  "postback_data": "STOP"
+                   }
+               }
+             },
+  "sms": {
+  "message": "Hi John, Welcome to Moengage as you dont have RCS you get SMS",
+  "template_id": "Onboarding_SMS_1",
+  "sender": "Sender_2"
+       }
+   },
+{
+ ...Other messages..
+    }
+ ]
+}
+```
+
+### 海外のユーザー向けペイロードのサンプル
+
+海外のユーザーに RCS メッセージを送信するためのペイロードのサンプルは次のとおりです。
+
+```json
+{
+  "messages": [
+    {
+       "destination": "+919137470627",
+       "callback_data": "1235_Moe123_060222455677788_22455667qwrt888qq9",
+        "fallback_order": ["RCS","SMS"],
+             "rcs": {
+              "bot_id": "AjyAJKFTbdlFzpMR",
+              "template_id": null,
+               "message_content": {
+                   "type": "CARD",
+                    "data": {
+                      "media": {
+                        "media_url": "https://cdn.openart.ai/uploads/image_MZNLY6Kp_1732684235696_raw.jpg",
+                        "content_type": "IMAGE"},
+                        "title": "Welcome John to Moengage",
+                        "description": "John is happily welcomed to Moengage and will be a crucial part of
+the Product team",
+                        "orientation": "HORIZONTAL",
+                        "height": "",
+                        "alignment": "LEFT",
+                        "parameters": {
+                                       "name": "John",
+                                       "company": "Moengage",
+                                       "team_name": "Product"
+                          }
+                     },
+                        "suggestions": {
+                                   "type": "REPLY",
+                                   "text": "STOP Messaging",
+                                   "postback_data": "STOP"
+                        }
+                    }
+                  },
+                 "sms": {
+                     "message": "Hi John, Welcome to Moengage as you dont have RCS you get SMS",
+                     "template_id": null,
+                     "sender": "Sender_2"
+                 }
+           },
+      {
+      ...Other messages..
+       }
+     ]
+}
+```
+
+### 制限事項
+
+- これは一括 API で、最大 50 件のユーザーメッセージをサポートします。
+- 一括送信をサポートしていないベンダーの場合、MoEngage は messages 配列内でユーザーメッセージを 1 件のみ送信します。
+- デフォルトのタイムアウトは 5 秒です。インフラストラクチャが 5 秒以内にリクエストを受け付けて応答するようにしてください。
+
+### テキストのメッセージコンテンツ
+
+```json
+{
+   "type": "TEXT",
+   "data": {
+        "text": "Text message to be sent",
+        "parameters": {
+                 "param_1": "value_1",
+                  ...
+                }
+             },
+   "suggestions": [SUGGESTION_1, SUGGESTION_2...]
+ }
+```
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| type | 必須 | String | テンプレートのタイプを示すフィールドです。サポートされる値: TEXT, CARD, MEDIA, CAROUSEL |
+| data["text"] | 必須 | String | 解決済みのテキストを示すフィールドです。動的パラメーターをサポートしていないベンダー向けで、文字列の照合に使用できます。 |
+| data["parameters"] | 必須 | String | 解決済みテキストを使用しないベンダー向けに、メッセージのすべての動的な部分を含むフィールドです。ベンダーは動的パラメーターを使用できます。 |
+| suggestions | 任意 | Array | 返信、カレンダーイベントなどのサジェスチョンを含むフィールドです。 |
+
+### カードのメッセージコンテンツ
+
+```json
+{
+   "type": "CARD",
+      "data": {
+          "media": {
+               "media_url": "media_url",
+               "content_type": "content type",
+               "thumbnail": {
+                     "thumbnail_url": "thumbnail_url"
+                       }
+               },
+            "title": "Title message",
+            "description": "Description of the card",
+            "orientation": "HORIZONTAL | VERTICAL",
+            "height": "SHORT | MEDIUM | TALL",
+            "alignment": "LEFT | RIGHT",
+            "parameters": {
+                   "param_1": "value_1",
+                   ...
+                 }
+              },
+              "suggestions": [SUGGESTION_1, SUGGESTION_2 ...]
+ }
+```
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| media["media_url"] | 必須 | String | カードに含めるメディアの URL を示すフィールドです。 |
+| media["content_type"] | 必須 | String | メディアのコンテンツタイプを示すフィールドです。サポートされる値: PDF, VIDEO, IMAGE |
+| media["thumbnail"] | 任意 | Object | サムネイル情報を示すフィールドです。 |
+| title | 必須 | String | 解決済みのタイトルを示すフィールドです。動的パラメーターをサポートしていないベンダー向けで、文字列の照合に使用できます。 |
+| description | 任意 | Array | 解決済みの説明を示すフィールドです。動的パラメーターをサポートしていないベンダー向けで、文字列の照合に使用できます。 |
+| orientation | 必須 | String | メディアの向きを示すフィールドです。サポートされる値: HORIZONTAL, VERTICAL |
+| height | 任意 | String | メディアの高さを示すフィールドです。サポートされる値: SHORT, MEDIUM, TALL。**注:** このフィールドは、縦向き (vertical) の場合にのみ任意です。 |
+| alignment | 任意 | String | メディアの配置を示すフィールドです。サポートされる値: LEFT, RIGHT。**注:** このフィールドは、横向き (horizontal) の場合にのみ任意です。 |
+
+> **注:** その他のパラメーターは上記で指定したものと同じであるため記載していません。参考として上記を確認してください。
+
+### カルーセルのメッセージコンテンツ
+
+```json
+{
+"type": "CAROUSEL",
+"data":{
+    "width": "SMALL | MEDIUM",
+    "height": "SHORT | MEDIUM | TALL",
+    "cards":[
+        {
+           "data":{
+             "media":{
+                 "media_url": "media_url",
+                 "content_type": "content type",
+                 "thumbnail":{
+                     "thumbnail_url": "thumbnail_url"
+                     }
+                  },
+              "title": "Title message",
+              "description": "Description of the card",
+              "orientation": "HORIZONTAL | VERTICAL",
+              "height": "SHORT | MEDIUM | TALL",
+              "alignment": "LEFT | RIGHT",
+              "parameters":{
+                  "param_1": "value_1",
+                       ...
+                 }
+              },
+      "suggestions":[SUGGESTION_1, SUGGESTION_2 ...]
+              },
+             {
+            ...card 2 body...
+            }
+          ]
+       }
+    }
+```
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| width | 必須 | String | カルーセルの幅を示すフィールドです。 |
+| height | 必須 | String | カルーセルの高さを示すフィールドです。 |
+| cards | 必須 | Array of Card Template Object | カードテンプレートオブジェクトのリストを含むフィールドです。 |
+
+> **注:** その他のパラメーターは上記で指定したものと同じであるため記載していません。参考として上記を確認してください。
+
+### メディアメッセージのメッセージコンテンツ
+
+```json
+{
+   "type": "MEDIA",
+   "data": {
+      "media_url": "media_url",
+      "content_type": "content type",
+      "thumbnail":{
+                  "thumbnail_url": "thumbnail_url"
+              }
+       },
+   "suggestions": SUGGESTIONS
+}
+```
+
+## サジェスチョン
+
+サジェスチョンの JSON オブジェクトのタイプは次のとおりです。
+
+### 返信
+
+```json
+{
+   "type": "REPLY",
+   "text": "Suggestion text",
+   "postback_data": "postback data string"
+}
+```
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| type | 必須 | String | サジェスチョンのタイプを示すフィールドです。サポートされる値: OPEN_URL, DIAL_PHONE, SHOW_LOCATION, QUERY_LOCATION, REQUEST_LOCATION, CREATE_CAL_EVENT |
+| text | 必須 | String | 返信として表示するテキストを示すフィールドです。 |
+| postback_data | 必須 | String | 照合のために MoEngage に返送されるテキストを示すフィールドです。 |
+
+### URL を開く
+
+```json
+{
+   "type": "OPEN_URL",
+   "text": "Suggestion text",
+   "postback_data": "postback data string",
+   "url": "url",
+   "application": "WEBVIEW" | "BROWSER",
+   "webview_view_mode": "FULL"| "HALF" | "TALL"
+}
+```
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| url | 必須 | String | リダイレクト先として指定された URL を示すフィールドです。 |
+| application | 任意 | String | アプリケーションをブラウザーで開くか WebView で開くかを示すフィールドです。 |
+| webview_view_mode | 任意 | String | このフィールドは、アプリケーション内で WebView を使用する場合にのみ必要です。 |
+
+### 電話をかける
+
+```json
+{
+   "type": "DIAL_PHONE",
+   "text": "Suggestion text",
+   "postback_data": "postback data string",
+   "country_code": "country code",
+   "number": "phone number"
+}
+```
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| country_code | 必須 | String | 電話をかけるサジェスチョンの国際電話の国番号を、`+` プレフィックスを含めて示すフィールドです (例: `+91`)。 |
+| number | 必須 | String | 電話をかけるサジェスチョンの電話番号を、国番号を除いて示すフィールドです。 |
+
+### 位置情報を表示
+
+```json
+{
+   "type": "SHOW_LOCATION",
+   "text": "Suggestion text",
+   "postback_data": "postback data string",
+   "latitude": "latitude",
+   "longitude": "longitude",
+   "label": "label for location"
+}
+```
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| latitude | 必須 | String | 位置の緯度を示すフィールドです。 |
+| longitude | 必須 | String | 位置の経度を示すフィールドです。 |
+| label | 任意 | String | 位置のラベルテキストを示すフィールドです。 |
+
+### 位置情報を検索
+
+```json
+{
+   "type": "QUERY_LOCATION",
+   "text": "Suggestion text",
+   "postback_data": "postback data string",
+   "query": "query for location"
+}
+```
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| query | 必須 | String | 位置情報のクエリを示すフィールドです。 |
+
+### 位置情報を共有
+
+```json
+{
+   "type": "REQUEST_LOCATION",
+   "text": "Suggestion text",
+   "postback_data": "postback data string"
+}
+```
+
+### カレンダーイベントを作成
+
+```json
+{
+   "type": "CREATE_CAL_EVENT",
+   "text": "Suggestion text",
+   "postback_data": "postback data string",
+   "start_time": "event start time",
+   "end_time": "event end time",
+   "title": "event title",
+   "description": "event description"
+ }
+```
+
+| キー | 任意/必須 | データ型 | 説明 |
+|---|---|---|---|
+| start_time | 必須 | String | カレンダーイベントの開始時刻をタイムスタンプ形式で示すフィールドです。 |
+| end_time | 必須 | String | カレンダーイベントの終了時刻をタイムスタンプ形式で示すフィールドです。 |
+| title | 必須 | String | カレンダーイベントのタイトルを示すフィールドです。 |
+| description | 任意 | String | カレンダーイベントの説明を示すフィールドです。 |
+
+## コールバックデータ
+
+MoEngage は、リクエストの送信時にこの文字列に値を設定します。コールバックでは必ずこの文字列を返してください。文字列は最大 200 文字の英数字で、区切り文字として "_" を使用します。例:
+
+```json
+"cid_user_id_appId_timestamp"
+```
+
+## ヘッダー
+
+認証用の任意のカスタム引数をヘッダーで渡すことができます。
+
+```json
+Content-Type: application/json // Default header
+Authentication: {{auth}} // Any custom headers
+...
+```
+
+## cURL リクエストのサンプル
+
+```bash
+curl --location '<api_url provided by the vendor>' \
+--header 'Content-Type: application/json' \
+--header 'Authentication: Bearer <client auth token to be used by vendor>' \
+--data '<payload>'
+```
+
+## レスポンスコード
+
+| ステータスコード | リクエストの状態 | 説明 |
+|---|---|---|
+| 200 | 成功または失敗 | このレスポンスは、リクエストが正常に処理された場合、またはリクエストが失敗した場合に返されます。 |
+| 4XX | クライアントエラー | このレスポンスは、クライアントエラーが発生した場合に返されます。 |
+| 5XX | 不明なエラー | このレスポンスは、システムで予期しないエラーが発生した場合に返されます。 |
+
+### レスポンスのサンプル
+
+**200**
+
+```json
+[{
+"status": "SUCCESS | FAILURE",
+"message": "ERROR_DESCRIPTON",
+"callback_data": CALLBACK_DATA
+},
+{
+...
+}
+]
+```
+
+**4XX**
+
+```json
+{
+"message": "ERROR_DESCRIPTON"
+}
+```
+
+**5XX**
+
+```json
+{
+"message": "ERROR_DESCRIPTON"
+}
+```
+
+| キー | 必須 | データ型 | 説明 |
+|---|---|---|---|
+| status | 必須 | String | リクエストのステータスを示すフィールドで、メッセージが正常に送信されたかどうかを表します。2xx レスポンスの場合にのみ存在します。サポートされる値: Success, Failure |
+| message | 任意 | String | 4xx および 5xx エラーが発生した場合のエラーの説明を含むフィールドです。 |
+
+## コールバックのタイプ
+
+コールバック URL は、SMS と同様にベンダーに提供されます。これらは認証ヘッダーのない公開 URL です。コールバックには次の 2 種類があります。
+
+- メッセージステータスコールバック
+- RCS サジェスチョンのインタラクションコールバック
+
+### メッセージステータスコールバック
+
+```json
+{
+"statuses": [
+{
+   "status": "RCS_SENT | RCS_DELIVERED | SMS_SENT | SMS_DELIVERED | RCS_READ | RCS_DELIVERY_FAILED | SMS_DELIVERY_FAILED",
+   "callback_data": CALLBACK_DATA,
+   "timestamp": "event timestamp epoch",
+   "error_message": "User readable error message"
+},
+...
+]
+}
+```
+
+次の表に、コールバックのステータスとその説明を示します。
+
+| ステータス | 説明 |
+|---|---|
+| RCS_SENT | ベンダーがエンドユーザーへの RCS メッセージの送信を試行したことを示すステータスです。 |
+| SMS_SENT | ベンダーがエンドユーザーへの SMS メッセージの送信を試行したことを示すステータスです。 |
+| RCS_SENT_FAILED | 送信予定の RCS メッセージが失敗したことを示すステータスです。拒否されたすべてのメッセージ、またはベンダーが送信に失敗したメッセージが含まれます。 |
+| SMS_SENT_FAILED | 送信予定の SMS メッセージが、携帯電話番号の検証またはベンダー側でのその他の検証により失敗したことを示すステータスです。 |
+| RCS_DELIVERED | RCS メッセージが正常に配信されたことを示すステータスです。SMS フォールバックが含まれていない場合、SMS メッセージの送信は試行されません。 |
+| SMS_DELIVERED | RCS の配信が失敗し、フェイルオーバーの SMS が正常に配信されたことを示すステータスです。 |
+| RCS_READ | エンドユーザーが RCS メッセージを正常に受信して既読にしたことを示すステータスです。このイベントは RCS_DELIVERED ステータスの後にのみトリガーされ、SMS_DELIVERED イベントには適用されません。 |
+| RCS_DELIVERY_FAILED | RCS の配信が失敗したことを示すステータスです。 |
+| SMS_DELIVERY_FAILED | SMS の配信が失敗したことを示すステータスです。 |
+
+| キー | 必須 | データ型 | 説明 |
+|---|---|---|---|
+| status | 必須 | String | コールバックのステータスを示すフィールドです。 |
+| callback_data | 必須 | String | コールバックデータを示すフィールドです。 |
+| timestamp | 必須 | String | エポック形式のタイムスタンプを示すフィールドです。 |
+| error_message | 任意 | String | エラーの説明を示すフィールドです。**注:** このフィールドは、エラーメッセージの場合には必須です。 |
+
+### RCS サジェスチョンのインタラクションコールバック
+
+```json
+{
+   "events": [
+    {"type": "SUGGESTION_CLICKED",
+    "callback_data": CALLBACK_DATA,
+    "timestamp": "event timestamp epoch",
+    "data": {
+       "text": "Suggestion text",
+       "postback_data": "postback_data"
+}
+},
+ ...
+]
+}
+```
+
+### コールバックの制限事項
+
+コールバックには次の制限事項があります。
+
+- コールバックは、単一のメッセージとして、または最大 50 件のメッセージの一括バッチとして送信できます。
+- コールバックのタイムアウトは、ベンダー側で最大 5 秒です。MoEngage のインフラストラクチャが 5 秒以内に応答しない場合は、最大 3 回まで再試行してください。
+
+### コールバックのレスポンス
+
+コールバックのレスポンスは、次のステータスと詳細で返されることが想定されています。
+
+**200**
+
+```json
+{
+      "status": "SUCCESS"
+}
+```
+
+**4XX**
+
+```json
+{
+"status": "FAILURE",
+"error_message": "Invalid Request Body"
+}
+```

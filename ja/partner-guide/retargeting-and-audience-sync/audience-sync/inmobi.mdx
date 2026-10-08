@@ -1,0 +1,68 @@
+---
+title: "InMobi"
+---
+
+# はじめに
+
+[InMobi](https://www.inmobi.com/)は、携帯電話で配信される広告のランキングを最適化するための広告配信アルゴリズムを開発しています。アプリビジネス向けに、幅広い広告フォーマット、分析、収益化ツールを備えたモバイル広告ネットワークを運営しています
+
+# MoEngage × InMobi
+
+この連携により、MoEngageとInMobi Audiencesの間でセグメントを同期でき、的を絞ったリターゲティングでキャンペーンのパフォーマンスを高めることができます。この連携の構築には、MoEngageの[Connecter Campaigns](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign)を使用します。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  InMobiアカウントがあることを確認してください。
+</Info>
+
+## ステップ1: Segment IDを取得するか、新しいセグメントを作成する
+
+新しいセグメントを作成するには、以下のAPIを使用します。
+
+[http://advertiser.inmobiapis.com/tpce/v1/segment?segmentName=\<SEGMENT\_NAME\>&propertyId=\<PROPERTY\_ID\_OR\_ADVERTISER\_ID\>&membershipTtl=\<MEMBERSHIP\_TTL\_IN\_DAYS](http://advertiser.inmobiapis.com/tpce/v1/segment?segmentName=<SEGMENT_NAME>&propertyId=<PROPERTY_ID_OR_ADVERTISER_ID>&membershipTtl=<MEMBERSHIP_TTL_IN_DAYS)\>
+
+- `<SEGMENT_NAME>` - セグメントの名前
+- `<PROPERTY_ID_OR_ADVERTISER_ID>` - propertyId/advertiserId
+- `<MEMBERSHIP_TTL_IN_DAYS>` - このセグメントにタグ付けされるUser IDのTTL
+
+セグメントの作成に成功すると、InMobiはレスポンスとしてSegment IDを送信します。
+
+<CodeGroup>
+
+```http HTTP
+{
+    "status": "OK",
+    "message": "success",
+    "code": 200,
+    "segmentId": "f239dfb4-xxxx-xxxx-xxxx-dfdxxxx4ddb6"
+}
+```
+
+</CodeGroup>
+
+すでにセグメントを作成している場合は、そのセグメントのIDを使用することもできます。
+
+## ステップ2: MoEngageでコネクタキャンペーンを作成する
+
+MoEngageでコネクタキャンペーンを作成するには、以下の手順を実行します。
+
+1. Create Campaign \>\> Connectors \>\> Customに移動し、ニーズに最も適した配信タイプを選択します
+   <Frame>
+     ![キャンペーンの作成](/images/create-camp.png)
+   </Frame>
+2. キャンペーンのステップ2で、以下を行います。
+   1. メソッドとして`GET`を選択します
+   2. Webhook URLとして次を追加します: [http://advertiser.inmobiapis.com/tpce/v1/usersegment?propertyId=\<PROPERTY\_ID\>&gpId=\<ANDROID\_DEVICE\_ID\>&ida=\<IOS\_DEVICE\_ID\>&segmentIds=\<YOUR\_SEGMENT\_ID\>&action=add](http://advertiser.inmobiapis.com/tpce/v1/usersegment?propertyId=<PROPERTY_ID>&gpId=<ANDROID_DEVICE_ID>&ida=<IOS_DEVICE_ID>&segmentIds=<YOUR_SEGMENT_ID>&action=add)
+   3. Parametersに以下を追加します
+      1. `propertyId`: propertyId/advertiserId
+      2. `gpId`: Android Device ID、または\
+         `ida`: iOS Device ID
+      3. `segmentIds`: セグメントID。
+
+![Step1.png](/images/partner_10275541563924.png)
+
+3. これでキャンペーンをテストして送信する準備が整いました。Create Connector Campaignのステップ2で利用できるTest機能を使用して、コネクタの設定をテストすることもできます。<img src="/images/partner_4678362626196.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+4. InMobi Audienceセグメントにテストユーザーが表示されれば、設定は完了です。キャンペーンを公開してください。

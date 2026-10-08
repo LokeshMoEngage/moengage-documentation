@@ -1,0 +1,82 @@
+---
+title: "SFMC から MoEngage にユーザーを同期する"
+description: "毎日またはオンデマンドで実行され、各ユーザーの同期ステータスを更新する Automation Studio の SSJS スクリプトを使用して、SFMC データエクステンションから MoEngage にユーザーを同期します。"
+keywords: ["sfmc", "salesforce marketing cloud", "user sync", "data extension", "automation studio", "moengage"]
+---
+
+## はじめに
+
+このドキュメントでは、Salesforce Marketing Cloud（SFMC）から MoEngage にユーザーを同期する方法を説明します。以下の手順に従うことで、MoEngage のユーザーデータを常に最新の状態に保ち、効果的でパーソナライズされたマーケティングキャンペーンを実現できます。
+
+<Info>
+  **前提条件**
+
+  - MoEngage Credentials データエクステンション：パッケージに含まれており、MoEngage ワークスペースの認証情報を保存します。
+  - Sync Users to MoEngage データエクステンション：パッケージに含まれており、MoEngage に同期するすべてのユーザーが含まれます。必須フィールドには、`customer_id`、MoEngage Workspace Name、`synced`（同期ステータスを示す）があります。
+  - User Sync Automation：パッケージに含まれており、同期を実行するために必要なサーバーサイド JavaScript（SSJS）アクティビティが含まれています。
+</Info>
+
+## インテグレーション
+
+SFMC オーディエンス同期では、Automation Studio を使用して Salesforce Marketing Cloud から MoEngage にオーディエンスデータを転送します。このプロセスでは、SSJS スクリプトを活用して、指定されたデータエクステンションからユーザーデータと MoEngage の認証情報を抽出し、指定された MoEngage ワークスペースにユーザーを同期して、それに応じて同期ステータスを更新します。このオートメーションは、毎日またはオンデマンド（UI から）で実行されます。
+
+## 手順
+
+### ステップ 1：データエクステンションを設定する
+
+1. ソリューションパッケージの認証情報データエクステンションの外部キーを「MoEngage Credentials」に変更します。
+
+   ![認証情報データエクステンションの外部キーを MoEngage Credentials に変更する](/images/partner_36577792897684.png)
+
+2. ソリューションパッケージの「Sync Users to MoEngage」データエクステンションの外部キーを「Sync Users to MoEngage」に変更します。
+
+   ![Sync Users to MoEngage データエクステンションの外部キーを変更する](/images/partner_36577792897812.png)
+
+### ステップ 2：ユーザーデータを入力する
+
+1. インストールしたソリューションパッケージから「Sync Users to MoEngage」データエクステンションを開きます。
+
+   ![Add Record オプションがある Sync Users to MoEngage データエクステンション](/images/partner_36577783521428.png)
+
+2. 「Add Record」をクリックしてユーザーレコードを追加し、データエクステンションにユーザーデータを直接入力します。
+3. 「Import」をクリックして、ユーザーデータを含む CSV ファイルをアップロードします。
+4. 必須フィールド：
+   - `customer_id`
+   - MoEngage Workspace Name
+   - `synced`（未同期のレコードの場合は `false` に設定）
+5. 追加フィールド：同期プロセスに必要なその他のフィールドを含めます。フィールドは要件に応じて追加または削除できます。
+
+<Note>
+  `synced` フィールドを `false` に設定すると、これらのレコードのみがオートメーションによって同期対象として取得されます。同期が成功すると、このフィールドは `true` に更新されます。
+</Note>
+
+### ステップ 3：User Sync Automation を実行する
+
+#### オートメーションの設定
+
+ソリューションパッケージで事前設定されているこのオートメーションは、SSJS スクリプトを使用して同期を処理します。オートメーションを有効化して 24 時間ごとに実行します。または、テスト目的で「run once」をクリックしてオートメーションを 1 回実行します。
+
+![毎日のスケジュールが設定された User Sync Automation の設定](/images/partner_36577919814420.png)
+
+#### 同期プロセス
+
+このオートメーションは、Sync Users to MoEngage データエクステンションからユーザーデータを、MoEngage Credentials データエクステンションから MoEngage の認証情報を取得します。`synced` が `false` に設定されているユーザーを、アクティブな MoEngage ワークスペースに同期します。
+
+- 新規ユーザー：MoEngage で作成されます。
+- 既存ユーザー：MoEngage で属性が更新されます。
+
+同期が成功すると、SFMC DE の `synced` フィールドが `true` に更新されます。
+
+#### スケジュール
+
+このオートメーションは 24 時間ごとに自動的に実行されます。
+
+### トラブルシューティング：オートメーションのログを監視する
+
+- Automation Studio 内の Activity セクションに移動して、同期プロセスに関連するログを表示します。
+
+  ![同期ログを表示している Automation Studio の Activity セクション](/images/partner_36577919816340.png)
+
+- 追加の詳細は、ソリューションパッケージで提供されている「Logs of Automation for Sync Users to MoEngage」データエクステンションに記録されます。これらのログを使用して、問題のトラブルシューティングや同期操作の成功の確認を行います。
+
+  ![Logs of Automation for Sync Users to MoEngage データエクステンション](/images/partner_36577912753044.png)

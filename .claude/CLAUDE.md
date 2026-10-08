@@ -121,6 +121,16 @@ Full rules live in `.cursor/rules/writing-rules.mdc` and `.cursor/rules/componen
 - Combine related information to reduce redundancy.
 - Link to existing pages rather than rewriting.
 
+## Docs ownership
+
+`.docsagent/owners.yaml` maps each docs folder to the technical writer who owns it. DocsAgent, the `#documentation_feedback` Slack bot, reads it to route Jira tickets and PR reviews. A path ending in `/` covers the whole folder, the longest matching path wins, and unlisted paths go to `default`.
+
+Keep the map in sync whenever you change the docs tree:
+- When you add a new top-level folder in `user-guide/`, `api/`, `use-cases/`, `partner-guide/`, `developer-guide/`, or `release-notes/`, check whether an existing path in `owners.yaml` already covers it. If none does, add the folder under the writer who owns that POD. An API folder goes to the same writer as its product POD.
+- When you rename or move a folder, update its path in `owners.yaml` in the same PR.
+- If you can't tell which writer owns the POD, ask the human. Don't guess.
+- Never remove `.docsagent/` from `.mintignore`. Mintlify publishes every `.yaml` file in the repo, so removing that line would put writers' emails and Slack IDs on the docs site.
+
 ## Before submitting work
 
 - [ ] Run `mint broken-links` to check internal links.
@@ -131,6 +141,7 @@ Full rules live in `.cursor/rules/writing-rules.mdc` and `.cursor/rules/componen
 - [ ] Verify every code block has a language tag.
 - [ ] Verify every image has alt text.
 - [ ] Confirm new pages are added to `docs.json` under the correct tab and group.
+- [ ] Confirm new or moved folders have an owner in `.docsagent/owners.yaml`.
 - [ ] Check formatting matches similar existing pages.
 - [ ] Read changes aloud to catch awkward phrasing.
 - [ ] Note any areas where you're uncertain.

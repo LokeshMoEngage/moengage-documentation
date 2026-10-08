@@ -1,0 +1,434 @@
+---
+title: "AMP Event Analytics の設定と統合"
+---
+
+MoEngage AMP event analytics プラグインは、ユーザー属性とイベントのトラッキング、およびサードパーティの JavaScript の実行に役立ちます。MoEngage AMP event analytics プラグインは、ユーザー属性とイベントをトラッキングする際の AMP ページと HTML ページの制限の違いに対応します。
+
+MoEngage AMP event analytics プラグインは、AMP analytics モジュールとは異なります。
+
+AMP ページにイベントトラッキングとユーザー属性トラッキングを追加するには、次の手順に従います。
+
+# AMP Analytics スクリプトを追加する
+
+AMP analytics を使用してユーザー属性とイベントをトラッキングするすべての AMP ページで、.amp ファイルの `&lt;head&gt;` セクションにスクリプトを必ず含めてください。
+
+```html
+<script async custom-element="amp-analytics" src="https://cdn.ampproject.org/v0/amp-analytics-0.1.js"></script&gt;
+```
+
+## HTML の任意の場所に追加する
+
+```html
+<amp-analytics type="moengage" id="moengage">
+<script type="application/json">
+{
+  "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01",
+  }
+}
+</script>
+</amp-analytics>
+```
+
+<Info>
+  注: Your\_Workspace\_ID は、MoEngage Dashboard -\> Settings -\> Account -\> General Settings にある実際の Workspace Id に必ず置き換えてください。dataCenter の詳細については、サポートチームにお問い合わせください。
+</Info>
+
+<Info>
+  注: データをテスト環境にリダイレクトするには、appId に '\_DEBUG' を付加します。たとえば、appId が\
+  YOUR\_WORKSPACE\_ID の場合、テスト環境では YOUR\_WORKSPACE\_ID\_DEBUG になります。
+</Info>
+
+# ユーザーのトラッキング
+
+上記の手順を実行すると、AMP ページにアクセスしたすべてのユーザーが自動的にトラッキングされます。\
+ただし、これらのユーザーはデフォルトでは匿名ユーザーになります。\
+なお、以前に通常の HTML ページにアクセスし、Cookie を削除していないウェブサイトのユーザーは、AMP ページでも同一ユーザーとして扱われます。
+
+# イベントのトラッキング
+
+上記の手順を実行すると、Page Viewed イベントがデフォルトでトラッキングされます。\
+ただし、AMP フレームワークにはイベントトラッキングに関する制限があるため、トラッキングできるのは `Page Viewed`、`Element Clicked`、`Page Scroll` など一部の種類のイベントのみです。
+
+イベントの一覧の詳細については、[AMP Analytics Examples](https://amp.dev/documentation/examples/components/amp-analytics/) を参照してください。
+
+## 例 1: 要素のクリックイベント
+
+次のように、id が `test` の HTML 要素がクリックされたときにクリックイベントをトラッキングできます。
+
+```html
+<button id="test" data-vars-title="Example request title">
+  Click here to generate an event
+  </button>
+
+
+  &lt;amp-analytics type="moengage" id="moengage"&gt;
+  &lt;script type="application/json"&gt;
+  &#123;
+    "vars": &#123;
+      "appId": "XXXXXXXXXXXXXXXX",
+      "dataCenter": "sdk-01"
+    &#125;,
+    "triggers": &#123;
+      "clickTrigger": &#123;
+        "on": "click",
+        "selector": "#test",
+        "request": "event",
+        "extraUrlParams": &#123;
+          "a": &#123;
+            "title": "$&#123;title&#125;"
+          &#125;,
+          "e": "amp example button click"
+        &#125;
+      &#125;
+    &#125;
+  &#125;
+  &lt;/script&gt;
+  &lt;/amp-analytics&gt;
+```
+
+| パラメーター | 説明 |
+| --- | --- |
+| `on` | イベントのタイプ |
+| `selector` | 標準の CSS セレクター |
+| `request` | 常に event である必要があります |
+| `a` | イベント属性。この例では、`title` が属性です。ボタン要素の `data-vars-title` を使用して、変数 `title` の変更を確認します。 |
+| `e` | イベント名 |
+
+## 例 2: ページスクロールイベント
+
+```html
+<amp-analytics type="moengage" id="moengage">;
+<script type="application/json">
+{
+  "vars": {
+    "appId": "XXXXXXXXXXXXXXXX",
+    "dataCenter": "sdk-01"
+  },
+  "triggers": {
+    "scrollPings": {
+      "on": "scroll",
+      "scrollSpec": {
+        "verticalBoundaries": [25, 50, 90]
+      &#125;,
+      "request": "event",
+      "extraUrlParams": {
+        "a":{
+          "scrolledUpto": "{scrollTop&#125;"
+        },
+        "e": "PageScroll"
+     }
+    }
+  }
+}
+&lt;/script&gt;
+&lt;/amp-analytics&gt;
+```
+
+スクロールイベントには、`verticalBoundaries` と `horizontalBoundaries` を含む `scrollSpec` オブジェクトが必要です。スクロールイベントを発生させるには、2 つのプロパティのうち少なくとも 1 つが必要です。両方のプロパティの値は、スクロールイベントが生成される境界を含む数値の配列である必要があります。たとえば、次のコードスニペットでは、ページが垂直方向に 25%、50%、90% スクロールされたときにスクロールイベントが発生します。ここで送信される属性は `scrolledUpto` で、ユーザーが上部からスクロールしたピクセル数を示す組み込み変数 `scrollTop` を保持します。
+
+サポートされているすべての変数の一覧の詳細については、[Supported Variables](https://github.com/ampproject/amphtml/blob/main/docs/spec/amp-var-substitutions.md) を参照してください。
+
+## 例 3: フォーム送信イベント
+
+```html
+&lt;form id="testForm" method="post" action-xhr="YOUR_SUBMIT_URL" target="YOUR_TARGET_VALUE"&gt;
+   &lt;input type="text" name="name" placeholder="Name..." required&gt;
+   &lt;input type="submit" value="Subscribe"&gt;
+&lt;/form&gt;
+
+&lt;amp-analytics type="moengage" id="moengage"&gt;
+&lt;script type="application/json"&gt;
+&#123;
+  "vars": &#123;
+    "appId": "XXXXXXXXXXXXXXXX",
+    "dataCenter": "sdk-01"
+  &#125;,
+  "triggers": &#123;
+    "formSubmit": &#123;
+      "on": "amp-form-submit",
+      "request": "event",
+      "selector": "#testForm",
+      "extraUrlParams": &#123;
+        "a": &#123;
+          "anyKey": "anyValue"
+        &#125;,
+        "e": "FormSubmit"
+      &#125;
+    &#125;
+  &#125;
+&#125;
+&lt;/script&gt;
+&lt;/amp-analytics&gt;
+```
+
+上記の例では、フォームの id をセレクターの値 (**#testForm**) として設定しています。"extraUrlParams" 内の "e" はイベント名で、"a" にはこのイベントでトラッキングするキーと値が含まれます。
+
+# ユーザー属性のトラッキング
+
+"EVENT\_ACTION\_USER\_ATTRIBUTE" イベントを使用してユーザー属性をトラッキングできます。たとえば、ウェブサイトに次のボタンがあるとします。
+
+```html
+<button id="first-name" data-vars-first-name="someFirstName">  
+  Click here to track first name  
+</button>
+```
+
+次に、名 (ユーザーの名とみなします) を次のようにトラッキングします。
+
+```html
+&lt;amp-analytics type="moengage" id="moengage"&gt;
+&lt;script type="application/json"&gt;
+&#123;
+  "vars": &#123;
+    "appId": "XXXXXXXXXXXXXXXX",
+    "dataCenter": "sdk-01"
+  &#125;,
+  "triggers": &#123;
+    "clickTrigger": &#123;
+      "on": "click",
+      "selector": "#first-name",
+      "request": "event",
+      "extraUrlParams": &#123;
+        "a": &#123;
+          "USER_ATTRIBUTE_USER_FIRST_NAME": "$&#123;first-name&#125;"
+        &#125;,
+        "e": "EVENT_ACTION_USER_ATTRIBUTE"
+      &#125;
+    &#125;
+  &#125;
+&#125;
+&lt;/script&gt;
+&lt;/amp-analytics&gt;
+```
+
+同様に、以下のボタンをクリックしたときにユーザーのメールアドレスをトラッキングするには、次のようにします。
+
+```html
+<button id="email" data-vars-email="someEmail">  
+  Click here to track email  
+</button>
+```
+
+```html
+&lt;amp-analytics type="moengage" id="moengage"&gt;
+&lt;script type="application/json"&gt;
+&#123;
+  "vars": &#123;
+    "appId": "XXXXXXXXXXXXXXXX",
+    "dataCenter": "sdk-01"
+  &#125;,
+  "triggers": &#123;
+    "clickTrigger": &#123;
+      "on": "click",
+      "selector": "#email",
+      "request": "event",
+      "extraUrlParams": &#123;
+        "a": &#123;
+          "USER_ATTRIBUTE_USER_EMAIL": "$&#123;email&#125;"
+        &#125;,
+        "e": "EVENT_ACTION_USER_ATTRIBUTE"
+      &#125;
+    &#125;
+  &#125;
+&#125;
+&lt;/script&gt;
+&lt;/amp-analytics&gt;
+```
+
+同じ方法で、その他の**事前定義されたユーザー属性**をトラッキングできます。
+
+```html
+<button id="btnId" data-vars-attribute-value="someValue">  
+  Click here to track the user attribute  
+</button>
+```
+
+```html
+&lt;amp-analytics type="moengage" id="moengage"&gt;
+&lt;script type="application/json"&gt;
+&#123;
+  "vars": &#123;
+    "appId": "XXXXXXXXXXXXXXXX",
+    "dataCenter": "sdk-01"
+  &#125;,
+  "triggers": &#123;
+    "clickTrigger": &#123;
+      "on": "click",
+      "selector": "#btnId",
+      "request": "event",
+      "extraUrlParams": &#123;
+        "a": &#123;
+         "USER_ATTRIBUTE_NAME": "$&#123;attribute-value&#125;"
+        &#125;,
+        "e": "EVENT_ACTION_USER_ATTRIBUTE"
+      &#125;
+    &#125;
+  &#125;
+&#125;
+&lt;/script&gt;
+&lt;/amp-analytics&gt;
+```
+
+ここで、USER\_ATTRIBUTE\_NAME は次のいずれかに置き換える必要があります。
+
+```javascript
+USER_ATTRIBUTE_USER_EMAIL //for user email - value needs to be string, eg: "dom@level5.com"
+USER_ATTRIBUTE_USER_NAME //for user name - value needs to be string, eg: "Dominick (Dom) Cobb"
+USER_ATTRIBUTE_USER_FIRST_NAME //for user first name - value needs to be string, eg: "Dominick"
+USER_ATTRIBUTE_USER_LAST_NAME //for user last name - value needs to be string, eg: "Cobb"
+USER_ATTRIBUTE_USER_MOBILE //for user mobile - value needs to be string, eg: "+12399999999"
+USER_ATTRIBUTE_USER_GENDER //for user gender - value needs to be string, eg: "M"
+USER_ATTRIBUTE_USER_BDAY //for user birthday - value needs to be in date format, eg: new Date(1980, 2, 31)
+```
+
+**カスタムユーザー属性**をトラッキングするには、USER\_ATTRIBUTE\_NAME の代わりに独自のカスタム属性名を使用する必要があります。例:
+
+```html
+&lt;amp-analytics type="moengage" id="moengage"&gt;
+&lt;script type="application/json"&gt;
+&#123;
+"vars": &#123;
+"appId": "XXXXXXXXXXXXXXXX",
+"dataCenter": "sdk-01"
+&#125;,
+"triggers": &#123;
+    "clickTrigger": &#123;
+      "on": "click",
+      "selector": "#btnId",
+      "request": "event",
+      "extraUrlParams": &#123;
+        "a": &#123;
+         "colors": ["blue","green","red"]
+        &#125;,
+        "e": "EVENT_ACTION_USER_ATTRIBUTE"
+      &#125;
+    &#125;
+  &#125;
+&#125;
+&lt;/script&gt;
+&lt;/amp-analytics&gt;
+```
+
+上記の例では、"colors" という名前のカスタム属性をトラッキングしています。この属性の値は配列 `["blue","green","red"]` です。
+
+# ユーザーのログインとログアウトのトラッキング
+
+一意の ID は、MoEngage ダッシュボード内でユーザーを一意に識別するために使用されます。
+
+ウェブサイトへの訪問中にユーザーのログインとログアウトが正しく実装され、ユーザーが認証されていることを確認してください。
+
+<Warning>
+  重要: ユーザーのログインとログアウトが正しく処理されない場合、ユーザーデータが破損する可能性があります。詳細については、[こちらのセクション](/ja/developer-guide/web-sdk/data-tracking/web-sdk-user-attributes-tracking)を参照してください。
+</Warning>
+
+## ログインをトラッキングする
+
+```html
+<button id="login" data-vars-unique-id="someUniqueId">Click here to track user login</button>
+```
+
+```html
+&lt;amp-analytics type="moengage" id="moengage"&gt;
+&lt;script type="application/json"&gt;
+&#123;
+"vars": &#123;
+"appId": "XXXXXXXXXXXXXXXX",
+"dataCenter": "sdk-01"
+&#125;,
+"triggers": &#123;
+    "clickTrigger": &#123;
+      "on": "click",
+      "selector": "#login",
+      "request": "event",
+      "extraUrlParams": &#123;
+        "a": &#123;
+         "USER_ATTRIBUTE_UNIQUE_ID": "$&#123;unique-id&#125;"
+        &#125;,
+        "e": "EVENT_ACTION_USER_ATTRIBUTE",
+        "identifiers": &#123;
+            "moe_user_id": "$&#123;unique-id&#125;"
+        &#125;
+      &#125;
+    &#125;
+  &#125;
+&#125;
+&lt;/script&gt;
+&lt;/amp-analytics&gt;
+```
+
+ここで、"someUniqueId" はユーザーをログインさせる際に使用する一意の ID です。
+
+<Warning>
+  重要: ログインをトラッキングした後は、ログアウトイベントが実行されるまで、以降のすべての属性およびイベントのトラッキングで、上記のようにトラッキングコード内に ("moe\_user\_id" を含む) "identifiers" オブジェクトを定義する必要があります。そうしないと、その属性またはイベントのトラッキングは、MoEngage ダッシュボードでこのログインユーザーに関連付けられません。
+</Warning>
+
+たとえば、上記のログインユーザーの姓をトラッキングする場合は、次のようにします。
+
+```html
+<button id="lastName" data-vars-last-name="lastNameOfLoggedInUser">Click here to track logged-in user's last name</button>
+```
+
+```html
+&lt;amp-analytics type="moengage" id="moengage"&gt;
+&lt;script type="application/json"&gt;
+&#123;
+"vars": &#123;
+"appId": "XXXXXXXXXXXXXXXX",
+"dataCenter": "sdk-01"
+&#125;,
+"triggers": &#123;
+    "clickTrigger": &#123;
+      "on": "click",
+      "selector": "#lastName",
+      "request": "event",
+      "extraUrlParams": &#123;
+        "a": &#123;
+         "USER_ATTRIBUTE_USER_LAST_NAME": "$&#123;last-name&#125;"
+        &#125;,
+        "e": "EVENT_ACTION_USER_ATTRIBUTE",
+        "identifiers": &#123;
+            "moe_user_id": "someUniqueId" //because we logged-in the user with "someUniqueId" as the unique ID
+        &#125;
+      &#125;
+    &#125;
+  &#125;
+&#125;
+&lt;/script&gt;
+&lt;/amp-analytics&gt;
+```
+
+## ログアウトをトラッキングする
+
+```html
+<button id="logout">Click here to track user logout</button>
+```
+
+```html
+&lt;amp-analytics type="moengage" id="moengage"&gt;
+&lt;script type="application/json"&gt;
+&#123;
+"vars": &#123;
+"appId": "XXXXXXXXXXXXXXXX",
+"dataCenter": "sdk-01"
+&#125;,
+"triggers": &#123;
+    "clickTrigger": &#123;
+      "on": "click",
+      "selector": "#logout",
+      "request": "event",
+      "extraUrlParams": &#123;
+        "a": &#123;&#125;,
+        "e": "MOE_LOGOUT"
+      &#125;
+    &#125;
+  &#125;
+&#125;
+&lt;/script&gt;
+&lt;/amp-analytics&gt;
+```
+
+<Warning>
+  重要: 上記の MoEngage ログアウトイベントを実行した後は、以降のトラッキングコードで "identifiers" を送信しないでください。ユーザーはログアウトしているため、以降の属性/イベントのトラッキングをこのユーザーに関連付けてはなりません。
+</Warning>

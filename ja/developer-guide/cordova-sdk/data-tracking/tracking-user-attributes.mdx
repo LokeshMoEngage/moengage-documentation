@@ -1,0 +1,237 @@
+---
+title: "ユーザー属性とユーザー ID のトラッキング"
+description: "MoEngage Cordova SDK を使用して、ユーザー属性をトラッキングし、ログインとログアウトの状態を管理します。"
+---
+
+import IdentifyUserNetworkFailure from '/ja/snippets/identify-user-network-failure.mdx';
+
+## ID 管理
+
+識別子の設定は、次の目的で重要です。
+
+- プラットフォームをまたいでユーザーの行動を結び付ける。
+- 不要なユーザーや古いユーザーが作成されないようにする。
+- インストールや再インストールをまたいでユーザーを識別する。
+
+### 単一の識別子でのログイン
+
+以下の API を呼び出して、識別子を MoEngage SDK に渡します。
+
+<CodeGroup>
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.identifyUser("identifier");
+```
+
+</CodeGroup>
+
+<Note>
+  - このメソッドは、非推奨の `setUniqueId()` と `setAlias()` に代わるものです。これらのメソッドのいずれかを使用している場合は、`identifyUser()` に置き換えてください。
+  - 識別子フィールドでは次の値は使用できません：`unknown`、`guest`、`null`、`0`、`1`、`true`、`false`、`user_attribute_unique_id`、`(empty)`、`na`、`n/a`、`""`、`dummy_seller_code`、`user_id`、`id`、`customer_id`、`uid`、`userid`、`none`、`-2`、`-1`、`2`。
+</Note>
+
+### 複数の識別子でのログイン
+
+アプリケーションでユーザーに複数の識別子がある場合は、以下の API を使用してすべての識別子を SDK に渡します。
+
+<CodeGroup>
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.identifyUser({ "identifierName1": "identifierValue1", "identifierName2": "identifierValue2" });
+```
+
+</CodeGroup>
+
+一般的な属性を識別子として渡す場合は、以下の標準識別子キーを使用します。
+
+| ユーザー属性 | キー |
+| :--- | :--- |
+| ID | `uid` |
+| メール | `u_em` |
+| 性別 | `u_gd` |
+| 誕生日 | `u_bd` |
+| 名前 | `u_n` |
+| 名 | `u_fn` |
+| 姓 | `u_ln` |
+| 携帯電話番号 | `u_mb` |
+
+カスタム識別子には、予約キーワードリストに含まれていない任意のキー名を使用してください。
+
+**`identifyUser()` を複数回呼び出した場合の動作：**
+
+- 先にログアウトせずに `identifyUser()` を呼び出すと、既存のログイン済みユーザーの識別子が更新されます。
+- 異なる識別子名で `identifyUser()` を複数回呼び出すと、SDK は既に設定されている識別子に新しい識別子を追加します。詳細については、[ID 解決のドキュメント](/ja/user-guide/data/user-data/unified-identity-identity-resolution)を参照してください。
+- ID 解決が有効になっているワークスペースでは、SDK は以前の識別子の値を保存し、新しい値で `identifyUser()` が呼び出されたときに変更を検出します。
+
+<IdentifyUserNetworkFailure />
+
+SDK とデータトラッキングを有効化または無効化するには、[コンプライアンス](/ja/developer-guide/cordova-sdk/compliance/compliance)を参照してください。
+
+<Warning>
+  **強制ログアウト：** MoEngage SDK は、デバイス上で新しいユーザーが検出されたときに、以前のユーザーを自動的にマージまたはログアウトしなくなりました。データの破損を避けるため、新しいユーザーを識別する前に明示的に `logout()` を呼び出してください。
+</Warning>
+
+### ログアウト
+
+ユーザーがアプリケーションからログアウトするたびに、アプリケーションは MoEngage SDK に通知する必要があります。ユーザーがアプリケーションからログアウトするたびに API を呼び出して SDK に通知してください。
+
+<CodeGroup>
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.logout();
+```
+
+</CodeGroup>
+
+ログアウトすると、デバイス上の現在のユーザーのデータと ID がクリアされ、SDK の状態がリセットされます。次のユーザーがログインしたときに、再度 `identifyUser()` を呼び出してください。識別子がユーザープロファイルにどのようにマッピングされるかについては、[ID 解決](/ja/user-guide/data/user-data/unified-identity-identity-resolution)を参照してください。
+
+#### ログアウトコールバックリスナー
+
+ユーザーデータのクリアと SDK の状態のリセットは非同期で行われます。ユーザーを別の画面に遷移させたり、アプリのローカル状態をクリアしたりする前に、SDK がログアウトを完了するのを待ってください。
+
+ログアウトの成功を検出するには、`onLogoutComplete` イベントのリスナーを登録します。
+
+<CodeGroup>
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.on('onLogoutComplete', function (payloadInfo) {
+    console.log("Received callback 'onLogoutComplete', data: " + JSON.stringify(payloadInfo));
+});
+```
+
+</CodeGroup>
+
+必要な最小プラグインバージョン：Core 10.1.0。
+
+#### ログアウトコールバックのデータ
+
+`onLogoutComplete` コールバックは次のペイロードを受け取ります。
+
+<CodeGroup>
+
+```json JSON
+{
+  "type": "MoELogoutComplete",
+  "accountMeta": {
+    "appId": ""
+  },
+  "platform": "android/ios"
+}
+```
+
+</CodeGroup>
+
+**type** - コールバックをトリガーしたイベントの種類です。ログアウトの場合は常に `MoELogoutComplete` です。\
+**accountMeta.appId** - MoEngage のワークスペース ID です。\
+**platform** - コールバックがトリガーされたネイティブプラットフォームです。使用可能な値 - **android**、**ios**
+
+## SDK のユーザー属性キー
+
+以下の API を使用して、携帯電話番号、性別、ユーザー名、誕生日、位置情報などのデフォルトのユーザー属性を設定することもできます。
+
+<CodeGroup>
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.setUserName("abc");
+moe.setFirstName("abc");
+moe.setLastName("xyz");
+moe.setEmail("abc@xyz.com");
+moe.setPhoneNumber(1234567890);
+moe.setGender("Male"); // OR Female
+moe.setLocation(25.23, 73.23);
+// Format - ISO-8601 String
+moe.setBirthdate("1970-01-01T12:00:00Z");
+```
+
+</CodeGroup>
+
+カスタムユーザー属性を設定するには、**setUserAttribute(key, value)** メソッドを使用します。
+
+<CodeGroup>
+```javascript JavaScript
+var moe = new MoECordova.init(YOUR_WORKSPACE_ID);
+moe.setUserAttribute("<attribute_name>", "<attribute_value>");
+```
+
+</CodeGroup>
+
+日付属性と誕生日は ISO-8601 形式 - **yyyy-MM-dd'T'HH:mm:ss'Z'**
+
+<CodeGroup>
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.setUserAttributeLocation("attribute", 25.23, 73.23);
+```
+
+</CodeGroup>
+
+タイムスタンプのユーザー属性を設定するには、次のメソッドを使用できます。
+
+<CodeGroup>
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.setUserAttributeISODateString("LastPurchaseDate", "1970-01-01T12:00:00Z");
+```
+
+</CodeGroup>
+
+<Info>
+イベント、イベント属性、ユーザー属性の命名時に "moe\_" をプレフィックスとして使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なく定期的にブラックリストに登録される可能性があります。
+</Info>
+
+### カスタムブール型ユーザー属性
+
+#### iOS（オプション）
+
+cordova-moengage-core のバージョン 9.x.x 以降、カスタムブール型属性のデフォルトのトラッキングは ***double(0/1)*** から ***boolean(true/false)*** に変更されます。これを設定するには、***analyticsConfig*** で ***shouldTrackUserAttributeBooleanAsNumber*** を使用し、ブール値を double としてトラッキングする場合は true を渡します。デフォルトでは ***false*** に設定されており、ブール値は true/false としてトラッキングされます。
+
+以下の初期化コードスニペットを参照してください。
+
+<CodeGroup>
+```java TypeScript
+let initializationConfig = {analyticsConfig: {shouldTrackUserAttributeBooleanAsNumber: true}};
+var moe = MoECordova.init(YOUR_WORKSPACE_ID, initializationConfig);
+```
+
+</CodeGroup>
+
+ブール型ユーザー属性をトラッキングするには、以下のサンプルコードを参照してください。
+
+<CodeGroup>
+```java TypeScript
+var moe = new MoECordova.init(YOUR_WORKSPACE_ID); 
+      
+/// If shouldTrackUserAttributeBooleanAsNumber is passed as true then `boolean attribute True` will tracked with value 1 else true  
+moe.setUserAttribute("boolean attribute True", true); 
+      
+/// If shouldTrackUserAttributeBooleanAsNumber is passed as true then `boolean attribute False` will tracked with value 0 else false  
+moe.setUserAttribute("boolean attribute False", false);
+```
+
+</CodeGroup>
+
+### ユーザー属性の予約キーワード
+
+以下は、ユーザー属性のトラッキング時に使用してはならないキーのリストです。
+
+* USER\_ATTRIBUTE\_UNIQUE\_ID
+* USER\_ATTRIBUTE\_USER\_EMAIL
+* USER\_ATTRIBUTE\_USER\_MOBILE
+* USER\_ATTRIBUTE\_USER\_NAME
+* USER\_ATTRIBUTE\_USER\_GENDER
+* USER\_ATTRIBUTE\_USER\_FIRST\_NAME
+* USER\_ATTRIBUTE\_USER\_LAST\_NAME
+* USER\_ATTRIBUTE\_USER\_BDAY
+* USER\_ATTRIBUTE\_NOTIFICATION\_PREF
+* USER\_ATTRIBUTE\_OLD\_ID
+* MOE\_TIME\_FORMAT
+* MOE\_TIME\_TIMEZONE
+* USER\_ATTRIBUTE\_DND\_START\_TIME
+* USER\_ATTRIBUTE\_DND\_END\_TIME
+* MOE\_GAID
+* INSTALL
+* UPDATE
+* MOE\_ISLAT
+* status
+* user\_id
+* source

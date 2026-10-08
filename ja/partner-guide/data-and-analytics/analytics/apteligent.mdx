@@ -1,0 +1,45 @@
+---
+title: "Apteligent"
+---
+
+# はじめに
+
+[Apteligent](https://www.vmware.com/products/workspace-one/intelligence-consumer-apps.html) は、開発者やプロダクトマネージャー向けにツールとインサイトを提供するモバイルアプリケーションパフォーマンスプラットフォームです。
+
+# MoEngage × Apteligent
+
+MoEngage と Apteligent の連携により、Android と iOS の詳細なクラッシュレポートが提供され、重要なデータを既存の MoEngage ソリューションに記録できるほか、アプリケーションのクラッシュを経験したユーザーのセグメント化、把握、エンゲージメントが可能になります。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  - TestDrive アカウントへのアクセス権があることを確認してください。
+</Info>
+
+# ステップ 1: オブザーバーを登録する
+
+まず、オブザーバーを登録する必要があります。これは Apteligent を初期化する前に行ってください。
+
+```objectivec wrap
+[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(crashDidOccur:) name:@"CRCrashNotification" object:nil];
+```
+
+### ステップ 2: カスタムのクラッシュ分析を記録する
+
+Apteligent SDK は、クラッシュの発生後にユーザーがアプリケーションを読み込んだときに通知を発行します。通知には、クラッシュ名、理由、発生日が含まれます。
+
+通知を受信したら、カスタムのクラッシュイベントを記録し、Apteligent のクラッシュレポート分析でユーザー属性を更新します。
+
+```objectivec wrap
+(void)crashDidOccur:(NSNotification*)notification {
+  NSDictionary *crashInfo = notification.userInfo;  
+  
+  MoEngageSDKAnalytics.sharedInstance.setUserAttribute(crashInfo[@"crashName"], withAttributeName: "lastCrashName")  
+  MoEngageSDKAnalytics.sharedInstance.setUserAttribute(crashInfo[@"crashReason"], withAttributeName: "lastCrashReason")  
+  MoEngageSDKAnalytics.sharedInstance.setUserAttribute(crashInfo[@"crashDate"], withAttributeName: "lastCrashDate")
+}
+```
+
+完了すると、Apteligent プラットフォームにあるクラッシュ情報を使用して、MoEngage のセグメンテーションと分析の機能を活用できるようになります。

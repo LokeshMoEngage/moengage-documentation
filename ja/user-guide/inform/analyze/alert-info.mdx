@@ -1,0 +1,36 @@
+---
+title: "アラート情報"
+description: "MoEngage Informで、チャネル設定、リクエスト属性、メッセージプレビュー、テストオプションなどのアラート設定の詳細を確認します。"
+---
+
+Alert Infoを表示するには、**All Alerts** \> **目的のアラートをクリック** \> **Alert Info tab** に移動します。
+
+このセクションには、次のようなアラートに関する情報が含まれます。
+
+1. アラートが設定されているチャネル、およびチャネルの順序が順次送信の場合はデフォルトチャネルとフォールバックチャネルに関する情報。
+2. リクエストの詳細: <img src="/images/moengage_1ff248.png" />
+   ### 属性
+   リクエストでは、次の属性を渡す必要があります。
+   | リクエストフィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | MOE-APPKEY | はい | MoEngageアカウントのWorkspace IDです。Workspace IDはMoEngageワークスペースを一意に識別します。この値は、テストリクエスト（複数の言語でサポート）に自動的に入力されます。 |
+   | Authorization | はい | 認証のために渡す必要がある、Base64でエンコードされた認証ヘッダー（APPID:APISECRET）です。 |
+   | alert\_id | はい | 外部コンソールからリクエストをテストするために生成されたTest Alert IDです。この値はリクエストに自動的に入力されます。 |
+   | alert\_reference\_name | いいえ | アラートの作成時に追加できるリファレンスIDです。 |
+   | user\_id | いいえ | このフィールドはブランド側で提供され、テストするリクエストに貼り付ける必要があります。このフィールドはClient IDであり、アラートの送信先となるユーザーを識別します。これは、イベントをユーザーにマッピングするために不可欠です。  <br />無効なUser IDまたは存在しないUser IDが共有され、APIリクエストに有効な受信者の詳細が含まれている場合は、有効な受信者の詳細を持つ新しいユーザープロファイルが作成されます。  <br />リクエストにUser IDが含まれていない場合でも、受信者の詳細が利用可能であればリクエストは処理されます。ただし、イベントはMoEngage内のどのユーザーにも記録されません。詳細については、[アラート送信のためのユーザー識別](/ja/user-guide/inform/create/test-alert#user-identification-for-sending-the-alert)を参照してください。 |
+   | transaction\_id | はい | このフィールドはブランド側で提供し、テストするリクエストに貼り付ける必要があります。このフィールドは、ユーザーに送信されるアラートの対象となるトランザクションを識別します。MoEngageは、一意に生成されたリクエストIDに対してトランザクションIDを保存します。ユーザーに送信するリクエストごとにtransaction\_idが一意であることを確認してください。これは冪等性のサポートにも使用されます。 |
+   | payloads | はい | このフィールドにはチャネルレベルのペイロードが含まれ、その中にユーザーの詳細とパーソナライズ属性が含まれます。ペイロードの構造は次のとおりです。<br />`a"payloads": {`<br />`"<Channel_Name>": {`<br />`"recipient": "<pushtoken/mobile number with country  code/email id>",`<br />`"locale": "<required locale version to be sent to the user>”,`<br />`"personalized_attributes": {<list of the attributes to be personalized>},`<br />`"sender_attributes": {<list of the API attributes used for evaluating the sender to be selected>},`<br />`"personalized_attachments": {<list of the attributes used for sending attachements>},`<br />`"live_activity_attributes": {<list of attributes used to manage the lifecycle, static data, and dynamic state of an iOS Live Activity>},`<br />`}`<br />`}`<br />ペイロード内の _recipient_ フィールドは、アラートの送信先となるユーザーを識別します。詳細については、[アラート送信のためのユーザー識別](/ja/user-guide/inform/create/test-alert#user-identification-for-sending-the-alert)を参照してください。 |
+3. チャネルレベルのメッセージプレビュー <img src="/images/moengage_8c0377.png" alt="Screenshot 2025-01-22 at 3.47.08 PM.png" /> <img src="/images/moengage_d821cb.png" alt="AlertInfo" /> メッセージタイプとしてLive ActivityまたはLive Activity with Push Fallbackを指定してプッシュ通知を作成した場合は、次のプレビューが表示されます。
+   <Info>
+     Live ActivityのUIは、SDKによって完全に管理およびレンダリングされます。そのため、プレビューには最終的な表示結果ではなく、デバイスに送信されるJSONペイロードが表示されます。詳細については、[Transactional Live Activity](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/transactional-live-activities)を参照してください。
+   </Info>
+   ![Screen Recording 2026-01-09 at 1.25.28 PM.gif](/images/moengage_026cce.png)
+
+以下に示すように、さまざまな言語のコードスニペットを使用して、外部コンソールでアラートをテストできます。
+
+詳細については、[アラートをテストする](/ja/user-guide/inform/create/test-alert)を参照してください。
+
+<Info>
+  - Liveアラートを送信する際は、上記のコードスニペットに記載されているAlert IDまたはReference IDを使用する必要があります。アラートの作成時に利用できるTest Alert IDを使用した場合、リクエストは失敗します。
+  - ログはAPIリクエストを受信すると即座に反映され、Alert Logsタブで確認できます。
+</Info>

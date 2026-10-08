@@ -1,0 +1,159 @@
+---
+title: "Transifex"
+---
+
+## はじめに
+
+[Transifex](https://www.transifex.com/) は、開発者やマーケターが複数の言語でデジタルコンテンツを公開できるよう支援するローカリゼーション自動化プラットフォームです。
+
+## MoEngage と Transifex
+
+MoEngage と Transifex の連携では、MoEngage の Content API を使用して Transifex からリアルタイムで翻訳を取得し、キャンペーンで高品質なローカライズ済みコンテンツを配信できます。これにより翻訳作業が自動化され、チームは優れた顧客体験の提供に集中できます。
+
+## 連携
+
+<Info>
+  **前提条件**
+
+  - Transifex アカウントへのアクセス権。
+</Info>
+
+MoEngage は Transifex の [REST API エンドポイント](https://developers.transifex.com/reference/get_resource-translations)に接続して翻訳を取得します。
+
+### ステップ 1: Transifex のベアラートークンを生成する
+
+Transifex ダッシュボードの **Settings** \> **API token** \> **Generate a token** でベアラートークンを取得します。値は安全に保存してください。Transifex では再度表示されません。
+
+![Generate a token オプションが表示された Transifex の API トークン設定ページ](/images/partner_7394228997908.png)
+
+### ステップ 2: API の結果をテストする
+
+以下の cURL リクエストを使用して、結果と文字列の順序をテストします。リソース文字列キーで翻訳を取得することもできます。すべての設定については、[Transifex API リファレンス](https://developers.transifex.com/reference/get_resource-translations)を参照してください。
+
+```bash cURL wrap
+curl --request GET \
+  'https://rest.api.transifex.com/resource_translations?filter[resource]=o:{ORGANISATION-SLUG}:p:{PROJECT-SLUG}:r:{RESOURCE-SLUG}&filter[language]=l:{LANGUAGE-SLUG}&filter[resource_string][key]={RESOURCE-STRING-KEY}' \
+  --header 'Accept: application/vnd.api+json' \
+  --header 'Authorization: Bearer {YOUR-BEARER-TOKEN}'
+```
+
+テストする前に、プレースホルダーを実際の値に置き換えてください。サンプルレスポンスは次のとおりです。
+
+<CodeGroup>
+
+```json JSON wrap
+{
+    "data": [
+        {
+            "type": "resource_translations",
+            "id": "o:****:p:****:r:****:s:****:l:hi_IN",
+            "attributes": {
+                "strings": {
+                    "other": "नमस्ते और Transifex में आपका स्वागत है!"
+                },
+                "reviewed": true,
+                "proofread": false,
+                "finalized": true,
+                "datetime_created": "2022-06-27T01:33:10Z",
+                "datetime_translated": "2022-06-27T01:52:19Z",
+                "datetime_reviewed": "2022-06-27T01:52:22Z",
+                "datetime_proofread": null
+            },
+            "relationships": {
+                "resource": {
+                    "data": {
+                        "type": "resources",
+                        "id": "o:****:p:****:r:****"
+                    },
+                    "links": {
+                        "related": "https://rest.api.transifex.com/resources/o:****:p:****:r:****"
+                    }
+                },
+                "language": {
+                    "data": {
+                        "type": "languages",
+                        "id": "l:hi_IN"
+                    },
+                    "links": {
+                        "related": "https://rest.api.transifex.com/languages/l:hi_IN"
+                    }
+                },
+                "translator": {
+                    "data": {
+                        "type": "users",
+                        "id": "u:aekansh.dixit"
+                    },
+                    "links": {
+                        "related": "https://rest.api.transifex.com/users/u:****"
+                    }
+                },
+                "reviewer": {
+                    "data": {
+                        "type": "users",
+                        "id": "u:****"
+                    },
+                    "links": {
+                        "related": "https://rest.api.transifex.com/users/u:****"
+                    }
+                },
+                "proofreader": null,
+                "resource_string": {
+                    "data": {
+                        "type": "resource_strings",
+                        "id": "o:****:p:****:r:****:s:****"
+                    },
+                    "links": {
+                        "related": "https://rest.api.transifex.com/resource_strings/o:****:p:****:r:****:s:****"
+                    }
+                }
+            },
+            "links": {
+                "self": "https://rest.api.transifex.com/resource_translations/o:****:p:****:r:****:s:****:l:hi_IN"
+            }
+        }
+    ],
+    "links": {
+        "self": "https://rest.api.transifex.com/resource_translations?filter[resource]=o:****:p:****:r:****&filter[language]=l:hi_IN&filter[resource_string][key]=****",
+        "next": null,
+        "previous": null
+    }
+}
+```
+
+</CodeGroup>
+
+### ステップ 3: MoEngage ダッシュボードで Content API を設定する
+
+MoEngage の [Content API](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を使用して、Transifex をデータソースとして追加します。ユースケースごとに 1 つずつ、Transifex の複数の API を同時に追加できます。
+
+1. **Settings** \> **Advanced settings** \> **Content API** に移動します。Content API 画面の右上隅にある **\+ Add content API** をクリックします。<img src="/images/partner_21979664408852.png" alt="Add content API ボタンが強調表示された MoEngage の Content API 画面" />
+2. エンドポイント URL に Transifex の API を追加します。**API URL**
+   ```text
+   https://rest.api.transifex.com/resource_translations
+   ```
+   **Headers**
+   | パラメーター | 説明 | 例 |
+   | --- | --- | --- |
+   | `Authorization` | **必須。** API ベアラーキー。 | `Bearer SGVyZSBpcyBhbiBleGFtcGxlIG9mIHlvdXIgQVBJIGtleS4=` |
+   | <img src="/images/partner_7394715412372.png" alt="Authorization にベアラートークンが設定された MoEngage Content API 設定の Headers セクション" /> |  |  |
+   | **Parameters** |  |  |
+   | パラメーター | 説明 | 例 |
+   | --- | --- | --- |
+   | `filter[resource]` | リソースフィルター。 | `o:organization_slug:p:project_slug:r:resource_slug` |
+   | `filter[language]` | 言語でフィルタリングします。 | `l:en_US` |
+   | <img src="/images/partner_7394958150420.png" alt="リソースと言語のフィルターが設定された MoEngage Content API 設定の Parameters セクション" /> |  |  |
+3. **Save** をクリックします。Transifex の API が MoEngage に表示されます。
+
+<Tip>
+  キャンペーンで使用する前に、Content API の **Test** をクリックしてレスポンスを検証してください。
+</Tip>
+
+### ステップ 4: MoEngage キャンペーンで Content API を使用する
+
+これで、この Content API をキャンペーンで使用できます。詳細については、[Content API](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を参照してください。
+
+1. キャンペーン作成のステップ 2 で、`@` を入力します。
+2. パーソナライゼーションのポップアップで、ステップ 3 で設定した Content API を選択します。
+3. [MoEngage Templating Language](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用します。
+
+![JINJA を使用して Transifex の翻訳が挿入されている MoEngage エディター](/images/partner_7395205697556.png)

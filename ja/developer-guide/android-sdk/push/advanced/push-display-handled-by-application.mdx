@@ -1,0 +1,135 @@
+---
+title: "アプリケーションによるプッシュ表示の処理"
+description: "MoEngage Android SDK で、プッシュ通知の表示を独自に処理し、インプレッションとクリックをトラッキングします。"
+---
+
+<Warning>
+  このセクションは、アプリケーションがクライアント側でプッシュの表示を処理する必要がある、非常に高度なユースケースでのみ必要です。ほとんどのユースケースは、[Advanced Push Configuration](https://www.moengage.com/docs/developer-guide/android-sdk/push/advanced/callbacks-and-customisation) で提供されているカスタマイズで解決できると考えています。[Advanced Push Configuration](https://www.moengage.com/docs/developer-guide/android-sdk/push/advanced/callbacks-and-customisation) セクションで提供されているカスタマイズではユースケースを満たせない場合にのみ、このドキュメントを参照してください。
+</Warning>
+
+プッシュ通知の表示をアプリケーションで処理する場合、プッシュキャンペーンの統計（インプレッションとクリック）を表示するために、アプリケーション側での対応が必要です。
+
+# 通知インプレッションのトラッキング
+
+MoEngage プラットフォームからのプッシュを Firebase Cloud Messaging（FCM）経由で受信した場合、アプリケーションは SDK に通知する必要があります。SDK には、プッシュが MoEngage プラットフォームから受信されたものかどうかを確認するためのヘルパー API [isFromMoEngagePlatform()](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase/-mo-e-push-helper/is-from-mo-engage-platform.html) が用意されています。この API を使用して、受信したプッシュが MoEngage プラットフォームからのものかどうかを確認し、[logNotificationReceived()](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase/-mo-e-push-helper/log-notification-received.html) を呼び出して通知のインプレッションをトラッキングします。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(pushPayload)) {
+   MoEPushHelper.getInstance().logNotificationReceived(context, pushPayload)
+}
+```
+
+
+```java Java wrap
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(pushPayload)) {
+   MoEPushHelper.getInstance().logNotificationReceived(context, pushPayload);
+}
+```
+
+</CodeGroup>
+
+# 通知クリックのトラッキング
+
+SDK が通知のクリックをトラッキングできるように、通知がクリックされた後、アプリケーションは通知がクリックされたことを SDK に通知する必要があります。SDK が通知のクリックとユーザーセッションを正確にトラッキングできるように、以下を確認してください。
+
+- FCM から受信したプッシュペイロードが Pending intent に extras として追加されていること
+- 通知のクリック時に起動される Activity の **onCreate()** から [logNotificationClick()](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase/-mo-e-push-helper/log-notification-click.html) API が呼び出されていること
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEPushHelper.getInstance().logNotificationClick(applicationContext, intent)
+```
+
+
+```java Java wrap
+MoEPushHelper.getInstance().logNotificationClick(getApplicationContext(), getIntent());
+```
+
+</CodeGroup>
+
+# Background Update テンプレート（手動方式）
+
+<Info>
+  - **SDK バージョン**: self-handled 通知のチェックは、Android SDK バージョン **14.06.00** 以降でサポートされています。
+  - **ペイロード情報**: ペイロードの構造と使用可能なキーの詳細については、[Background Update Template](https://www.moengage.com/docs/user-guide/campaigns-and-channels/mobile-push/create/push-templates#background-update) を参照してください。
+</Info>
+
+<Check>
+  カスタムの `PushMessageListener` を使用している場合、MoEngage では、インプレッションが自動的にトラッキングされる SDK コールバック方式の使用をお勧めします。詳細については、[Callback Customization](https://www.moengage.com/docs/developer-guide/android-sdk/push/advanced/callbacks-and-customisation) セクションを参照してください。
+</Check>
+
+カスタムの Firebase Messaging Service があり、MoEngage のペイロードを手動でインターセプトしたい場合は、この方式を使用します。手動で処理する場合は、**通知のインプレッションを手動でトラッキングする必要があります**。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+override fun onMessageReceived(remoteMessage: RemoteMessage) {
+val payload = remoteMessage.data
+
+// Step 1: Check if the push is from MoEngage platform
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(payload)) {
+
+    // Step 2: Check if it's a self-handled notification
+    if (MoEPushHelper.getInstance().isSelfHandledNotification(payload)) {
+        // Log impression manually for self-handled pushes
+        MoEPushHelper.getInstance().logNotificationReceived(applicationContext, payload)
+        
+        // Handle Display of notification or custom logic here
+        return
+    } else {
+        // For non-self-handled, pass to SDK for default handling
+        MoEFireBaseHelper.getInstance().passPushPayload(applicationContext, payload)
+    }
+}
+
+}
+```
+
+
+```java Java wrap
+@Override
+public void onMessageReceived(RemoteMessage remoteMessage) {
+Map<String, String> payload = remoteMessage.getData();
+
+// Step 1: Check if the push is from MoEngage platform
+if (MoEPushHelper.getInstance().isFromMoEngagePlatform(payload)) {
+
+    // Step 2: Check if it's a self-handled notification
+    if (MoEPushHelper.getInstance().isSelfHandledNotification(payload)) {
+        // Log impression manually for self-handled pushes
+        MoEPushHelper.getInstance().logNotificationReceived(getApplicationContext(), payload);
+        
+        // Handle Display of notification or custom logic here
+        return;
+    } else {
+        // For non-self-handled, pass to SDK for default handling
+        MoEFireBaseHelper.getInstance().passPushPayload(getApplicationContext(), payload);
+    }
+}
+
+}
+```
+
+</CodeGroup>
+
+# Push Amp で配信されたプッシュのコールバック
+
+Push-Amp の通知は FCM 経由ではなく、MoEngage から直接配信されます。メッセージ/キャンペーンのペイロードを受信するためのコールバックを設定する必要があります。
+
+### 手順:
+
+1. 通知受信のコールバックを設定します。詳細については、[通知受信コールバックのドキュメント](https://www.moengage.com/docs/developer-guide/android-sdk/push/advanced/callbacks-and-customisation)を参照してください。
+2. 通知を不要としてマークします。この手順は重要です。正しく実装されていない場合、エンドユーザーに通知が 2 件表示される可能性があります。詳細については、[通知受信コールバックのドキュメント](https://www.moengage.com/docs/developer-guide/android-sdk/push/advanced/callbacks-and-customisation)を参照してください。
+
+この場合、**isNotificationRequired()** は常に false を返す必要があります。
+
+# Push Amp+ で配信されたプッシュのリダイレクトの処理
+
+Push Amp+ を使用してキャンペーンが配信される場合、技術的な制約により、アプリケーションでプッシュの表示を処理することはできません。アプリケーションは、ユーザーが通知をクリックした時点でのみコールバックを受け取ります。プッシュのリダイレクトコールバックの登録方法の詳細については、[通知クリックコールバックのドキュメント](https://www.moengage.com/docs/developer-guide/android-sdk/push/advanced/callbacks-and-customisation)を参照してください。
+
+# 関連ドキュメント
+
+[MoEngage Android プッシュ処理のサンプル](https://github.com/moengage/Android-Sample/tree/master/example/app/src/main/java/com/moengage/example/push).

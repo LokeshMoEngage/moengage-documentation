@@ -1,0 +1,136 @@
+---
+title: "カスタムHTMLエディターでコンテンツを作成する"
+description: "MoEngageのカスタムHTMLエディターを使用してメールコンテンツを作成します。リアルタイムプレビューとコード書式設定ツールを使用して、HTMLテンプレートの貼り付け、編集、アップロードができます。"
+---
+
+MoEngageでは、カスタムHTMLエディターを使用して、次の方法でメールコンテンツを作成できます。
+
+- [HTMLテンプレートを編集/貼り付けする](/ja/user-guide/campaigns-and-channels/email/create/create-content-with-custom-html-editor#edit/paste-html-template)
+- [ZIP形式でHTMLテンプレートをアップロードする](/ja/user-guide/campaigns-and-channels/email/create/create-content-with-custom-html-editor#upload-an-html-template-in-zip-format)
+
+<Info>
+  ワークスペースでカスタムフォントが有効になっている場合、このエディターの機能はそれに応じて変わります。詳細については、[カスタムフォント](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/custom-fonts)を参照してください。
+</Info>
+
+<Warning>
+カスタムHTMLエディターには、表示、パーソナライズ、およびエディター固有の既知の制限事項がいくつかあります。複雑なテンプレートを作成する前に、以下の[既知の制限事項](#known-limitations)セクションを確認してください。
+</Warning>
+
+## HTMLテンプレートを編集/貼り付けする
+
+HTMLエディターを使用してメールコンテンツを作成できます。エディターの左右分割ビューにより、HTMLコードの複雑さにかかわらず、コードに加えた変更の影響を視覚的に確認できます。
+
+HTMLエディターでは、次の操作を実行できます。
+
+### HTMLコードを追加する
+
+<Info>
+  [メール設定](https://moengage-user-guide.mintlify.app/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel#general-settings-tab)で **Auto-format HTML code** トグルをオンにしている場合、MoEngageのカスタムHTMLエディターはHTMLテンプレートに対していくつかの処理を実行します。これにより、HTMLが自動的にクリーンアップされ、セマンティックな正確性とブラウザ間での確実な表示が保証されるという大きなメリットがあります。これらの処理の詳細については、[MoEngageがHTMLテンプレートに対して実行する自動編集](/ja/user-guide/campaigns-and-channels/email/faqs-email/what-are-the-auto-formats-moengage-performs-on-an-html-template-added-in-the-moengage-email-editor-custom-html-editor)を参照してください。
+</Info>
+
+事前に準備したHTMLコードを追加することも、エディターで作成することもできます。エディターでは、HTMLコードを作成するための次のツールがサポートされています。
+
+- _テキストエディターと書式設定_。この基本的なテキストエディターツールを使用すると、HTMLコードを直接入力または変更できます。
+- _テーブルエディター。_ このエディターを使用すると、行数と列数を指定してHTMLテーブルを簡単に作成およびカスタマイズできます。
+- _ハイパーリンクの挿入。_ エディターには通常、ハイパーリンクを挿入するためのツールが含まれています。URL、リンクテキスト、ターゲットウィンドウのオプションを指定できます。
+- _画像エディター。_ このエディターを使用すると、HTMLコードに画像を挿入および管理できます。
+- _元に戻す/やり直し。_ 元に戻すボタンとやり直しボタンを使用して、HTMLコードへの変更を簡単に取り消したり再適用したりできます。 <img src="/images/moengage_614ea2.png" alt="side by side.png" />
+
+<Warning>
+HTMLにbase64エンコードされた画像データを埋め込んだり（例: `<img src="data:image/png;base64,...">`）、リンクやURLフィールドに貼り付けたりしないでください。代わりに、ホストされたURLで画像を参照するか、画像をアップロードしてください。サイズの大きいbase64画像は、送信時にメッセージサイズの上限を超え、Sent数が0のままキャンペーンが通知なく失敗する原因となる可能性があります。
+</Warning>
+
+### 既知のエディターの動作: HTML属性の大文字/小文字とインラインSVG
+
+リッチテキストエディター（Froala）は、コードを標準のHTML DOMとして解析します。標準のHTML属性は大文字と小文字を区別しないため、エディターは属性の大文字/小文字を正規化します。たとえば、`viewBox` は自動的に小文字の `viewbox` に変換されます。
+
+<Warning>
+インラインSVGを使用している場合、この正規化によってSVGが壊れます。SVGはXMLベースで大文字と小文字を区別するため、`viewbox` は認識されず、SVGは空白で表示されます。
+</Warning>
+
+**回避策:** 属性の大文字/小文字を記述どおりに保持するには、デフォルトのリッチテキスト（Froala）エディターではなく、**HTMLエディター** または **ドラッグアンドドロップエディター** を使用してください。HTMLエディターは、DOMの正規化を行わずにコードをそのまま渡します。
+
+<Note>
+大文字/小文字が保持されていても、メールでインラインSVGを使用することは推奨されません。Gmailは、コンテンツの作成に使用したエディターにかかわらず、セキュリティ上の理由からインラインの `<svg>` タグを完全に削除します。メールをGmailで正しく表示する必要がある場合は、インラインSVGではなく、PNGまたはその他のラスター画像形式を使用してください。
+</Note>
+
+### メールデザインをプレビューする
+
+左右分割ビューを使用すると、HTMLコードに加えた変更をリアルタイムでプレビューでき、変更の影響をすぐに確認できます。さらに、デスクトップとモバイルの両方の解像度でメールデザインをプレビューして、さまざまなデバイスで見栄えがよく、正しく機能することを確認できます。
+
+![side by side.gif](/images/moengage_b06174.png)
+
+MoEngageには **View advanced preview** オプションがあり、[**パーソナライズプレビュー**](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalized-preview)と[**受信トレイプレビュー**](/ja/user-guide/campaigns-and-channels/email/create/inbox-previews)を利用できます。パーソナライズプレビューでは、件名、プレビューテキスト、送信者名、送信元メールアドレス、返信先メールアドレスなどのメールの詳細をプレビューできます。
+
+![2024-09-13\_13-00-10.gif](/images/moengage_5d534a.png)
+
+### 動的コンテンツを追加する
+
+属性を使用してメールコンテンツをパーソナライズできます。HTMLエディターでは、リンクと画像のパーソナライズを利用できます。詳細については、[カスタムHTMLエディターを使用したパーソナライズ](https://moengage-user-guide.mintlify.app/user-guide/campaigns-and-channels/email/create/personalize-email-content#personalization-images-using-the-custom-html-editor)を参照してください。
+
+### テンプレートとして保存する
+
+HTMLコードをテンプレートとしてテンプレートライブラリの **My saved templates** に保存し、後でキャンペーンで使用できます。テンプレートを保存するには、**Template actions** の下にある **Save template** をクリックします。
+
+## ZIP形式でHTMLテンプレートをアップロードする
+
+ZIPファイル（HTMLファイルと画像を含む）をアップロードしてメールコンテンツを作成できます。MoEngageはこのZIPファイルを変換し、デザインをカスタムHTMLエディターに表示します。その後、さらに変更を加えたり、[メッセージをパーソナライズ](/ja/user-guide/campaigns-and-channels/email/create/personalize-email-content)したりできます。
+
+### ZIPファイルの形式
+
+ZIPファイルをアップロードするには、以下の仕様に従ってください。
+
+- ファイルサイズは5 MB以下にしてください。
+- ファイル名に特殊文字（ \*, / , , & ,~, " など）を含めないでください。
+- ZIPファイルには、CSSがインライン化されたHTMLファイルを1つだけ含める必要があります。ファイル名に関するエラーが表示された場合は、HTMLファイルが1つだけであることを確認してください。
+- 画像はJPG、JPEG、PNG、またはGIF形式であることを確認してください。
+- すべての画像は、HTMLに記載された相対パス（大文字と小文字を区別）に配置されている必要があります。画像の場所に関するエラーが発生した場合は、すべての画像がZIP内の正しいフォルダーに配置されていることを確認してください。
+
+### ZIP形式のメールテンプレートをアップロードする手順
+
+1. MoEngageダッシュボードにログインします。
+2. **All campaigns** ページで、**\+ Create campaign** \> **Email**\> 必要な配信タイプをクリックします。
+3. ステップ1「Target users」で必要な詳細をすべて定義し、**Next** をクリックします。
+4. ステップ2「Content」で、**Custom HTML editor** タブをクリックします。
+5. 以下に示すように、**Upload HTML template in Zip format** を選択します。
+
+<img
+  src="/images/moengage_5dfe7b.png"
+  alt="CustomHTMLEditor_Options__1_.png"
+  style={{ width:"60%" }}
+/>
+
+6. 表示されるダイアログボックスで、ZIPファイルをドラッグアンドドロップするか参照して選択します。このテンプレートを保存する場合は、**save template as** チェックボックスを選択し、テンプレートの名前を入力します。**Upload**\* をクリックします。
+
+<img
+  alt="UploadZipTemplate.png"
+  src="/images/moengage_a47110.png"
+  style={{ width:"49%" }}
+/>
+
+これにより、テンプレートがドラッグアンドドロップエディターに読み込まれます。エラーが表示された場合は、[ZIPファイルの形式](#zip-file-format)セクションのガイドラインに従ってください。
+
+さらにサポートが必要な場合は、MoEngageのカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+
+## 既知の制限事項
+
+### Gmail固有のCSSの動作
+
+- Gmailは、モバイルクライアントとデスクトップクライアントの両方で `@media` による表示/非表示のクエリを無視します。メディアクエリによる切り替えだけに頼るのではなく、フルードハイブリッドテーブル（パーセンテージまたはmax-widthベース）を使用してレスポンシブレイアウトを構築してください。
+- Gmailは `prefers-color-scheme` によるダークモードCSSに従わず、代わりに独自の自動色反転を適用します。また、インラインSVGを削除します。属性の大文字/小文字とインラインSVGの詳細については、[既知のエディターの動作: HTML属性の大文字/小文字とインラインSVG](#known-editor-behavior-html-attribute-casing-and-inline-svg)を参照してください。ダークモードのデザインに関するガイダンスについては、[HTMLテンプレートの表示に関する問題](/ja/user-guide/campaigns-and-channels/email/faqs-email/rendering-issues-in-html-templates)を参照してください。
+
+### パーソナライズ（Jinja）の構文
+
+- Jinjaのループ/テンプレート構文を `<tr>` 要素の直接の子として配置しないでください。HTMLパーサーがそれをテーブル構造の外に移動させてロジックを崩してしまい、パーソナライズプレビューが正しく表示されていても、送信時に "item is not defined" エラーが発生します。ループを展開してインデックスベースのアクセスとフォールバックを使用した固定の `<td>` セルにするか、リストの長さに基づくバリエーションにはDisplay Conditionsを使用してください。
+
+### フォント
+
+- カスタムまたはブランドのWebフォント（Google Fonts、`@import` など）は、ほとんどの受信トレイクライアントで表示されません。これはメールクライアントの制限であり、MoEngageの不足ではありません。カスタムフォントは「View in Browser」でのみ表示され、View in Browserでフォントを反映させるには、フォントの `<link>`/`@import` を手動で追加する必要があります。受信トレイ自体については、Webセーフフォントと確実なフォールバックスタックを使用してデザインしてください。
+
+### エディターの動作に関する注意点
+
+- リッチテキストエディターは、貼り付けたリンクURLの末尾に改行文字を通知なく追加することがあり、UI上では問題がないように見えてもクリックスルーが機能しなくなります。編集後にリンクが通知なく機能しなくなった場合は、コードビューで生のhrefを確認してください。HTMLエディターはHTMLをそのまま渡すため、HTMLエディターに切り替えるとこの破損を回避できます。
+- リッチテキストエディターはインポートされたHTMLを再構成します。head内のマークアップ（Gmailのアノテーションスキーマなど）がbodyに移動されて壊れることがあり、`<script>` タグはセキュリティ対策として完全に拒否されます。head内の構造化データについては、一度作成したものをHTMLエディター（プレーンなHTMLをそのまま渡し、DOMの再構成を行わない）を通じて読み込んでください。
+- `<html>`/`<body>` の構造全体を1か所にまとめてください。テンプレート内の開始タグと、マージタグで参照される別途管理されたコンテンツブロック内の終了タグとを分割しないでください。エディターは編集時に未解決のマージタグを解決できず、bodyのコンテンツが消去される可能性があります。
+- 生のHTMLをコードビューではなくリッチテキスト（WYSIWYG）ビューに貼り付けると、リテラルテキストとしてエスケープされ、メール内の他の部分の書式がずれる可能性があります。HTMLはコードビューからのみ追加するか、リッチテキストビューにプレーンテキストを貼り付けてツールバーの「Insert Link」でリンクを適用してください。
+- リンク編集のポップアップが開かない場合は、テンプレートやプラットフォームの問題を疑う前に、ブラウザ拡張機能（DLP/「セーフリンク」ツール）を疑ってください。エスカレーションする前に、シークレットモードまたはクリーンなブラウザプロファイルでテストしてください。

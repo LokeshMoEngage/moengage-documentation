@@ -1,0 +1,203 @@
+---
+title: "ユーザー属性のトラッキング"
+description: "MoEngage Android SDK で、ユーザー属性をトラッキングし、ユーザー識別のための一意の識別子を設定します。"
+---
+
+import IdentifyUserNetworkFailure from '/ja/snippets/identify-user-network-failure.mdx';
+
+ユーザー属性とは、ユーザーについて把握している情報のことです。年齢や性別などの人口統計情報、プランなどのアカウント固有の情報、またはユーザーが特定の A/B テストのバリエーションを見たかどうかなどが含まれます。ユーザー属性は、顧客のライフタイム全体を通じて参照できる顧客のアイデンティティです。
+
+# ユーザーの識別
+
+SDK バージョン 13.6.00 未満の場合は、[こちらのドキュメント](https://www.moengage.com/docs/developer-guide/android-sdk/data-tracking/basic/setting-unique-id-for-sdk-versions-below-13-6-00)を参照してください。
+
+識別子の設定は、以下の目的で重要です。
+
+- iOS、Android、Web などのプラットフォーム間でユーザーの行動を紐付けるため。
+- 不要なユーザーや古いユーザーが作成されないようにするため。
+- インストール/再インストール間でユーザーを識別するため。
+
+## 単一の識別子
+
+以下の API を呼び出して、識別子を MoEngage SDK に渡します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEAnalyticsHelper.identifyUser(context, "identifier")
+```
+
+
+```java Java
+MoEAnalyticsHelper.INSTANCE.identifyUser(context, "identifier");
+```
+
+</CodeGroup>
+
+_注_: このメソッドは、非推奨となった **_setUniqueId()_** の代替です。アプリケーションで **_setUniqueId()_** を使用している場合は、**_identifyUser()_** に置き換えることを検討してください。
+
+## 複数の識別子
+
+アプリケーションでユーザーを識別するための識別子が複数ある場合は、以下の API を使用してすべての識別子を SDK に渡すことができます。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEAnalyticsHelper.identifyUser(
+    context,
+    mapOf("identifierName1" to "identifierValue1", "identifierName2" to "identifierValue2")
+)
+```
+
+
+```java Java
+Map<String, String> identifiers = new HashMap<String, String>() {{
+    put("identifierName1", "identifierValue1");
+    put("identifierName2", "identifierValue2");
+}};
+MoEAnalyticsHelper.INSTANCE.identifyUser(context, identifiers);
+```
+
+</CodeGroup>
+
+<Info>
+  **ユーザー識別とセッション管理に関する SDK 関数の更新**
+
+  - **強制ログアウト:** MoEngage SDK は、デバイス上で新しいユーザーが検出されたときに、以前のユーザーを自動的にログアウトしなくなりました。データの破損を避けるため、Identity Resolution が有効になっているワークスペースでは、ログアウトを明示的に呼び出す必要があります。
+  - **SetUniqueID:** `identifyUser` 関数は複数の識別子をサポートしており、ユーザー識別のために `SetUniqueID` 関数を使用する必要がなくなりました。`SetUniqueID` は今後の SDK バージョンのリリースで削除される予定です。特にワークスペースで Identity Resolution を使用している場合は、代わりに `identifyUser` を使用することが重要です。
+  - **SetAlias:** Identity Resolution 機能が有効になっているワークスペースでは、MoEngage SDK は以前の識別子の値を保存します。`identifyUser` 関数を使用して新しい識別子の値をトラッキングすると、MoEngage SDK は識別子の値の変更を検出し、それに応じてレポートします。
+
+  ログアウトせずに `identifyUser` 関数を呼び出すと、既存のログイン済みユーザーの ID が更新されます。
+</Info>
+
+異なる識別子名で `identifyUser()` を複数回呼び出すと、SDK はその識別子を既に設定されている識別子に追加します。
+
+この機能の詳細については、ヘルプ[ドキュメント](/ja/user-guide/data/user-data/unified-identity-identity-resolution)を参照してください。
+
+<IdentifyUserNetworkFailure />
+
+詳細については、以下を参照してください。
+
+- [SDK の有効化/無効化](/ja/developer-guide/android-sdk/compliance/compliance#enabledisable-sdk)
+- [データトラッキングの有効化/無効化](/ja/developer-guide/android-sdk/compliance/compliance#enabledisable-data-tracking)
+
+## ログアウト
+
+ユーザーがアプリケーションからログアウトするたびに、アプリケーションは MoEngage SDK に通知する必要があります。SDK に通知するには、ユーザーがアプリケーションからログアウトするたびに API を呼び出します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoECoreHelper.logoutUser(context)
+```
+
+
+```java Java
+MoECoreHelper.INSTANCE.logoutUser(context);
+```
+
+</CodeGroup>
+
+アプリケーションがプッシュトークンを登録している場合は、ユーザーのログアウト後に新しいプッシュトークンを MoEngage SDK に渡す必要があります。プッシュトークンの受け渡しの詳細については、[Android SDK のプッシュ設定](/ja/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+
+# ユーザー属性のトラッキング
+
+SDK は、名、姓、メール ID など、一般的にトラッキングされるユーザー属性をトラッキングするための API を提供しています。これらの属性をトラッキングする際は、提供されているメソッドを使用してください。
+
+サポートされるデータ型とデータトラッキングポリシーの詳細については、[データトラッキングポリシー](https://www.moengage.com/docs/user-guide/data/key-concepts/data-tracking-policies)を参照してください。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEAnalyticsHelper.setFirstName(context, "Jane")
+MoEAnalyticsHelper.setLastName(context, "Doe")
+MoEAnalyticsHelper.setUserName(context, "jane.doe")
+MoEAnalyticsHelper.setLocation(context, GeoLocation(40.77, 73.98))
+MoEAnalyticsHelper.setGender(context, UserGender.FEMALE)
+MoEAnalyticsHelper.setMobileNumber(context, "+10000000000")
+MoEAnalyticsHelper.setBirthDate(context, "1990-01-01T00:00:00.000Z")
+MoEAnalyticsHelper.setEmailId(context, "jane.doe@example.com")
+```
+
+
+```java Java
+MoEAnalyticsHelper.INSTANCE.setFirstName(context, "Jane");
+MoEAnalyticsHelper.INSTANCE.setLastName(context, "Doe");
+MoEAnalyticsHelper.INSTANCE.setUserName(context, "jane.doe");
+MoEAnalyticsHelper.INSTANCE.setLocation(context, new GeoLocation(40.77, 73.98));
+MoEAnalyticsHelper.INSTANCE.setGender(context, UserGender.FEMALE);
+MoEAnalyticsHelper.INSTANCE.setMobileNumber(context, "+10000000000");
+MoEAnalyticsHelper.INSTANCE.setBirthDate(context, "1990-01-01T00:00:00.000Z");
+MoEAnalyticsHelper.INSTANCE.setEmailId(context, "jane.doe@example.com");
+```
+
+</CodeGroup>
+
+その他のユーザー属性を設定するには、汎用メソッド `setUserAttribute(key, value)` を使用します。このメソッドは、`String`、`int`、`long`、`float`、`double`、`boolean`、`Date`、`GeoLocation`、`JSONObject`、`JSONArray`、および `int`、`long`、`float`、`double`、`String` の配列の値型を受け付けます。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+// Tracking a String Attribute
+MoEAnalyticsHelper.setUserAttribute(context,"locality", "SF")
+// Tracking a Date Attribute
+MoEAnalyticsHelper.setUserAttribute(context,"signedUpOn", Date())
+// Tracking a location attribute
+MoEAnalyticsHelper.setUserAttribute(context,"lastLocation", GeoLocation(40.77, 73.98))
+// Tracking Array Attributes
+MoEAnalyticsHelper.setUserAttribute(context,"int_array",arrayOf<Int>(1,2,3))
+MoEAnalyticsHelper.setUserAttribute(context,"string_array",arrayOf<String>("English","French"))
+MoEAnalyticsHelper.setUserAttribute(context,"double_array",arrayOf<Double>(40.0,20.0))
+MoEAnalyticsHelper.setUserAttribute(context,"json_array", JSONArray(listOf(1, 2, 3)))      
+MoEAnalyticsHelper.setUserAttribute(context,"json_object", JSONObject().put("key", "value"))
+```
+
+
+```java Java
+// Tracking a String Attribute
+MoEAnalyticsHelper.INSTANCE.setUserAttribute(context,"locality", "SF");
+// Tracking a Date Attribute
+MoEAnalyticsHelper.INSTANCE.setUserAttribute(context, "signedUpOn", new Date());
+// Tracking a location attribute
+MoEAnalyticsHelper.INSTANCE.setUserAttribute(context,"lastLocation", new GeoLocation(40.77, 73.98));
+// Tracking Array Attributes    
+MoEAnalyticsHelper.INSTANCE.setUserAttribute(context,"int_array",new int[]{1,2,3});
+MoEAnalyticsHelper.INSTANCE.setUserAttribute(context,"string_array",new String[]{"English","French"});
+MoEAnalyticsHelper.INSTANCE.setUserAttribute(context,"double_array",new double[]{1.5,2.5});
+MoEAnalyticsHelper.INSTANCE.setUserAttribute(context,"json_array", new JSONArray());
+MoEAnalyticsHelper.INSTANCE.setUserAttribute(context,"json_object", new JSONObject());
+```
+
+</CodeGroup>
+
+ユーザー属性の詳細な一覧については、[API リファレンス](https://moengage.github.io/android-api-reference/core/com.moengage.core.analytics/-mo-e-analytics-helper/index.html)を参照してください。
+
+## ユーザー属性の予約済みキーワード
+
+以下は、ユーザー属性をトラッキングする際に使用してはならないキーの一覧です。
+
+- `USER_ATTRIBUTE_UNIQUE_ID`
+- `USER_ATTRIBUTE_USER_EMAIL`
+- `USER_ATTRIBUTE_USER_MOBILE`
+- `USER_ATTRIBUTE_USER_NAME`
+- `USER_ATTRIBUTE_USER_GENDER`
+- `USER_ATTRIBUTE_USER_FIRST_NAME`
+- `USER_ATTRIBUTE_USER_LAST_NAME`
+- `USER_ATTRIBUTE_USER_BDAY`
+- `USER_ATTRIBUTE_NOTIFICATION_PREF`
+- `USER_ATTRIBUTE_OLD_ID`
+- `MOE_TIME_FORMAT`
+- `MOE_TIME_TIMEZONE`
+- `USER_ATTRIBUTE_DND_START_TIME`
+- `USER_ATTRIBUTE_DND_END_TIME`
+- `MOE_GAID`
+- `INSTALL`
+- `UPDATE`
+- `MOE_ISLAT`
+- `status`
+- `user_id`
+- `source`
+
+<Info>
+  イベント、イベント属性、またはユーザー属性の名前に、プレフィックスとして "moe\_" を使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なしに定期的にブラックリストに登録される可能性があります。
+</Info>

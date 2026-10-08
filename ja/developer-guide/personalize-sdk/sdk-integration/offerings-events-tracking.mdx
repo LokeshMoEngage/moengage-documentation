@@ -1,0 +1,64 @@
+---
+title: "Offerings イベントのトラッキング"
+description: "Personalize SDK または API で取得した MoEngage Offerings のインプレッションイベントとクリックイベントをトラッキングします。"
+---
+
+このドキュメントでは、[MoEngage Personalize SDK](/ja/developer-guide/personalize-sdk/sdk-integration/self-handled-personalize-api-experiences) を使用して、または [MoEngage Personalize API](https://www.moengage.com/docs/api/personalize-experience/personalize-overview) から直接取得した Offerings のインプレッションとクリックをレポートするために、MoEngage Personalize SDK で利用できる新しいメソッドについて説明します。
+
+# 前提条件
+
+## SDK の統合
+
+<Steps>
+  <Step title="Web SDK の統合">
+    Web サイトに Web SDK を統合するには、[こちらの記事](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)を参照してください。
+  </Step>
+  <Step title="Personalize SDK の統合">
+    Web サイトに Personalize SDK を統合するには、[こちらの記事](/ja/developer-guide/personalize-sdk/sdk-integration/web-personalization-v2)を参照してください。
+  </Step>
+</Steps>
+
+## MoEngage アカウントの構成
+
+MoEngage ワークスペースで Offerings を利用できるようになっていることを確認してください。Offerings の設定の詳細については、[Offerings の作成](/ja/user-guide/decisioning/offer-decisioning/create-offerings)を参照してください。
+
+# Offering Shown イベントのレポート
+
+SDK には、Offering の表示イベントをトラッキングするメソッドが用意されています。
+
+インプレッションは、Offering がユーザーに視覚的に表示されたときにレポートする必要があります。
+
+Offering のインプレッションをレポートするには、**offeringContext** をマップとして渡します。
+
+<CodeGroup>
+
+```javascript Javascript wrap
+<script type="text/javascript">
+Moengage.personalize.offeringShown(offeringContext)
+</script>
+```
+
+</CodeGroup>
+
+# Offering Clicked イベントのレポート
+
+SDK には、Offering のクリックイベントをトラッキングするメソッドが用意されています。
+
+クリックイベントは、ユーザーが Personalize API のレスポンスに含まれるいずれかの Offering をクリックしたときにレポートする必要があります。単一の Offering のクリックイベントをレポートするには、その Offering の **offeringContext** を渡します。
+
+ユーザーが Offering をクリックした場合、暗黙的に親の Experience もクリックしているものと見なされます。**offeringClicked** 関数には、オプションで experienceContext を渡せるようになりました。
+
+### **これが意味すること**
+
+- **両方のコンテキストを渡す場合、** MoEngage は Offering と Experience の**両方**のクリックを**自動的に**トラッキングします。親の Experience のクリックイベントをトラッキングするために、別途 2 回目の呼び出しを行う必要はなくなります。
+- **offeringContext のみを渡す場合、** **experienceContext** はオプションです。渡さない場合は、Offering のクリックのみがトラッキングされます。必要に応じて、Experience のクリックを別途トラッキングする必要があります。
+
+  <CodeGroup>
+
+  ```javascript Javascript wrap
+  <script type="text/javascript">
+  Moengage.personalize.offeringClicked(offeringContext,experienceContext)
+  </script>
+  ```
+
+  </CodeGroup>

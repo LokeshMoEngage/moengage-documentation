@@ -1,0 +1,91 @@
+---
+title: "Razorpay"
+description: "Webhook を介して Razorpay から MoEngage に支払い、注文、返金のライフサイクルイベントを転送し、統合プロファイルを構築してリアルタイムのエンゲージメントを促進します。"
+keywords: ["Razorpay", "payments", "webhooks", "refunds", "MoEngage integration"]
+---
+
+[Razorpay](https://razorpay.com/) は、企業がオンラインで支払いの受け付け、処理、支出を行えるようにする決済およびビジネスバンキングプラットフォームです。支払い、注文、返金、請求書のライフサイクルイベントについて Webhook 通知を提供するため、支払いアクティビティにリアルタイムで対応できます。
+
+# MoEngage × Razorpay
+
+MoEngage と Razorpay の連携では、リアルタイムの支払いデータを使用して統合ユーザープロファイルを構築し、パーソナライズされたエンゲージメントを促進します。Razorpay から MoEngage に支払いライフサイクルイベントを転送することで、セグメンテーションを改善し、マーケティングスタック全体でデータの一貫性を維持できます。
+
+## ユースケース
+
+Razorpay を MoEngage と連携すると、次のユースケースに対応できます。
+
+- **失われた売上の回復**: 支払いが失敗したときに、パーソナライズされた通知 (プッシュ、メール、または SMS) を自動的にトリガーし、ユーザーをチェックアウトに戻して購入を完了するよう誘導します。
+- **顧客の信頼の向上**: 支払いの成功、注文、返金の更新について即座に確認を送信し、すべてのステップで顧客に情報を提供します。
+- **プロアクティブなサポート**: 返金ステータスの変更 (例: 処理済みまたは失敗) をユーザーに通知し、カスタマーサポートへの問い合わせを削減します。
+- **よりスマートなセグメンテーション**: リアルタイムの注文データを使用して MoEngage で動的セグメントを構築し、関連する購入後のオファーやロイヤルティ特典を送信します。
+
+## 主な機能
+
+Razorpay 連携は、MoEngage 内で次の機能を提供します。
+
+- **リアルタイムのデータ同期**: Razorpay から MoEngage に支払い、注文、返金のイベントを即座に同期し、タイムリーでデータドリブンなキャンペーンをトリガーします。
+- **顧客プロファイルの拡充**: 連絡先情報 (メールまたは携帯電話番号) でユーザープロファイルを自動的に更新し、データを最新の状態に保ちます。
+- **選択的なイベントのサポート**: この連携では、次のイベントの同期をサポートしています。
+  - Payments: `authorized`、`captured`、`failed`
+  - Orders: `paid`
+  - Refunds: `speed_changed`、`processed`、`failed`、`created`
+
+  追加のイベントが必要な場合は、まず MoEngage チームに評価を依頼してください。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  Razorpay ダッシュボードへの管理者アクセス権があることを確認してください。
+</Info>
+
+## ステップ 1: MoEngage の API 認証情報を取得する
+
+MoEngage の API 認証情報を取得するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**Settings** \> **Account** \> **APIs** をクリックします。
+2. **APIs** ページで、次の認証情報をコピーします。
+   - **Workspace ID** (旧 App ID)。
+   - **Data API Key**: **Data** タイルの下にあります。
+3. Workspace ID と Data API Key を MoEngage エンドポイントに挿入して Webhook URL を構築し、`0X` をデータセンター番号に置き換えます (例: DC-01 の場合は `api-01`)。次の形式を使用します。
+   ```text wrap
+   https://<YOUR_WORKSPACE_ID>:<YOUR_DATA_API_KEY>@api-0X.moengage.com/v1/partner/razorpay/events/?configName=<config_name>
+   ```
+
+![Workspace ID および Data API Key フィールドが表示された MoEngage の APIs 設定ページ](/images/moengage-api-credentials.png)
+
+<Info>
+  一意の取り込みエンドポイントについて MoEngage サポートに問い合わせる前に、マッピングする顧客識別子 (メールや連絡先電話番号など) を決定してください。データ同期中に重複したプロファイルが作成されないように、現在の MoEngage のアイデンティティ設定と一致していることを確認してください。
+</Info>
+
+## ステップ 2: Razorpay で Webhook を設定する
+
+エンドポイント URL と認証情報を取得したら、Razorpay ダッシュボードで Webhook を設定します。
+
+1. Razorpay ダッシュボードにログインし、**Account & Settings** に移動します。
+2. **Website and app settings** で、**Webhooks** をクリックします。
+3. **\+ Add New Webhook** をクリックします。
+4. **Webhook URL** フィールドに、ステップ 1 で構築した MoEngage エンドポイント URL を貼り付けます。
+5. **Active Events** で、次の支払いイベントを選択します。
+   - `payment.authorized`
+   - `payment.captured`
+   - `payment.failed`
+   - `payment.pending`
+6. **Create Webhook** をクリックします。
+
+![Webhook URL、シークレット、アラートメール、選択した支払いイベントが表示された Razorpay の Webhook Setup ダイアログ](/images/razorpay-webhook-setup.png)
+
+詳細については、[Razorpay Webhooks のドキュメント](https://razorpay.com/docs/webhooks/)を参照してください。
+
+## ステップ 3: MoEngage でイベントを確認する
+
+Webhook を有効にした後、MoEngage にイベントがリアルタイムで表示されることを確認します。
+
+1. MoEngage で、**Segment** \> **Search Users** に移動します。
+2. **Customer ID** でテストユーザーを検索します。
+3. Razorpay のイベント名 (例: `payment.authorized`) を探します。
+
+支払い ID、金額、顧客のメールアドレスなど、想定どおりの属性を含むイベントレコードが表示されていることを確認します。
+
+![payment.authorized イベントとその属性が表示された MoEngage ユーザープロファイルの Event activity タブ](/images/razorpay-verify-event.png)

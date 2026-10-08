@@ -1,0 +1,110 @@
+---
+title: "Web Personalization の設定と統合"
+description: "MoEngage Web Personalization キャンペーンを使用して、ユーザーごとにウェブサイトのエクスペリエンスをパーソナライズします。"
+---
+
+<Info>
+  Web Personalization に必須の手順です
+</Info>
+
+Web Personalization は、ユーザーごとにウェブサイトのエクスペリエンスをパーソナライズするために使用されます。Web Personalization の代表的なユースケースには、ユーザーの行動に基づくホームページバナーのパーソナライズ、ユーザーの地域に基づくウェブサイトコンテンツのローカライズ、パフォーマンス向上のための新しいページレイアウトのパフォーマンステスト、ユーザーの行動に応じた任意のウェブページ上のコンテンツの変更などがあります。
+
+アカウントで Web Personalization を有効にするには、カスタマーサクセスマネージャー (CSM) または MoEngage サポートチームにお問い合わせください。
+
+アカウントで Web Personalization が有効になったら、ウェブサイト上の MoEngage Web SDK の初期化スクリプトを更新します。 
+
+詳細については、[Web SDK の統合](https://www.moengage.com/docs/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)を参照してください。
+
+MoEngage Web Personalization を使用する際には、2 つの統合オプションを利用できます。どちらのオプションを選択するかは、MoEngage がパーソナライズされたキャンペーンデータをウェブサイトに送信するタイミングによって決まります。
+
+- Trigger Action: Custom Event - ウェブサイトからトラッキングされているカスタムイベントでトリガーされるキャンペーンを作成できます。ユーザーがトリガーイベントを実行すると、MoEngage によってデータが自動的に取得されます。その後、必要に応じてこのデータを利用できます。
+- Trigger Action: Self Handled - 関連するイベントトリガーなしで、必要なときにトリガーされるキャンペーンを作成することもできます。
+
+詳細については、[Web Personalization キャンペーンの作成](https://www.moengage.com/docs/user-guide/campaigns-and-channels/web-personalization/create/create-a-web-personalization-campaign)を参照してください。
+
+## Trigger Action: Custom Event
+
+ユーザーがイベントを実行したときに MoEngage からパーソナライズされたキャンペーンデータを自動的に取得するには、トリガーアクションとして Page load またはカスタムイベントを選択し、イベントを選択します。この設定は、Web Personalization キャンペーン作成のステップ 1 で行います。カスタムイベントはウェブサイトでトラッキングされている必要があることに注意してください。トラッキングされていない場合、キャンペーンはトリガーされません。
+
+<Frame>
+  ![Trigger Action カスタムイベント](/images/TriggerAction-CustomEvent.png)
+</Frame>
+
+次のコードを使用して、パーソナライズされた Web キャンペーンを統合できます。
+
+ 
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+// This code should be written just after moengage initialization script.
+Moengage.onsite.registerCallback(tagName, function (err, data) {
+    if (err) {
+    // Handle error case here
+    // We could get error for various reasons, like
+    // network issues, campaigns not present for a particular tag
+    return console.error('Error from moengage:', err);
+    }
+    console.log('Data for campaign:', data);
+    var payload = data.payload; // Campaign payload defined during campaign creation
+    var impTracker = data.imp; // Function, you can call impTracker() to send impression stats for a campaign back to MoEngage. Call this after you have successfully rendered the HTML as per the payload provided.
+    var clickTracker = data.click({widget_id:"sample_widget_id"}); // Function, you can call clickTracker() to send click stats for a campaign back to MoEngage. Call this when the user clicks on the desired section of the website. Passing widget_id is not mandatory and should only be used in case you want to differentiate the clicks between 2 different widgets of the Web Personalization Campaign.
+});
+```
+
+</CodeGroup>
+
+ 
+
+| パラメータ                                                     | 説明                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `Moengage.onsite.registerCallback(tagName, callbackFunction)` | 対応するキャンペーンがトリガーされるたびに MoEngage SDK から呼び出されるコールバック関数を登録します。                                                                                                                                                                                                                                                    |
+| `tagName`                                                     | キャンペーンの作成時に設定したタグ名と一致している必要があります                                                                                                                                                                                                                                                                                            |
+| `callbackFunction`                                            | `error` と `data` を受け取ります。   `data` には以下が含まれます。   1. `payload` (キャンペーンの作成時に設定したパーソナライズされた JSON データ) 2. `imp` - インプレッショントラッカーのコールバック関数。 3. `click` - クリックトラッカーのコールバック関数。異なるキャンペーンウィジェットのクリックを区別するために widget_id を渡すオプションのパラメータがあります。 |
+
+<Warning>
+  **重要**
+
+  コードが SDK スクリプトの直後にあることを確認してください。
+
+  任意のカスタムイベントの後にペイロードデータを取得するために呼び出せる関数と混同しないでください。
+</Warning>
+
+MoEngage のサンプルコードの詳細については、[サンプルコード](https://github.com/moengage/webSDK-sample/blob/master/web-personalization.html)を参照してください。
+
+## Trigger Action: Self Handled
+
+ユーザーがイベントを実行したときではなく、MoEngage からパーソナライズされたキャンペーンデータを取得するタイミングを自分で定義するには、このオプションを使用します。この場合、トリガーアクションとして "Self Handled" を選択する必要があります。必要なときに MoEngage の関数を直接呼び出してデータを取得できるため、イベントをトラッキングする必要はありません。
+
+<Frame>
+  ![Trigger Action Self Handled](/images/TriggerAction-SelfHandledled.png)
+</Frame>
+
+次のコードを使用して、パーソナライズされた Web キャンペーンを統合できます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.onsite.getData(tagName, function(err, data) {
+    if (err) {
+        // Handle error case here
+        // We could get error from various reasons, like network issues, campaigns not present for a particular tag
+        return console.error('Error from moengage:', err);
+    }
+    console.log('Data for campaign:', data);
+    var payload = data
+    .payload; // Campaign payload defined during campaign creation
+    var impTracker = data
+    .imp; // Function, you can call impTracker() to send impression
+    stats
+    for a campaign back to MoEngage
+        .Call this after you have successfully rendered
+    the HTML as per the payload provided.
+    var clickTracker = data.click({
+        widget_id: "sample_widget_id"
+    });
+    // Function, you can call clickTracker() to send click stats for a campaign back to MoEngage. Call this when the user clicks on the desired section of the website. Passing widget_id is not mandatory and should only be used in case you want to differentiate the clicks between 2 different widgets of the Web Personalization Campaign.
+});
+```
+
+</CodeGroup>

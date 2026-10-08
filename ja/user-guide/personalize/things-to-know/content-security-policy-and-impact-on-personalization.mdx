@@ -1,0 +1,58 @@
+---
+title: "Content Security Policyとパーソナライゼーションへの影響"
+description: "Content Security PolicyヘッダーがMoEngage Personalizeに与える影響を理解し、Webサイトのパーソナライゼーションを許可するようCSPルールを設定します。"
+---
+
+# Content Security Policyとは
+
+Webサイト向けのContent Security Policy(CSP)は、Web管理者が自身のWebサイトでリソース(スクリプト、スタイルシート、画像、フォントなど)を読み込み・実行する方法に関するルールを定義し、適用できるセキュリティメカニズムです。クロスサイトスクリプティング(XSS)攻撃やその他の種類のコードインジェクション脆弱性からの保護に役立ちます。
+
+CSPは、WebサイトのHTMLコード内でHTTPヘッダーまたはmetaタグを指定することで機能します。これには、さまざまな種類のコンテンツに対して許可されるソースを定義するポリシーディレクティブが含まれます。これらのソースには、ホスト名、パス、または特定の種類のコンテンツ(例: 同一オリジンを表す 'self'、不許可を表す 'none'、インラインスクリプト/スタイルを表す 'unsafe-inline'、コードの動的評価を表す 'unsafe-eval')を含めることができます。
+
+<CodeGroup>
+
+```html HTML wrap
+<!DOCTYPE html>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' www.example.com; style-src 'self' 'unsafe-inline' fonts.googleapis.com; img-src 'self' data:; font-src 'self' fonts.gstatic.com;">
+</head>
+```
+
+</CodeGroup>
+
+この例では、次のようになります。
+
+- **default-src 'self'**; すべてのリソースタイプのデフォルトポリシーを、同一オリジン('self')からのリソースのみを許可するように設定します。
+- **script-src 'self' 'unsafe-inline' [www.example.com](http://www.example.com)**; 同一オリジン('self')からのスクリプトの読み込み、インラインスクリプト('unsafe-inline')、および[www.example.com](http://www.example.com/)からのスクリプトを許可します。
+- **style-src 'self' 'unsafe-inline' fonts.googleapis.com**; 同一オリジン('self')からのスタイルシートの読み込み、インラインスタイル('unsafe-inline')、およびfonts.googleapis.comからのスタイルシートを許可します。
+- **img-src 'self' data**; 同一オリジン('self')からの画像の読み込みと、data URLを許可します。
+- **font-src 'self' fonts.gstatic.com**; 同一オリジン('self')からのフォントの読み込みと、fonts.gstatic.comからのフォントを許可します。
+
+# CSPが重要な理由
+
+ユーザーがCSPが有効なWebサイトにアクセスすると、ブラウザーはリクエストされたリソースが定義されたポリシーに準拠しているかどうかを確認します。ポリシーのルールを満たさないリソースがある場合、ブラウザーは設定に応じて、そのリソースをブロックするか、動作を変更することがあります。
+
+CSPには、次のような複数のメリットがあります。
+
+1. **XSS攻撃の軽減**: 実行可能なコードのソースを制限し、信頼できるソースのみを許可することで、CSPは悪意のあるコードインジェクションのリスクを軽減します。
+2. **データ流出からの保護**: CSPは、データを送信できるオリジンを制限することで、不正なデータ送信を防ぐことができます。
+3. **クリックジャッキングからの保護**: CSPは、frameまたはiframeのソースを制限することで、クリックジャッキング攻撃を防ぐことができます。
+4. **セキュリティ体制の強化**: CSPは、さまざまな種類の攻撃に対する追加の保護レイヤーを提供することで、Webアプリケーションやウェブサイト全体のセキュリティを強化します。
+
+# Personalizeへの影響
+
+Webサイトのコンテンツの読み込みを許可するソースを指定するContent Security Policy(CSP)をWebサイトに実装している場合、ブラウザーはホワイトリストに登録されていないソースからのコンテンツを拒否します。この場合、ブラウザーはMoEngageがWebサイトにコンテンツを読み込むことを許可しません。その結果、MoEngageで作成したバリエーションの読み込みに影響が出る可能性があります。
+
+# CSPへの対処方法
+
+MoEngageがWebサイトにバリエーションを読み込み、バリエーションのプレビューを生成できるようにするには、既存のContent Security Policy(CSP)の該当するルールを更新して、MoEngageをホワイトリストに登録する必要があります。
+
+|  |  |
+| --- | --- |
+| **ポリシーディレクティブ** | **ディレクティブに追加する内容** |
+| script-src-elem or script-src | \*.moengage.com |
+| style-src | 'unsafe-hashes' \*.moengage.com fonts.bunny.net |
+| img-src | \*.moengage.com moe-email-campaigns.s3.amazonaws.com |
+| font-src | \*.googleapis.com \*.moengage.com fonts.gstatic.com; |
+| connect-src | \*.moengage.com |
+| frame-src | \*.moengage.com |
+| media-src | \*.moengage.com |

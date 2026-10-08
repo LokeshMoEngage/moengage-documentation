@@ -1,0 +1,81 @@
+---
+title: "Ticketmaster"
+description: "Content API を使用して、Ticketmaster Discovery API のライブイベントデータを MoEngage のキャンペーンテンプレートに取り込みます。"
+---
+
+[Ticketmaster](https://developer.ticketmaster.com) は世界最大のライブイベントチケッティングマーケットプレイスで、北米、ヨーロッパ、オーストラリア、ニュージーランド、UAE にわたるコンサート、スポーツ、演劇、ファミリーイベントを取り扱っています。今後開催されるイベント、会場、アーティスト、チケットの在庫状況に関するデータを提供しています。
+
+## MoEngage × Ticketmaster
+
+MoEngage × Ticketmaster 統合を使用すると、Content API を介して Ticketmaster のライブイベントデータを MoEngage キャンペーンに動的に取り込むことができます。送信時に、MoEngage は各ユーザーの所在地や好みを使用して Ticketmaster Discovery API を呼び出し、そのユーザーに関連する今後のイベントを取得して、メール、プッシュ、SMS、アプリ内、WhatsApp のキャンペーンメッセージにデータを直接挿入します。
+
+一般的なユースケースには、ユーザーの都市の近くで開催される今後のコンサートをプッシュ通知で表示する、ユーザーのお気に入りのチームのスポーツの試合日程でメールキャンペーンをパーソナライズする、ユーザーが関心のあるジャンルで利用可能なイベントを表示してチケット販売を促進する、などがあります。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  有効な API キーを持つ Ticketmaster 開発者アカウントがあることを確認してください。キーは無料で、[developer.ticketmaster.com](https://developer.ticketmaster.com/products-and-docs/apis/getting-started/) から入手できます。
+</Info>
+
+## ステップ 1: Ticketmaster API キーを取得する
+
+Ticketmaster 開発者アカウントで、次の手順を実行します。
+
+1. [developer-acct.ticketmaster.com](https://developer-acct.ticketmaster.com/user/login) に移動してサインインします。アカウントをお持ちでない場合は、新しいアカウントを作成します。
+2. ログイン後、上部ナビゲーションの *My Apps* に移動し、*Add New App* を選択します。
+3. アプリ名と説明を入力し、*Submit* を選択します。Ticketmaster によってアプリの API キーが即座に生成されます。
+4. アプリダッシュボードから **Consumer Key** をコピーします。これは `apikey` クエリパラメーターとして使用する値です。
+5. ご利用のアカウントティアのレート制限を確認します。無料の開発者キーでは、**1 日あたり最大 5,000 回の API 呼び出し** と 1 秒あたり 5 リクエストが許可されています。送信量がこれを超える場合は、Ticketmaster に連絡して上位プランについてご相談ください。
+
+![Consumer Key とレート制限が表示された Ticketmaster 開発者アプリダッシュボード](/images/ticketmaster1.png)
+
+## ステップ 2: MoEngage で Content API を設定する
+
+Ticketmaster Discovery API を MoEngage の Content API として接続するには、次の手順を実行します。
+
+- まず、**Dashboard > Settings > APIs** に移動し、**Content API** タブを開きます。
+- *Add Content API* をクリックします。
+- 以下の表を参考に詳細を入力します。
+
+| キー | 値 |
+| --- | --- |
+| **Name** | この Content API のわかりやすい名前を選択します（例: `Ticketmaster Events by City`）。この名前は、キャンペーンテンプレート内で API を参照する際の識別に使用されます。 |
+| **Method** | GET |
+| **API URL** | `https://app.ticketmaster.com/discovery/v2/events.json`  これは Ticketmaster Discovery API の events エンドポイントです。指定したクエリパラメーターに一致する今後のイベントのページ分割されたリストを返します。都市、国コード、キーワード、分類（音楽、スポーツ、芸術など）、その他多くの項目でフィルタリングできます。パラメーターの詳細については、[Discovery API v2 documentation](https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/) を参照してください。 |
+| **Key Value** | 次のパラメーターを追加します。ユーザー属性を動的にバインドするパラメーターについては、値フィールドに `@` と入力すると、利用可能なユーザー属性が表示されます。 |
+
+| パラメーター | 値の例 | 備考 |
+| --- | --- | --- |
+| `apikey` | *ステップ 1 で取得した Consumer Key* | すべてのリクエストで必須です。静的な値にしてください。 |
+| `countryCode` | `@user.country` | 2 文字の ISO 国コードです。`city` と組み合わせて、国をまたいで同名の都市を区別します。 |
+| `classificationName` | `music` | 任意。イベントの種類でフィルタリングします: `music`、`sports`、`arts`、`family` など。ユーザーの好みの属性にバインドすることもできます。 |
+| `size` | 3 | 1 回の呼び出しで返すイベント数です。キャンペーンのパーソナライゼーションでは、大きなペイロードを避けるために小さな値（2～5）にしてください。 |
+| `sort` | `date,asc` | 最も近い今後のイベントが最初に表示されるように、結果を日付の昇順で並べ替えます。 |
+
+![MoEngage ダッシュボードでの Ticketmaster Content API の設定](/images/ticketmaster2.png)
+
+- **Validate** をクリックしてプラットフォームからレスポンスが返されることを確認し、**Save** をクリックします。これで、サポートされているすべてのチャネルのあらゆるキャンペーンで Content API を参照できるようになります。
+
+![MoEngage での Content API レスポンスの検証](/images/ticketmaster3.png)
+<Info>
+  **注意**
+
+  上記の URL の例は、キャンペーンのパーソナライゼーションで最もよく使用される `/events.json` エンドポイントを対象としています。Ticketmaster Discovery API には、[venues](https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/#search-venues-v2)、[attractions](https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/#search-attractions-v2)、[classifications](https://developer.ticketmaster.com/products-and-docs/apis/discovery-api/v2/#search-classifications-v2) 用の専用エンドポイントも用意されています。キャンペーンでイベント一覧ではなく会場の詳細やアーティストのメタデータが必要な場合は、該当するエンドポイントを使用してください。
+</Info>
+
+保存後、変数を使用してキャンペーンテンプレート内で Ticketmaster のレスポンスフィールドを参照する方法については、MoEngage ドキュメントの [キャンペーンでの Content API の使用](/ja/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を参照してください。
+
+## API レスポンスについて
+
+MoEngage が送信時に Ticketmaster Discovery API を呼び出すと、レスポンスは `_embedded.events` 配列を含む JSON オブジェクトとして返されます。この配列内の各オブジェクトは、今後開催される 1 つのイベントを表します。キャンペーンテンプレートで最もよく参照されるフィールドを以下に示します。
+
+| レスポンスフィールド | テンプレート変数の例 | 説明 |
+| --- | --- | --- |
+| `_embedded.events[0].name` | `{{ContentApi._embedded.events[0].name}}` | イベント名です（例: "Coldplay: Music of the Spheres World Tour"）。 |
+| `_embedded.events[0].dates.start.localDate` | `{{ContentApi._embedded.events[0].dates.start.localDate}}` | YYYY-MM-DD 形式のイベント開始日です。 |
+| `_embedded.events[0]._embedded.venues[0].name` | `{{ContentApi._embedded.events[0]._embedded.venues[0].name}}` | 会場名です。 |
+| `_embedded.events[0]._embedded.venues[0].city.name` | `{{ContentApi._embedded.events[0]._embedded.venues[0].city.name}}` | イベントが開催される都市です。 |
+| `_embedded.events[0].url` | `{{ContentApi._embedded.events[0].url}}` | このイベントのチケットを購入するための Ticketmaster の直接リンクです。 |
+| `_embedded.events[0].images[0].url` | `{{ContentApi._embedded.events[0].images[0].url}}` | イベントのプロモーション画像の URL です。メールやアプリ内キャンペーンで使用できます。 |

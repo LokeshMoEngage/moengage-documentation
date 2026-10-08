@@ -1,0 +1,114 @@
+---
+title: "4.x.x への移行"
+description: "MoEngage Cordova プラグインをバージョン 3.2.0 以前から 4.x.x リリースに移行します。"
+---
+
+この移行は、プラグインバージョン 3.2.0 以前を統合している場合にのみ必要です。プラグインのバージョンが 3.2.0 より新しい場合は、この手順を無視してかまいません。
+
+# 既存のプラグインの削除
+
+MoEngage SDK プラグインを削除します
+
+<CodeGroup>
+
+```javascript JavaScript
+cordova plugin remove moengagesdk
+```
+
+</CodeGroup>
+
+MoEngage Push Extension を追加している場合は削除します。プラグインがインストールされているかどうかを確認するには、コマンド `cordova plugin list` を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+cordova plugin remove moengagepushextension
+```
+
+</CodeGroup>
+
+# 新しいプラグインのインストール
+
+新しい MoEngage SDK プラグインをインストールします。
+
+<CodeGroup>
+
+```javascript JavaScript
+cordova plugin add moengagesdk --variable APP_ID="[YOUR_WORKSPACE_ID]"
+```
+
+</CodeGroup>
+
+### 変数
+
+- **APP_ID** = MoEngage ダッシュボードの設定ページにあるワークスペース ID です。
+
+# SDK の初期化（Android のみ）
+
+SDK を初期化するには、Android の `Application` クラスを継承したクラスを作成し、`onCreate()` をオーバーライドします。\
+`onCreate()` 内で、以下のように SDK を初期化します。
+
+<CodeGroup>
+
+```javascript JavaScript
+// this is the instance of the application class and "YOUR_WORKSPACE_ID" is the Workspace ID from the dashboard.
+MoEngage moEngage =
+        new MoEngage.Builder(this, "YOUR_WORKSPACE_ID")
+  			.build();
+    MoEngage.initialise(moEngage);
+```
+
+</CodeGroup>
+
+Application クラスが `AndroidManifest.xml` ファイルにも定義されていることを確認してください。
+
+# プッシュ通知の設定（Android のみ）
+
+MoEngage SDK は FCM と GCM の両方をサポートしています。アプリケーションで使用しているものに応じて、適切なプラグインをインストールしてください。\
+SDK には Google の GCM または FCM ライブラリが同梱されなくなったため、アプリに適切な依存関係を追加していることを確認してください。
+
+## FCM
+
+<CodeGroup>
+
+```javascript JavaScript
+cordova plugin add cordova-moengage-fcm-dependency
+```
+
+</CodeGroup>
+
+## GCM
+
+<CodeGroup>
+
+```javascript JavaScript
+cordova plugin add cordova-moengage-gcm-dependency
+```
+
+</CodeGroup>
+
+MoEngage SDK がプッシュ通知の登録を行っている場合は、適切な FCM/GCM リスナーを追加します。
+
+## FCM
+
+<CodeGroup>
+
+```javascript JavaScript
+cordova plugin add cordova-moengage-fcm-listeners
+```
+
+</CodeGroup>
+
+## GCM
+
+<CodeGroup>
+
+```javascript JavaScript
+cordova plugin add cordova-moengage-gcm-listeners
+```
+
+</CodeGroup>
+
+# プッシュ関連のメタデータの追加
+
+[プッシュ通知](/ja/developer-guide/android-sdk/push/basic/push-configuration)のドキュメントを参照し、プッシュ通知が機能するために必要なすべてのメタデータを追加してください。

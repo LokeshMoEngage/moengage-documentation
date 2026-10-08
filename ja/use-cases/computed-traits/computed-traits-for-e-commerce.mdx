@@ -1,0 +1,127 @@
+---
+title: "E コマース向けの Computed Traits"
+description: "E コマース向けの Computed Traits のリファレンスです。各トレイトの計算方法、データソース、ビジネスユースケースを紹介します。"
+keywords: "computed traits, e-commerce, LTV, cart abandonment, discount sensitivity, product affinity, user attributes"
+---
+
+E コマースアプリでは、閲覧、カートへの追加、購入、返品のイベントが豊富に取得されます。Computed Traits を使うと、この生のアクティビティを、セグメンテーション、パーソナライズ、Flows の分岐に使用できるリアルタイムのユーザー属性に変換できます。毎日の CSV アップロードやエンジニアのサポートは必要ありません。
+
+このページはメニューとしてご利用ください。各行には、何を作成するか、どの計算方法を選ぶか、必要なイベントデータ、ビジネス上の成果、活用方法が記載されています。
+
+Computed Traits を初めて使用する場合は、[Computed Traits - 概要](/ja/user-guide/data/computed-traits/computed-traits-overview)で Computed Traits の概要と各計算方法の仕組みを、[Computed Trait の作成](/ja/user-guide/data/computed-traits/create-a-computed-trait)で作成手順を確認してください。
+
+## Computed Traits の仕組み
+
+このページのすべてのトレイトは、同じ 4 ステップのモデルに従います。このモデルを理解すれば、以下の表をひと目で読み取れるようになります。
+
+<Steps>
+  <Step title="イベントから始める" icon="database">
+    Order Placed や Product Viewed など、すでにトラッキングしているユーザー行動です。
+  </Step>
+  <Step title="計算方法を選ぶ" icon="calculator">
+    [Count、Aggregation、First/Last Value、または SQL](/ja/user-guide/data/computed-traits/computed-traits-overview#methods-of-computations) から選択します。
+  </Step>
+  <Step title="トレイトを取得する" icon="user-check">
+    Lifetime Order Value のように、自動的に更新されるリアルタイムの属性です。
+  </Step>
+  <Step title="活用する" icon="rocket">
+    セグメンテーション、分析、Jinja パーソナライズ、Flows で使用します。
+  </Step>
+</Steps>
+
+トレイトが実行されると、MoEngage のあらゆる場所で使用できる標準のユーザー属性になります。トレイトから[セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments)を作成したり、[分析](/ja/user-guide/analyze/moengage-analytics/overview)でグループ化やフィルタリングを行ったり、[Jinja パーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)でメッセージ本文に値を挿入したり、トレイトに基づいて [Flow](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows) を分岐させたりできます。
+
+<Tip>
+  **ここで紹介するトレイトのほとんどはノーコードで作成できます。** <Badge color="green">Count</Badge> <Badge color="green">Aggregation</Badge> および <Badge color="green">First/Last Value</Badge> の方法では SQL は不要です。<Badge color="purple">SQL</Badge> が必要になるのは、複数のイベントを組み合わせる複合スコアや、引き換え率や完了率などの比率を算出する場合のみです。このページのノーコードのトレイトはすべてご自身で作成できます。
+</Tip>
+
+## まずはここから
+
+最初に次の 3 つを作成しましょう。最も早く成果が得られ、キャンペーン間で最も再利用しやすいトレイトです。
+
+<CardGroup cols={3}>
+  <Card title="Lifetime Order Value" icon="coins">
+    **Aggregation** · 以降のすべてのキャンペーンに役立ちます。
+  </Card>
+  <Card title="Favorite Product Category" icon="heart">
+    **Last Value** · すべてのメールを動的にします。SQL は不要です。
+  </Card>
+  <Card title="Last Purchase Date" icon="clock">
+    **Last Value** · 日付演算子ですべてのウィンバック Flow を支えます。
+  </Card>
+</CardGroup>
+
+## 目的別にトレイトを探す
+
+<Info>
+  これらの表に記載されているイベント名とプロパティ名は例です。実際の名前はアプリのデータトラッキング方法によって異なるため、ここに記載されている `Order Placed` という名前のイベントが見つからない場合があります。トレイトを作成する前に **Data** でトラッキング済みのイベントとプロパティを確認し、不足しているものがあれば開発チームにトラッキングを依頼してください。トラッキングの仕組みについては、[イベントトラッキングの完全ガイド](/ja/user-guide/data/event-data/a-complete-guide-to-event-tracking)を参照してください。
+</Info>
+
+### 価値とロイヤルティ
+
+収益、注文頻度、最新性で顧客を測定し、ライフサイクルの各段階に適切なリテンション施策を届けます。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Lifetime Order Value (LTV) | Aggregation (Sum) | **イベント:** `Order Placed`、**プロパティ:** `order_amount` | VIP ティア、広告オーディエンスの除外、LTV ベースの入札を支える中核的なロイヤルティ指標です。 | LTV の高い顧客をセグメント化して VIP 限定のローンチを案内し、割引中心の配信からは除外します。 |
+| Total Orders Last 90 Days | Count | **イベント:** `Order Placed`(過去 90 日間) | 特典を提供すべき頻繁な購入者を特定し、離脱した顧客を見つけます。 | 5 回の注文で送料無料を解放し、90 日間注文がない顧客にはウィンバックキャンペーンを実施します。 |
+| Total Orders Lifetime | Count | **イベント:** `Order Placed` | 利用期間に基づく特典のための長期的なロイヤルティシグナルです。 | 10 回、25 回、50 回の注文でロイヤルティマイルストーンのキャンペーンを実施し、VIP バッジを付与します。 |
+| Average Order Value (AOV) | Aggregation (Average) | **イベント:** `Order Placed`、**プロパティ:** `order_amount` | 送料無料のしきい値とアップセルのメッセージをパーソナライズします。 | Jinja を使用して、各購入者の平均注文額に合わせた「あと少し追加すると送料無料」のようなカートメッセージを表示します。 |
+| Last Purchase Date | Last Value | **イベント:** `Order Placed`、**プロパティ:** `timestamp` | バッチによる RFM の更新を待たずに使える、ウィンバック用の最新性シグナルです。 | 日付演算子を使用してセグメントを作成し、30 日、60 日、90 日の時点で段階的なウィンバックをトリガーします。 |
+
+### カテゴリアフィニティ
+
+各購入者のカテゴリとブランドの好みを常に最新に保ち、商品フィード、ローンチ、レコメンデーションをパーソナライズし続けます。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Favorite Product Category | Last Value | **イベント:** `Product Purchased`、**プロパティ:** `category` | カテゴリベースのパーソナライズの基盤です。 | カテゴリに応じてメールやアプリ内のコンテンツブロックを切り替え、新着アラートを各購入者のアフィニティに合わせて絞り込みます。 |
+| First Purchased Category | First Value | **イベント:** `Order Placed`、**プロパティ:** `category` | クロスセルのために、入り口となったカテゴリを明らかにします。 | 初回購入から 14 日後に、関連カテゴリのクロスセルキャンペーンを実施します。 |
+| Distinct Categories Purchased | Aggregation (Count Distinct) | **イベント:** `Order Placed`、**プロパティ:** `category` | 単一カテゴリのロイヤル顧客と、さまざまなカテゴリを探索する顧客を見分けます。両者には異なるジャーニーが必要です。 | ロイヤル顧客にはカタログを深掘りするメールを、探索する顧客には幅広いレコメンデーションカードを送信します。 |
+| Last Purchased Brand | Last Value | **イベント:** `Product Purchased`、**プロパティ:** `brand` | 直近に購入したブランドの新商品や再入荷を購入者に知らせます。 | 値下げや再入荷のアラートをリアルタイムで送信し、ブランドパートナーとの共同マーケティングを実施します。 |
+| Last Product Viewed | Last Value | **イベント:** `Product Viewed`、**プロパティ:** `product_id` | 閲覧したものの購入しなかった購入者を、そのアイテムでリターゲティングします。 | Jinja を使用して、最後に閲覧した商品でパーソナライズした閲覧離脱メールを送信します。 |
+
+### カートと購入意向
+
+カート放棄と閲覧の行動を購入意向のシグナルに変え、習慣ではなく本当の購入意向を対象にリカバリーを行います。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Last Cart Value | Last Value | **イベント:** `Product Added to Cart`、**プロパティ:** `cart_total` | 高額なカートと低額なカートを異なる方法でリカバリーします。 | カートを金額帯でセグメント化し、高額なカートには個別のアプローチを、低額なカートには 3 回の自動メールを送信します。 |
+| Wishlist Size | Count | **イベント:** `Added to Wishlist` | ウィッシュリストを多用する購入者は購入意向が高い一方、割引に敏感な傾向があります。 | ウィッシュリストに 10 個以上のアイテムがある購入者に時折バンドル割引を送信し、それらのアイテムの値下げを監視します。 |
+| Total Products Viewed (30 Days) | Count | **イベント:** `Product Viewed` | 閲覧の強度を示すシグナルです。よく調べる購入者には割引ではなくコンテンツが必要です。 | 閲覧数の多い購入者には長文のガイドメールを、閲覧数の少ない衝動買いの購入者には直接的なオファーを送信します。 |
+| Cart Abandonment Rate | SQL Computation | `Carts Created` / `Orders Placed` | 習慣的に閲覧するだけのユーザーと、本当に購入意向のあるユーザーを区別する比率です。 | 常習的にカートを放棄する購入者には放棄シーケンスを送信せず、代わりに厳選したコンテンツを送信します。 |
+
+### 割引感度
+
+コンバージョンに割引が必要な顧客と定価で購入する顧客を把握し、プロモーション費用で利益率を守ります。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Total Coupons Redeemed | Count | **イベント:** `Coupon Applied` | クーポンを求める購入者を示す量のシグナルです。 | 大幅なオファーは利用回数の多い顧客に限定し、利用回数がゼロの顧客には割引率キャンペーンを送信しません。 |
+| Average Discount % | Aggregation (Average) | **イベント:** `Order Placed`、**プロパティ:** `discount_percent` | 各購入者が期待する割引率です。これを上回る、または下回るオファーをターゲティングできます。 | Jinja を使用してオファーの強さをパーソナライズし、定価で購入する顧客(平均 5% 未満)をセグメント化してプレミアムキャンペーンを実施します。 |
+| Total Savings Lifetime | Aggregation (Sum) | **イベント:** `Order Placed`、**プロパティ:** `discount_value` | ロイヤルティを高める「これまでの節約額」メッセージの材料になります。 | 節約総額を記載した年間まとめメールを送信し、誕生日メッセージでも節約額に触れます。 |
+| Discount Redemption Rate | SQL Computation | `Coupons Applied` / `Coupons Received` | 実際にオファーに反応する顧客を示す比率です。 | 利用率の低い購入者は定価トラックに移し、利用率の高い顧客にはより大きなオファーを送信します。 |
+
+### 購入サイクルと返品
+
+各購入者の自然なリズムを読み取ってメッセージのタイミングを合わせ、返品を繰り返す顧客から利益率を守ります。
+
+| Computed Trait | 計算方法 | データソース(イベント / プロパティ) | ビジネスユースケース | 活用方法 |
+| --- | --- | --- | --- | --- |
+| Most Frequent Shopping Day | Last Value | **イベント:** `Order Placed`、**プロパティ:** `day_of_week` | 購入者ごとの最適な送信曜日です(給料日に購入する顧客と週末に購入する顧客など)。 | Best Time Delivery の信頼度が低い場合の送信時間のフォールバックとして使用します。 |
+| Total Returns | Count | **イベント:** `Order Returned` | 返品を繰り返す顧客は利益率を低下させます。 | 返品が 3 回を超えたら、その購入者を代金引換のオファーから除外し、プロモーションの頻度を下げます。 |
+| Return Rate | SQL Computation | `Orders Returned` / `Orders Placed` | 注文量に対して返品数を正規化した比率です。ヘビーな購入者が不当に不利にならないようにします。 | 返品率が高く注文量も多い購入者を、特別対応の Flow に振り分けます。 |
+| Preferred Payment Method | Last Value | **イベント:** `Order Placed`、**プロパティ:** `payment_method` | チェックアウト時に適切な支払い方法を最初に表示し、手間を減らします。 | チェックアウトの文言をパーソナライズし、動的な支払いリマインダーを送信します。 |
+| Preferred Delivery Slot | Last Value | **イベント:** `Order Placed`、**プロパティ:** `delivery_slot` | 適切な配送時間帯をあらかじめ選択しておき、チェックアウトの手間を減らします。 | 配送時間帯のドロップダウンをパーソナライズし、配送リマインダーのタイミングを調整します。 |
+
+## 関連ドキュメント
+
+Computed Traits は MoEngage 全体で使用されます。以下のガイドでは、上記の表で言及されている機能について説明しています。
+
+- [セグメント](/ja/user-guide/segment/create-segments/rule-based-filter-segments): Computed Trait の値からオーディエンスを作成します。
+- [分析](/ja/user-guide/analyze/moengage-analytics/overview): Computed Trait の値でユーザー行動をグループ化およびフィルタリングします。
+- [キャンペーンとチャネル](/ja/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels): ユーザーにアプローチできるチャネルです。
+- [Flows](/ja/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows): トレイトに基づいてユーザーを異なるパスに分岐させます。
+- [メッセージのパーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/overview): Jinja を使用してトレイトの値をコンテンツに挿入します。
+- [Data](/ja/user-guide/data/key-concepts/overview-data): これらのトレイトの基盤となるイベントデータを MoEngage が収集・管理する方法です。

@@ -1,0 +1,85 @@
+---
+title: "Android Native の In-App で onConfigurationChanged() はどのように機能しますか？"
+description: "Android ネイティブアプリにおいて、onConfigurationChanged() ライフサイクルメソッドが MoEngage の In-App キャンペーンとどのように連携するかを説明します。"
+---
+
+## 問題
+
+`onConfigurationChanged()` を使用している場合、ネイティブ In-App は縦向き（ポートレート）モードに制限され、横向き（ランドスケープ）表示ができません。一方、HTML In-App は両方の向きをサポートしています。
+
+## 手順
+
+1. [Handling Configuration](/ja/developer-guide/android-sdk/in-app-messages/in-app-nativ) のリンクを開き、アクティビティまたはフラグメントのコードを変更してオーバーライドします。
+
+```kotlin Kotlin wrap
+override fun onConfigurationChanged(newConfig: Configuration) {
+  super.onConfigurationChanged(newConfig)
+  MoEInAppHelper.getInstance().onConfigurationChanged()
+}
+```
+
+<Info>
+  **情報**
+
+  このメソッドは、Android が処理しないアクティビティまたはフラグメントの設定変更が発生したときに、MoEngage SDK に通知します。
+</Info>
+
+2. アクティビティまたはフラグメントの設定変更を手動で管理するには、`AndroidManifest.xml` ファイル内の該当する `<activity>` タグに `android:configChanges="orientation"` 属性を追加する必要があります。
+
+```xml AndroidManifest.xml wrap
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    
+    <application
+        android:name=".MyApplication"
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.MyApplication"
+        android:usesCleartextTraffic="true"
+        tools:targetApi="31">
+        
+        <activity
+            android:name=".ui.MainActivity"
+            android:configChanges="orientation"
+            android:exported="true" /> 
+        
+    </application>
+
+</manifest>
+```
+
+3. この設定でネイティブアプリを実行し、`onResume` で `showInApp()` を呼び出すと、In-App がデフォルトの縦向きモードで表示されます。
+
+<Frame>
+  ![3 2](/images/3-2.png)
+</Frame>
+
+4. 画面の向きが変わると、In-App は消え、ネイティブ In-App キャンペーンに対して `ORIENTATION_NOT_SUPPORTED` が表示されます。
+
+<Frame>
+  ![4 2](/images/4-2.png)
+</Frame>
+
+<Frame>
+  ![5 1](/images/5-1.png)
+</Frame>
+
+5. HTML In-App は縦向きと横向きの両方をサポートしています。内部的には、`onConfigurationChanged()` が HTML In-App の ConfigurationChangedHandler の `showInAppOnConfigurationChange()` を呼び出します。
+
+<Frame>
+  ![7 1](/images/7-1.png)
+</Frame>
+
+<Frame>
+  ![8](/images/8.jpeg)
+</Frame>
+
+<Frame>
+  ![9](/images/9.png)
+</Frame>

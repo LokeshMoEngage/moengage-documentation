@@ -1,0 +1,93 @@
+---
+title: "イベントのトラッキング"
+description: "セグメンテーションとキャンペーンのために、MoEngage Capacitor SDK を使用してユーザーのアクションとイベントプロパティをトラッキングします。"
+---
+
+<Info>
+  SDK は MoEngage の FUP ポリシーに準拠しています。詳細については、[フェアユースポリシー](https://www.moengage.com/docs/user-guide/data/key-concepts/fair-usage-policy-fup)を参照してください。
+</Info>
+
+イベントのトラッキングとは、ユーザーが実行したアクションを、そのアクションを説明するプロパティとともに記録することです。trackEvent の各呼び出しは、1 つのユーザーアクションを記録します。チームの全員がすぐに意味を理解できるように、イベント名は人間が読める形式にすることをお勧めします。
+
+**trackEvent()** メソッドの各呼び出しには 3 つのパラメータが必要です。イベント名、イベント属性、およびアカウント ID です。イベント属性には、イベントの属性を表すインスタンスとして **MoEProperties** を使用します。キャンペーン作成時のセグメンテーションに役立つと思われる追加情報をすべて追加してください。\
+たとえば、次のコードは製品の **Purchase** イベントをトラッキングします。トラッキングするイベントを説明する属性として、価格、数量、購入日、店舗の場所などを含めています。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore, MoEProperties } from 'capacitor-moengage-core'
+
+const properties: MoEProperties = {
+      generalAttributes: [
+        { name: "quantity", value: 1 },
+        { name: "product", value: "iPhone" },
+        { name: "currency", value: "dollar" }
+        { name: "price", value: 699 }
+        { name: "new_item", value: "iPhone" }
+      ],
+      dateTimeAttributes: [
+        { name: "purchase_date", value: "2020-06-10T12:42:10Z" }
+      ],
+      locationAttributes: [
+        { name: "store_location", value: { latitude: 90.00001, longitude: 180.00001} }
+      ]
+};
+
+MoECapacitorCore.trackEvent({ eventName: "Purchase", eventAttributes: properties, appId: "YOUR_WORKSPACE_ID"});
+```
+
+</CodeGroup>
+
+<Warning>
+  - イベント名には "\_" 以外の特殊文字を含めないでください。使用できるのはスペースとアンダースコアのみです。また、“between”、“greater”、“less”、“in_the_last”、“in_the_next”、“equal”、“contains”、“starts”、“is_not" を含めないでください。
+  - イベント、イベント属性、またはユーザー属性の名前に "moe\_" をプレフィックスとして使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なく定期的にブラックリストに登録される可能性があります。
+</Warning>
+
+# 分析
+
+MoEngage SDK は、ユーザーセッションとアプリケーションのトラフィックソースのトラッキングを開始しました。ユーザーセッションとアプリケーションのトラフィックソースのトラッキングの仕組みについては、次のドキュメントを参照してください。 
+
+-  [セッションとソースの分析](https://www.moengage.com/docs/user-guide/analyze/analytics/session-and-source/session-and-source-analysis) 
+-  [高度なセッションとソースの分析](https://www.moengage.com/docs/user-guide/analyze/analytics/session-and-source/advanced-session-and-source-analysis)
+
+
+ユーザーセッションのトラッキングに伴い、イベントを選択的に非インタラクティブとしてマークできる柔軟性を導入しました。
+
+## 非インタラクティブイベントとは？
+
+セッションの計算にまったく影響しないイベントを非インタラクティブイベントと呼びます。非インタラクティブイベントには次の特性があります。
+
+- 新しいセッションを開始しません。
+- セッションを延長しません。
+- ユーザーセッションに関連する情報を持ちません。
+
+## イベントを非インタラクティブとしてマークする方法
+
+イベントを非インタラクティブとしてマークするには、以下に示すように **MoEProperties** の **isNonInteractive** プロパティを **true** に設定します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore, MoEProperties } from 'capacitor-moengage-core'
+
+const properties: MoEProperties = {
+      generalAttributes: [
+        { name: "quantity", value: 1 },
+        { name: "product", value: "iPhone" },
+        { name: "currency", value: "dollar" }
+        { name: "price", value: 699 }
+        { name: "new_item", value: "iPhone" }
+      ],
+      dateTimeAttributes: [
+        { name: "purchase_date", value: "2020-06-10T12:42:10Z" }
+      ],
+      locationAttributes: [
+        { name: "store_location", value: { latitude: 90.00001, longitude: 180.00001} }
+      ],
+      isNonInteractive: true
+};
+
+MoECapacitorCore.trackEvent({ eventName: "Purchase", eventAttributes: properties, appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>

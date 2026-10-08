@@ -1,0 +1,64 @@
+---
+title: "mParticle Audience"
+description: "コホートサイズと取り込みレートの制限内で、mParticle のオーディエンスをカスタムセグメントとして MoEngage にインポートし、リターゲティングやエンゲージメントキャンペーンに活用します。"
+---
+
+# はじめに
+
+<Info>
+  mParticle 連携は現在、[Unified Identity (Identity Resolution)](https://www.moengage.com/docs/user-guide/data/user-data/unified-identity-identity-resolution) および [Portfolio](https://www.moengage.com/docs/user-guide/settings/account/portfolio/portfolio) をサポートしていません。
+</Info>
+
+[mParticle audience](https://www.mparticle.com/platform/detail/audiences/) を使用すると、リターゲティングやエンゲージメントのために、mParticle のオーディエンスを MoEngage の Segments として直接インポートできます。
+
+# 連携
+
+## ステップ 1. mParticle で MoEngage を出力として設定する
+
+mParticle ダッシュボードで、次の操作を行います。
+
+1. _Setup \> Output_ に移動します。
+2. _Audience_ タブに移動します。右上の _Add audience output_ をクリックします。<img src="/images/partner_10222913313684.png" alt="Screenshot_2022-10-20_at_12.29.45_PM.png" /> 
+3. MoEngage を検索します。
+4. ポップアップで、MoEngage アプリの詳細を入力します。<img src="/images/partner_10222918863124.png" alt="Screenshot_2022-10-20_at_12.30.47_PM.png" />
+
+| フィールド | 詳細 |
+| --- | --- |
+| Configuration name | 設定には任意の名前を付けることができます(例: "MoEngage Prod")。 |
+| Workspace ID | MoEngage アカウントの Workspace ID は、**Settings - \> Account -\> APIs -\>Workspace ID** で確認できます。MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+| Secret key | Secret key は MoEngage アカウントの Data API Key で、**Settings - \> App Settings -\> APIs -\> API Keys -\> Data** で確認できます。 |
+
+## ステップ 2: mParticle でオーディエンスを作成する
+
+mParticle ダッシュボードで、次の操作を行います。
+
+1. Audiences \>\> \+ New Audience に移動します。
+2. オーディエンス名の詳細を入力し、目的の入力ソースを選択します。<img src="/images/partner_10223092736532.png" alt="mceclip0.png" />
+3. _Create_ をクリックします。これで、オーディエンスを定義できます。[mParticle でのオーディエンスの作成の詳細はこちら](https://docs.mparticle.com/guides/getting-started/create-an-audience/)をご覧ください。_Activate_ をクリックします。
+
+## ステップ 3: オーディエンスを MoEngage に接続する
+
+1. オーディエンスをクリックし、_Connect_ タブに移動します。
+2. ここで MoEngage アカウントを選択します。これはステップ 1 で設定したアカウントです。<img src="/images/partner_10223159584020.png" alt="Screenshot_2022-10-20_at_12.53.22_PM.png" />
+3. _active_ トグルをオンにし、_Add Connection_ をクリックします。
+
+同期後、オーディエンスは MoEngage でカスタムセグメントとして利用できるようになります。<img src="/images/partner_10223811376404.png" alt="Screenshot_2022-10-20_at_2.09.42_PM.png" /> MoEngage ダッシュボードで _Segment \>\> Custom segment_ に移動し、オーディエンスを検索します。[MoEngage のカスタムセグメントの詳細はこちら。](https://www.moengage.com/docs/user-guide/segment/create-segments/manage-segments)
+
+<Warning>
+  注意事項:
+
+  1. MoEngage は新しいユーザーをその場で作成しません。MoEngage のセグメントは、MoEngage システムにすでに存在するユーザー(サポートされている ID のいずれかを持つユーザー)のみで構成されます。ただし、[mParticle のアウトバウンド連携](/ja/partner-guide/data-and-analytics/cdps/mparticle/getting-started/outbound-user-and-event-forwarding)をすでに設定している場合、これは問題になりません。
+  2. mParticle は、デフォルトの ID として Customer ID を MoEngage に送信します。その他のサポートされている ID は、Email Address と MPID です。
+  3. コホート名がピリオド(`.`)で始まり、使用できない文字 `|`、`*`、`?`、`\`、`:`、`<`、`>`、`=`、`$`、`"` を含まないようにしてください。
+  4. mParticle から MoEngage に受け入れられるデータの総量に上限はありません。ただし、各セグメントにはサイズ制限があり、最大取り込みレートが適用されます。以下の[コホートサイズの制限](#cohort-size-limits)と[レート制限](#rate-limits)を参照してください。
+
+  Customer ID 以外の ID を使用する場合は、MoEngage の CSM または MoEngage サポートチームにお問い合わせください。
+</Warning>
+
+## コホートサイズの制限
+
+MoEngage は、各 mParticle コホートを[ファイルセグメント](/ja/user-guide/segment/create-segments/file-segments)の一種であるカスタムセグメントとしてインポートします。各セグメントには最大 500 万人のユーザーを保持できます。セグメントが 1,000 万人のユーザーを超えると、MoEngage はセグメントの更新を停止します。
+
+## レート制限
+
+MoEngage は、mParticle のオーディエンスデータに対して、ワークスペースあたり最大 300 RPM(リクエスト/分)の取り込みレートをサポートしています。この制限を超えると、MoEngage は `429 (Too Many Requests)` レスポンスコードを返します。mParticle は、デフォルトの再試行ポリシーを使用して、これらのレート制限を自動的に管理します。

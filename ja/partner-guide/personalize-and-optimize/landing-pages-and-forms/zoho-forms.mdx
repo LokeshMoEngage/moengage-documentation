@@ -1,0 +1,82 @@
+---
+title: "Zoho Forms"
+---
+
+# はじめに
+
+[Zoho Forms](https://www.zoho.com/forms/) は強力なフォームビルダーによる効率的なフォーム作成機能を提供します。高機能なフォームを無料で作成してオンラインで共有し、即時アラートを受け取り、統合アプリでデータを効率的に管理できます。 
+
+# MoEngage × Zoho Forms
+
+MoEngage と Zoho Forms の連携により、Zoho フォームの入力内容を取得し、MoEngage を通じてパーソナライズされたターゲットキャンペーンを送信してコンバージョンを促進できます。この連携により、以下のことができます。
+
+* フォームが送信されたときに MoEngage でユーザーを作成または更新する
+* フォームから送信された詳細を使用してイベントを作成する
+
+# 連携
+
+<Info>
+**前提条件**
+
+* Zoho フォームにアクセスできることを確認してください。
+</Info>
+
+## ステップ 1: MoEngage エンドポイントを取得する
+
+連携用の専用エンドポイントを取得するには、MoEngage サポートチームに連絡してください。リクエストでは、MoEngage とパートナープラットフォーム間でユーザープロファイルをリンクするために使用する共通の識別子を指定する必要があります。
+
+たとえば、ユーザーのメール ID や電話番号などです。 
+
+## ステップ 2: Zoho Forms で Webhook を設定する 
+
+フォームビルダーで以下を行います。
+
+1. _Integrations_ タブに移動します。 
+2. 左側のメニューから _Webhooks_ を選択します。
+3. _Configure Webhook_ をクリックし、関連する詳細を入力します。
+
+   1. **Webhook URL:** `<MoEngage endpoint>`  
+      `<MoEngage endpoint>` は、ステップ 1 で受け取ったエンドポイントです。  
+      
+      ![Screenshot 2024-11-26 at 4.45.13 PM.png](/images/partner_32475717326356.png)
+      
+   2. **Content Type:** application/json
+   3. **Authorization Type:** 目的の Authorization タイプとして General または Connections を選択します。   
+      Connections はプレミアムプランでのみ利用できます。プレミアムプランをご利用の場合は、先に接続を設定してからここで使用できます。詳細については、[Connections のドキュメント](https://help.zoho.com/portal/en/kb/forms/adminguide/articles/connections-control-panel#What_are_Connections)を参照してください。
+   4. **Payload Parameters**: MoEngage に送信するフィールドを選択します。 
+      1. _必須フィールド_
+         * _customer_id:_ MoEngage と Zoho Forms 間の一意の識別子です。メールアドレス、携帯電話番号、またはフォームで取得しているその他のフィールドを使用できます。
+         * _form_submitted_time:_ フォームの回答が送信された時刻を取得します。Zoho のデフォルトフィールド「Added Time」にマッピングする必要があります。
+      2. _MoEngage の標準フィールド_ - MoEngage には一部の標準フィールドに固定のキーがあり、ユーザープロファイルを更新するにはそのままマッピングする必要があります。これらのフィールドは以下のとおりです。 
+         * first_name
+         * last_name
+         * email
+         * mobile number
+      3. _その他のフォームフィールド:_ フォームで取得しているその他のデータ。任意のキーにマッピングでき、MoEngage ではフォームイベントの属性として表示されます。  
+      
+         ![Screenshot 2024-11-26 at 4.45.21 PM.png](/images/partner_32475689972884.png)  
+         
+         *注: フォームの支払いフィールドでサポートされるフィールドは、Payment Amount、Payment Status、Payment Currency、Payment Transaction ID です。フォームの送信と支払いステータスは同時に行われないため、Zoho Forms は通常、取引ステータスとフォーム送信を非同期で渡します。*
+   5. **URL parameters:** スキップできます。 
+   6. **Custom headers:**
+   
+      ![Screenshot 2024-11-26 at 4.45.27 PM.png](/images/partner_32475717328020.png)
+      
+      ```json
+      {   
+         "Authorization": "Basic <Token Key>"   
+      }
+      ```
+
+      オンラインの [Basic Auth Header Generator ツール](https://www.debugbear.com/basic-auth-header-generator)などを使用して Basic トークンを取得します。以下を入力します。
+      * ユーザー名に `<Workspace ID>`  
+      * パスワードに `<Data API Key>`  
+      
+      Workspace ID と Data API Key は _MoEngage Dashboard >> Settings >> APIs_ から取得できます。
+
+   7. _Test Webhooks_ オプションを使用して Webhook をテストできます。 
+   8. Save をクリックします。 
+
+## ステップ 3: MoEngage で詳細を表示する
+
+ユーザーとイベントが MoEngage に表示され始めます。ユーザープロファイルから確認できます。イベント名は「zoho form submitted」になります。これで、ユーザーに対してイベントトリガー型キャンペーンを実行できます。

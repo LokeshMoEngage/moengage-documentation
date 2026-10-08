@@ -1,0 +1,519 @@
+---
+title: "iOSプッシュ統合チュートリアル"
+description: "リッチプッシュ通知の送信、受信、トラッキングを行うためにMoEngage iOS SDKを統合する手順を説明します。"
+keywords: ["Allow Arbitrary Loads", "App Transport Security", "UNNotificationAttachment", "push media size limit", "webp push image", "video not showing"]
+---
+
+この記事では、MoEngage iOS SDKを統合して、アプリケーションでリッチプッシュ通知の送信、受信、トラッキングを行えるようにするための手順を説明します。この手順に従うことで、画像やGIFなどのリッチメディアコンテンツをサポートし、信頼性の高い分析を実現する包括的なセットアップを実装できます。
+
+この記事では、次の重要なトピックについて説明します。
+
+- **Notification Service Extension (NSE)の設定**: すべてのアプリの状態で、リッチメディアコンテンツ(画像、GIF)と信頼性の高いインプレッショントラッキングを有効にします。
+- **AppDelegateの設定**: プッシュ通知の登録、デバイストークンの処理、ユーザーインタラクションのコールバックを実装します。
+- **統合の検証**: 通知の配信、リッチメディアの表示、分析トラッキングをテストする手順に従います。
+- **高度な機能の実装**: カスタムプッシュテンプレート、アクションボタン、バッジ数の制御で通知を強化します。
+
+<Info>
+  **前提条件**
+
+  プッシュ通知を有効にするには:
+
+  1. **MoEngage iOS SDKを統合する**: [MoEngageのドキュメント](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic)に記載されているとおり、CocoaPods、Swift Package Manager (SPM)、または手動でのフレームワークのインポートを使用します。
+  2. **MoEngage UIでAPNs認証情報を設定する**:
+     - MoEngageがApple Push Notification Service (APNs)と通信するには、APNs認証キー(.p8)または[APNs証明書](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/apns-certificate-pem-file-legacy)(.pem)のいずれかが必要です。
+     - **推奨事項**: 有効期限がないため、APNs認証キーを使用してください。[APNs認証キーのセットアップガイド](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/apns-authentication-key)を参照してください。
+  3. **Target** -\> **Signing & Capabilities** に移動して、メインターゲットに **Push Notifications** 機能を追加していることを確認してください。
+</Info>
+
+## ステップ1: Notification Service Extension (NSE)の実装
+
+NSEは、リッチプッシュ通知(画像、動画、GIFを含む)を有効にし、すべてのアプリの状態で通知のインプレッションをトラッキングします。
+
+NSEを設定すると、SDKはフォアグラウンド、バックグラウンド、強制終了のすべてのアプリの状態で、**テキストのみのプッシュ通知とリッチプッシュ通知の両方** のインプレッションをトラッキングします。インプレッションのトラッキングにリッチメディアのペイロードは必要ありません。
+
+<Warning>
+- iOSプロジェクトでNotification Service Extensionが設定され、MoEngageRichNotificationフレームワークが統合されていることを確認してください。サービス拡張が設定されているもののMoEngageRichNotificationフレームワークが追加されていない状態でデバイスがリッチプッシュ通知のペイロードを受信すると、SDKは `DEBUG` ビルドで致命的なエラーをスローします。リリースビルドでは、リッチコンテンツのレンダリングに失敗し、通知は標準のペイロードにフォールバックします。
+- アップグレード中にこれらの `DEBUG` 検証によってアプリがクラッシュする場合は、SDKを初期化する前に `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` を呼び出して一時的にオプトアウトしてください。問題が解決したら、この呼び出しを削除してください。
+</Warning>
+
+<Steps>
+  <Step title="NSEターゲットの作成">
+    1. Xcodeで、**File** \> **New** \> **Target**… \> **Notification Service Extension** に移動します。
+    2. NSEターゲットの名前を入力します。
+  </Step>
+  <Step title="MoEngageRichNotificationの統合">
+    <Tabs>
+      <Tab title="SPM (Swift Package Manager)">
+        SPMを使用して `MoEngageRichNotification` をインストールするには、次の手順を実行します。
+
+        1. **File** \> **Add Package** に移動します。
+        2. 適切なリポジトリURLを入力します。
+           - [https://github.com/moengage/apple-sdk.git](https://github.com/moengage/apple-sdk.git) (MoEngage-iOS-SDKバージョン9.23.0以上の場合)
+           - [https://github.com/moengage/MoEngage-iOS-SDK.git](https://github.com/moengage/MoEngage-iOS-SDK.git) (その他のバージョンの場合)
+        3. masterブランチまたは目的のバージョンを選択します。
+        4. **Add Package** をクリックします。
+        5. インストールしたパッケージのターゲットをNSEファイルに設定します。
+      </Tab>
+      <Tab title="CocoaPods">
+        <Warning>
+          **情報** CocoaPodsは非推奨になりつつあります。MoEngageでは、すべての新規統合にSwift Package Managerを使用することを推奨しています。詳細については、\[こちら\](([https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration)).
+        </Warning>
+
+        `Podfile` に以下を追加します。
+
+        <CodeGroup>
+
+        ```ruby Ruby wrap
+        target 'YourApp' do
+              use_frameworks!
+              pod 'MoEngage-iOS-SDK'
+        end
+        
+        target 'MoEngageNotificationService' do
+              use_frameworks!
+              pod 'MoEngage-iOS-SDK/RichNotification'
+        end
+        ```
+
+        </CodeGroup>
+
+        次に、以下を実行します。
+
+        <CodeGroup>
+
+        ```shellscript Shell wrap
+        pod repo update
+        pod install
+        ```
+
+        </CodeGroup>
+      </Tab>
+    </Tabs>
+  </Step>
+  <Step title="App Groupの設定">
+    メインアプリとNSE間でシームレスに通信するためのApp Groupを設定するには、次の手順を実行します。
+
+    1. **App Groupsを有効にする**:
+       - メインアプリケーションのターゲットとNSEターゲットの両方で、**Signing and Capabilities** に移動します。
+       - **\+ Capability** をクリックし、**App Groups** を選択します。
+    2. **App Group IDを作成する**:
+       - 新しいApp Group ID(例: `group.com.yourcompany.appname`)を作成します。
+       - **重要**: まったく同じApp Group IDがメインアプリとNSEの両方のターゲットで有効になっていることを確認してください。
+    3. **AppDelegateを更新する**: 以下に示すように、iOSアプリケーションの `AppDelegate.swift` を変更してApp Group IDを設定します。
+       <CodeGroup>
+       ```swift Swift wrap
+       // In your main AppDelegate.swift - didFinishLaunchingWithOptions
+       let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: .data_center_01)
+       sdkConfig.appGroupID = "group.com.yourcompany.appname" // Your App Group ID
+       ```
+       ```objective-c Objective C wrap
+        MoEngageSDKConfig *sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:MoEngageDataCenterData_center_01];
+        sdkConfig.appGroupID = @"group.com.yourcompany.appname"; // Add your App Group ID here
+        [[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
+       ```
+       </CodeGroup>
+  </Step>
+  <Step title="NSEコードの設定">
+    生成された `NotificationService.swift` ファイルの内容全体を以下に置き換えます。
+
+    <CodeGroup>
+
+    ```swift Swift wrap
+    import UserNotifications
+    import MoEngageRichNotification
+        class NotificationService: UNNotificationServiceExtension {
+    
+        var contentHandler: ((UNNotificationContent) -> Void)?
+        var bestAttemptContent: UNMutableNotificationContent?
+    
+        override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) -> Void) {
+            self.contentHandler = contentHandler
+            bestAttemptContent = (request.content.mutableCopy() as? UNMutableNotificationContent)
+    
+           //Tell the MoEngage SDK about the App Group ID
+            MoEngageSDKRichNotification.setAppGroupID("group.com.yourcompany.appname")
+            
+            // Step 2: Pass the notification to the MoEngage SDK
+            // The SDK will download rich media and track the impression before calling your completion handler
+            MoEngageSDKRichNotification.handle(richNotificationRequest: request, withContentHandler: contentHandler)
+        }
+    }
+    ```
+
+    ```objective-c Objective C wrap
+    #import <UserNotifications/UserNotifications.h>
+    @import  MoEngageRichNotification;
+    
+    @interface NotificationService ()
+    @property (nonatomic, strong) void (^contentHandler)(UNNotificationContent *contentToDeliver);
+    @property (nonatomic, strong) UNMutableNotificationContent *bestAttemptContent;
+    @end
+    
+    @implementation NotificationService
+    
+    - (void)didReceiveNotificationRequest:(UNNotificationRequest *)request withContentHandler:(void (^)(UNNotificationContent * _Nonnull))contentHandler {
+      
+      @try {
+        self.contentHandler = contentHandler;
+        self.bestAttemptContent = [request.content mutableCopy];
+        [MoEngageSDKRichNotification setAppGroupID:@"group.com.yourcompany.appname"];
+        [MoEngageSDKRichNotification handleWithRichNotificationRequest: request withContentHandler:contentHandler];
+      } @catch (NSException *exception) {
+        NSLog(@"MoEngage : exception : %@",exception);
+      }
+    }
+    @end
+    ```
+
+    </CodeGroup>
+  </Step>
+</Steps>
+
+### メディアの要件
+
+NSEは、通知が表示される前に画像、音声、または動画をダウンロードします。以下の要件は、すべてのリッチプッシュおよびプッシュテンプレートのメディアに適用されます。
+
+#### HTTPS経由でメディアを配信する
+
+プッシュメディアはHTTPS経由で配信してください。[App Transport Security](https://developer.apple.com/documentation/bundleresources/information-property-list/nsapptransportsecurity)はHTTPでのダウンロードをブロックするため、通知はメディアなしで表示されます。
+
+HTTP経由でメディアを配信するには、**Notification Service Extension** の `Info.plist` で [`NSAllowsArbitraryLoads`](https://developer.apple.com/documentation/bundleresources/information-property-list/nsapptransportsecurity/nsallowsarbitraryloads) を `true` に設定します。
+
+<CodeGroup>
+
+```xml Info.plist
+<key>NSAppTransportSecurity</key>
+<dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+</dict>
+```
+
+</CodeGroup>
+
+<Note>
+  `NSAppTransportSecurity` ディクショナリは、アプリターゲットの `Info.plist` ではなく、NSEの `Info.plist` に追加してください。Xcodeでは、NSEの `Info.plist` は拡張フォルダー内の `NotificationService.swift` の隣にあります。アプリターゲットの `Info.plist` はアプリが行うリクエストにのみ適用されるため、拡張には独自のエントリーが必要です。
+</Note>
+
+#### Appleの添付ファイルサイズ制限内にメディアを収める
+
+Appleは、通知の添付ファイルを音声で5 MB、画像で10 MB、動画で50 MBに制限しています。これらはMoEngageではなくAppleによる制限です。ファイルがそのメディアタイプの制限を超えると、iOSはファイルを破棄し、メディアなしで通知を表示します。現在の制限とサポートされているファイル形式については、Appleの[UNNotificationAttachment](https://developer.apple.com/documentation/usernotifications/unnotificationattachment)ドキュメントを参照してください。
+
+#### メディアタイプごとに個別にテストする
+
+画像や音声ファイルが機能していても、動画が機能することの確認にはなりません。ダウンロードが失敗しても、NSEはエラーを報告しません。通知は引き続き配信され、タイトルと本文のみが表示されます。画像と音声は表示されるのに動画が表示されない場合は、動画のURLがHTTPSを使用していること、およびファイルがAppleの動画のサイズ制限内であることを確認してください。
+
+画像の形式も確認してください。iOSは、[Appleが通知の添付ファイル用に指定している形式](https://developer.apple.com/documentation/usernotifications/unnotificationattachment#Supported-File-Types)のみを表示します。WebP(`.webp`)画像はこれに含まれないため、表示されません。代わりにJPG、PNG、またはGIFを使用してください。
+
+## ステップ2: AppDelegateでのプッシュ処理の実装
+
+Apple Push Notification service (APNs)およびMoEngageと適切に通信できるように、`AppDelegate` 内にプッシュ通知の登録とトークン管理を統合します。このセットアップにより、MoEngageはAPNsトークンをユーザーと効果的にマッピングできます。
+
+<Note>
+  iOS SDK [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) 以降、`setPushToken(_:)` は `Void` ではなく型付きのタスクオブジェクトを返すため、`.onSuccess` / `.onFailure` または非同期の `result()` メソッドを使用して、呼び出しごとの成功または失敗を監視できます。上記のような直接呼び出しは、変更なしでコンパイルされます。
+</Note>
+
+### 通知の登録方法の選択
+
+起動時にリモート通知を登録するには、目的のユーザーエクスペリエンスに応じて、以下のメソッドのいずれか1つだけを呼び出します。
+
+- **標準通知(直接オプトイン)**: ユーザーの承認時にバナーとサウンドを伴う完全な通知を配信するための許可を求めるシステムプロンプトを表示します。`registerForRemoteNotification()` を呼び出すと、ユーザーがまだオプトインしていない場合は許可のポップアップが表示されます。
+- **仮通知(サイレントオプトイン)**: 最初のプロンプトを表示せずに通知センターへ通知を静かに配信し、ユーザーが後から完全な配信にオプトインできるようにします。
+
+詳細については、[iOS Push Permission and Reachability](https://www.moengage.com/docs/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/ios-push-permission-and-reachability)を参照してください。
+
+<Tabs>
+  <Tab title="仮プッシュ通知 + 標準プッシュ通知">
+    <CodeGroup>
+
+    ```swift Swift wrap
+    import UIKit
+    import MoEngageSDK
+    import UserNotifications
+    @main
+    class AppDelegate: UIResponder, UIApplicationDelegate {
+        func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+            // method to use provisional push
+            MoEngageSDKMessaging.sharedInstance.registerForRemoteProvisionalNotification()
+            return true
+        }
+
+        // To display standard notifications later in the user's journey, call this method after the app starts.
+        func requestStandardPushPermission() {
+            MoEngageSDKMessaging.sharedInstance.registerForRemoteNotification()
+        }
+    }
+    ```
+
+    ```objective-c Objective C wrap
+    #import "AppDelegate.h"
+    #import <UIKit/UIKit.h>
+    #import <MoEngageSDK/MoEngageSDKMessaging.h>
+    @implementation AppDelegate
+    - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+
+    // method to use provisional push
+    [[MoEngageSDKMessaging sharedInstance] registerForRemoteProvisionalNotificationWithCategories:nil andUserNotificationCenterDelegate:nil];
+
+    return YES;
+    }
+
+    // To display standard notifications later in the user's journey, call this method after the app starts.
+    - (void)requestStandardPushPermission {
+    [[MoEngageSDKMessaging sharedInstance] registerForRemoteNotificationWithCategories:nil andUserNotificationCenterDelegate:nil];
+    }
+    @end
+    ```
+
+    </CodeGroup>
+  </Tab>
+  <Tab title="標準プッシュのみ">
+    標準プッシュ通知を登録するには、次のMoEngage SDKコードを使用します。
+
+    <CodeGroup>
+
+    ```swift Swift wrap
+    import UIKit
+    import MoEngageSDK
+    import UserNotifications
+    @main
+    class AppDelegate: UIResponder, UIApplicationDelegate {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+          MoEngageSDKMessaging.sharedInstance.registerForRemoteNotification()
+          return true
+        }
+    }
+    ```
+
+    ```objective-c Objective C wrap
+    #import "AppDelegate.h"
+    #import <UIKit/UIKit.h>
+    #import <MoEngageSDK/MoEngageSDKMessaging.h>
+    @implementation AppDelegate
+    - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+        
+       // Override point for customization after application launch.
+       [[MoEngageSDKMessaging sharedInstance] registerForRemoteNotificationWithCategories:nil andUserNotificationCenterDelegate:nil];
+       return YES;
+    }
+    @end
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+### App Delegate Method Swizzling
+
+App Delegate Method Swizzlingは、MoEngage SDKが使用するランタイム手法で、AppDelegate内のプッシュ通知コールバックの処理を自動化することで統合を効率化します。MoEngage SDKでは、最も迅速かつ簡単な初期統合を実現するため、Method Swizzlingがデフォルトで有効になっています。
+
+プッシュ機能を持つ他のSDKを使用するアプリケーションで最大限の互換性を確保するため、MoEngageは手動で転送する方法を提供しています。競合が発生した場合は、SDK設定でデフォルトのMethod Swizzlingを無効にすることをMoEngageは推奨しています。
+
+この手動のアプローチでは、プッシュペイロードをSDKに直接転送する必要があります。これにより明示的に制御できるようになり、フォアグラウンド通知、クリックトラッキング、ディープリンクなどの重要な機能がすべてのサービスで確実に機能するようになります。
+
+<Accordion title="App Delegate Swizzlingの競合を解決するには?">
+  競合を解決するには、MoEngageのApp Delegate Swizzlingを無効にし、プッシュ通知のコールバックを手動でSDKに転送します。
+
+  1. **Swizzlingを無効にする**: `Info.plist` ファイルに次のエントリーを追加します。
+     <CodeGroup>
+     ```xml Info.plist wrap
+     <key>MoEngageAppDelegateProxyEnabled</key>
+     <false/>
+     ```
+     </CodeGroup>
+  2. **AppDelegateでの手動転送**: Swizzlingを無効にした後、`AppDelegate.swift` ファイル内に次のコードを実装して、通知イベントを手動でMoEngage SDKに渡します。
+     <CodeGroup>
+     ```swift Swift wrap
+     import UIKit
+     import MoEngageSDK
+     import UserNotifications
+     class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate {
+         // Set up MoEngage SDK and notification delegates when the app launches.
+         func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+             // Set the UNUserNotificationCenter delegate to enable handling notification-related events.
+             UNUserNotificationCenter.current().delegate = self
+             // Register for push notifications. This prompts the user for permission and gets the device token from Apple.
+             // Below code you can ignore if you don't want prompt on app launch and want to use provisional push in starting of app and further at some instance in app you can prompt for permission.
+               MoEngageSDKMessaging.sharedInstance.registerForRemoteNotification(withCategories: nil, andUserNotificationCenterDelegate: self)
+                 
+             // This is for requesting provisional authorization for notifications.
+             // Use only if MoEngageSDKMessaging.sharedInstance.registerForRemoteNotification() is not used on app launch
+             MoEngageSDKMessaging.sharedInstance.registerForRemoteProvisionalNotification(withCategories: nil,
+             andUserNotificationCenterDelegate: self)
+             
+             return true
+         }
+                 
+         // Called after a successful push token registration with Apple. Pass the token to MoEngage.
+         func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+             // Essential: Pass the device token to MoEngage to enable sending push campaigns.
+             MoEngageSDKMessaging.sharedInstance.setPushToken(deviceToken)
+         }
+                 
+         // Handles user interaction with a notification (e.g., a tap).
+         func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+             // Forward the notification response to MoEngage for automatic click tracking, deep linking, and rich landing page handling.
+             MoEngageSDKMessaging.sharedInstance.userNotificationCenter(center, didReceive: response)
+             completionHandler()
+         }
+         // Handles notifications that are received while the app is in the foreground.
+         func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+             // Decide how the notification should be presented in the foreground (e.g., with a banner and sound).
+             if #available(iOS 14.0, *) {
+                 completionHandler([.sound, .badge, .banner, .list])
+             } else {
+                 completionHandler([.alert, .sound, .badge])
+             }
+         }
+       // This method is called if push token registration fails.
+         func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+           
+            // Forward the registration failure to the MoEngage SDK. This helps in tracking and diagnosing push delivery issues.
+            MoEngageSDKMessaging.sharedInstance.didFailToRegisterForPush()
+         }
+     }
+     ```
+     ```objective-c Objective C wrap
+     #import <UIKit/UIKit.h>
+     #import <MoEngageSDK/MoEngageSDK.h>
+     #import <UserNotifications/UserNotifications.h>
+     @interface AppDelegate : UIResponder <UIApplicationDelegate, UNUserNotificationCenterDelegate>
+     @end
+     @implementation AppDelegate
+     - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+     // Other app setup code...
+     [UNUserNotificationCenter currentNotificationCenter].delegate = self;
+     [[MoEngageSDKMessaging sharedInstance] registerForRemoteNotificationWithCategories:nil andUserNotificationCenterDelegate:self];
+     return YES;
+     }
+     // Forward the device token
+     - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken {
+     [[MoEngageSDKMessaging sharedInstance] setPushToken:deviceToken];
+     // Forward to other SDKs if necessary
+     }
+     // Forward notification clicks/responses
+     - (void)userNotificationCenter:(UNUserNotificationCenter *)center
+     didReceiveNotificationResponse:(UNNotificationResponse *)response
+     withCompletionHandler:(void (^)(void))completionHandler {
+     [[MoEngageSDKMessaging sharedInstance] userNotificationCenter:center didReceive:response];
+     // Forward to other SDKs if necessary
+     completionHandler();
+     }
+     - (void)userNotificationCenter:(UNUserNotificationCenter *)center
+     willPresentNotification:(UNNotification *)notification
+     withCompletionHandler:(void (^)(UNNotificationPresentationOptions))completionHandler {
+      if (@available(iOS 14.0, *)) {
+         completionHandler(UNNotificationPresentationOptionBanner | UNNotificationPresentationOptionList | UNNotificationPresentationOptionSound | UNNotificationPresentationOptionBadge);
+       } else {
+         completionHandler(UNNotificationPresentationOptionAlert | UNNotificationPresentationOptionBadge | UNNotificationPresentationOptionSound);
+       }
+     }
+     @end
+     ```
+     </CodeGroup>
+</Accordion>
+
+
+## ステップ3: 通知の検証
+
+MoEngage iOSプッシュ通知の統合が完全に機能することを確認するには、次の検証手順を実行します。
+
+### ダッシュボード設定の確認
+
+テスト通知を送信する前に、まずMoEngageダッシュボードで統合ステータスを確認します。プロファイルのiOS Pushセクションに移動し、次の点を確認します。
+
+- 統合ステータスのアイコンが緑色であること。
+- 仮承認の場合、**Opt-In Status** が _Unknown_ であること。
+- 標準の許可の場合、**Opt-In Status** が _True_ であること。
+
+詳細については、[iOS Push Notifications Integration Validation](https://www.moengage.com/docs/user-guide/getting-started/integration-validation/ios-push-notifications-integration-validation)を参照してください。
+
+### 通知の配信と表示のテスト
+
+テスト通知の送信: MoEngageダッシュボードから、リッチメディア(画像、GIF、動画など)を含むテストプッシュ通知を作成して送信します。
+
+- **デバイスの動作を確認する**:
+  - **フォアグラウンド**: アプリケーションがアクティブ(フォアグラウンド)の場合、通知はバナーとして表示され、サウンドが鳴る必要があります。
+  - **バックグラウンド**: アプリケーションがバックグラウンドにある場合でも、通知はデバイスに配信され、通知センターに表示される必要があります。
+  - **強制終了状態**: アプリケーションが強制終了されているか実行されていない場合でも、通知は配信され、通知センターに表示される必要があります。
+  - **リッチメディアのレンダリング**: 通知内のリッチメディアコンテンツ(画像など)が、すべてのアプリの状態(フォアグラウンド、バックグラウンド、強制終了)で正しくレンダリングされることを確認します。
+
+### トラッキングと分析の検証
+
+- **キャンペーン分析にアクセスする**: MoEngage UIで、送信したプッシュ通知キャンペーンの分析セクションに移動します。
+- **インプレッションを検証する**: キャンペーンの「Impressions」指標が増加していることを確認します。これは、MoEngage SDKが通知の配信とデバイス上での表示を正常にトラッキングしていることを示します。
+
+以上で、次の内容を含むMoEngage iOSプッシュ通知の統合が完了しました。
+
+- **標準プッシュと仮プッシュの登録**: プッシュ通知に対するユーザーの同意を正しく処理します。
+- **信頼性の高い配信**: フォアグラウンド、バックグラウンド、強制終了のすべてのアプリケーションの状態で、通知が配信およびトラッキングされます。
+- **リッチメディアのサポート**: NSEによって通知エクスペリエンスが強化され、視覚的に魅力的なコンテンツを表示できます。
+- **包括的なトラッキング**: NSEにより、すべてのアプリの状態でクリックとインプレッションを正確にトラッキングし、貴重なキャンペーンパフォーマンスデータを提供します。
+
+## オプション
+
+基本的なプッシュ通知を実装したら、次の機能で強化できます。
+
+### プッシュテンプレート
+
+2つのアプリ拡張を実装して、インタラクティブで視覚的にリッチな通知を作成します。
+
+- **Notification Service Extension**: 通知が表示される前に通知ペイロードをインターセプトして変更します。画像やGIFなどのリッチメディアをダウンロードして添付するために使用します。
+- [**Notification Content Extension**](https://www.moengage.com/docs/developer-guide/ios-sdk/push/optional/push-templates): 通知のカスタムUIをレンダリングします。画像カルーセルやカスタムレイアウトなどのインタラクティブなエクスペリエンスを作成するために使用します。
+
+### アクションボタン
+
+通知内にボタンを埋め込み、「Reply」や「Archive」など、ユーザーが通知インターフェイスから直接タスクを実行できるようにします。詳細については、[こちら](https://www.moengage.com/docs/developer-guide/ios-sdk/push/basic/actionable-notifications)を参照してください。
+
+### プッシュ通知のバッジの動作の設定
+
+デフォルトでは、SDKはアプリアイコンのバッジを通知センター内のMoEngage通知の数に設定します。
+
+バッジを自分で管理するには、アプリの `Info.plist` に `MoEngageBadgeUpdateEnabled` キーを追加し、`false` に設定します。このキーはiOS SDK [10.13.0](/ja/release-notes/sdks/ios#25th-may-2026) からサポートされています。
+
+```xml Info.plist
+<key>MoEngageBadgeUpdateEnabled</key>
+<false/>
+```
+
+<Warning>
+  `MoEngageSDKMessaging.disableBadgeReset(_:)` はiOS SDK [10.13.0](/ja/release-notes/sdks/ios#25th-may-2026) から非推奨となり、効果はありません。この呼び出しをすべて削除し、代わりに `Info.plist` キーを使用してください。詳細については、[カスタム通知処理](/ja/developer-guide/ios-sdk/push/advanced/custom-notification-handling#disable-badge-reset)を参照してください。
+</Warning>
+
+## ベストプラクティス
+
+これらのベストプラクティスに従うことで、ユーザーに堅牢で信頼性の高いプッシュ通知エクスペリエンスを提供し、キャンペーンの正確なデータを確保できます。
+
+- **すべてのアプリの状態(フォアグラウンド、バックグラウンド、強制終了)でテストする**: これにより、ユーザーがデバイスをどのように操作しているかにかかわらず、一貫した通知配信、正しいリッチメディアのレンダリング、正確なトラッキングが保証されます。
+- **仮プッシュを使用する場合は設定を確認する**: デバイスの通知設定に最初は _Deliver Quietly_ が表示されることを確認します。標準のプッシュ許可をリクエストして許可します。次に、**Settings** に移動して、許可ステータスが _Authorized_ であることを確認します。
+- **リッチメディアのURLを検証する**: メディアの表示が壊れるのを防ぎ、NSEが通知にコンテンツを正常に添付できるように、画像/動画のURLを常に確認してください。
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="プッシュ通知のクリックがトラッキングされない、またはディープリンクが開かないのはなぜですか?">
+    これらの症状は通常、AppDelegateでの「swizzlingの競合」を示しています。これは、別のサードパーティSDKもプッシュ通知のコールバックを管理している場合に発生することがあります。これを解決するには、MoEngageの自動swizzlingを無効にし、代わりに手動転送を実装します。正しい実装については、詳細な手順を参照してください。
+  </Accordion>
+
+  <Accordion title="通知にリッチメディア(画像、GIF)が表示されない、またはインプレッションのトラッキングが失敗するのはなぜですか?">
+    この問題は一般に、NSEの設定が正しくないことが原因で発生します。次の3つの主要な項目を確認してください。
+
+    - **NSEターゲットの設定:** `MoEngageNotificationService` ターゲットがプロジェクトに正しく追加され、適切に設定されていることを確認してください。
+    - **App Group ID:** 同じApp Group IDがメインアプリとNSEターゲットの両方で有効になっていること、およびコード内で正しく設定されていることを確認してください。
+    - **メディアURLの到達可能性:** 画像、GIF、動画のURLが公開されていてアクセス可能であることを確認してください。URLが壊れていると、メディアのダウンロードと表示ができません。
+    - **転送、形式、サイズ:** メディアがHTTPS経由で配信されていること、そのメディアタイプに対するAppleのサイズ制限内であること、およびiOSがサポートする形式を使用していることを確認してください。[メディアの要件](#media-requirements)を参照してください。
+    - 拡張のデプロイメントターゲットがメインアプリと一致していることを確認してください。
+  </Accordion>
+
+  <Accordion title="プッシュ通知が配信されないのはなぜですか?">
+    XcodeのBundle IDがMoEngage UIと一致していることを確認してください。APNs環境(DevelopmentまたはProduction)がアップロードした証明書のタイプと一致していることを確認してください。APNs証明書または認証キーが有効であることを確認してください。プッシュ通知はシミュレーターでは機能しないため、実機でテストしてください。
+  </Accordion>
+
+  <Accordion title="didRegisterForRemoteNotificationsWithDeviceTokenデリゲートメソッドが呼び出されないのはなぜですか?">
+    XcodeでPush Notifications機能を有効にしてください。インターネット接続が安定していることを確認し、MDMやVPNのプロファイルがAPNsのポートをブロックしていないことを確認してください。別のSDKがAPNsのデリゲートコールバックをインターセプトしていないことを確認してください。
+  </Accordion>
+
+  <Accordion title="仮プッシュ通知が表示されないのはなぜですか?">
+    起動時に標準の承認と仮承認の両方をリクエストしないようにしてください。デバイスのアプリ設定で、「Deliver Quietly」が有効になっていないことを確認してください。仕様上、仮通知はアラートやサウンドなしで通知センターに静かに配信されます。
+  </Accordion>
+</AccordionGroup>

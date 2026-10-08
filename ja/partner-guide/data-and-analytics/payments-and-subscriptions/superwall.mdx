@@ -1,0 +1,89 @@
+---
+title: "Superwall"
+description: "Webhook を介して Superwall から MoEngage にサブスクリプションのライフサイクルイベントをストリーミングし、購入、更新、解約データに基づくパーソナライズされたエンゲージメントに活用します。"
+keywords: ["Superwall", "subscriptions", "paywalls", "webhooks", "MoEngage integration"]
+---
+
+[Superwall](https://superwall.com/) は、モバイルアプリがアプリのアップデートを必要とせずにペイウォールを構築、テスト、最適化できるようにするペイウォールおよびサブスクリプションインフラストラクチャプラットフォームです。A/B テスト、ターゲティング、収益分析を提供し、App Store、Play Store、Stripe にわたるサブスクリプションイベントをサポートしています。
+
+# MoEngage × Superwall
+
+Superwall と MoEngage を接続すると、リアルタイムの顧客インサイトを使用して包括的なユーザープロファイルを構築し、パーソナライズされたエンゲージメント戦略を実施できます。この連携により、サブスクリプションのライフサイクルデータが Superwall から MoEngage に転送され、オーディエンスのセグメンテーションが改善され、マーケティングスタック全体でデータの一貫性が維持されます。
+
+## ユースケース
+
+Superwall を MoEngage と連携すると、次のユースケースに対応できます。
+
+- **失われた売上の回復**: 支払いが失敗した場合や請求の問題 (`billing_issue`) が発生した場合に、リマインダーや支払い情報更新リンクを自動的にトリガーし、ユーザーがアクセスを回復できるよう支援します。
+- **トライアルコンバージョンの促進**: トライアル期間または導入期間中のユーザーを特定し、アプリの価値を強調するタイムリーなコンテンツを送信して、フルサブスクリプションへの移行を促します。
+- **解約したユーザーの呼び戻し**: ユーザーがキャンセルした場合や期限切れになった場合 (`cancellation`、`expiration`) に、パーソナライズされた呼び戻しオファーをトリガーします。
+- **パーソナライズされたオンボーディングとアップセル**: `initial_purchase` の後にお礼のメッセージを送信したり、プランを切り替えたユーザー (`product_change`) に新しいプランのヒントを送信したりします。
+- **プロアクティブなリテンション**: サブスクリプションを一時停止したユーザー (`subscription_paused`) を特定し、離脱する前にインセンティブを提供してアプローチします。
+
+## 主な機能
+
+Superwall 連携は、MoEngage 内で次の機能を提供します。
+
+- **サブスクリプションジャーニー全体のトラッキング**: 初回購入や更新から、キャンセル、有効期限切れ、トライアル期間まで、顧客ライフサイクルのすべてのマイルストーンをトラッキングします。
+- **統合されたクロスプラットフォームデータ**: 顧客が App Store、Play Store、Stripe のいずれを利用している場合でも、MoEngage は取引データをキャンペーン用に一貫した1つの形式に正規化します。
+- **ユーザー行動に関する深いインサイト**: 導入オファー、サブスクリプションの一時停止、プランの変更 (アップグレードまたはダウングレード) などのイベントをトラッキングすることで、顧客が価格設定にどのように反応しているかを把握できます。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  Superwall ダッシュボードへの管理者アクセス権があることを確認してください。
+</Info>
+
+## ステップ 1: MoEngage の API 認証情報を取得する
+
+MoEngage の API 認証情報を取得するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**Settings** \> **Account** \> **APIs** をクリックします。
+2. **APIs** ページで、次の認証情報をコピーします。
+   - **Workspace ID** (旧 App ID)。
+   - **Data API Key**: **Data** タイルの下にあります。
+3. Workspace ID と Data API Key を MoEngage エンドポイントに挿入して Webhook URL を構築し、`0X` をデータセンター番号に置き換えます (例: DC-01 の場合は `api-01`)。次の形式を使用します。
+   ```text wrap
+   https://<YOUR_WORKSPACE_ID>:<YOUR_DATA_API_KEY>@api-0X.moengage.com/v1/partner/superwall/events/?configName=<config_name>
+   ```
+
+![Workspace ID および Data API Key フィールドが表示された MoEngage の APIs 設定ページ](/images/moengage-api-credentials.png)
+
+<Info>
+  一意の取り込みエンドポイントについて MoEngage サポートに問い合わせる前に、マッピングする顧客識別子 (例: `originalAppUserId`) を決定してください。サブスクリプションデータの同期中に重複したプロファイルが作成されないように、現在の MoEngage のアイデンティティ設定と一致していることを確認してください。
+</Info>
+
+詳細については、[Superwall Webhooks のドキュメント](https://superwall.com/docs/)を参照してください。
+
+## ステップ 2: Superwall で Webhook を設定する
+
+Superwall で Webhook を設定するには、次の手順を実行します。
+
+1. Superwall ダッシュボードにログインします。
+2. アプリケーションを選択し、左側のメニューで **Integrations** をクリックします。
+3. **Webhooks** を見つけ、クリックして新しい Webhook を追加します。
+4. 次の設定を入力します。
+   | フィールド | 値またはアクション |
+   | --- | --- |
+   | **Webhook Name** | Webhook 名を入力します。 |
+   | **Webhook URL** | ステップ 1 で生成した認証済み URL を貼り付けます。 |
+   | **Events** | `initial_purchase`、`renewal`、`cancellation`、`billing_issue` など、同期するイベントを選択します。 |
+5. **Update Webhook** をクリックします。
+
+![Webhook 名、URL、リッスンするイベントが表示された Superwall の Edit Webhook ページ](/images/superwall-webhook-overview.png)
+
+## ステップ 3: MoEngage でデータを確認する
+
+Superwall の Webhook は、実際の取引 (サンドボックスまたは本番環境) でのみ発行されます。iOS のローカル StoreKit 取引では Webhook は発行されないため、テストには TestFlight を介したサンドボックスを使用してください。
+
+MoEngage でデータを確認するには、次の手順を実行します。
+
+1. アプリのサンドボックス環境で取引を生成します。
+2. MoEngage で、**Segment** \> **Search Users** に移動します。
+3. **Customer ID** でテストユーザーを検索します。
+
+`initial_purchase` または関連するイベントがユーザーのイベント属性に表示されていることを確認します。
+
+![接続済みソースからの initial_purchase イベントとその属性が表示された MoEngage の Event activity タブ](/images/superwall-verify-event.png)

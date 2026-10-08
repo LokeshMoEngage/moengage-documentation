@@ -1,0 +1,83 @@
+---
+title: "OneTrust"
+description: "OneTrust のワークフローを使用して、MoEngage でユーザーの同意の更新、ユーザー属性の作成または更新、ユーザーの削除を行います。"
+---
+
+# はじめに
+
+[OneTrust](https://www.onetrust.com/) は、プライバシーとセキュリティのソフトウェアプロバイダーです。信頼に関する状況をより深く理解するための可視性、強力なインサイトを活用するためのアクション、競合他社に差をつけるための自動化を提供します。
+
+# MoEngage × OneTrust
+
+MoEngage と OneTrust の連携により、OneTrust のワークフロービルダーを使用して、製品のセキュリティワークフローを作成できます。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  - OneTrust アカウントにアクセスできることを確認してください。
+</Info>
+
+この連携により、OneTrust のワークフローから、MoEngage でユーザーの同意の更新、ユーザー属性の作成または更新、ユーザーの削除を行うことができます。
+
+## ステップ 1：MoEngage を構成する
+
+OneTrust ダッシュボードで以下の手順を実行します。
+
+1. OneTrust で Integrations \> Credentials に移動します。
+2. OneTrust が MoEngage で認証できるように、新しい認証情報を追加します。
+
+## ステップ 2：連携ワークフローを作成する
+
+1. Integrations \> Connections に移動します。
+2. Add New をクリックして、新しい連携ワークフローを作成します。
+3. 以下の詳細を入力します。
+   - Name：_MoEngage_
+   - Description：_Update user consent_ とアクション
+4. _Custom System_ の追加をクリックします。
+
+## ステップ 3：ワークフロートリガーを追加する
+
+Workflow Builder 画面で以下の手順を実行します。
+
+1. Add OneTrust Trigger ブロックを選択します。
+2. ワークフローを開始するタイミングに応じて、適切なトリガーを選択します。モジュール固有のイベント（例：アセスメントの送信、データ主体リクエストのステージ変更）や、外部システムがワークフローを開始する場合は Webhook を選択できます。 <img src="/images/partner_42483215032084.png" alt="onetrust2.png" />
+3. Done をクリックします。
+
+## ステップ 4：アクションを追加する
+
+1. Add Action をクリックします。
+2. MoEngage（ステップ 2 で構成したもの）を選択します。
+3. 以下の詳細を入力します。
+   - Endpoint：`<Your MoEngage connected source endpoint>`。詳細については、担当のカスタマーサクセスマネージャーにお問い合わせください。
+   - Method：POST
+   - Headers：
+     - Content-Type：application/json
+     - Authorization：オンラインの Basic Auth Header Generator ツールを使用して Basic 認証トークンを生成します。ユーザー名に Workspace ID、パスワードに Data API Key を入力する必要があります。認証情報を確認するには、以下の手順を実行します。\
+       MoEngage の UI で、Settings \> Account \> APIs に移動します。Workspace ID（旧 app id）の下にある ID をコピーします。API keys の下にある Data をコピーします。Basic 認証トークンは Workspace ID と Data を組み合わせたものです。\
+       たとえば、以下の値を\
+       Basic 認証トークンとして貼り付けます：Basic Qk5CR1NNNUR4eHh4eHhWQ1hSRFJEWTdSOlFsWHVoTHVaeHh4eHh4QWQrQnBYUEotNw== <img src="/images/partner_42483215032468.png" alt="Screenshot 2025-10-22 at 11.06.26 AM.png" />
+     - Payload：リクエストボディを入力します。
+
+OneTrust のデータマッピング機能を使用してリクエストボディ（ペイロード）を定義し、ワークフロートリガーからの関連データを含めることができます。上のスクリーンショットの例は、サブスクリプショングループを更新する方法を示しています。Delete User や Create/Update user についても同様のリクエストを作成できます。
+
+<CodeGroup>
+
+```text Update user attribute item > wrap
+{ "action": "UPDATE", "attributes": { "external_id": "${(event.userDetails.userId)!}", "user_attribute_name": "${(event.userDetails.attribute)!}" } }
+```
+
+</CodeGroup>
+
+<CodeGroup>
+
+```text Delete user > wrap
+{ "action": "DELETE", "attributes": { "external_id": "${(event.userDetails.userId)!}" } }
+```
+
+</CodeGroup>
+
+詳細については、担当のカスタマーサクセスマネージャーにお問い合わせください。
+
+4. _Finish_ をクリックし、次に _Activate_ をクリックしてワークフローを有効にします。

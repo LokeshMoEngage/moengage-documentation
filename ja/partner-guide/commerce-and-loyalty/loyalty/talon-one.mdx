@@ -1,0 +1,128 @@
+---
+title: "Talon.One"
+---
+
+# はじめに
+
+[Talon.One](https://www.talon.one/) は、モバイルマーケティング CRM 向けにパーソナライズされたインセンティブを提供し、コンテキストに応じた 1 対 1 のクーポン、紹介、割引、ロイヤルティキャンペーンを迅速かつ効率的に開始できるようにします。
+
+# MoEngage × Talon.One
+
+MoEngage と Talon.One の連携により、Talon.One で生成されたコードを MoEngage キャンペーンを通じてオーディエンスに送信し、ロイヤルティプログラムやクーポンプログラムを次のレベルに引き上げることができます。
+
+次の Talon.One の機能がサポートされています。
+
+- [クーポンの作成](https://docs.talon.one/docs/dev/technology-partners/cep/integrating-cep#creating-a-coupon)
+- [紹介の作成](https://docs.talon.one/docs/dev/technology-partners/cep/integrating-cep#creating-a-referral)
+- [ロイヤルティ台帳の取得](https://docs.talon.one/docs/dev/technology-partners/cep/integrating-cep#fetching-a-loyalty-ledger)
+
+# 連携
+
+<Info>
+  - Talon.One アカウントがあることを確認してください。
+  - Talon.One API キーがあることを確認してください。Talon.One API キーの生成方法の詳細については、[Talon.One API ドキュメント](https://docs.talon.one/docs/dev/tutorials/integrating-talon-one#creating-a-talonone-api-key)を参照してください。
+</Info>
+
+## ステップ 1: Talon.one で認証キーを生成する
+
+1. Campaign Manager で Talon.One アプリケーションを開き、**Settings** \> **Developer settings** をクリックします。
+2. **Create API Key** をクリックします。
+3. **Do you want to use this API Key with a 3rd party service?** で **Yes** を選択します。
+4. ドロップダウンから **Customer Engagement** を選択します。
+5. 有効期限を選択し、**Create API Key** をクリックします。
+6. 後で使用するためにコピーします。このキーを、以下の各エンドポイントの `Authorization` ヘッダーで使用します。
+
+例:
+
+Authorization: ApiKey-v1 dbc644d33aa74d582bd9479c59e16f970fe13bf3
+
+## ステップ 2: MoEngage で Talon.one の Content API を定義する
+
+[MoEngage Content API](/ja/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を使用して、Talon.One をエンドポイントの 1 つとして追加します。
+
+MoEngage ダッシュボードで、次の手順を実行します。
+
+1. **Settings** -\> **Advanced settings** -\> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。 <img src="/images/partner_21979634305172.png" alt="ContentAPI_Navogation.png" />
+2. エンドポイント URL に Talon.One のサブドメインを追加します。<img src="/images/partner_4631619545492.png" alt="Screenshot_2022-03-08_at_7.54.01_PM.png" />
+
+#### ヘッダー
+
+| パラメーター | 説明 | 例 |
+| --- | --- | --- |
+| `Authorization`\* | 必須。API 認証キー | `ApiKey-v1 <TOKEN>` |
+| `customer-engagement-platform-name`\* | 必須。ここに _MoEngage_ と入力します | `<MoEngage>` |
+| `destination-hostname`\* | 必須。Talon.One デプロイメントのベース URL。 | `https://mycompany.europe-west1.talon.one/` |
+| `X-DRY-RUN` | 変更を保持するかどうかを示します。`dry=true` の場合、変更は無視されます | `true` |
+
+#### パスパラメーター
+
+| パラメーター | 説明 | 例 |
+| --- | --- | --- |
+| `campaignId`\* | 必須。クーポンが作成される Talon.One のキャンペーンの ID。 | `34` |
+| `applicationId`\* | 必須。Talon.One のアプリケーションの ID。 | `12` |
+| `externalCampaignId`\* | 必須。参照する外部キャンペーン ID | `abc123` |
+| `recipientIntegrationID` | 生成されたクーポンコードを使用できる唯一の顧客のインテグレーション ID。すべてのユーザーがクーポンを使用できるようにするには、空白のままにします。 | `abc123` |
+| `discountLimit` | クーポンの割引額。たとえば、クーポンが 10% 割引など固定額以外の割引を提供する場合は、空白にできます。 | `1.23` |
+| `startDate` | クーポンが有効になる日時。 | `2020-12-31T13:00:00Z` |
+| `expiryDate` | クーポンが無効になる日時。 | `2021-12-31T13:00:00Z` |
+| `Attributes` | クーポンに設定するすべてのクーポン属性を含むオブジェクト。 |  |
+
+カスタム属性を設定するには、属性名と値を `.` をプレフィックスとした追加のクエリパラメーターとして追加します。たとえば、`email` 属性がある場合は、`&.email=john.doe@example.com` のように設定します。
+
+3. URL [https://integration.talon.one/customer\_engagement/referral](https://integration.talon.one/customer_engagement/referral)
+
+#### ヘッダー
+
+| パラメーター | 説明 | 例 |
+| --- | --- | --- |
+| `Authorization`\* | 必須。API 認証キー | `ApiKey-v1 <TOKEN>` |
+| `customer-engagement-platform-name`\* | 必須。ここに _MoEngage_ と入力します | `<MoEngage>` |
+| `destination-hostname`\* | 必須。Talon.One デプロイメントのベース URL。 | `https://mycompany.europe-west1.talon.one/` |
+| `X-DRY-RUN` | 変更を保持するかどうかを示します。`dry=true` の場合、変更は無視されます | `true` |
+
+#### パスパラメーター
+
+| パラメーター | 説明 | 例 |
+| --- | --- | --- |
+| `campaignId` | 必須。紹介コードが作成される Talon.One のキャンペーンの ID。 | `34` |
+| `externalCampaignId` | 必須。参照する外部キャンペーン ID | `abc123` |
+| `advocateprofileintegrationid` | 必須。紹介者のインテグレーション ID | `abc123` |
+| `friendprofileintegrationid` | 紹介された顧客のプロファイル ID。 | `abc123` |
+| `usagelimit` | 紹介コードを使用できる回数。0 に設定すると無制限になりますが、キャンペーンの使用制限は引き続き適用されます。 | `1.23` |
+| `startDate` | 紹介コードが使用可能になる日付。 | `2020-12-31T13:00:00Z` |
+| `expiryDate` | 紹介コードが使用できなくなる日付。 | `2020-12-31T13:00:00Z` |
+| `Attributes` | クーポンに設定するすべてのクーポン属性を含むオブジェクト。 |  |
+
+### ロイヤルティ台帳を取得する
+
+#### URL
+
+GET loyalty
+
+[https://integration.talon.one/customer\_engagement/loyalty](https://integration.talon.one/customer_engagement/loyalty)
+
+#### ヘッダー
+
+| パラメーター | 説明 | 例 |
+| --- | --- | --- |
+| `Authorization` | 必須。API 認証キー。 | `ApiKey-v1 TOKEN` |
+| `customer-engagement-platform-name` | 必須。ここに _MoEngage_ と入力します | `<MoEngage>` |
+| `destination-hostname` | 必須。Talon.One デプロイメントのベース URL。 | `https://mycompany.europe-west1.talon.one/` |
+
+#### パスパラメーター
+
+| パラメーター | 説明 | 例 |
+| --- | --- | --- |
+| `profileIntegrationID` | 必須。[Talon.One](http://Talon.One) の顧客プロファイルのインテグレーション ID。 | `abc123` |
+| `loyaltyProgramID` | 必須。Talon.One のロイヤルティプログラムの ID。 | `34` |
+| `projectionEndDate` | 必須。予測ロイヤルティ残高を照会する終了日。本日から最大 31 日先までの結果を予測できます。 | `2020-12-31T13:00:00Z` |
+
+4. Save をクリックします。MoEngage に Talon.One API が追加されたことを確認できます。 <img src="/images/partner_4631794709652.png" alt="Screenshot_2022-03-08_at_8.05.10_PM.png" />
+
+## ステップ 3: MoEngage キャンペーンで Talon.One のコンテンツを使用する
+
+これで、キャンペーンでこれらの Content API を使用できるようになりました。詳細については、[こちら](/ja/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis)を参照してください。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 2 で設定した Content API を選択します。
+3. MoEngage テンプレート言語を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。Talon.One の API レスポンスについては、次のリンクを参照してください: [クーポンの作成、](https://docs.talon.one/third-party-api#tag/Customer-engagement-platforms/operation/cep/createCoupon)[紹介の作成](https://docs.talon.one/third-party-api#tag/Customer-engagement-platforms/operation/cep/createReferral)[、ロイヤルティ台帳の取得](https://docs.talon.one/third-party-api#tag/Customer-engagement-platforms/operation/cep/loyalty)

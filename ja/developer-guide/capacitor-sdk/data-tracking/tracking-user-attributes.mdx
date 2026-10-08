@@ -1,0 +1,241 @@
+---
+title: "ユーザー属性とユーザー ID のトラッキング"
+description: "MoEngage Capacitor SDK を使用して、ユーザー属性をトラッキングし、ログインとログアウトの状態を管理します。"
+---
+
+import IdentifyUserNetworkFailure from '/ja/snippets/identify-user-network-failure.mdx';
+
+MoEngage は、2 種類のユーザーデータを区別します。
+
+- **識別子** — デバイスやプラットフォームをまたいでユーザーを一意に識別する値です。これらを設定するには `identifyUser()` を使用します。
+- **ユーザー属性** — 名前、メール、プランの種類など、ユーザーについて把握しているプロパティです。これらを設定するには `setUserAttribute()` を使用します。
+
+## ID 管理
+
+SDK バージョン [6.0.0](/ja/release-notes/sdks/capacitor#core-6-0-0) 未満については、[こちらのドキュメント](/ja/developer-guide/capacitor-sdk/data-tracking/setting-unique-id-for-sdk-versions-below-6.0.0)を参照してください。
+
+識別子の設定は、次の目的で重要です。
+
+- プラットフォームをまたいでユーザーの行動を紐付ける。
+- 不要なユーザーや古いユーザーが作成されないようにする。
+- インストールと再インストールをまたいでユーザーを識別する。
+
+### 単一の識別子でのログイン
+
+識別子を MoEngage SDK に渡すには、以下の API を呼び出します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+MoECapacitorCore.identifyUser({ identity: "identifier", appId: "YOUR_WORKSPACE_ID" })
+```
+
+</CodeGroup>
+
+<Note>
+  - このメソッドは、非推奨の `setUniqueId()` に代わるものです。`setUniqueId()` を使用している場合は、`identifyUser()` に置き換えてください。
+  - 識別子フィールドでは次の値は使用できません: `unknown`, `guest`, `null`, `0`, `1`, `true`, `false`, `user_attribute_unique_id`, `(empty)`, `na`, `n/a`, `""`, `dummy_seller_code`, `user_id`, `id`, `customer_id`, `uid`, `userid`, `none`, `-2`, `-1`, `2`。
+</Note>
+
+### 複数の識別子でのログイン
+
+アプリケーションでユーザーに複数の識別子がある場合は、以下の API を使用してすべての識別子を SDK に渡します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+MoECapacitorCore.identifyUser({ identity: { "identifierName1": "identifierValue1", "identifierName2": "identifierValue2" }, appId: "YOUR_WORKSPACE_ID" })
+```
+
+</CodeGroup>
+
+一般的な属性を識別子として渡す場合は、以下の標準識別子キーを使用します。
+
+| ユーザー属性 | キー |
+| :--- | :--- |
+| ID | `uid` |
+| メール | `u_em` |
+| 性別 | `u_gd` |
+| 誕生日 | `u_bd` |
+| 名前 | `u_n` |
+| 名 | `u_fn` |
+| 姓 | `u_ln` |
+| 携帯電話番号 | `u_mb` |
+
+カスタム識別子には、予約キーワードリストにない任意のキー名を使用します。
+
+**`identifyUser()` を複数回呼び出した場合の動作:**
+
+- 先にログアウトせずに `identifyUser()` を呼び出すと、既存のログイン済みユーザーの識別子が更新されます。
+- 異なる識別子名で `identifyUser()` を複数回呼び出すと、SDK は設定済みの識別子に新しい識別子を追加します。詳細については、[ID 解決のドキュメント](https://www.moengage.com/docs/user-guide/data/user-data/unified-identity-identity-resolution)を参照してください。
+- ID 解決が有効になっているワークスペースでは、SDK は以前の識別子の値を保存し、新しい値で `identifyUser()` が呼び出されたときに変更を検出します。
+
+<IdentifyUserNetworkFailure />
+
+SDK とデータトラッキングを有効化または無効化するには、[コンプライアンス](/ja/developer-guide/capacitor-sdk/compliance/compliance)を参照してください。
+
+<Warning>
+  **SDK 6.0.0 での動作変更:** 新しいユーザーが検出されても、SDK は以前のユーザーを自動的にログアウトしなくなりました。データの破損を避けるため、新しいユーザーを識別する前に明示的に `logoutUser()` を呼び出してください。
+</Warning>
+
+### ログアウト
+
+ユーザーがアプリケーションからログアウトしたときに、この API を呼び出します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+MoECapacitorCore.logoutUser({ appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+#### ログアウトコールバックリスナー
+
+ユーザーデータのクリアと SDK 状態のリセットは非同期プロセスです。ユーザーを別の画面に移動させたり、アプリのローカル状態をクリアしたりする前に、SDK がログアウトを完了するまで待ってください。
+
+ログアウトの成功を検出するには、`logoutCompleted` イベントのリスナーを登録します。メソッドの呼び出し後、新しいユーザーのイベントやユーザー属性をトラッキングする前にコールバックを待ってください。
+
+<CodeGroup>
+
+```javascript TypeScript wrap
+import { MoECapacitorCore, MoELogoutCompleteData } from 'capacitor-moengage-core';
+
+MoECapacitorCore.addListener("logoutCompleted", (data: MoELogoutCompleteData) => {
+    console.log("Received callback 'MoELogoutComplete', data: " + JSON.stringify(data));
+    // Safe to navigate to login screen or clear local app state
+});
+```
+
+</CodeGroup>
+
+### ログアウトコールバックデータ
+
+<CodeGroup>
+
+```javascript TypeScript wrap
+/**
+ * Data returned when a logout operation is successfully completed.
+ */
+export interface MoELogoutCompleteData {
+  /**
+   * Account information
+   */
+  accountMeta: MoEAccountMeta;
+
+  /**
+   * Platform type
+   */
+  platform: MoEPlatform;
+}
+```
+
+</CodeGroup>
+
+## ユーザー属性の設定
+
+<Info>
+  イベント、イベント属性、またはユーザー属性の名前に `moe_` をプレフィックスとして使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なく定期的にブラックリストに登録される可能性があります。
+</Info>
+
+名前、メール、携帯電話番号などの標準ユーザー属性を設定するには、次のメソッドを使用します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore, MoEUserGender } from 'capacitor-moengage-core'
+
+MoECapacitorCore.setUserName({ userName: "John Doe", appId: "YOUR_WORKSPACE_ID" });
+
+MoECapacitorCore.setFirstName({ firstName: "John", appId: "YOUR_WORKSPACE_ID" });
+
+MoECapacitorCore.setLastName({ lastName: "Doe", appId: "YOUR_WORKSPACE_ID" });
+
+MoECapacitorCore.setEmailId({ emailId: "johndoe@xyz.com", appId: "YOUR_WORKSPACE_ID" });
+
+MoECapacitorCore.setMobileNumber({ mobileNumber: "1234567890", appId: "YOUR_WORKSPACE_ID" });
+
+MoECapacitorCore.setGender({ gender: MoEUserGender.FEMALE, appId: "YOUR_WORKSPACE_ID" });
+
+MoECapacitorCore.setBirthDate({ birthdate: "1970-01-01T12:00:00Z", appId: "YOUR_WORKSPACE_ID" });
+
+MoECapacitorCore.setUserLocation({ location: { latitude: 25.2311, longitude: 73.1023 }, appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+カスタム属性には、汎用の `setUserAttribute()` メソッドを使用します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+
+// Generic user attribute
+MoECapacitorCore.setUserAttribute({ name: "Attribute Name", value: "AttributeValue", appId: "YOUR_WORKSPACE_ID" });
+
+// Date attribute — use ISO 8601 format
+MoECapacitorCore.setUserAttributeDate({ name: "Date Attribute Name", value: "1970-01-01T12:00:00Z", appId: "YOUR_WORKSPACE_ID" });
+
+// Location attribute
+MoECapacitorCore.setUserAttributeLocation({ name: "Location Attribute Name", location: { latitude: 25.23, longitude: 73.23 }, appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+### カスタムブール型ユーザー属性
+
+**iOS のみ:** `capacitor-moengage-core` のバージョン **5.x.x** 以降、カスタムブール型属性のデフォルトのトラッキング形式が double から boolean に変更されました。この動作を設定するには `MoEAnalyticsConfig` を使用します。
+
+<CodeGroup>
+
+```javascript TypeScript
+import { MoECapacitorCore, MoEAnalyticsConfig, MoEInitConfig } from 'capacitor-moengage-core'
+
+const analyticsConfig: MoEAnalyticsConfig = { shouldTrackUserAttributeBooleanAsNumber: false };
+const initConfig: MoEInitConfig = { analyticsConfig: analyticsConfig };
+MoECapacitorCore.initialize({ appId: "YOUR_WORKSPACE_ID", initConfig: initConfig });
+```
+
+</CodeGroup>
+
+<CodeGroup>
+
+```javascript TypeScript
+// shouldTrackUserAttributeBooleanAsNumber: true → tracked as 1
+MoECapacitorCore.setUserAttribute({ name: "Boolean Attribute True", value: true, appId: "YOUR_WORKSPACE_ID" });
+
+// shouldTrackUserAttributeBooleanAsNumber: false → tracked as false
+MoECapacitorCore.setUserAttribute({ name: "Boolean Attribute False", value: false, appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+### 予約キーワード
+
+ユーザー属性をトラッキングする際は、次のキーを使用しないでください。
+
+- `USER_ATTRIBUTE_UNIQUE_ID`
+- `USER_ATTRIBUTE_USER_EMAIL`
+- `USER_ATTRIBUTE_USER_MOBILE`
+- `USER_ATTRIBUTE_USER_NAME`
+- `USER_ATTRIBUTE_USER_GENDER`
+- `USER_ATTRIBUTE_USER_FIRST_NAME`
+- `USER_ATTRIBUTE_USER_LAST_NAME`
+- `USER_ATTRIBUTE_USER_BDAY`
+- `USER_ATTRIBUTE_NOTIFICATION_PREF`
+- `USER_ATTRIBUTE_OLD_ID`
+- `MOE_TIME_FORMAT`
+- `MOE_TIME_TIMEZONE`
+- `USER_ATTRIBUTE_DND_START_TIME`
+- `USER_ATTRIBUTE_DND_END_TIME`
+- `MOE_GAID`
+- `INSTALL`
+- `UPDATE`
+- `MOE_ISLAT`
+- `status`
+- `user_id`
+- `source`

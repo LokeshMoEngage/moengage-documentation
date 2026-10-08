@@ -1,0 +1,177 @@
+---
+title: "Web SDK のオプトアウト"
+description: "MoEngage Web SDK を無効にしてデータトラッキングを停止し、ユーザーのプライバシー設定に準拠します。"
+---
+
+## MoEngage Web SDK によるユーザープライバシーの強化
+
+MoEngage Web SDK を使用すると、ユーザーにデータトラッキングを明示的に制御する手段を提供できます。これは、GDPR や CCPA などのプライバシー規制に準拠し、明示的に同意したユーザーからのみデータを収集するために不可欠です。この機能を使用すると、SDK を動的に無効化および有効化でき、ユーザーのプライバシー設定を柔軟に管理できます。
+
+## SDK のオプトアウト機能について
+
+MoEngage Web SDK が無効になると（初期化時または後続の API 呼び出しによって）、データトラッキングと通信の機能が一時停止されます。つまり、SDK はユーザーデータの収集や送信を停止し、通常の機能のほとんどを実行しなくなります。
+
+Web SDK が無効になっている場合:
+
+- **データ送信なし:** SDK は、ユーザー属性、イベントデータ、デバイス情報をトラッキングしたり、MoEngage サーバーに送信したりしません。
+- **キューのクリア:** SDK のバッチキューで保留中のデータはすべてクリアされ、送信されません。
+- **機能への影響:** アクティブなデータトラッキングに依存するほとんどの SDK 機能（分析、パーソナライゼーション、トリガーキャンペーンなど）が利用できなくなります。
+- **Web Push:** ユーザーはプッシュ通知を受信しなくなります。
+
+適切な API メソッドを使用して、いつでも SDK を再度有効にできます。再度有効にすると、データトラッキングと SDK の機能が再開されます。
+
+## SDK を無効にする方法
+
+### 初期化時に SDK を無効にする（初期トラッキングの防止）
+
+Web サイトが読み込まれた時点からデータトラッキングを一切行わないようにするには、SDK を無効の状態で[初期化](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)できます。これは、SDK の初期化設定で `disableSdk: true` パラメーターを渡すことで実現できます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage = moe({
+  appId: "YOUR_WORKSPACE_ID", // Replace with your actual workspace ID
+  env: 'LIVE',
+  logLevel: 0,               
+  disableSdk: true             // This line disables SDK functionality from the start
+});
+```
+
+</CodeGroup>
+
+SDK が `disableSdk: true` で初期化された場合:
+
+- デバイス登録（例: `device/add`）や設定の取得（例: `websdksettings`、`sdkconfig`）のための初期ネットワーク呼び出しは行われません。
+- 通常ページ読み込み時にトラッキングされるデフォルトのイベントは、記録も送信もされません。
+- SDK は、API 呼び出しによって明示的に有効にされるまで休止状態のままになります。
+
+<Note>
+  **注意**
+
+  `disableSdk: true` で SDK を初期化し、後で `Moengage.enableSdk()` を使用して有効にした場合は、以降のページ読み込みのために SDK 初期化コードから `disableSdk: true` パラメーターを削除することを忘れないでください。削除しないと、ユーザーの次回のアクセス時に SDK は無効の状態に戻ります。
+</Note>
+
+### SDK を動的に無効にする（初期化後）
+
+SDK がすでに初期化されて動作している場合は、`disableSdk()` メソッドを呼び出すことで、すべてのデータトラッキングとその他の機能を動的に無効にできます。これは、ユーザーが最初にデータトラッキングへの同意を与えた後に、その同意を取り消すようなシナリオで特に役立ちます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.disableSdk();
+```
+
+</CodeGroup>
+
+`disableSdk()` を呼び出すと:
+
+- 現在バッチキューにあるすべてのデータは破棄され、MoEngage に送信されません。
+- アプリケーションまたは SDK 内部によるイベントやユーザー属性をトラッキングしようとする以降の試みは、すべて無視されます。
+- 現在のユーザーのセッションデータとローカルにキャッシュされた属性はクリアされます。
+- SDK が再度有効にされた場合にスムーズなエクスペリエンスを確保し、不要な再登録を避けるため、コア識別子は（非アクティブではありますが）保持されます。
+- クロスドメインのデータ共有が有効になっている場合は、リンクされているすべてのサブドメインでもデータトラッキングが停止されます。
+
+## SDK を有効にしてデータトラッキングを開始する
+
+SDK が無効化された後にデータトラッキングとその他すべての SDK 機能を再開するには、`enableSdk()` メソッドを呼び出します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.enableSdk();
+```
+
+</CodeGroup>
+
+`enableSdk()` が呼び出されると:
+
+- SDK が最初に `disableSdk: true` パラメーターによって無効化されていた場合、このメソッドを呼び出すと、SDK の完全な初期化シーケンス（デバイス登録とリモート設定の取得を含む）がトリガーされます。
+- 動的に無効化されていた場合は、以前の状態から動作を再開します。イベントと属性のトラッキングが再び機能するようになります。
+- プッシュ通知をユーザーに表示できるようになります。
+
+<Warning>
+  #### 情報
+
+  **SDK の有効化** 以前に無効化された SDK を有効にできるのは、`enableSdk()` メソッドのみです。
+
+  **SDK の有効化/無効化後の SDK メソッドの使用/アクティビティの実行** SDK が有効になった後に SDK メソッドを使用したり、ページの変更などの JS アクティビティを実行したりする場合は、`enableSdk()` メソッドの `.then` 内で実行してください。
+
+  <CodeGroup>
+
+  ```javascript JavaScript lines wrap
+  Moengage.enableSdk().then(() => {
+      Moengage.setUserAttribute('attributeName', 'attributeValue');
+      window.open('yourUrl', '_self');
+  });
+  ```
+
+  </CodeGroup>
+
+  `disableSdk()` メソッドの場合も同様です。
+
+  <CodeGroup>
+
+  ```javascript JavaScript lines wrap
+  Moengage.disableSdk().then(() => {
+      window.open('yourUrl', '_self');
+  });
+  ```
+
+  </CodeGroup>
+</Warning>
+
+## SDK の現在のステータスを確認する
+
+Web SDK が現在有効か無効かを判断するには、`isSdkEnabled()` メソッドを使用できます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.isSdkEnabled();
+```
+
+</CodeGroup>
+
+このメソッドは boolean 値を返します。
+
+- `true`: SDK は有効で、動作しています。
+- `false`: SDK は無効です。
+
+<Warning>
+  #### 情報
+
+  **クロスサブドメインのデータ共有** クロスサブドメイン環境で SDK を管理する際の重要な考慮事項:
+
+  - クロスサブドメインのデータ共有を利用しており、あるサブドメインで初期化時に SDK を無効にする（`disableSdk: true`）場合は、動作の一貫性を保つために、データ共有に関係する他のすべてのサブドメインにも同じ設定を適用してください。
+  - あるサブドメインで `disableSdk()` が呼び出されると、通常、リンクされているすべてのサブドメインで SDK の動作が直ちに停止します。ただし、他のサブドメインでの Web プッシュ通知は、それらの特定のサブドメインでページの読み込みが発生するまで継続する場合があります。
+  - あるサブドメインで `Moengage.enableSdk()` を使用して SDK を再度有効にした後、他の共有サブドメインで SDK が完全に動作するようにするには、それらのサブドメインでページの再読み込みまたはリダイレクトが必要です。シングルページアプリケーション（SPA）の場合、これは単なるクライアント側のルート変更ではなく、ブラウザページの完全な更新を意味します。
+
+  **ブラウザストレージのクリアによる影響** Web SDK が無効の状態で、ユーザーがその後ブラウザのストレージ（Cookie、localStorage、IndexedDB を含む）またはサイト固有のデータをクリアした場合、SDK に保存されているオプトアウトの状態は失われます。次のページ読み込み時に、SDK は新規に開始したかのように初期化され（初期設定に `disableSdk: true` が含まれていない限り、デフォルトで有効）、新しいユーザープロファイルとセッションが作成される可能性があります。
+
+  **初期化時のオプトアウト SDK メソッドの使用** Web SDK のオプトアウトメソッドは、必ず SDK の初期化後にのみ呼び出してください。SDK の初期化前に呼び出すとエラーがスローされます。実装例:
+
+  <CodeGroup>
+
+  ```javascript JavaScript lines wrap
+  window.addEventListener('MOE_LIFECYCLE', function(event) { 
+      if (event.detail.name === 'SDK_INITIALIZED') { 
+          // SDK has been initialized; use the opt-out methods only after this 
+          if (!Moengage.isSdkEnabled()) { 
+              Moengage.enableSdk();
+          } 
+      } 
+  });
+  ```
+
+  </CodeGroup>
+
+  **Service Worker の更新の遅延** SDK が無効化された後でも、MoEngage の Service Worker（Web プッシュ通知を処理します）は、短期間、Web プッシュの操作イベント（インプレッションやクリックなど）のトラッキングやプッシュ通知の表示を継続する場合があります。これは、Service Worker がメインの Web サイトのコードとは独立して動作および更新されるためであり、このプロセスはブラウザによって管理され、SDK では制御できません。
+
+  **Shopify 統合** MoEngage の Shopify 統合を使用している Web サイトでは、`Moengage.disableSdk()` を呼び出しても、ストアフロントのクライアント側 Web SDK トラッキングのみが無効になります。Web SDK のクライアント側のステータスに関係なく、MoEngage は Shopify ストア用に設定されたサーバー間の Webhook イベントを引き続き受信して処理します。
+
+  **キャンペーンの表示とオプトアウトの影響**
+
+  - `disableSdk()` が呼び出されると、SDK は現在表示されている On-site Messaging（OSM）および Card キャンペーンを閉じようとします。これらのキャンペーンのインプレッションイベントや閉じるイベントのトラッキングが重要な場合は、`disableSdk()` を呼び出す前にそれらが完了していることを確認してください。
+  - Web Personalization の場合、`disableSdk()` が呼び出されたときにすでにページ上にコンテンツが表示されていると、SDK は現在のビューからそのコンテンツを削除できない場合があります。ただし、SDK が無効のままである間は、以降のページ読み込みやナビゲーションで新しいパーソナライズコンテンツが適用されることはありません。
+  - Card の受信トレイにカスタム UI 要素（ベルアイコンなど）を使用している場合、SDK は無効化時にそのクリックリスナーを削除しようとします。このようなカスタム要素の UI の状態の管理（必要に応じて非表示または無効にするなど）はお客様の責任となります。
+</Warning>

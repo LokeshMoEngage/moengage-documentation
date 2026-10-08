@@ -1,0 +1,320 @@
+---
+title: "Microsoft D365 Sales へのイベントのストリーミング"
+---
+
+## はじめに
+
+[Microsoft Dynamics 365 Sales](https://www.microsoft.com/en-us/dynamics-365/products/sales) は、連絡先、リード、商談、アクティビティを通じて顧客関係を管理するエンタープライズ向け CRM ソリューションです。この統合により、Microsoft Power Automate を使用して、MoEngage から Microsoft Dynamics 365 Sales への**インバウンドデータフロー**が可能になります。
+
+## 主な機能
+
+この統合により、次のことができます。
+
+- MoEngage からリアルタイムのキャンペーンエンゲージメントイベント（メールの開封、クリック、フォーム送信、ウェビナーへの参加など）を受信する。
+- D365 Sales の Lead、Contact、Opportunity レコードを最新のエンゲージメントデータで自動的に更新する。
+- MoEngage と D365 Sales の間でエンゲージメント履歴の同期を維持する。
+- MoEngage キャンペーンでのインタラクションに基づいて、D365 Sales のワークフローやビジネスプロセスフローをトリガーする。
+- クローズドループレポートのために、営業活動イベントとマーケティングアトリビューションをトラッキングする。
+
+## ユースケース
+
+- **メールエンゲージメントに基づくリードスコアリング**: リードが MoEngage でマーケティングメールを開封したときに、D365 Sales のリードスコアを自動的に加算し、_Last Engagement Date_ フィールドを更新して、営業担当者がフォローアップの優先順位を付けられるようにします。
+- **商談ステージの進行**: 見込み顧客が MoEngage でトラッキングされているウェビナーに参加したり、料金ガイドをダウンロードしたりしたときに、D365 Sales の Opportunity を _Qualified_ または _Proposal_ ステージに自動的に移動し、アカウント所有者にフォローアップタスクを割り当てます。
+- **キャンペーン反応のトラッキング**: MoEngage のランディングページからのすべてのフォーム送信を取り込み、関連する Lead または Contact に紐付けられた Marketing Response レコードまたは Activity レコードを D365 Sales に作成して、包括的なエンゲージメント履歴を構築します。
+- **マルチチャネルのエンゲージメント履歴**: MoEngage のメール、SMS、プッシュ通知、アプリ内メッセージのイベントを D365 Sales のアクティビティレコードに同期することで、顧客とのやり取りの完全なタイムラインを構築し、営業チームがマーケティングのタッチポイントを完全に把握できるようにします。
+- **営業とマーケティングの連携**: Contact が複数のキャンペーンタッチにエンゲージしたときに、担当営業に対するフォローアップの Call または Task を自動的に作成し、示された関心に基づいてタイムリーなアプローチを確実に行えるようにします。
+
+## 統合の手順ガイド
+
+<Info>
+  **前提条件**
+
+  - Microsoft Power Platform と D365 Sales 環境への管理者アクセス権。
+  - Lead、Contact、Opportunity エンティティに対する書き込み権限を持つ D365 Sales のセキュリティロール。
+  - **MoEngage のデータ要件**: レコードを適切に照合するために、MoEngage は `user_attributes` フィールドで次のいずれかの D365 エンティティ ID を送信する必要があります。
+    - `d365_lead_id`（Lead GUID）— Lead レコードの更新に使用します。
+    - `d365_contact_id`（Contact GUID）— Contact レコードの更新に使用します。
+    - `d365_opportunity_id`（Opportunity GUID）— Opportunity レコードの更新に使用します。
+
+  MoEngage が D365 Sales にイベントを送り返す際にこれらの識別子を含められるように、アウトバウンド統合（D365 Sales → MoEngage）の際にこれらの識別子を MoEngage に同期しておく必要があります。MoEngage Streams を設定する際は、**User properties to export** でエクスポートするユーザープロパティを指定します。_All_ を選択するか、必要な特定の識別子フィールド（例: `d365_lead_id`、`d365_contact_id`）を列挙してください。
+</Info>
+
+<Note>
+  **使用可能なエンティティ識別子**
+
+  Microsoft Dataverse では、レコードの更新に次のプライマリ識別子を使用できます。
+
+  - **Primary Key（GUID）**: 各エンティティの一意の識別子（`leadid`、`contactid`、`opportunityid` など）。
+  - **Alternate Keys**: D365 環境で設定されている場合のカスタム代替キー（例: Contacts の代替キーとしてのメールアドレス）。
+
+  この統合では、すべての D365 環境で一意かつ不変であることが保証されている **Primary Key（GUID）** を使用することをお勧めします。
+</Note>
+
+### ステップ 1: Power Automate で HTTP リクエストトリガーを作成する
+
+<Steps>
+  <Step title="Power Automate を開く">
+    [Power Automate](https://flow.microsoft.com/) に移動します。
+  </Step>
+  <Step title="自動化されたクラウドフローを作成する">
+    **Create** \> **Automated Cloud Flow** をクリックします。
+  </Step>
+  <Step title="フローに名前を付ける">
+    フローに `MoEngage - Receive Events to D365` という名前を付けます。
+  </Step>
+  <Step title="トリガーを選択する">
+    トリガー **When a HTTP request is received** を選択します。
+  </Step>
+  <Step title="フローを作成する">
+    **Create** をクリックします。
+
+    <Frame>
+      ![HTTP リクエストトリガーが強調表示された Power Automate のトリガー選択画面](/images/partner_43270355308564.png)
+    </Frame>
+  </Step>
+</Steps>
+
+#### HTTP リクエストトリガーを設定する
+
+トリガーの設定で、**Request Body JSON Schema** を定義します。これにより、MoEngage Streams から受信するデータの構造を Power Automate に伝えます。
+
+<Frame>
+  ![Request Body JSON Schema フィールドが表示された Power Automate の HTTP リクエストトリガー設定](/images/partner_43270361460244.png)
+</Frame>
+
+次のスキーマをコピーして、**Request Body JSON Schema** フィールドに貼り付けます。
+
+```json JSON Schema
+{
+  "type": "object",
+  "properties": {
+    "app_name": { "type": "string" },
+    "source": { "type": "string" },
+    "moe_request_id": { "type": "string" },
+    "events": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "event_name": { "type": "string" },
+          "event_code": { "type": "string" },
+          "event_uuid": { "type": "string" },
+          "event_time": { "type": "integer" },
+          "event_type": { "type": "string" },
+          "event_source": { "type": "string" },
+          "email_id": { "type": "string" },
+          "uid": { "type": "string" },
+          "event_attributes": {
+            "type": "object",
+            "properties": {
+              "campaign_id": { "type": "string" },
+              "campaign_name": { "type": "string" },
+              "campaign_type": { "type": "string" },
+              "campaign_channel": { "type": "string" }
+            }
+          },
+          "user_attributes": {
+            "type": "object",
+            "properties": {
+              "moengage_user_id": { "type": "string" },
+              "d365_lead_id": { "type": "string" },
+              "d365_contact_id": { "type": "string" },
+              "d365_opportunity_id": { "type": "string" },
+              "d365_custom_entity_id": { "type": "string" },
+              "external_identifier": { "type": "string" }
+            }
+          },
+          "device_attributes": {
+            "type": "object",
+            "properties": {
+              "moengage_device_id": { "type": "string" }
+            }
+          }
+        },
+        "required": ["event_name", "event_time", "user_attributes"]
+      }
+    }
+  },
+  "required": ["app_name", "source", "events"]
+}
+```
+
+<Check>
+  スキーマを追加したら、**Save** をクリックします。Power Automate によって一意の **HTTP POST URL** が生成されます。この URL をコピーしてください。後で MoEngage Streams を設定する際に必要になります。
+</Check>
+
+### ステップ 2: 各イベントに適用する
+
+MoEngage は 1 回のリクエストで複数のイベントを送信できるため、**Apply to each** ループを追加してイベントを個別に処理します。
+
+<Steps>
+  <Step title="新しいステップを追加する">
+    **New Step** をクリックします。
+  </Step>
+  <Step title="Apply to each コントロールを選択する">
+    **Control** を検索し、**Apply to each**（Control）を選択します。
+  </Step>
+  <Step title="events 出力を選択する">
+    **Select an output from previous steps** フィールドで、JSON の動的コンテンツから **events** を選択します。
+
+    <Note>
+      MoEngage ペイロード内のすべてのイベントに対して実行されるように、以降のすべてのアクションはこの _Apply to each_ ループの**内側**に追加する必要があります。
+    </Note>
+
+    <Frame>
+      ![events 配列を入力として設定した Power Automate の Apply to each ループ](/images/partner_43270355310100.png)
+    </Frame>
+  </Step>
+</Steps>
+
+### ステップ 3: カスタムテーブルを作成してイベントレコードを追加する
+
+この統合では、MoEngage キャンペーンのすべてのエンゲージメントイベントデータを Leads に紐付けて保存するために、Power Apps で **MoEngage Event** というカスタムテーブルを作成しました。
+
+この方法により、顧客とのすべてのやり取りの完全な履歴を維持でき、任意のエンティティに対してこれを設定できます。
+
+<Info>
+  **Power Apps でカスタムテーブルを作成する**
+
+  Power Automate のアクションを設定する前に、MoEngage のイベントデータを保存するためのカスタムテーブルを Power Apps で作成します。テーブルには、必要な列（Event Name、Event Date、Campaign Name、Campaign Channel、Event Code、Event UUID）と、対象のエンティティ（Lead、Contact、または Opportunity）へのルックアップリレーションシップを含める必要があります。
+
+  手順については、[カスタムテーブルの作成に関する Microsoft Power Apps のドキュメント](https://learn.microsoft.com/en-us/power-apps/maker/data-platform/create-custom-entity)を参照してください。
+</Info>
+
+#### イベントレコードを作成する Dataverse アクションを追加する
+
+<Steps>
+  <Step title="Dataverse アクションを追加する">
+    _Apply to each_ ループ内に、**Microsoft Dataverse** アクションを追加します。
+  </Step>
+  <Step title="Add a new row を選択する">
+    Dataverse アクションとして **Add a new row** を選択します。
+  </Step>
+  <Step title="カスタムテーブルを選択する">
+    **Table name** で、カスタムテーブル（例: **MoEngage Events**）を選択します。
+  </Step>
+  <Step title="フィールドマッピングを設定する">
+    次のセクションの説明に従って、フィールドマッピングを設定します。
+  </Step>
+</Steps>
+
+#### フィールドマッピングの手順
+
+MoEngage Events テーブルの各フィールドについて、受信した MoEngage ペイロードのデータをマッピングします。以下は、**Event Name** フィールドをマッピングする方法の例です。
+
+| フィールド名 | マッピング方法 | 式 / 動的コンテンツ |
+| --- | --- | --- |
+| **Event Name** | フィールドをクリックし、**/** をクリックして動的コンテンツリストから選択します | 動的コンテンツピッカーから **event\_name** を選択します |
+
+<Frame>
+  ![Event Name フィールドが動的コンテンツの event\_name にマッピングされた Power Automate の Dataverse アクション](/images/partner_43271000194580.png)
+</Frame>
+
+<Tip>
+  **動的コンテンツと式の違い**
+
+  ほとんどのフィールド（Event Name、Campaign Name、Event Code、Event UUID など）の場合:
+
+  - フィールド内をクリックして **/** を入力するか、稲妻アイコンをクリックします。
+  - 動的コンテンツピッカーから適切な値を選択します。
+
+  ルックアップフィールドの場合:
+
+  - フィールドをクリックして `/leads({id})` を入力します。`{id}` は動的コンテンツから選択します。
+</Tip>
+
+### ステップ 4: Unix タイムスタンプを DateTime に変換する
+
+MoEngage はイベントのタイムスタンプを Unix エポック時間（例: `1731421200`）で送信します。日付または時刻フィールドにマッピングする際は、これを D365 と互換性のある日時形式に変換します。
+
+**Inputs** フィールドで、次の式を使用します。
+
+```text Expression wrap
+formatDateTime(addSeconds('1970-01-01', items('Apply_to_each')?['event_time']), 'yyyy-MM-dd HH:mm:ss')
+```
+
+<Frame>
+  ![Unix から DateTime への変換式が入力された Power Automate の式エディター](/images/partner_43270361463188.png)
+</Frame>
+
+### ステップ 5: 統合をテストする
+
+#### 手動トリガーでテストする
+
+<Steps>
+  <Step title="テストモードでフローを開始する">
+    Power Automate で **Test** → **Manually** をクリックし、もう一度 **Test** をクリックして、リスニングモードでフローを開始します。
+  </Step>
+  <Step title="テストペイロードを送信する">
+    **Postman** や **cURL** などのツールを使用して、Webhook URL にテストペイロードを送信します。以下のサンプルペイロードを使用してください。
+
+    ```json Sample test payload
+    {
+      "app_name": "App Name",
+      "source": "MOENGAGE",
+      "moe_request_id": "test_request_12345",
+      "events": [
+        {
+          "event_name": "Email Opened",
+          "event_code": "37930333",
+          "event_uuid": "moe_unique_event_id_001",
+          "event_time": 1731421200,
+          "event_type": "CAMPAIGN_EVENT",
+          "event_source": "MOENGAGE",
+          "email_id": "test@example.com",
+          "uid": "moe_customer_123",
+          "event_attributes": {
+            "campaign_id": "q4_nurture_series_001",
+            "campaign_name": "Q4 Nurture Series",
+            "campaign_type": "General",
+            "campaign_channel": "Email"
+          },
+          "user_attributes": {
+            "moengage_user_id": "moe_internal_user_id",
+            "d365_lead_id": "<replace with your actual entity ID>"
+          },
+          "device_attributes": {
+            "moengage_device_id": "moe_internal_device_id"
+          }
+        }
+      ]
+    }
+    ```
+  </Step>
+</Steps>
+
+#### 検証の手順
+
+<Steps>
+  <Step title="フローの実行を監視する">
+    Power Automate でフローを開き、最新の実行を確認します。
+  </Step>
+  <Step title="正常に実行されたことを確認する">
+    すべてのアクションに緑色のチェックマークが表示されていることを確認します。
+  </Step>
+  <Step title="カスタムの MoEngage Events テーブルを開く">
+    Power Apps または D365 で、カスタムの MoEngage Events テーブルに移動します。
+  </Step>
+  <Step title="新しいイベントレコードを確認する">
+    マッピングされたすべてのデータを含む新しいイベントレコードが作成されていることを確認します。
+  </Step>
+  <Step title="ルックアップフィールドを確認する">
+    Lead ルックアップフィールドが Lead レコードを正しく参照していることを確認します。
+
+    <Frame>
+      ![マッピングされたデータと Lead ルックアップを含む新しいイベントレコードが表示された D365 の MoEngage Events テーブル](/images/partner_43270976890900.png)
+    </Frame>
+  </Step>
+</Steps>
+
+### ステップ 6: MoEngage Streams を有効にする
+
+統合のテストが成功したら、MoEngage Streams を有効にして、Power Automate の Webhook へのリアルタイムのイベントデータ送信を開始します。
+
+<Info>
+  **MoEngage Streams を設定する**
+
+  1. [ステップ 1](#step-1-create-the-http-request-trigger-in-power-automate) の **HTTP POST URL**（Power Automate の Webhook URL）をコピーします。
+  2. MoEngage Streams の公式ドキュメントに従って、ストリームを有効にして設定します: [MoEngage Streams ドキュメント](/ja/api/data/moengage-streams)。
+</Info>
+

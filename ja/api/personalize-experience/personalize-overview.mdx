@@ -1,0 +1,54 @@
+---
+title: "Personalize の概要"
+description: "サーバーサイドのコードベースから、パーソナライズされたコンテンツを取得し、エクスペリエンスイベントをレポートします。"
+icon: "file-magnifying-glass"
+---
+
+Personalize API は、プラットフォームのコードから直接、ユーザーに合わせたエクスペリエンスを提供するためのエンドポイント群です。クライアントサイドのパーソナライズとは異なり、これらのサーバーサイド API は、関連するデータを受け取るためにレンダリングパイプライン内で呼び出す必要があります。
+
+プラットフォームがパーソナライズされたペイロードを受け取ったら、それを使用して、リクエストしたユーザー向けにバナー、商品のレコメンデーション、価格などのコンテンツを動的にレンダリングできます。MoEngage は、ターゲティングルール、セッション内属性、セグメントを自動的に評価して、適切なバリエーションを返します。
+
+## エンドポイント
+
+Personalize API 群は、エクスペリエンス管理とイベントレポートに分類されます。
+
+- [Fetch Experience](/ja/api/experiences/fetch-experience): ターゲティングルールを評価し、ユーザー向けのパーソナライズされたペイロード（バリエーション）を返します。
+- [Fetch Experience Metadata](/ja/api/experiences/fetch-experience-metadata): 現在 Active、Scheduled、または Paused 状態のすべてのエクスペリエンスの一覧を取得します。
+- [Track Experience Events](/ja/api/events/track-experience-events): 正確なキャンペーンレポートのために、インプレッション（表示）とユーザーインタラクション（クリック）をトラッキングします。
+
+## エクスペリエンスイベントのレポート
+
+プラットフォームに応じて、API または MoEngage SDK のいずれかを使用して、サーバーサイドエクスペリエンスのインプレッションとクリックをレポートできます。
+
+| 方法                                                                                                                                                         | プラットフォーム            | 注記                                                                                                                                                                                                                                                                                                                                           |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| [Track Experience Events API](/ja/api/events/track-experience-events)                                                                                        | すべて（Web、モバイル、TV など） | **推奨。** すべてのプラットフォームで動作し、トラッキングロジックをサーバーサイドのコンテンツ配信と一貫させることができます。クリックをレポートする API リクエストは、インプレッションをレポートするリクエストと同じです。唯一の違いは **action** フィールドの値（_MOE_PERSONALIZATION_MESSAGE_SHOWN_ または _MOE_PERSONALIZATION_MESSAGE_CLICKED_）です。 |
+| [MoEngage Web SDK](/ja/developer-guide/personalize-sdk/sdk-integration/personalize-api-experience-events-tracking) | Web                         | Personalize SDK を使用して、Web サイトからエクスペリエンスイベントをレポートします。                                                                                                                                                                                                                                                           |
+| [MoEngage Android SDK](/ja/developer-guide/android-sdk/data-tracking/advanced-or-optional/personalize-experience-events-tracking) | Android                     | Android アプリからネイティブにエクスペリエンスイベントをレポートします。                                                                                                                                                                                                                                                                       |
+| [MoEngage iOS SDK](/ja/developer-guide/ios-sdk/data-tracking/advanced/personalize-experience-events-tracking)     | iOS                         | iOS アプリからネイティブにエクスペリエンスイベントをレポートします。                                                                                                                                                                                                                                                                           |
+
+## よくある質問
+
+### エクスペリエンス管理
+
+<Accordion icon="layer-group" title="1 回の呼び出しで複数のエクスペリエンスを取得できますか？">
+  はい。`experience_key` 配列に複数の値（例: `["hero-banner", "sidebar-promo"]`）を渡すことで、1 回のリクエストでページの複数のセクション向けのパーソナライズされたコンテンツを受け取ることができます。
+</Accordion>
+
+<Accordion icon="user-check" title="MoEngage は API を通じてどのようにユーザーを識別しますか？">
+  API は主に `customer_id` を使用します。これが不正確な場合や存在しない場合は、MoEngage ワークスペースで **Identity Resolution** が有効になっていれば、フォールバックとして `user_identifiers`（メールアドレスや携帯電話番号など）を使用できます。
+</Accordion>
+
+### セキュリティとイベント
+
+<Accordion icon="shield-halved" title="API Secret はどのような場合に再生成すべきですか？">
+  API Secret は、セキュリティ侵害が発生した場合にのみ再生成してください。新しいシークレットを保存すると、古いキーを使用している既存のすべての連携が直ちに機能しなくなることに注意してください。
+</Accordion>
+
+<Accordion icon="chart-line" title="イベントは API と SDK のどちらでレポートするのがよいですか？">
+  サーバーサイドのパーソナライズでは、トラッキングロジックをコンテンツ配信ロジックと一貫させることができるため、すべてのプラットフォーム（Web、モバイル、TV）で **Report Experience Events API** を使用することを推奨します。
+</Accordion>
+
+<Accordion icon="mouse-pointer" title="ページ上の特定の要素のクリックをトラッキングするにはどうすればよいですか？">
+  イベントペイロード内の `b_id` フィールドを使用すると、同じパーソナライズされたエクスペリエンス内でどの要素がクリックされたか（例: "Add to Cart" と "Wishlist"）を一意に識別できます。
+</Accordion>

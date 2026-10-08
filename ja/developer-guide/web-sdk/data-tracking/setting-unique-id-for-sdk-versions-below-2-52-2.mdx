@@ -1,0 +1,67 @@
+---
+title: "SDK バージョン 2.52.2 未満での Unique Id の設定"
+description: "MoEngage Web SDK バージョン 2.52.2 未満で、ログインとログアウトのための一意のユーザー ID を設定します。"
+---
+
+## ログイン/ログアウトの実装
+
+- ユーザーがアプリにログインしたときに ID を設定することが重要です。
+- これにより、新しいユーザーが既存のユーザー (存在する場合) とマージされ、不要なユーザーや古いユーザーの作成を防ぐことができます。
+- ID の設定は、デバイス間およびすべてのプラットフォーム (iOS、Android、Web) 間でユーザーを紐付けるための重要な要素です。ユーザーがログインしたらすぐにログインメソッドを呼び出してください。ID には、メール ID、一意のユーザー名、データベース ID、またはバックエンドで生成された任意の ID などを使用できます。
+- ログインしていないユーザーにはこれを設定しないでください。
+
+## ログイン
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.add_unique_user_id(UNIQUE_ID); // UNIQUE_ID is used to uniquely identify a user.
+```
+
+</CodeGroup>
+
+<Warning>
+  **警告**
+
+  MoEngage のログアウトメソッドを使用せずに `Moengage.add_unique_user_id(NEW_UNIQUE_ID)` を呼び出すと、SDK は MoEngage の強制ログアウトをトリガーします。`NEW_UNIQUE_ID` を ID とする新しいユーザープロファイルが作成され、最初のユーザープロファイルはログアウトイベントを受け取ります。新しいユーザーの作成によって現在のユーザーがリセットされ、システム内に意図しないユーザーが作成されるため、このような `Moengage.add_unique_user_id` の使い方は推奨されません。このメソッドを再度呼び出す前に、必ず MoEngage のログアウトメソッドを明示的に呼び出してください。
+</Warning>
+
+<Warning>
+  **重要 - 非常に重要な統合ガイドライン**
+
+  プロジェクト内で、`identifyUser` (SDK バージョン 2.52.2 以降のログインメソッド) と `add_unique_user_id` の両方のログインメソッドを使用しないでください。どちらか一方のメソッドのみを使用してください。両方のメソッドを使用すると、MoEngage アカウントでのユーザープロファイルの作成やマージに不整合が生じる可能性があります。
+</Warning>
+
+## ログアウト
+
+現在のユーザーをログアウトします。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.destroy_session();
+```
+
+</CodeGroup>
+
+## ユーザーの更新
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.update_unique_user_id(NEW_UNIQUE_ID);
+```
+
+</CodeGroup>
+
+<Warning>
+  **重要**
+
+  上記のすべてのメソッド (`add_unique_user_id`、`destroy_session`、`update_unique_user_id`) は、適切な順序で呼び出す必要があります。そのため、これらのメソッドの実行が完全に完了した後に他の属性をトラッキングするようにしてください。これらのメソッドは Promise を返すため、次のように使用できます。
+
+  ```javascript JavaScript lines wrap
+  Moengage.add_unique_user_id(UNIQUE_ID).then(() => { 
+    Moengage.add_mobile('7777777777')
+  });
+  ```
+</Warning>

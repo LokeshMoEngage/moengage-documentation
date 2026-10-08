@@ -3,7 +3,7 @@ title: "Migrate To The Extension Integrator Tool"
 description: "Migrate from a manual iOS notification extension setup to the MoEngage Extension Integrator Tool in your React Native app."
 ---
 
-All steps in this guide are performed in Xcode, open your iOS project by launching `ios/YourApp.xcworkspace` in Xcode before proceeding.
+All steps in this guide are performed in Xcode. Open your iOS project before proceeding: `ios/YourApp.xcworkspace` if you use CocoaPods, or `ios/YourApp.xcodeproj` if you use Swift Package Manager.
 
 To migrate from an existing manual implementation to the integrator tool, follow the below steps:
 
@@ -38,13 +38,11 @@ Integrate `MoEngageRichNotification` if you need to support either of the follow
 
 <Tabs>
   <Tab title="Swift Package Manager (SPM)">
-    To install the `MoEngageRichNotification` through SPM, perform the following steps:
+    If your React Native application uses Swift Package Manager, skip this step. `react-native-moengage` already includes `MoEngageRichNotification` when you run `npx react-native spm`. Don't add the `apple-sdk` package separately, because Xcode fails to resolve packages when its version differs from the one the plugin uses.
 
-    1. Navigate to **File \> Add Package**.
-    2. Enter the repository URL:
-       - `https://github.com/moengage/apple-sdk.git`
-    3. Select the **master** branch or a specific version and select **Add Package**.
-    4. Target the package to your application.
+    Add `MoEngageRichNotification` yourself only if you maintain your own Notification Service Extension or Content Extension code that imports it. In that case, add `https://github.com/moengage/apple-sdk.git` with **Dependency Rule** set to **Exact Version**. Use the `apple-sdk` version that Xcode lists under **Package Dependencies**, and update it every time you upgrade the MoEngage React Native packages.
+
+    To migrate an existing CocoaPods integration to SPM, refer to [Migrate From CocoaPods to SPM](/developer-guide/react-native-sdk/migration/migration-of-moengage-sdk-from-cocoapods-to-spm).
   </Tab>
   <Tab title="CocoaPods">
     <Warning>
@@ -108,7 +106,11 @@ Automate the extension configuration by adding a custom script to your build pro
 <Tabs>
   <Tab title="Swift Package Manager (SPM)">
     ```bash Swift Package Manager (SPM) lines wrap
-      ${OBJROOT}/../../SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration $OPTIONS
+    case "$ACTION" in
+      install) SPM_ROOT="$OBJROOT/../../../../.." ;;   # xcodebuild archive
+      *)       SPM_ROOT="$OBJROOT/../.." ;;            # build / run from Xcode
+    esac
+    "$SPM_ROOT/SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration" $OPTIONS
     ```
   </Tab>
   <Tab title="CocoaPods">

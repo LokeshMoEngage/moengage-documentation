@@ -1,0 +1,85 @@
+---
+title: "TelSpiel の設定"
+---
+
+# はじめに
+
+telSpiel は、SMS、WhatsApp Business Messaging、RCS、Voice、Email などのエンタープライズ向けコミュニケーションサービスを提供しています。MoEngage と telSpiel の SMS 統合により、次の目的でエンドユーザーとコミュニケーションを取ることができます。
+
+- さまざまなカテゴリ（Promotional、Service Implicit、Service explicit）の一括 SMS 配信
+- リアルタイムの配信状況の更新
+
+さらに、安全な SMS プラットフォームを通じてパーソナライズされたテキストを送信することで、セールスおよびマーケティングのエンゲージメントを自動化することもできます。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  - telSpiel の SMS アカウントと、それに対応する SMS Push API の詳細を保有している必要があります。
+  - アカウントのリージョンがインドの場合は、DLT 承認済みの詳細（テンプレートなど）を保有している必要があります。
+</Info>
+
+telSpiel をカスタム SMS コネクターとして設定するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードで、**Settings** \> **Channel** \> **SMS** に移動します。
+2. **SMS** タブで **Add SMS Sender** をクリックします。 <img src="/images/partner_37447253166868.png" alt="2025-05-13_16-47-31.png" />
+3. **Add custom service provider** をクリックします。 <img src="/images/partner_37447212121620.png" alt="2025-05-13_16-53-30.png" />
+4. **Sender Details** 画面で次の詳細を追加します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **Sender Type** | Sender Type を選択します - <br />telSpiel の SMS アカウントに応じて Promotional/Transactional を選択します。 |
+| **Connector Name** | SMS コネクターを一意に識別するためのコネクター名を入力します。例: "telSpiel" |
+| **Sender Name** | 送信者名（DLT 承認済みヘッダー）を入力します |
+| **API URL** | telSpiel から提供された HTTP エンドポイントに応じて、GET または POST オプションを選択します。 <br />次に、telSpiel の SMS Push エンドポイント（GET/POST）をそれぞれの認証情報/詳細とともに入力します。<br /><br />GET API: 単一 API リクエストのエンドポイント: <br />`https://api.telsp.in/pushapi/sendmsg?username=xxxxxx&dest=xxxxxxx&apikey=xxxxx&signature=SENDERID&msgtype=TypeofMessage&msgtxt=template&entityid=entityIdvalue&templateid=templateIDvalue&custref=uniquereferenceid&hashId=dltChainvalue`<br />複数 API リクエストのエンドポイント:<br />`https://api.telsp.in/pushapi/sendbulkmsg?username=xxxxxx&dest=xxxxxxx,xxxxxxx&apikey=xxxxx&signature=SENDERID&msgtype=TypeofMessage&msgtxt=template&entityid=entityIdvalue&templateid=templateIDvalue&custref=uniquereferenceid&hashId=dltChainvalue` <br />キーと値のペア: キーと値を入力します。POST API: 単一 API リクエストのエンドポイント:<br />`https://api.telsp.in/pushapi/json/sendmsg`<br />複数 API リクエストのエンドポイント:<br />`https://api.telsp.in/pushapi/json/sendBulkMsg`<br />POST エンドポイントがサポートする JSON ペイロード構造を入力します。 |
+| **Parameter Details** | キーと値のペア / JSON パラメーターの詳細: <ul><li>`username=<******>` \[telSpiel API ユーザー名\]</li><li>`dest= Moesms_message` \[SMS の送信先の携帯電話番号\]</li><li>`apikey= User account Authentication key`（telSpiel から提供）</li><li>`signature=DLT approved Header/Sender`</li><li>`msgtype=Type of message`（プレーンテキストの場合は PM、Unicode メッセージ/多言語メッセージの場合は UC）</li><li>`msgtxt= Moesms_destination` \[DLT 承認済みメッセージテキスト\]</li><li>`entityid=DLT Entity ID Value`</li><li>`templateid=Template ID Value` \[承認済みテンプレートに対する DLT テンプレート ID\]</li><li>`custref=Reference unique ID`（任意）</li><li>`hashId=Dlt chain Value`（任意）</li></ul> |
+| **Headers** | POST エンドポイントの場合は、次のキーと値のペアを入力してください:<br />Key: `Content-Type` \| Value: `application/json`<br />Key: `Accept` \| Value: `application/json` |
+| 配信トラッキング | 配信トラッキングを行うには、「Custom Connector」を保存した後に編集します。次に「Map fields manually」オプションを選択し、次のマッピングを行います: <ul><li>Unique sent ID field: `uuid`</li><li>Unique delivery ID field \*: `uuid`</li><li>Delivery status field \*: `status`</li><li>Success values for delivery status \*: `DELIVERY_SUCCESS`</li><li>Failure reason field \*: `description`</li></ul> 設定のために、SMS 配信トラッキング URL を telSpiel と共有してください。 |
+
+5. **Body Type**（POST の場合のみ）で「Raw」を選択し、JSON ペイロード構造全体を入力します。
+   - 単一リクエストの場合:
+     <CodeGroup>
+     ```json JSON
+     {
+       "username":"xxxxxx",
+       "apikey":"xxxxxxxxxxx",
+       "msgtype":"TypeofMessage",
+       "msgtext":"Template",
+       "signature":"SenderID",
+       "entity":"EntityIDValue",
+       "templateid":"TemplateIDValue",
+       "tag":"CampaignNameGivenByUser”,     //OPTIONAL
+       "custref":"Uniquereferenceid”,       //OPTIONAL 
+       "hashId":"DltChainvalue",          //OPTIONAL
+       "dest": ["xxxxxxxxx"]
+     }
+     ```
+     </CodeGroup>
+   - 複数リクエストの場合:
+     <CodeGroup>
+     ```json JSON
+     {
+       "username":"xxxxxx",
+       "apikey":"xxxxxxxxx",
+       "entity": "xxxxxxxx",
+       "msgtype": ["xx","xx"],
+       "signature": ["xxxxx","xxxxx"],
+       "msgtext": ["Template1","Template2"],
+       "templateid": ["TemplateIdValue1","TemplateIdValue2"],
+       "tag": "CampaignNameGivenByUser",       //OPTIONAL
+       "hashId":"DltChainvalue",              //OPTIONAL
+       "custref":"Uniquereferenceid",       //OPTIONAL
+       "dest": ["xxxxxxxx","xxxxxxxxx"]
+     }
+     ```
+     </CodeGroup>
+6. **Save** をクリックします。
+
+# トラブルシューティング
+
+テストメッセージの送信中や設定の保存中に問題が発生した場合は、次の手順に従ってください。
+
+- telSpiel のエンドポイントと各パラメーター/JSON 構造は大文字と小文字が区別されるため、正しく追加されていることを確認してください。
+- 問題が解決しない場合は、MoEngage にサポートリクエストを送信してエラーコードを取得してください。
+- MoEngage サポートチームからエラーコードを受け取ったら、telSpiel サポートチームに連絡して問題を解決してください。サポートメール: [_care@telspiel.com_](mailto:care@telspiel.com)。

@@ -1,0 +1,257 @@
+---
+title: "ファイルベースの初期化"
+description: "ファイルベースの初期化を使用して、ネイティブの設定ファイルで MoEngage React Native SDK を設定します。"
+---
+
+## 概要
+
+<Info>
+  v12.0.0 以降、React Native SDK はファイルベースの初期化をサポートしています。
+</Info>
+
+統合プロセスを効率化し、初期化エラーを最小限に抑えるために、MoEngage はスクリプトベースの初期化をサポートしています。この方法では、App ID と設定をネイティブの設定ファイル内で直接管理できるため、アプリケーションロジックから分離しておくことができます。
+
+この記事では、フォームベースのインターフェースを使用して、初期化用の検証済みコードスニペットを生成し、モジュール固有の設定にアクセスする方法について説明します。
+
+<Info>
+  または、SDK を手動で初期化することもできます。この方法が必要な場合は、[フレームワークの初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization)に関するガイドを参照してください。
+</Info>
+
+## スクリプトベースの初期化
+
+初期化スクリプトを生成するには、以下の手順に従います。
+
+<Steps>
+  <Step title="Config Generator にアクセスする">
+    [初期化用ウェブサイト](https://app-cdn.moengage.com/sdk/integration/config/index.html)に移動します。
+  </Step>
+  <Step title="パラメータを設定する">
+    アプリケーションの要件に基づいて値を設定します。以下の設定パラメータの表を参照してください。
+
+    - [Android](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/file-based-initialization/file-based-initialization#android-configuration-reference) 
+    - [iOS](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/file-based-initialization/file-based-initialization#ios-configuration-reference)
+  </Step>
+  <Step title="生成する">
+    フォームの下部にある **Generate Code** をクリックします。
+  </Step>
+</Steps>
+
+## Android の設定（XML）
+
+Android では、アプリケーションのリソースディレクトリに XML 設定ファイルを配置することで初期化を行います。
+
+### Android 設定リファレンス
+
+以下は、`moengage.xml` で使用できるキーの包括的なリストです。
+
+<AccordionGroup>
+  <Accordion title="Android 設定の詳細">
+    | カテゴリ | XML キー名 | 型 | 説明 |
+    | :-- | :-- | :-- | :-- |
+    | **Core** | `com_moengage_core_workspace_id` | String | App ID を指定します。このフィールドは必須です。 |
+    |  | `com_moengage_core_file_based_initialisation_enabled` | Boolean | この機能を有効にするには `true` に設定します。 |
+    |  | `com_moengage_core_data_center` | Integer | デフォルト: `1`。詳細については、[データセンターの値](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/file-based-initialization/file-based-initialization#data-center-values)を参照してください。 |
+    |  | `com_moengage_core_environment` | String | サポートされる値: `default`、`live`、または `test`。 |
+    |  | `com_moengage_core_custom_base_domain` | String | SDK のネットワークトラフィックを独自のサブドメイン経由でルーティングするための、ベースのカスタムプロキシドメインを指定します。 |
+    |  | `com_moengage_core_integration_partner` | String | コアの統合パートナー（例: `segment` または `mparticle`）を指定します。 |
+    | **Push** | `com_moengage_push_notification_small_icon` | Drawable | スモールアイコンのリソース ID です。 |
+    |  | `com_moengage_push_notification_large_icon` | Drawable | ラージアイコンのリソース ID です。 |
+    |  | `com_moengage_push_notification_color` | Color | 通知のアクセントカラーです。 |
+    |  | `com_moengage_push_notification_token_retry_interval` | Integer | トークン登録の再試行間隔（秒）です。 |
+    |  | `com_moengage_push_kit_registration_enabled` | Boolean | `true` の場合、SDK はプッシュトークンを登録します。 |
+    | **Logs** | `com_moengage_core_log_level` | Integer | `0`（ログなし）から `5`（Verbose）まで。デフォルト: `3`。 |
+    |  | `com_moengage_core_log_enabled_for_release_build` | Boolean | `true` の場合、リリースビルドでログを出力します。 |
+    | **Security** | `com_moengage_core_storage_encryption_enabled` | Boolean | ローカルストレージの暗号化を有効にします。 |
+    |  | `com_moengage_core_network_encryption_enabled` | Boolean | ネットワーク上のペイロード暗号化を有効にします。 |
+    | **Sync** | `com_moengage_core_periodic_data_sync_enabled` | Boolean | フォアグラウンドでの定期的なデータ同期を有効にします。 |
+    |  | `com_moengage_core_background_data_sync_enabled` | Boolean | バックグラウンドでの定期的なデータ同期を有効にします。 |
+    | **In-App** | `com_moengage_inapp_show_in_new_activity_enabled` | Boolean | 特定の TV/Android セットアップで必要です。 |
+  </Accordion>
+</AccordionGroup>
+
+<Warning>
+  **トラブルシューティング**
+
+  XML ファイルが存在しない場合、または `com_moengage_core_workspace_id` が空の場合、SDK は `ConfigurationMismatchError` をスローします。
+</Warning>
+
+### 設定ファイルの追加
+
+生成されたファイルを `android/app/src/main/res/values/` に配置します。
+
+## iOS の設定（Info.plist）
+
+iOS では、`Info.plist` に設定ディクショナリを追加することで初期化を行います。
+
+### iOS 設定リファレンス
+
+以下は、`MoEngage` ディクショナリで使用できるキーの包括的なリストです。
+
+<AccordionGroup>
+  <Accordion title="iOS 設定の詳細">
+    | カテゴリ | Plist キー | 型 | 説明 |
+    | :-- | :-- | :-- | :-- |
+    | **Core** | `WorkspaceId` | String | App ID を指定します。必須です。 |
+    |  | `IsSdkAutoInitialisationEnabled` | Boolean | SDK の自動初期化を有効にするには `true` に設定します。 |
+    |  | `DataCenter` | Integer | 必須です。デフォルト: `1`。[データセンターの値](/ja/developer-guide/flutter-sdk/sdk-integration/sdk-initialization/file-based-initialization/file-based-initialization#data-center-values)を参照してください。 |
+    |  | `IsTestEnvironment` | String / Boolean | デフォルト: `$(SWIFT_ACTIVE_COMPILATION_CONDITIONS)`。 |
+    |  | `CustomBaseDomain` | String | カスタムプロキシドメインのサブドメインを指定します。 |
+    |  | `IntegrationPartner` | String | 統合パートナー（例: `segment` または `mparticle`）です。 |
+    |  | `AppGroupName` | String | SDK データを共有するための App Group 名です。 |
+    | **Logs** | `IsLoggingEnabled` | Boolean | SDK のログを有効にするには `true` に設定します。 |
+    |  | `Loglevel` | Integer | `0` から `5`。デフォルト: `2`。 |
+    | **Security** | `IsStorageEncryptionEnabled` | Boolean | ローカルストレージの暗号化を有効にします。 |
+    |  | `KeychainGroupName` | String | ストレージの暗号化が有効な場合は必須です。 |
+    |  | `IsNetworkEncryptionEnabled` | Boolean | ペイロードの暗号化を有効にします。 |
+    |  | `EncryptionEncodedTestKey` | String | Test 環境用にダッシュボードで自動入力される文字列です。 |
+    |  | `EncryptionEncodedLiveKey` | String | Live 環境用にダッシュボードで自動入力される文字列です。 |
+    | **Sync** | `AnalyticsEnablePeriodicFlush` | Boolean | 定期的なデータのフラッシュを有効にします。デフォルト: `true`。 |
+    |  | `AnalyticsPeriodicFlushDuration` | Integer | フラッシュの間隔（秒）です。デフォルト: `60`。 |
+    | **In-App** | `InAppDisplaySafeAreaInset` | Real | セーフエリアのパディング値です。 |
+    |  | `InAppShouldProvideDeeplinkCallback` | Boolean | `true` の場合、ディープリンクでコールバックを提供します。 |
+  </Accordion>
+</AccordionGroup>
+
+### データセンターの値
+
+お使いのリージョンに対応する整数を設定します。誤った値を設定すると、データが失われます。
+
+| データセンター | ダッシュボードのホスト |
+| :-- | :-- |
+| 1 | dashboard-01.moengage.com |
+| 2 | dashboard-02.moengage.com |
+| 3 | dashboard-03.moengage.com |
+| 4 | dashboard-04.moengage.com |
+| 5 | dashboard-05.moengage.com |
+| 6 | dashboard-06.moengage.com |
+
+### Info.plist の更新
+
+<Steps>
+  <Step title="Plist を開く">
+    プロジェクトの `Info.plist`（`ios/ProjectName/` にあります）を開きます。
+  </Step>
+  <Step title="MoEngage ディクショナリを作成する">
+    `Dictionary` 型の `MoEngage` という名前の新しいトップレベルキーを作成します。
+  </Step>
+  <Step title="設定する">
+    [初期化用ウェブサイト](https://app-cdn.moengage.com/sdk/integration/config/index.html)で生成された設定ファイルの内容を追加します。
+  </Step>
+</Steps>
+
+<Warning>
+  **警告** キー `IsSdkAutoInitialisationEnabled` はイギリス英語の綴り（「s」）を使用しています。正確なキー名を使用しないと、初期化に失敗します。
+</Warning>
+
+**XML スニペットの表現:**
+
+<Tabs>
+  <Tab title="XML">
+    ```xml
+    <key>MoEngage</key>
+    <dict>
+        <key>WorkspaceId</key>
+        <string>YOUR_WORKSPACE_ID</string>
+        <key>IsTestEnvironment</key>
+        <string>$(SWIFT_ACTIVE_COMPILATION_CONDITIONS)|$(GCC_PREPROCESSOR_DEFINITIONS)</string>
+        <key>DataCenter</key>
+        <integer>1</integer>
+        <key>CustomBaseDomain</key>
+        <string>data.example.com</string>
+        <key>IsLoggingEnabled</key>
+        <true/>
+    </dict>
+    ```
+  </Tab>
+</Tabs>
+
+## フレームワークレベルの初期化
+
+ネイティブファイルを設定すると、ハイブリッドフレームワークでの初期化コードが簡素化されます。
+
+### Android のネイティブセットアップ
+
+`android/app/src/main/java/com/your_app/MainApplication.java`（または `.kt`）の `onCreate()` メソッド内に次のコードを追加します。
+
+<Tabs>
+  <Tab title="Kotlin">
+    ```kotlin
+    import com.moengage.react.MoEInitializer
+    
+    override fun onCreate() {
+      super.onCreate()
+      MoEInitializer.initializeDefaultInstance(application)
+    }
+    ```
+  </Tab>
+  <Tab title="Java">
+    ```java
+    import com.moengage.react.MoEInitializer;
+    
+    @Override
+    public void onCreate() {
+      super.onCreate();
+      // ... existing code
+      MoEInitializer.INSTANCE.initializeDefaultInstance(this);
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### iOS のネイティブセットアップ
+
+`AppDelegate` クラスの `didFinishLaunchingWithOptions` メソッド内に次のコードを追加します。
+
+<Tabs>
+  <Tab title="Swift">
+    ```swift
+    import MoEngageSDK
+    
+    override func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+      // ... existing code
+      MoEngage.sharedInstance.initializeDefaultInstance()
+      return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+    }
+    ```
+  </Tab>
+  <Tab title="Objective-C">
+    ```objectivec
+    #import <MoEngageSDK/MoEngageSDK.h>
+    
+    - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
+    {
+      // ... existing code
+      [[MoEngageInitializer sharedInstance] initializeDefaultInstanceWithAdditionalReactConfig:[[MoEngageReactSDKDefaultInitializationConfig alloc] init]];
+      return [super application:application didFinishLaunchingWithOptions:launchOptions];
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### React-Native コンポーネントの初期化
+
+コンポーネントがマウントされたら、アプリケーションの **_App.js_** または **_App.ts_** で MoEngage プラグインを初期化します。
+
+<Tabs>
+  <Tab title="TypeScript">
+    ```typescript
+    import ReactMoE from 'react-native-moengage';
+    ReactMoE.initialize("YOUR_WORKSPACE_ID");
+    ```
+  </Tab>
+</Tabs>
+
+<Note>
+  クラスベースのコンポーネントを使用している場合は、`render()` または `componentDidMount()` で初期化できます。
+</Note>
+
+## 移行と優先順位
+
+手動のコードベースの初期化からファイルベースの方法に移行するには、[こちら](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/file-based-initialization/migration-and-precedence)を参照してください。
+
+## 環境（Test と Live）
+
+これらのファイル内で Test/Live 環境を設定できます。
+
+- **Android:** `<string name="com_moengage_core_environment">test</string>` を使用します。
+- **iOS:** `<key>IsTestEnvironment</key> <true/>` を使用します。

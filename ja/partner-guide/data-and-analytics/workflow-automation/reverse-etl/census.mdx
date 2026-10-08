@@ -1,0 +1,92 @@
+---
+title: "Census"
+description: "Census のリバース ETL を使用して、データウェアハウスのユーザーとイベントを MoEngage に同期し、高度なセグメンテーション、パーソナライゼーション、クロスチャネルキャンペーンに活用します。"
+keywords: ["census", "reverse etl", "data warehouse", "user sync", "event sync", "moengage integration"]
+---
+
+## はじめに
+
+[Census](https://www.getcensus.com/) は、データウェアハウスを、ビジネスを推進する営業、マーケティング、その他の顧客向けツールに簡単に接続できるリバース ETL プラットフォームです。
+
+## MoEngage と Census
+
+MoEngage と Census の連携により、データウェアハウスのユーザーデータとイベントデータを MoEngage に直接取り込むことができます。Census を使用すると顧客データを常に最新の状態に保てるため、よりターゲットを絞ったキャンペーンや顧客体験を作成できます。
+
+### ユースケース
+
+- Census のユーザーに関するデータを MoEngage に同期して、パーソナライズされたキャンペーンを構築する。
+- Census の顧客イベントを MoEngage に同期して、イベントを最新の状態に保つ。
+- 他の顧客タッチポイントのデータを MoEngage に取り込み、より優れた体験を提供する。
+
+## 連携の前提条件
+
+- Census アカウントにアクセスできることを確認してください。
+- Data API ID と Data API Key は、**Settings** > **Account** > **APIs** で確認できます。Data API ID は **Workspace ID** と同じです。Data API Key は、同じ画面の **API Keys** > **Data** セクションで確認できます。
+
+### MoEngage を Census に接続する
+
+1. Census Dashboard で、Connections >「**+ New Destination**」に移動します。
+2. MoEngage を検索して選択します。
+3. ステップ 2 で、次の項目を設定する必要があります。
+
+![Census で MoEngage の送信先の認証情報を設定する](/images/partner_15350226605460.png)
+
+| フィールド | 詳細 |
+| --- | --- |
+| Name | この送信先に「MoEngage」という名前を付けます。 |
+| Data API Id | MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+| Data API Key | MoEngage アカウントの Data API キーは、**Settings > Account > APIs > API keys > Data** API settings で確認できます。 |
+| Workspace Id | MoEngage アカウントの Workspace ID は、**Settings > Account > APIs > Workspace ID** で確認できます。 |
+| REST Endpoint | MoEngage の URL に基づいて、[このページ](/ja/user-guide/data/key-concepts/data-centers-in-moengage)で確認できます。**REST API Host** 列に表示されている値を正確に入力します。 |
+
+4. 必要な詳細を入力したら、「Connect」をクリックします。
+5. Census は、入力された認証情報のテストを自動的に試行します。
+
+![Census が MoEngage の接続認証情報を検証している様子](/images/partner_15350763831828.png)
+
+6. 接続が検証されたら、「Finish」をクリックして MoEngage を送信先として追加します。
+
+### MoEngage にユーザーを送信する
+
+1. Census Dashboard で、Syncs >「**+ Create a new Sync**」に移動します。
+2. 「Select a Source」で、接続とそのソースを選択します。次に、同期するスキーマとテーブルを選択します。
+3. 「Select a Destination」で、接続として「MoEngage」を選択します。Object で「Customer」を選択します。
+
+![Census から MoEngage への Customer オブジェクトの同期を設定する](/images/partner_15350916257684.png)
+
+4. Sync Behavior を選択します。MoEngage は「Update or Create」のみをサポートしています。
+5. Sync Key を選択します。これは、MoEngage 内で一致するデータを識別するキーを定義します。Census はこのキーを使用して、各同期実行時にどのデータを同期するかを判断します。列とフィールドは同じ一意の値を持つ必要があります。
+6. 「Set Up MoEngage Field Mappings」で、特定のプロパティを同期するか、すべてのプロパティを同期するかを選択します。
+
+![Census での Customer 同期における MoEngage フィールドマッピング](/images/partner_15351042284948.png)
+
+7. マッピングを追加すると、Census は MoEngage の一部の標準プロパティを自動的に照合します。MoEngage 内に新しいプロパティを作成することもできます。
+8. マッピングが完了したら、必要に応じて「Run a Test Sync」を選択できます。
+9. 完了したら「Next」をクリックします。
+10. 同期の詳細を確認し、「Create Sync」をクリックして新しい同期を作成します。「run a sync now」を選択することもできます。
+11. その後、Census は定期的に同期を実行し、Census と MoEngage の間のデータを常に最新の状態に保ちます。
+
+### MoEngage にイベントを送信する
+
+1. Census Dashboard で、Syncs >「**+ Create a new Sync**」に移動します。
+2. 「Select a Source」で、接続とそのソースを選択します。次に、同期するスキーマとテーブルを選択します。
+3. 「Select a Destination」で、接続として「MoEngage」を選択します。Object で「Event」を選択します。
+
+![Census から MoEngage への Event オブジェクトの同期を設定する](/images/partner_15351570167316.png)
+
+4. Sync Behavior を選択します。MoEngage は「Append」のみをサポートしています。
+5. Append Key を選択します。Append Key は、テーブル内の一意のレコードを識別する列です。Census はこれを使用して、新しいレコードを追加するタイミングを判断します。
+6. 「Set Up MoEngage Field Mappings」で、特定のプロパティを同期するか、すべてのプロパティを同期するかを選択します。
+
+![Census での Event 同期における MoEngage フィールドマッピング](/images/partner_15351627192340.png)
+
+7. マッピングを追加すると、Census は MoEngage の一部の標準プロパティを自動的に照合します。MoEngage 内に新しいプロパティを作成することもできます。
+   1. 「Action」（イベント名）と「Customer ID」の同期は必須です。
+8. 「Should existing data be synced?」で、「Backfill All Records」または「Skip Current Records」のいずれかを選択できます。
+
+![Event 同期でバックフィルまたは現在のレコードのスキップを選択する](/images/partner_15351672079508.png)
+
+9. マッピングが完了したら、必要に応じて「Run a Test Sync」を選択できます。
+10. 完了したら「Next」をクリックします。
+11. 同期の詳細を確認し、「Create Sync」をクリックして新しい同期を作成します。「run a sync now」を選択することもできます。
+12. その後、Census は定期的に同期を実行し、Census と MoEngage の間のデータを常に最新の状態に保ちます。

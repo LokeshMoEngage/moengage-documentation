@@ -1,7 +1,7 @@
 ---
 title: "API Key Dashboard"
-description: "View, create, edit, regenerate and archive API keys used for authentication. This article covers the supported authentication methods: Basic and OAuth 2.0."
-keywords: ["authentication type", "API key authentication type", "MoEngage API key", "create an API key", "multi-API key", "multikey", "API key rotation", "legacy API key", "Basic Auth (Legacy)", "OAuth 2.0 access token expiration", "API key permissions", "archived API keys", "API key audit logs"]
+description: "View, create, edit, regenerate and archive API keys used for authentication. This article covers the supported authentication methods: Basic Auth, OAuth 2.0, and AWS STS Auth."
+keywords: ["authentication type", "API key authentication type", "MoEngage API key", "create an API key", "multi-API key", "multikey", "API key rotation", "legacy API key", "Basic Auth (Legacy)", "OAuth 2.0 access token expiration", "AWS STS Auth", "role ARN", "assumed-role ARN", "IAM role", "API key permissions", "archived API keys", "API key audit logs"]
 ---
 
 <Note>
@@ -10,25 +10,26 @@ keywords: ["authentication type", "API key authentication type", "MoEngage API k
 
 ## Overview
 
-API keys are typically used as an authentication or authorization mechanism. They are unique identifiers associated with access to API resources.
-
-API keys help ensure the security and accountability of API access, allowing you to manage and monitor usage effectively.
+An API key is a unique identifier that authenticates and authorizes requests to MoEngage API resources. Use the API Key Dashboard to create keys, scope each key to the APIs it needs, and regenerate or archive keys as your integrations change.
 
 The multi-API key feature is currently supported for the following API groups:
 
 | API Group | Supported Authentication Types |
 | --- | --- |
-| [Data APIs](/api/data/data-overview) | Basic Auth |
+| [Data APIs](/api/data/data-overview) | Basic Auth, OAuth 2.0, AWS STS Auth |
 | [Segmentation APIs](/api/custom-segments/custom-segments-overview) | Basic Auth |
 | [Push APIs](/api/push/push-overview) | Basic Auth (Legacy) |
-| [Campaigns](/api/campaigns/campaigns-overview) | Basic Auth, OAuth 2.0 |
+| [Campaigns](/api/campaigns/campaigns-overview) | Basic Auth, OAuth 2.0, AWS STS Auth |
 | [Inform](/api/inform/inform-overview) | Basic Auth |
 | [Offerings](/api/offerings/offerings-overview) | Basic Auth, OAuth 2.0 |
 | Decision Policy | Basic Auth, OAuth 2.0 |
 | [Dashboard & Analyze](/api/analytics/analytics-overview) | Basic Auth, OAuth 2.0 |
+| Channel Configuration | AWS STS Auth |
+| [Personalize](/api/personalize-experience/personalize-overview) | AWS STS Auth |
 
 <Note>
- - Data APIs, Segmentation APIs, and Inform are available only with Basic Auth.
+ - Segmentation APIs and Inform are available only with Basic Auth.
+ - Channel Configuration and Personalize are available only with AWS STS Auth.
  - Creation of new API keys for Push APIs is not currently supported. Push APIs work only with **Basic Auth (Legacy)** keys migrated to this dashboard.
 </Note>
 
@@ -41,10 +42,13 @@ To restrict which IP addresses can use your keys, see [API Firewall](/user-guide
 
 ## Authentication Types
 
-MoEngage supports two authentication types for API keys:
+MoEngage supports the following authentication types for API keys:
 
-- **Basic Auth**: The standard authentication method using an API key and secret. Suitable for server-to-server integrations where token expiration is not a requirement.
-- **OAuth 2.0**: A token-based authentication method that issues short-lived access tokens. The token expiry time is customizable, and the backend validates access tokens automatically.
+- **Basic Auth**: The standard authentication method, which uses an API key and secret. Choose this method for server-to-server integrations that do not need token expiration.
+- **OAuth 2.0**: A token-based method that issues short-lived access tokens. You set the token expiry time, and MoEngage validates each access token automatically. For the full flow, including generating, using, and refreshing tokens, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+- **AWS STS Auth**: A token-based method for workloads that run on AWS. Instead of a shared secret, you allowlist the AWS Security Token Service (STS) assumed-role ARNs that can use the key. Choose this method when your services already assume an IAM role and you want MoEngage to authorize those roles directly. See [Add Role ARNs](#add-role-arns).
+
+You select the authentication type from the **Authentication type** list in the **Create new key** dialog. You cannot change the authentication type after you create the key. To move an integration to a different authentication type, create a new key and archive the old one.
 
 ## Create a Key
 
@@ -67,10 +71,12 @@ MoEngage supports two authentication types for API keys:
     In the **Create new key** dialog, enter the key details.
   </Step>
   <Step title="Name the Key">
-    Enter a name in the **Key name** box. The key name must not exceed 100 characters.
+    Enter a name in the **Key name** box. The key name must not exceed 100 characters and must be unique across your workspace. Archived keys keep their names, so you cannot reuse the name of a key you archived earlier.
   </Step>
   <Step title="Choose an Authentication Type">
-    Under **Authentication Type**, select the method you want to use, then set the options for that method:
+    From the **Authentication type** list, select the method you want to use, then set the options for that method:
+
+    <Frame><img src="/images/authenticationdropdown.png" alt="Authentication type list expanded in the Create new key dialog, showing the Basic Auth, OAuth 2.0, and AWS STS Auth options" /></Frame>
 
     <Tabs>
       <Tab title="Basic Auth">
@@ -91,10 +97,11 @@ MoEngage supports two authentication types for API keys:
         1. In the **Access token expiration (in minutes)** box, enter the token lifetime. The value must be between 5 and 60 minutes, and the default is 15 minutes.
 
            <Info>
-             This box appears only when **Authentication Type** is set to **OAuth 2.0**.
+             This box appears only when **Authentication type** is set to **OAuth 2.0**.
            </Info>
 
         2. Under **Select APIs for access**, select the API groups you want to access using this key:
+           - Data APIs
            - Campaigns
            - Offerings
            - Decision Policy
@@ -102,7 +109,22 @@ MoEngage supports two authentication types for API keys:
 
          <Frame><img src="/images/oAuth20.png" alt="Image showing the steps to create a new API key in the Create new key dialog for OAuth 2.0" /></Frame>
 
-        **Data APIs**, **Segmentation APIs**, and **Inform** are not listed for OAuth 2.0 keys. To access these groups, create a Basic Auth key.
+        **Segmentation APIs** and **Inform** are not listed for OAuth 2.0 keys. To access these groups, create a Basic Auth key.
+      </Tab>
+      <Tab title="AWS STS Auth">
+        1. In the **Expiry time (in minutes)** box, enter the token lifetime. The value must be between 5 and 15 minutes, and the default is 15 minutes.
+
+        2. In the **ARN** box, enter the AWS STS assumed-role ARN that can use this key. Click **+ Add value** to add another ARN, up to 10 entries. For the accepted format and the validations the dashboard applies to each entry, see [Add Role ARNs](#add-role-arns).
+
+        3. Under **Select APIs for access**, select the API groups you want to access using this key:
+           - Data APIs
+           - Campaigns
+           - Channel Configuration
+           - Personalize
+
+         <Frame><img src="/images/createnewawskey.png" alt="Create new key dialog with Authentication type set to AWS STS Auth, showing the Expiry time in minutes box, the ARN box with its format placeholder, the Add value link, and the Data APIs, Campaigns, Channel Configuration, and Personalize groups under Select APIs for access" /></Frame>
+
+        **Segmentation APIs**, **Inform**, **Offerings**, **Decision Policy**, and **Dashboard & Analyze** are not listed for AWS STS Auth keys. To access those groups, create a Basic Auth or OAuth 2.0 key.
       </Tab>
     </Tabs>
   </Step>
@@ -110,11 +132,65 @@ MoEngage supports two authentication types for API keys:
     Click <Icon icon="plus" /> next to a group to expand it and select individual APIs. Use **Select all** or **De-select all** to manage selections across all groups.
   </Step>
   <Step title="Save the New Key">
-    Click **Create key**. The key is then listed under **Active API keys**.
+    Click **Create key**. The new key appears under **Active API keys**.
   </Step>
 </Steps>
 
-To use the key in requests, see [Authentication](/api/introduction#authentication). For per-endpoint request limits and payload caps, see [Rate Limits](/api/rate-limits).
+To use the key in requests, see [Authentication](/api/introduction#authentication). If you created an OAuth 2.0 key, see [OAuth 2.0 Overview](/api/oauth/oauth-overview) for generating an access token, calling the APIs, and refreshing the token. For per-endpoint request limits and payload caps, see [Rate Limits](/api/rate-limits).
+
+## AWS STS Auth
+
+This section applies only to keys that use the **AWS STS Auth** authentication type. MoEngage authorizes such a key against a list of assumed-role ARNs, and only a caller whose assumed-role ARN appears on the key can use it.
+
+### Add Role ARNs
+
+You create and manage these roles in your own AWS account. MoEngage does not generate the ARN, so copy it from your AWS account and paste it into the key. For more information, see the [AWS Security Token Service API Reference](https://docs.aws.amazon.com/STS/latest/APIReference/Welcome.html).
+
+#### ARN Format
+
+Enter each ARN in the following format:
+
+```text
+arn:aws:sts::<aws-account-id>:assumed-role/<RoleName>/<RoleSessionName>
+```
+
+| Segment | Description |
+| --- | --- |
+| `aws:sts` | The service. An AWS STS Auth key accepts Security Token Service ARNs only. |
+| `<aws-account-id>` | Your 12-digit AWS account ID. |
+| `assumed-role` | The resource type. The dashboard rejects ARNs that use `role` or any other resource type. |
+| `<RoleName>` | The name of the IAM role your workload assumes. |
+| `<RoleSessionName>` | The role session name, or `*` to match every session of that role. |
+
+For example:
+
+```text
+arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole/data-pipeline-prod
+```
+
+#### Match All Sessions of a Role
+
+Each session of a role produces a different ARN, so a role that many workloads or team members share can exceed the limit of 10 entries. To cover every session of a role with a single entry, enter `*` as the session name:
+
+```text
+arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole/*
+```
+
+Every session of `MoEngageIngestionRole` then receives the API access you select for this key.
+
+<Warning>
+  A wildcard grants the key's full API access to every session of the role, so use one only when every session of that role needs the same access. When you add a wildcard entry, the dashboard displays the banner **Using \* matches multiple ARNs. Ensure that this broader scope is intentional for security.**
+</Warning>
+
+When a wildcard entry already covers a role, you cannot add a named session for the same role. The dashboard treats the named session as a duplicate. Remove one of the two entries to save the key.
+
+#### ARN Validations
+
+| Condition | Message |
+| --- | --- |
+| The ARN does not match the expected format. For example, the account ID has fewer than 12 digits, the resource type is `role` instead of `assumed-role`, or the session name is missing. | **Invalid format** |
+| You enter the same ARN twice, or you add a named session for a role that a wildcard entry already covers. | **Duplicate ARN detected** |
+| The list already contains 10 ARNs. | The dashboard disables **+ Add value** and states that you can add up to 10 values. |
 
 ## View Active Keys
 
@@ -123,7 +199,7 @@ On the **API Keys** page, the **Active API keys** table shows the following colu
 | Column | Description |
 | --- | --- |
 | Key name | The name assigned to the key. |
-| Auth type | **Basic Auth**, **OAuth 2.0**, or **Basic Auth (Legacy)** for migrated legacy keys. |
+| Auth type | **Basic Auth**, **OAuth 2.0**, **AWS STS Auth**, or **Basic Auth (Legacy)** for migrated legacy keys. |
 | Created on | The date and time the key was created, along with the email address of the user who created it. |
 | Key | The masked key value with a view button and a copy button. |
 | Actions (<Icon icon="ellipsis-stroke-vertical" />) | Options to manage the key. See [Manage Keys](#manage-keys). |
@@ -141,7 +217,7 @@ On the **API Keys** page, click <Icon icon="ellipsis-stroke-vertical" /> for a k
 | Option | Description |
 | --- | --- |
 | [View key details](#view-key-details) | View the full details of the key. From the details panel, you can also access **Edit key details** and **Regenerate key**. |
-| Regenerate key | Generate a new key. |
+| Regenerate key | Generate a new key. You can regenerate a key as often as you need. |
 | [Edit key details](#edit-key-details) | Edit the key's name or API access settings. |
 | Archive key | Archive the key. Archived keys cannot be unarchived. A maximum of 10 archived keys is maintained in the archived key list. |
 
@@ -184,6 +260,20 @@ On the **API Keys** page, click <Icon icon="ellipsis-stroke-vertical" /> for a k
         | Created by | The email address of the user who created the key. |
         | API access | The APIs selected for this key, with checkmarks indicating the enabled options. Click <Icon icon="plus" /> next to a group to see the individual APIs it includes. |
       </Tab>
+      <Tab title="AWS STS Auth">
+        | Field | Description |
+        | --- | --- |
+        | Key name | The name assigned to the key. |
+        | API key | The masked key value with a view button and a copy button. |
+        | Authentication type | **AWS STS Auth**. |
+        | Expiry time | The token lifetime in minutes. |
+        | ARNs | The assumed-role ARNs that can use this key. Click **Show more** to expand the full list, and hover over an entry to see the complete ARN. |
+        | Last updated on | The date and time the key was last modified. |
+        | Last updated by | The email address of the user who last modified the key. |
+        | Created on | The date and time the key was created. |
+        | Created by | The email address of the user who created the key. |
+        | API access | The APIs selected for this key, with checkmarks indicating the enabled options. Click <Icon icon="plus" /> next to a group to see the individual APIs it includes. |
+      </Tab>
     </Tabs>
   </Step>
 </Steps>
@@ -209,21 +299,42 @@ From the details panel, you can click **Edit key details** or **Regenerate key**
         | Field | Editable |
         | --- | --- |
         | Key name | Yes |
-        | Authentication Type | No |
+        | Authentication type | No |
         | Select APIs for access | Yes |
       </Tab>
       <Tab title="OAuth 2.0">
         | Field | Editable |
         | --- | --- |
         | Key name | Yes |
-        | Authentication Type | No |
+        | Authentication type | No |
         | Access token expiration | Yes |
         | Select APIs for access | Yes |
+      </Tab>
+      <Tab title="AWS STS Auth">
+        | Field | Editable |
+        | --- | --- |
+        | Key name | Yes |
+        | Authentication type | No |
+        | Expiry time (in minutes) | Yes |
+        | ARN | Yes |
+        | Select APIs for access | Yes |
+
+        The same validations apply as when you create the key. See [Add Role ARNs](#add-role-arns).
       </Tab>
     </Tabs>
   </Step>
   <Step title="Save Your Changes">
     Click **Save**. The **Save** button remains disabled until you make a change.
+
+    If you change the API access or the ARN list, a confirmation dialog opens with the title **Are you sure you want to update "\<key name\>" Key?**. The dialog groups your changes into categories, such as **ARN added** and **ARN removed**, and shows only the categories you changed. Click **Show more** to expand a long list, and hover over an entry to see the complete ARN.
+
+    <Frame><img src="/images/editconfirmationdialog.png" alt="Update confirmation dialog listing the ARNs added and the ARNs removed, with Cancel and Save buttons" /></Frame>
+
+    Review the summary, then click **Save** to apply the changes.
+
+    <Warning>
+      Removing an API group or an ARN revokes that access immediately. Notify everyone who uses this key before you save, because their integrations fail as soon as you confirm the change.
+    </Warning>
   </Step>
 </Steps>
 
@@ -238,20 +349,7 @@ From the details panel, you can click **Edit key details** or **Regenerate key**
 
 <Frame><img src="/images/auditt-logs.png" alt="Audit logs page showing API key actions" /></Frame>
 
-Use [Audit Logs](/user-guide/settings/account/audit-logs/audit-logs) to track actions performed in the MoEngage dashboard. The audit logs include all actions related to API keys, so you can identify who performed each action and when. You can do the following in **Audit logs**:
-
-- Click <Icon icon="bars-filter" /> to filter audit logs based on **Team(s)**, **Action**, **Actor**, and **Date time Range**.
-- Type a value in the **Search logs by** search bar to fetch the relevant audit logs.
-- Click **Export audit logs** to receive the audit log report by email. The email includes a download link for the report.
-
-For all actions related to API keys, the **Entity** column in **Audit logs** displays **API Keys**. The **Action** column shows the following values:
-
-- **Create** is displayed when an API key is created successfully.
-- **Update** is displayed when:
-  - A key name is updated.
-  - The API selection for a key is updated.
-  - A key is regenerated.
-- **Delete** is displayed when a key is archived.
+[Audit Logs](/user-guide/settings/account/audit-logs/audit-logs) records every API key action, so you can identify who created, updated, regenerated, or archived a key and when. These entries appear under the **API Keys** entity, and each description names the key and its authentication type. For the full list of recorded events and their description formats, see [Identity and Access Management](/user-guide/settings/account/audit-logs/audit-logs#identity-and-access-management).
 
 ## FAQs
 
@@ -273,6 +371,18 @@ For all actions related to API keys, the **Entity** column in **Audit logs** dis
   </Accordion>
 
   <Accordion title="How does MoEngage handle expired tokens?">
-    MoEngage issues a companion refresh token alongside the access token. Your app uses this longer-lived refresh token in the background to request a fresh access token, without forcing the user to log in again.
+    MoEngage issues a companion refresh token alongside the access token. Your app uses this longer-lived refresh token in the background to request a fresh access token, without forcing the user to log in again. For the refresh request and its error codes, refer to [Refresh Access Token](/api/oauth/refresh-access-token).
+  </Accordion>
+
+  <Accordion title="Where do I find my assumed-role ARN?">
+    You find it in your own AWS account. Create or identify the role your workload assumes, then copy its assumed-role ARN. MoEngage does not create the role or generate the ARN. For the format MoEngage accepts, see [ARN Format](#arn-format).
+  </Accordion>
+
+  <Accordion title="How many ARNs can one key have?">
+    One key accepts up to 10 ARNs. After the list reaches 10 entries, the dashboard disables **+ Add value**. To cover more sessions of the same role, use a wildcard session name instead of listing each session separately. See [Match All Sessions of a Role](#match-all-sessions-of-a-role).
+  </Accordion>
+
+  <Accordion title="Can I change the authentication type of an existing key?">
+    No, you cannot change it. You can edit the key name, the expiry time, the ARN list, and the API access, but the authentication type stays as you set it at creation. To switch an integration to a different authentication type, create a new key and archive the old one.
   </Accordion>
 </AccordionGroup>

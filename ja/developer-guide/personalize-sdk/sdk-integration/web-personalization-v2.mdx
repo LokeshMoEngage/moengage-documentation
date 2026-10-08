@@ -1,0 +1,243 @@
+---
+title: "Web パーソナライゼーション - V2"
+description: "MoEngage Personalize SDK を統合して、ウェブサイトの訪問者にパーソナライズされたエクスペリエンスを提供します。"
+---
+
+import DocsMcpBanner from '/ja/snippets/docs-mcp-banner.mdx';
+
+<DocsMcpBanner />
+
+MoEngage の Web パーソナライゼーションを使用すると、技術チームの関与をほとんど、またはまったく必要とせずに、すべての訪問者に合わせてウェブサイトのエクスペリエンスをパーソナライズできます。SDK 統合の[ドキュメント](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)に従っており、SDK が正常に動作していることを確認してください。
+
+# MoE ドメインのプリフェッチ
+
+moengage.com ドメインをプリフェッチするには、`<head>` の先頭に次のコードスニペットを追加します。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<link rel="preconnect" href="https://cdn.moengage.com/" crossorigin />
+<link rel="dns-prefetch" href="https://cdn.moengage.com/" />
+<link rel="preconnect" href="https://sdk-0X.moengage.com/" crossorigin />
+<link rel="dns-prefetch" href="https://sdk-0X.moengage.com/" />
+```
+
+</CodeGroup>
+
+API エンドポイント URL の 'X' は、MoEngage のデータセンター（DC）を指します。MoEngage は顧客ごとに異なる DC でホストしています。[こちら](https://www.moengage.com/docs/user-guide/data/key-concepts/data-centers-in-moengage)の DC と API エンドポイントのマッピングを参照して、DC 番号（X の値）を確認し、URL の 'X' の値を置き換えてください。
+
+# 方法 1: Web P モジュールの開始
+
+次の表には、ダッシュボードホストにマッピングされたさまざまなデータセンターの詳細が記載されており、統合に必要です。
+
+| データセンター | ダッシュボードホスト            |
+| :---------- | :------------------------ |
+| dc_1        | dashboard-01.moengage.com |
+| dc_2        | dashboard-02.moengage.com |
+| dc_3        | dashboard-03.moengage.com |
+| dc_4        | dashboard-04.moengage.com |
+| dc_6        | dashboard-06.moengage.com |
+
+## 本番環境または LIVE 環境
+
+Web パーソナライゼーションモジュールを開始するには、次のスクリプトを追加します。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script src="https://cdn.moengage.com/release/{DC}/versions/{sdkVersion}/moe_webSdk_webp.min.latest.js?app_id={workspace_id}"></script>
+```
+
+</CodeGroup>
+
+次のフィールドを変更します。
+
+- 上記の URL の 'workspace_id' を、MoEngage ダッシュボードの設定にある Workspace ID に置き換えます。Dashboard -\> Settings -\> App -\> General に移動し、Workspace ID をコピーします。
+- 上記の URL の 'DC' を、インスタンスがホストされているデータセンターに置き換えます。MoEngage は顧客ごとに異なるデータセンターでホストしています。トラッキングされたデータは MoEngage のデフォルトのデータセンターに保存されます。データセンターのマッピングを確認するには、データセンターのマッピングを参照してください。指定可能な値は dc_X で、'X' はデータセンター番号です。
+- 上記の URL の 'sdkVersion' を、使用している Web SDK のバージョンに置き換えます。NPM を使用している場合は、package.json ファイルにある @moengage/web-sdk 依存関係のバージョン番号を使用します。
+
+たとえば、ダッシュボードの URL が https://dashboard-01.moengage.com で始まり、現在の Web SDK のバージョンが 2、workspace_id が YOUR_WORKSPACE_ID の場合、プリフェッチと開始のコードは次のようになります。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<link rel="preconnect" href="https://cdn.moengage.com/" crossorigin />
+<link rel="dns-prefetch" href="https://cdn.moengage.com/" />
+<link rel="preconnect" href="https://sdk-01.moengage.com/" crossorigin />
+<link rel="dns-prefetch" href="https://sdk-01.moengage.com/" />
+<script src="https://cdn.moengage.com/release/dc_1/versions/2/moe_webSdk_webp.min.latest.js?app_id=YOUR_WORKSPACE_ID"></script>
+```
+
+</CodeGroup>
+
+<Warning>
+  **警告**
+
+  Web SDK のバージョンを変更した場合は、必ず Web パーソナライゼーションの CDN リンクのバージョンも更新してください。Web パーソナライゼーションが正常に機能するためには、このリンクと Web SDK のバージョンが常に完全に一致している必要があります。
+</Warning>
+
+## テスト環境
+
+テスト環境でデータをトラッキングするには、上記のスクリプトの src に次のように `debug_logs` を含めます。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script src="https://cdn.moengage.com/release/{DC}/versions/{sdkVersion}/moe_webSdk_webp.min.latest.js?app_id={workspace_id}&debug_logs=1"></script>
+```
+
+</CodeGroup>
+
+たとえば、ダッシュボードの URL が https://dashboard-01.moengage.com で始まり、現在の Web SDK のバージョンが 2、workspace_id が YOUR_WORKSPACE_ID の場合、コード全体は次のようになります。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script src="https://cdn.moengage.com/release/dc_1/versions/2/moe_webSdk_webp.min.latest.js?app_id=YOUR_WORKSPACE_ID&debug_logs=1"></script>
+```
+
+</CodeGroup>
+
+# 方法 2: NPM の初期化設定で useLatest: true フラグを渡している場合
+
+この場合は、Web パーソナライゼーションモジュールを開始するために次のスクリプトを追加します。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<script src="https://cdn.moengage.com/release/{DC}/moe_webSdk_webp.min.latest.js?app_id={workspace_id}"></script>
+```
+
+</CodeGroup>
+
+次のフィールドを変更します。
+
+- 上記の URL の 'workspace_id' を、MoEngage ダッシュボードの設定にある Workspace ID に置き換えます。Dashboard -\> Settings -\> App -\> General に移動し、Workspace ID をコピーします。
+- 上記の URL の 'DC' を、インスタンスがホストされているデータセンターに置き換えます。MoEngage は顧客ごとに異なるデータセンターでホストしています。トラッキングされたデータは MoEngage のデフォルトのデータセンターに保存されます。データセンターのマッピングを確認するには、データセンターのマッピングを参照してください。指定可能な値は dc_X で、'X' はデータセンター番号です。
+
+たとえば、ダッシュボードの URL が https://dashboard-01.moengage.com で始まり、workspace_id が YOUR_WORKSPACE_ID の場合、プリフェッチと開始のコードは次のようになります。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+<link rel="preconnect" href="https://cdn.moengage.com/" crossorigin />
+<link rel="dns-prefetch" href="https://cdn.moengage.com/" />
+<link rel="preconnect" href="https://sdk-01.moengage.com/" crossorigin />
+<link rel="dns-prefetch" href="https://sdk-01.moengage.com/" />
+<script src="https://cdn.moengage.com/release/dc_1/moe_webSdk_webp.min.latest.js?app_id=YOUR_WORKSPACE_ID"></script>
+```
+
+</CodeGroup>
+
+# キャッシュデータの更新
+
+Web パーソナライゼーションのデータは取得され、ブラウザーのキャッシュに保存されます。データは、以下のいずれかの条件を満たす場合にのみ、次のページ読み込み時に再同期されます。
+
+- 前回のデータ取得から 15 分が経過している
+- ログインまたはログアウトが実行された
+
+# Web パーソナライゼーションのアンチフリッカーコード
+
+アンチフリッカースニペットは、Web パーソナライゼーションのエクスペリエンスを実行する際に、ウェブサイトのユーザーエクスペリエンスを維持するのに役立つ小さなコードです。[フリッカーの詳細はこちら](https://www.moengage.com/docs/user-guide/personalize/things-to-know/how-to-manage-flicker-on-websites)
+
+ページのフリッカー（ちらつき）は、ページの初回読み込み時に表示される領域でウェブページの実験を行う場合にのみ発生する問題です。表示領域より下で行われる実験や、「最近閲覧した商品」や「カートに追加した商品」のグリッドのトリガーなど、訪問者が特定のアクションを実行した後に行われる実験など、ページのフリッカーが問題にならない場合もあります。このような場合、通常はウェブサイトにアンチフリッカーコードを追加する必要はありません。
+
+## アンチフリッカーコードのインストール手順
+
+ページのフリッカーを防ぐには、2 つのオプションがあります。
+
+1. パーソナライゼーションが完了するまでページ全体のコンテンツをマスクする **または**
+2. WYSIWYG エディターを使用してパーソナライズされた個々の要素をマスクする
+
+<Note>
+  **注**
+
+  - ウェブサイトには、[オプション 1](/ja/developer-guide/personalize-sdk/sdk-integration/web-personalization-v2#option-1-masking-content-of-the-entire-webpage) または [オプション 2](/ja/developer-guide/personalize-sdk/sdk-integration/web-personalization-v2#option-2-masking-individual-elements-on-the-webpage) のいずれか一方のアプローチのみを実装する必要があります。
+</Note>
+
+### オプション 1: ウェブページ全体のコンテンツをマスクする
+
+1. ウェブサイトのコードの `<head>` 内で、ページのできるだけ上部に以下のコードを追加します。
+2. 以下のスクリプトの **MAX_RENDER_TIME** は、パーソナライズされたエクスペリエンスの読み込みに失敗した場合に、訪問者に元のウェブサイトが表示されるまでの待機時間（ミリ秒単位）を指します。この値は、ウェブサイトのパフォーマンス要件に応じて更新できます。
+
+   <CodeGroup>
+
+   ```javascript JavaScript wrap
+   <script>
+    var moe_s = '.moe-anti-flicker-style { opacity:0 !important;filter:alpha(opacity=0) !important;background:none!important;} ';
+    (function (a, s, y, n, c, h, i, d, e) { h = (typeof h !== 'undefined') ? h : {}; var el = document.createElement('style'); el.id= 'moe-flicker-style'; el.type = 'text/css'; el.styleSheet ? (el.styleSheet.cssText = moe_s) : el.appendChild(document.createTextNode(moe_s)); document.getElementsByTagName("head")[0].appendChild(el); s.className += ' ' + y; h.start = 1 * new Date; h.end = i = function () { s.className = s.className.replace(RegExp(' ?' + y), '') }; (a[n] = a[n] || []).hide = h; setTimeout(function () { i(); h.end = null }, c); h.timeout = c;})(window, document.documentElement, 'moe-anti-flicker-style', 'dataLayer', MAX_RENDER_TIME = 1500);
+   </script>
+   ```
+
+   </CodeGroup>
+
+### オプション 2: ウェブページ上の個々の要素をマスクする
+
+この方法では、ウェブページ上でパーソナライズされた特定の要素のみをマスクします。以下のスクリプトで、
+
+1. ウェブページ上でパーソナライズされた各要素の HTML セレクターを配列 **personalizedSelectors** に追加します。[パーソナライズされた要素の HTML セレクターを確認する方法](/ja/developer-guide/personalize-sdk/sdk-integration/web-personalization-v2#option-1-use-the-element’s-html-id)
+2. **maxRenderTime** は、パーソナライズされたエクスペリエンスの読み込みに失敗した場合に、訪問者に元のウェブサイトが表示されるまでの待機時間（ミリ秒単位）を指します。この値は、ウェブサイトのパフォーマンス要件に応じて更新できます。
+3. ウェブサイトのコードの `<head>` セクション内で、ページのできるだけ上部に以下のコードを追加します。
+
+   <CodeGroup>
+
+   ```javascript JavaScript wrap
+   <script>
+   (function () { const personalizedSelectors = []; const maxRenderTime = 3000; let elements = []; const retryElements = {}; let retryCount = 0; let retryInterval; if (!personalizedSelectors.length) { elements.push(document.documentElement); } function moeAntiFlickerFunction(selectorElements) { if (!selectorElements.length) { clearInterval(retryInterval); } else { selectorElements.forEach((el) => { const selectors = document.querySelectorAll(el); if (selectors.length > 0) { elements.push(...selectors); delete retryElements[el]; } else { retryElements[el] = false; } }); } addAntiFlickerScript(window, elements); elements = []; } moeAntiFlickerFunction(personalizedSelectors); if (Object.keys(retryElements).length) { retryInterval = setInterval(() => { moeAntiFlickerFunction(Object.keys(retryElements)); retryCount += 1; if (retryCount > maxRenderTime / 50) { clearInterval(retryInterval); } }, 50) } function addAntiFlickerScript(window, elements) { let moe_s = '.moe-anti-flicker-hide { opacity: 0 !important; filter: blur(10px) !important} .moe-anti-flicker-show { opacity: 1 !important; filter: blur(0px) !important;transition: opacity 0.5s, filter 0.5s !important; } '; (function (a, s, y, n, c, h, i, d, e) { h = (typeof h !== 'undefined') ? h : {}; if (!document.getElementById('moe-flicker-style')) { var el = document.createElement('style'); el.id = 'moe-flicker-style'; el.type = 'text/css'; el.styleSheet ? (el.styleSheet.cssText = moe_s) : el.appendChild(document.createTextNode(moe_s)); document.getElementsByTagName("head")[0].appendChild(el); }; s.forEach(el => el.classList += ' ' + y); h.start = 1 * new Date; h.end = i = function () { s.forEach(el => { el.classList.remove('moe-anti-flicker-hide'); el.classList.add('moe-anti-flicker-show'); }) }; (a[n] = a[n] || []).hide = h; setTimeout(function () { i(); h.end = null }, c); h.timeout = c; })(window, elements, 'moe-anti-flicker-hide', 'dataLayer', maxRenderTime); } })();
+   </script>
+   ```
+
+   </CodeGroup>
+
+参考として、ウェブページ上で複数の要素をパーソナライズする例を以下に示します。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+const personalizedSelectors = ['#homepage-title', '#homepage-subtitle', '#homepage-cta', '#homepage-cta-link', '#homepage-banner'];
+```
+
+</CodeGroup>
+
+パーソナライズされた HTML セレクターを確認する方法は 2 つあります。
+
+#### オプション 1: 要素の HTML ID を使用する
+
+1. 要素を右クリックします。
+2. コンテキストメニューで **Inspect**（検証）または **Inspect Element**（要素を検証）を選択します。
+3. ハイライトされた HTML で、その要素の HTML ID を確認します。画像でハイライトされている要素の場合、入力は次のようになります。
+
+   <Frame>
+     ![パーソナライゼーション要素 ID](/images/personalization-element-id.png)
+   </Frame>
+   \
+   以下は、対象の HTML 要素についてアンチフリッカースニペットに指定する入力です。
+
+   <CodeGroup>
+
+   ```javascript JavaScript wrap
+   const personalizedSelectors = ['#homepage-title'];
+   ```
+
+   </CodeGroup>
+
+#### オプション 2: 要素の HTML セレクターパスを使用する
+
+1. 要素を右クリックします。
+2. コンテキストメニューで **Inspect Element**（要素を検証）を選択します。
+3. ハイライトされた HTML を右クリックし、コンテキストメニューで **Copy Selector**（セレクターをコピー）を選択します。
+
+<Frame>
+  ![パーソナライズ要素 ID 2](/images/personalize-element-id-2.png)
+</Frame>
+
+\
+以下は、対象の HTML 要素についてアンチフリッカースニペットに指定する入力です。
+
+<CodeGroup>
+
+```javascript JavaScript wrap
+const personalizedSelectors = ['#side-container > a > img'];
+```
+
+</CodeGroup>

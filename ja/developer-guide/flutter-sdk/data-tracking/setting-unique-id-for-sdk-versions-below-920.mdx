@@ -1,0 +1,64 @@
+---
+title: "SDK バージョン 9.2.0 未満での Unique Id の設定"
+description: "MoEngage Flutter SDK バージョン 9.2.0 未満で、ログインとログアウトの処理のために一意のユーザー ID を設定します。"
+---
+
+# ログイン/ログアウトの実装
+
+- ユーザーがアプリにログインしたときに、ユーザー属性 Unique ID を設定することが重要です。
+- これにより、新しいユーザーを既存のユーザー（存在する場合）と統合し、不要なユーザーや古いユーザーの作成を防ぐことができます。
+- Unique ID の設定は、デバイス間、インストール/アンインストール間、およびすべてのプラットフォーム（iOS、Android、Windows、Web）でユーザーを紐付けるための重要な要素です。ユーザーが**ログイン**したらすぐに **USER_ATTRIBUTE_UNIQUE_ID** 属性を設定してください。Unique ID には、メール ID、（一意の）ユーザー名、データベース ID、またはバックエンドで生成された任意の ID などを使用できます。
+- ログインしていないユーザーにはこれを設定しないでください。
+
+## ログイン
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.setUniqueId("Unique ID");
+```
+
+</CodeGroup>
+
+**注意:** UniqueID フィールドでは、次の値は使用できません: "unknown", "guest", "null", "0", "1", "true", "false", "user_attribute_unique_id", "(empty)", "na", "n/a", "", "dummy_seller_code", "user_id", "id", "customer_id", "uid", "userid", "none", "-2", "-1", "2"
+
+## ログアウト
+
+ユーザーがアプリケーションからログアウトしたときは、アプリケーションから MoEngage SDK に通知する必要があります。SDK に通知するには、ユーザーがアプリケーションからログアウトするたびに API を呼び出します。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.logout();
+```
+
+</CodeGroup>
+
+ 
+
+## ユーザー属性 Unique Id の更新
+
+ユーザー属性 Unique ID を更新するには、異なる値で _setUniqueId()_ を使用するのではなく、_setAlias()_ メソッドを使用してください。新しい値で _setUniqueId()_ メソッドを使用すると、MoEngage に意図しないユーザーが作成されます。
+
+<CodeGroup>
+
+```Dart Dart
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.setAlias("Updated Unique ID");
+```
+
+</CodeGroup>
+
+<Warning>
+  **重要**
+
+  一意の識別子を更新する際は、`setUniqueId()` ではなく必ず `setAlias()` を使用してください。新しい値で `setUniqueId()` を呼び出すと、現在のユーザーがリセットされ、システムに意図しないユーザーが作成されます。
+</Warning>

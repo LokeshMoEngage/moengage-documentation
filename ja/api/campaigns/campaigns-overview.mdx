@@ -1,0 +1,215 @@
+---
+title: "Campaigns (Legacy) の概要"
+description: "MoEngage Campaigns API を使用して、Push および Email キャンペーンをプログラムで作成、更新、テスト、管理できます。"
+icon: "file-magnifying-glass"
+---
+
+MoEngage Campaigns API を使用すると、Push および Email キャンペーンを作成および管理できます。これらのエンドポイントを使用して、キャンペーンの作成を自動化し、既存のキャンペーンを更新し、キャンペーンのステータスを制御し、キャンペーンの詳細を取得できます。
+
+<Note>
+  お使いのアカウントでこの API が有効になっていない場合は、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームに連絡して、有効化をリクエストしてください。
+</Note>
+
+## エンドポイント
+
+Campaigns API は、次のエンドポイントで構成されています。
+
+- [Create Campaign](/ja/api/create-campaigns/create-campaign): 新しい Push または Email キャンペーンを作成します。
+- [Update Campaign](/ja/api/update-campaigns/update-campaign-v1-—-legacy): MoEngage の既存の Push または Email キャンペーンを更新します。
+- [Search Campaigns](/ja/api/get-campaign-details/search-campaigns): Push、Email、または SMS キャンペーンの一覧を、現在のすべてのフィールドとステータスとともに取得します。
+- [Test Campaign](/ja/api/test-campaigns/test-campaign): 開始前に、特定のユーザーにテスト用の Push または Email キャンペーンを送信します。
+- [Personalized Preview](/ja/api/test-campaigns/personalized-preview): Push、Email、または SMS キャンペーンを送信する前に、特定のユーザー向けのパーソナライズされたコンテンツを表示します。
+- [Get Campaign Meta](/ja/api/get-campaign-details/get-campaign-meta-v1-—-legacy): スケジュール済みキャンペーンのキャンペーン詳細とリーチ情報を取得します。
+- [Change Campaign Status](/ja/api/update-campaigns/change-campaign-status): キャンペーンのステータスを更新して、停止、一時停止、または再開します。
+- [Get Child Campaigns](/ja/api/get-campaign-details/get-child-campaigns): Periodic または Business Event-triggered キャンペーンの子キャンペーンの実行詳細を取得します。
+
+## よくある質問
+
+### Email キャンペーンの作成
+
+<AccordionGroup>
+  <Accordion title="この API で作成したキャンペーンをパーソナライズするにはどうすればよいですか?">
+    ユーザー属性、イベント属性、プロダクトセット、Content API、コンテンツブロックを使用してキャンペーンをパーソナライズできます。パーソナライズ用の Jinja の構文は、MoEngage ダッシュボードでサポートされているものと同じです。
+  </Accordion>
+  <Accordion title="同じペイロードで複数のキャンペーンが作成されないようにする方法はありますか?">
+    MoEngage はリクエスト ID を使用してキャンペーンの重複を排除します。24 時間以内に同じリクエスト ID が 2 回渡された場合、2 回目のキャンペーン作成は失敗します。
+  </Accordion>
+  <Accordion title="これらのキャンペーンは UI にどのように表示されますか?">
+    キャンペーンは、この API で作成されたときと同じ配信タイプ (One-Time、Periodic など) の下に表示されます。
+  </Accordion>
+  <Accordion title="コンテンツオブジェクトでテンプレート ID と HTML コンテンツを一緒に渡すことはできますか?">
+    いいえ。キャンペーンの作成に必要なのはどちらか一方のみです。両方を渡すと、キャンペーンの作成時にエラーが表示されます。
+  </Accordion>
+  <Accordion title="カスタムセグメントを使用してキャンペーンを作成するにはどうすればよいですか?">
+    カスタムセグメントを使用するキャンペーンを作成するには、キャンペーン作成リクエストに `segmentation_details` を含めます。`included_filters` 内で `filter_type` を "custom_segments" に設定し、カスタムセグメントの ID を指定します。
+
+    次のコードスニペットは、カスタムセグメントを組み込む方法を示しています。
+
+    ```json
+    "segmentation_details": {
+      "included_filters": {
+        "filter_operator": "and",
+        "filters": [
+          {
+            "filter_type": "custom_segments",
+            "name": "segment",
+            "id": "{{id}}"
+          }
+        ]
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Push キャンペーンの作成
+
+<AccordionGroup>
+  <Accordion title="1 つのプラットフォームのみを対象とした Push キャンペーンを作成できますか?">
+    はい。Android、iOS、Web などの単一のプラットフォームを対象とした Push キャンペーンを作成できます。これらのプラットフォームを組み合わせたキャンペーンを作成することもできます。
+  </Accordion>
+  <Accordion title="Push キャンペーンのペイロードで必要なテンプレート ID はどのように取得できますか?">
+    [Search Push Template API](/ja/api/templates/search-for-push-templates) を使用し、テンプレート名、作成者、またはその他のサポートされているパラメーターなどのリクエストパラメーターを渡すと、レスポンスでテンプレート ID を取得できます。
+  </Accordion>
+  <Accordion title="コンテンツセクションに含めるフィールドはどのように決めればよいですか?">
+    Stylized Basic、Timer、またはその他の利用可能なオプションなどのテンプレートタイプを選択します。次に、テンプレートの要件を参照し、そのテンプレートタイプで必須とされているすべてのフィールドを含めます。
+  </Accordion>
+  <Accordion title="カスタムセグメントを使用してキャンペーンを作成するにはどうすればよいですか?">
+    カスタムセグメントを使用するキャンペーンを作成するには、キャンペーン作成リクエストに `segmentation_details` を含めます。`included_filters` 内で `filter_type` を "custom_segments" に設定し、カスタムセグメントの ID を指定します。
+
+    次のコードスニペットは、カスタムセグメントを組み込む方法を示しています。
+
+    ```json
+    "segmentation_details": {
+      "included_filters": {
+        "filter_operator": "and",
+        "filters": [
+          {
+            "filter_type": "custom_segments",
+            "name": "segment",
+            "id": "{{id}}"
+          }
+        ]
+      }
+    }
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Push キャンペーンの更新
+
+<AccordionGroup>
+  <Accordion title="アクティブなキャンペーンでテンプレートタイプを変更できますか?">
+    必要なプラットフォームでテンプレートタイプを変更できます。その場合、更新後のテンプレートタイプ用の新しいコンテンツを指定する必要があります。
+  </Accordion>
+  <Accordion title="アクティブなキャンペーンでプラットフォームを追加または削除できますか?">
+    キャンペーンの更新時にプラットフォームを追加または削除できます。キャンペーンに新しく追加したプラットフォーム用のコンテンツを指定する必要があります。
+  </Accordion>
+  <Accordion title="更新したコンテンツはいつからユーザーに送信され始めますか?">
+    Event-triggered キャンペーンを除き、更新されたキャンペーンは変更が完了するとすぐに送信が開始されます。Event-triggered キャンペーンでは詳細がキャッシュされるため、更新されたキャンペーンが送信されるまでに最大 30 分かかります。
+  </Accordion>
+</AccordionGroup>
+
+### Email キャンペーンの更新
+
+<AccordionGroup>
+  <Accordion title="キャンペーンが Active 状態のときにセグメンテーションのオーディエンスを更新できますか?">
+    いいえ。キャンペーンが Active 状態になった後は、セグメンテーションのオーディエンスを更新できません。キャンペーンが Scheduled 状態であればセグメンテーションのオーディエンスを更新できます。または、既存のキャンペーンを停止して複製を作成し、新しいセグメンテーションの詳細を渡すこともできます。
+  </Accordion>
+  <Accordion title="更新したキャンペーンはいつからユーザーに送信され始めますか?">
+    Event-triggered キャンペーンを除き、更新されたキャンペーンは変更が完了するとすぐに送信が開始されます。Event-triggered キャンペーンでは詳細がキャッシュされるため、更新されたキャンペーンが送信されるまでに最大 30 分かかります。
+  </Accordion>
+  <Accordion title="更新するキャンペーンのキャンペーン ID はどのように取得できますか?">
+    キャンペーン名、チャネル、またはその他のフィルターを指定して "GET" API を呼び出し、目的のキャンペーンのキャンペーン ID を取得する必要があります。詳細については、[Search Campaigns](/ja/api/get-campaign-details/search-campaigns) を参照してください。
+  </Accordion>
+</AccordionGroup>
+
+### Search Campaigns - Push
+
+<AccordionGroup>
+  <Accordion title="Push チャネルのフローキャンペーンノードの情報を取得できますか?">
+    はい。フローノードのキャンペーンを取得するには、`include_child_campaigns` キーの値として `true` を渡す必要があります。
+  </Accordion>
+  <Accordion title="どのキャンペーンがフローのものかを識別するにはどうすればよいですか?">
+    レスポンスの `flow_name` および `flow_id` キーを使用します。これらのキーは、キャンペーンがフローの一部であることを示します。
+  </Accordion>
+  <Accordion title="API への入力として One_Time を渡した場合、レスポンスにはどのキャンペーンが含まれますか?">
+    レスポンスには、フローの配信タイプにかかわらずすべてのフローノードのキャンペーンと、配信タイプが `one_time` の Engage キャンペーンが含まれます。
+  </Accordion>
+</AccordionGroup>
+
+### Search Campaigns - SMS
+
+<AccordionGroup>
+  <Accordion title="SMS チャネルのフローキャンペーンノードの情報を取得できますか?">
+    はい。フローノードのキャンペーンを取得するには、`include_child_campaigns` キーの値として `true` を渡す必要があります。
+  </Accordion>
+  <Accordion title="どのキャンペーンがフローのものかを識別するにはどうすればよいですか?">
+    レスポンスの `flow_name` および `flow_id` キーを使用します。これらのキーは、キャンペーンがフローの一部であることを示します。
+  </Accordion>
+  <Accordion title="特定の送信者のキャンペーン情報を取得できますか?">
+    いいえ。現在、リクエスト本文には送信者名のフィルターはありません。
+  </Accordion>
+  <Accordion title="アーカイブされたキャンペーンの情報を取得できますか?">
+    はい。アーカイブされたキャンペーンを取得するには、`include_archived_campaigns` キーの値として `true` を渡す必要があります。
+  </Accordion>
+</AccordionGroup>
+
+### Push キャンペーンのテスト
+
+<AccordionGroup>
+  <Accordion title="MoEngage に含まれていない ID にテストプッシュを送信できますか?">
+    はい。識別子として "Email" を渡すことで、任意のユーザーにテストキャンペーンを送信できます。送信されるキャンペーンはパーソナライズされません。
+  </Accordion>
+  <Accordion title="パーソナライズ用にコンテンツで使用されているユーザー属性値の一部のみを渡した場合、パーソナライズはどのように機能しますか?">
+    パーソナライズの詳細で渡された値は、テストキャンペーンの送信先となるすべてのユーザーに使用され、残りのユーザー属性値はユーザープロファイルから取得されます。
+  </Accordion>
+</AccordionGroup>
+
+### Email キャンペーンのテスト
+
+<AccordionGroup>
+  <Accordion title="MoEngage に含まれていない ID にテストメールを送信できますか?">
+    はい。識別子として "Email" を渡すことで、任意のユーザーにテストキャンペーンを送信できます。送信されるキャンペーンはパーソナライズされません。
+  </Accordion>
+  <Accordion title="パーソナライズ用にコンテンツで使用されているユーザー属性値の一部のみを渡した場合、パーソナライズはどのように機能しますか?">
+    パーソナライズの詳細で渡された値は、テストキャンペーンの送信先となるすべてのユーザーに使用され、残りのユーザー属性値はユーザープロファイルから取得されます。
+  </Accordion>
+</AccordionGroup>
+
+### Get Campaign Meta
+
+<AccordionGroup>
+  <Accordion title="スケジュール済みキャンペーンの正確なリーチを取得できますか?">
+    いいえ。リーチは推定値であり、アプリのインストール、アンインストール、メールのサブスクリプションステータスの変更などの要因により、時間の経過とともに変動する場合があります。
+  </Accordion>
+  <Accordion title="API 呼び出しのたびにリーチを更新できますか?">
+    いいえ。リーチは 1 日に 1 回計算され、24 時間キャッシュされます。同じ日に複数回 API を呼び出すと、キャッシュされた値が返されます。
+  </Accordion>
+</AccordionGroup>
+
+### Personalized Preview
+
+<AccordionGroup>
+  <Accordion title="Personalization Preview でカスタムテンプレートを使用できますか? 使用できる場合、出力はどうなりますか?">
+    はい。Personalization Preview ではカスタムテンプレートを使用できます。API は、指定されたユーザー識別子に基づいてテンプレート内のコンテンツをパーソナライズし、パーソナライズされた HTML をレスポンスとして返します。
+  </Accordion>
+  <Accordion title="Personalization Preview でイベントを使用してコンテンツをパーソナライズできますか?">
+    はい。イベントの詳細を API への入力として渡すことができます。イベント名がワークスペース内のイベント名と一致していることを確認してください。
+  </Accordion>
+</AccordionGroup>
+
+### Change Campaign Status
+
+<AccordionGroup>
+  <Accordion title="この API を使用して Periodic キャンペーンを停止できますか?">
+    Periodic キャンペーンでは、キャンペーンの一時停止 (Pause) と再開 (Resume) アクションのみがサポートされています。停止できるのは One-time キャンペーンのみです。
+  </Accordion>
+  <Accordion title="送信中の状態にある One-time キャンペーンを停止できますか?">
+    いいえ。One-time キャンペーンが Active 状態に移行した後は、停止できません。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+API を簡単にテストできるようにしています。Postman コレクションを表示するには、[こちら](https://www.postman.com/moengage-dev/workspace/api-docs/folder/3182294-c560e43e-4e5e-4d1c-a100-f5f5070780b1?action=share&creator=3182294&ctx=documentation)をクリックしてください。

@@ -1,0 +1,91 @@
+---
+title: "Sageflo"
+---
+
+# はじめに
+
+[Sageflo](https://sageflo.com/) は、無料アイテムや割引のためのクーポンコードをチームが送信できるようにし、顧客ロイヤルティとエンゲージメントを高める分散型マーケティングソリューションです。
+
+# MoEngage × Sageflo
+
+MoEngage と Sageflo Coupons の連携により、企業はターゲットを絞ったパーソナライズされたクーポンキャンペーンを通じて顧客ロイヤルティを高め、エンゲージメントとリピート購入を促進できます。
+
+# 連携
+
+## Sageflo Coupons
+
+Sageflo の Coupons 機能を使用すると、無料アイテムや割引と引き換えられるクーポンコードを顧客に送信できます。Sageflo がクーポン管理システムを担い、MoEngage は Content API を利用して送信時に各購読者に固有のクーポンコードを取得します。この連携により、パーソナライズされたクーポンキャンペーンが可能になり、顧客エンゲージメントとロイヤルティが向上します。
+
+### ステップ 1: MoEngage Content API を設定する
+
+次の手順を実行します。
+
+1. **Settings** -\> **Advanced settings** -\> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。<img src="/images/partner_26221652141332.png" alt="ContentAPI_Navogation.png" />
+2. エンドポイント URL に Sageflo API を追加します。ユースケースに応じてエンドポイントは異なります。
+
+![](/images/partner_26222831802004.png)
+
+Sageflo Coupons で作成された各クーポンプールには、固有のデータフィード URL が割り当てられます。MoEngage がこの URL を呼び出すと、特定のクーポンプール、個々のクーポン、キャンペーンの詳細などの関連情報が Sageflo システムに送信されます。その後、Sageflo は指定されたプールから 1 回限り使用可能なクーポンを取得し、MoEngage に返します。このシームレスな連携により、MoEngage はキャンペーン内にパーソナライズされたクーポンを表示でき、企業は限定オファーやプロモーションで顧客を効果的にエンゲージできます。
+
+Content API の設定時に、次の URL を挿入します。
+
+```text wrap
+[https://coupons-app.sageflo.com/coupon/](https://coupons-app.sageflo.com/coupon/)<CLIENTNAME>/pools/<CLIENTPOOL>?auth=<AUTHCODE>&email={{UserAttribute['Emaill (Standard)']}}&campid={{EventAttribute['Campaign ID']}}
+```
+
+次の値を必ず変更してください。
+
+- `<CLIENTNAME>`: お使いのアカウント
+- `<AUTHCODE>`: アカウント固有のコード
+- `<CLIENTPOOL>`: アカウント内のプール
+- `email`: Sageflo Coupons でプールに対して選択したキー（キーとして cid を選択した場合は、`cid=` と表示されます）
+
+3. 正常なレスポンスが表示されたら、「Save」をクリックしてから「Done」をクリックします。
+
+<Note>
+  API をテストすることもできます。API をテストするには、Content API のアクションメニューから「Test」をクリックします。API のレスポンスをテストして検証できます。
+</Note>
+
+### ステップ 2: MoEngage キャンペーン内にレコメンデーションを表示する
+
+MoEngage キャンペーンでこの API を使用するには、次の手順を実行します。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 1 で設定した Sageflo の Content API を選択できます。
+3. [MoEngage Templating Language](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。
+   <Frame>
+     ![Sageflo1](/images/sageflo1.png)
+   </Frame>
+4. 「Preview type」の下にある Personalized タブをクリックすると、リアルタイムでパーソナライズされたキャンペーンを確認できます。
+   <Frame>
+     ![Sageflo2](/images/sageflo2.png)
+   </Frame>
+5. その後、キャンペーンを公開できます。
+
+### キャンペーンに複数のクーポンを追加する
+
+MoEngage と Sageflo を使用して同じプールを複数のオファーに利用したい場合は、この機能を活用できます。たとえば、クーポンプールで、コード `HAPPY20` による全商品 20% オフや、コード `SHOE10` による靴 10% オフなど、さまざまな割引を提供しているとします（この機能は非永続プールにのみ適用されます）。これは、URL に count パラメーターを追加することで簡単に実現できます。
+
+```http wrap
+[https://coupons-app.sageflo.com/coupon/](https://coupons-app.sageflo.com/coupon/)<CLIENTNAME>/pools/<CLIENTPOOL>?auth=<AUTHCODE>&email={{UserAttribute['Emaill (Standard)']}}&campid={{EventAttribute['Campaign ID']}}&count=2
+```
+
+### コードにプレフィックスまたはサフィックスを追加する
+
+同様に、Sageflo では、生成されたクーポンコードにあらかじめ決められたプレフィックスやサフィックスを追加できます。
+
+```http wrap
+[https://coupons-app.sageflo.com/coupon/](https://coupons-app.sageflo.com/coupon/)<CLIENTNAME>/pools/<CLIENTPOOL>?auth=<AUTHCODE>&email={{UserAttribute['Emaill (Standard)']}}&campid={{EventAttribute['Campaign ID']}}&prefix=ABC
+```
+
+count パラメーターも使用している場合は、同じ数のプレフィックスをカンマ区切りで含める必要があります。そうしないとエラーになります。例:
+
+```http wrap
+[https://coupons-app.sageflo.com/coupon/](https://coupons-app.sageflo.com/coupon/)<CLIENTNAME>/pools/<CLIENTPOOL>?auth=<AUTHCODE>&email={{UserAttribute['Emaill (Standard)']}}&campid={{EventAttribute['Campaign ID']}}&count=3&prefix=ABC,CDE,EFG
+```
+
+サフィックスについても同様です。
+
+```http wrap
+[https://coupons-app.sageflo.com/coupon/](https://coupons-app.sageflo.com/coupon/)<CLIENTNAME>/pools/<CLIENTPOOL>?auth=<AUTHCODE>&email={{UserAttribute['Emaill (Standard)']}}&campid={{EventAttribute['Campaign ID']}}&suffix=XYZ
+```

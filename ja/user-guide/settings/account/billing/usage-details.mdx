@@ -1,0 +1,312 @@
+---
+title: "使用状況の詳細"
+description: "MoEngage の請求額の計算方法を理解し、ダッシュボードで請求指標ごとの使用状況を追跡します。"
+keywords: ["billable MTU", "MTU", "FUP", "fair usage policy", "billing", "usage details", "profile-based pricing", "overage", "standard events", "system generated events"]
+---
+
+import BillableMTUCalculator from '../../../../../components/BillableMTUCalculator.jsx';
+
+## MoEngage の請求ワークフロー
+
+毎月の請求書は 2 つの部分で構成されます。
+
+```text
+Platform pricing + Add-ons = Net invoice
+```
+
+**プラットフォーム料金**は、契約で設定された次のいずれか、または両方のモデルに基づきます。
+
+- **Billable MTU**: Monthly Tracked Users、イベント、Fair Usage Policy (FUP) によって決まります。詳細については、[プラットフォーム料金](#platform-pricing)を参照してください。
+- **プロファイルベース**: アカウント内のユーザープロファイル数に基づく定額料金です。よりシンプルで、契約でこのモデルが指定されている場合にのみ適用されます。
+
+<Info>
+  アドオンはプラットフォーム料金とは別に請求され、使用したアドオンに対してのみ請求されます。詳細については、[アドオン](#add-ons)を参照してください。
+</Info>
+
+## プラットフォーム料金 {#platform-pricing}
+
+アカウントに適用されるモデルについては、[サブスクリプションの管理](/ja/user-guide/settings/account/billing/manage-subscription)を参照してください。
+
+<Tabs>
+  <Tab title="Billable MTU">
+    契約が Billable MTU モデルの場合、プラットフォーム料金は **Billable MTU** に基づきます。
+
+    ```text
+    Billable MTU = max(Total MTU, Events ÷ FUP)
+    ```
+
+    Billable MTU には、Total MTU と、イベント数を Fair Usage Policy (FUP) の許容量で割った値のうち、大きい方が採用されます。計算式をすでに理解していて、特定の変化をトラブルシューティングしたい場合は、[請求額増加の診断](#bill-increase-diagnosis)を参照してください。
+
+    ### イベント
+
+    トラッキングされたものか自動生成されたものかにかかわらず、すべてのユーザーアクションが MTU に反映されます。
+
+    - **カスタムユーザーアクション**: アプリ、ウェブサイト、サーバー間連携、その他の連携を通じて送信するイベントです (例: "Added to Cart")。詳細については、[イベントトラッキングの完全ガイド](/ja/user-guide/data/event-data/a-complete-guide-to-event-tracking)を参照してください。
+    - **標準イベント**: App Opens や Website Views などの主要なユーザー操作やキャンペーン関連の操作を自動的にトラッキングするために、MoEngage が生成する事前定義済みのイベントです。詳細については、[派生イベントと属性](/ja/user-guide/data/event-data/derived-events-and-attributes)を参照してください。
+
+    <Warning>
+      ここでの「イベント」がカスタムユーザーアクションと Total Tracked Events のどちらを意味するかは、契約によって定義されます。詳細については、[組織の詳細](/ja/user-guide/settings/account/billing/organization-details)を参照してください。
+    </Warning>
+
+    ### Total MTU
+
+    MTU は、暦月内に少なくとも 1 つのイベントを実行したすべての一意のユーザープロファイルをカウントします。アプリを開いたユーザーだけでなく、匿名プロファイルや、バックグラウンドまたはシステムによってトリガーされたイベントも含まれます。複数のプラットフォームでアクティブなユーザーは 1 回のみカウントされます。
+
+    <Note>
+      Total MTU は MAU (Monthly Active Users) とは異なる指標です。MAU は、その月に App/Site Opened イベントが少なくとも 1 回あったユーザーをカウントする別のダッシュボード指標であり、請求の計算式には含まれません。MTU は匿名プロファイルやバックグラウンドイベントもカウントするため、Total MTU は常に Total MAU 以上になります。
+    </Note>
+
+    | MTU 指標 | カウント対象 |
+    | --- | --- |
+    | Mobile Tracked Users | その月にモバイルアプリで少なくとも 1 つのイベントを実行した一意のユーザープロファイルです。 |
+    | Web Tracked Users | その月にウェブサイトで少なくとも 1 つのイベントを実行した一意のユーザープロファイルです。 |
+    | TV Tracked Users | その月に TV アプリで少なくとも 1 つのイベントを実行した一意のユーザープロファイルです。 |
+    | Total MTU | 暦月内に、モバイル、ウェブ、TV のすべてのプラットフォームで少なくとも 1 回トラッキングされた重複のないユーザー数です。同じ月に複数のプラットフォームでアクティブなユーザーは 1 回のみカウントされます。 |
+
+    **例**: モバイルのみのユーザー 10,000 人 + ウェブのみのユーザー 4,000 人 + 両方でアクティブなユーザー 1,000 人 (2 回ではなく 1 回としてカウント) = Total MTU 15,000。
+
+    ### FUP
+
+    Fair Usage Policy (FUP) は、1 ユーザーあたり 1 か月に許容される平均イベント数で、契約で設定されます (通常はユーザーあたり 50〜500 イベント)。イベント量がこの許容量を超えると、Billable MTU が上方に再計算され、ユーザー数だけでなくイベント量に基づいて支払いが発生するようになります。FUP を確認するには、[組織の詳細](/ja/user-guide/settings/account/billing/organization-details)を参照してください。
+
+    #### 計算例: Billable MTU の計算
+
+    アカウントの Total MTU が 80,000、契約で FUP がユーザーあたり 100 イベントに設定され、契約のイベント基準が Total Tracked Events であるとします。今月の Total Tracked Events は 12,000,000 件でした。
+
+    | 項目 | 値 |
+    | --- | --- |
+    | Total MTU | 80,000 |
+    | 今月の Total Tracked Events | 12,000,000 |
+    | 契約上の FUP | 100 イベント/ユーザー |
+    | Events ÷ FUP | 12,000,000 ÷ 100 = 120,000 |
+    | **Billable MTU** | **max(80,000, 120,000) = 120,000** |
+
+    イベント量が FUP の許容量を上回ったため、Events ÷ FUP (120,000) が Total MTU (80,000) より大きくなり、120,000 に基づいて請求されます。
+
+    #### 試してみる: Billable MTU 計算ツール
+
+    独自の数値を入力して、計算式のどちら側が請求額を決定するかを確認します。
+
+    <BillableMTUCalculator />
+
+    ### 請求額増加の診断
+
+    | 状況 | 考えられる原因 |
+    | --- | --- |
+    | Total MTU が比例して増加した | 想定どおりです。トラッキングされるユーザーが増えれば、コストも増加します。 |
+    | Total MTU は横ばいだが、Billable MTU が急増した | ユーザーあたりの平均イベント数を確認してください。FUP のしきい値を超えた可能性があります。 |
+    | メッセージングまたはチャネルのコストが増加したが、MTU は横ばい | これはユーザー数の変化ではなく、チャネル使用量の変化です。[アドオン](#add-ons)でアドオンの使用量 (Email、SMS、WhatsApp、Push、RCS、Cards、Landing Pages、Data Exports) を確認してください。 |
+  </Tab>
+  <Tab title="プロファイルベース">
+    契約でプロファイルベースの料金が指定されている場合、プラットフォーム料金は毎月のアカウント内のユーザープロファイル数に基づく定額料金になります。このモデルでは、MTU、イベント、FUP は請求に影響しません。
+
+    | 用語 | 説明 |
+    | --- | --- |
+    | All Profiles | ワークスペース内の一意のユーザープロファイル (識別済みと匿名の両方) の総数です。 |
+    | Identified Profiles | All Profiles のうち、メールアドレス、携帯電話番号、一意の ID などの識別子を持つプロファイルです。 |
+    | 請求基準 | サブスクリプションに応じて、All Profiles または Identified Profiles のいずれかに基づき、プロファイル階層ごとに請求されます。 |
+
+    アドオン (メッセージングチャネル、RCS、Cards、Data Exports) は、どのプラットフォーム料金モデルを使用しているかにかかわらず、同じ方法で請求されます。詳細については、[アドオン](#add-ons)を参照してください。
+
+    プロファイルベースの請求はシンプルです。MTU、イベント、FUP の計算は不要で、毎月のプロファイル数が唯一の変数です。アドオン (メッセージング、RCS、Data Exports) は、MTU モデルと同様に上乗せされます。
+  </Tab>
+</Tabs>
+
+## アドオン {#add-ons}
+
+対応するアドオンがプランで有効になっている場合、これらはプラットフォーム料金に上乗せして請求されます。アドオンの料金は契約によって異なります。
+
+<AccordionGroup>
+  <Accordion title="メッセージングチャネル">
+    | 指標 | 説明 |
+    | --- | --- |
+    | Emails Sent | MoEngage のイベントストアに記録された、すべてのキャンペーンとフローでユーザーに送信されたメールの数です。<br /><br />この数値は請求には使用されません。請求書は、SendGrid や Amazon SES など、設定されたメールサービスプロバイダーが報告する送信数に基づきます。<br /><br />各プロバイダーは独自のロジックで「送信」を計算するため、2 つの数値が異なる場合があります。たとえば、サーバーがメッセージを受け付けた時点で送信済みとカウントするプロバイダーもあれば、配信試行、遅延、再試行が解決された後、または独自の抑制リストと照合した後にのみカウントするプロバイダーもあります。 |
+    | Emails Sent via MoEngage SendGrid | すべてのキャンペーンとフローで、MoEngage のマネージド SendGrid サービスを通じて送信されたメールの数です。 |
+    | Total IPs for Emails | メール送信に使用された一意の IP の数です。 |
+    | SMS Sent | すべてのキャンペーンとフローでユーザーに送信された SMS メッセージの数です。セグメント単位で請求され、160 文字を超えるメッセージは複数の請求対象セグメントに分割されます。 |
+    | WhatsApp Messages Sent | すべてのキャンペーンとフローでユーザーに送信された WhatsApp メッセージの数です。 |
+  </Accordion>
+  <Accordion title="Inform">
+    Inform は、MoEngage のトランザクションメッセージング基盤です。送信されたメッセージ数に基づき、使用したチャネルに対してのみ請求されます。
+
+    | 指標 | 説明 |
+    | --- | --- |
+    | Total Inform Messages | Inform を介してすべてのチャネル (Push、Email、SMS、WhatsApp) で送信されたすべてのメッセージの合計です。 |
+    | Inform Push Messages | Inform を介してユーザーに送信されたプッシュ通知の数です。 |
+    | Inform Email Messages | Inform を介してユーザーに送信されたメールメッセージの数です。 |
+    | Inform SMS Messages | Inform を介してユーザーに送信された SMS メッセージの数です。 |
+    | Inform WhatsApp Messages | Inform を介してユーザーに送信された WhatsApp メッセージの数です。 |
+  </Accordion>
+  <Accordion title="その他のチャネル">
+    プランで RCS、Cards、または Landing Pages が有効になっている場合に利用できます。
+
+    | 指標 | 説明 |
+    | --- | --- |
+    | RCS Sent | ユーザーに送信された RCS メッセージです。 |
+    | Cards Sent | キャンペーンとフロー全体で送信された Cards です。 |
+    | Landing Page Views | ランディングページ全体の非ユニークなインプレッションの合計です。 |
+  </Accordion>
+  <Accordion title="Data Exports">
+    データウェアハウス、パートナーツール、または API の送信先への自動データエクスポートです。プランでまだカバーされていない場合は、毎月エクスポートされたデータ量に基づいて請求されます。
+  </Accordion>
+  <Accordion title="Open Analytics">
+    MoEngage の Open Analytics またはデータウェアハウスのクエリ機能を通じてクエリを実行する場合に利用できます。
+
+    | 指標 | 説明 |
+    | --- | --- |
+    | Open Analytics Usage | Open Analytics のクエリを実行するためにスキャンされた、毎月のデータの総量です。 |
+  </Accordion>
+</AccordionGroup>
+
+### アカウントレベルの指標 {#account-level-metrics}
+
+次の指標は UTC タイムゾーンでアカウントレベルで計算されます。その他のすべての指標は、[ワークスペースで設定されたタイムゾーン](/ja/user-guide/settings/account/general-settings/workspace-settings)でワークスペースレベルで計算されます。
+
+- Emails Sent via MoEngage SendGrid
+- Total IPs for Emails
+
+## 使用状況を表示する
+
+Usage ページにアクセスするには、MoEngage ダッシュボードの左側のナビゲーションメニューで **Settings** > **Account** > **Billing** をクリックし、**Usage** タブを選択します。
+
+### アクセス権限 {#access-permissions}
+
+次の表は、Usage ページへのアクセスと使用に必要な権限を示しています。
+
+| 権限コンポーネント | 権限名 | 詳細 |
+| --- | --- | --- |
+| Usage and Billing | View Usage | Usage ページへの読み取り専用アクセスを付与します。フィルターの変更、期間の選択、請求チャートとトレンドの表示ができます。ワークスペースは、現在のワークスペースと同じ請求アカウントに関連付けられており、かつそのワークスペースに対する _Usage and Billing > View Usage_ 権限がある場合にのみ表示されます。 |
+| Usage and Billing | Manage account details | 使用状況フィルターで、ワークスペースビューとアカウントビューを切り替えることができます。有効にすると、フィルターのドロップダウンに **Account** オプションが表示されます。アカウントレベルでは、すべての指標がすべてのワークスペースの合計として表示されます。 |
+| Usage and Billing | Download | MoEngage ダッシュボードからチャートやテーブルを直接ダウンロードできます。 |
+| Alert Manager | Manage alerts | 任意の請求指標に対するアラートを作成または編集できます。詳細については、[アクセスロール](/ja/user-guide/settings/account/team-management/access-roles)を参照してください。 |
+
+## トレンドを分析する
+
+**Usage Trends** セクションでは、Data、Engage、Inform、Media Volumes の各カテゴリに分類されたさまざまな指標のデータパターンを可視化できます。
+
+<Frame>
+  ![Data タブの Usage Trends セクション。Events 指標が粒度別にグラフ表示されている](/images/analysetrend.gif)
+</Frame>
+
+<Steps>
+  <Step title="データをフィルタリングする">
+    ページ上部のフィルターを使用して、分析するデータを選択します。
+
+    - **Select workspaces/account**: フィルターのドロップダウンを使用して、表示するデータの範囲を選択します。
+      - **Workspaces**: 分析に含めるワークスペースを 1 つ以上選択します。デフォルトでは、現在のワークスペースが選択されています。現在のワークスペースと同じ請求アカウントにマッピングされ、必要な権限を持つワークスペースのみが表示されます (上記の[アクセス権限](#access-permissions)を参照)。
+      - **Account**: アカウント内のすべてのワークスペースの合計として集計されたすべての指標を表示します。このオプションには _Manage account details_ 権限が必要です。
+    - **Select date range**: 期間を定義します。**This month**、**Last month**、または **Custom range** (過去 12 か月まで) を選択します。選択した期間は、チャートビューとテーブルビューにも適用されます。
+
+    <Info>
+      - デフォルトでは、現在の暦月のデータが表示されます。
+      - 使用状況データは 2025 年 10 月以降のものが利用可能です。
+      - [アカウントレベルの指標](#account-level-metrics)に記載されている指標を除き、すべての指標はワークスペースで設定されたタイムゾーンに基づいてトラッキングされます。
+    </Info>
+  </Step>
+  <Step title="トレンドを表示して解釈する">
+    コントロールを使用して、チャートビューまたはテーブルビューをカスタマイズします。
+
+    - **Category**: 表示する指標のタブを選択します: **Data**、**Engage**、**Inform**、または **Media Volumes**。
+    - **Metric selection**: ドロップダウンリストから指標を選択します。利用可能な指標は選択したカテゴリによって異なります。例: **Data** の **Events**、**Engage** の **SMS**。
+    - **Granularity**: **Monthly**、**Quarterly**、または **Annually** で集計されたデータを表示します。
+    - **Chart and table view**: すばやく視覚的に分析するための折れ線グラフと、正確な数値を確認するためのテーブルを切り替えます。
+
+    たとえば、過去 3 か月間にトラッキングしたカスタムイベントのトレンドを確認するには:
+
+    1. **Data** タブで、ドロップダウンリストから表示する指標を選択します。デフォルトでは **Events** が選択されています。
+    2. 粒度を **Monthly**、**Quarterly**、または **Annually** に設定します。デフォルトでは **Monthly** が選択されています。
+    3. チャートアイコンまたはテーブルアイコンを選択して、視覚的なグラフと詳細なデータテーブルを切り替えます。デフォルトでは **Chart** ビューが選択されています。
+
+    <Frame>
+      ![Engage タブの使用状況トレンドチャート。SMS Sent 指標の推移が表示されている](/images/engageanalyzetrend.gif)
+    </Frame>
+  </Step>
+  <Step title="データをエクスポートしてダウンロードする">
+    レポート作成や記録保持のために、次の 2 つの方法でデータをエクスポートできます。
+
+    - **指標リストをダウンロードする**: 指標リストの **Download** をクリックして、完全な使用状況レポートをダウンロードします。
+      <Frame>
+        ![使用状況指標リストの Download ボタン](/images/download-metrics.png)
+      </Frame>
+    - **トレンドデータをエクスポートする**:
+      - チャートビューで **Export Chart** をクリックすると、グラフを PNG ファイルとしてダウンロードできます。
+      - テーブルビューで **Download Table** をクリックすると、生データを CSV ファイルとしてダウンロードできます。
+      <Frame>
+        ![使用状況トレンドビューの Export Chart と Download Table オプション](/images/download-csv.png)
+      </Frame>
+  </Step>
+</Steps>
+
+## アラートを作成する
+
+指標が定義した上限を超えるとすぐに通知するカスタムアラートで、使用状況を先回りして把握できます。これにより、料金が発生するかなり前に、キャンペーンの調整、アクティビティの抑制、アップグレードの計画を行う時間を確保できます。
+
+アラートを作成するには:
+
+<Steps>
+  <Step title="Alert Management を開く">
+    右上隅にある **+ Manage Alert** をクリックします。
+
+    <Frame>
+      ![Usage ページの右上隅にある Manage Alert ボタン](/images/manage-alerts.png)
+    </Frame>
+
+    **Alert management** ページが表示されます。
+  </Step>
+  <Step title="新しいアラートを開始する">
+    右上隅にある **+ Create alerts** をクリックします。**Create alert** ページが表示されます。
+  </Step>
+  <Step title="一般的な詳細を入力する">
+    **Create Alert** ページで、一般的な詳細を入力します。
+
+    - **Alert name**: アラートの一意の名前を入力します。
+    - **Create Alerts On**: デフォルトでは Campaign Stats が選択されています。使用状況と請求の指標を監視するには、**Billing** を選択します。
+    - **Send Alert On**: 主な通知チャネル (例: Email) を選択します。
+    - (オプション) **+ Add alert destination** をクリックして、Slack、MS Teams、または Webhooks をアラートの送信先として設定します。詳細については、[アラートの送信先](/ja/user-guide/settings/reports-and-alerts/alert-management/getting-started/create-an-alert#alert-destinations)を参照してください。
+  </Step>
+  <Step title="アラート条件を定義する">
+    - **Send alerts when** リストで、監視する指標 (例: Total Tracked Events、Total Monthly Active Users、Web Active Users) を選択します。
+    - しきい値のロジック (例: **Is greater than**) を設定し、数値の上限を入力します。
+  </Step>
+  <Step title="受信者を追加する">
+    **Members** セクションで、通知を受け取るチームメンバーを選択します。登録済みの任意の MoEngage UI ユーザーをアラートに追加できます。
+  </Step>
+  <Step title="アラートを保存する">
+    **Create** をクリックします。詳細については、[Alert Management](/ja/user-guide/settings/reports-and-alerts/alert-management/getting-started/overview-alert-management) を参照してください。
+  </Step>
+</Steps>
+
+### アラートの評価ロジック
+
+MoEngage はアラートを毎日評価し、評価時点までに蓄積された使用状況データを設定した上限と照合します。毎日のスキャンで使用量が定義されたしきい値を超えていることが検出されると、すぐに通知が届きます。
+
+<Info>
+  - アラートは編集および削除できます。詳細については、[アラートの管理](/ja/user-guide/settings/reports-and-alerts/alert-management/manage-alerts/managing-alerts)を参照してください。
+  - MoEngage では、アラートを作成するためのロールベースの権限を提供しています。詳細については、[アクセスロール](/ja/user-guide/settings/account/team-management/access-roles)を参照してください。
+</Info>
+
+## よくある質問
+
+<Accordion title="Email や SMS のダッシュボードの数値が請求額と一致しないのはなぜですか?">
+  ワークスペースのダッシュボードに表示されるメール量は、その特定のワークスペースからの送信のみを反映しています。メールの請求は、同じ MoEngage Sender を使用するすべてのワークスペースを対象に、アカウントレベルで計算されます。同じ Sender (例: 共有の "from" メールアドレスやドメイン、SendGrid Subuser) が複数のワークスペースで設定されている場合、それらすべてのワークスペースからの送信の合計が請求のために集計されます。そのため、請求されるメール量が、単一のワークスペースのダッシュボードに表示される量よりも多くなる場合があります。完全な請求情報については、Usage ページで関連するすべてのワークスペースを選択してください。
+
+  SMS の請求の不一致は、通常次の 2 つの理由で発生します。
+
+  - **ワークスペース間で共有されたショートコード**: メールと同様に、同じショートコードが複数のワークスペースで設定されている場合、請求はアカウントレベルで集計されます。ワークスペースのダッシュボードにはそのワークスペースからの送信のみが表示されますが、請求書には合計が反映されます。
+  - **SMS セグメントとメッセージ**: MoEngage ダッシュボードでは、SMS Sent は送信された個々のメッセージの数として表示されます。請求は SMS セグメント、つまりメッセージが分割される個々の送信単位の数に基づきます。標準の GSM 文字数制限 (プレーンテキストで 160 文字) を超える 1 つのメッセージは複数のセグメントに分割され、それぞれが個別に請求されます。たとえば、320 文字のメッセージは、ダッシュボードでは 1 件のメッセージとして表示されますが、請求対象セグメントとしては 2 件にカウントされます。差異を照合するには、メッセージの長さの分布を確認し、共有ショートコードが複数のワークスペースで有効になっていないかを確認してください。セグメントレベルの詳細な請求レポートについては、CSM にお問い合わせください。
+</Accordion>
+
+<Accordion title="Billing Usage ページと Data Management ページでイベント数に差異があるのはなぜですか?">
+  Billing Usage ページには、ファイルやデータウェアハウスのインポートによる過去データのバックフィルや、遅延により遅れて到着したデータを含め、その月に処理されたすべてのデータが反映されます。Data Management ページは日次のスナップショットを表示するもので、元の日付が過ぎた後に追加されたイベントについて、過去のグラフを遡って更新することはありません。請求額は取り込まれたデータの総量を反映しますが、Data Management にはその時点で MoEngage が取得したデータのみが表示されます。
+</Accordion>
+
+<Accordion title="Billing と Key Metrics のデータに差異があるのはなぜですか?">
+  Key Metrics では、Monthly Active Users (MAU) を過去 30 日間のローリングカウントとして表示します。Billing の MTU は実際の暦月に基づいて計算され、月やうるう年によって 28 日、29 日、30 日、31 日と異なります。この計算期間の違いにより、2 つの数値が完全に一致することはほとんどありません。
+</Accordion>
+
+<Accordion title="Billing と Segmentation のデータに差異があるのはなぜですか?">
+  MoEngage は、毎月 1 日に固定のスナップショットとして請求用の MTU を計算します。Segmentation のクエリはライブデータに対して実行されるため、その後 2 つの数値に差が生じる場合があります。
+
+  - 請求の計算後にユーザーのマージが発生した場合、Segmentation のクエリを再実行すると、ユーザー数が減少することがあります。
+  - イベントが遅れて MoEngage のサーバーに到着した場合、遅延後に Segmentation のクエリを再実行すると、ユーザー数が増加することがあります。
+</Accordion>

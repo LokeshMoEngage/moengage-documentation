@@ -1,0 +1,140 @@
+---
+title: "SDKバージョン9.0.0への移行"
+description: "更新されたクラス名と初期化メソッドを使用して、MoEngage iOS SDKをバージョン9.0.0に移行します。"
+---
+
+SDKバージョン9.0.0では一部のクラス名が更新されています。バージョン8.2.0以上のSDKを使用していて、バージョン9.0.0以上への移行を計画している場合は、移行時に以下の変更を行ってください。
+
+# 初期化メソッドの変更
+
+SDKの初期化メソッドが更新され、SDKConfigが必須パラメーター、sdkStateがオプションのパラメーターになりました。
+
+### 非推奨のメソッド
+
+<CodeGroup>
+
+```swift file name wrap
+let sdkConfig = MOSDKConfig(withAppID: "YOUR_WORKSPACE_ID")
+#if DEBUG
+	MoEngage.sharedInstance().initializeDefaultTestInstance(with: sdkConfig, andLaunchOptions: launchOptions)
+#else
+	MoEngage.sharedInstance().initializeDefaultLiveInstance(with: sdkConfig, andLaunchOptions: launchOptions)
+#endif
+```
+
+
+```objective-c Objective C wrap
+MOSDKConfig* sdkConfig = [[MOSDKConfig alloc] initWithAppID:@"YOUR_WORKSPACE_ID"];
+#ifdef DEBUG
+   [[MoEngage sharedInstance] initializeDefaultTestInstanceWithConfig:sdkConfig andLaunchOptions:launchOptions];
+#else
+   [[MoEngage sharedInstance] initializeDefaultLiveInstanceWithConfig:sdkConfig andLaunchOptions:launchOptions];
+#endif
+```
+
+</CodeGroup>
+
+新しい初期化メソッドの詳細については、こちらの[リンク](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)を参照してください。
+
+# リージョン/データセンターの設定
+
+MoEngageDataCenter: SDKバージョン `9.0.0` でDataCenterのクラス名が更新されました。以下は、SDKバージョン `8.2.0` 以上で使用されていた既存のものです。
+
+| SDKバージョン8.2.0 | SDKバージョン9.0.0  |
+| :---------------- | :----------------- |
+| MODataCenter      | MoEngageDataCenter |
+
+新しいDataCenterの値の詳細については、こちらの[リンク](/ja/developer-guide/ios-sdk/sdk-integration/basic/data-center)を参照してください。
+
+# インストール/アップデートの区別
+
+| SDKバージョン8.x.x                             | SDKバージョン9.0.0                                       |
+| :-------------------------------------------- | :------------------------------------------------------ |
+| MoEngage.sharedInstance().appStatus(.install) | MoEngageSDKAnalytics.sharedInstance.appStatus(.install) |
+
+新しいDataCenterの値の詳細については、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/data-tracking/basic/install-update-differentiation)を参照してください。
+
+# Analytics:
+
+SDKバージョン `9.0.0` から、Analyticsに関連するメソッドが更新されました。更新されたメソッドを使用するには、以下の表を参照してください。
+
+| SDKバージョン8.x.x | SDKバージョン9.0.0    |
+| :---------------- | :------------------- |
+| MOAnalytics       | MoEngageSDKAnalytics |
+
+ユーザー属性のトラッキングメソッドの詳細については、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/data-tracking/basic/tracking-events)を参照してください。
+
+# Inapps
+
+SDKバージョン `9.0.0` から、Inappsに関連するメソッドが更新されました。更新されたメソッドを使用するには、以下の表を参照してください。
+
+| SDKバージョン8.x.x                                                                                                                                          | SDKバージョン9.0.0                                                                                                                                                                       |
+| :--------------------------------------------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MOInapp                                                                                                                                                    | MoEngageSDKInApp                                                                                                                                                                        |
+| MOInApp.sharedInstance().showCampaign()                                                                                                                    | MoEngageSDKInApp.sharedInstance.showInApp()                                                                                                                                             |
+| MOInApp.sharedInstance().showNudge(at: NudgePositionTop)                                                                                                   | MoEngageSDKInApp.sharedInstance.showNudge(atPosition: NudgePositionTop)                                                                                                                 |
+| MOInAppNativeDelegate                                                                                                                                      | MoEngageInAppNativeDelegate                                                                                                                                                             |
+| func inAppShown(withCampaignInfoinappCampaign: MOInAppCampaign, foraccountMeta: MOAccountMeta)                                                             | func inAppShown(withCampaignInfoinappCampaign: MoEngageInAppCampaign, forAccountMetaaccountMeta: MoEngageAccountMeta)                                                                   |
+| `func inAppDismissed(withCampaignInfoinappCampaign: MOInAppCampaign, foraccountMeta: MOAccountMeta)`                                                       | `func inAppDismissed(withCampaignInfoinappCampaign: MoEngageInAppCampaign,forAccountMetaaccountMeta: MoEngageAccountMeta)`                                                              |
+| `func inAppClicked(withCampaignInfoinappCampaign: MOInAppCampaign, andCustomActionInfocustomAction: MOInAppAction, foraccountMeta: MOAccountMeta)`         | `func inAppClicked(withCampaignInfoinappCampaign: MoEngageInAppCampaign, andCustomActionInfocustomAction: MoEngageInAppAction, forAccountMetaaccountMeta: MoEngageAccountMeta)`         |
+| `func inAppClicked(withCampaignInfoinappCampaign: MOInAppCampaign, andNavigationActionInfonavigationAction: MOInAppAction, foraccountMeta: MOAccountMeta)` | `func inAppClicked(withCampaignInfoinappCampaign: MoEngageInAppCampaign, andNavigationActionInfonavigationAction: MoEngageInAppAction, forAccountMetaaccountMeta: MoEngageAccountMeta)` |
+| `func selfHandledInAppTriggered(withInfoinappCampaign: MOInAppSelfHandledCampaign, foraccountMeta: MOAccountMeta)`                                         | `func selfHandledInAppTriggered(withInfoinappCampaign: MoEngageInAppSelfHandledCampaign, forAccountMetaaccountMeta: MoEngageAccountMeta)`                                               |
+
+詳細については、[InApp Native開発者ドキュメント](/ja/developer-guide/ios-sdk/in-app-messages/in-app-nativ)を参照してください。
+
+# Cards
+
+SDKバージョン `9.0.0` から、Cardsに関連するメソッドが更新されました。更新されたメソッドを使用するには、以下の表を参照してください。
+
+| SDKバージョン8.x.x                                                                        | SDKバージョン9.0.0                                                                              |
+| :--------------------------------------------------------------------------------------- | :--------------------------------------------------------------------------------------------- |
+| MOCards                                                                                  | MoEngageSDKCards                                                                               |
+| MOCardsDelegate                                                                          | MoEngageCardsDelegate                                                                          |
+| MOCardsViewControllerDelegate                                                            | MoEngageCardsDelegate                                                                          |
+| `@objc optional func cardsSyncedSuccessfully(forAccountMeta accountMeta: MOAccountMeta)` | `@objc optional func cardsSyncedSuccessfully(forAccountMeta accountMeta: MoEngageAccountMeta)` |
+
+# プッシュ通知
+
+SDKバージョン `9.0.0` から、プッシュ通知に関連するメソッドが更新されました。更新されたメソッドを使用するには、以下の表を参照してください。
+
+| SDKバージョン8.x.x                                                                                                        | SDKバージョン9.0.0                                                                                                                 |
+| :----------------------------------------------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------------- |
+| MORichNotification                                                                                                       | MoEngageSDKRichNotification                                                                                                       |
+| `MoEngage.sharedInstance().registerForRemoteNotification(withCategories: nil, withUserNotificationCenterDelegate: self)` | `MoEngageSDKMessaging.sharedInstance.registerForRemoteNotification(withCategories: nil, andUserNotificationCenterDelegate: self)` |
+| `MoEngage.sharedInstance().setPushToken(deviceToken)`                                                                    | `MoEngageSDKMessaging.sharedInstance.setPushToken(deviceToken)`                                                                   |
+| `MoEngage.sharedInstance().didFailToRegisterForPush()`                                                                   | `MoEngageSDKMessaging.sharedInstance.didFailToRegisterForPush()`                                                                  |
+| `MoEngage.sharedInstance().userNotificationCenter(center, didReceive: response)`                                         | `MoEngageSDKMessaging.sharedInstance.userNotificationCenter(center, didReceive: response)`                                        |
+| `MoEngage.sharedInstance().didReceieveNotificationinApplication(application, withInfo: userInfo)`                        | `MoEngageSDKMessaging.sharedInstance.didReceieveNotification(inApplication: application, withInfo: userInfo)`                     |
+| `MoEngage.sharedInstance().setDisableBadgeReset(true)`                                                                   | `MoEngageSDKMessaging.sharedInstance.disableBadgeReset(true)`。SDK 10.13.0から非推奨となり、現在は何も実行されません(no-op)。代わりに `Info.plist` の `MoEngageBadgeUpdateEnabled` キーを使用してください。[バッジリセットの無効化](/ja/developer-guide/ios-sdk/push/advanced/custom-notification-handling#disable-badge-reset)を参照してください。 |
+| `MOMessaging.sharedInstance.setMessagingDelegate(self)`                                                                  | `MoEngageSDKMessaging.sharedInstance.setMessagingDelegate(self)`                                                                  |
+
+# RealTimeTrigger:
+
+SDKバージョン `9.0.0` から、RealTime Triggerに関連するメソッドが更新されました。更新されたメソッドを使用するには、以下の表を参照してください。
+
+| SDKバージョン8.x.x | SDKバージョン9.0.0          |
+| :---------------- | :------------------------- |
+| MORealTimeTrigger | MoEngageSDKRealTimeTrigger |
+
+詳細については、[Real-Time Triggers](/ja/developer-guide/ios-sdk/push/optional/real-time-triggers)を参照してください。
+
+# Location Triggered
+
+SDKバージョン `9.0.0` から、Location Triggerに関連するメソッドが更新されました。更新されたメソッドを使用するには、以下の表を参照してください。
+
+| SDKバージョン8.x.x                                    | SDKバージョン9.0.0                                              |
+| :--------------------------------------------------- | :------------------------------------------------------------- |
+| MOGeofence                                           | MoEngageSDKGeofence                                            |
+| `MOGeofenceHandler.sharedInstance().delegate = self` | `MoEngageSDKGeofence.sharedInstance.setGeofenceDelegate(self)` |
+
+Geofence機能の詳細については、[こちら](/ja/developer-guide/ios-sdk/push/optional/location-triggered)のドキュメントを参照してください。
+
+# Inbox
+
+| SDKバージョン8.x.x                                                                                                                                                                                                                                                                      | SDKバージョン9.0.0                                                                                                                                                                                                                                                                                        |
+| :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| MOInbox                                                                                                                                                                                                                                                                                | MoEngageSDKInbox                                                                                                                                                                                                                                                                                         |
+| MOInboxViewController                                                                                                                                                                                                                                                                  | MoEngageInboxViewController                                                                                                                                                                                                                                                                              |
+| `func getInboxViewController(withUIConfiguration uiConfig: MOInboxUIConfiguration? = nil, withInboxWithControllerDelegate delegate: MOInboxViewControllerDelegate? = nil, forAppID appID: String? = nil, withCompletionBlock completionBlock: @escaping (MOInboxViewController?)->())` | `func getInboxViewController(withUIConfiguration uiConfig: MoEngageInboxUIConfiguration? = nil, withInboxWithControllerDelegate delegate: MoEngageInboxViewControllerDelegate? = nil, forAppID appID: String? = nil, withCompletionBlock completionBlock: @escaping (MoEngageInboxViewController?)->())` |
+
+Geofence機能の詳細については、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/push/basic/actionable-notifications)を参照してください。

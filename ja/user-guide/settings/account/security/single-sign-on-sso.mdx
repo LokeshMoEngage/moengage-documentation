@@ -1,0 +1,387 @@
+---
+title: "シングルサインオン (SSO)"
+description: "MoEngage でシングルサインオン (SSO) を設定し、チームメンバーが組織の中央 ID プロバイダー (IdP) を使用してダッシュボードにアクセスできるようにします。"
+---
+
+シングルサインオン (SSO) は、1 組のログイン認証情報を使用して、アプリケーションごとに認証情報を再入力することなく複数のアプリケーションにアクセスできるようにするシステムです。SSO を使用すると、組織の中央 ID プロバイダー (IdP) を使用して MoEngage ダッシュボードに簡単にアクセスできます。
+
+## SSO のメリット
+
+SSO を使用するメリットは次のとおりです。
+
+- **ユーザーエクスペリエンスの簡素化**: SSO により、ユーザーはアプリケーションごとに複数のユーザー名とパスワードを記憶・管理する必要がなくなり、ログインプロセスがはるかに簡単かつ迅速になります。
+- **パスワード疲れの軽減**: 認証情報を統合することで、多数のパスワードを記憶・管理するユーザーの負担が軽減されます。この負担はセキュリティリスクやストレスの原因となる可能性があります。
+- **セキュリティの強化**: SSO による認証の一元化により、より強力なパスワードポリシーや多要素認証などのセキュリティ管理をより効果的に行えるようになり、ユーザーのアクセスと権限の管理プロセスも簡素化されます。
+- **生産性の向上**: SSO により、ユーザーはログイン処理に費やす時間を減らし、本来の業務により多くの時間を割けるようになるため、生産性と効率が向上します。
+- **IT コストの削減**: SSO によってユーザーアクセス管理が効率化され、IT チームの作業負荷が軽減されるとともに、パスワードのリセットやサポートへの問い合わせが最小限に抑えられるため、コスト削減につながります。
+
+## SSO の設定
+
+MoEngage は Security Assertion Markup Language (SAML) 2.0 を使用した SSO をサポートしており、SSO サービスプロバイダー (SP) として機能します。SAML は、OAuth 2 と同様にユーザー認証の委任を可能にする業界標準のプロトコルです。
+
+ログイン時には、認証のために社内または外部の SSO システムにリダイレクトされ、レスポンスが検証されると MoEngage に戻ります。
+
+![Screenshot\_2022-10-18\_at\_9.39.29\_AM.png](/images/moengage_266f51.png)
+
+<Info>
+  - MoEngage ダッシュボードにログインするための SSO の設定については、組織の IT チームにお問い合わせください。
+  - ワークスペースで SSO を有効にできるのは管理者のみです。SSO を有効にすると、チームメイトは ID プロバイダーの認証情報を使用して安全にログインできます。
+  - SSO を設定するには、**Login Settings** コンポーネントに対する **Setup & manage** 権限を持つ Admin ロールが必要です。\
+    注: **Login Settings** は現在 **Security Settings** に名称が変更されています。
+</Info>
+
+# ID プロバイダー (IdP)
+
+MoEngage は ID プロバイダー (IdP) を使用して、ユーザーログインを簡素化・一元化します。これにより、SAML 2.0 標準に基づく SSO を使用して MoEngage のサービスに安全にアクセスできます。MoEngage は現在、次の IdP をサポートしています。
+
+- Okta
+- Onelogin
+- Azure (Microsoft Entra ID)
+- Google Admin
+- その他 (SAML 2.0 に準拠していれば、JumpCloud を含むその他の IdP を設定できます)
+
+MoEngage ダッシュボードで SSO を有効にするには、次の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**Settings** \> **Account** \> **Security** をクリックします。 <img src="/images/moengage_7979c2.png" />
+2. Security ページで、**Login** タブをクリックします。
+3. **Single Sign On (SSO) only** をクリックします。
+4. **Single sign on** の下で、**Configure SSO** をクリックします。 <img src="/images/moengage_f5d80e.png" /> **Configure SSO** ダイアログボックスが表示されます。
+5. **Identity Provider** リストで、使用する ID プロバイダーを選択します。 <img src="/images/moengage_b511a8.png" /> 次に、その IdP の管理コンソールに切り替えて SSO 設定を構成し、MoEngage と選択した IdP 間の SSO 連携が意図どおりに機能することを確認する必要があります。
+   <Info>
+     使用したい ID プロバイダーが **Identity Provider** リストにない場合は、_Other_ を選択して SSO を設定できます。この機能は、SAML 2.0 に準拠したすべてのプロバイダーで動作します。
+   </Info>
+
+<Tabs>
+  <Tab title="Okta SSO を設定する">
+    Okta で SSO を設定するには、次の手順を実行します。
+
+    1. **Okta Admin Console** に移動します。
+    2. 左側のナビゲーションメニューで、**Applications** \> **Applications** をクリックします。 <img src="/images/moengage_430dce.png" />
+    3. **Applications** ページで、**Create App Integration** をクリックします。 <img src="/images/moengage_fbb92e.png" /> \
+       Create a new app integration ポップアップウィンドウが表示されます。
+    4. **SAML 2.0** オプションをクリックし、**Next** をクリックします。 <img src="/images/moengage_a8ff78.png" /> Create SAML integration ページが表示されます。最初のステップである **General Settings** に移動し、アプリを定義します。 <img src="/images/moengage_b71248.png" />
+    5. 次の詳細を入力します。
+       | フィールド | 必須 | 説明 |
+       | --- | --- | --- |
+       | App name | はい | アプリ名を入力します。 |
+       | App logo | 任意 | アプリケーションアイコンとして使用する画像ファイル (通常は PNG、JPG、または GIF) をアップロードします。<br />**注**: 画像ファイルは 1 MB 未満である必要があります。 |
+       | App visibility | 任意 | ユーザーにアプリケーションアイコンを表示しないようにするには、**App Visibility** の横にある **Do not display application icon to users** チェックボックスを選択します。 |
+    6. **Next** をクリックします。2 番目のステップである **Configure SAML** に移動し、SAML 設定を定義します。
+    7. MoEngage ダッシュボードの **Configure SSO** ダイアログボックスで、**Single sign-on URL** と **Audience URI (SP Entity ID)** をコピーします。 <img src="/images/moengage_4b2e97.png" />
+    8. **SAML Settings** の下で、次の詳細を入力します。
+       | フィールド | 必須 | 説明 |
+       | --- | --- | --- |
+       | Single Sign-On URL | はい | この URL は、Okta から MoEngage への SAML アサーション (認証レスポンス) を受信します。MoEngage ダッシュボードからコピーした URL を貼り付けます。 |
+       | Audience URI (SP Entity ID) | はい | この URL は、認証アサーションの対象となる特定のアプリケーション (MoEngage) を Okta に通知します。MoEngage ダッシュボードからコピーした URI を貼り付けます。<br />**注**: このボックスには、異なるワークスペースの複数のエンティティ ID をカンマ区切りで追加できます。 |
+       | Name ID format | はい | _EmailAddress_ を選択します。 |
+       ![](/images/moengage_a05404.png)
+    9. ページの最後までスクロールし、**Next** をクリックします。3 番目のステップである **Feedback** に移動します。
+    10. **App type** の横にある **This is an internal app that we have created** チェックボックスを選択します。 <img src="/images/moengage_9b3fe7.png" />
+    11. **Finish** をクリックします。次に、アプリを Okta に接続するための **SAML Signing Certificates** を生成する必要があります。
+    12. デフォルトでは **Sign On** タブが表示されています。ページの最後までスクロールし、**SAML Signing Certificates** の下で **Status** が _Active_ となっている証明書を見つけてダウンロードします。
+    13. **Actions** 列の **Actions** 矢印をクリックします。
+    14. **Download certificate** をクリックします。 <img src="/images/moengage_65d962.png" /> メタデータが XML ファイルでダウンロードされます。
+    15. ダウンロードした XML ファイルを、MoEngage ダッシュボードの **Configure SSO** ダイアログボックスにある **Enter XML Configuration** ボックスにアップロードします。
+    16. デフォルトでは、**Update the same config for Test Environment** チェックボックスが選択されています。選択されている場合、設定はテスト環境とライブ環境の両方に適用されます。設定をライブ環境にのみ適用する場合は、チェックボックスをオフにします。
+    17. **Configure** をクリックします。 <img src="/images/moengage_b6fce2.png" /> Alert ポップアップウィンドウが表示され、手順を適切に確認するよう求められます。
+    18. ワークスペースでシングルサインオン (SSO) が有効になったことをすべてのユーザーに通知するには、**Send email to the users of this workspace** チェックボックスを選択します。
+    19. **Done** をクリックします。 <img src="/images/moengage_3c648e.png" /> これで SSO の設定が正常に完了しました。**Login** タブで Okta SSO を確認できます。 <img src="/images/moengage_f5bdef.png" />
+  </Tab>
+  <Tab title="Onelogin SSO を設定する">
+    Onelogin で SSO を設定するには、次の手順を実行します。
+
+    1. **Onelogin Admin Console** に移動します。
+    2. 右上隅にあるプロフィールの横の **Administration** をクリックします。 <img src="/images/moengage_6f68bb.png" />
+    3. **Applications** \> **Applications** をクリックします。 <img src="/images/moengage_6a1782.png" />
+    4. Application ページで、**Add app** をクリックします。 <img src="/images/moengage_edf9eb.png" /> Find Applications ページが表示されます。
+    5. **Search** ボックスに SAML と入力し、ページをスクロールして **SAML Test Connector (IdP)** をクリックします。 <img src="/images/moengage_c2db41.png" /> Add SAML Test Connector (IdP) ページが表示されます。
+    6. **Display Name** ボックスに、テストする SAML の名前を入力します。(任意)
+    7. **Save** をクリックします。 <img src="/images/moengage_024e1e.png" /> SAML が正常に追加され、SAML Test Connector (IdP) ページが表示されます。
+    8. 左側のナビゲーションメニューで **Configuration** をクリックします。 <img src="/images/moengage_2af881.png" />
+    9. MoEngage ダッシュボードの **Configure SSO** ダイアログボックスで、**Audience**、**ACS (Consumer) URL Validator**、および **Single Logout Url** をコピーします。 <img src="/images/moengage_99a095.png" />
+    10. **Application details** セクションで、次の詳細を入力します。
+        | フィールド | 必須 | 説明 |
+        | --- | --- | --- |
+        | Audience | はい | この URL は、SAML アサーションの対象となる受信者を指定します。MoEngage ダッシュボードからコピーした Audience を貼り付けます。 |
+        | ACS (Consumer) URL Validator | はい | この URL は、MoEngage が SAML アサーションのみを受け入れるようにするための追加のセキュリティを提供します。MoEngage ダッシュボードからコピーした URL Validator を貼り付けます。 |
+        | ACS (Consumer) URL | はい | この URL は、Onelogin から MoEngage への SAML 認証データを受信して処理します。**注**: MoEngage ダッシュボードからコピーした **ACS (Consumer) URL Validator** を **ACS (Consumer) URL** ボックスに貼り付けます。 |
+        | Single Logout URL | はい | この URL により、シングルログアウト機能が有効になります。 |
+        | <img src="/images/moengage_caf5be.png" /> |  |  |
+    11. **Save** をクリックします。SAML 設定が正常に更新されます。 <img src="/images/moengage_d9255f.png" />
+    12. 右上隅で **More Actions** 矢印をクリックし、**SAML Metadata** を選択します。 <img src="/images/moengage_c08391.png" />\
+        メタデータが XML ファイルでダウンロードされます。
+    13. **Upload** をクリックして、ダウンロードした XML ファイルを MoEngage ダッシュボードの **Configure SSO** ダイアログボックスにアップロードします。
+    14. デフォルトでは、**Update the same config for Test Environment** チェックボックスが選択されています。選択されている場合、設定はテスト環境とライブ環境の両方に適用されます。設定をライブ環境にのみ適用する場合は、チェックボックスをオフにします。
+    15. **Configure** をクリックします。 <img src="/images/moengage_796ccd.png" /> Alert ポップアップウィンドウが表示され、手順を適切に確認するよう求められます。
+    16. ワークスペースでシングルサインオン (SSO) が有効になったことをすべてのユーザーに通知するには、**Send email to the users of this workspace** チェックボックスを選択します。
+    17. **Done** をクリックします。 <img src="/images/moengage_3c648e.png" /> これで SSO の設定が正常に完了しました。**Login** タブで Onelogin SSO を確認できます。 <img src="/images/moengage_54d4bd.png" />
+  </Tab>
+  <Tab title="Microsoft Azure SSO を設定する">
+    Azure で SSO を設定するには、次の手順を実行します。
+
+    1. **Azure Admin Console** に移動します。
+    2. Azure services ページで、**Microsoft Entra ID** をクリックします。 <img src="/images/moengage_f8dae1.png" />
+    3. Overview ページで、左側のナビゲーションメニューに移動し、**Manage** \> **Enterprise** **applications** をクリックします。 <img src="/images/moengage_a6d744.png" />
+    4. Enterprise applications | All applications ページで、**\+ New application** をクリックします。 <img src="/images/moengage_a65fbd.png" />
+    5. Browse Microsoft Entra Gallery ページの検索ボックスに **SAML Toolkit** と入力します。
+    6. **Microsoft Entra SAML Toolkit** タイルをクリックし、アプリケーションを作成します。 <img src="/images/moengage_4cbc0d.png" /> 作成したアプリケーションが **Enterprise applications**| **All applications** ページに一覧表示されます。
+    7. **Search by application name or object ID** ボックスに、作成したアプリケーションの名前を入力し、アプリケーションを選択します。 <img src="/images/moengage_96d188.png" />\
+       作成したアプリケーションが表示されます。 <img src="/images/moengage_0d1f80.png" /> 次に、作成したアプリケーションの SSO を設定する必要があります。
+    8. 開いたアプリケーションページで、左側のナビゲーションメニューに移動し、**Manage** \> **Single sign-on** をクリックします。 <img src="/images/moengage_348d7f.png" alt="sso2.png" /> 作成したアプリケーションの SAML-based Sign-On 設定ページが表示されます。 <img src="/images/moengage_7c45c0.png" />
+    9. 最初のステップである **Basic SAML Configuration** に移動し、メタデータを定義します。
+    10. **Basic SAML Configuration** セクションで、右上隅の **Edit** をクリックします。右側に **Basic SAML Configuration** ペインが表示されます。 <img src="/images/moengage_544830.png" />
+    11. MoEngage ダッシュボードの **Configure SSO** ダイアログボックスで、**Identifier (Entity ID)** と **Reply URL (Assertion Consumer Service URL)** をコピーします。**注**: **Sign on URL** のコピーは任意であり、一般的には推奨されません。 <img src="/images/moengage_e68760.png" />
+    12. **Basic SAML Configuration section** で、次の詳細を入力します。
+        | フィールド | 必須 | 説明 |
+        | --- | --- | --- |
+        | Identifier (Entity ID) | はい | この URL により、MoEngage は Azure からの認証リクエストを検証でき、安全でシームレスなログインが実現します。MoEngage ダッシュボードからコピーした ID を貼り付けます。 |
+        | Reply URL (Assertion Consumer Service URL) | はい | この URL は、Azure から MoEngage への SAML 認証データを受信して処理します。MoEngage ダッシュボードからコピーした Reply URL を貼り付けます。 |
+        | Sign on URL | 任意 (一般的には推奨されません)。 | この URL は、MoEngage にアクセスするための SAML SSO プロセスを開始する Azure 側のエントリポイントです。<br />MoEngage ダッシュボードからコピーした Sign on URL を貼り付けます。 |
+        | <img src="/images/moengage_7294e3.png" /> |  |  |
+    13. **Save** をクリックします。
+    14. SSO 設定が正常に保存されました。XML ファイルをダウンロードするには、3 番目のステップである **SAML Certificates** に移動します。
+    15. **SAMLCertificates** セクションで、**Federation Metadata XML** の横にある **Download** をクリックします。 <img src="/images/moengage_9fa547.png" /> メタデータが XML ファイルでダウンロードされます。
+    16. **Upload** をクリックして、ダウンロードした XML ファイルを MoEngage ダッシュボードの **Configure SSO** ダイアログボックスにアップロードします。
+    17. デフォルトでは、**Update the same config for Test Environment** チェックボックスが選択されています。選択されている場合、設定はテスト環境とライブ環境の両方に適用されます。設定をライブ環境にのみ適用する場合は、チェックボックスをオフにします。
+    18. **Configure** をクリックします。\
+        <img src="/images/moengage_0e3ec5.png" /> Alert ポップアップウィンドウが表示され、手順を適切に確認するよう求められます。
+    19. ワークスペースでシングルサインオン (SSO) が有効になったことをすべてのユーザーに通知するには、**Send email to the users of this workspace** チェックボックスを選択します。
+    20. **Done** をクリックします。 <img src="/images/moengage_3c648e.png" /> これで SSO の設定が正常に完了しました。**Login** タブで Azure SSO を確認できます。 <img src="/images/moengage_623487.png" />
+  </Tab>
+  <Tab title="Google Admin SSO を設定する">
+    Google Admin で SSO を設定するには、次の手順を実行します。
+
+    1. **Google Admin Console** に移動します。
+    2. 左側のナビゲーションメニューで、**Apps** \> **Web and mobile apps** をクリックします。 <img src="/images/moengage_88be0c.png" />
+    3. **Add app** 矢印をクリックし、**Add custom SAML** **app** をクリックします。 <img src="/images/moengage_783989.png" /> 最初のステップである **App details** に移動し、アプリを定義します。
+    4. **App details** ページで、次の詳細を入力します。
+       | フィールド | 必須 | 説明 |
+       | --- | --- | --- |
+       | App name | はい | SAML アプリケーションの名前。 |
+       | Description | はい | SAML アプリケーション設定の説明。 |
+       | Upload logo | 任意 | アプリケーションアイコンとして使用する画像ファイル (通常は PNG、JPG、または GIF) をアップロードします。<br />**注**: 画像ファイルは 4 MB 未満である必要があります。 |
+       <img src="/images/moengage_1acbb7.png" />
+    5. **Continue** をクリックします。2 番目のステップである **Google Identity Provider details** に移動します。
+    6. **Option 1: Download IdP metadata** の下で、**Download Metadata** をクリックします。\
+       メタデータが XML ファイルでダウンロードされます。
+    7. **Continue** をクリックします。 <img src="/images/moengage_b1cfb8.png" /> 3 番目のステップである **Service provider details** に移動します。
+    8. MoEngage ダッシュボードの **Configure SSO** ダイアログボックスで、**ACS URL** と **Entity ID** をコピーします。 <img src="/images/moengage_a9af29.png" />
+    9. **Service provider details** ページで、次の詳細を入力します。
+       | フィールド | 必須 | 説明 |
+       | --- | --- | --- |
+       | ACS URL | はい | この URL は、Google Admin から MoEngage への SAML 認証データを受信して処理します。MoEngage ダッシュボードからコピーした URL を貼り付けます。 |
+       | Entity ID | はい | アプリケーションの一意の識別子です。MoEngage ダッシュボードからコピーした ID を貼り付けます。 |
+       | Start URL | 任意 | 空欄のままにします。 |
+    10. アサーションやその他のプロトコル関連情報を含む SAML レスポンス全体に署名するには、**Signed response** チェックボックスを選択します。
+    11. **Name ID format** リストで、_Email_ を選択します。
+    12. **Continue** をクリックします。 <img src="/images/moengage_d80ce0.png" /> 4 番目のステップである **Attribute mapping** に移動します。ここでは、任意のユーザー属性 (名、姓、メールアドレスなど) をマッピングできます。
+    13. **Finish** をクリックします。 <img src="/images/moengage_9883df.png" /> SAML 設定が更新されます。
+    14. MoEngage ダッシュボードの **Configure SSO** ダイアログボックスで、**Upload** をクリックし、手順 6 でダウンロードした XML ファイルをアップロードします。
+    15. デフォルトでは、**Update the same config for Test Environment** チェックボックスが選択されています。選択されている場合、設定はテスト環境とライブ環境の両方に適用されます。設定をライブ環境にのみ適用する場合は、チェックボックスをオフにします。
+    16. **Configure** をクリックします。 <img src="/images/moengage_45acf5.png" /> Alert ポップアップウィンドウが表示され、手順を適切に確認するよう求められます。
+    17. ワークスペースでシングルサインオン (SSO) が有効になったことをすべてのユーザーに通知するには、**Send email to the users of this workspace** チェックボックスを選択します。
+    18. **Done** をクリックします。 <img src="/images/moengage_3c648e.png" /> これで SSO の設定が正常に完了しました。**Login** タブで Google SSO を確認できます。 <img src="/images/moengage_251775.png" />
+  </Tab>
+  <Tab title="JumpCloud SSO を設定する">
+    JumpCloud は、MoEngage ダッシュボードの **Identity Provider** リストに名前付きのオプションとして表示されません。代わりに **Other** オプションを使用して設定します。
+
+    JumpCloud はユーザーグループ単位でアプリケーションへのアクセスを付与するため、SSO を設定する前にユーザーとユーザーグループを作成してください。
+
+    ### ステップ 1: ユーザーを作成する
+
+    1. **JumpCloud Admin Portal** に移動します。
+    2. 左側のナビゲーションメニューで、**Identity Management** \> **Users** をクリックします。
+    3. **\+ Users** をクリックし、ユーザーを個別に作成するか、インポートオプションを使用して CSV ファイルからユーザーを追加します。
+    <Frame>
+      ![JumpCloud でユーザーを作成する](/images/manualusercreation.png)
+    </Frame>
+    4. ユーザーの詳細を入力し、**Save User** をクリックします。
+
+    <Frame>
+      ![JumpCloud でユーザーを作成する](/images/newuser.png)
+    </Frame>
+
+    ### ステップ 2: ユーザーグループを作成する
+
+    1. 左側のナビゲーションメニューで、**Identity Management** \> **User Groups** をクリックします。
+    2. **\+ User Group** をクリックします。
+    3. **Name** ボックスに、グループの名前を入力します。
+    4. **Users** タブをクリックし、[ステップ 1](/ja/user-guide/settings/account/security/single-sign-on-sso#step-1-create-a-user) で作成したユーザーを追加します。
+    5. **Save Group** をクリックします。
+
+    <Frame>
+      ![JumpCloud でユーザーグループを作成する](/images/createusergroup.gif)
+    </Frame>
+
+    ### ステップ 3: JumpCloud で SSO アプリケーションを作成する
+
+    1. 左側のナビゲーションメニューで、**Access** \> **SSO Applications** をクリックします。
+    2. **Configured Applications** ページで、**\+ Add New Application** をクリックします。
+    3. 検索ボックスに SAML 2.0 と入力し、選択します。
+    4. **Enter General Info** ステップに到達するまで、デフォルトの選択のままセットアップオプションを進めます。
+    5. アプリケーションの **Display Label**、**Description**、および (任意で) ロゴを入力し、**Save Application** をクリックします。
+    6. **Configure Application** をクリックします。
+
+    <Frame>
+      ![JumpCloud で SSO アプリケーションを作成する](/images/createnewapplicationintegration1.gif)
+    </Frame>
+
+    ### ステップ 4: SAML 設定を構成する
+
+    JumpCloud はリストに名前付きのオプションとして表示されないため、MoEngage ダッシュボードの **Configure SSO** ダイアログボックスで、**Identity Provider** リストから **Other** を選択する必要があります。
+
+    <Frame>
+      ![MoEngage ダッシュボードで ID プロバイダーとして Other を選択する](/images/idpdashboard.png)
+    </Frame>
+
+    次に、JumpCloud アプリケーションの **SSO** タブで、次の詳細を入力します。
+
+    1. **SP Entity ID** ボックスに、MoEngage ダッシュボードの **Configure SSO** ダイアログボックスからコピーした **Issuer** の値を貼り付けます。
+    2. **ACS URLs** の下の **Default URL** ボックスに、MoEngage ダッシュボードからコピーした **Assertion Consumer Service** URL を貼り付けます。
+       <Frame>
+         ![JumpCloud で SP Entity ID と ACS URLs を設定する](/images/saml1.png)
+       </Frame>
+    3. **SAMLSubject NameID** リストで、email を選択します。
+    4. **SAMLSubject NameID Format** リストで、`urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress` を選択します。これは MoEngage ダッシュボードに表示される **Email Address** 形式に対応します。
+    5. **Login URL** ボックスに、MoEngage ダッシュボードの URL を入力します。
+    6. **Declare Redirect Endpoint** と **Send failure response to the Service Provider** のチェックボックスを選択します。
+    7. **Save** をクリックします。
+    <Frame>
+      ![JumpCloud で SP Entity ID と ACS URLs を設定する](/images/saml2.png)
+    </Frame>
+
+    <Warning>
+      **Declare Redirect Endpoint** と **Send failure response to the Service Provider** の両方のチェックボックスを選択してください。いずれかのチェックボックスをオフのままにすると、[ステップ 5](/ja/user-guide/settings/account/security/single-sign-on-sso#step-5-exchange-metadata) で SAML メタデータ XML ファイルをアップロードする際にエラーが返されます。
+    </Warning>
+
+    ### ステップ 5: メタデータを交換する
+
+    1. JumpCloud アプリケーションの **SSO** タブで、**Configuration Settings** \> **JumpCloud Metadata** までスクロールし、**Export Metadata** をクリックして SAML メタデータ XML ファイルをダウンロードします。
+    2. MoEngage ダッシュボードの **Configure SSO** ダイアログボックスで、**Upload** をクリックし、ダウンロードした XML ファイルをアップロードします。
+    3. デフォルトでは、**Update the same config for Test Environment** チェックボックスが選択されています。選択されている場合、設定はテスト環境とライブ環境の両方に適用されます。設定をライブ環境にのみ適用する場合は、チェックボックスをオフにします。
+    4. **Configure** をクリックします。Alert ポップアップウィンドウが表示され、手順を適切に確認するよう求められます。
+       <Frame>
+         ![JumpCloud のメタデータファイルをアップロードし、MoEngage ダッシュボードで SSO を設定する](/images/uploadmetadata.png)
+       </Frame>
+    5. ワークスペースでシングルサインオン (SSO) が有効になったことをすべてのユーザーに通知するには、**Send email to the users of this workspace** チェックボックスを選択します。
+    6. **Configure** をクリックします。これで SSO の設定が正常に完了しました。**Login** タブで JumpCloud SSO を確認できます。
+
+    ### ステップ 6: ユーザーグループをアプリケーションに割り当てる
+
+    1. JumpCloud アプリケーションで、**User Groups** タブをクリックします。
+    2. [ステップ 2](/ja/user-guide/settings/account/security/single-sign-on-sso#step-2-create-a-user-group) で作成したユーザーグループを選択し、そのメンバーがこのアプリケーションを通じて MoEngage にアクセスできるようにします。
+  </Tab>
+  <Tab title="その他の SSO を設定する">
+    <Info>
+      上記に記載されていない IDP を使用している場合は、**Identity Provider** リストから _Other_ オプションを選択できます。
+    </Info>
+
+    **Other** オプションで SSO を設定するには、次の手順を実行します。
+
+    1. IdP の管理コンソールで必要なセットアップを完了します。
+    2. MoEngage ダッシュボードの **Configure SSO** ダイアログボックスに表示されるメタデータの値を、IdP 管理コンソールの対応するフィールドに追加します。
+    3. IdP によって生成された SAML メタデータファイルをダウンロードして保存します。
+    4. ダウンロードした XML ファイルを MoEngage ダッシュボードの **Configure SSO** セクションにアップロードするには、**Upload** をクリックします。
+    5. デフォルトでは、**Update the same config for Test Environment** チェックボックスが選択されています。選択されている場合、設定はテスト環境とライブ環境の両方に適用されます。設定をライブ環境にのみ適用する場合は、チェックボックスをオフにします。
+    6. **Configure** をクリックします。 <img src="/images/moengage_15ca33.png" /> Alert ポップアップウィンドウが表示され、手順を適切に確認するよう求められます。
+    7. **Send email to the users of this workspace** チェックボックスを選択します。
+    8. **Done** をクリックします。 <img src="/images/moengage_3c648e.png" /> これで SSO の設定が正常に完了しました。 <img src="/images/moengage_651f7e.png" />
+  </Tab>
+</Tabs>
+
+SSO 経由でのログイン中にエラーが表示された場合は、以下の FAQ セクションで一般的な問題と解決方法を確認するか、MoEngage Support チームにお問い合わせください。
+
+# FAQ
+
+<Accordion title="ログイン時に問題が発生していますか？">
+  ![Screenshot\_2019-10-16\_at\_2.55.10\_PM.png](/images/moengage_b3cc73.png)
+
+  **_Authentication Failed_**
+
+  これは通常、ID プロバイダーとの SAML 認証が失敗した場合に発生します。詳細については、ID プロバイダーにお問い合わせください。
+
+  **_Persistent Error_**
+
+  MoEngage は、メール ID とパスワードの組み合わせによる管理者ログインをサポートしています。管理者はシングルサインオン画面 (Settings \> Security Settings に移動) に戻り、SSO を無効にできます。
+</Accordion>
+
+<Accordion title="ユーザーが SSO でログインできない場合はどうすればよいですか？">
+  MoEngage では、デフォルトで最後に使用したワークスペースにログインします。何らかの理由でそのワークスペースにアクセスできない場合は、[別のワークスペースにログインする](/ja/user-guide/getting-started/initial-setup/log-in-to-moengage#log-into-a-different-workspace) フローを使用して他のワークスペースにアクセスできます。
+</Accordion>
+
+<Accordion title="IdP と MoEngage でメールアドレスを一致させる必要がありますか？">
+  はい。組織の ID プロバイダー (IdP) と MoEngage で同じメールアドレスを使用してください。アドレスが一致しない場合、SSO ログインは失敗します。
+</Accordion>
+
+<Accordion title="設定ファイルのアップロード時に問題が発生していますか？">
+  ### ![Screenshot\_2019-11-14\_at\_2.17.20\_PM.png](/images/moengage_afbbc6.png)
+
+  これは通常、アップロードされた XML ファイルが無効な場合に発生します。正しい XML ファイルで再度お試しください。問題が解決しない場合は、ID プロバイダーにご確認ください。
+</Accordion>
+
+<Accordion title="MoEngage ではどの ID プロバイダーがサポートされていますか？">
+  MoEngage は、SAML 2.0 をサポートするすべての ID プロバイダー (IdP) をサポートしています。
+</Accordion>
+
+<Accordion title="ワークスペースごとに異なる ID プロバイダーを使用できますか？">
+  はい、ワークスペースごとに異なる ID プロバイダーを設定できます。たとえば、あるワークスペースでは Okta を使用して SSO を設定し、別のワークスペースでは Google を使用できます。また、テスト環境とライブ環境で異なる ID プロバイダーを使用することもできます。
+</Accordion>
+
+<Accordion title="(複数の IdP がある場合) ログイン後、ユーザーはどの ID プロバイダーにリダイレクトされますか？">
+  ユーザーは、前回のセッションが終了する前に最後に使用したワークスペースに関連付けられた IDP にリダイレクトされます。
+</Accordion>
+
+<Accordion title="SSO の実装をテストできるテスト環境はありますか？">
+  テスト環境を使用して SSO のセットアップをテストし、すべてが期待どおりに機能することを確認できます。テスト環境で確認した後、ライブ環境で再度 SSO を設定する必要があります。一方、最初にライブ環境で SSO を設定した場合、SSO はテスト環境にも自動的に設定されます。
+</Accordion>
+
+<Accordion title="ユーザーが ID プロバイダーのディレクトリには存在するが、MoEngage には存在しない場合はどうなりますか？">
+  ユーザーが SSO が有効になっているワークスペースに所属していない場合、そのユーザーは MoEngage にログインできません。
+</Accordion>
+
+<Accordion title="ユーザーが ID プロバイダーのディレクトリには存在するが、MoEngage にリンクされた SSO ワークスペースへのアクセス権がない場合はどうなりますか？">
+  ID プロバイダーからリダイレクトされる際に、MoEngage ダッシュボードで Auth Status Failure エラーが表示されます。
+</Accordion>
+
+<Accordion title="MoEngage でワークスペースの SSO を有効化/無効化できるのは誰ですか？">
+  SSO の有効化/無効化/編集は、_Login Settings_ の _Setup & Manage_ 権限にアクセスできるユーザーのみが行えます。
+
+  必要な権限を持つユーザーは、_Settings -\> Login -\> Authentication_ に移動し、_Single Sign On (SSO) Only_ を選択して必要な操作を実行できます。
+
+  ![](/images/moengage_ff589e.png)
+</Accordion>
+
+<Accordion title="いずれかのワークスペースで SSO が有効になっていない場合や、ワークスペースごとに異なる ID プロバイダーが使用されている場合はどうなりますか？">
+  いずれかのワークスペースで SSO が有効になっていない場合や、ワークスペースごとに異なる ID プロバイダーが使用されている場合、ユーザーはワークスペースを切り替える際に再認証が必要になります。
+</Accordion>
+
+<Accordion title="SSO を有効にした後、ユーザーが異なるワークスペース間をシームレスに切り替えたい場合はどうすればよいですか？">
+  再認証なしで異なるワークスペース間をシームレスに切り替えるには、テスト環境とライブ環境の両方で、すべてのワークスペースに同じ ID プロバイダーで SSO を適用する必要があります。
+</Accordion>
+
+<Accordion title="特定のユーザーには SSO でのログインを許可し、その他のユーザーには ID とパスワードでのログインを許可するように SSO を設定できますか？">
+  SSO を有効にした後に MoEngage の認証情報でログインできるのは管理者のみです。その他のすべてのユーザーは SSO を通じてログインする必要があります。
+</Accordion>
+
+<Accordion title="Microsoft Azure を使用する場合、User Principal Name (UPN) 属性の値はどうすればよいですか？">
+  UPN は、UPN プレフィックス (ユーザーアカウント名) と UPN サフィックス (DNS ドメイン名) で構成されます。プレフィックスとサフィックスは "@" 記号で結合されます。例: "[someone@example.com](mailto:someone@example.com)"。UPN は、ディレクトリ内のすべてのセキュリティプリンシパルオブジェクトの間で一意である必要があります。詳細については、[こちら](https://learn.microsoft.com/en-us/azure/active-directory/hybrid/connect/plan-connect-userprincipalname)をご覧ください。
+</Accordion>
+
+<Accordion title="ユーザーが直面する一般的な問題にはどのようなものがありますか？">
+  一般的な問題とその解決方法を次に示します。
+
+  | エラー | 解決方法 |
+  | --- | --- |
+  | _Incorrect Cluster URL_ | MoEngage ダッシュボードへのログインに、(ご利用のデータセンターに応じた) 正しいログイン URL が使用されていることを確認してください。詳細については、[データセンター](/ja/user-guide/data/key-concepts/data-centers-in-moengage) を参照してください。 |
+  | _Incorrect Name ID Format_ | Name ID Format は次の形式である必要があります: _urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress_ |
+  | _Missing Single Sign On URL_ | SAML メタデータファイルに、有効な値を持つ Single Sign On URL が含まれている必要があります。 |
+  | _NameIDFormat_ | `<NameIDFormat>`urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress`</NameIDFormat><NameIDFormat>`urn:oasis:names:tc:SAML:1.1:nameid-format:unspecified`</NameIDFormat><NameIDFormat>`urn:oasis:names:tc:SAML:1.1:nameid-format:X509SubjectName`</NameIDFormat><NameIDFormat>`urn:oasis:names:tc:SAML:1.1:nameid-format:WindowsDomainQualifiedName`</NameIDFormat><NameIDFormat>`urn:oasis:names:tc:SAML:2.0:nameid-format:kerberos`</NameIDFormat><NameIDFormat>`urn:oasis:names:tc:SAML:2.0:nameid-format:entity`</NameIDFormat><NameIDFormat>`urn:oasis:names:tc:SAML:2.0:nameid-format:persistent`</NameIDFormat><NameIDFormat>`urn:oasis:names:tc:SAML:2.0:nameid-format:transient`</NameIDFormat>` |
+</Accordion>
+
+<Accordion title="SSO 認証を有効にした後も、2 要素認証は有効なままですか？">
+  はい、ワークスペースで SSO を有効にした後も、2 要素認証は有効なままです。
+</Accordion>
+
+<Accordion title="サポートへのお問い合わせ">
+  上記の FAQ で問題が解決しない場合は、MoEngage Support チームにお問い合わせください。詳細については、[MoEngage ダッシュボードからサポートチケットを作成する](/ja/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard) を参照してください。
+</Accordion>

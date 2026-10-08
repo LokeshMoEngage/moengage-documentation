@@ -1,0 +1,154 @@
+---
+title: "AMP Web Push の設定と統合"
+description: "MoEngage AMP Web Push 統合を使用して、AMP ページで Web プッシュ通知を有効にします。"
+---
+
+<Info>
+  **AMP Web Push 統合の前提条件**
+
+  1. AMP Web Push を統合する前に、AMP 分析が統合されていることを確認してください。
+  2. AMP Web Push を統合する前に、AMP 分析が統合されていることを確認してください。
+  3. MoEngage AMP Web Push 統合は、デフォルトでは MoEngage のデフォルトのユーザー属性とイベントをトラッキングしません。
+</Info>
+
+## AMP Web Push
+
+Web プッシュ通知は、MoEngage Web SDK と serviceworker.js を使用しても動作しません。\
+Google は最近、この統合をサポートする別のプラグインを公開しました。これにより、ニュースパブリッシャー、ブロガー、または AMP を使用して Web ページをすばやく配信しているすべてのユーザーが、プッシュ通知によるサブスクライブをユーザーに促すことができます。
+
+<Info>
+  Android デバイスのみがサポートされています。
+</Info>
+
+AMP Web Push を統合するには、次の手順に従います。
+
+## AMP Web Push スクリプトの追加
+
+Web Push を使用したい .amp ファイルの `<head>` セクションに、次の行を追加します。
+
+<CodeGroup>
+
+```HTML HTML lines wrap
+<script async custom-element="amp-web-push" src="https://cdn.ampproject.org/v0/amp-web-push-0.1.js"></script>
+```
+
+</CodeGroup>
+
+## ヘルパーファイルの追加
+
+使用しているダッシュボードに対応するファイルをダウンロードし、Web サイトのルートディレクトリでファイルを利用できるようにしてください。右クリックして **Save Link as...** をクリックし、ファイルを保存します。
+
+| ダッシュボードホスト            | ファイル                                                                                                                                                                                                                                                                                       |
+| ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| dashboard-01.moengage.com | 1. [amp-helper-frame.html](https://cdn.moengage.com/release/dc_1/amp-helper-frame.html)<br />2. [amp-permission-dialog.html](https://cdn.moengage.com/release/dc_1/amp-permission-dialog.html)<br />3. [serviceworker_amp.js](https://cdn.moengage.com/release/dc_1/serviceworker_amp.js)   |
+| dashboard-02.moengage.com | 1. [amp-helper-frame.html](https://cdn.moengage.com/release/dc_2/amp-helper-frame.html) <br />2. [amp-permission-dialog.html](https://cdn.moengage.com/release/dc_3/amp-permission-dialog.html) <br />3. [serviceworker_amp.js](https://cdn.moengage.com/release/dc_3/serviceworker_amp.js) |
+| dashboard-03.moengage.com | 1. [amp-helper-frame.html](https://cdn.moengage.com/release/dc_3/amp-helper-frame.html) <br />2. [amp-permission-dialog.html](https://cdn.moengage.com/release/dc_3/amp-permission-dialog.html) <br />3. [serviceworker_amp.js](https://cdn.moengage.com/release/dc_3/serviceworker_amp.js) |
+| dashboard-04.moengage.com | 1. [amp-helper-frame.html](https://cdn.moengage.com/release/dc_4/amp-helper-frame.html) <br />2. [amp-permission-dialog.html](https://cdn.moengage.com/release/dc_4/amp-permission-dialog.html) <br />3. [serviceworker_amp.js](https://cdn.moengage.com/release/dc_4/serviceworker_amp.js) |
+
+## コードの追加
+
+`<body>` タグ内に次のコードを追加します。
+
+<CodeGroup>
+
+```HTML HTML lines wrap
+<amp-web-push
+id="amp-web-push"
+layout="nodisplay"
+helper-iframe-url="https://DOMAIN.COM/amp-helper-frame.html"
+permission-dialog-url="https://DOMAIN.COM/amp-permission-dialog.html"
+service-worker-url="https://DOMAIN.COM/serviceworker_amp.js?app_id=WORKSPACE_ID"
+></amp-web-push>
+```
+
+</CodeGroup>
+
+以下を置き換えてください。
+
+- DOMAIN.COM を実際のドメインに置き換えます。
+- WORKSPACE_ID を、MoEngage ダッシュボード \> Settings \> General で確認できる Workspace ID に置き換えます。
+
+<Info>
+  すべてのファイルが同じソースパスで利用可能であり、HTTPS で提供されていることを確認してください。
+</Info>
+
+## サブスクライブまたはサブスクライブ解除ボタンの追加
+
+ユーザーを AMP Web プッシュ通知にサブスクライブさせたり、サブスクライブを解除させたりするには、サブスクライブ/サブスクライブ解除ボタン、または AMP Web Push ウィジェットが必要です。
+
+次のコードは、サブスクライブまたはサブスクライブ解除ボタンを追加します。
+
+<CodeGroup>
+
+```HTML HTML lines wrap
+<div class="web-push">
+{/*  A subscription widget  */}
+<amp-web-push-widget visibility="unsubscribed" layout="fixed" width="250" height="45">
+<button class="subscribe" on="tap:amp-web-push.subscribe">Subscribe to Notifications</button>
+</amp-web-push-widget>
+{/*  An unsubscription widget  */}
+<amp-web-push-widget visibility="subscribed" layout="fixed" width="250" height="45">
+<button class="unsubscribe" on="tap:amp-web-push.unsubscribe">Unsubscribe from Notifications</button>
+</amp-web-push-widget>
+</div>
+```
+
+</CodeGroup>
+
+ボタンを機能させるには、`on="tap:amp-web-push.subscribe"` を指定した `<button>` または `<a>` を使用します。次のことができます。
+
+- ボタンの具体的な行動喚起 (CTA) を変更する。
+- 独自のテキストを使用するか、そのままにする。
+
+## CSS のコードを使用したウィジェットのスタイル設定
+
+サブスクライブまたはサブスクライブ解除ウィジェットのレイアウトは固定されています。ただし、CSS を変更することでボタンとレイアウトをデザインできます。デフォルトの CSS は次のとおりです。
+
+<CodeGroup>
+
+```HTML HTML lines wrap
+<style amp-custom>
+amp-web-push-widget button.subscribe {
+display: inline-flex;
+align-items: center;
+border-radius: 2px;
+border: 0;
+box-sizing: border-box;
+margin: 0;
+padding: 10px 15px;
+cursor: pointer;
+outline: none;
+font-size: 15px;
+font-weight: 400;
+background: #4A90E2;
+color: white;
+box-shadow: 0 1px 1px 0 rgba(0, 0, 0, 0.5);
+-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+}
+amp-web-push-widget button.subscribe:active {
+transform: scale(0.9);
+}
+amp-web-push-widget button.unsubscribe {
+display: inline-flex;
+align-items: center;
+justify-content: center;
+height: 45px;
+border: 0;
+margin: 0;
+cursor: pointer;
+outline: none;
+font-size: 15px;
+font-weight: 400;
+background: transparent;
+color: #B1B1B1;
+-webkit-tap-highlight-color: rgba(0, 0, 0, 0);
+background-color: #eee;
+border-radius: 2px;
+}
+amp-web-push-widget button.unsubscribe:active {
+transform: scale(0.9);
+}
+</style>
+```
+
+</CodeGroup>

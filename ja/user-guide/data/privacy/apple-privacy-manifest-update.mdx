@@ -1,0 +1,64 @@
+---
+title: "Apple Privacy Manifest の更新"
+description: "Apple のプライバシーマニフェスト要件に向けて iOS アプリを準備します。MoEngage SDK が WWDC23 のプライバシーおよび署名のガイドラインにどのように準拠しているかを説明します。"
+---
+
+# 概要
+
+WWDC23 で Apple は、アプリ開発者がサードパーティ SDK によるデータの使用方法をより深く理解し、ソフトウェアの依存関係を保護し、ユーザーに追加のプライバシー保護を提供できるよう、SDK 向けの新しいプライバシーマニフェストと署名を導入しました。
+
+**2024 年 5 月 1 日**以降、新しいアプリまたはアプリのアップデートの提出において、App Store のアプリで一般的に使用されているサードパーティ SDK を追加する場合は、その SDK のプライバシーマニフェストを含める必要があります。
+
+SDK をバイナリ依存関係として使用する場合は、署名も必要です。この機能はすべてのアプリにとって前進であり、依存するアプリをより適切にサポートするために、すべての SDK がこれを採用することを推奨します。詳細については、[Apple の公式発表](https://developer.apple.com/news/?id=r1henawx)を参照してください。
+
+# MoEngage はどのように準拠していますか？
+
+このセクションでは、MoEngage が SDK 向けの新しいプライバシーマニフェストと署名にどのように準拠しているかを説明します。
+
+## プライバシーマニフェスト
+
+[プライバシーマニフェスト](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/describing_data_use_in_privacy_manifests)は、iOS アプリの具体的なプライバシー慣行とデータ収集活動を記述したファイルです。アプリによって個人データがどのように収集、使用、共有されるかについて、ユーザーに重要な情報を提供します。これは、透明性を確保し、ユーザーがプライバシーについて十分な情報に基づいて判断できるようにするために、Apple が開発者に求めている要件です。収集されるデータの種類（個人情報、位置情報、閲覧履歴など）、データの使用方法、サードパーティと共有されるかどうかの詳細が含まれます。
+
+[Apple のドキュメント](https://developer.apple.com/documentation/bundleresources/privacy_manifest_files/describing_data_use_in_privacy_manifests)によると、「サードパーティ SDK は、収集するデータの種類を記録した独自のプライバシーマニフェストファイルを提供する必要があります。アプリのプライバシーマニフェストファイルでは、アプリがリンクするサードパーティ SDK によって収集されるデータをカバーする必要はありません」とされています。
+
+MoEngage iOS SDK は以下のデータを宣言しています。
+
+| NSPrivacyCollected DataType | NSPrivacyCollected DataTypePurposes | Modules with NSPrivacyCollected DataTypeLinked | Modules with NSPrivacyCollected DataTypeTracking |
+| --- | --- | --- | --- |
+| UserID | Analytics, Product personalization, App functionality | MoEngage-iOS-SDK | - |
+| Device ID (IDFV) | Analytics, Product personalization, App functionality | MoEngage-iOS-SDK | - |
+| Product interaction | Analytics, Product personalization, App functionality | - | MoEngage-iOS-SDK, MoEngageRichNotification, MoEngageInApps, MoEngageCards, MoEngageInbox, MoEngageRealTimeTrigger, MoEngageGeofence |
+| Precise location | Analytics, Product personalization, App functionality | - | MoEngageGeofence |
+| Coarse location | Analytics, Product personalization, App functionality | - | MoEngageGeofence |
+
+## コード署名
+
+サードパーティのバイナリ SDK を XCFramework としてターゲットに追加すると、それらのパッケージの動作は製品の動作の一部になります。侵害されたバージョンの SDK をプロジェクトに挿入できる攻撃者は、アプリの動作を変更し、開発者、テスター、製品を使用するユーザーにセキュリティやプライバシーの問題を引き起こす可能性があります。これを回避するため、MoEngage のすべてのフレームワークにコード署名を行っています。
+
+## Apple Privacy Manifest をサポートしている SDK バージョンはどれですか？
+
+ポリシーに準拠するには、iOS アプリを最新の MoEngage SDK にアップグレードする必要があります。
+
+MoEngage SDK のコアバージョン 9.16.2 以降は Apple のガイドラインに準拠しており、プライバシーマニフェストで以下のデータが宣言されています。ハイブリッドフレームワークの場合、SDK コアバージョン 9.16.2 に関連付けられたモジュールは以下のとおりです。
+
+- MoEngage React Native SDK: 9.0.0
+- MoEngage Flutter SDK: 7.0.0
+- MoEngage Cordova SDK: 8.6.0
+- MoEngage Capacitor SDK: 3.3.0
+- MoEngage Unity SDK: 3.2.0
+
+# いつまでにアプリをアップグレードする必要がありますか？
+
+ Apple のドキュメントには以下のように記載されています。
+
+**3 月 13 日以降:** 承認された理由が必要な API を使用する新規または更新されたアプリを App Store Connect にアップロードすると、アプリのプライバシーマニフェストに理由が記載されていない場合に、その旨を知らせるメールが送信されます。これは、App Store Connect の既存の通知に加えて送信されます。
+
+**5 月 1 日以降:** 新規または更新されたアプリを App Store Connect にアップロードするには、アプリのコードで使用されている対象 API について承認された理由を含める必要があります。許可された理由で API を使用していない場合は、代替手段を見つけてください。また、一般的に使用されるサードパーティ SDK のリストに含まれる新しいサードパーティ SDK を追加する場合、これらの API、プライバシーマニフェスト、署名の要件がその SDK に適用されます。プライバシーマニフェストを含むバージョンの SDK を使用し、SDK をバイナリ依存関係として追加する場合は署名も必要であることに注意してください。
+
+そのため、次回のアプリアップデートで MoEngage iOS SDK を更新することを強く推奨します。更新しない場合、次回のアプリアップデートが却下される可能性があります。
+
+ただし、要件に準拠するためだけにアプリのアップグレードを急ぐ必要はありません。
+
+# 現在のアプリユーザーにはどのような影響がありますか？
+
+この変更は、2024 年 5 月 1 日以降に公開されたアプリバージョンにのみ影響します。それ以前に公開されたアプリバージョンのユーザーは、新規インストールや再インストールを含め、影響を受けません。

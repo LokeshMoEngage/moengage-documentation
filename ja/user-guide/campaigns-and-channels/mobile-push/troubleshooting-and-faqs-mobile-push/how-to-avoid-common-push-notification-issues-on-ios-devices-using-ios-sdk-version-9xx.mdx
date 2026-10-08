@@ -1,0 +1,101 @@
+---
+title: "iOS SDK バージョン 9.x.x を使用する iOS デバイスでよくあるプッシュ通知の問題を回避するには"
+description: "iOS SDK 9.x.x でのプッシュインプレッションのトラッキングと画像レンダリングの問題を解決します。MoEngage プロジェクトの初期化時に appgroupid を正しく設定してください。"
+keywords: ["appgroupid", "app group", "push impressions not tracked iOS", "images not rendering in push", "iOS SDK 9.x.x", "Notification Service Extension"]
+---
+
+## 問題
+
+SDK バージョン 9.x.x を使用するデバイスにプッシュ通知が正常に配信されているにもかかわらず、プッシュキャンペーンのインプレッションがトラッキングされない、画像がレンダリングされないなど、プッシュ通知に関するよくある問題が発生しています。
+
+<Info>
+  - インプレッションをトラッキングするには、アプリに Notification Service Extension が実装されていることを確認してください。
+  - さらに、MoEngage ダッシュボードで **Settings → Channel → Push → IOS** に移動し、**Show iOS impressions** トグルを有効にしてください。
+     <img src="/images/moengage_c44d55.png" alt="iOS imp.png" />
+</Info>
+
+## 解決策
+
+次の手順を実行します。
+
+1. **各構成でプロジェクトのメインターゲットに app\_group\_id を追加する**：構成間で同じ app\_group\_id を追加することも、異なるものを追加することもできます。
+   <Info>
+     構成で異なる Bundle Identifier を使用しながら同じ app\_group\_id を共有している場合、問題が発生する可能性があります。具体的には、Bundle Identifier が異なり app\_group\_id が同じ 2 つのアプリが同じデバイスにインストールされている場合、Notification Service Extension が失敗することがあります。 これを回避するために、複数の構成で同じ app\_group\_id を使用できますが、その場合は 1 台のデバイスですべてのアプリを同時にテストすることはできない点に注意してください。
+   </Info>
+   ![app group.png](/images/moengage_12ce78.png)
+2. **SDK の初期化時に app\_group\_id を追加する**：
+   - info.plist を使用して SDK を初期化する場合は、info.plist ファイルの MoEngage キー内に APP\_GROUP\_ID キーを追加します。
+   - sdkConfig を使用して SDK を初期化する場合は、AppDelegate ファイル内の sdkConfig 変数に APP\_GROUP\_ID を追加します。\
+     **info.plist 内の app\_group\_id：**
+      <img src="/images/moengage_9c01e1.png" alt="app id.png" /> 
+     **sdkConfig 変数内の app\_group\_id：**
+   ```swift Swift wrap
+   var sdkConfig = MoEngageSDKConfig.init(appId: "XXXXXXXXXXXXXXXX", dataCenter: .data_center_0X)
+   sdkConfig.appGroupID = "group.com.XXXXXXXXXXXXXXXX"
+   ```
+   ```Objective-C Objective-C
+   MoEngageSDKConfig\* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"XXXXXXXXXXXXXXXX" dataCenter: MoEngageDataCenterData_center_0X];
+   sdkConfig.appGroupID = @"group.com.XXXXXXXXXXXXXXXX";
+   ```
+3. **Notification Service Extension ターゲットを作成する**：
+
+![NSE.png](/images/moengage_c5e031.png)
+
+- **Extension ターゲットに名前を付ける**：Extension ターゲットの名前を選択します。Swift は Objective-C プロジェクトでもシームレスに動作するため、言語として Swift を推奨します。
+
+![name.png](/images/moengage_4650b5.png)
+
+- **Push Notifications を有効にする**：Extension ターゲットの Signing & Capabilities セクションで、Push Notifications を有効にし、AppGroupId を追加します。
+
+![enable.png](/images/moengage_8a8ac1.png)
+
+- **最小デプロイ iOS バージョンを揃える**：Notification Service Extension の最小デプロイ iOS バージョンが、メインアプリの iOS バージョンと一致していることを確認します。
+
+![support.png](/images/moengage_902c4b.png)
+
+4. **MORichNotification フレームワークを Notification Service Extension ターゲットに統合する**：podfile で Notification Service Extension を別のターゲットとして追加し、MORichNotification フレームワークをインストールします。
+   ```swift Swift wrap
+   target 'MoEngageDemo' do
+     use_frameworks!
+     pod 'MoEngage-iOS-SDK'
+   end
+   target 'MoEngageNotificationService' do
+     use_frameworks! #use use_frameworks only if included in main target as in above scenario
+     pod 'MoEngageRichNotification'
+   end
+   ```
+5. NotificationService.swift ファイルのコード変更：
+   ```swift Swift wrap
+   import UserNotifications
+   import MoEngageRichNotification
+   class NotificationService: UNNotificationServiceExtension {
+      
+      var contentHandler: ((UNNotificationContent) - Void)?
+      var bestAttemptContent: UNMutableNotificationContent?
+      
+      override func didReceive(_ request: UNNotificationRequest, withContentHandler contentHandler: @escaping (UNNotificationContent) - Void) {
+   MoEngageSDKRichNotification.setAppGroupID("group.com.XXXXXXXXXXXXXXXX")
+      
+      self.contentHandler = contentHandler
+      bestAttemptContent = (request.content.mutableCopy() as? UNMutableNotificationContent)
+      MoEngageSDKRichNotification.handle(richNotificationRequest: request, withContentHandler: contentHandler)
+   }
+      override func serviceExtensionTimeWillExpire() {
+   // Called just before the extension will be terminated by the system.
+   // Use this as an opportunity to deliver your "best attempt" at modified content, otherwise the original push payload will be used.
+      if let contentHandler = contentHandler, let bestAttemptContent = bestAttemptContent {
+         contentHandler(bestAttemptContent)
+   }
+   }
+   }
+   ```
+6. **メインアプリターゲットの Build Phases を確認する**：メインアプリターゲットの Build Phases セクションで、Embed App Extensions / Embed Foundation Extensions セクションを見つけます。**Copy only when installing** オプションのチェックが外れていることを確認します。
+
+![copy.png](/images/moengage_e8673d.png)
+
+7. **構成間で appGroupId を統一する**：プロジェクト内のすべてのスキームと構成（例：Debug/Release/QA/UAT）で appGroupId が一致していることを確認します。
+8. **ビルド構成を揃える**：プロジェクトを実行またはアーカイブする際は、メインターゲットと Notification Service Extension ターゲットの Build Configuration が同じスキーム/構成を指していることを確認します。
+
+![run.png](/images/moengage_977ad1.png)
+
+![build.png](/images/moengage_adf541.png)

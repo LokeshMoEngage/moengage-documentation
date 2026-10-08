@@ -1,0 +1,104 @@
+---
+title: "Adapty"
+description: "Adapty を MoEngage と連携して、モバイルサブスクリプションのライフサイクルイベントを同期し、解約防止、支払い回復、アップセルのジャーニーをトリガーします。"
+---
+
+[Adapty](https://adapty.io/) は、アプリ内課金インフラストラクチャ、A/B テスト、分析を簡素化する包括的なモバイルサブスクリプション管理プラットフォームです。この一元化されたハブにより、企業はデータドリブンなインサイトを通じてサブスクライバーを獲得、エンゲージ、維持するために必要なツールを活用し、サブスクリプションのライフサイクルを管理できます。
+
+## 主な機能
+
+MoEngage と Adapty の連携では、モバイルサブスクリプションデータの管理とトラッキングに役立つ次の機能を提供します。
+
+- **包括的なサブスクリプションライフサイクルのトラッキング** : subscription\_started、renewal\_cancelled、billing\_issue\_detected、grace\_period など、[15 を超えるリアルタイムイベント](https://adapty.io/docs/events)を同期します。
+- **収益と税の検証** : net\_revenue、tax\_amount、proceeds の詳細な内訳を、USD と現地通貨の両方で確認できます。
+- **ユーザーとアトリビューションの同期** : カスタムユーザー属性、アトリビューションデータ (AppsFlyer など)、サードパーティ連携 ID を自動的に転送します。
+- **アクセスレベルの管理** : トライアルのコンバージョン、サブスクリプションの一時停止 (Android の場合)、永続アクセスの更新をきめ細かくトラッキングします。
+
+## ユースケース
+
+Adapty を MoEngage と連携すると、次のユースケースに役立ちます。
+
+- **解約防止と呼び戻し** : _Subscription Canceled_ イベントが検出されたときに MoEngage で自動化されたメールまたはプッシュのシーケンスをトリガーし、アクセスが期限切れになる前にユーザーを取り戻します。
+- **支払い回復** : _Billing Issue_ イベントを受信したときに、MoEngage の SMS またはプッシュ通知を介して、支払い方法を更新するようユーザーに自動的に促します。
+- **トライアルコンバージョンの最適化** : _Trial Started_ イベントをトリガーしたユーザーに対して MoEngage でオンボーディングジャーニーを開始し、トライアル終了前にプレミアムの価値をアピールします。
+- **プレミアムへのアップセル** : _Subscription Renewed_ イベントを通じてロイヤルなサブスクライバーを特定し、より上位の年間プラン向けの限定オファーをトリガーします。
+
+# 連携
+
+<Info>
+  開始する前に、次のものがあることを確認してください。
+
+  - Webhook を設定するための Adapty の管理者権限。
+  - API 認証情報を取得するための MoEngage の管理者アクセス権。
+  - MoEngage サポートから取得した専用の MoEngage 取り込みエンドポイント。\
+    **注** : エンドポイントをリクエストする際は、Adapty と MoEngage の間でユーザープロファイルをリンクするために使用する Customer Identifier (例: profile\_id または UUID) を指定してください。
+</Info>
+
+## ステップ 1: 認証情報を生成する
+
+Adapty が MoEngage にデータを安全に送信するには、Basic 認証トークンが必要です。
+
+認証情報を生成するには、次の手順を実行します。
+
+1. MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。
+2. トークンに使用する次の認証情報をコピーします。
+   1. **Username** : **Workspace ID** **(earlier app id)** の下にある ID をコピーします。
+   2. **Password** : **API keys** セクションで、**Data** タイルから API キーをコピーします。<img src="/images/partner_45241748673940.png" />
+3. オンラインの [Basic Auth Header Generator](https://www.debugbear.com/basic-auth-header-generator) (または Postman などのツール) を使用してトークンを生成します。
+   - **Username** : `{Your_Workspace_ID}`
+   - **Password** : `{Your_Data_API_Key}`
+
+**注** : Basic 認証トークンは、**Workspace ID** と **Data API Key** を組み合わせたものです。
+
+## ステップ 2: Adapty で Webhook を設定する
+
+Adapty で Webhook を設定するには、次の手順を実行します。
+
+1. **Adapty** UI にログインします。
+2. 左側のナビゲーションメニューで、**Integrations** をクリックします。
+3. **Server** セクションまでスクロールし、**webhooks** をクリックします。<img src="/images/partner_45241247781140.png" />
+4. **Webhook** トグルをオンにします。
+5. 次の設定を行います。
+
+| フィールド | 値 / アクション |
+| --- | --- |
+| Production Endpoint URL | MoEngage サポートから提供された URL を入力します。形式: [`https://api-0X.moengage.com/v1/partner/adapty/{events}/?configName={config_name}`](https://api-0X.moengage.com/v1/partner/adapty/%7Bevents%7D/?configName=%7Bconfig_name%7D)。 |
+| Authorization Value | ステップ 1 で生成した Basic Auth トークンを貼り付けます (例: Basic Qk5CR1NNNUR4eHh4…)。 |
+
+![](/images/partner_45240276198804.png)
+
+## ステップ 3: データとイベントを選択する
+
+接続の詳細を入力した後、データペイロードを設定するには、次の手順を実行します。
+
+1. **Data Options** セクションで、次のチェックボックスを選択します。
+   - **Send attribution:** 広告ネットワークのデータ (例: AppsFlyer や Adjust) を転送します。
+   - **Send user attributes** : カスタムユーザープロファイルデータを転送します。
+   - **Send Play Store purchase token:** Android デバイスでの検証に必要です。
+2. **Event Names** セクションで、MoEngage でトラッキングする特定のイベント (subscription\_started や trial\_converted など) を選択します。
+3. ペインの上部にある **Save** をクリックして連携を有効にします。 <img src="/images/partner_45240223306516.png" />
+
+## ステップ 4: MoEngage でデータを確認する
+
+Webhook を設定した後、Adapty アプリケーションでテストイベントを生成し、MoEngage UI 内でデータを検証します。
+
+MoEngage でデータを確認するには、次の手順を実行します。
+
+1. [MoEngage UI](https://app.moengage.com/) にログインします。
+2. 左側のナビゲーションメニューで、**Segments** \> **Search Users** に移動します。
+3. **Search Users** 検索ボックスで、次のいずれかの識別子を使用してテストユーザーを検索します。
+   - Customer ID
+   - メールアドレス
+   - 電話番号 <img src="/images/partner_45241650283540.png" />
+4. プロファイルに次の情報が含まれていることを確認します。
+   - **イベント属性** : サブスクリプションイベントの詳細 (例: _subscription\_started_) がイベントセクションに表示されていることを確認します。
+   - **ユーザー属性** : [ステップ 3 ](/ja/partner-guide/data-and-analytics/payments-and-subscriptions/adapty#step-3-select-data-and-events)でユーザー属性の同期を選択した場合は、これらが属性セクションに反映されていることを確認します。
+   - **最新のインタラクションのタイムスタンプ** : 最新のインタラクションのタイムスタンプを確認し、テストイベントの時刻と一致していることを確認します。 <img src="/images/partner_45241719936532.png" />
+
+## レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Adapty データの取り込みをワークスペースあたり最大 500 リクエスト/秒 (RPS) に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、Adapty のデフォルトの再試行ポリシーを参照してください。
+
+**再試行の上限到達**: Adapty があるデータバッチのすべての再試行を使い切った場合は、Adapty サポートチームに連絡して、失敗したリクエストを再送してもらう必要があります。

@@ -1,0 +1,112 @@
+---
+title: "SDK バージョン 7.0.0 への移行"
+description: "初期化と構成が更新された MoEngage iOS SDK バージョン 7.0.0 に統合を移行します。"
+---
+
+SDK バージョン 7.0.0 では多くの変更を行いました。以前のバージョンの SDK を使用していて、バージョン 7.0.0 以上への移行を計画している場合は、移行時に次の変更を行ってください。
+
+# iOS 9.\* のサポート終了
+
+SDK バージョン `7.0.0` から、デプロイメントターゲットを `iOS 10.0` に設定したため、`iOS 9.*` のサポートを終了しました。iOS 9.0 のユーザーベースは非常に少なく、ほとんどの開発者が既にアプリのデプロイメントターゲットを iOS 10.0 より上に設定しているため、この決定を行いました。
+
+# 初期化メソッドの変更
+
+以前の初期化メソッドを非推奨とし、新しいメソッドを導入しました。新しいメソッドは MOSDKConfig インスタンスを引数として受け取ります。このインスタンスには、アプリの起動時に SDK をセットアップするために必要なワークスペース ID とともに、複数のパラメーターを含めることができます。
+
+**非推奨のメソッド**
+
+<CodeGroup>
+
+```swift Swift wrap
+var yourMoEAppID = "YOUR_WORKSPACE_ID"
+#if DEBUG
+	MoEngage.sharedInstance().initializeDev(withAppID:yourMoEAppID, withLaunchOptions: nil)
+#else
+	MoEngage.sharedInstance().initializeProd(withAppID:yourMoEAppID, withLaunchOptions: nil)
+#endif
+```
+
+
+```objective-c Objective C wrap
+NSString* yourMoEngageAppID = @"YOUR_WORKSPACE_ID";
+#ifdef DEBUG
+    [[MoEngage sharedInstance] initializeDevWithAppID:yourMoEngageAppID withLaunchOptions:launchOptions];
+#else
+    [[MoEngage sharedInstance] initializeProdWithAppID:yourMoEngageAppID withLaunchOptions:launchOptions];
+#endif
+```
+
+</CodeGroup>
+
+新しい初期化メソッドの詳細については、こちらの[リンク](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)を参照してください。
+
+# リージョン/データセンターの設定
+
+MODataCenter：SDK でデータセンターを設定するための新しい API を導入しました。`DataRedirectionRegion` 列挙子を使用していた以前の API はサポートされなくなりました。代わりに、MOSDKConfig を使用して構成し、初期化時に指定する必要があります。最新の SDK バージョンでの構成方法については、[ドキュメント](/ja/developer-guide/ios-sdk/sdk-integration/basic/data-center)を参照してください。
+
+**以前のメソッド [6.3.1 以前]**
+
+<CodeGroup>
+
+```swift Swift wrap
+/*
+DataRedirectionRegion Enum Values:
+MOE_REGION_SERV3
+MOE_REGION_EU
+MOE_REGION_DEFAULT
+*/
+// Eg to redirect data to EU Data Center
+MoEngage.redirectData(to: MOE_REGION_EU)
+```
+
+
+```objective-c Objective C wrap
+/*
+DataRedirectionRegion Enum Values:
+MOE_REGION_SERV3
+MOE_REGION_EU
+MOE_REGION_DEFAULT
+*/
+// Eg to redirect data to EU Data Center
+[MoEngage redirectDataToRegion:MOE_REGION_EU];
+```
+
+</CodeGroup>
+
+# アプリターゲット：App Group ID の設定
+
+以前は、アプリターゲットの App Group ID を `setAppGroupID:` を使用して設定していましたが、これはサポートされなくなりました。最新の SDK バージョンでは、MOSDKConfig を使用して構成してください（詳細については[リンク](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse)を参照してください）。
+
+**以前のメソッド [6.3.1 以前]**
+
+<CodeGroup>
+
+```swift Swift
+MoEngage.setAppGroupID("AppGroupID")
+```
+
+
+```objective-c Objective C wrap
+[MoEngage setAppGroupID:@"AppGroupID"];
+```
+
+</CodeGroup>
+
+# ログの有効化に関する変更
+
+トラブルシューティングのために SDK ログを有効にするメソッドが、`debug:` から `enableSDKLogs:` に変更されました。以前のメソッドは以下のように使用していました。最新の SDK バージョンでの更新された実装については、次の[ドキュメント](/ja/developer-guide/ios-sdk/troubleshooting-and-faqs/troubleshooting-and-faqs-ios#enable-sdk-logs)を参照してください。
+
+**以前のメソッド [6.3.1 以前]**
+
+<CodeGroup>
+
+```swift Swift
+MoEngage.debug(LOG_ALL)
+```
+
+
+```objective-c Objective C wrap
+[MoEngage debug:LOG_ALL];
+```
+
+</CodeGroup>

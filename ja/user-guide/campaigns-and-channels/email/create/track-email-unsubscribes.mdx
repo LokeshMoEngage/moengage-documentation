@@ -1,0 +1,135 @@
+---
+title: "メール配信停止のトラッキング"
+description: "組み込みのトラッキング、カスタム URL、またはサードパーティプロバイダーを使用して、MoEngage でメールの配信停止をトラッキングおよび管理します。配信停止リンクの動作を制御できます。"
+---
+
+ユーザーがマーケティングメールの配信を停止すると、MoEngage はそれ以降そのユーザーにメールが送信されないようにします。これらの配信停止は、さまざまな方法で管理できます。これにより、配信停止リンクの処理を最大限にコントロールできます。
+
+<img src="/images/moengage_464bab.png" />
+
+# MoEngage トラッキング
+
+**MoEngage tracking** を選択すると、MoEngage は非トランザクションメールに配信停止リンクを追加します。配信停止 URL を追加するには、以下の手順に従います。
+
+1. MoEngage ダッシュボードで、**Settings** \> **Channels** \> **Email** に移動します。
+2. 表示される **Email Settings** ページで、**Sender Configuration** タブをクリックします。
+3. **Add Sender** をクリックし、**Unsubscribe Settings** セクションに移動します。
+4. **MoEngage Tracking** を選択します。Sendgrid、Mandrill、Sparkpost、またはカスタムコネクターなど、他のメールサービスプロバイダーのコネクターで配信停止トラッキングがオフになっていることを確認してください。オフになっていない場合、同じメールに 2 つの配信停止リンクが含まれることになります。
+5. **Unsubscribe Page URL** フィールドに、必要な URL を入力します。MoEngage は標準のランディングページを提供しています。
+6. 以下に示す配信停止 URL を **Unsubscribe Page URL** フィールドに追加できます。この場合、ユーザーは自動的に配信停止されます。   
+
+   ```html 
+   https://api-0X.moengage.com/v1/emailresubscribe
+   ```
+
+   ここでの "X" は、お客様の[データセンター](/ja/user-guide/data/key-concepts/data-centers-in-moengage)を表します。
+7. ユーザーは、ランディングページの **resubscribe me** ボタンをクリックして再登録することもできます。独自のランディングページを作成し、その URL を追加することもできます。これにより、プロセスをより自由に管理でき、ユーザーが配信停止を希望する理由を収集するといったことが可能になります。
+8. 以下の HTML コードを使用して、メール本文の任意の場所に配信停止リンクを配置することもできます。
+
+   ```html HTML wrap
+    <a href="https://api-0X.moengage.com/v1/emailresubscribe" data-msys-unsubscribe="“1”"> unsubscribe_text </a>
+   ```
+
+<Info>
+各顧客は異なるデータセンターでホストされています。データセンター番号（配信停止ページ URL の "X" の値）は、[こちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)のデータセンターと API エンドポイントの対応ページで確認できます。
+
+また、カスタム配置を行う場合は、正しく機能するように、href 内のリンクに HTTPS または HTTP プロトコルが記述されていることを確認してください。
+</Info>
+
+<Warning>
+  配信停止リンクとパーソナライゼーショントークンは、エンコードせずに HTML に追加してください。トークンを URL エンコードすると、`{{` が `%7B%7B` に、`$` が `%24` に置き換えられ、デコード時に Jinja が解析できない `{{$` シーケンスになります。その結果、キャンペーンの保存時または送信時に `Error in parsing jinja template format. Error unexpected char u'$' at ...` のようなエラーが返される場合があります。詳細については、[Jinja テンプレート言語](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language#escaping)を参照してください。
+</Warning>
+
+### MoEngage トラッキング用の置換タグの設定
+
+置換タグとコードを使用して、メールに配信停止リンクを含め、配信停止リンクのテキストをカスタマイズできます。
+
+- ランディングページをカスタマイズしたい場合は、独自のページ URL を追加できます。
+- カスタムランディングページに配信停止リンクを含めるには、メール本文の HTML テンプレートに以下の HTML コードを追加します。
+
+  ```html HTML wrap
+   <a data-msys-unsubscribe=“1” href="https://custom.landingpage.com/default_moengage_unsubscribe_flow"> Click here to Unsubscribe </a> 
+  ```
+
+  <img alt="MoE tracking 2.png" src="/images/moengage_35e1b1.png" />   
+    
+  WYSIWYG エディターで [HTML コードを追加](/ja/user-guide/campaigns-and-channels/email/create/create-content-with-the-drag-and-drop-editor)することもできます。以下の例のように、メールテンプレートに合わせてコードをカスタマイズできます。  
+
+  ```html HTML wrap
+  <span style="font-size: 14px;">Want to change how you receive these emails?</span><span style="font-size: 14px;">You can</span> <a data-msys-unsubscribe=""1"" href="https://custom.landingpage.com/default_moengage_unsubscribe_flow" style="font-size: 14px;mso-line-height-rule: exactly;-ms-text-size-adjust: 100%;-webkit-text-size-adjust: 100%;color: #656565;font-weight: normal;text-decoration: underline;"> unsubscribe from this list. </a>
+  ```
+
+  これにより、以下の出力が得られます。  
+   <img alt="TEU 3.png"  src="/images/moengage_75e216.png"  />
+
+<Info>
+カスタム配置を行う場合は、正しく機能するように、href 内のリンクに HTTPS または HTTP プロトコルが記述されていることを確認してください。
+</Info>
+
+# メールサービスプロバイダーによるトラッキング
+
+配信停止トラッキングに SendGrid、Mandrill、または SparkPost を使用している場合は、各サービスのドキュメントで設定方法を確認できます。
+
+- [SendGrid](/ja/partner-guide/messaging-channels/email-providers/configure-sendgrid)
+- [Mandrill](/ja/partner-guide/messaging-channels/email-providers/configure-mandrill)
+- [SparkPost](https://support.sparkpost.com/docs/user-guide/setting-up-unsubscribe-links)
+
+このオプションを選択した場合、メール本文に配信停止リンクを含めるのは MoEngage ではなく、メールサービスプロバイダーになります。
+
+- また、メールサービスプロバイダーのダッシュボードで MoEngage のコールバック URL を更新する必要があります。URL にアクセスするには、MoEngage ダッシュボードで **Settings** \> **Channels** の下の **Emails**\> **Sender Configuration** タブ\>**Add Sender**\>**Bounce&Compliant Tracking.** に移動します。  
+    
+   <img src="/images/moengage_abd759.png" />
+
+ユーザーが配信停止リンクをクリックすると、サービスプロバイダーがリクエストを処理します。[Data API](https://www.moengage.com/docs/api/user/track-user) を使用してこのデータを MoEngage に返し、MoEngage ダッシュボード内の対応するユーザープロファイルを更新してください。
+
+## SendGrid
+
+配信停止管理に SendGrid トラッキングを選択する場合は、[SendGrid](https://docs.sendgrid.com/ui/sending-email/subscription-tracking#what-does-it-do) のサブスクリプショントラッキングでも対応する変更を行ってください。SendGrid でサブスクリプショントラッキングが有効になっている場合、メールにワンクリック配信停止リンクが挿入されます。
+
+- メール本文内に配信停止リンクを追加したい場合は、置換テキスト **[unsubscribe\_here]** を使用します。このテキストは大文字と小文字が区別されます。これは MoEngage が管理する SendGrid を利用しているお客様にのみ該当します。その他のお客様は、独自の置換テキストを追加できます。**[unsubscribe\_here]** はデフォルトでは追加されません。
+
+Webhook が正しく設定されている場合、SendGrid はほぼリアルタイムで配信停止データを MoEngage に返し、それに応じてユーザーの到達可能性が更新されます。
+
+### SendGrid トラッキング用の置換タグの設定
+
+置換タグとコードを使用して、メールに配信停止リンクを含め、配信停止リンクのテキストをカスタマイズできます。
+
+1. **Sendgrid** \> **Settings** \> **Tracking** \> **Suppression Tracking** に移動します。
+2. 任意の置換タグを追加します。
+   - MoEngage では、メール本文で誤って使用される可能性が低いため、タグ "[unsubscribe\_here]" を使用しています。
+   - 置換タグは大文字と小文字が区別されます。  
+      <img alt="TEU 1.png" src="/images/moengage_030042.png" />
+3. このタグをメール本文の任意の場所にリンク値として配置すると、配信停止リンクとして機能します。  
+   例:  
+
+   |  |  |
+   | --- | --- |
+   | HTML エディターの場合    <img alt="TEU 2.png"  src="/images/moengage_e6b887.png"  /> | ドラッグ＆ドロップエディターの場合    <img alt="MoE tracking.png"  src="/images/moengage_6f5feb.png"  /> |
+
+## Mandrill
+
+MoEngage ダッシュボードで配信停止管理に [Mandrill](https://mailchimp.com/help/find-unsubscribe-link-audience/) トラッキングを選択する場合は、[Mandrill](https://mailchimp.com/help/about-unsubscribes/) のサブスクリプショントラッキングセクションでも対応する変更を行ってください。
+
+- Mandrill でサブスクリプショントラッキングを有効にすると、メールに配信停止リンクが挿入されます。
+
+Webhook が正しく設定されている場合、Mandrill はほぼリアルタイムで配信停止データを MoEngage に返し、それに応じてユーザーの到達可能性が更新されます。
+
+## SparkPost
+
+MoEngage ダッシュボードで配信停止管理に [SparkPost](https://support.sparkpost.com/docs/user-guide/setting-up-unsubscribe-links) トラッキングを選択する場合は、[SparkPost](https://support.sparkpost.com/docs/user-guide/setting-up-unsubscribe-links) のサブスクリプショントラッキングセクションでも対応する変更を行ってください。
+
+- SparkPost でサブスクリプショントラッキングを有効にすると、メールに配信停止リンクが挿入されます。
+
+Webhook が正しく設定されている場合、SparkPost はほぼリアルタイムで配信停止データを MoEngage に返し、それに応じてユーザーの到達可能性が更新されます。
+
+# None
+
+配信停止オプションとして **None** を選択した場合、MoEngage はコンプライアンスを維持するために、お客様側でこのプロセスを管理することを前提とします。接続されているメールサービスプロバイダーで、サブスクリプショントラッキングまたは配信停止設定が無効になっていることを確認する必要があります。
+
+メールテンプレートには独自の配信停止 URL を含めてください。これは配信停止イベントとしてトラッキングされないため、配信停止リクエストはお客様側で取得および管理する必要があります。
+
+[Data API](https://www.moengage.com/docs/api/user/track-user) を使用してこのデータを MoEngage に返し、MoEngage ダッシュボード内の対応するユーザープロファイルを更新してください。
+
+# 配信設定の管理
+
+特定の種類のメールコミュニケーションをカテゴリ別に購読したり、メールコミュニケーションの頻度を選択したりするオプションを提供したい場合は、MoEngage が提供する[サブスクリプションカテゴリ](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-subscription-categories)を使用してください。その場合でも、配信設定管理ページの最後に、すべてのメールの配信を停止するオプションを設定することをお勧めします。

@@ -1,0 +1,121 @@
+---
+title: "JWT 認証"
+description: "Android アプリに JWT 認証を実装して、MoEngage のデータ収集を保護します。"
+---
+
+## 概要
+
+JWT (JSON Web Token) 認証は、ユーザーの ID を安全に検証するための標準的な方法です。JWT 認証を実装することで、MoEngage でのデータ収集プロセスに重要なセキュリティレイヤーを追加できます。
+
+この機能により、識別済みユーザーに代わって送信されるデータが本物であり、改ざんされていないことが保証されます。このセキュリティは、お客様のサーバーで暗号署名されたトークンを必須とすることで実現されており、権限のないユーザーが正当なユーザーになりすますことを防ぎます。
+
+<Check>
+  実装を開始する前に、以下の要件を満たしていることを確認してください。
+
+  - JWT 認証機能を利用するには、アプリケーションで MoEngage Android SDK バージョン **14.04.00** 以降を使用している必要があります。
+  - 公開鍵を管理し、機能の適用設定を構成するために、MoEngage ダッシュボードへのアクセス権が必要です。
+</Check>
+
+以下の図は、アプリケーション、お客様のサーバー、MoEngage SDK、MoEngage サーバー間のやり取りを示しています。
+
+![Nextttt(1)](/images/nextttt\(1\).jpeg)
+
+## 統合
+
+Android アプリケーションに JWT 認証を統合するには、以下を実行します。
+
+### ステップ 1: JWT 認証を有効にする
+
+[SDK の初期化](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization)時に、**_MoEngage.Builder_** オブジェクトで **_NetworkAuthorizationConfig_** プロパティを設定することで、JWT 認証を有効にできます。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+val moEngage = MoEngage.Builder(
+        application = application,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureNetworkRequest(NetworkRequestConfig(NetworkAuthorizationConfig(isJwtEnabled = true)))
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```java Java
+MoEngage moEngage = new MoEngage.Builder(application, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNetworkRequest(new NetworkRequestConfig(new NetworkAuthorizationConfig(true)))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+### ステップ 2: JWT を SDK に渡す
+
+JWT のライフサイクルの管理はアプリケーションの責任です。推奨されるフローは、ユーザーのログイン時にトークンを取得し、そのトークンを SDK に渡すことです。また、以降のアプリ起動時にはトークンの有効期限が切れていないかを確認し、必要に応じて新しいトークンを取得してください。
+
+[**_MoECoreHelper.passAuthenticationDetails()_**](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-e-core-helper/pass-authentication-details.html) を使用して、トークンを SDK に提供します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+val data = AuthenticationData.Jwt("YOUR_JWT_TOKEN", "USER_IDENTIFIER")
+MoECoreHelper.passAuthenticationDetails(context, data)
+```
+
+
+```java Java
+AuthenticationData data = new AuthenticationData.Jwt("YOUR_JWT_TOKEN", "USER_IDENTIFIER");
+MoECoreHelper.INSTANCE.passAuthenticationDetails(application.getApplicationContext(), data);
+```
+
+</CodeGroup>
+
+### ステップ 3: 認証エラーを処理する
+
+MoEngage サーバーが返すトークン検証エラーを処理するには、[**_OnAuthenticationError_**](https://moengage.github.io/android-api-reference/core/com.moengage.core.model.authentication/-on-authentication-error/index.html) リスナーを登録します。SDK は認証エラーが発生したときにこのリスナーを呼び出し、アプリケーションが新しいトークンを取得して提供できるようにします。アプリケーションが常にコールバックを受け取れるよう、`Application` クラスの `onCreate()` などのグローバルスコープでリスナーを登録してください。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+val authErrorListener = OnAuthenticationError { error ->
+  when (error.data) {
+    is ErrorData.Jwt -> {
+       // Handle JWT authentication error
+       val errorData = error.data as ErrorData.Jwt
+       val jwtError = errorData.code
+       val message = errorData.message
+       // Take appropriate action based on the jwtError
+    }
+  }
+}
+MoECoreHelper.registerAuthenticationListener(authErrorListener)
+```
+
+
+```java Java
+OnAuthenticationError errorListener = new OnAuthenticationError() {
+  @Override
+  public void onError(@NonNull AuthenticationError error) {
+      switch (error.getType()) {
+          case JWT:
+              ErrorData.Jwt jwtError = (ErrorData.Jwt) error.getData();
+              // Handle JWT error
+              JwtError jwtErrorType = jwtError.getCode();
+              String message = jwtError.getMessage();
+              // Take action based on jwtErrorType
+              break;
+      }
+  }
+};
+MoECoreHelper.INSTANCE.registerAuthenticationListener(errorListener);
+```
+
+</CodeGroup>
+
+<Info>
+  - 認証エラーにより API リクエストが失敗した場合、SDK はアプリケーションが新しいトークンを提供するまでリクエストを再試行しません。
+  - 1 つのセッション内で認証が 10 回連続して失敗すると、SDK は次のセッションが始まるまでデータの同期を試行しなくなります。このカウンターは、同期が成功するとリセットされます。
+  - ユーザーのログアウト時に JWT エラーによりデータの同期が失敗した場合、保留中のデータは削除され、再試行は行われません。
+</Info>

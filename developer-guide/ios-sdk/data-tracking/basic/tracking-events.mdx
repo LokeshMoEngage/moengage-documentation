@@ -19,7 +19,7 @@ For eg. The following code tracks a `Successful Purchase` event. We are includin
 <CodeGroup>
 
 ```swift Swift wrap
-var eventAttrDict : Dictionary<String,Any> = Dictionary()
+var eventAttrDict: [String: any Sendable] = [:]
 eventAttrDict["ProductName"] = "iPhone XS Max"
 eventAttrDict["BrandName"] = "Apple"
 eventAttrDict["Items In Stock"] = 109
@@ -37,7 +37,6 @@ eventProperties.addLocationAttribute(MoEngageGeoLocation.init(withLatitude: 12.2
 
 /// JSON is supported from MoEngage-iOS-SDK v9.17.5
 eventProperties.addAttribute(["merchantId": "abcdef","business_model": [ "admin_email": "abc@email.com","admin_comment": "payment" ]],withName: "merchant")
-<br>
 eventProperties.addAttribute([["merchantId": "abcdef", "business_model": ["admin_email": "abc@email.com", "admin_comment": "first"]], ["merchantId": "ghijk", "business_model": ["admin_email": "def@email.com", "admin_comment": "second"]]], withName: "retries")
       
 MoEngageSDKAnalytics.sharedInstance.trackEvent("Successful Purchase", withProperties: eventProperties)
@@ -64,7 +63,6 @@ MoEngageGeoLocation* pickupLocation = [[MoEngageGeoLocation alloc] initWithLatit
       
 /// JSON is supported from MoEngage-iOS-SDK v9.17.5
 [eventProperties addAttribute:@{@"merchantId": @"abcdef",@"business_model": @{@"admin_email": @"abc@email.com",@"admin_comment": @"payment"}} withName:@"merchant"];
-<br>
 [eventProperties addAttribute:@[@{@"merchantId":@"abcdef",@"business_model":@{@"admin_email":@"abc@email.com",@"admin_comment":@"first"}},@{@"merchantId":@"ghijk",@"business_model":@{@"admin_email":@"def@email.com",@"admin_comment":@"second"}}] withName:@"retries"];
 
 [[MoEngageSDKAnalytics sharedInstance] trackEvent:@"Successful Purchase" withProperties:eventProperties];
@@ -74,7 +72,7 @@ MoEngageGeoLocation* pickupLocation = [[MoEngageGeoLocation alloc] initWithLatit
 
 <Note>
   Starting with iOS SDK [11.0.0](/release-notes/sdks/ios#22nd-july-2026):
-  - `MoEngageProperties(withAttributes:)` and `addAttribute(_:withName:)` require values to conform to `Sendable` for Swift concurrency safety (`Any` → `any Sendable`). The literal values used above (strings, numbers, booleans, dictionaries of these) already conform to `Sendable`, so this example compiles unchanged. Under the Swift 6 language mode or strict concurrency, non-`Sendable` values need to be updated.
+  - `MoEngageProperties(withAttributes:)` and `addAttribute(_:withName:)` accept `any Sendable` values instead of `Any`. Declare the attribute dictionary as `[String: any Sendable]`; `[String: Any]` does not compile.
   - `trackEvent(_:withProperties:)` returns a typed task object (`MoEngageTrackEventTask`) instead of `Void`, so you can observe per-call success or failure through `.onSuccess` / `.onFailure` or the async `result()` method. Direct calls like the one above compile unchanged.
 </Note>
 
@@ -130,7 +128,7 @@ Common triggers for the `DEBUG` exception:
 - Nesting `Date` or `MoEngageGeoLocation` objects inside an Array or Dictionary. These must be passed directly as values.
 
 <Info>
-  If you are upgrading an existing app and these strict `DEBUG` validations cause disruptive crashes while you refactor your tracking code, you can temporarily opt out by calling `disableIntegrationValidator()` during SDK initialization. Use this strictly as a stopgap for phased upgrades, and aim to remove the opt-out once your attribute call sites are properly validated.
+  If these `DEBUG` validations crash your app while you upgrade, call `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` before initializing the SDK to opt out temporarily. Remove the call once the issues are fixed.
 </Info>
 
 ### Filtering unsupported attribute values

@@ -1,0 +1,97 @@
+---
+title: "インバウンド(フィード)"
+---
+
+# はじめに
+
+この連携により、MoEngage は生成しているすべてのキャンペーンデータを mParticle に転送します。MoEngage から mParticle に送信されるデータポイントは、[こちら](https://www.moengage.com/docs/api/data/moengage-streams) -\> Campaign Interaction Events で確認できます。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  mParticle へのエクスポートには MoEngage Streams を使用します。Streams はアドオンです。アカウントで有効にするには、MoEngage の担当 CSM(カスタマーサクセスマネージャー)にお問い合わせください。
+</Info>
+
+## 手順
+
+### ステップ 1: mParticle で MoEngage フィードを入力として設定する
+
+1. mParticle ダッシュボードで、Connections \>\> Feed \>\> Input feed をクリックします。
+2. カスタム入力フィードとして MoEngage を選択します。<img src="/images/partner_25208639331604.png" alt="mparticle_Screen_Shot_2021-05-03_at_4.14.15_PM.png" />
+
+### ステップ 2: MoEngage で mParticle Streams を設定する
+
+MoEngage ダッシュボードで、次の操作を行います。
+
+1. _App Marketplace_ に移動します。
+2. mParticle を検索し、_Integrate_ タブに移動します。
+3. _\+ Add Integration_ ボタンをクリックして、新しい連携を追加します。<img src="/images/partner_13907705172372.png" alt="mparticle-appmarketplace.png" />
+4. 詳細を入力し、_Connect_ をクリックします。
+
+| フィールド | 詳細 |
+| --- | --- |
+| Server to Server Key | フィード設定時に mParticle ダッシュボードで確認した Server to Server Key を貼り付けます。 |
+| Server to Server Secret | フィード設定時に mParticle ダッシュボードで確認した Server to Server Secret を貼り付けます。 |
+| Events | mParticle に転送するイベントを選択します。MoEngage が mParticle に送信できるイベントの[完全なリストはこちら](https://www.moengage.com/docs/user-guide/data/exports/events/data-export-glossary#cloud-storages-destinations)です。 |
+| Data Residency | mParticle アカウントのリージョンを選択します。 |
+
+MoEngage からのデータエクスポート連携を有効にすると、mParticle でキャンペーンイベントが表示されるようになります。
+
+<Warning>
+  注意事項:
+
+  1. MoEngage のイベントは mParticle でどのように取得されますか? MoEngage は、Email、SMS、Connector、Flows、および User Added to control group チャネルのイベントを、次の形式の Custom Events として mParticle に送信します。
+
+  - Custom Event Type - other
+  - Custom Event Name - \<MoEngage Event Name\>
+  - Custom Event Attributes - \<All event metadata\>
+
+  MoEngage のイベント名とイベントメタデータの詳細については、[Streams データ用語集](https://www.moengage.com/docs/api/data/moengage-streams#campaign-interaction-events)を参照してください。
+
+  2. サポートされているユーザー ID は何ですか? MoEngage は次のユーザー ID を mParticle に送信します。
+
+  - Email
+  - MPID
+  - Customer ID
+  - Mobile Number
+  - MoEngage Partner Identity (moe\_anonymous\_id)
+
+  デフォルトでは、Customer ID がデフォルトの ID として使用されます。他の ID を使用する場合は、MoEngage の CSM または MoEngage サポートチームにお問い合わせください。
+</Warning>
+
+## 制限事項
+
+mParticle 連携は、mParticle から MoEngage へのイベント送信のみを処理します。プッシュ通知やアプリ内メッセージなどの MoEngage の機能を活用するには、以下の表に記載されている追加の連携が必要です。
+
+| 連携 | 詳細 |
+| --- | --- |
+| [Android SDK](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/advanced-or-optional/sdk-configuration) | Android アプリでプッシュ通知の表示、パフォーマンス統計の取得、アプリ内メッセージの表示、リアルタイムトリガーを行うためのものです。 |
+| [iOS SDK](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration) | iOS アプリでプッシュ通知の表示、パフォーマンス統計の取得、アプリ内メッセージの表示、リアルタイムトリガーを行うためのものです。 |
+| ユーザーマッピング | mParticle の行動データに基づいてユーザーにプッシュ通知やアプリ内メッセージを送信する必要がある場合は、mParticle の customer\_id と同じ一意のユーザー ID を MoEngage SDK に渡す必要があります。 |
+| ログアウト | データが破損する可能性があるため、Android または iOS から MoEngage のログアウトメソッドを**呼び出さない**ようにしてください。mParticle 連携では、インストール後の最初の app\_open の直後にユーザーの unique\_id が必要です。これには、GAID や IDFV などのデバイス ID、MPID、または mParticle で追跡しているその他の customer\_id を使用できます。 |
+| アプリ内メッセージ | ユーザーがアプリでアクションを実行した直後にアプリ内メッセージを表示するためのものです。これを行うには、そのようなトリガーイベントを MoEngage SDK から直接送信する必要があります。イベントの重複につながる可能性があるため、この場合は mParticle と同じイベントを使用しないように注意してください。 |
+| ジオフェンシング | ジオフェンシングにも個別の連携が必要です。<br />[Android](https://www.moengage.com/docs/developer-guide/android-sdk/push/optional/location-triggered) \| [iOS](https://www.moengage.com/docs/developer-guide/ios-sdk/push/optional/location-triggered) |
+
+プッシュ通知、アプリ内メッセージ、その他のチャネルなどの MoEngage サービスを機能させるには、MoEngage SDK を統合する必要があります。MoEngage の開発者向けドキュメントは[こちら](https://www.moengage.com/docs/developer-guide/introduction)を参照してください。
+
+# よくある質問
+
+<AccordionGroup>
+  <Accordion title="データの受信はいつ開始されますか?">
+    通常、アカウントで自動データエクスポートが設定され、データが表示され始めるまでに最大 30 分かかります。
+  </Accordion>
+
+  <Accordion title="後から追加のイベントをエクスポートできますか?">
+    はい。後から新しいイベントをエクスポートする必要がある場合は、App Marketplace でいつでも設定を編集して、新しいイベントをエクスポートに追加できます。
+  </Accordion>
+
+  <Accordion title="自動データエクスポートを使用して履歴データをエクスポートできますか?">
+    現時点では、自動データエクスポートを使用して履歴データをエクスポートすることはできません。設定後は、エクスポートを有効にした時点からの各イベントのデータが表示されるようになります。
+  </Accordion>
+
+  <Accordion title="自動データエクスポートには料金がかかりますか?">
+    ご利用の請求プランにまだ含まれておらず、後から有効にする必要がある場合は、カスタマーサクセスマネージャーと協力して請求プランに含める必要があります。MoEngage が毎月データウェアハウス/パートナー/API に配置するデータ量によっては、追加料金が発生する場合があります。
+  </Accordion>
+</AccordionGroup>

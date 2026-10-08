@@ -1,0 +1,176 @@
+---
+title: "Google Cloud Storage"
+description: "MoEngage のキャンペーンインタラクションイベントを Google Cloud Storage バケットにエクスポートし、BigQuery への取り込みと分析に活用します。"
+---
+
+## はじめに
+
+[Google Cloud Storage](https://cloud.google.com/storage) は、大規模な非構造化データセットを格納できるエンタープライズ向けパブリッククラウドストレージプラットフォームです。
+
+## MoEngage × GCS
+
+MoEngage と GCS の統合により、キャンペーンのインタラクションイベントが Google Cloud Storage バケットにエクスポートされます。その後、これらのファイルを BigQuery にインポートして、さらなる処理と分析を行うことができます。
+
+## 統合
+
+<Info>
+  **前提条件**
+
+  - 新しいバケットとサービスアカウントを作成する権限を持つ Google Cloud Platform アカウントがあることを確認してください。
+  - GCS へのエクスポートは Streams アドオンの一部です。アカウントで有効にするには、MoEngage の専任 CSM（カスタマーサクセスマネージャー）にお問い合わせください。
+</Info>
+
+### ステップ 1: MoEngage 専用のサービスアカウントを作成する
+
+Google Cloud Platform コンソールで、**IAM & Admin** コンソールに移動します。
+
+1. サイドバーから **Service Accounts** を開きます。
+   ![IAM & Admin コンソールの Service Accounts ホーム](/images/partner_12062501879700.png)
+2. **\+ Create Service Account** ボタンをクリックします。
+3. このサービスアカウントに名前と、必要に応じて説明を付けます。
+4. **Create and continue** をクリックします。
+   ![Google Cloud での新しいサービスアカウントの作成](/images/partner_12062703174548.png)
+5. このサービスアカウントにロール **Basic \> Browser** を追加します。
+   ![サービスアカウントへの Basic \> Browser ロールの割り当て](/images/partner_12062802345876.png)
+6. **Continue** をクリックします。必要に応じて、このサービスアカウントへのアクセス権をユーザーに付与します。
+7. **Done** をクリックします。
+8. サービスアカウントの一覧から、作成したサービスアカウントを開きます。
+9. **Keys** タブに移動し、**Add Key** をクリックして、**Create new key** を選択します。
+   ![サービスアカウントの Keys タブにある Add Key オプション](/images/partner_12062893736724.png)
+10. **Key Type** として **JSON** を選択し、**Create** をクリックします。
+    ![サービスアカウントキー作成時にキータイプとして JSON を選択](/images/partner_12062926508052.png)
+11. 新しいキーが JSON 形式で自動的にダウンロードされます。このファイルは安全に保管してください。後で MoEngage ダッシュボードにアップロードする必要があります。
+
+### ステップ 2: このサービスアカウントにバケットへの権限を付与する
+
+1. サービスアカウントの詳細ページで、サービスアカウントのメールアドレスをコピーします。
+   ![詳細ページのサービスアカウントのメールアドレス](/images/partner_12063141549076.png)
+2. **Cloud Storage** コンソールに移動し、MoEngage にイベントをエクスポートさせたいバケットを開きます。
+3. **Permissions** タブで **Grant Access** をクリックします。
+   ![バケットの Permissions タブにある Grant Access オプション](/images/partner_12063166880276.png)
+4. **New Principals** フィールドにサービスアカウントのメールアドレスを貼り付けて選択します。
+5. ロール **Cloud Storage \> Storage Admin** を割り当てます。
+   ![サービスアカウントへの Storage Admin ロールの割り当て](/images/partner_12063216822036.png)
+6. **Save** をクリックします。
+
+### ステップ 3: GCP アカウントで API とサービスを有効にする
+
+1. GCP コンソールで **APIs & Services** に移動し、**\+ Enable APIs and Services** をクリックします。
+   ![GCP コンソールの Enable APIs and Services オプション](/images/partner_12063295895828.png)
+2. **Cloud Storage** を検索し、API の詳細ページを開きます。
+3. **Enable** をクリックして有効にします。
+   ![GCP での Cloud Storage API の有効化](/images/partner_12063394282388.png)
+
+### ステップ 4: App Marketplace で GCS 統合を設定する
+
+1. MoEngage ダッシュボードで **App Marketplace** に移動します。
+2. **Google Cloud Storage** を検索します。
+3. **Integrate** タブに移動し、**\+ Add Integration** をクリックします。
+   ![Google Cloud Storage の Integrate タブにある Add Integration オプション](/images/partner_12063471722644.png)
+4. 接続に識別しやすい名前を付けます。
+5. バケット名を入力します。
+6. 必要に応じて、バケットのリージョンを選択します。リージョンは Bucket Details ページで確認できます。
+7. 先ほどダウンロードしたサービスアカウントの認証情報 JSON ファイルをアップロードします。アップロード時に Client ID と Client Email を確認できます。
+8. エクスポートするイベントを選択します。デフォルトでは、各イベントは標準属性とともにエクスポートされます。
+   ![MoEngage App Marketplace での GCS 統合の設定](/images/partner_12064408178068.png)
+9. 必要に応じて、接続をテストできます。MoEngage は入力された詳細が正しいかどうかの検証を試みます。問題がある場合はエラーが表示されるので、修正できます。
+
+### 必要な権限に関する注意
+
+エンドツーエンドのテストを実行するには、MoEngage でいくつかの追加の権限を設定する必要があります。IT ポリシーでこれらの権限が許可されていない場合は、スキップできます。ただし、その場合は App Marketplace から接続をテストできません。これらの任意の権限をスキップしても、実際のデータエクスポートには一切影響しません。
+
+| 権限 | 必須 | 説明 |
+| --- | --- | --- |
+| `resourcemanagement.projects.get` | いいえ | Google Cloud Resource Manager でプロジェクトのメタデータを表示することをユーザーに許可します。MoEngage はテスト中にサービスアカウントにアクセスするためにこの権限を使用します。 |
+| `resourcemanagement.projects.getIampolicy` | いいえ | Google Cloud Resource Manager でプロジェクトの IAM ポリシーを表示することをユーザーに許可します。MoEngage はバケットに適切なポリシーが割り当てられているかどうかを確認するためにこの権限を使用します。 |
+| `storage.bucket.get` | いいえ | Google Cloud Storage バケットのメタデータを表示することをユーザーに許可します。MoEngage は設定時に指定されたバケットが実際に存在するかどうかを確認するためにこの権限を使用します。 |
+| `storage.object.create` | はい | Google Cloud Storage バケット内にオブジェクト（ファイル）を作成することをユーザーに許可します。MoEngage がバケット内にファイルを作成するには、この権限が必要です。 |
+| `storage.object.get` | はい | Google Cloud Storage バケット内のオブジェクト（ファイル）の内容を読み取ることをユーザーに許可します。MoEngage がバケット内にファイルが正しく作成されたかどうかを確認するには、この権限が必要です。 |
+| `storage.object.update` | はい | Google Cloud Storage バケット内のオブジェクト（ファイル）の内容を変更することをユーザーに許可します。不一致があった場合に MoEngage がファイルを更新するには、この権限が必要です。 |
+
+MoEngage が必要とする必須の権限と、IT ポリシーで承認されたテスト用の任意の権限を組み合わせたカスタムロールを自由に作成してください。
+
+## データを正しく受信しているかどうかを確認する
+
+MoEngage は次のパス構造を使用してファイルをアップロードします。
+
+```text wrap
+gs://<your-bucket-name>/event-exports/<your_app_name>/<connection_id>/export_day=YYYY-MM-DD/export_hour=HH/<file-name>.json.gz
+```
+
+バケットに移動し、ファイルが存在することを確認します。
+
+![エクスポートされたファイルが GCS バケットに存在することの確認](/images/partner_12064664073364.png)
+
+## エクスポート頻度
+
+MoEngage は 1 時間ごとにデータをダンプします。
+
+## サンプルファイル
+
+エクスポートされるファイルは `.json.gz` 形式です。[サンプルファイルをダウンロード](https://app-cdn.moengage.com/partners-integration-ui/app-marketplace-public/helpdoc/event_exports_sample_files.json.gz)して構造を確認してください。実際の内容は、エクスポートを選択したイベントと属性によって異なります。
+
+```json JSON
+{
+  "app_name": "App Name",
+  "export_hour": "6",
+  "db_name": "MoEngage App Name",
+  "event": {
+    "uid": "user id",
+    "event_type": "CAMPAIGN_EVENT",
+    "event_code": "MOE_EMAIL_SENT",
+    "event_name": "Email Sent",
+    "user_attributes": {
+      "moengage_user_id": "userid1",
+      "user_attr1": "value1",
+      "user_attr2": "value2"
+    },
+    "event_source": "MOENGAGE",
+    "email_id": "test@xyz.com",
+    "event_attributes": {
+      "campaign_name": "Campaign name",
+      "moe_campaign_tags": [
+        "Tag1",
+        "Tag2"
+      ],
+      "campaign_type": "GENERAL",
+      "moe_campaign_channel": "Email",
+      "moe_delivery_type": "One Time",
+      "campaign_id": "moengage campaign id",
+      "campaign_channel": "EMAIL"
+    },
+    "event_uuid": "3b918064-08dc-47ae-b674-c23797475a8d",
+    "event_time": 1653022310,
+    "device_attributes": {
+      "moengage_device_id": "device id if applicable"
+    }
+  },
+  "export_day": "2022-05-20"
+}
+```
+
+サポートされているイベントと属性の一覧については、[データエクスポート用語集](https://www.moengage.com/docs/user-guide/data/exports/events/data-export-glossary)を参照してください。
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="データの受信はいつから始まりますか？">
+    通常、アカウントで自動データエクスポートが設定され、データが表示され始めるまでに最大 30 分かかります。
+  </Accordion>
+
+  <Accordion title="後から追加のイベントをエクスポートできますか？">
+    はい。後から新しいイベントをエクスポートする必要がある場合は、App Marketplace で設定を編集し、新しいイベントをエクスポートに追加できます。
+  </Accordion>
+
+  <Accordion title="自動データエクスポートを使用して過去のデータをエクスポートできますか？">
+    自動データエクスポートを使用して過去のデータをエクスポートすることはできません。設定が完了すると、エクスポートを有効にした時点以降の各イベントのデータが表示され始めます。
+  </Accordion>
+
+  <Accordion title="自動データエクスポートには料金がかかりますか？">
+    お使いの課金プランにまだ含まれておらず、後から有効にする必要がある場合は、カスタマーサクセスマネージャーと協力して課金プランに追加する必要があります。MoEngage が毎月データウェアハウス、パートナー、または API の宛先に送信するデータ量によっては、追加料金が発生する場合があります。
+  </Accordion>
+
+  <Accordion title="データエクスポートでは最新のユーザー属性が保証されますか？">
+    いいえ。データエクスポートは主にイベントをほぼリアルタイムでエクスポートするために構築されており、MoEngage のユーザー属性は非同期で更新されるため、現時点ではエクスポートにユーザー属性の最新の値が含まれることを保証できません。
+  </Accordion>
+</AccordionGroup>

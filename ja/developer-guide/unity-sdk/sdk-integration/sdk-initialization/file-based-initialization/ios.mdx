@@ -1,0 +1,106 @@
+---
+title: "iOS"
+description: "ワークスペース ID を使用して、Unity プロジェクトの iOS 設定ファイルで MoEngage SDK を初期化します。"
+---
+
+<Info>
+  Unity iOS SDK は、以下で説明する `MoEngage-Info.plist` 設定ファイルを使用したファイルベースの初期化のみをサポートしています。
+</Info>
+
+## MoEngage の設定を含める
+
+MoEngage パッケージをインポートした後、`Assets` フォルダーに **MoEngage-Info.plist** ファイルを追加します（`Asset > Import New Asset`）。
+
+<Warning>
+  Unity SDK Core 6.0.0 バージョン以降、`MoEngageConfiguration.h` のサポートは削除されました。SDK の設定には `MoEngage-Info.plist` に移行する必要があります。
+</Warning>
+
+`MoEngage-Info.plist` で、ワークスペース ID、リージョン、その他の設定値を指定します。
+
+```xml XML
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- MoEngage Account Identifier -->
+  <key>APPLICATION_ID</key>
+  <string>YOUR_WORKSPACE_ID</string>
+
+  <!-- Set DataCenter: DATA_CENTER_01 / DATA_CENTER_02 / DATA_CENTER_03 / DATA_CENTER_04 / DATA_CENTER_05 -->
+  <key>DATA_CENTER</key>
+  <string>DATA_CENTER_01</string>
+
+  <!-- Enable Xcode console logs for debugging -->
+  <key>ENABLE_LOGS</key>
+  <true/>
+
+  <!-- Enable UnityAppController swizzling -->
+  <key>UNITY_CONTROLLER_SWIZZLING_ENABLED</key>
+  <true/>
+
+  <!-- Interval (seconds) at which data is sent to MoEngage. Minimum value: 60 -->
+  <key>ANALYTICS_PERIODIC_FLUSH_DURATION</key>
+  <integer>60</integer>
+
+  <!-- Set to true to disable periodic flush of events -->
+  <key>ANALYTICS_DISABLE_PERIODIC_FLUSH</key>
+  <false/>
+
+  <!-- Enable storage encryption -->
+  <key>STORAGE_ENCRYPTION_ENABLED</key>
+  <false/>
+
+  <!-- Keychain group name to save the encryption key -->
+  <key>KEYCHAIN_GROUP_NAME</key>
+  <string></string>
+
+  <!-- Set to true to encrypt all data in API requests -->
+  <key>NETWORK_ENCRYPTION_ENABLED</key>
+  <false/>
+
+  <!-- Set to true if the app handles deeplink callbacks directly -->
+  <key>SHOULD_PROVIDE_DEEPLINK_CALLBACK</key>
+  <false/>
+</dict>
+</plist>
+```
+
+SDK にナビゲーションを処理させるのではなく、アプリでディープリンクのルーティングを手動で処理する場合は、`SHOULD_PROVIDE_DEEPLINK_CALLBACK` を `true` に設定します。
+
+## Unity App Controller Swizzling
+
+SDK を初期化するには、次の 2 つの方法があります。
+
+1. **Unity App Controller のサブクラス：**\
+   SDK には、UnityAppController のサブクラスである `MoEUnityAppController` クラスが含まれています。ここでは、アプリの起動時にコールバックを受け取り、MoEngage SDK を初期化します。
+2. **UnityAppController swizzling：**\
+   UnityAppController swizzling を有効にするには、`MoEngage-Info.plist` で `UNITY_CONTROLLER_SWIZZLING_ENABLED` を `true` に設定します。ここでは、MoEngage SDK を初期化するために `application:didfinishLaunchinWithOptions:` メソッドが swizzle されます。
+
+<Warning>
+  プロジェクトに UnityAppController サブクラス（1 つ目の方法）の実装が複数ある場合は、UnityAppController swizzling（2 つ目の方法）が必要になります。この場合、プロジェクト内のサブクラスのうち 1 つだけがコールバックを受け取るため、プラグインで定義されたサブクラスが確実に動作しない可能性があります。
+</Warning>
+
+## ビルドと置換
+
+必要なパッケージをインポートしたら、`File > Build Settings` に移動し、iOS プラットフォームに切り替えて `Build` をクリックします。ポップアップで `Replace` を選択します。初回の統合時には **Replace** を選択する必要があります。これは、MoEngage SDK 用に Xcode プロジェクトのビルド設定を更新し、ネイティブの依存関係もインストールするためです。
+
+<Frame>
+  ![iOS SDK の初期化 2](/images/IOSSDKIntialization2.png)
+</Frame>
+
+### CocoaPods
+
+<Info>
+  先に進む前に、システムに [CocoaPods](https://cocoapods.org/) がインストールされていることを確認してください。
+</Info>
+
+SDK は、ネイティブの iOS 依存関係を管理するためにデフォルトで CocoaPods を使用します。Unity からビルドした後、Xcode で `Unity-iPhone.xcworkspace` を開いてアプリを実行します。
+
+### Swift Package Manager
+
+CocoaPods の代わりに、Swift Package Manager（SPM）を使用して MoEngage iOS の依存関係を管理することもできます。
+
+1. Xcode で **File → Add Package Dependencies** に移動します。
+2. MoEngage iOS SDK のリポジトリ URL を入力し、必要なバージョンを選択します。
+3. `MoEngageSDK` パッケージを `Unity-iPhone` ターゲットに追加します。
+4. 生成された `Podfile` を削除し、`.xcworkspace` を閉じます。SPM を使用する場合は、`Unity-iPhone.xcodeproj` を直接開きます。

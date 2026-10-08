@@ -1,0 +1,161 @@
+---
+title: "Whilter AI"
+---
+
+[Whilter AI](https://konne.whilter.ai/login) は、動的かつハイパーパーソナライズされた動画や画像コンテンツを作成するための高度なプラットフォームです。ユーザーデータを使用して、リアルタイムのメディアを大規模に生成します。
+
+## MoEngage x Whilter AI
+
+Whilter AI と MoEngage の統合により、企業はパーソナライズされたメディアをリアルタイムで生成・配信できます。MoEngage の Connector キャンペーンを使用して Whilter AI でのコンテンツ作成をトリガーすると、Whilter AI は安全なコールバックを使用して、生成されたメディアの URL で MoEngage のユーザープロファイルを更新します。
+
+この統合により、次のことが可能になります。
+
+- MoEngage でのユーザーのアクションに基づいて、パーソナライズされたコンテンツ（動画または画像）の生成をリアルタイムでトリガーする。
+- 生成されたメディアの公開 URL で MoEngage のユーザープロファイルを即座に更新する。
+- パーソナライズされた URL を後続の MoEngage 配信キャンペーン（メール、WhatsApp など）で使用する。
+
+## ユースケース
+
+MoEngage と Whilter AI の統合は、次のユースケースをサポートします。
+
+- **パーソナライズされたオンボーディング**: 新規ユーザーがサインアップしたときに、パーソナライズされたウェルカム動画を自動的に生成し、メールで即座に送信します。
+- **カート放棄のリカバリー**: ユーザーが放棄したアイテムを示すパーソナライズされた画像や動画を作成し、リカバリーキャンペーンで使用します。
+- **マイルストーン特典**: ユーザーがロイヤルティティアや購入のマイルストーンに到達したときに、パーソナライズされた「Thank You」動画を生成します。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  設定を開始する前に、次のものが揃っていることを確認してください。
+
+  - テンプレート作成へのアクセス権を持つ有効な Whilter AI アカウント。
+  - Whilter AI の **Client ID** と **Client Secret**（トークンの生成に必要）。
+  - 有効な MoEngage UI アカウント。
+</Info>
+
+## ステップ 1: Whilter AI キャンペーンを設定する
+
+Whilter でキャンペーンを設定するには、次の手順を実行します。
+
+1. Whilter AI プラットフォームにサインインします。 <img src="/images/partner_46664893095700.png" alt="Whilter のサインインダッシュボード" />
+2. **Campaign Creation** ページに移動します。
+   1. 左側のナビゲーションで、**Campaign** をクリックします。
+   2. **\+ Create** をクリックするか、既存のキャンペーン（例: axis-genz）を選択します。 <img src="/images/partner_46902300658324.png" alt="キャンペーン作成オプション" />
+3. メディアパーツを設定します。
+   1. **Campaign** ダッシュボードで、**Campaign Config** をクリックします。
+   2. **Video Config** セクションでは、テンプレートが連続したパーツに分割されています。以下の各ヘッダーをクリックしてセクションを展開し、ベーステンプレートをアップロードします。
+      - **ML with MLT**: LipSync、Transliteration、TTS などの AI 駆動の機能。
+      - **MLT**: 標準の動的レイヤーマッピング。
+      - **STATIC**: 変更されないアセット。
+   3. **Browse Media** をクリックしてアセットをアップロードします。
+   4. 動的フィールドをマッピングします。
+      1. テンプレート内のレイヤー（テキストまたは画像）を特定します。
+      2. MoEngage から送信するユーザー属性をマッピングします。
+      3. 目のアイコン <img src="/images/partner_46651420346260.png" alt="プレビューアイコン" /> をクリックして（任意）、アセットをプレビューします。 <img src="/images/partner_46664884994068.png" alt="アセットレイヤーのプレビュー" />
+4. 接続設定:
+   1. **Connection Details** セクションまで下にスクロールします。
+   2. **Select Ingress Type** リストで、**API** をクリックします。
+   3. **Select Egress Type** リストで、**CPAAS** をクリックします。
+   4. **Select Time To Live** リストで、**SIX\_MONTHS**（またはキャンペーンの要件に応じた値）をクリックします。
+   5. **Data Encryption**: データプライバシーの要件に基づいて、**Not Encrypted** トグルをオンにします。
+5. 送信して ID を取得します。
+   1. **Submit** をクリックします。
+   2. テンプレートに割り当てられた一意の use-case-id（例: `67be6947-44c2-4fcc-bf34-3d82ce767081`）をコピーします。この ID は [ステップ 2](#step-2-set-up-moengage-authorization) で必要になります。
+
+![キャンペーン設定のスクリーンショット](/images/partner_46651420349588.png)
+
+## ステップ 2: MoEngage の認可を設定する
+
+以下の手順に従って、MoEngage を Whilter AI と統合し、Connector キャンペーンを設定します。
+
+### ステップ 2.1: 認可設定にアクセスする
+
+1. MoEngage UI にログインします。
+2. **Settings** \> **Advanced settings** \> **Authorization configuration** に移動します。
+3. **\+ Add OAuth config** をクリックします。
+
+### ステップ 2.2: OAuth の詳細を設定する
+
+1. **OAuth details** ステップで、次のように入力します。
+   - **OAuth name**: OAuth 設定の名前を入力します（例: WhilterAI）。
+   - **Grant type**: 現在、**Client Credential** グラントタイプがサポートされています。その他のグラントタイプを使用する場合は、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+   - **Token type**: **Opaque** をクリックします（Whilter AI は、レスポンスにトークンとともに有効期限が含まれる opaque トークンを使用します）。
+   - **API URL**: `https://api.whilter.ai/getToken/token` と入力します。
+   - **Method**: **POST** をクリックします。
+   - **Headers**: **\+ KV pair** をクリックし、**Content-Type**: `application/json` を追加します。
+   - **Body type**: **Raw** をクリックし、本文セクションでリクエストの本文を設定します。 <img src="/images/partner_46651420352788.png" alt="OAuth の本文設定" />
+2. **Send test & continue** をクリックします。
+
+### ステップ 2.3: レスポンス設定を行う
+
+**Response settings** ステップで、MoEngage が Whilter AI のトークンを処理する方法を確定します。
+
+1. **OAuth delivery response**: テストで受信した JSON レスポンスを確認します。
+2. **Access token**: トークンを含むキー（例: `access_token`）をクリックします。
+3. **Expiry**: **expires\_in** をクリックし、単位を **Seconds** に設定します。
+4. **Preferred prefix:** **Bearer** をクリックします。
+5. **Preferred error codes**: 認可の失敗が発生した場合にトークンの更新をトリガーするエラーコード（例: `401` または `403`）を入力します。
+6. **Save** をクリックします。 <img src="/images/partner_46651404053012.png" alt="設定の保存のスクリーンショット" />
+   設定のステータスは **Active** と表示されます。詳細については、[OAuth 2.0 による認可設定](/ja/user-guide/settings/advanced-settings/authorization-configuration-with-oauth-20) を参照してください。
+
+## ステップ 3: MoEngage の Connector キャンペーンを作成する
+
+MoEngage の Connector キャンペーンを作成するには、次の手順を実行します。
+
+1. MoEngage UI に移動します。
+2. 左側のナビゲーションメニューで、**Engage** をクリックし、**Campaigns** をクリックします。
+3. All campaigns ページの右上にある **\+ Create campaign** をクリックします。 <img src="/images/partner_46651404054164.png" alt="キャンペーン作成ステップ 1" />
+   または、Create **New** \> **Campaign** をクリックします。Campaign ページが表示されます。 <img src="/images/partner_46651404056596.png" alt="キャンペーン作成ステップ 2" />
+4. **Connectors** で **Custom** をクリックし、次のキャンペーン配信タイプのいずれかを選択します。
+   1. One Time
+   2. Periodic
+   3. Event Triggered
+   4. Business Event Triggered
+      詳細については、[配信タイプ](/ja/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels) を参照してください。Connector の作成ページが表示されます。 <img src="/images/partner_46651420360340.png" alt="Connector の作成ページ" />
+   5. キャンペーンのステップ 2 で、次の情報を入力します。
+      | フィールド | 値 |
+      | --- | --- |
+      | **Method** | **POST** |
+      | **URL** | `https://api.whilter.ai/video/request` |
+      | **Custom Headers** | **Content-Type**: `application/json`<br />**Authorization**: [ステップ 2](#step-2-set-up-moengage-authorization) で作成した OAuth 設定を選択します。 |
+5. 本文セクションで、次のペイロード構造を使用して Whilter AI テンプレートに必要なパラメーターを定義します。
+   <Tabs>
+     <Tab title="JSON">
+       ```json wrap
+       {
+        "client-request-id": "MoEngage_{{UserAttribute['MoEngage ID']}}",
+        "customer-id": "{{UserAttribute['MoEngage ID']}}",
+        "use-case-id": "YOUR_USE_CASE_ID_FROM_STEP_1", 
+        "user-id": "{{UserAttribute['Phone Number']}}", 
+        "user-config": { 
+         "name": "{{UserAttribute['First Name']}}",
+         "product_name": "{{EventAttribute['product_name']}}"
+        },
+        "reference-record-id": "{{Campaign.ID}}"
+       }
+       ```
+     </Tab>
+   </Tabs>
+   ![JSON 本文ペイロードの設定](/images/partner_46664321277844.png)
+6. リクエストをプレビューします。これで、キャンペーンをテストして送信する準備が整いました。キャンペーン作成の 2 番目のステップで利用可能なテスト機能を使用して、Connector の設定をテストできます。 <img src="/images/partner_46651404059540.png" alt="テスト結果のスクリーンショット" />
+
+## ステップ 4: パーソナライズされたコンテンツを配信する
+
+Connector キャンペーンが公開されると、MoEngage は Whilter AI にテンプレートの作成をリクエストします。Whilter AI によって生成されたメディア URL は、ユーザーのプロファイルにカスタム属性として保存されるため、あらゆる MoEngage 配信キャンペーンで使用できます。
+
+1. MoEngage で新しい配信キャンペーン（例: メール、WhatsApp、プッシュ通知）を作成します。
+2. パーソナライズされた URL が設定されているユーザー（例: `whilter_video_url` が設定されているユーザー）を含むように、ターゲットオーディエンスをフィルタリングします。
+3. キャンペーンエディターで、MoEngage のパーソナライゼーション構文（`@` または `{{UserAttribute}}`）を使用して、[ステップ 2](#step-2-set-up-moengage-authorization) でマッピングした属性を挿入します。
+   <Tabs>
+     <Tab title="HTML">
+       ```html wrap
+       <img style="max-width: 100%; height: auto; display: block;" src="{{UserAttribute['whilter_video_url']}}" alt="Your Personalized Whilter Content">
+       ```
+     </Tab>
+   </Tabs>
+   <Info>
+     **情報**
+     Whilter の URL は、`img` タグの **src** 属性の値として使用するか、Web ブラウザーで再生するためのリンクとして埋め込むことができます。
+   </Info>
+4. キャンペーンを開始して、パーソナライズされたメディアを配信します。

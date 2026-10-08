@@ -1,0 +1,171 @@
+---
+title: "Custom Formulaランキングストラテジー"
+---
+
+Custom Formulaは、Decision Policyで利用できるランキングストラテジーで、単一変数のランキングシグナルを複数のパラメーターの加重組み合わせに置き換えます。重要なパラメーターを選択し、それぞれにパーセンテージの重みを割り当てます。エンジンは各パラメーターのスコアにその重みを掛けて結果を合計し、それに従ってすべての顧客に対して対象となるすべてのOfferingをランク付けします。\
+その結果、ビジネスにとって戦略的に重要なものと、各顧客にとって個人的に関連性の高いものの両方を反映したランキングが、手動での介入なしにリアルタイムで再計算されます。
+
+Custom Score  = (Attribute 1 Score × Weight %) \+ (Attribute 2 Score × Weight %) \+ ... \+ (Attribute N Score × Weight %) \+ (Performance Score × Weight %) \+ (Priority Score × Weight %)
+
+# 他のランキングストラテジーとの比較
+
+MoEngageでは、Decision Policyで3つのランキングストラテジーを提供しています。それぞれがどのような場合に適しているかを理解することで、適切なアプローチを選択したり、異なるポリシー間で組み合わせたりできます。
+
+|  | Manual priority | Merlin AI | Custom formula |
+| :-: | :-: | :-: | :-: |
+| ランキングの仕組み | 作成者が各Offeringにランク(100、90、80…)を手動で割り当てます | AIがクリックとコンバージョンから学習し、各ユーザーに最もパフォーマンスの高いOfferingを見つけます | マーケターが、Offering attributes、パフォーマンス、優先度を組み合わせた加重式を定義します |
+| スコアを設定する人 | 作成者 | アルゴリズム(時間とともに学習) | マーケターが重みを定義し、エンジンが実行時にユーザーごとのスコアを計算します |
+| パーソナライゼーション | なし — すべてのユーザーに同じランク | 暗黙的 — ユーザー全体の集計パターンを学習 | 明示的 — ユーザーのプロファイルに基づいてユーザーごとにスコアが変化(Dynamic attributesを使用) |
+| ビジネス目標の制御 | 高 — 作成者がランクを完全に制御 | 低 — 特定のビジネス目標ではなく、エンゲージメント/コンバージョンを最適化 | 高 — マーケターが各目標の重みを決定 |
+| 戦略の変更への対応 | 手動 — すべてのOfferingを再ランク付け | 段階的 — モデルの再学習に時間が必要 | 即時 — Decision Policyで重みを調整すると、すべてのOfferingが即座に再ランク付け |
+| 最適な用途 | 優先度が明確な、小規模で安定したカタログ | エンゲージメントが主な目標である大規模なカタログ | ビジネス価値とユーザーの関連性の両方をランキングに反映させる必要がある場合 |
+| Offering Attributesが必要 | いいえ | いいえ | はい |
+| 制限事項 | 顧客の意図やビジネス価値のトレードオフを考慮しない | 高価値でCTRの低いOfferingが埋もれるのを防げない | 属性と重みの事前設定が必要 |
+
+<Note>
+  **情報**
+
+  Manual Priorityは顧客を考慮しません。Merlin AIは高価値でCTRの低いOfferingを保護しません。Custom Formulaは、Offeringのビジネス上の価値と、特定の顧客に対する関連性の両方を同時に表現できる唯一のストラテジーです。
+</Note>
+
+# Custom Formulaで利用可能なパラメーター
+
+Custom Formulaには、静的パラメーターに加えて最大5個の動的パラメーターを含めることができます。パラメーターは2つのカテゴリーに分類されます。
+
+## **動的パラメーター — Offering Attributes**
+
+これらは、**Settings** \> **Offering Decisioning** \> **Offering Attributes** で設定する属性です。Fixed Value、Dynamic Value、またはその組み合わせで、最大5個のOffering attributesを式のパラメーターとして含めることができます。
+
+**Fixed Value attributes** は、Offering自体の戦略的な重要度を表します。スコアはOfferingの作成時に作成者によって設定され、すべての顧客で同じです。例: ビジネス目標、利益率の階層、キャンペーンの緊急度。
+
+**Dynamic Value attributes** は、個々の顧客に対する関連性を表します。スコアは、オファーに関連付けられた値を顧客の最新のMoEngageプロファイルと照合することで、意思決定時に計算されます。例: カテゴリーアフィニティ、離脱傾向、最終購入からの経過期間。
+
+## **静的パラメーター**
+
+属性の設定に関係なく、2つの組み込みパラメーターを常に利用できます。
+
+- **Offering Performance** — オファーの過去のクリックスルー率(CTR)またはコンバージョン率(CVR)です。
+- **Offering Priority** — Offeringに割り当てられた手動の優先度ランク(1～100)です。優先度の数値自体がベーススコアになります。
+
+<Note>
+  選択したすべてのパラメーターの重みの合計は、ちょうど100%である必要があります。
+</Note>
+
+# Custom Formulaランキングの設定方法
+
+**始める前に**
+
+まだ属性を設定していない場合は、**Settings** \> **Offering Decisioning** \> **Offering Attributes** に移動し、続行する前に少なくとも1つの属性を作成してください。手順については、[Offering attributesの作成](/ja/user-guide/decisioning/offer-decisioning/create-offering-attribute)ガイドを参照してください。
+
+**ステップ1 — Decision Policyを作成または編集する**
+
+設定したいDecision Policyに移動するか、新しく作成します。Ranking Strategyセクションで、利用可能なオプションから **Custom Formula** を選択します。
+
+<Frame>
+  ![ランキングストラテジー](/images/ranking-strategy.png)
+</Frame>
+
+**ステップ2 — パラメーターを追加する**
+
+Custom Formulaビルダーで **Add offering attribute (0/5)** をクリックします。次のものを追加できます。
+
+- 設定済みの任意のOffering attributes(Fixed ValueまたはDynamic Value)
+  - Fixed Value attributesの場合は、ドロップダウンからいずれかの選択肢を選択する必要があります。
+- Offering Performance(クリックスルー率またはコンバージョン率)
+- Offering Priorityスコア
+
+合計で最大5個のパラメーターを追加できます。Add Parameterボタンが無効になっている場合は、最大数に達しています。
+
+<Frame>
+  ![属性の追加](/images/add-attribute.png)
+</Frame>
+
+**ステップ3 — 重みを割り当てる**
+
+各パラメーターについて、重みのパーセンテージを入力します。重みは、各パラメーターが最終スコアにどの程度寄与するかを表します。すべての重みの合計は、ちょうど100%である必要があります。
+
+**重みの設定例**
+
+- Business Goal: Increase gross margin(Fixed Value attribute) — 40%
+  - Business goalはFixed value attributeの名前です。Increase gross marginは選択肢の1つです。
+- User preferred category(Dynamic Value attribute) — 30%
+- Offering Performance(CTR) — 20%
+- Offering Priority — 10%
+
+<Frame>
+  ![重みの割り当て](/images/assign-weightage.png)
+</Frame>
+
+**ステップ4 — 保存して公開する**
+
+すべての重みの合計が100%になったら、Decision Policyを保存します。Custom Formulaは、そのポリシー内のすべてのOfferingに対して即座に有効になります。個々のOfferingを編集する必要はありません。エンジンが式を使用して、各顧客に対してOfferingを自動的にスコアリングし、ランク付けします。
+
+**スコア計算の仕組み**
+
+顧客がDecision Policy内の複数のOfferingの対象となる場合、エンジンは対象となる各OfferingのCustom Scoreを計算し、降順にランク付けします。最もスコアの高いOfferingが顧客に表示されます。
+
+**計算式**
+
+Custom Score  = (Attribute 1 Score × Weight %) \+ (Attribute 2 Score × Weight %) \+ ... \+ (Attribute N Score × Weight %) \+ (Performance Score × Weight %) \+ (Priority Score × Weight %)
+
+**計算例**
+
+- Decision Policyに、Offering A(新しいiPhoneの発売)とOffering B(アパレルの割引)の2つのOfferingが含まれています。このポリシーは、上記のステップ3に記載した属性と重みで設定されています。
+- Offeringの設定
+  - Offering A
+    - 1つのFixed value: 2つの選択肢を持つ **Business goal**
+      - 選択肢1: **Increase gross margin** ; スコア: 90
+      - 選択肢2: **Reduce customer churn** ; スコア: 10
+    - 1つのDynamic value attribute: **User preferred category**
+      - 選択肢: **Electronics**
+  - Offering B
+    - 1つのFixed value: 2つの選択肢を持つ **Business goal**
+      - 選択肢1: **Increase gross margin** ; スコア: 75
+      - 選択肢2: **Reduce customer churn** ; スコア: 25
+    - 1つのDynamic value attribute: **User preferred category**
+      - 選択肢:  **Fashion**
+- ユーザー「Ross」の主なカテゴリーアフィニティは「Electronics」で、ユーザー「Rachel」の主なカテゴリーアフィニティは「Fashion」です。
+
+**Rossのスコア:**
+
+| パラメーター | 重み | Offering Aのスコア | Offering Bのスコア | 加重寄与 |
+| :-: | :-: | :-: | :-: | :-: |
+| Business goal - Increase gross margin(Fixed) | 40% | 90 | 75 | 36.00 (90 × 0.40)  \|  30.00 (75 × 0.40) |
+| User preferred category(Dynamic) | 30% | 100 | 0 | 30.00 (100 × 0.30)  \|  0.00 (0 × 0.30) |
+| Offering Performance(CTR) | 20% | 60 | 80 | 12.00 (60 × 0.20)  \|  16.00 (80 × 0.20) |
+| Offering Priority | 10% | 70 | 70 | 7.00 (70 × 0.10)  \|  7.00 (70 × 0.10) |
+| Custom Scoreの合計 | 100% |  |  | Offering A: 85.00  \|  Offering B: 53.00 |
+
+**Rossの結果**
+
+Offering Aのスコアは85.00、Offering Bのスコアは53.00です。Offering Aが1位にランク付けされます。アパレルのオファーよりCTRが低いにもかかわらず、iPhoneの発売がCustomer Xに表示されます。
+
+**Rachelのスコア:**
+
+| パラメーター | 重み | Offering Aのスコア | Offering Bのスコア | 加重寄与 |
+| :-: | :-: | :-: | :-: | :-: |
+| Business goal - Increase gross margin(Fixed) | 40% | 90 | 75 | 36.00 (90 × 0.40)  \|  30.00 (75 × 0.40) |
+| User preferred category(Dynamic) | 30% | 100 | 0 | 0.00 (0 × 0.30)  \|  30.00 (100 × 0.30) |
+| Offering Performance(CTR) | 20% | 60 | 80 | 12.00 (60 × 0.20)  \|  16.00 (80 × 0.20) |
+| Offering Priority | 10% | 70 | 70 | 7.00 (70 × 0.10)  \|  7.00 (70 × 0.10) |
+| Custom Scoreの合計 | 100% |  |  | Offering A: 55.00  \|  Offering B: 83.00 |
+
+**Customer Yの結果**
+
+Offering Aのスコアは55.00、Offering Bのスコアは83.00です。Offering Bが1位にランク付けされ、アパレルの割引がCustomer Yに表示されます。
+
+# 2つのOfferingが同じスコアになった場合はどうなりますか？
+
+Decision Policy内の2つ以上のOfferingが、特定の顧客に対して同じCustom Scoreとして計算された場合、エンジンは順次のタイブレークロジックを適用して、どのOfferingを1位にランク付けするかを決定します。
+
+| ステップ | 条件 | ロジック |
+| :-: | :-: | :-: |
+| 1 | 最も早い終了日時 | 最も早く期限切れになるOfferingが優先されます。より時間的な緊急性が高いためです。 |
+| 2 | 最も早い開始日時(終了日が同じ場合) | 同時に期限切れになるオファーの中で、最初に公開されたものが優先されます。 |
+| 3 | ランダム選択(開始日と終了日が同じ場合) | 1つのOfferingがランダムに選択されます。 |
+
+# 次のステップ
+
+- このストラテジーで使用するOffering Attributesを設定するには、[Offering Attributesの管理](https://www.moengage.com/docs/user-guide/decisioning/offer-decisioning/managing-offering-attribute)を参照してください。
+- Decision Policyの作成方法については、[Decision Policyの作成](https://www.moengage.com/docs/user-guide/decisioning/offer-decisioning/decision-policy)を参照してください。
+- OfferingにOffering Attributesを割り当てるには、[Offering Attributeの作成](https://www.moengage.com/docs/user-guide/decisioning/offer-decisioning/create-offering-attribute)を参照してください。

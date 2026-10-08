@@ -1,0 +1,119 @@
+---
+title: "ブラウザ拡張機能に対する SDK のサポート"
+description: "Google Chrome のブラウザ拡張機能内で MoEngage Web SDK を使用して、分析とイベントのトラッキングを行います。"
+---
+
+この記事では、ブラウザ拡張機能内で MoEngage Web SDK を使用する方法について説明します。ブラウザ拡張機能内に MoEngage Web SDK を統合して、分析データを収集し、ユーザーのイベントと属性をトラッキングできます。
+
+<Info>
+  現在は、Google Chrome の拡張機能のみをサポートしています。
+</Info>
+
+## 分析
+
+現在、MoEngage は拡張機能において分析チャネルのみをサポートしています。イベント属性とユーザー ID をトラッキングできます。
+
+## 権限
+
+[MoEngage SDK](https://cdn.moengage.com/webpush/moe_webSdk.min.latest.js) を拡張機能にバンドルされたローカルファイルとして統合する場合、`manifest.json` に追加の権限は必要ありません。
+
+Google Chrome の拡張機能では外部 URL からスクリプトを取得できないため、スクリプトのローカルコピーを作成してプロジェクトフォルダーに配置する必要があります。
+
+<Info>
+  Chrome 拡張機能で Web プッシュ通知をサポートするには、"**notification**" 権限が必要です。
+</Info>
+
+## はじめに
+
+<Info>
+  始める前に、JavaScript 統合全般について理解するために、Web SDK の初期 SDK セットアップガイドを必ずお読みください。
+</Info>
+
+MoEngage Web SDK を統合するには、まず最新の JavaScript ライブラリのコピーをダウンロードする必要があります。MoEngage CDN から直接ダウンロードできます。
+
+ダッシュボードホストに対応する CDN スクリプトを見つけます。右クリックしてダウンロードし、ファイルを保存します。
+
+| ダッシュボードホスト | CDN URL |
+| --- | --- |
+| dashboard-01.moengage.com | [https://cdn.moengage.com/release/dc\_1/moe\_webSdk.min.latest.js](https://cdn.moengage.com/release/dc_1/moe_webSdk.min.latest.js) |
+| dashboard-02.moengage.com | [https://cdn.moengage.com/release/dc\_2/moe\_webSdk.min.latest.js](https://cdn.moengage.com/release/dc_2/moe_webSdk.min.latest.js) |
+| dashboard-03.moengage.com | [https://cdn.moengage.com/release/dc\_3/moe\_webSdk.min.latest.js](https://cdn.moengage.com/release/dc_3/moe_webSdk.min.latest.js) |
+| dashboard-04.moengage.com | [https://cdn.moengage.com/release/dc\_4/moe\_webSdk.min.latest.js](https://cdn.moengage.com/release/dc_4/moe_webSdk.min.latest.js) |
+| dashboard-06.moengage.com | [https://cdn.moengage.com/release/dc\_6/moe\_webSdk.min.latest.js](https://cdn.moengage.com/release/dc_6/moe_webSdk.min.latest.js) |
+
+ダウンロードが完了したら、`moe_webSdk.min.latest.js` ファイルを拡張機能のディレクトリ内の任意の場所にコピーしてください。
+
+## 拡張機能のポップアップウィンドウ
+
+拡張機能のポップアップウィンドウに MoEngage SDK を追加するには、通常の Web サイトと同様に、`popup.html` でローカルの JavaScript ファイルを参照します。
+
+<CodeGroup>
+
+```html HTML lines wrap
+<html> 
+      {/*  Add the Moengage library */} 
+      <script src="/relative/path/to/moe_webSdk.min.latest.js"></script>
+      <title>popup.html</title> 
+</html>
+```
+
+</CodeGroup>
+
+## 初期化
+
+拡張機能のポップアップウィンドウに MoEngage SDK を追加した後は、通常どおりライブラリを初期化できます。
+
+ブラウザ拡張機能では Cookie がサポートされていないため、`disableCookies: true` を指定して初期化することで Cookie を無効にできます。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+window.Moengage = moe({ 
+      appId: "YOUR_WORKSPACE_ID", 
+      env: 'LIVE',
+  	  logLevel: 0, 
+      disableCookies: true 
+});
+```
+
+</CodeGroup>
+
+## **Web Push の統合**
+
+Chrome 拡張機能で Web プッシュ通知を有効にするには、SDK の統合手順を実施し、SDK が正しく動作していることを確認してください。
+
+### **権限**
+
+`manifest.json` ファイルで、`manifest_version: 3` とともに `Notification` 権限が必要です。
+
+<CodeGroup>
+
+```javascript manifest.JSON lines wrap
+{
+     "background": {
+        "service_worker": "background.js"
+    },
+     "permissions": ["notifications"],
+     "manifest_version": 3,
+}
+```
+
+</CodeGroup>
+
+### **統合**
+
+拡張機能で Web Push を有効にするには、まず最新の Service Worker ファイルのコピーをダウンロードする必要があります。MoEngage CDN から直接ダウンロードできます。
+
+ダッシュボードホストに対応する CDN スクリプトを見つけます。右クリックしてダウンロードし、ファイルを保存します。
+
+| ダッシュボードホスト | CDN URL |
+| --- | --- |
+| dashboard-01.moengage.com | [https://cdn.moengage.com/release/dc\_1/versions/2/serviceworker\_chrome\_ext\_cdn.js](https://cdn.moengage.com/release/dc_1/versions/2/serviceworker_chrome_ext_cdn.js) |
+| dashboard-02.moengage.com | [https://cdn.moengage.com/release/dc\_2/versions/2/serviceworker\_chrome\_ext\_cdn.js](https://cdn.moengage.com/release/dc_2/versions/2/serviceworker_chrome_ext_cdn.js) |
+| dashboard-03.moengage.com | [https://cdn.moengage.com/release/dc\_3/versions/2/serviceworker\_chrome\_ext\_cdn.js](https://cdn.moengage.com/release/dc_3/versions/2/serviceworker_chrome_ext_cdn.js) |
+| dashboard-04.moengage.com | [https://cdn.moengage.com/release/dc\_4/versions/2/serviceworker\_chrome\_ext\_cdn.js](https://cdn.moengage.com/release/dc_4/versions/2/serviceworker_chrome_ext_cdn.js) |
+| dashboard-06.moengage.com | [https://cdn.moengage.com/release/dc\_6/versions/2/serviceworker\_chrome\_ext\_cdn.js](https://cdn.moengage.com/release/dc_6/versions/2/serviceworker_chrome_ext_cdn.js) |
+
+ダウンロードが完了したら、`serviceworker_chrome_ext_cdn.js` ファイルを拡張機能の `background.js` ファイルにコピーし、そのファイルが `manifest.json` 内の `service_worker` にリンクされていることを確認してください。
+
+理解を深めるために、[サンプルプロジェクト](https://github.com/moengage/webSDK-sample/tree/master/chrome-extension)をご覧ください。

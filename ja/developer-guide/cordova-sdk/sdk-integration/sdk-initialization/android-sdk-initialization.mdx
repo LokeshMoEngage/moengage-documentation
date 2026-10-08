@@ -1,0 +1,56 @@
+---
+title: "Android SDK の初期化"
+description: "Cordova 統合のために、Android アプリケーションの onCreate メソッドで MoEngage SDK を初期化します。"
+---
+
+# 初期化
+
+MoEngage ダッシュボードの **Settings Page Dashboard --\> Settings --\> App --\> General** からワークスペース ID を取得し、**Application** クラスの **onCreate()** で MoEngage SDK を初期化します。
+
+<Info>
+  SDK は **onCreate()** 内のメインスレッドで初期化することをお勧めします。ワーカースレッドを作成してそのスレッドで SDK を初期化しないでください。
+</Info>
+
+<CodeGroup>
+
+```Java Java
+import com.moengage.cordova.MoEInitializer;
+import com.moengage.core.MoEngage;
+import com.moengage.core.DataCenter;
+
+// this is the instance of the application class and "YOUR_WORKSPACE_ID" is the Workspace ID from the dashboard.
+MoEngage.Builder moEngage = new MoEngage.Builder(this,"YOUR_WORKSPACE_ID”, DataCenter.DATA_CENTER_X);
+MoEInitializer.initialiseDefaultInstance(this, moEngage);
+```
+
+</CodeGroup>
+
+ダッシュボードのホストに基づいて設定する必要がある各データセンターの詳細は次のとおりです。
+
+| データセンター              | ダッシュボードホスト            |
+| ------------------------ | ------------------------- |
+| DataCenter.DATA_CENTER_1 | dashboard-01.moengage.com |
+| DataCenter.DATA_CENTER_2 | dashboard-02.moengage.com |
+| DataCenter.DATA_CENTER_3 | dashboard-03.moengage.com |
+| DataCenter.DATA_CENTER_4 | dashboard-04.moengage.com |
+| DataCenter.DATA_CENTER_5 | dashboard-05.moengage.com |
+
+アプリケーションにまだ Application クラスがない場合は、android プラットフォームフォルダ内の Java ソースコードに移動し、Application クラスファイルを追加してください。
+
+<Frame>
+  <img
+    src="/images/cordovaandroidsdkinitialization.png"
+    alt="Cordovaandroidsdkinitialization"
+    title="Cordovaandroidsdkinitialization"
+    style={{ width:"61%" }}
+  />
+</Frame>
+
+Application クラスが **AndroidManifest.xml** ファイルにも定義されていることを確認してください。\
+設定可能な項目の詳細なリストについては、[API リファレンスドキュメント](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html)を参照してください。
+
+# MoEngage ストレージファイルを自動バックアップから除外する
+
+これは必須の統合手順であり、データの破損を防ぐために非常に重要です。Android の自動バックアップサービスは、Shared Preference ファイルやデータベースファイルなどを定期的にバックアップします。詳細は[こちら](https://developer.android.com/guide/topics/data/autobackup)をご覧ください。このバックアップにより、MoEngage SDK の識別子がバックアップされ、再インストール後に復元されます。この識別子の復元により、データが破損し、プッシュ通知でユーザーにリーチできなくなります。
+
+バックアップの復元後にデータが破損しないようにするには、MoEngage SDK のストレージファイルをバックアップの対象外にしてください。除外するファイルの詳細については、ドキュメントの [MoEngage ストレージファイルを自動バックアップから除外する](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup)セクションを参照してください。

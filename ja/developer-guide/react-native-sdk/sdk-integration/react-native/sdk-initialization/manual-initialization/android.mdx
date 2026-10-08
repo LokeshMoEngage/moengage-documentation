@@ -1,0 +1,55 @@
+---
+title: "Android"
+description: "React Native 統合のために、Android の Application クラスで MoEngage SDK を初期化します。"
+---
+
+# SDK の初期化
+
+MoEngage ダッシュボードの設定ページ（\_Dashboard --\> Settings --\> App --\> Genera_l）から Workspace ID を取得し、**_Application_** クラスの **_onCreate()_** で MoEngage SDK を初期化します。
+
+<Info>
+  SDK は **_onCreate()_** 内のメインスレッドで初期化することを推奨します。ワーカースレッドを作成してそのスレッドで SDK を初期化しないでください。
+</Info>
+
+<CodeGroup>
+
+```kotlin Kotlin
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.react.MoEInitializer
+
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+//replace X with your data center number
+MoEInitializer.initializeDefaultInstance(applicationContext, moEngage)
+```
+
+
+```java Java
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+import com.moengage.react.MoEInitializer;
+
+MoEngage.Builder moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", [YOUR_DATA_CENTER]);
+MoEInitializer.INSTANCE.initializeDefaultInstance(getApplicationContext(), moEngage);
+```
+
+</CodeGroup>
+
+ダッシュボードのホストに基づいて設定する必要がある各データセンターの詳細は、次のとおりです。
+
+| データセンター | ダッシュボードのホスト |
+| ------------------------ | ------------------------- |
+| DataCenter.DATA_CENTER_1 | dashboard-01.moengage.com |
+| DataCenter.DATA_CENTER_2 | dashboard-02.moengage.com |
+| DataCenter.DATA_CENTER_3 | dashboard-03.moengage.com |
+| DataCenter.DATA_CENTER_4 | dashboard-04.moengage.com |
+| DataCenter.DATA_CENTER_5 | dashboard-05.moengage.com |
+| DataCenter.DATA_CENTER_6 | dashboard-06.moengage.com |
+
+設定可能な項目の詳細なリストについては、[API リファレンスドキュメント](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html)を参照してください。
+
+# MoEngage のストレージファイルを自動バックアップから除外する
+
+これは必須の統合手順であり、データの破損を防ぐために非常に重要です。Android の自動バックアップサービスは、Shared Preference ファイルやデータベースファイルなどを定期的にバックアップします。詳細は[こちら](https://developer.android.com/guide/topics/data/autobackup)をご覧ください。このバックアップにより、MoEngage SDK の識別子がバックアップされ、再インストール後に復元されます。識別子が復元されると、データが破損し、プッシュ通知でユーザーにリーチできなくなります。
+
+バックアップの復元後にデータが破損しないように、MoEngage SDK のストレージファイルをバックアップの対象外にしてください。除外するファイルの詳細については、ドキュメントの[MoEngage のストレージファイルを自動バックアップから除外する](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/exclude-mo-engage-storage-file-from-auto-backup)セクションを参照してください。

@@ -38,7 +38,7 @@ paths:
           List all offer campaigns in the workspace. Use this as the first step to discover
           existing offerings and their IDs before calling update_offering or inspecting details.
 
-          Returns a paginated summary — ID, name, status, tags, created_at, created_by.
+          Returns a paginated summary — ID, display_name, status, tags, created_at, created_by.
           Use the fields parameter to request only the fields you need (reduces token usage).
 
           Typical agent flow:
@@ -65,8 +65,8 @@ paths:
           fields:
             description: |
               Comma-separated list of fields to return. Omit for all six fields.
-              Use to minimise token usage. Valid values: `id`, `name`, `status`, `tags`, `created_at`, `created_by`.
-              Example: fields=id,name,status
+              Use to minimise token usage. Valid values: `id`, `display_name`, `status`, `tags`, `created_at`, `created_by`.
+              Example: fields=id,display_name,status
           limit:
             description: |
               The number of offerings to return per paginated response.
@@ -85,14 +85,14 @@ paths:
             Look up a single offering by its exact prefixed ID (e.g. offer_6a4f69ee490f66322f968b87).
             Use this when you already know the offering ID and want to confirm it exists
             before updating it.
-        - name: name_contains
+        - name: display_name_contains
           in: query
           required: false
           schema:
             type: string
             maxLength: 100
           description: >
-            Find offerings whose name contains specific text (case-insensitive). For example, pass
+            Find offerings whose display name contains specific text (case-insensitive). For example, pass
             "summer" to find all summer-related offerings.
         - name: status_in
           in: query
@@ -150,7 +150,7 @@ paths:
             type: string
           description: >
             Request only the fields you need.
-            Example: fields=id,name,status returns only those three fields per item.
+            Example: fields=id,display_name,status returns only those three fields per item.
         - name: cursor
           in: query
           required: false
@@ -223,13 +223,13 @@ paths:
                 type: offer
                 data:
                   - id: offer_6a4f69ee490f66322f968b87
-                    name: Summer_Sale_Promo_2026
+                    display_name: Summer_Sale_Promo_2026
                     status: active
                     tags: [tag_<object-id>]
                     created_at: "2026-06-23T12:29:41.225270281Z"
                     created_by: marketing-team@example.com
                   - id: offer_6a4f69ee490f66322f968b87
-                    name: Homepage_Banner_AB_Test
+                    display_name: Homepage_Banner_AB_Test
                     status: scheduled
                     created_at: "2026-06-23T12:29:41.225270281Z"
                     created_by: growth-team@example.com
@@ -303,13 +303,13 @@ paths:
               A past value returns 400 INVALID_SCHEDULING. Offset strings like "+05:30" are not accepted.
             - tags must be pre-existing tag IDs — unknown IDs return 400 INVALID_TAG_ID.
             - variation_meta CAN be updated via PATCH with status-based rules. See update_offering.
-            - name must be alphanumeric + underscores only (no spaces or hyphens). 5–100 chars.
+            - display_name must be alphanumeric + underscores only (no spaces or hyphens). 5–100 chars.
 
           Always supply a unique Idempotency-Key (UUID v4) header to prevent duplicate offerings
           on retries. The same key within 24 hours returns the original 201 response.
 
           For a simple single-variant offering with no A/B test:
-            - Set variation_meta.type = SMV, variantsPerLocale = [variation_1], split = {variation_1: 100}
+            - Set variation_meta.type = SMV, split = {variation_1: 100}
             - Put content in offer_content.locales["0"].variations.variation_1
             - Locale key must be "0" for single-locale offerings (not "default" or "en")
             - Variation keys must follow the variation_N format (e.g. variation_1, variation_2). Other formats are rejected.
@@ -317,7 +317,7 @@ paths:
           variation_meta:
             description: |
               A/B test configuration. For a simple offering (no A/B test), use:
-                type: SMV, variantsPerLocale: [variation_1], split: {variation_1: 100}
+                type: SMV, split: {variation_1: 100}
               Variation keys must follow the variation_N format (e.g. variation_1, variation_2). Other formats are rejected.
               Maximum 5 variations per offering.
               For A/B test (SMV): split values must sum to exactly 100 inclusive of control group allocation(INVALID_SPLIT if not).
@@ -375,10 +375,9 @@ paths:
               jsonSingleVariantNoCapping:
                 summary: "JSON: 1 variant, no control group, no capping"
                 value:
-                  name: Summer_Sale
+                  display_name: Summer_Sale
                   description: Summer sale discount offers
                   priority: 50
-                  delivery: scheduled
                   created_by: john.doe@example.com
                   scheduling:
                     start_datetime: "2026-07-16T00:00:00Z"
@@ -398,7 +397,6 @@ paths:
                       value: '{"discount":"10%"}'
                   variation_meta:
                     type: SMV
-                    variantsPerLocale: [variation_1]
                     control_group:
                       is_enabled: false
                       percentage: 0
@@ -411,10 +409,9 @@ paths:
               jsonMultiVariantWithCapping:
                 summary: "JSON: 2 variants, control group enabled, overall + user-level capping (scheduled delivery)"
                 value:
-                  name: Summer_Sale
+                  display_name: Summer_Sale
                   description: Summer sale discount offers
                   priority: 50
-                  delivery: scheduled
                   created_by: john.doe@example.com
                   scheduling:
                     start_datetime: "2026-07-16T00:00:00Z"
@@ -442,7 +439,6 @@ paths:
                               value: '{"discount":"20%"}'
                   variation_meta:
                     type: SMV
-                    variantsPerLocale: [variation_1, variation_2]
                     control_group:
                       is_enabled: true
                       percentage: 10
@@ -464,10 +460,9 @@ paths:
               templateDmvWithCapping:
                 summary: "Template: 2 variants (DMV), control group enabled, user_attributes segment, capping (scheduled delivery)"
                 value:
-                  name: Summer_Sale
+                  display_name: Summer_Sale
                   description: Summer sale discount offers
                   priority: 50
-                  delivery: scheduled
                   created_by: john.doe@example.com
                   scheduling:
                     start_datetime: "2026-07-16T11:00:00Z"
@@ -536,7 +531,6 @@ paths:
                                 templateId: feature_hero_slide
                   variation_meta:
                     type: DMV
-                    variantsPerLocale: [variation_1, variation_2]
                     control_group:
                       is_enabled: true
                       percentage: 5
@@ -584,16 +578,16 @@ paths:
             - `INVALID_TYPE` — a field has the wrong type or format (e.g. `content_1.value` is not a JSON object when `type` is `template`; or `scheduling.start_datetime` is not a valid ISO 8601 datetime with UTC "Z" suffix).
             - `OUT_OF_RANGE` — numeric field outside its allowed range (e.g. `priority` outside 1–100, `control_group.percentage` outside 1–99).
             - `INVALID_ENUM_VALUE` — enum field has an unrecognised value.
-            - `INVALID_OFFER_NAME` — `name` contains characters other than alphanumeric characters and underscores. Spaces and hyphens are not allowed.
+            - `INVALID_OFFER_NAME` — `display_name` contains characters other than alphanumeric characters and underscores. Spaces and hyphens are not allowed.
             - `INVALID_SCHEDULING` — `expiry_datetime` is not after `start_datetime`; `start_datetime` is in the past; or `expiry_datetime` is less than 10 minutes in the future.
             - `INVALID_TIMEZONE` — `scheduling.timezone` is present but not a valid IANA timezone name (e.g. `Asia/Kolkata`, `America/New_York`, `UTC`).
-            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match `variantsPerLocale`.
+            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match the variation keys used in `offer_content`.
             - `INVALID_SPLIT` — values in `smv_distribution.split` do not sum to exactly 100. Adjust the percentages so the total equals 100.
-            - `VARIANT_COUNT_MISMATCH` — count of variants in `offer_content` does not match `variantsPerLocale`.
+            - `VARIANT_COUNT_MISMATCH` — count of variants in `offer_content` does not match the keys in `smv_distribution.split`.
             - `INVALID_TEMPLATE_ID` — `meta.templateId` refers to a template ID not registered in the workspace.
             - `MISSING_TEMPLATE_FIELD` — a required field (per the template's config) is missing or blank in the `value` map.
               The `target` field will be `offer_content.locales.<locale>.variations.<variant>.content_1.value.<fieldKey>`.
-            - `DUPLICATE_OFFER_NAME` — `name` matches an existing non-archived offering in this workspace. Offering names must be unique. Choose a different name.
+            - `DUPLICATE_OFFER_NAME` — `display_name` matches an existing non-archived offering in this workspace. Offering names must be unique. Choose a different name.
             - `INVALID_TAG_ID` — one or more tag IDs in `tags` do not exist in this workspace. Create the tags first via the dashboard before referencing them here.
             - `REVENUE_FIELDS_INCOMPLETE` — `conversion.primary.revenue_amount` or `conversion.primary.revenue_currency` is missing when `is_revenue_tracking` is true.
             - `INVALID_CURRENCY_CODE` — `conversion.primary.revenue_currency` is not a valid ISO 4217 code (e.g. use "USD", "EUR", "INR").
@@ -673,6 +667,77 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
 
   /v5/offers/{offer_id}:
+    get:
+      operationId: getPublicOffering
+      summary: Get Offering
+      description: Retrieve the full configuration of a single offering by its ID.
+      x-mint:
+        content: |
+          #### Rate Limit
+          The rate limit is 150 requests per minute, 500 requests per hour, and 1000 requests per day.
+      tags:
+        - Public Offerings
+      security:
+        - basicAuth: []
+      parameters:
+        - name: offer_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: >
+            Must include the `offer_` prefix
+            (e.g. `offer_6a4f69ee490f66322f968b87`). You can retrieve the prefixed ID from the
+            `data[].id` field in the [List Offerings API](/api/public-offerings/list-offerings) response.
+      responses:
+        '200':
+          description: ""
+          headers:
+            X-RateLimit-Limit:
+              schema:
+                type: integer
+              description: Maximum requests allowed in the current window.
+            X-RateLimit-Remaining:
+              schema:
+                type: integer
+              description: Requests remaining in the current window before rate limiting applies.
+            X-RateLimit-Reset:
+              schema:
+                type: integer
+              description: UTC epoch second when the current rate-limit window resets.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicOfferGetResponse'
+        '401':
+          $ref: '#/components/responses/GatewayAuthError'
+        '404':
+          description: The `offer_id` does not exist or does not belong to the authenticated workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: |
+            The rate limit for this endpoint has been exceeded. Retry after the window
+            indicated in the `Retry-After` response header (in seconds).
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds to wait before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: ""
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
     patch:
       operationId: updatePublicOffering
       summary: Update Offering
@@ -696,7 +761,7 @@ paths:
 
           Common update patterns:
             - Extend expiry: include only scheduling.expiry_datetime with a later date (Z suffix required)
-            - Rename: include only name (alphanumeric + underscores only; returns DUPLICATE_OFFER_NAME if taken)
+            - Rename: include only display_name (alphanumeric + underscores only; returns DUPLICATE_OFFER_NAME if taken)
             - Update content: include only offer_content
             - Replace tags: include tags as a full list of tag IDs (full replacement, not additive).
               Tag IDs from list_offerings are returned with "tag_" prefix (e.g. "tag_<object-id>")
@@ -706,7 +771,7 @@ paths:
             - scheduling.start_datetime: locked once status becomes 'active'
             - conversion: locked once status becomes 'active'
             - variation_meta.type: locked once status is 'active'
-            - Adding/removing variants in variantsPerLocale: locked once 'active'
+            - Adding/removing variant keys in smv_distribution.split: locked once 'active'
             - ACTIVE + SMV: only split percentages editable
             - ACTIVE + DMV: only control_group.percentage editable
             - SCHEDULED: all variation_meta fields freely editable
@@ -772,7 +837,7 @@ paths:
                 summary: Rename offering and replace tags
                 value:
                   updated_by: marketing-team@example.com
-                  name: Summer_Sale_Promo_2026_V2
+                  display_name: Summer_Sale_Promo_2026_V2
                   tags: [summer-sale, vip-users]
               updateContent:
                 summary: Update offer content (single variant, locale "0")
@@ -818,20 +883,20 @@ paths:
             - `INVALID_TYPE` — wrong type or format (e.g. `scheduling.start_datetime` is not a valid ISO 8601 datetime with UTC "Z" suffix).
             - `OUT_OF_RANGE` — numeric field outside its allowed range (e.g. `priority` outside 1–100, `control_group.percentage` outside 1–99).
             - `INVALID_ENUM_VALUE` — enum field has an unrecognised value (e.g. unrecognised `variation_meta.type`).
-            - `INVALID_OFFER_NAME` — `name` contains characters other than alphanumeric characters and underscores.
+            - `INVALID_OFFER_NAME` — `display_name` contains characters other than alphanumeric characters and underscores.
             - `INVALID_SCHEDULING` — `expiry_datetime` is not after `start_datetime`; `start_datetime` is in the past; or `expiry_datetime` is less than 10 minutes in the future.
             - `INVALID_TIMEZONE` — `scheduling.timezone` is present but not a valid IANA timezone name.
             - `IMMUTABLE_FIELD` — attempt to change a status-locked field:
               • `scheduling.start_datetime` when offering is ACTIVE or EXPIRED.
               • `conversion` when offering is not in `scheduled` status.
               • `variation_meta.type` when offering is ACTIVE.
-              • Adding or removing keys in `variation_meta.variantsPerLocale` when offering is ACTIVE — only split percentages (SMV) or `control_group.percentage` (DMV) can change on an ACTIVE offering.
-            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match `variantsPerLocale`.
+              • Adding or removing variation keys in `smv_distribution.split` when offering is ACTIVE — only split percentages (SMV) or `control_group.percentage` (DMV) can change on an ACTIVE offering.
+            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match the variation keys used in `offer_content`.
             - `INVALID_SPLIT` — values in `smv_distribution.split` do not sum to exactly 100.
             - `INVALID_TEMPLATE_ID` — `meta.templateId` refers to a template ID not registered in the workspace.
             - `MISSING_TEMPLATE_FIELD` — a required field (per the template's config) is missing or blank in the `value` map.
               The `target` field will be `offer_content.locales.<locale>.variations.<variant>.content_1.value.<fieldKey>`.
-            - `DUPLICATE_OFFER_NAME` — `name` matches an existing non-archived offering in this workspace.
+            - `DUPLICATE_OFFER_NAME` — `display_name` matches an existing non-archived offering in this workspace.
             - `INVALID_TAG_ID` — one or more tag IDs in `tags` do not exist in this workspace.
             - `REVENUE_FIELDS_INCOMPLETE` — `conversion.primary.revenue_amount` or `conversion.primary.revenue_currency` is missing when `is_revenue_tracking` is true.
             - `INVALID_CURRENCY_CODE` — `conversion.primary.revenue_currency` is not a valid ISO 4217 code.
@@ -1114,8 +1179,242 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
 
+  /v5/offers/templates/{template_id}:
+    get:
+      operationId: getPublicOfferTemplate
+      summary: Get Offer Template
+      description: |
+        Retrieve a single personalization template by its ID. The response returns the
+        template's full field schema — every field, its type, whether it's required, and
+        the valid options for dropdown fields — along with the template's preview HTML.
+
+        Use this before building template-type offering content: fetch the template to see
+        exactly which fields it needs and what values are valid, then supply those values in
+        [Create Offering](/api/public-offerings/create-offering). To find template IDs, use
+        [List Offer Templates](/api/public-offerings/list-offer-templates).
+      x-mint:
+        content: |
+          #### Rate Limit
+          The rate limit is 150 requests per minute, 500 requests per hour, and 1000 requests per day per consumer.
+      tags:
+        - Public Offerings
+      security:
+        - basicAuth: []
+      parameters:
+        - $ref: '#/components/parameters/TemplateId'
+      responses:
+        '200':
+          description: Template retrieved successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferTemplateGetResponse'
+              example:
+                response_id: resp_<trace-id>
+                type: template
+                data:
+                  id: app_small
+                  value: app_small
+                  label: App small
+                  template_config:
+                    title:
+                      label: Title
+                      outputKeyName: title
+                      value: "Life happens. Stay covered."
+                      dataType: md
+                      validations:
+                        REQUIRED: true
+                    lightMode:
+                      label: Light Mode
+                      outputKeyName: lightMode
+                      value: "https://image.moengage.com/.../light-mode.jpg"
+                      dataType: string
+                      validations:
+                        REQUIRED: true
+                    aspectRatio:
+                      label: Aspect Ratio
+                      outputKeyName: aspectRatio
+                      value: "4x3"
+                      dataType: dropdown
+                      validations:
+                        REQUIRED: true
+                      options:
+                        - id: "4x3"
+                          value: "4x3"
+                          label: "4x3"
+                        - id: "16x9"
+                          value: "16x9"
+                          label: "16x9"
+                  template_html: "<!DOCTYPE html> ... ${config.lightMode.value} ... </html>"
+                  template_meta: {}
+        '401':
+          $ref: '#/components/responses/GatewayAuthError'
+        '404':
+          description: |
+            Template not found (`TEMPLATE_NOT_FOUND`). The `template_id` does not exist or does
+            not belong to the authenticated workspace.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error:
+                  code: TEMPLATE_NOT_FOUND
+                  message: Template not found.
+                  target: offering
+                  details:
+                    - code: TEMPLATE_NOT_FOUND
+                      target: template_id
+                      message: Template not found.
+                  doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
+                response_id: resp_<trace-id>
+        '429':
+          description: |
+            The rate limit for this endpoint has been exceeded. Retry after the window
+            indicated in the `Retry-After` response header (in seconds).
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds to wait before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error. An unexpected condition prevented the request from being completed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
 components:
+  parameters:
+    TemplateId:
+      name: template_id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: >
+        The ID of the personalization template to retrieve (for example, `app_small`).
+        This is the template's natural key, not a prefixed ObjectId. You can fetch template
+        IDs using the [List Offer Templates API](/api/public-offerings/list-offer-templates).
   schemas:
+    OfferTemplateGetResponse:
+      description: Full detail for a single personalization template.
+      type: object
+      required: [response_id, type, data]
+      properties:
+        response_id:
+          type: string
+          description: Trace identifier for the response.
+          example: resp_<trace-id>
+        type:
+          type: string
+          enum: [template]
+          description: Object type of the response. Always `template` for this endpoint.
+        data:
+          $ref: '#/components/schemas/OfferTemplateDetail'
+
+    OfferTemplateDetail:
+      description: >
+        A personalization template's identity, its field-level configuration, and its
+        preview HTML.
+      type: object
+      required: [id, value, label, template_config, template_html, template_meta]
+      properties:
+        id:
+          type: string
+          description: >
+            The template's ID (natural key). Use this value as `meta.templateId` in
+            template-type offering content when calling Create Offering.
+          example: app_small
+        value:
+          type: string
+          description: Returned alongside `id`; identical to `id` in observed responses.
+          example: app_small
+        label:
+          type: string
+          description: Human-readable display name of the template.
+          example: App small
+        template_config:
+          type: object
+          description: >
+            The template's fields, keyed by field name. Each entry describes one field —
+            its label, type, current value, whether it's required, and (for dropdowns) the
+            valid options. A template with no configured fields returns an empty object `{}`.
+          additionalProperties:
+            $ref: '#/components/schemas/TemplateConfigField'
+        template_html:
+          type: string
+          description: >
+            The template's HTML, used to render the preview on the dashboard. Field values
+            are interpolated with `${config.<fieldName>.value}`. Empty string if the template
+            has no HTML.
+        template_meta:
+          type: object
+
+    TemplateConfigField:
+      description: >
+        A single field within a template's `template_config`. Describes the field's type,
+        current value, requirement, and — for dropdowns — its valid options.
+      type: object
+      properties:
+        label:
+          type: string
+          description: Human-readable label for the field.
+          example: Aspect Ratio
+        outputKeyName:
+          type: string
+          description: The field's key name.
+          example: aspectRatio
+        value:
+          type: string
+          description: The field's current value. Empty string if no value is set.
+          example: 4x3
+        dataType:
+          type: string
+          description: >
+            The field's type. Values seen in responses: `string`, `md`, and `dropdown`.
+            A `dropdown` field lists its allowed choices in `options`. Other values may appear.
+          example: dropdown
+        validations:
+          type: object
+          description: >
+            Validation rules for the field. `REQUIRED: true` means you must provide this
+            field when creating an offering.
+          additionalProperties:
+            type: boolean
+          example:
+            REQUIRED: true
+        options:
+          type: array
+          description: >
+            The selectable options for a `dropdown` field. When submitting a value in Create
+            Offering, use the option's `value` — not its `label` or `id`.
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: Option identifier. Identical to `value` for these templates.
+              value:
+                type: string
+                description: The value to submit when this option is selected.
+              label:
+                type: string
+                description: Display text for the option. Not for submission — may contain spaces.
+          example:
+            - id: 4x3
+              value: 4x3
+              label: 4x3
+            - id: 16x9
+              value: 16x9
+              label: 16x9
+
     OfferTemplateListItem:
       description: >
         Summary representation of a personalization template returned in
@@ -1229,7 +1528,7 @@ components:
       description: >
         Summary representation of an offering returned in GET /v5/offers list responses.
         Only these six fields are returned. Use the `fields` query parameter to request a
-        sparse subset of them (e.g. `fields=id,name,status`).
+        sparse subset of them (e.g. `fields=id,display_name,status`).
       type: object
       properties:
         id:
@@ -1239,7 +1538,7 @@ components:
             Format: the literal prefix "offer_" followed by the hex MongoDB ObjectId.
             Use this value as the {offer_id} path parameter in PATCH /v5/offers/{offer_id}.
           example: offer_6a4f69ee490f66322f968b87
-        name:
+        display_name:
           type: string
           description: Unique display name of the offering within the workspace.
           example: Summer_Sale_Promo_2026
@@ -1275,7 +1574,7 @@ components:
           example: marketing-team@example.com
       example:
         id: offer_6a4f69ee490f66322f968b87
-        name: Summer_Sale_Promo_2026
+        display_name: Summer_Sale_Promo_2026
         status: active
         tags: [summer-sale, returning-users]
         created_at: "2026-01-15T09:00:00Z"
@@ -1285,12 +1584,12 @@ components:
       description: |
         Request body for creating an Offering via `POST /v5/offers`.
 
-        Required fields: `name`, `priority`, `delivery`, `created_by`, `scheduling`,
+        Required fields: `display_name`, `priority`, `created_by`, `scheduling`,
         `segment_info`, `offer_content`, `variation_meta`.
       type: object
-      required: [name, priority, delivery, created_by, scheduling, segment_info, offer_content, variation_meta]
+      required: [display_name, priority, created_by, scheduling, segment_info, offer_content, variation_meta]
       properties:
-        name:
+        display_name:
           type: string
           description: >
             Unique display name for this offering within the workspace. Names are
@@ -1314,12 +1613,6 @@ components:
             Policy ranking strategy is set to Offering Priority.
           minimum: 1
           maximum: 100
-        delivery:
-          type: string
-          description: >
-            Controls when the offering is eligible for delivery.
-            `scheduled` — the offering is served within its scheduling window.
-          enum: [scheduled]
         created_by:
           type: string
           format: email
@@ -1387,7 +1680,7 @@ components:
           description: >
             Email address of the team member making this update.
           example: marketing-team@example.com
-        name:
+        display_name:
           type: string
           description: >
             Updated display name for the offering. Must remain unique within the workspace.
@@ -1443,6 +1736,305 @@ components:
           maxItems: 5
         conversion:
           $ref: '#/components/schemas/ConversionDto'
+
+    OfferSegmentInfoResponse:
+      description: |
+        `included_filters`: criteria a user MUST match to be eligible.
+        `excluded_filters`: criteria that DISQUALIFY a user even if they match the
+        included filters.
+      type: object
+      properties:
+        filters:
+          type: object
+          description: >
+            Container for inclusion and exclusion filter blocks.
+          properties:
+            included_filters:
+              type: object
+              description: >
+                The filtering criteria used for including users.
+              properties:
+                filters:
+                  type: array
+                  description: >
+                    Array of individual filter criteria. Each item is a filter object
+                    whose structure varies by filter_type. Common filter_type values:
+                    `actions`, `user_attributes`, `custom_segments`.
+                  items:
+                    type: object
+                    description: A single filter criterion. Structure varies by filter_type.
+                filter_operator:
+                  type: string
+                  description: >
+                    The logical operator to combine filters.
+                  enum: [and, or]
+            excluded_filters:
+              type: object
+              description: >
+                The filtering criteria used for excluding users.
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                filter_operator:
+                  type: string
+                  enum: [and, or]
+
+    ConversionAttributesResponse:
+      type: object
+      description: >
+        Attribute-level filters applied to the conversion event.
+      properties:
+        filters:
+          type: array
+          description: >
+            Array of attribute filter objects. Each object targets a specific event attribute.
+            Follows the same filter structure as `segment_info.filters.included_filters.filters`.
+          items:
+            type: object
+            description: A single attribute filter criterion. Structure varies by filter_type.
+          properties:
+            included_filters:
+              type: object
+              description: >
+                Inclusion criteria for the conversion attribute filter. Contains a
+                "filters" array of filter objects and a "filter_operator" (AND or OR).
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                    description: A single filter criterion. Structure varies by filter_type.
+                filter_operator:
+                  type: string
+                  enum: [and, or]
+            excluded_filters:
+              type: object
+              description: Exclusion criteria, same structure as included_filters.
+              properties:
+                filters:
+                  type: array
+                  items:
+                    type: object
+                filter_operator:
+                  type: string
+                  enum: [and, or]
+
+    OfferSchedulingResponse:
+      type: object
+      properties:
+        start_datetime:
+          type: string
+          format: date-time
+          description: >
+            ISO 8601 UTC datetime when the offering becomes eligible for delivery.
+        expiry_datetime:
+          type: string
+          format: date-time
+          description: >
+            ISO 8601 UTC datetime when the offering expires and stops being served.
+        timezone:
+          type: string
+          description: >
+            IANA timezone name.
+          example: Asia/Kolkata
+
+    ContentBlockResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          description: >
+            Format of the content payload.
+            `json` — serialised JSON string. `content_block` — Content Block library reference ID.
+            `template` — object of template field key-value pairs.
+          enum: [json, content_block, template]
+        value:
+          oneOf:
+            - type: string
+            - type: object
+              description: For `template` type — a map of template field names to their values.
+              additionalProperties: true
+        meta:
+          type: object
+          description: >
+            Key-value metadata attached to this content block.
+          additionalProperties: true
+
+    OfferContentResponse:
+      type: object
+      properties:
+        content_1:
+          $ref: '#/components/schemas/ContentBlockResponse'
+          description: >
+            Primary content block for single variation offerings.
+        locales:
+          type: object
+          additionalProperties:
+            type: object
+            description: Content container for a single locale.
+            properties:
+              variations:
+                type: object
+                additionalProperties:
+                  type: object
+                  properties:
+                    content_1:
+                      $ref: '#/components/schemas/ContentBlockResponse'
+
+    OfferVariationMetaResponse:
+      type: object
+      properties:
+        type:
+          type: string
+          description: >
+            Variation strategy type.
+            `SMV` — fixed percentage split.
+            `DMV` - adaptive traffic allocation.
+          enum: [SMV, DMV]
+        smv_distribution:
+          type: object
+          description: >
+            Variation percentage allocation.
+          properties:
+            split:
+              type: object
+              description: >
+                Map of variations to integer percentage allocation.
+              additionalProperties:
+                type: integer
+        control_group:
+          type: object
+          description: >
+            A percentage of eligible users that are held out as a pure control and do not receive the offering.
+          properties:
+            is_enabled:
+              type: boolean
+              description: Whether the offering-level control group holdout is active.
+              example: false
+            percentage:
+              type: integer
+              description: >
+                Percentage of eligible users to hold out.
+
+    OfferCappingRuleResponse:
+      description: A single frequency capping rule (either overall or per-user).
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Whether this capping rule is enforced.
+        limit_value:
+          type: integer
+          description: >
+            Maximum number of deliveries allowed within one limit_schedule period.
+            For overall capping, this is the total across all users.
+            For user_level capping, this is per individual user.
+        limit_schedule:
+          type: string
+          description: >
+            Time window for the capping counter.
+          enum: [DAILY, WEEKLY, MONTHLY]
+
+    OfferCappingRulesResponse:
+      type: object
+      properties:
+        overall:
+          $ref: '#/components/schemas/OfferCappingRuleResponse'
+          description: Total delivery cap across all users within the target segment.
+        user_level:
+          $ref: '#/components/schemas/OfferCappingRuleResponse'
+          description: Per-user delivery cap for individual users.
+
+    ConversionGoalResponse:
+      description: A single conversion goal that tracks a specific user action.
+      type: object
+      properties:
+        goal_name:
+          type: string
+          description: >
+            Display name for this conversion goal.
+        action:
+          type: string
+          description: >
+            MoEngage event name associated with the conversion goal.
+        filter_type:
+          type: string
+          description: >
+            How the conversion event is matched. "ACTIONS" matches by event name and
+            optional attribute-level filters.
+        attributes:
+          $ref: '#/components/schemas/ConversionAttributesResponse'
+          description: >
+            Optional attribute-level filters to narrow which occurrences of the action
+            count as a conversion.
+        is_revenue_tracking:
+          type: boolean
+          description: >
+            When true, the conversion also records the monetary value from the event.
+        revenue_amount:
+          type: string
+          description: >
+            Name of the event attribute containing the transaction revenue value.
+        revenue_currency:
+          type: string
+          description: >
+            ISO 4217 three-letter currency code for revenue tracking.
+
+    ConversionDtoResponse:
+      type: object
+      properties:
+        primary:
+          $ref: '#/components/schemas/ConversionGoalResponse'
+          description: >
+            Primary conversion goal.
+        secondary:
+          type: array
+          description: >
+            Additional conversion goals tracked alongside the primary goal.
+          items:
+            $ref: '#/components/schemas/ConversionGoalResponse'
+
+    OfferAttributeConfigurationResponse:
+      description: |
+        Assignment of a custom offering attribute and its value(s) to this offering.
+      type: object
+      properties:
+        offering_attribute_id:
+          type: string
+          description: >
+            ID of the Offering Attribute.
+        offering_attribute_name:
+          type: string
+          description: >
+            Display name of the referenced Offering Attribute.
+        type:
+          type: string
+          description: >
+            Attribute type of the referenced Offering Attribute.
+          enum: [FIXED, DYNAMIC]
+        selected_values:
+          type: array
+          description: >
+            Selected option value(s) for this attribute.
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                description: >
+                  ID of the option(s) defined as part of the Offering Attribute definition.
+                nullable: true
+              value:
+                type: string
+                description: >
+                  Option value string.
+              score:
+                type: integer
+                description: >
+                  Priority score for this option.
+                nullable: true
 
     OfferSchedulingCreate:
       description: |
@@ -1527,8 +2119,8 @@ components:
         filters:
           type: object
           description: >
-            Container for inclusion and exclusion filter blocks. To target all users,
-            use the built-in `moe_all_users` segment.
+            Container for inclusion and exclusion filter blocks. Pass an empty object
+            to target all users with no segmentation restriction.
           properties:
             included_filters:
               type: object
@@ -1581,7 +2173,7 @@ components:
 
         * **Payload Structure:** Send a structured `locales` map object.
         * **Single-Locale Targeting:** For single-locale offerings, you **must** use `"0"` as the literal locale key string.
-        * **Variations Mapping:** Inside each locale, the nested `variations` map keys must exactly match the variation IDs defined in `variation_meta.variantsPerLocale` and `smv_distribution.split`.
+        * **Variations Mapping:** Inside each locale, the nested `variations` map keys must exactly match the variation IDs defined in `smv_distribution.split`. Variation keys must follow the `variation_N` format (e.g. `variation_1`, `variation_2`).
       type: object
       properties:
         content_1:
@@ -1646,7 +2238,8 @@ components:
             - **`template`** — value is a JSON **object** (not a string) whose keys are the field
               names defined by the template schema. Retrieve available templates and required fields
               from `GET /v5/offers/templates`. Omitting a required template field returns
-              `400 MISSING_TEMPLATE_FIELD`.
+              `400 MISSING_TEMPLATE_FIELD`. For a dropdown field, use the option's `value` — not its
+              `label` or `id`.
           oneOf:
             - type: string
               description: For `json` and `content_block` types. For `json`, must be a serialised JSON string — not an inline object.
@@ -1656,12 +2249,23 @@ components:
 
         meta:
           type: object
-          description: >
+          description: |
             Key-value metadata attached to this content block.
 
-            **Required for template type**: when `type` is `template`, you **must** include
+            **Required for `template` type:** When `type` is `template`, you **must** include
             `templateId` in this object, set to the template's `id` value returned by
-            GET /v1/offers/templates.
+            `GET /v5/offers/templates`.
+
+            **Using `metaConfigObject`:** When creating a `template`-type offering, call the
+            `GET /v5/offers/templates/{templateId}` endpoint first. The response returns a
+            `metaConfigObject` — a map of all template fields with their configuration (data type,
+            validations, options, etc.). Include this `metaConfigObject` in `meta` exactly as
+            received.
+
+            **Key matching requirement:** The keys in the `value` object **must exactly match**
+            the keys in `metaConfigObject`. A key present in `value` but absent from
+            `metaConfigObject`, or a required key in `metaConfigObject` missing from `value`,
+            will result in a validation error.
           additionalProperties: true
           example:
             templateId: app_small
@@ -1680,9 +2284,9 @@ components:
 
         | Offering Status | Variation Type | Editable Fields | Locked Fields |
         | :--- | :--- | :--- | :--- |
-        | **`scheduled`** | Any | Entire object (`type`, `variantsPerLocale`, `smv_distribution`, `control_group`) | None |
+        | **`scheduled`** | Any | Entire object (`type`, `smv_distribution`, `control_group`) | None |
         | **`active`** | **SMV** | `smv_distribution.split` percentages, `control_group.percentage` | `type`, Variant key names |
-        | **`active`** | **DMV** | `control_group.percentage` | `type`, `variantsPerLocale`, `smv_distribution` |
+        | **`active`** | **DMV** | `control_group.percentage` | `type`, `smv_distribution` |
         | **`expired`** | Any | None | All fields are locked |
       type: object
       required: [type]
@@ -1694,20 +2298,6 @@ components:
             `SMV` — fixed percentage split.
             `DMV` - adaptive traffic allocation.
           enum: [SMV, DMV]
-        variantsPerLocale:
-          type: array
-          description: >
-            Ordered list of variation keys for this offering. This list **must** contain exactly the same keys defined in
-            `smv_distribution.split` and **must** match the variation keys used in `offer_content.locales[0].variations`.
-
-            **Naming convention:** Variation keys must follow the `variation_N` format (e.g. `variation_1`, `variation_2`).
-            Keys in any other format (e.g. `var_1`, `Variant_A`, `1`, `2`) are rejected with a validation error.
-
-            **Maximum:** A maximum of 5 variations can be defined per offering.
-          items:
-            type: string
-          maxItems: 5
-          example: [variation_1, variation_2]
         smv_distribution:
           type: object
           description: >
@@ -1743,7 +2333,6 @@ components:
               example: 10
       example:
         type: SMV
-        variantsPerLocale: [variation_1, variation_2]
         smv_distribution:
           split:
             variation_1: 70
@@ -2048,6 +2637,158 @@ components:
           id: offer_6a4f69ee490f66322f968b87
           status: active
           updated_at: "2026-07-09T09:29:18.526812352Z"
+
+    PublicOfferGetResponse:
+      type: object
+      properties:
+        response_id:
+          type: string
+        type:
+          type: string
+          example: offer
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Offering ID assigned by the server.
+            status:
+              type: string
+              description: Lifecycle status of the offering.
+              example: scheduled
+            created_at:
+              type: string
+              format: date-time
+              description: ISO 8601 UTC timestamp.
+              example: "2026-08-07T23:42:21.556936210Z"
+            updated_at:
+              type: string
+              format: date-time
+              description: ISO 8601 UTC timestamp of the update.
+              example: "2026-08-07T23:42:21.556979662Z"
+            updated_by:
+              type: string
+              format: email
+              description: Email address of the team member making this update.
+              example: marketing.team@example.com
+            created_by:
+              type: string
+              format: email
+              description: Email address of the user creating this offering.
+              example: marketing.team@example.com
+            name:
+              type: string
+              description: >
+                Unique display name for this offering within the workspace.
+              example: personalized_offer
+            description:
+              type: string
+              description: >
+                Optional free-text description of the offering's purpose.
+              example: Configured using personalization template
+            priority:
+              type: integer
+              description: >
+                Static priority score for offer ranking. Lower number means lower priority
+                (1 is lowest priority, 100 is highest).
+              example: 90
+            tags:
+              type: array
+              items:
+                type: string
+              description: >
+                Tags that provide context about the Offering's nature or theme.
+            scheduling:
+              allOf:
+                - $ref: '#/components/schemas/OfferSchedulingResponse'
+              description: Scheduling window that determines when an offering is eligible for delivery.
+            segment_info:
+              allOf:
+                - $ref: '#/components/schemas/OfferSegmentInfoResponse'
+              description: Segment targeting configuration that controls which users are eligible to receive this offering.
+            offer_content:
+              allOf:
+                - $ref: '#/components/schemas/OfferContentResponse'
+              description: The core content payload delivered to the end-user.
+            variation_meta:
+              allOf:
+                - $ref: '#/components/schemas/OfferVariationMetaResponse'
+              description: Configuration for A/B testing content variations.
+            capping_rules:
+              allOf:
+                - $ref: '#/components/schemas/OfferCappingRulesResponse'
+              description: Frequency capping configuration that limits how often this offering is delivered.
+            is_global_control_enabled:
+              type: boolean
+              description: >
+                Whether the global control group is enabled.
+              example: true
+            imp_track_hours:
+              type: integer
+              description: >
+                The attribution window in hours.
+            offering_attribute_configuration:
+              type: array
+              description: >
+                Custom attributes assigned to this offering.
+              items:
+                $ref: '#/components/schemas/OfferAttributeConfigurationResponse'
+            conversion:
+              allOf:
+                - $ref: '#/components/schemas/ConversionDtoResponse'
+              description: List of conversion goals to track.
+      example:
+        type: offer
+        data:
+          status: scheduled
+          created_at: "2026-08-07T23:42:21.556936210Z"
+          updated_at: "2026-08-07T23:42:21.556979662Z"
+          updated_by: marketing.team@example.com
+          created_by: marketing.team@example.com
+          name: personalized_offer
+          description: Configured using personalization template
+          priority: 90
+          scheduling:
+            start_datetime: "2026-08-08T00:23:00Z"
+            expiry_datetime: "2027-08-07T23:23:00Z"
+            timezone: Asia/Kolkata
+          segment_info:
+            filters:
+              included_filters:
+                filter_operator: and
+                filters:
+                  - action_name: MOE_PAGE_VIEWED
+                    executed: true
+                    filter_type: actions
+                    execution:
+                      count: 1
+                      type: atleast
+                    primary_time_range:
+                      type: inTheLast
+                      value: 2
+                      value_type: relative_past
+                      period_unit: weeks
+                    attributes:
+                      filter_operator: and
+                      filters: []
+          variation_meta:
+            type: SMV
+            control_group:
+              is_enabled: false
+              percentage: 0
+            smv_distribution:
+              split:
+                "1": 100
+          capping_rules:
+            overall:
+              enabled: false
+              limit_value: 1
+              limit_schedule: DAILY
+            user_level:
+              enabled: false
+              limit_value: 1
+              limit_schedule: DAILY
+          is_global_control_enabled: true
 
 
   responses:

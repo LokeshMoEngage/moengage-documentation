@@ -1,11 +1,12 @@
 ---
 title: "API Documentation"
+sidebarTitle: "Overview"
 description: "Explore MoEngage REST APIs for managing user data, campaigns, segments, templates, and integrations."
-keywords: ["MoEngage API", "REST API reference", "API documentation", "API authentication", "Basic Authentication", "data center", "base URL", "rate limits", "error handling"]
+keywords: ["MoEngage API", "REST API reference", "API documentation", "API authentication", "Basic Authentication", "OAuth 2.0", "AWS STS Auth", "assumed-role ARN", "data center", "base URL", "rate limits", "error handling"]
 icon: "rocket"
 ---
 
-The MoEngage REST APIs let you manage user data, campaigns, segments, content, and integrations without the dashboard. Every endpoint uses standard HTTP methods, Basic Authentication, and JSON request and response bodies.
+The MoEngage REST APIs let you manage user data, campaigns, segments, content, and integrations without the dashboard. Every endpoint uses standard HTTP methods and JSON request and response bodies, and authenticates with an API key you create in the dashboard.
 
 This reference covers the available API categories, along with the data centers, base URLs, authentication, rate limits, and error handling that apply across them.
 
@@ -32,7 +33,7 @@ This reference covers the available API categories, along with the data centers,
     Create and manage file-based, filter-based, and cohort-synced user segments.
   </Card>
 
-  <Card title="Subscriptions" icon="envelope-circle-check" href="/api/email-subscription/email-subscription-overview">
+  <Card title="Subscriptions" icon="envelope-circle-check" href="/api/subscription-categories/subscription-categories-v5/subscription-categories-overview-v5">
     Manage email subscriptions and subscription category preferences.
   </Card>
 
@@ -60,7 +61,7 @@ This reference covers the available API categories, along with the data centers,
     Fetch and manage personalized experiences for users.
   </Card>
 
-  <Card title="Message Archival" icon="box-archive" href="/api/message-archival/messaage-archival-overview">
+  <Card title="Message Archival" icon="box-archive" href="/api/message-archival/message-archival-overview">
     View and retrieve archived messages.
   </Card>
 </CardGroup>
@@ -118,7 +119,14 @@ Replace `{dc}` with your data center number (e.g., `01`, `02`, `03`). You can id
 
 ## Authentication
 
-All MoEngage API requests require Basic Authentication. To authenticate, you must include a Base64-encoded string of your credentials in the Authorization header of every request. Basic Authentication sends a Base64-encoded string containing your username and password with every API request. It encodes a 'username:password' string in Base64 and appends the encoded string with 'Basic '. This string is included in the authorization header as shown below:
+MoEngage API requests use Basic Authentication by default. Depending on the API group, a key can instead use OAuth 2.0 or AWS STS Auth:
+
+- **OAuth 2.0**: Issues short-lived access tokens that you pass in the `Authorization` header of each request. For the token endpoints, the request format, and the token lifecycle, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+- **AWS STS Auth**: Authorizes callers by their AWS assumed-role ARN instead of a shared secret. For the accepted ARN format and how to allowlist role ARNs on a key, refer to [AWS STS Auth](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#aws-sts-auth).
+
+You set the authentication type when you create the key. For the types each API group supports, refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard).
+
+To authenticate using Basic Authentication, include a Base64-encoded string of your credentials in the Authorization header of every request. Basic Authentication encodes a 'username:password' string in Base64 and prefixes the encoded string with 'Basic '. This string is included in the Authorization header as shown below:
 
 `{"Authorization: Basic Base64_ENCODED_WORKSPACEID_APIKEY=="}`
 
@@ -151,7 +159,7 @@ echo -n "YOUR_WORKSPACE_ID:YOUR_API_KEY" | base64
 
 3. Copy your **Workspace ID** and the relevant **API Key**.
 
-For creating, scoping, regenerating, and archiving keys, see [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard).
+For creating, scoping, regenerating, and archiving keys, see [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard). To authenticate with OAuth 2.0 instead, see [OAuth 2.0 Overview](/api/oauth/oauth-overview).
 
 You can perform authentication using a client like Postman as follows:
 
@@ -173,7 +181,7 @@ Different APIs require different API keys from your dashboard:
 
 MoEngage enforces per-workspace rate limits and payload caps on its REST APIs. Requests that exceed a rate limit receive an `HTTP 429` response; oversized payloads receive `HTTP 413` (or `400`). Rate-limited responses include `x-ratelimit-limit`, `x-ratelimit-remaining`, and `x-ratelimit-reset` headers so you can track remaining capacity in real time.
 
-For the full per-endpoint breakdown — rate limits, payload size caps, monitoring headers, and how to request an increase — see [Rate Limits](/api/rate-limits).
+For the full per-endpoint breakdown, covering rate limits, payload size caps, monitoring headers, and how to request an increase, see [Rate Limits](/api/rate-limits).
 
 ---
 
@@ -353,6 +361,9 @@ Most MoEngage APIs return errors in the standard format below.
 | `GET` | `/category-subscription/user-preferences` | Get subscription preferences |
 | `PUT` | `/category-subscription/user-preferences` | Update subscription preferences |
 | `POST` | `/category-subscription/user-preferences` | Create subscription preferences |
+| `GET` | `/v5/subscription-categories` | Get subscription categories (V5) |
+| `GET` | `/v5/subscription-preferences` | Get subscription preferences (V5) |
+| `PATCH` | `/v5/subscription-preferences` | Update subscription preferences (V5) |
 
 ### Push
 

@@ -1,0 +1,188 @@
+---
+title: "Route Mobile の設定"
+---
+
+# はじめに
+
+[Route Mobile](https://routemobile.com/) は、モバイルコミュニケーションソリューションを提供しています。同社はテキストメッセージング、音声通話、番号照会、ファイアウォール、メールなどの関連サービスを提供しており、世界中の顧客にサービスを提供しています。
+
+<Note>
+  Route Mobile Dashboard にアクセスでき、Route Mobile アカウントの API キーを保有していることを確認してください。
+</Note>
+
+# Route Mobile をカスタム SMS コネクター（サービスプロバイダー）として設定する
+
+この記事では、MoEngage ダッシュボードで Route Mobile をカスタムコネクターとして設定する方法を説明します。
+
+MoEngage ダッシュボードにログインし、次の手順を実行します。
+
+1. **Settings** -\> **Channel** -\> **SMS** -\> **Sender Configuration** に移動します。
+2. 右上の **\+Add Service Provider** をクリックします。
+3. **Sender Details** 画面で次の詳細を追加します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **Mark as default** | このトグルをオンにすると、設定中のサービスプロバイダーのデフォルト送信者としてこの送信者がマークされます。デフォルトに設定すると、キャンペーン作成時に別の送信者を選択しない限り、MoEngage から送信されるすべての SMS キャンペーンでこの送信者が使用されます。 |
+| **Service provider name** | このフィールドは MoEngage ダッシュボードで設定するサービスプロバイダーを識別するもので、一意である必要があります。ここにサービスプロバイダー名を入力します。 |
+| **Sender name** | このフィールドは、キャンペーンやアラートの作成時に使用できる、読みやすい送信者名を識別します。 |
+| **Sender type** | Sender type は **Promotional** または **Transactional** のいずれかです。 <br />ブランドに関する情報の送信、キャンペーンやお得な情報の宣伝、ユーザーとのエンゲージメントに Sender を使用する場合は、Sender type として Promotional を選択します。取引に関するアラート、OTP、セキュリティ情報、またはトランザクションの性質を持つと分類できる情報の送信に Sender を使用する場合は、Sender type として Transactional を選択します。 |
+
+4. 次の詳細を追加して Webhook を設定します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **API URL** | このフィールドには、Sender に API リクエストを送信する際に使用する URL の情報が含まれます。この情報は Sender の API ドキュメントで確認できます。ここに Sender の API エンドポイントを入力します。Route Mobile の API URL は次のとおりです: [_https://yr8qyp.api.infobip.com/sms/2/text/advanced_](https://yr8qyp.api.infobip.com/sms/2/text/advanced) |
+| **Method** | HTTP メソッドとして **POST** を選択します。 |
+| **URL Parameters** | このオプションを使用して、API に渡す URL パラメーターをキーと値のペアとして追加します。この情報は Sender の API ドキュメントで確認できます。たとえば、API URL の呼び出しで GET メソッドを使用する場合、API Key や Authorization などのすべてのパラメーターは URL パラメーターとして渡されます。 |
+| **Headers** | このオプションを使用して、API に渡すリクエストヘッダーをキーと値のペアとして追加します。この情報は Sender の API ドキュメントで確認できます。Authorization ヘッダーを追加します。 |
+
+5. **Body Type** フィールドで Body Type として JSON を選択し、次の詳細を追加します。
+   <CodeGroup>
+   ```json JSON
+   {
+       "messages":[
+       {
+           "destinations":[{"to":"Moesms_destination"}],
+           "from":"RAPIDA",
+           "text":"Moesms_message",
+           "intermediateReport":"True",
+           "notifyContentType":"application/json",
+           "notifyUrl":"YourMoEngageAccountURL"
+        }]
+   }
+   ```
+   </CodeGroup>
+   Route Mobile アカウントと MoEngage アカウントに基づいて、Sender\_ID と YourMoEngageAccountURL の値を変更します。
+6. **Send a test SMS** で設定を確認します。
+7. **Save** をクリックして Sender Configuration を保存します。
+8. MoEngage ダッシュボードで送信者を作成した後、配信トラッキングを設定できます。配信トラッキングの詳細については、[カスタムコネクターの配信トラッキング](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-custom-connector-for-sms)を参照してください。
+9. 配信トラッキングレスポンスの属性は、手動または自動でマッピングできます。<img src="/images/partner_21974346518036.png" alt="Infobip_NewUI_PG_DT.png" />
+
+### 海外のお客様向け
+
+**i. Sender Type**
+
+Promotional : ブランドに関する情報の送信、キャンペーンやお得な情報の宣伝、ユーザーとのエンゲージメントに Sender を使用する場合は、Sender Type として Promotional を選択します。
+
+Transactional : 取引に関するアラート、OTP、セキュリティ情報、またはトランザクションの性質を持つと分類できる情報の送信に Sender を使用する場合は、Sender Type として Transactional を選択します。
+
+**ii. Connector Name :**
+
+このフィールドは MoEngage ダッシュボードで設定するカスタムコネクターを識別するもので、一意である必要があります。ここにコネクター名を入力します。例: (RMLTransDomestic)
+
+**iii. Sender Name :** このフィールドは Sender またはヘッダーを識別します。ここに送信者名を入力します。
+
+**iv. Is Default Sender :** ユーザーの選択（Yes または No を選択）
+
+**v. API URL:** SMS サービスプロバイダーのベース URL と、SMS 送信 API を呼び出す際に使用できるすべてのクエリパラメーターです。
+
+ドロップダウンボタン : **GET** を選択します
+
+**vi. URL Parameters:**
+
+**Key:**
+
+**Username:** HTTP アカウントのユーザー名
+
+**Source:** Sender ID
+
+**Password:** HTTP アカウントのパスワード。\
+**Dlr:** クライアントがこのメッセージの配信レポートを必要とするかどうかを示します。dlr の値は次のとおりです: 0: 配信レポート不要 1: 配信レポートが必要
+
+**Message:** 送信するメッセージ。
+
+**Destination:** メッセージの送信先の携帯電話番号
+
+**Type:** メッセージのタイプを示します。
+
+**vii. Headers:**
+
+このオプションを使用して、API に渡すリクエストヘッダーをキーと値のペアとして追加します。この情報は Sender の API ドキュメントで確認できます。たとえば、Sender の API 仕様に応じて、Authorization ヘッダーや Content-Type ヘッダーをキーと値のペアとして追加します。
+
+**Key:** Application/JSON
+
+**Value:** このオプションを使用して、API に渡すリクエストヘッダーをキーと値のペアとして追加します。この情報は Sender の API ドキュメントで確認できます。たとえば、Sender の API 仕様に応じて、Authorization ヘッダーや Content-Type ヘッダーをキーと値のペアとして追加します。
+
+**viii. Configure Delivery Tracking :** ユーザーは、カスタムコネクターのダッシュボードのコールバック Webhook 設定に Delivery Tracking URL を追加する必要があります。MoEngage は、SMS 配信トラッキング URL の下に custom\_connectorID という一意の識別子を生成します
+
+### インドのお客様向け
+
+**i. Sender Type**
+
+Promotional: ブランドに関する情報の送信、キャンペーンやお得な情報の宣伝、ユーザーとのエンゲージメントに Sender を使用する場合は、Sender Type として Promotional を選択します。
+
+Transactional: 取引に関するアラート、OTP、セキュリティ情報、またはトランザクションの性質を持つと分類できる情報の送信に Sender を使用する場合は、Sender Type として Transactional を選択します。
+
+**ii. Connector Name :**
+
+このフィールドは MoEngage ダッシュボードで設定するカスタムコネクターを識別するもので、一意である必要があります。ここにコネクター名を入力します。例: (RMLTransDomestic)
+
+**iii. Sender Name :** このフィールドは Sender またはヘッダーを識別します。ここに送信者名を入力します。
+
+**iv. Is Default Sender** :（Yes または No を選択）
+
+**v. API URL:** SMS サービスプロバイダーのベース URL と、SMS 送信 API を呼び出す際に使用できるすべてのクエリパラメーターです。
+
+ドロップダウンボタン : **GET** を選択します
+
+**vi. URL Parameters:**
+
+**Key:**
+
+**Username:** HTTP アカウントのユーザー名
+
+**Dlr:** クライアントがこのメッセージの配信レポートを必要とするかどうかを示します。dlr の値は次のとおりです: 0: 配信レポート不要 1: 配信レポートが必要
+
+**Destination:** メッセージの送信先の携帯電話番号
+
+**Temp id:** このデータは、DLT プラットフォームでテンプレートを登録した際に受け取るコンテンツテンプレート ID に対応します
+
+**Source:** Sender ID
+
+**Message:** 送信するメッセージ。
+
+**Password:** HTTP アカウントのパスワード。
+
+**Type:** HTTP アカウントのパスワード。
+
+**Entityid:** DLT プラットフォーム上の一意のクライアント識別子です
+
+**vii. Headers:**
+
+このオプションを使用して、API に渡すリクエストヘッダーをキーと値のペアとして追加します。この情報は Sender の API ドキュメントで確認できます。たとえば、Sender の API 仕様に応じて、Authorization ヘッダーや Content-Type ヘッダーをキーと値のペアとして追加します。
+
+**Key:** Application/JSON
+
+このオプションを使用して、API に渡すリクエストヘッダーをキーと値のペアとして追加します。この情報は Sender の API ドキュメントで確認できます。たとえば、Sender の API 仕様に応じて、Authorization ヘッダーや Content-Type ヘッダーをキーと値のペアとして追加します。
+
+**Value:** このオプションを使用して、API に渡すリクエストヘッダーをキーと値のペアとして追加します。この情報は Sender の API ドキュメントで確認できます。たとえば、Sender の API 仕様に応じて、Authorization ヘッダーや Content-Type ヘッダーをキーと値のペアとして追加します。
+
+**viii. Configure Delivery Tracking :**
+
+ユーザーは、カスタムコネクターのダッシュボードのコールバック Webhook 設定に Delivery Tracking URL を追加する必要があります。MoEngage は、SMS 配信トラッキング URL の下に custom\_connectorID という一意の識別子を生成します
+
+6. **SMS & CONNECTOR SETTINGS** の下にある **SMS General Settings** をクリックします
+
+<Frame>
+  ![Route Mobile](/images/route-mobile.png)
+</Frame>
+
+**i. SMS Subscription Management:** SMS Subscription Management を使用すると、顧客は SMS 通知の受信をオプトインまたはオプトアウトできます。
+
+**ii. Current Provider:** ドロップダウンから SMS プロバイダーを選択します
+
+**iii. User Attribute that stores user's mobile numbers:** 携帯電話番号の標準属性を選択します。MoEngage における携帯電話番号属性の標準属性名は _Mobile Number (Standard)_ です。これは、MoEngage が名前を提供し、お客様が値を提供する標準属性です。
+
+**iv: Preference Management :** Subscription Management トグルが有効な場合、SMS 用に設定された設定管理（Preference Management）の設定は上書きされます。Subscription Management トグルが無効な場合、設定管理の設定は「_Mobile Number(Standard) exists_ 」に設定されます。
+
+7. **SMS & CONNECTOR SETTINGS** の下にある **SUBSCRIPTION & KEYWORDS** をクリックします\\
+
+<Frame>
+  ![無題](/images/unnamed.png)
+</Frame>
+
+## SMS のサブスクリプションとキーワードを管理する :
+
+キーワードは、SMS 通知の購読（受信）および購読解除（受信拒否）に関するユーザーの同意を取得します。また、キーワードは SMS アラートのサブスクリプションに関するサポートやヘルプを受けるためにも使用されます。
+
+Manage SMS Subscription and Keywords トグルがオンの場合、カスタムキーワードが有効になり、設定が必要になります。各キーワードに対する自動応答メッセージを設定する必要があります。

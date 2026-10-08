@@ -1,0 +1,138 @@
+---
+title: "Hightouch"
+description: "Hightouch を使用してデータウェアハウスの顧客データを活用し、IT やエンジニアリングの工数をかけずにユーザーとイベントを MoEngage に直接同期します。"
+keywords: ["Hightouch", "reverse ETL", "data warehouse", "user sync", "data activation", "MoEngage integration"]
+---
+
+## はじめに
+
+[Hightouch](https://hightouch.io/) は、IT チームやエンジニアリングチームの支援なしに、データウェアハウスやデータレイクにある顧客データ、商品データ、独自データを任意のアプリに同期できる最新のデータ統合プラットフォームです。
+
+## MoEngage × Hightouch
+
+MoEngage と Hightouch の連携により、データウェアハウスの最新の顧客データを使用して、MoEngage でより効果的なキャンペーンを構築できます。ユーザーとイベントを MoEngage に自動的に同期することで、データの一貫性を気にする必要がなくなり、顧客体験の構築に集中できます。
+
+### ユースケース
+
+- ユーザーに関するデータを MoEngage に同期して、パーソナライズされたキャンペーンを構築します。
+- Hightouch から Customer Events を MoEngage に同期して、イベントの一貫性を保ちます。
+- 他の顧客タッチポイントのデータを MoEngage に取り込むことで、より良い体験を提供します。
+- ターゲティングのために Hightouch から MoEngage に Audiences を同期します。
+
+## 連携の前提条件
+
+- Hightouch アカウントにアクセスできることを確認してください。
+- Data API ID と Data API Key は **Settings** > **Account** > **APIs** で確認できます。Data API ID は **Workspace ID** と同じです。Data API Key は、同じ画面の **API Keys** > **Data** セクションで確認できます。
+
+## Hightouch で MoEngage の宛先を作成する
+
+1. Hightouch プラットフォームの **Destinations** セクションで、**Add destination** をクリックします。
+2. 利用可能な宛先のリストから **MoEngage** を選択します。
+3. MoEngage の API ID と API Secret を入力します。
+
+   | フィールド | 説明 |
+   | --- | --- |
+   | **Data API ID** | MoEngage アカウントの Data API ID と Workspace ID は同じです。MoEngage アカウントの Workspace ID は、**Settings** > **Account** > **APIs** > **Workspace ID** で確認できます。 |
+   | **API Secret** | API Secret は Data API Key です。MoEngage アカウントの Data API Key は、**Settings** > **Account** > **APIs** > **API keys** > **Data** の API 設定で確認できます。 |
+
+   ![Hightouch の MoEngage 宛先設定](/images/partner_4776938212116.png)
+
+## ユーザーを同期する
+
+Hightouch のオブジェクト(ユーザー)を MoEngage のユーザーに同期できます。また、レコードマッチングを実行して、2 つのプラットフォーム間でデータを統合することもできます。
+
+この連携はユーザーのアップサートをサポートしています。このモードでは、新しいユーザーが MoEngage に挿入され、すべてのユーザー属性が MoEngage 内で最新の状態に保たれます。アップサートには 3 つの設定パラメーターがあります。
+
+| 名前 | 詳細 |
+| --- | --- |
+| **Hightouch Column Containing MoEngage User ID** | MoEngage で一意のユーザー識別子として機能する Hightouch の列名(id、created_at、first_name)。 |
+| **Hightouch to MoEngage Default Field Mappings** | MoEngage の新しいユーザーにプッシュされる一般的なユーザー属性のリスト。 |
+| **Hightouch to MoEngage Custom Field Mappings** | MoEngage の新しいユーザーにプッシュされるカスタムユーザー属性のリスト。 |
+
+[MoEngage-Hightouch のユーザーアップサートの詳細はこちらをご覧ください。](https://hightouch.io/docs/destinations/moengage/#upsert)
+
+## イベントを同期する
+
+顧客のイベントを MoEngage のイベントに同期できます。
+
+### イベント名の設定
+
+イベントの同期を作成する際に、追跡するイベントの名前を指定できます。静的な名前を入力するか、モデルの列を使用できます。
+
+### イベントタイムスタンプの設定
+
+イベントが発生した時刻のタイムスタンプとして使用する列を選択します。このフィールドが空の場合、Hightouch はイベントがサーバーに到着した時刻を使用します。
+
+### レコードマッチング
+
+ソースのレコードは、`Moengage Id` によって MoEngage ワークスペースのレコードとマッチングできます。
+
+### フィールドマッピング
+
+Hightouch では、ソースの列をサポートされている MoEngage のリソースに同期できます。
+
+### カスタムフィールドマッピング
+
+このセクションのマッピングはすべて、イベントの属性として同期されます。MoEngage では、カスタムプロパティが `snake_case` 形式に従っていることが想定されています。
+
+## オーディエンスを同期する
+
+Hightouch は、Hightouch のオーディエンスをセグメントとして MoEngage に送信できます。MoEngage は同期のたびにセグメントのメンバーシップを最新の状態に保ち、同じ同期でメンバーのユーザー属性も更新できます。
+
+### 同期 API の選択
+
+Hightouch では、セグメント用に 2 つの同期 API が提供されています。MoEngage で最新の状態に保つ必要がある内容に合ったものを選択してください。
+
+| 同期 API | 同期される内容 |
+| --- | --- |
+| **Cohort Sync** | セグメントのメンバーシップのみ。ユーザーはすでに MoEngage に存在している必要があり、Hightouch は MoEngage ユーザーと一致しないレコードをスキップします。 |
+| **Partner Cohort Sync**(推奨) | セグメントのメンバーシップ、各メンバーのユーザー属性、およびセグメントが属する MoEngage チームを 1 回の同期で同期します。既存のユーザーのみを更新するように選択しない限り、MoEngage はまだ存在しないユーザーを作成します。 |
+
+個別のユーザー同期を設定せずに MoEngage のメンバー属性を最新の状態に保ちたい場合は、**Partner Cohort Sync** を使用してください。
+
+### 同期の設定
+
+Hightouch のオーディエンスを MoEngage に同期するには、次の手順を実行します。
+
+1. Hightouch プラットフォームで、**Activation** > **Syncs** に移動し、**Add sync** をクリックします。
+2. オーディエンスを保持するモデルをクリックし、MoEngage の宛先をクリックします。
+3. **What would you like Hightouch to send to MoEngage?** で、**Segment** をクリックします。
+4. **Which MoEngage sync API should this segment use?** で、**Cohort Sync** または **Partner Cohort Sync** をクリックします。
+5. **Would you like to use an existing MoEngage segment or create a new one?** で、**Create a new MoEngage segment** または **Use an existing MoEngage segment** をクリックします。
+
+   ![Segment、Partner Cohort Sync、およびセグメントの選択肢が選択された Hightouch の同期設定](/images/hightouch-segment-sync-type.png)
+6. **What should the segment be named?** に、MoEngage でセグメントに付ける名前を入力します。**Use an existing MoEngage segment** をクリックした場合は、代わりに **Which existing MoEngage segment would you like to sync?** のリストで同期先のセグメントをクリックします。
+7. レコードマッチングのセクションで、MoEngage のユーザー ID を保持する列をクリックし、**Destination field** リストで **User ID** をクリックします。
+8. **How would you like to handle records leaving the query result?** で、**Remove the MoEngage record from the specified audience** または **Do nothing** をクリックします。
+9. **Continue** をクリックします。
+
+   ![セグメント同期における Hightouch のレコードマッチング、属性マッピング、およびレコード削除のオプション](/images/hightouch-segment-sync-mappings.png)
+
+Hightouch では **Do nothing** は非推奨とされています。セグメントが Hightouch のオーディエンスと一致した状態を保つように、**Remove the MoEngage record from the specified audience** を選択してください。レコードを削除すると、MoEngage のセグメントからのみ除外されます。MoEngage はユーザープロファイルを削除しません。
+
+### Partner Cohort Sync の追加オプション
+
+**Partner Cohort Sync** をクリックすると、以下の識別子、属性、チームのオプションが設定に追加されます。これらを設定するには、次の手順を実行します。
+
+1. レコードマッチングのセクションで **Add mapping** をクリックし、匿名識別子を保持する列をクリックしてから、**Destination field** リストで **Anonymous ID** をクリックします。
+2. **Which columns would you like to sync to MoEngage fields?** で、転送する列をクリックし、書き込み先の MoEngage ユーザー属性(**Gender** など)をクリックします。
+3. **Which columns would you like to sync to custom fields in MoEngage?** で、転送する列をクリックし、**Destination field** ボックスに MoEngage のカスタム属性名を入力します。
+4. **Advanced** をクリックします。
+5. **How should users be updated in MoEngage?** で、**Create new users and update existing users in MoEngage** または **Only update fields on users that already exist in MoEngage** をクリックします。
+6. **Which team in your MoEngage dashboard should this segment be created in?** に、MoEngage ダッシュボードに表示されているとおりにチーム名を正確に入力します。
+
+   ![ユーザー更新オプションと MoEngage チームフィールドが表示された Hightouch の Advanced セクション](/images/hightouch-segment-sync-advanced.png)
+
+少なくとも 1 つの識別子をマッピングしてください。ユーザー ID が利用できない場合、MoEngage は匿名 ID によってメンバーを解決します。両方をマッピングすると、MoEngage は匿名ユーザーを登録ユーザーに変換します。
+
+マッピングした属性は同じ同期で各メンバーの MoEngage プロファイルに書き込まれるため、個別のユーザー同期は不要です。MoEngage では、カスタム属性名が `snake_case` 形式に従っていることが想定されています。
+
+チームフィールドは、MoEngage ワークスペースで Teams が有効になっている場合にのみ適用されます。チームを設定すると、そのチームのメンバーのみがセグメントを表示でき、MoEngage はオーディエンス条件に加えてチームレベルのフィルターを適用します。空のままにすると、MoEngage は Default Team にセグメントを作成します。詳細については、[Teams 2.0 in MoEngage](/ja/user-guide/settings/account/team-management/teams-20-in-moengage) を参照してください。
+
+詳細については、[Hightouch のドキュメント](https://hightouch.com/docs/destinations/moengage/#syncing-customer-events)をお読みください。
+
+## レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Hightouch のオーディエンスデータの取り込みを、ワークスペースあたり最大 300 リクエスト/分(RPM)に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+Hightouch からのユーザーおよびイベントの同期は、MoEngage Data API のレート制限に従います。詳細については、[Partner Data Ingestion Rate Limits](/ja/partner-guide/data-and-analytics/ingestion-rate-limits) を参照してください。

@@ -1,0 +1,97 @@
+---
+title: "Campaign Decisioning Policyの作成"
+description: "報酬イベント、パフォーマンス指標、適格性、送信制限、コントロールグループを含むCampaign Decisioning PolicyをMoEngageで作成します。"
+keywords: ["campaign decisioning policy", "create policy", "reward event", "performance metrics", "control group", "aampe"]
+---
+
+<Note>
+**Early Access**
+
+AI Campaign DecisioningはPushでのみ利用できます。ワークスペースでこの機能を有効にするには、MoEngageのカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+</Note>
+
+Campaign Decisioning Policyは、AIが何を最適化するか、およびAIが従うルールを定義します。報酬イベント、パフォーマンス指標、適格なオーディエンス、送信制限、コントロールグループが含まれます。
+
+<Info>
+必要なポリシー権限を持つユーザーがポリシーを作成できます。ポリシーを作成・管理する権限を持つカスタムロールを定義することもできます。
+</Info>
+
+# 知っておくべき用語
+
+| 用語 | 説明 |
+| --- | --- |
+| 報酬イベント | ポリシーが最適化の対象とする単一のUser Behavior Eventです（例：Product purchased）。 |
+| パフォーマンス指標 | コントロールグループと比較してポリシーがどのように機能しているかを測定するために、ポジティブまたはネガティブなシグナルとして使用される追加のイベントです。 |
+| 適格性 | ポリシーがメッセージを送信できるオーディエンスです。送信時に、ポリシーのオーディエンスはキャンペーンのオーディエンスと照合されます。 |
+| ポリシートリートメントグループ | ポリシートリートメントグループには、ポリシーのキャンペーンを受信するエンドユーザーが含まれます。 |
+| ポリシーコントロールグループ | ポリシーコントロールグループは、ポリシーからランダム化されたメッセージを受信する、ランダムに選択されたユーザーグループです。このグループは、AIによる増分効果を測定するためのベースラインとして使用されます。 |
+
+# Campaign Decisioning Policyの作成
+
+MoEngageダッシュボードで **Decisioning** をクリックし、**Campaign decisioning policy** をクリックします。
+
+**Campaign decisioning policy** ページで、**+ Create policy** をクリックします。
+
+<img src="/images/decisioning/campaign-decisioning/campaign-decisioning-policy-create.png" alt="+ Create Policyボタンが表示されたCampaign Decisioning Policyページ。" />
+
+ポリシーの作成は、GoalsとControlsの2つのステップで構成されます。
+
+## Goals
+
+Goalsを構成するには、次の手順を実行します。
+
+1. ポリシー名、目的、報酬イベントを入力します。
+2. **Performance metrics** セクションで、コントロールグループと比較して測定する指標を構成します。指標はPositiveとNegativeに分かれており、Reward event、Brand engagement、Message interactions、Custom metricsの下にグループ化されています。App/site openedはデフォルトでBrand engagementの下に含まれており、削除できません。その他のイベントは追加または削除でき、手動のカスタム指標を最大3つ追加できます。同じイベントをポジティブとネガティブの両方に設定することはできません。
+
+   <img src="/images/decisioning/campaign-decisioning/policy-goals.png" alt="Basic detailsとPerformance metricsセクションが表示されたCreate policyのGoalsステップ。" />
+
+   **注：** イベントをポジティブまたはネガティブのパフォーマンス指標として追加できるかどうかは、Data Managementでのそのイベントの **Relation** によって決まります。
+   - **Positive relation：** イベントはビジネス目標とポジティブに関連しています。
+   - **Irrelevant：** イベントはビジネス目標と関連していません。
+   - **Negative relation：** イベントはビジネス目標とネガティブに関連しています。
+
+   すべてのイベントはデフォルトでIrrelevantです。Relationは、Data ManagementのEventsテーブルで設定します。
+
+3. **Next** をクリックします。
+
+## Controls
+
+Controlsを構成するには、次の手順を実行します。
+
+1. 適格性と除外を設定します：All usersを選択するか、セグメント条件でFilter usersを選択します。ユーザーを除外することもできます。Show countをクリックすると適格なオーディエンスのサイズが表示され、Reset filtersをクリックすると選択した条件がクリアされます。
+2. 1日の送信制限を設定します：エンドユーザーが1日に受信できるコミュニケーションの最小数と最大数を定義します。この制限がワークスペースのグローバルな頻度上限を超える場合、MoEngageは頻度上限設定へのリンクとともに警告を表示します。
+
+   <img src="/images/decisioning/campaign-decisioning/policy-controls.png" alt="適格性、1日の送信制限、時間枠、ポリシーコントロールグループが表示されたCreate policyのControlsステップ。" />
+
+3. 時間枠を追加します：**Add time slots** をオンにすると、定義した時間枠内でのみメッセージが送信されます。時間枠外ではメッセージは送信されません。
+   - 各時間枠について、Name、From時刻、To時刻を入力します。
+   - + New slotをクリックして時間枠を追加します。時間枠を削除するには、ゴミ箱アイコンを使用します。
+   - Set send limitsを選択すると、その時間枠の送信の最小数と最大数を追加できます。
+   - Slotsプレビューには、24時間のタイムラインが表示されます。
+
+   **時間枠のルール：**
+   - 時間枠を重複させることはできません。
+   - 時間枠の最小数は、その時間枠自体の最大数を超えることはできません。
+   - 時間枠の最小数の合計は、ポリシーの最小数を超えることはできません。
+   - どの時間枠の最大数も、ポリシーの最大数を超えることはできません。
+   - キャンペーンの予定送信時刻がどの時間枠にも含まれない場合、ポリシーはそのキャンペーンを除外し、そのキャンペーンのメッセージは送信されません。
+
+   ライブのポリシーで **Add time slots** をオフにすると、MoEngageは確認メッセージを表示します。確認すると、すべての時間枠の構成が削除され、メッセージはポリシーの1日の送信制限に従います。
+
+   <img src="/images/decisioning/campaign-decisioning/policy-time-slots.png" alt="時間枠ごとの送信制限と24時間のSlotsプレビューを含む時間枠の構成。" />
+
+4. **Policy control group** の割合を設定します。デフォルト値は10%です。
+5. **Create policy** をクリックします。
+
+<Info>
+送信時に、ポリシーのオーディエンスはキャンペーンのオーディエンスと照合されます。ワークスペースのグローバルな頻度上限も引き続き適用されます。
+</Info>
+
+# ポリシーの作成と管理
+
+**Campaign decisioning policy** ページには、作成したすべてのポリシーが、ステータス、最終更新日、アクティブなキャンペーン、実行された意思決定数、ポリシーのパフォーマンスとともに一覧表示されます。ポリシー名で検索したり、ステータスでフィルタリングしたり、ポリシー行の省略記号アイコンを使用して利用可能な操作を実行したり、ポリシーを開いて編集したりできます。
+
+<img src="/images/decisioning/campaign-decisioning/campaign-decisioning-policy-manage.png" alt="ポリシー名、ステータス、最終更新日、アクティブなキャンペーン、実行された意思決定数、ポリシーのパフォーマンス、およびEditとPauseのオプションがある省略記号の操作メニューが表示されたCampaign Decisioning Policyリスト。" />
+
+- 1つのアカウントにつき、最大25個のアクティブなポリシーを設定できます。
+- 各ポリシーには、最大50個のアクティブなキャンペーンを設定できます。

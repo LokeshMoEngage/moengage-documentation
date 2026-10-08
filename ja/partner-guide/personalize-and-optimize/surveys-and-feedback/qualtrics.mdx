@@ -1,0 +1,77 @@
+---
+title: "Qualtrics"
+---
+
+# はじめに
+
+[Qualtrics](https://www.qualtrics.com/) は、顧客に関する重要なデータの収集、整理、理解に重点を置いた CXM プラットフォームです。
+
+# MoEngage × Qualtrics
+
+Qualtrics のアンケートツールを使用すると、シンプルな顧客フィードバックのアンケートから詳細なリサーチプロジェクトまで対応できる使いやすいツールで、マーケティング、ブランディング、顧客、製品に関する最も重要な質問への回答を簡単に得られます。MoEngage と Qualtrics の連携により、以下のことができます。
+
+- MoEngage がイベントを取得したときに、Qualtrics のアンケートをユーザーに配布する。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  - [Qualtrics の API トークン](https://www.qualtrics.com/support/integrations/api-integration/overview/)を把握しておく必要があります。
+</Info>
+
+## MoEngage を介して Qualtrics のディストリビューションを作成する
+
+MoEngage の Connector Campaigns を使用すると、Qualtrics のアンケートのディストリビューションを作成し、ユーザーがアプリまたはウェブサイトで何らかのアクションを実行したときに送信できます。
+
+MoEngage でコネクタキャンペーンを作成するには、以下を行います。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最も適した配信タイプを選択します。この例では、「Event Triggered」を選択し、イベントとして「Purchased」を選択します。<img src="/images/partner_20266133111700.png" />
+2. キャンペーンのステップ 2 で、以下を行います。
+
+### Qualtrics API を呼び出す
+
+アンケートを送信するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして POST を選択します。
+- Headers
+  - `X-API-TOKEN`: Qualtrics の API トークンを挿入します。
+  - `Content-Type`: `application/json`
+- Webhook URL としてエンドポイント `https://<yourdatacenterid>.qualtrics.com/API/v3/distributions` を追加します。データセンター ID は[こちら](https://www.qualtrics.com/support/integrations/api-integration/finding-qualtrics-ids/)で確認できます。
+- Body: @ を入力してペイロードをパーソナライズします。以下は例です。
+  <CodeGroup>
+  ```json JSON
+  {
+      "message": {
+          "libraryId": "UR_1M4aHozEkSxUfCl",
+          "messageId": "MS_0Vdgn7nLGSQBlYN",
+          "messageText": "Example Message Text"
+      },
+      "recipients": {
+          "contactId": "{{UserAttribute['Qualtrics_ID']}}"
+      },
+      "header": {
+          "fromEmail": "apiexample@qualtrics.com",
+          "replyToEmail": "apiexample@qualtrics.com",
+          "fromName": "Test Name",
+          "subject": "Example Subject"
+      },
+      "surveyLink": {
+          "surveyId": "SV_cHbKMOdeT8NetF3",
+          "expirationDate": "2019-08-24T14:15:22Z",
+          "type": "Individual"
+      },
+      "embeddedData": {
+          "property1": "string",
+          "property2": "string"
+      },
+      "sendDate": "2019-08-24T14:15:22Z"
+  }
+  ```
+  </CodeGroup>
+
+![](/images/partner_20266127677844.png)
+
+- 詳細については、[Qualtrics の API ドキュメント](https://api.qualtrics.com/)を参照してください。
+- このステップでキャンペーンをテストできます。
+- 準備ができたら、そのままこのキャンペーンを公開できます。

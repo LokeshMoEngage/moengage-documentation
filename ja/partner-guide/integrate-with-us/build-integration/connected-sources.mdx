@@ -1,0 +1,755 @@
+---
+title: "Connected Sources"
+description: "Webhook 連携とマッパー設定を使用して、外部プラットフォームから MoEngage にリアルタイムでデータをストリーミングします。"
+---
+
+## はじめに
+
+Connected Sources は、あらゆる外部プラットフォームから MoEngage に直接リアルタイムでデータをストリーミングできる、MoEngage の柔軟な Webhook 連携フレームワークです。CRM、e コマースプラットフォーム、マーケティングツール、カスタムアプリケーションを標準化されたアプローチで連携できます。
+
+## 仕組み
+
+次の 3 つのシンプルなステップで、あらゆる外部システムを接続できます。
+
+### Webhook POST
+
+お客様のシステムが JSON ペイロードを MoEngage のエンドポイントに送信します
+
+### 変換
+
+マッパーがデータを抽出して検証します
+
+### インポート
+
+データがイベントとプロファイルに取り込まれます
+
+## 主な機能
+
+- **リアルタイムイベント:** ユーザーのアクションを発生と同時にストリーミングします
+- **プロファイルの同期:** ユーザー属性を自動的に更新します
+- **一括処理:** 1 回の呼び出しでバッチを処理します
+- **柔軟なマッピング:** 複雑な JSON 構造を変換します
+- **日付の結合:** 別々の日付/時刻フィールドを結合します
+- **動的属性:** カスタムフィールドを自動的にインポートします
+
+## ユースケース
+
+- 📝 **リードの獲得:** Unbounce、Typeform、HubSpot からのフォーム送信をストリーミングして、即座にフォローアップします
+- 💳 **支払いイベント:** Stripe、Chargebee からのサブスクリプション (作成、失敗、期限切れ間近) を追跡します
+- 🎫 **サポートチケット:** Zendesk/Intercom でのやり取りを監視して、満足度を追跡します
+- 🛒 **e コマース:** カスタムプラットフォームから注文、カート、閲覧を取得します
+- 🛠️ **カスタムアプリ:** ネイティブ SDK なしで独自システムからイベントを送信します
+
+## 🚀 連携を構築する
+
+次の 5 つのステップに従って、サンプルペイロードから MoEngage への本番データフローまでを実現します。
+
+1. **準備:** 前提条件とペイロード
+2. **作成:** マッパーを構築する
+3. **提出:** MoEngage に送信する
+4. **設定:** Webhook URL を追加する
+5. **テスト:** データフローを確認する
+
+### 準備: 前提条件とサンプルペイロード
+
+マッパーを構築する前に、必要なものがすべて揃っていることを確認してください。
+
+<Info>
+  **必要なもの:**
+
+  - お客様のシステムの Webhook 機能 (HTTP POST)
+  - 認証のサポート (Basic 認証またはカスタムヘッダー)
+  - 有効な JSON Webhook ペイロード
+  - お客様のシステムからの 2～3 件のサンプルペイロード
+  - MoEngage の認証情報 (Settings → APIs の Workspace ID、Data API Key)
+</Info>
+
+<Note>
+  **⚡ レート制限**
+
+  **推奨最大値:** 200 リクエスト/秒
+
+  より高いスループットが必要な場合は、想定されるボリューム、ユースケースの説明、ピーク時/平均のパターン、データセンターの場所を添えて、Solutions Engineering チームにお問い合わせください。
+</Note>
+
+<Note>
+  **💡 早めに検証しましょう:** 先に進む前に、サンプルペイロードを [JSONLint](https://jsonlint.com/) に貼り付けて、有効な JSON であることを確認してください。
+</Note>
+
+### 作成: マッパー設定を構築する
+
+マッパーは、受信した Webhook データをイベントまたはユーザープロファイルにどのように変換するかを MoEngage に指示する JSON 設定です。これが連携の中核です。
+
+### 📋 マッピングタイプを選択する
+
+**2 つの同期タイプを利用できます:**
+
+- `mapping_type: "events"` - イベントを追跡し、かつユーザープロファイルを作成/更新します
+- `mapping_type: "users"` - ユーザープロファイルの作成/更新のみを行います (イベントなし)
+
+<Tabs>
+  <Tab title="Events マッパー">
+    ```json
+    {
+      "partner_name": "integration_name",
+      "mapping_type": "events",
+      "mappings": {
+        "customer_id": "$.user_id",
+        "event_name": "$.event_type",
+        "user_time": "$.timestamp",
+        "platform": "web",
+        "app_version": "1.0.0",
+        "attr": {
+          "custom_field": "$.field_name"
+        },
+        "user_attributes": {
+          "u_em": "$.email"
+        }
+      },
+      "batching": false,
+      "payload_validations": {}
+    }
+    ```
+  </Tab>
+  <Tab title="Users マッパー">
+    ```json
+    {
+      "partner_name": "integration_name",
+      "mapping_type": "users",
+      "mappings": {
+        "customer_id": "$.user_id",
+        "user_attributes": {
+          "u_em": "$.email",
+          "u_fn": "$.first_name",
+          "u_ln": "$.last_name"
+        }
+      },
+      "batching": false,
+      "payload_validations": {}
+    }
+    ```
+  </Tab>
+</Tabs>
+
+### **マッピングタイプ別のフィールド要件**
+
+| **フィールド** | **"events" の場合** | **"users" の場合** |
+| --- | --- | --- |
+| `customer_id` | **必須** - 一意のユーザー識別子 | **必須** - 一意のユーザー識別子 |
+| `event_name` | **必須** - イベント名 | _使用しない_ |
+| `user_time` | **必須** - イベントのタイムスタンプ | _使用しない_ |
+| `platform` | **必須** - "web"、"android"、"ios"、"api" | _使用しない_ |
+| `app_version` | **必須** - 静的なバージョン文字列 | _使用しない_ |
+| `user_attributes` | **任意** - ユーザープロファイルを更新 | **任意** - ユーザープロファイルを更新 |
+| `attr` | **任意** - イベント属性 | _使用しない_ |
+
+### 📍 JSONPath クイックリファレンス
+
+JSONPath 式を使用して、ペイロードのフィールドを MoEngage のフィールドにマッピングします。読み方は次のとおりです。
+
+| **ペイロード** | **JSONPath** | **結果** |
+| --- | --- | --- |
+| `{"email": "user@example.com"}` | `$.email` | `user@example.com` |
+| `{"user":{"email": "test@ex.com"}}` | `$.user.email` | `test@ex.com` |
+| `{"items": [{"name": "A"}]}` | `$.items[0].name` | `A` |
+| `{"events": [{"id": 1}, {"id": 2}]}` | `$.events[*].id` | すべてを反復処理 (バッチ処理) |
+
+### 📌 フィールドの完全なリファレンス
+
+| **フィールド** | **型** | **説明** |
+| --- | --- | --- |
+| `partner_name` | String | 一意の小文字の識別子 (例: "typeform") |
+| `mapping_type` | String | **"events"** または **"users"** |
+| `customer_id` | JSONPath | 🔑 一意のユーザー ID (メール、電話番号、カスタム ID) へのパス - イベントをプロファイルに関連付けます |
+| `event_name` | JSONPath/String | イベント名のパスまたは静的な文字列。_"events" タイプの場合のみ必須_ |
+| `user_time` | JSONPath/"#MERGE" | タイムスタンプのパス (エポックミリ秒を推奨)、または日付/時刻が分かれている場合は "#MERGE"。_"events" の場合のみ必須_ |
+| `platform` | String | "web"、"android"、"ios"、または "api"。_"events" タイプの場合のみ必須_ |
+| `app_version` | String | バージョン文字列 (デフォルト: "1.0.0")。_"events" タイプの場合のみ必須_ |
+| `user_attributes` | Object | ユーザープロファイル属性: `u_em` (メール)、`u_fn` (名)、`u_ln` (姓)、`u_mb` (携帯電話) |
+| `attr` | Object | イベント属性 (キーと値のペア)。_"events" の場合のみ任意_ |
+| `batching` | Boolean | 配列ペイロードの場合は `true`、単一イベントの場合は `false` |
+
+### 📋 スターターテンプレート
+
+このテンプレートをコピーし、JSONPath 式を実際のペイロードのパスに置き換えてください。
+
+```json
+{
+  "partner_name": "your_integration_name",
+  "mapping_type": "events",
+  "mappings": {
+    "customer_id": "$.user_id",
+    "event_name": "$.event_type",
+    "user_time": "$.timestamp",
+    "platform": "web",
+    "app_version": "1.0.0",
+    "attr": {
+      "custom_field": "$.field_name"
+    },
+    "user_attributes": {
+      "u_em": "$.email",
+      "u_fn": "$.first_name"
+    }
+  },
+  "batching": false,
+  "payload_validations": {
+    "$.event_type": "string"
+  }
+}
+```
+
+### 💡 実際の動作を見る: 実践的な例
+
+各例をクリックすると、ペイロードと対応するマッパー設定を並べて確認できます。
+
+<Accordion title="📝 例 1: シンプルなフォーム送信">
+  シナリオ: リードフォームが送信時に連絡先情報を送信する
+
+  <Tabs>
+    <Tab title="ペイロード">
+      ```json
+      {
+        "email": "john@example.com",
+        "first_name": "John",
+        "last_name": "Doe",
+        "phone": "+14155551234",
+        "form_name": "Contact Us",
+        "submitted_at": 1704067200000,
+        "utm_source": "google"
+      }
+      ```
+    </Tab>
+    <Tab title="マッパー設定">
+      ```json
+      {
+        "partner_name": "contact_form",
+        "mapping_type": "events",
+        "mappings": {
+          "customer_id": "$.email",
+          "event_name": "Form Submitted",
+          "user_time": "$.submitted_at",
+          "platform": "web",
+          "app_version": "1.0.0",
+          "attr": {
+            "form_name": "$.form_name",
+            "utm_source": "$.utm_source"
+          },
+          "user_attributes": {
+            "u_em": "$.email",
+            "u_fn": "$.first_name",
+            "u_ln": "$.last_name"
+          }
+        },
+        "batching": false,
+        "payload_validations": {}
+      }
+      ```
+    </Tab>
+  </Tabs>
+
+  <Note>
+    **ポイント:** メールを一意の ID として使用 • 静的なイベント名 • エポックタイムスタンプ • ユーザープロファイルを更新
+  </Note>
+</Accordion>
+
+<Accordion title="🛒 例 2: e コマース注文の一括処理">
+  **シナリオ:** システムが 1 つの Webhook で複数の注文を送信する
+
+  <Tabs>
+    <Tab title="ペイロード">
+      ```json
+      {
+        "orders": [
+          {
+            "order_id": "ORD-001",
+            "customer_email": "alice@ex.com",
+            "order_total": 99.99,
+            "currency": "USD",
+            "order_date": 1704067200000
+          },
+          {
+            "order_id": "ORD-002",
+            "customer_email": "bob@ex.com",
+            "order_total": 149.50,
+            "currency": "USD",
+            "order_date": 1704070800000
+          }
+        ]
+      }
+      ```
+    </Tab>
+    <Tab title="マッパー設定">
+      ```json
+      {
+        "partner_name": "ecommerce",
+        "mapping_type": "events",
+        "mappings": {
+          "customer_id": "$.orders[*].customer_email",
+          "event_name": "Order Completed",
+          "user_time": "$.orders[*].order_date",
+          "platform": "web",
+          "app_version": "1.0.0",
+          "attr": {
+            "order_id": "$.orders[*].order_id",
+            "order_total": "$.orders[*].order_total",
+            "currency": "$.orders[*].currency"
+          },
+          "user_attributes": {
+            "u_em": "$.orders[*].customer_email"
+          }
+        },
+        "batching": true,
+        "payload_validations": {}
+      }
+      ```
+    </Tab>
+  </Tabs>
+
+  <Note>
+    **✅ ポイント:** 配列の場合は `batching=true` • `[*]` ワイルドカードで反復処理 • 注文ごとに個別のイベントを作成
+  </Note>
+</Accordion>
+
+<Accordion title="📅 例 3: 日付と時刻の結合">
+  **シナリオ:** 別々の日付フィールドと時刻フィールドを結合する必要がある
+
+  <Tabs>
+    <Tab title="ペイロード">
+      ```json
+      {
+        "user_email": "user@example.com",
+        "event_type": "Webinar Registration",
+        "webinar_name": "Product Demo",
+        "date_registered": "2024-10-25",
+        "time_registered": "14:30:00"
+      }
+      ```
+    </Tab>
+    <Tab title="マッパー設定">
+      ```json wrap
+      {
+        "partner_name": "webinar",
+        "mapping_type": "events",
+        "mappings": {
+          "customer_id": "$.user_email",
+          "event_name": "$.event_type",
+          "user_time": "#MERGE",
+          "platform": "web",
+          "app_version": "1.0.0",
+          "attr": { "webinar_name": "$.webinar_name" },
+          "#MERGE": {
+            "user_time": { "date": "$.date_registered", "time": "$.time_registered" }
+          },
+          "formats": { "user_time": "yyyy-MM-dd HH:mm:ss" }
+        },
+        "batching": false,
+        "payload_validations": {}
+      }
+      ```
+    </Tab>
+  </Tabs>
+
+  <Note>
+    **✅ ポイント:** `user_time="#MERGE"` で結合を指示 • `#MERGE` セクションでフィールドを定義 • `formats` でパターンを指定
+  </Note>
+</Accordion>
+
+<Accordion title="👤 例 4: ユーザープロファイルの同期のみ">
+  **シナリオ:** CRM がイベントトラッキングなしでプロファイルの更新を送信する
+
+  <Tabs>
+    <Tab title="ペイロード">
+      ```json
+      {
+        "email": "sarah@example.com",
+        "first_name": "Sarah",
+        "last_name": "Williams",
+        "phone": "+14155559999",
+        "subscription_tier": "Premium",
+        "account_status": "Active"
+      }
+      ```
+    </Tab>
+    <Tab title="マッパー設定">
+      ```json
+      {
+        "partner_name": "crm_sync",
+        "mapping_type": "users",
+        "mappings": {
+          "customer_id": "$.email",
+          "user_attributes": {
+            "u_em": "$.email", 
+            "u_fn": "$.first_name", 
+            "u_ln": "$.last_name",
+            "u_mb": "$.phone", 
+            "subscription_tier": "$.subscription_tier",
+            "account_status": "$.account_status"
+          }
+        },
+        "batching": false,
+        "payload_validations": {}
+      }
+      ```
+    </Tab>
+  </Tabs>
+
+  <Note>
+    **✅ ポイント:** `mapping_type="users"` • イベントは作成されない • `event_name`/`user_time`/`platform` は不要
+  </Note>
+</Accordion>
+
+<Accordion title="🔒 例 5: 匿名ユーザーのトラッキング">
+  **シナリオ:** ログイン前の行動を追跡し、識別後に結合する
+
+  <Tabs>
+    <Tab title="ペイロード">
+      ```json
+      {
+        "session_id": "anon_abc123xyz",
+        "event": "Product Viewed",
+        "product_id": "PROD-001",
+        "product_name": "Wireless Headphones",
+        "timestamp": 1704067200000
+      }
+      ```
+    </Tab>
+    <Tab title="マッパー設定">
+      ```json wrap
+      {
+        "partner_name": "ecommerce_anon",
+        "mapping_type": "events",
+        "mappings": {
+          "anon_id": "$.session_id",
+          "event_name": "$.event",
+          "user_time": "$.timestamp",
+          "platform": "web",
+          "app_version": "1.0.0",
+          "attr": { "product_id": "$.product_id", "product_name": "$.product_name" }
+        },
+        "batching": false,
+        "payload_validations": {}
+      }
+      ```
+    </Tab>
+  </Tabs>
+
+  <Note>
+    **🔄 結合フロー:** ログイン後、`customer_id` と `anon_id` の両方を含むイベントを送信します。MoEngage は匿名の履歴を識別済みのプロファイルに自動的に結合します。
+  </Note>
+</Accordion>
+
+<Accordion title="🔄 例 6: 動的なユーザープロパティ (create_all)">
+  <Tip>
+    **プロのヒント: `create_all` の使用** 
+
+    `create_all` 属性を使用すると、ペイロード内の指定したオブジェクトに含まれるすべてのキーを反復処理できます。キーが動的である、頻繁に変更される、または絶えず増えていくオブジェクトを扱う場合に強くお勧めします。新しいフィールドを 1 つずつ手動でマッピングする代わりに、`create_all` を使えばすべてを一度に取得できます。
+  </Tip>
+
+  **シナリオ:** カスタムフィールドが `user_attributes` オブジェクトに絶えず追加される CRM からユーザープロファイルを同期する。
+
+  <Tabs>
+    <Tab title="ペイロード">
+      ```json
+      {
+        "customer_id": "CUST-8890",
+        "first_name": "Alex",
+        "last_name": "Taylor",
+        "email": "alex.t@example.com",
+        "phone": "+1234567890",
+        "user_attributes": {
+          "modified_time": "25-10-2024 14:30:00",
+          "lead_score": 85,
+          "industry": "Software",
+          "lifecycle_stage": "MQL"
+        }
+      }
+      ```
+    </Tab>
+    <Tab title="マッパー設定">
+      ```json
+      {
+        "partner_name": "zoho-crm",
+        "mapping_type": "users",
+        "mappings": {
+          "customer_id": "$.customer_id",
+          "app_version": "1.0.0",
+          "platform": "web",
+          "user_attributes": {
+            "u_fn": "$.first_name",
+            "u_ln": "$.last_name",
+            "u_em": "$.email",
+            "u_mb": "$.phone",
+            "create_all": "$.user_attributes"
+          },
+          "update_existing_only": false,
+          "user_time": "$.user_attributes.modified_time",
+          "formats": {
+            "user_time": "dd-MM-yyyy HH:mm:ss"
+          }
+        },
+        "batching": false,
+        "payload_validations": {}
+      }
+      ```
+    </Tab>
+  </Tabs>
+
+  <Note>
+    **✅ ポイント:** 標準フィールドは直接マッピング (例: `u_fn`) • `create_all` により、明示的なマッピングなしで `lead_score`、`industry`、`lifecycle_stage` が自動的に取り込まれます。
+  </Note>
+</Accordion>
+
+<Accordion title="🔀 例 7: 動的なイベント属性 (create_all)">
+  **シナリオ:** CRM が、ユーザープロパティとイベントの詳細の両方に動的で予測できないキーを含むイベントを送信する。
+
+  <Tabs>
+    <Tab title="ペイロード">
+      ```json
+      {
+        "customer_id": "CUST-8890",
+        "event_name": "Deal Advanced",
+        "user_attributes": {
+          "account_manager": "Sarah Jenkins",
+          "region": "EMEA"
+        },
+        "event_attributes": {
+          "modified_time": "26-10-2024 09:15:00",
+          "deal_value": 50000,
+          "previous_stage": "Demo",
+          "new_stage": "Negotiation"
+        }
+      }
+      ```
+    </Tab>
+    <Tab title="マッパー設定">
+      ```json
+      {
+        "partner_name": "zoho-crm",
+        "mapping_type": "events",
+        "mappings": {
+          "customer_id": "$.customer_id",
+          "app_version": "1.0.0",
+          "platform": "web",
+          "user_attributes": {
+            "create_all": "$.user_attributes"
+          },
+          "attr": {
+            "create_all": "$.event_attributes"
+          },
+          "event_name": "$.event_name",
+          "user_time": "$.event_attributes.modified_time",
+          "formats": {
+            "user_time": "dd-MM-yyyy HH:mm:ss"
+          }
+        },
+        "batching": false,
+        "payload_validations": {}
+      }
+      ```
+    </Tab>
+  </Tabs>
+
+  <Note>
+    **✅ ポイント:** `create_all` は `user_attributes` とイベントの `attr` オブジェクトの両方で同時に機能します • 高度にカスタマイズされた CRM ペイロードに最適です。
+  </Note>
+</Accordion>
+
+<Tip>
+  **タイムスタンプ:** 可能な場合は **エポックミリ秒 (整数)** を使用してください。形式の指定は不要です。ペイロードで文字列のタイムスタンプを使用している場合は、`formats` セクションで形式を指定してください。
+</Tip>
+
+<Accordion title="📅 サポートされている日付形式のリファレンス">
+  | **形式文字列** | **例** |
+  | --- | --- |
+  | `yyyy-MM-dd` | 2024-10-25 |
+  | `yyyy/MM/dd` | 2024/10/25 |
+  | `dd/MM/yyyy` | 25/10/2024 |
+  | `dd-MM-yyyy` | 25-10-2024 |
+  | `yyyy-MM-dd HH:mm:ss` | 2024-10-25 14:30:00 |
+  | `dd-MM-yyyy HH:mm:ss` | 25-10-2024 14:30:00 |
+  | `dd/MM/yyyy HH:mm:ss` | 25/10/2024 14:30:00 |
+  | `yyyy/MM/dd HH:mm:ss` | 2024/10/25 14:30:00 |
+  | `yyyy-MM-dd'T'HH:mm:ssZ` | 2024-10-25T14:30:00\+0530 |
+  | `yyyy-MM-dd HH:mm:ss.SSSSSS` | 2024-10-25 14:30:00.123456 |
+  | `yyyy-MM-dd'T'HH:mm:ss.SSSSSS'Z'` | 2024-10-25T14:30:00.123456Z |
+
+  _T、Z、マイクロ秒のサフィックスを付けた dd/MM/yyyy および dd-MM-yyyy のバリエーションもサポートされています。_
+</Accordion>
+
+🎨 **ビジュアルツールを使いたい場合**
+
+[**Visual Mapper Generator**](https://connected-sources-with-vcs-2.lovable.app/) を使用すると、ガイド付きのインターフェースで JSON 設定を構築できます。
+
+### 提出: マッパーを MoEngage に送信する
+
+マッパー JSON の準備ができたら、次の内容を添えて [**support@moengage.com**](mailto:support@moengage.com) にメールで送信してください。
+
+- 完成したマッパー JSON (添付)
+- サンプルの Webhook ペイロード
+- 連携の詳細: パートナー名、Workspace ID、データセンター、ユースケース
+
+### 設定: Webhook URL を追加する
+
+MoEngage から一意の Webhook URL が提供されます。Basic 認証の認証情報 (ユーザー名として Workspace ID、パスワードとして Data API Key) を使用して、この URL をソースシステムに追加します。
+
+**イベントの場合:** `https://api-0X.moengage.com/v1/partner/<partner_name>/events/?configName=<config_name>`
+
+**ユーザーの場合:** `https://api-0X.moengage.com/v1/partner/<partner_name>/users/?configName=<config_name>`
+
+### テスト: データフローを確認する
+
+Postman を使用して、サンプルペイロードを Webhook URL に送信します。200 OK レスポンスを確認し、`request_id` を保存してから、MoEngage ダッシュボード → Analytics → Events を確認します (処理には 1～2 分かかります)。
+
+### ✅ API レスポンスについて
+
+レスポンスコードによって結果が異なります。
+
+<Accordion title="✅ 200 OK - 送信成功">
+  **ステータス:** リクエストは正常に受信され、処理のためにキューに登録されました。
+
+  ```json
+  {
+    "request_id": "uhdvtjxa",
+    "name": "integration_name",
+    "description": "Successfully submitted for processing"
+  }
+  ```
+
+  <Note>
+    **次のステップ:** `request_id` を保存してください。データは 1～2 分以内に MoEngage に表示されます。
+  </Note>
+</Accordion>
+
+<Accordion title="❌ 400 Bad Request - 必須フィールドの欠落">
+  **原因:** マッパーで必須として定義されているフィールドがペイロードにありません。
+
+  ```json wrap
+  {
+    "error": {
+      "code": "e_9004",
+      "message": "Required field 'Request.data.actions.action' is missing in the payload",
+      "target": "payload_validation",
+      "details": [{ "code": "e_9004", "target": "payload_validation", "message": "Required field 'Request.data.actions.action' is missing in the payload" }]
+    }
+  }
+  ```
+
+  <Info>
+    **🔧 修正方法:** JSONPath 式がペイロードの構造と一致していることを確認し、すべての必須フィールドが存在することを確認してください。
+  </Info>
+</Accordion>
+
+<Accordion title="❌ 400 Bad Request - 無効なペイロード構造">
+  **原因:** JSON ペイロードの形式が不正であるか、想定される構造と一致していません。
+
+  ```json wrap
+  {
+    "error": {
+      "code": "e_9004",
+      "message": "The provided payload is invalid",
+      "target": "payload_validation",
+      "details": [{ "code": "e_9004", "target": "payload_validation", "message": "The provided payload is invalid" }]
+    }
+  }
+  ```
+
+  <Info>
+    **🔧 修正方法:** [**JSONLint**](https://jsonlint.com/) を使用して JSON を検証し、波かっこ、角かっこ、カンマの欠落がないか確認してください。
+  </Info>
+</Accordion>
+
+<Accordion title="❌ 401 Unauthorized - 認証失敗">
+  **原因:** Basic 認証の認証情報が無効であるか、Authorization ヘッダーがありません。
+
+  ```json wrap
+  {
+    "status": "fail",
+    "error": { "message": "Invalid authorization format. Expected Basic authentication", "type": "Authentication required", "request_id": "70e2fd" }
+  }
+  ```
+
+  <Info>
+    **🔧 修正方法:** Postman で Basic Auth を選択し、ユーザー名に Workspace ID、パスワードに Data API Key を入力してください。
+  </Info>
+</Accordion>
+
+<Accordion title="❓ その他のエラー - SE に問い合わせる">
+  上記に記載されていないエラーレスポンスが発生した場合は、次の情報を添えて MoEngage Solutions Engineering にお問い合わせください。
+
+  - 完全なエラーレスポンス (JSON)
+  - マッパー設定 (JSON)
+  - テストしていたサンプルペイロード (JSON)
+  - 想定される動作と実際の動作
+</Accordion>
+
+### 🔧 よくある問題
+
+❌ **イベントが表示されない** 
+
+200 OK レスポンスを確認 • `customer_id` のパスを確認 • タイムスタンプの形式を確認 • 2～3 分待つ • request\_id を添えて MoEngage に問い合わせる
+
+🔀 **属性が正しくない** 
+
+[jsonpath.com](http://jsonpath.com) で JSONPath をテスト • ペイロードの構造を確認 • フィールド名のタイプミスを確認 (大文字と小文字を区別)
+
+⏰ **タイムスタンプのエラー** 
+
+形式文字列を正確に一致させる • 可能な場合はエポックミリ秒を使用 • ISO 形式の場合はタイムゾーンを含める
+
+📦 **一括処理が行われない** 
+
+`batching=true` を設定 • すべてのパスで `[*]` を使用 • ペイロード内の配列の位置を確認
+
+✨ **create\_all の問題** 
+
+パスがオブジェクトを指していることを確認 • キーと値のペアであることを確認 • ネストを確認 (1 階層のみ機能)
+
+## 🛠️ 便利なツール
+
+**✅ JSONLint** 構文を検証 [jsonlint.com にアクセス →](https://jsonlint.com/)
+
+**🗺️ JSONPath** 式をテスト [jsonpath.com にアクセス →](https://jsonpath.com/)
+
+**🪝 Webhook.site** ペイロードを検査 [webhook.site にアクセス →](https://webhook.site/)
+
+**📮 Postman** API 呼び出しをテスト [postman.com にアクセス →](https://www.postman.com/)
+
+**⏰ Epoch Converter** 日付の変換 [epochconverter.com にアクセス →](https://www.epochconverter.com/)
+
+**🎨 Mapper Generator** ビジュアル設定ツール [ツールを開く →](https://connected-sources-with-vcs-2.lovable.app/)
+
+## ❓ よくある質問
+
+<Accordion title="ユーザー属性とイベントを一緒に送信できますか?">
+  はい。マッパーに `user_attributes` と `attr` の両方を含めてください。プロファイルの更新とイベントの作成が同時に行われます。
+</Accordion>
+
+<Accordion title="customer_id が存在しない場合はどうなりますか?">
+  新しいプロファイルが自動的に作成されます。`customer_id` がすでに存在する場合、イベントは既存のプロファイルに関連付けられます。
+</Accordion>
+
+<Accordion title="デプロイ後にマッパーを更新できますか?">
+  はい。更新した JSON を添えて MoEngage にお問い合わせください。新しい `config_name` を持つ新しいバージョンがデプロイされます。古い URL は以前のマッパーで引き続き機能します。
+</Accordion>
+
+<Accordion title="ペイロードのサイズ制限はどのくらいですか?">
+  最大 1MB を推奨します。一括リクエストの場合、最適なパフォーマンスを得るには 1 回の呼び出しあたり 100～500 件のイベントをバッチ処理してください。
+</Accordion>
+
+<Accordion title="ネストされた配列はどのように扱えばよいですか?">
+  JSONPath 表記を使用します。特定のアイテムには `$.orders[0].items[0].name`、バッチ処理には `$.orders[*].items[*].name` を使用します。複雑なネストの場合は、事前にフラット化が必要になることがあります。
+</Accordion>
+
+## 🆘 サポート
+
+<Note>
+  **お困りですか?**
+
+  - **💬 一般的な質問:** MoEngage のカスタマーサクセスマネージャーにお問い合わせください
+  - **🔧 テクニカルサポート:** 次の情報を添えて [support@moengage.com](mailto:support@moengage.com) にメールでお問い合わせください:
+    - マッパー JSON (添付)
+    - サンプルの Webhook ペイロード
+    - レスポンスのリクエスト ID
+    - 問題の説明
+  - **🎨 マッパーに関するサポート:** ペイロードと要件を共有していただければ、当社のチームがサポートします
+</Note>

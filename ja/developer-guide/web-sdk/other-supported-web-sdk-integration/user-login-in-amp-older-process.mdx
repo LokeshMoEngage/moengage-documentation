@@ -1,0 +1,142 @@
+---
+title: "AMP でのユーザーログイン (以前のプロセス)"
+description: "以前の MoEngage AMP 分析プロセスを使用して、AMP ページでユーザーのログインイベントをトラッキングします。"
+---
+
+## ログインのトラッキング
+
+<CodeGroup>
+
+```HTML HTML lines wrap
+<button id="login" data-vars-unique-id="someUniqueId">Click here to track user login</button>
+```
+
+</CodeGroup>
+
+<CodeGroup>
+  
+    ```HTML HTML lines wrap
+    <amp-analytics type="moengage" id="moengage">
+    <script type="application/json">
+    {
+    "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+    },
+    "triggers": {
+        "clickTrigger": {
+          "on": "click",
+          "selector": "#login",
+          "request": "event",
+          "extraUrlParams": {
+            "a": {
+             "USER_ATTRIBUTE_UNIQUE_ID": "${unique-id}"
+            },
+            "e": "EVENT_ACTION_USER_ATTRIBUTE",
+            "identifiers": {
+                "moe_user_id": "${unique-id}"
+            }
+          }
+        }
+      }
+    }
+    </script>
+    </amp-analytics>
+    ```
+  
+</CodeGroup>
+
+ここで、"someUniqueId" は、ユーザーをログインさせる際に使用する一意の ID です。
+
+<Warning>
+  重要
+
+  ログインをトラッキングした後は、ログアウトイベントが実行されるまで、以降のすべての属性とイベントのトラッキングコード内に、上記のように "identifiers" オブジェクト ("moe_user_id" を含む) を定義する必要があります。そうしないと、その属性やイベントのトラッキングは、MoEngage ダッシュボードでこのログイン済みユーザーに関連付けられません。
+</Warning>
+
+たとえば、上記のログイン済みユーザーの姓をトラッキングしたい場合は、次のようにします。
+
+<CodeGroup>
+
+```HTML HTML lines wrap
+<button id="lastName" data-vars-last-name="lastNameOfLoggedInUser">Click here to track logged-in user's last name</button>
+```
+
+</CodeGroup>
+
+<CodeGroup>
+  
+    ```HTML HTML lines wrap
+    <amp-analytics type="moengage" id="moengage">
+    <script type="application/json">
+    {
+    "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+    },
+    "triggers": {
+        "clickTrigger": {
+          "on": "click",
+          "selector": "#lastName",
+          "request": "event",
+          "extraUrlParams": {
+            "a": {
+             "USER_ATTRIBUTE_USER_LAST_NAME": "${last-name}"
+            },
+            "e": "EVENT_ACTION_USER_ATTRIBUTE",
+            "identifiers": {
+                "moe_user_id": "someUniqueId" //because we logged-in the user with "someUniqueId" as the unique ID
+            }
+          }
+        }
+      }
+    }
+    </script>
+    </amp-analytics>
+    ```
+ 
+</CodeGroup>
+
+## ログアウトのトラッキング
+
+<CodeGroup>
+
+```HTML HTML lines wrap
+<button id="logout">Click here to track user logout</button>
+```
+
+</CodeGroup>
+
+<CodeGroup>
+  
+    ```HTML HTML lines wrap
+    <amp-analytics type="moengage" id="moengage">
+    <script type="application/json">
+    {
+    "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+    },
+    "triggers": {
+        "clickTrigger": {
+          "on": "click",
+          "selector": "#logout",
+          "request": "event",
+          "extraUrlParams": {
+            "a": {},
+            "e": "MOE_LOGOUT"
+          }
+        }
+      }
+    }
+    </script>
+    </amp-analytics>
+    ```
+ 
+</CodeGroup>
+
+<Warning>
+  重要
+
+  上記の MoEngage ログアウトイベントを実行した後は、以降のトラッキングコードで "identifiers" を送信しないでください。ユーザーはログアウトしており、以降の属性/イベントのトラッキングをこのユーザーに関連付けてはならないためです。
+</Warning>

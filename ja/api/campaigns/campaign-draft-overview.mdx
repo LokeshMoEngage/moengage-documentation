@@ -1,0 +1,389 @@
+---
+title: "キャンペーンの概要"
+description: "MoEngage Campaigns API を使用して、キャンペーンをプログラムで作成、更新、テスト、管理できます。V5 では Push と Email のキャンペーン作成に対応しており、SMS やその他のチャネルでは検索、取得、パーソナライズされたプレビューを利用できます。"
+icon: "file-magnifying-glass"
+---
+
+import ApiAuthentication from '/ja/snippets/api-authentication.mdx';
+
+Campaigns API (V5) を使用すると、完全なペイロードを 1 回のリクエストで送信するのではなく、キャンペーンを段階的に構築できます。まずドラフト状態でキャンペーンを作成し、その後の呼び出しでコンテンツ、オーディエンスセグメント、トリガー条件、スケジュールを追加します。キャンペーンの準備が整ったら、設定を検証し、テストメッセージを送信して公開します。
+
+安全に再試行できるように、すべての POST および PATCH リクエストに `Idempotency-Key` (UUID v4) を含めてください。
+
+## サポートされているチャネルと配信タイプ
+
+チャネルのサポート状況は操作によって異なります。
+
+| 操作 | サポートされているチャネル |
+| :--- | :--- |
+| Create Campaign、Update Campaign、Validate Campaign | `EMAIL`、`PUSH` (Android、iOS、Web) |
+| Get Campaign、Search Campaigns、Get Campaign Meta | `EMAIL`、`PUSH`、`SMS`、`WHATSAPP`、`FACEBOOK`、`GOOGLE ADS`、`CONNECTORS` |
+| Test Campaign | `EMAIL`、`PUSH` |
+| Personalized Preview | `EMAIL`、`PUSH`、`SMS` |
+
+<Note>
+V5 では SMS キャンペーンの作成と更新はサポートされていません。SMS キャンペーンの作成と管理には、MoEngage ダッシュボードまたは V1 API を使用してください。既存の SMS キャンペーンは、V5 で取得、検索、プレビューできます。
+</Note>
+
+**サポートされている配信タイプ:**
+- `ONE_TIME`
+- `PERIODIC`
+- `EVENT_TRIGGERED`
+- `BUSINESS_EVENT_TRIGGERED`
+- `DEVICE_TRIGGERED` (Push のみ)
+- `LOCATION_TRIGGERED` (Push のみ)
+- `BROADCAST_LIVE_ACTIVITY` (Push iOS のみ)
+
+## キャンペーンのライフサイクル
+
+<Steps>
+  <Step title="作成">
+    必須フィールド (`channel`、`campaign_delivery_type`、`created_by`) のみでドラフトを開始します。コンテンツ、オーディエンス、スケジュールは、その後の更新呼び出しで段階的に追加します。
+  </Step>
+  <Step title="更新">
+    設定を調整しながら、個々のコンポーネントをパッチで更新します。送信された各コンポーネントは、ドラフトが更新される前に完全に検証されます。
+  </Step>
+  <Step title="検証 (任意)">
+    変更をコミットせずに、ドラフトが公開時の検証に合格するかどうかを確認します。このステップは任意ですが、テストや公開の前に実施することをお勧めします。
+  </Step>
+  <Step title="テスト">
+    本番稼働前に、特定のユーザーにテストメッセージを送信します。V5 では 2 つのモードをサポートしています。**インラインモード**では、ドラフトを保存せずにリクエスト内で `channel` と `campaign_content` を直接指定します。**ドラフトモード**では、`draft_id` を渡して保存済みドラフトからコンテンツを読み込みます。ドラフトモードは V5 の新機能です。
+  </Step>
+  <Step title="管理">
+    稼働中のキャンペーンを一時停止、再開、または停止します。ワークスペースを検索し、すべてのキャンペーンの軽量なメタデータを取得できます。
+  </Step>
+</Steps>
+
+<Note>
+V1 から移行する場合、V5 の新機能は次のとおりです。
+- **ドラフト状態:** キャンペーンはドラフトとして開始されるようになりました。キャンペーンを段階的に構築し、V1 で開始する前に検証とテストを行います。
+- **Validate エンドポイント:** V5 では、キャンペーン設定を確認するための専用の検証ステップが追加されました。V1 には同等の機能はありません。
+- **認証ヘッダー:** Basic 認証のユーザー名としてすでに Workspace ID が含まれているため、`MOE-APPKEY` ヘッダー (Workspace ID) は任意です。
+</Note>
+
+<Warning>
+**V5 ではキャンペーンの公開はまだサポートされていません。** キャンペーンを公開するには、当面の間 V1 API (`PATCH /core-services/v1/campaigns/{campaign_id}`) を使用してください。 
+</Warning>
+
+## キャンペーンのバージョン管理
+
+キャンペーンのバージョン管理は、ワークスペースごとの**オプトイン**機能です。有効にすると、すでに稼働中のキャンペーンへの変更を公開した際に、`version_number` がインクリメントされた**新しいキャンペーンドキュメント**が作成されます。API レスポンスで返される **`campaign_id`** は**正規の**識別子です。バージョン間で同じ値が維持されるため、ドラフト、検索結果、分析を関連付けることができます。各バージョンには、それぞれ固有の生の **`id`** (24 文字の ObjectId) もあります。
+
+ダッシュボードでの UI 中心の動作とバージョン履歴については、[キャンペーンのバージョン管理](/ja/user-guide/campaigns-and-channels/campaign-management-and-reports/campaign-versioning)を参照してください。
+
+## エンドポイント
+
+Campaigns API は、キャンペーンのライフサイクルを管理するための次のエンドポイントで構成されています。
+
+* [Create Campaign](/ja/api/create-campaigns/create-campaign-draft-v5): 最小限の必須フィールドを使用して、新しい Push または Email キャンペーンを `DRAFT` 状態で初期化します。
+* [Get Campaign](/ja/api/get-campaign-details/get-campaign-v5): 単一のキャンペーンを完全に展開された形式で取得し、現在の状態と設定を表示します。
+* [Update Campaign](/ja/api/update-campaigns/update-campaign-v5): 既存のドラフトの特定のコンポーネントを更新します。
+* [Validate Campaign](/ja/api/create-campaigns/validate-campaign-v5): ドラフトを変更したり状態を変更したりすることなく、公開時の完全な検証チェックを安全に実行します。
+* [Update Campaign Status](/ja/api/update-campaigns/update-campaign-status-v5): すでに公開されているキャンペーンにライフサイクルの遷移 (STOP、PAUSE、RESUME) を適用します。
+* [Search Campaigns](/ja/api/get-campaign-details/search-campaigns): 詳細なフィルターを使用してキャンペーンを検索します。ドラフト状態のキャンペーンを明示的に含めたり除外したりできます。
+* [Get Campaign Meta](/ja/api/get-campaign-details/get-campaign-meta-v5): スケジュール済みキャンペーンの日次キャッシュされたリーチ見込み数を含む、軽量なメタデータを取得します。
+* [Test Campaign](/ja/api/test-campaigns/test-campaign): 最大 10 人のユーザーにテストのプッシュまたはメールを送信します。**インラインモード** (`channel` と `campaign_content` を直接渡す) と**ドラフトモード** (`draft_id` を渡して保存済みドラフトからコンテンツを読み込む) をサポートしています。ドラフトモードは V5 の新機能です。
+* Personalized Preview: メッセージを送信せずに、特定のユーザー向けにパーソナライズされたキャンペーンコンテンツの解決済みプレビューを返します。(このエンドポイントは改訂中のため、ドキュメントは一時的に利用できません。)
+
+<Note>
+Get Child Campaigns と Update Global Control Group は、V5 ではまだ利用できません。これらの操作には引き続き V1 Campaigns API を使用してください。
+</Note>
+
+## 認証
+
+<ApiAuthentication />
+
+<Note>
+  この API 用の API キーを作成する際は、**Select APIs for access** で **Campaigns** チェックボックスが選択されていることを確認してください。選択したキーの権限によってアクセスレベルが決まります。
+  - 読み取りエンドポイントには **View**
+  - キャンペーンの作成と更新には **Create & Manage**
+  - キャンペーンの公開には **Create, Manage & Publish**
+</Note>
+
+## よくある質問
+
+### Create Campaign
+
+<AccordionGroup>
+  <Accordion title="キャンペーンの作成に必要なフィールドは何ですか?">
+    作成時に必須となるフィールドは、`channel` (PUSH または EMAIL)、`campaign_delivery_type`、`created_by` (キャンペーンを作成するユーザーのメールアドレス) の 3 つです。コンテンツ、オーディエンス、スケジュール、配信制御を含むその他のコンポーネントはすべて任意であり、後から Update Campaign エンドポイントを使用して追加できます。
+  </Accordion>
+  <Accordion title="キャンペーンの作成時に完全なキャンペーンコンテンツを含めることはできますか? それとも段階的に構築する必要がありますか?">
+    どちらの方法もサポートされています。必須フィールドのみを含む最小限のリクエストを送信し、残りのコンポーネントを後からパッチで追加することも、すべてのセクションを 1 回の Create リクエストに含めることもできます。作成時に含めるコンポーネントは、`DRAFT_CREATE` の検証基準を満たす必要があります。
+  </Accordion>
+  <Accordion title="request_id はどのようにしてキャンペーンの重複作成を防ぎますか?">
+    `request_id` は、キャンペーン作成を対象とするべき等性キーです。Push キャンペーンの場合、作成に成功してから 1 時間は同じ `request_id` を再利用できません。Email キャンペーンの場合、この期間は 1 日です。作成に失敗した場合は、同じ `request_id` を使用してすぐに再試行できます。
+  </Accordion>
+  <Accordion title="Push および Email キャンペーンでサポートされている配信タイプは何ですか?">
+    - **Push:** `ONE_TIME`、`PERIODIC`、`EVENT_TRIGGERED`、`BUSINESS_EVENT_TRIGGERED`、`DEVICE_TRIGGERED`、`LOCATION_TRIGGERED`、`BROADCAST_LIVE_ACTIVITY`
+    - **Email:** `ONE_TIME`、`PERIODIC`、`EVENT_TRIGGERED`、`BUSINESS_EVENT_TRIGGERED`
+  </Accordion>
+  <Accordion title="作成のレート制限はどのようになっていますか?">
+    この API では 2 種類の制限が適用されます。
+
+    - **リクエストレート:** 1 秒あたり 5 件、1 分あたり 25 件、1 時間あたり 100 件。
+    - **キャンペーン作成:** 成功した作成が 1 分あたり 5 件、1 時間あたり 25 件、1 日あたり 100 件。
+
+    1 日に 100 件のキャンペーンが正常に作成されると、API 呼び出しの総数にかかわらず、以降のリクエストは拒否されます。
+  </Accordion>
+  <Accordion title="ユーザー属性を使用してキャンペーンコンテンツをパーソナライズするにはどうすればよいですか?">
+    MoEngage では、`title`、`message`、`subject`、`html_content` などのコンテンツフィールドでテンプレート式をサポートしています。配信時にユーザー属性を参照するには、次の構文を使用します。
+
+    ```
+    {{UserAttribute['First Name']}}
+    ```
+
+    MoEngage では、イベント属性、コンテンツブロック、Content API を使用したパーソナライズもサポートしています。各ソースの完全な構文と設定の詳細については、MoEngage のパーソナライズに関するドキュメントを参照してください。
+  </Accordion>
+  <Accordion title="API で作成したキャンペーンは MoEngage ダッシュボードにどのように表示されますか?">
+    API で作成したキャンペーンは、UI で作成したキャンペーンと同様に、MoEngage ダッシュボードの **Campaigns** に表示されます。`DRAFT` ステータスのキャンペーンは、その後の API 呼び出しで更新できます。
+  </Accordion>
+  <Accordion title="同じ Email キャンペーンのリクエストで custom_template_id と html_content の両方を渡すことはできますか?">
+    いいえ。Email キャンペーンのコンテンツペイロードでは、`custom_template_id` と `html_content` は相互に排他的です。同じリクエストで両方のフィールドを送信すると、検証エラーが返されます。MoEngage の Email Template ライブラリに保存されたテンプレートを参照する場合は `custom_template_id` を、生の HTML を直接指定する場合は `html_content` を使用してください。
+  </Accordion>
+  <Accordion title="キャンペーンの作成時にカスタムセグメントをターゲットにするにはどうすればよいですか?">
+    `filter_type: custom_segments` を使用して、`segmentation_details.included_filters` 内でセグメントの参照を渡します。セグメント ID と名前は、MoEngage ダッシュボードの **Segments** で確認できます。
+
+    ```json
+    {
+      "segmentation_details": {
+        "included_filters": {
+          "filter_operator": "and",
+          "filters": [
+            {
+              "filter_type": "custom_segments",
+              "name": "{{segment_name}}",
+              "id": "{{segment_id}}"
+            }
+          ]
+        }
+      }
+    }
+    ```
+
+    セグメントを除外するには、`excluded_filters` の下で同じ構造を使用します。ユーザー属性、アクション、カスタムセグメントなど複数のフィルタータイプを、`filter_operator` (`and` / `or`) を使用して同じ `filters` 配列内で組み合わせることができます。
+  </Accordion>
+</AccordionGroup>
+
+### Get Campaign
+
+<AccordionGroup>
+  <Accordion title="キャンペーンを取得するにはどの識別子を使用しますか?">
+    `campaign_id` パスパラメーターを使用します。これは、キャンペーンの作成時または検索時に返される 24 文字の ObjectId です。`GET /v5/campaigns/{campaign_id}` リクエストで渡してください。
+  </Accordion>
+  <Accordion title="レスポンスの campaign_id と id の違いは何ですか?">
+    キャンペーンのバージョン管理が有効な場合、`campaign_id` はキャンペーンのすべてのバージョンで同じ値が維持される、安定した正規の識別子です。`id` フィールドは、個々のバージョンドキュメントに固有の生の ObjectId です。バージョン間でドラフト、公開済みキャンペーン、分析を関連付けるには `campaign_id` を使用してください。
+  </Accordion>
+  <Accordion title="このエンドポイントで返されるキャンペーンステータスは何ですか?">
+    レスポンスにはキャンペーンの現在のライフサイクル状態が反映され、`DRAFT`、`SCHEDULED`、`ACTIVE`、`SENDING`、`PAUSED`、`SENT`、`STOPPED`、`ARCHIVED` のいずれかになります。
+  </Accordion>
+</AccordionGroup>
+
+### Update Campaign
+
+<AccordionGroup>
+  <Accordion title="キャンペーンが Active になった後に編集できないフィールドはどれですか?">
+    - **Active:** `trigger_condition`、`segmentation_details`、`conversion_goal_details`、スケジュールタイプ、スケジュール開始日は編集できません。
+    - **Scheduled:** スケジュールタイプを除くすべてのフィールドを編集できます。
+    - **Stopped / Archived:** どのフィールドも更新できません。
+  </Accordion>
+  <Accordion title="Event-triggered キャンペーンで、更新したコンテンツがユーザーに届くまでにどのくらいかかりますか?">
+    Event-triggered キャンペーンの更新されたコンテンツはキャッシュされるため、ユーザーに反映されるまでに最大 30 分かかる場合があります。
+  </Accordion>
+  <Accordion title="更新時にキャンペーンの完全なペイロードを送信する必要がありますか?">
+    いいえ。更新したいコンポーネントのみを送信してください。ただし、ネストされたオブジェクト内のフィールドを更新する場合は、親オブジェクト全体を送信する必要があります。たとえば、プッシュ通知のタイトルを更新するには、リクエスト本文に `campaign_content` オブジェクト全体を含めます。
+  </Accordion>
+  <Accordion title="キャンペーンの更新に必要な API スコープは何ですか?">
+    コンポーネントレベルの更新には `campaigns:create_manage` スコープが必要です。
+  </Accordion>
+  <Accordion title="キャンペーンが Active のときにセグメンテーションのオーディエンスを更新できますか?">
+    いいえ。`ACTIVE` 状態のキャンペーンでは、`segmentation_details` フィールドを更新できません。オーディエンスを変更するには、キャンペーンを停止して新しいキャンペーンを作成してください。キャンペーンの状態別の編集不可フィールドの完全な一覧については、[キャンペーンが Active になった後に編集できないフィールドはどれですか?](#update-campaign)を参照してください。
+  </Accordion>
+  <Accordion title="更新したコンテンツはいつユーザーに届きますか?">
+    配信タイプによって異なります。
+
+    - **Event-triggered キャンペーン:** 更新されたコンテンツはキャッシュされるため、更新が成功してからユーザーに反映されるまでに最大 30 分かかる場合があります。
+    - **Periodic キャンペーン:** 更新された設定は、次回のスケジュール実行から適用されます。
+    - **One-time キャンペーン:** 変更は、更新時点でまだ送信されていないメッセージに適用されます。
+  </Accordion>
+  <Accordion title="更新リクエストで使用するキャンペーン ID はどのように確認できますか?">
+    `campaign_id` は、Create Campaign レスポンスの `data.id` フィールドで返されます。`GET /v5/campaigns/{campaign_id}` を使用するか、[Search Campaigns](/ja/api/get-campaign-details/search-campaigns-v5) エンドポイントを使用して名前、ステータス、チャネル、配信タイプでキャンペーンを検索して取得することもできます。
+  </Accordion>
+  <Accordion title="Active な Push キャンペーンでテンプレートタイプを変更できますか?">
+    はい。`template_type` フィールドは `campaign_content` の一部であり、`ACTIVE` 状態のキャンペーンでも更新できます。テンプレートタイプごとに必須フィールドが異なるため、テンプレートタイプを変更する場合は、新しいテンプレートに必要なすべてのフィールドを同じリクエストに含めてください。
+  </Accordion>
+  <Accordion title="Active な Push キャンペーンでプラットフォームを追加または削除できますか?">
+    はい。`basic_details` の `platforms` フィールドは、`ACTIVE` キャンペーンでも制限されていません。プラットフォームを追加すると、以降の送信でそのプラットフォームにも配信されるようになり、プラットフォームを削除するとそのプラットフォームへの配信が停止します。
+  </Accordion>
+</AccordionGroup>
+
+### Validate Campaign
+
+<AccordionGroup>
+  <Accordion title="validate を呼び出すと、キャンペーンの状態やコンテンツは変更されますか?">
+    いいえ。validate エンドポイントは、キャンペーンを変更したりステータスを変更したりすることなく、読み取り専用の公開時検証チェック (`DRAFT_PUBLISH`) を実行します。
+  </Accordion>
+  <Accordion title="キャンペーンが無効な場合、このエンドポイントはどの HTTP ステータスコードを返しますか?">
+    このエンドポイントは常に HTTP `200` を返します。キャンペーンが有効かどうかは、レスポンス本文の `valid` フィールド (`true` または `false`) と、検証エラーを一覧表示する `errors` 配列で示されます。
+  </Accordion>
+  <Accordion title="このエンドポイントにはべき等性キーが必要ですか?">
+    いいえ。他の POST および PATCH エンドポイントとは異なり、validate エンドポイントでは `Idempotency-Key` ヘッダーは不要です。
+  </Accordion>
+</AccordionGroup>
+
+### Update Campaign Status
+
+<AccordionGroup>
+  <Accordion title="このエンドポイントはどのステータス遷移をサポートしていますか?">
+    このエンドポイントは 3 つのアクションをサポートしています。各アクションは特定の配信タイプにのみ適用され、キャンペーンが有効な遷移元の状態にある必要があります。
+
+    | アクション | サポートされている配信タイプ | 有効な遷移元の状態 |
+    | :--- | :--- | :--- |
+    | `STOP` | `ONE_TIME` | `ACTIVE`、`SCHEDULED`、`PAUSED`、`SENDING` |
+    | `PAUSE` | `PERIODIC`、`EVENT_TRIGGERED` | `ACTIVE`、`SCHEDULED`、`SENDING` |
+    | `RESUME` | `PERIODIC`、`EVENT_TRIGGERED` | `PAUSED` |
+
+  </Accordion>
+  <Accordion title="このエンドポイントを使用してキャンペーンを公開できますか?">
+    いいえ。このエンドポイントは、すでに稼働中のキャンペーンにライフサイクルの遷移 (STOP、PAUSE、RESUME) を適用するだけです。V5 ではキャンペーンの公開はまだサポートされていません。キャンペーンを公開するには、当面の間 V1 API を使用してください。
+  </Accordion>
+  <Accordion title="Periodic または Event-triggered キャンペーンを停止できますか?">
+    Periodic または Event-triggered キャンペーンでは `STOP` は無効です。実行中の Periodic または Event-triggered キャンペーンを一時的に停止するには `PAUSE` を、再開するには `RESUME` を使用してください。Periodic キャンペーンに `STOP` を実行しようとすると、`422 Unprocessable Entity` エラーが返されます。
+  </Accordion>
+  <Accordion title="SENDING 状態の One-time キャンペーンを停止できますか?">
+    はい。`STOP` は、`SCHEDULED`、`ACTIVE`、`PAUSED`、`SENDING` 状態の One-time キャンペーンで有効です。キャンペーンが `SENDING` 状態の場合、このアクションにより残りの送信が停止されます。停止が処理される前にすでに送信されたメッセージは、引き続き配信されます。
+  </Accordion>
+  <Accordion title="このエンドポイントはどのキャンペーンタイプとチャネルをサポートしていますか?">
+    - **Push:** Periodic および Event-triggered キャンペーン。
+    - **Email:** Periodic および Event-triggered キャンペーン。
+    - **両方のチャネル:** Scheduled 状態の One-time キャンペーンの停止。
+  </Accordion>
+</AccordionGroup>
+
+### Search Campaigns
+
+<AccordionGroup>
+  <Accordion title="ドラフト状態のキャンペーンは、デフォルトで検索結果に含まれますか?">
+    いいえ。`campaign_fields.status` 配列に `DRAFT` を明示的に含めない限り、`DRAFT` 状態のキャンペーンは結果から除外されます。これにより、結果にドラフト行が含まれることを想定していない既存の連携との後方互換性が維持されます。
+  </Accordion>
+  <Accordion title="1 ページあたりに返されるキャンペーンの最大数はいくつですか?">
+    最大数は 1 ページあたり 15 件です。結果をページングするには、`limit` および `page` パラメーターを使用してください。
+  </Accordion>
+  <Accordion title="どのキャンペーンがフローに属しているかを識別するにはどうすればよいですか?">
+    レスポンスの `flow_name` および `flow_id` フィールドを確認してください。これらのフィールドが存在する場合、そのキャンペーンはフロー内のノードです。
+  </Accordion>
+  <Accordion title="キャンペーンのバージョン管理は検索結果にどのように影響しますか?">
+    キャンペーンのバージョン管理が有効な場合、公開された各リビジョンは検索結果に個別のドキュメントとして表示され、すべて同じ `campaign_id` を共有します。`campaign_fields` オブジェクトで `version_number` によってフィルタリングすると、結果を特定のバージョンに絞り込むことができます。
+  </Accordion>
+  <Accordion title="SMS キャンペーンを検索するにはどうすればよいですか?">
+    `campaign_fields.channels` 配列に `"SMS"` を含めます。一致した結果では `channel: SMS` が返され、各キャンペーンオブジェクトに SMS 固有のフィールドである `connector` (コネクタータイプと名前) と `sender_name` が含まれます。V5 では SMS キャンペーンの作成と更新はサポートされていないため、このエンドポイントでは既存の SMS キャンペーンの取得のみが可能です。
+  </Accordion>
+  <Accordion title="フローの一部であるキャンペーンを取得するにはどうすればよいですか?">
+    リクエスト本文で `include_child_campaigns: true` を設定します。フローノードのキャンペーンは、デフォルトでは結果から除外されます。このフラグを有効にすると、フローノードのキャンペーンが `flow_id` と `flow_name` が設定された状態で結果に表示されます。このフラグを設定すると、Periodic の子キャンペーンも `parent_id` フィールド付きで表示されます。
+  </Accordion>
+  <Accordion title="アーカイブされたキャンペーンを検索結果に含めるにはどうすればよいですか?">
+    リクエスト本文で `include_archive_campaigns: true` を設定します。`campaign_fields.status` に `ARCHIVED` が指定されているかどうかにかかわらず、アーカイブされたキャンペーンはデフォルトで除外されます。含めるには、このフラグを `true` に設定する必要があります。
+  </Accordion>
+  <Accordion title="送信者名で SMS キャンペーンをフィルタリングできますか?">
+    検索リクエストには `sender_name` フィルターはありません。特定の送信者の SMS キャンペーンを見つけるには、`campaign_fields.channels` に `"SMS"` を渡してすべての SMS キャンペーンを取得し、各結果で返される `sender_name` フィールドでクライアント側でフィルタリングしてください。
+  </Accordion>
+</AccordionGroup>
+
+### Get Campaign Meta
+
+<AccordionGroup>
+  <Accordion title="リーチ情報はすべてのキャンペーンタイプで利用できますか?">
+    いいえ。リーチ見込み数は、スケジュール済みのキャンペーン (One-time、Business Event-triggered、Event-triggered キャンペーン) でのみ利用できます。その他のキャンペーンタイプでは、このフィールドは設定されません。
+  </Accordion>
+  <Accordion title="API 呼び出しのたびにリーチを更新できますか?">
+    いいえ。リーチは 1 日に 1 回計算され、24 時間キャッシュされます。同じ日に複数回呼び出しても、同じキャッシュ値が返されます。見込み数は、アプリのインストール、アンインストール、またはサブスクリプションステータスの変更により、時間の経過とともに変動する場合があります。
+  </Accordion>
+  <Accordion title="このエンドポイントはどのチャネルをサポートしていますか?">
+    このエンドポイントは、Email、Push、SMS、WhatsApp、Facebook、Google Ads、およびコネクターベースのキャンペーンをサポートしています。
+  </Accordion>
+  <Accordion title="rejection_comment フィールドはどこに表示されますか?">
+    キャンペーンがレビューされて却下された場合、キャンペーンが `DRAFT` ステータスのままである間、メタレスポンスに `rejection_comment` フィールドが表示されます。
+  </Accordion>
+</AccordionGroup>
+
+### Test Campaign
+
+<AccordionGroup>
+  <Accordion title="キャンペーンを保存せずにテストを送信できますか?">
+    はい。テストリクエストに `channel` と `campaign_content` を直接含めて、インラインモードを使用してください。コンテンツはサーバーに保存されません。Email のインラインテストでは、`connector` オブジェクトも含めてください。保存済みのキャンペーンを使用してテストするには、ドラフトモードを使用して代わりに `draft_id` を渡します。
+  </Accordion>
+  <Accordion title="テスト送信の受信者の最大数はいくつですか?">
+    `identifier_values` 配列を使用して、一度に最大 10 人のユーザーにテストを送信できます。
+  </Accordion>
+  <Accordion title="特定のプラットフォーム、ロケール、またはバリエーションでキャンペーンをテストできますか?">
+    はい。ドラフトモードでは、デフォルトでプラットフォーム、ロケール、バリエーションごとに 1 件のテストがサーバーから送信されます。送信対象を絞り込むには、リクエストで `test_campaign_meta.platform` (ANDROID、IOS、または WEB)、`locale_name`、または `variation` を指定します。
+  </Accordion>
+  <Accordion title="MoEngage ユーザーではない受信者にテストを送信できますか?">
+    はい。`identifier` タイプとして `EMAIL` を使用し、受信者のメールアドレスを指定します。テストは送信されますが、MoEngage に一致するユーザーレコードが存在しないため、コンテンツはユーザープロファイルデータでパーソナライズされません。
+  </Accordion>
+</AccordionGroup>
+
+### Push キャンペーン
+
+<AccordionGroup>
+  <Accordion title="プッシュ通知テンプレートのテンプレート ID はどのように確認できますか?">
+    MoEngage Templates API を使用して、ワークスペースで利用可能な Push テンプレートを一覧表示します。レスポンスには各テンプレートの `template_id` が含まれます。Push キャンペーンを作成または更新する際に、この値を `campaign_content` ペイロードの `custom_template_id` として渡してください。
+  </Accordion>
+  <Accordion title="特定の Push テンプレートタイプで必須となるフィールドはどのように確認できますか?">
+    必須フィールドは `template_type` によって異なります。キャンペーンコンテンツペイロードの `basic_details` オブジェクトで `template_type` を設定します。Android でサポートされている値は、`BASIC`、`STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`、`IMAGE_BANNER_WITH_TEXT`、`TIMER`、`TIMER_WITH_PROGRESS_BAR`、`Custom` です。iOS でサポートされている値は、`BASIC`、`STYLIZED_BASIC`、`SIMPLE_IMAGE_CAROUSEL`、`Custom` です。
+
+    `Custom` テンプレートタイプでは、`custom_template_id` が必須です。その他のタイプについては、[Create Campaign](/ja/api/create-campaigns/create-campaign-draft-v5) リファレンスの `campaign_content` スキーマで、テンプレートタイプごとの必須フィールドと任意フィールドの完全な一覧を参照してください。
+  </Accordion>
+</AccordionGroup>
+
+### SMS キャンペーン
+
+<AccordionGroup>
+  <Accordion title="V5 を使用して SMS キャンペーンを作成または更新できますか?">
+    いいえ。V5 では SMS キャンペーンの作成と更新はサポートされていません。既存の SMS キャンペーンは Get Campaign と Search Campaigns を使用して取得でき、SMS コンテンツは Personalized Preview を使用してプレビューできます。SMS キャンペーンの作成と管理には、MoEngage ダッシュボードまたは V1 API を使用してください。
+  </Accordion>
+  <Accordion title="SMS キャンペーンの送信者名はどのように確認できますか?">
+    キャンペーンレスポンスの `sender_name` フィールドには、キャンペーンに設定された送信者名が含まれます。このフィールドは SMS キャンペーンでのみ設定されます。Search Campaigns リクエストには `sender_name` フィルターはありません。特定の送信者のキャンペーンを見つけるには、すべての SMS キャンペーンを取得し、クライアント側で `sender_name` によってフィルタリングしてください。
+  </Accordion>
+  <Accordion title="SMS キャンペーンのコネクター設定はどのように取得できますか?">
+    キャンペーンレスポンスの `connector` オブジェクトには、キャンペーンの `connector_type` と `connector_name` が含まれます。SMS キャンペーンの場合、これらのフィールドはワークスペースで設定された SMS 配信プロバイダーを示します。
+  </Accordion>
+</AccordionGroup>
+
+### Personalized Preview
+
+<AccordionGroup>
+  <Accordion title="Personalized Preview エンドポイントはどのチャネルをサポートしていますか?">
+    このエンドポイントは `PUSH`、`EMAIL`、`SMS` をサポートしています。リクエスト本文の `channel` フィールドで対象のチャネルを渡してください。
+  </Accordion>
+  <Accordion title="このエンドポイントはユーザーにメッセージを送信しますか?">
+    いいえ。このエンドポイントは読み取り専用です。指定したユーザーのプロファイルに対してすべてのパーソナライズ式を解決し、完全にレンダリングされたコンテンツを返しますが、メッセージは配信されません。
+  </Accordion>
+  <Accordion title="このエンドポイントはどのパーソナライズソースを解決しますか?">
+    このエンドポイントは、MoEngage の標準的なパーソナライズソース (ユーザー属性、イベント属性、カスタムテンプレート、コンテンツブロック、Content API、プロダクトセット) をすべて解決します。コンテンツ内のすべての Jinja 式は、指定したユーザーのプロファイルに対して評価されます。
+  </Accordion>
+  <Accordion title="イベントトリガー型キャンペーンのコンテンツをプレビューするにはどうすればよいですか?">
+    トリガーとなるイベントの属性のキーと値のペアを `event_attributes` オブジェクトで渡します。エンドポイントは解決時にこれらの値を挿入し、特定のイベントに対してコンテンツがどのようにレンダリングされるかをシミュレートします。例:
+
+    ```json
+    {
+      "event_attributes": {
+        "product_name": "Running Shoes",
+        "product_price": "4999"
+      }
+    }
+    ```
+
+    コンテンツ内では、`{{ event.product_name }}` を使用してこれらの値を参照します。
+  </Accordion>
+  <Accordion title="カスタムテンプレートを使用するコンテンツをプレビューするにはどうすればよいですか?">
+    Create Campaign リクエストと同じ方法で、`campaign_content` オブジェクトに `custom_template_id` を渡します。エンドポイントはテンプレートを取得して解決し、指定したユーザー向けに完全にレンダリングされた出力を返します。
+  </Accordion>
+  <Accordion title="Personalized Preview エンドポイントで保存済みのドラフトを使用できますか?">
+    いいえ。Personalized Preview エンドポイントは、`campaign_content` で渡されたインラインコンテンツのみを受け付けます。保存済みのドラフトからコンテンツを読み込むことはありません。保存済みのドラフトからテストメッセージを送信するには、`draft_id` を指定して Test Campaign エンドポイントを使用してください。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+API を簡単にテストできるようにしています。Postman コレクションを表示するには、[こちら](https://www.postman.com/moengage-dev/api-docs/collection/uhg5p67/moengage-campaign-apis)をクリックしてください。

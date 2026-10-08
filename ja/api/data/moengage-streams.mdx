@@ -1,0 +1,295 @@
+---
+title: "Streams"
+description: "MoEngage Streams を使用して、ユーザーアクションとキャンペーンイベントをほぼリアルタイムで API エンドポイントに転送します。"
+icon: "webhook"
+---
+
+MoEngage Streams を使用すると、API エンドポイントを設定し、転送するイベントを定義して、システムに流入するデータのストリームを確認できます。このデータを活用して、データウェアハウスやレコメンデーションシステムを強化できます。
+
+## MoEngage Streams のユースケース
+
+Streams の代表的なユースケースは次のとおりです。
+
+- Notification Clicked Android、Email Clicked、SMS Clicked などの MoEngage イベントで、中央データウェアハウスを強化する。
+- Purchase、Song Played、Bill Payment Done などのコンバージョンイベントを、MoEngage から外部の分析ツールに転送する。
+- MoEngage のキャンペーンインタラクションイベントをレコメンデーションシステムに取り込む。
+- MoEngage の通知インタラクションデータを機械学習システムにエクスポートし、アルゴリズムのパフォーマンスを最適化する。
+- MoEngage に存在するすべてのユーザーイベントを外部のデータレイクに送信する。
+
+## キャンペーンインタラクションイベント
+
+以下は、MoEngage が生成するキャンペーンインタラクションイベントの一覧です。これらは API エンドポイントへの送信が必要になることが多いイベントです。
+
+| イベント名                    | イベントコード                  | チャネル          |
+| :---------------------------- | :------------------------------ | :---------------- |
+| Email Sent                    | `MOE_EMAIL_SENT`                | Email             |
+| Email Deferred                | `MOE_EMAIL_DEFERRED`            | Email             |
+| Email Delivered               | `MOE_EMAIL_DELIVERED`           | Email             |
+| Email Dropped                 | `MOE_EMAIL_DROP`                | Email             |
+| Email Bounced                 | `MOE_EMAIL_HARD_BOUNCE`         | Email             |
+| Email Soft Bounced            | `MOE_EMAIL_SOFT_BOUNCE`         | Email             |
+| Email Opened                  | `MOE_EMAIL_OPEN`                | Email             |
+| Email Clicked                 | `MOE_EMAIL_CLICK`               | Email             |
+| Email Unsubscribed            | `MOE_EMAIL_UNSUBSCRIBE`         | Email             |
+| Email Spam Complained         | `MOE_EMAIL_SPAM`                | Email             |
+| SMS Sent                      | `SMS_SENT`                      | SMS               |
+| SMS Delivered                 | `SMS_DELIVERED`                 | SMS               |
+| Notification Received Android | `NOTIFICATION_RECEIVED_MOE`     | Push              |
+| Notification Clicked Android  | `NOTIFICATION_CLICKED_MOE`      | Push              |
+| Notification Swiped Android   | `NOTIFICATION_CLEARED_MOE`      | Push              |
+| Notification Sent iOS         | `n_i_s`                         | Push              |
+| Notification Clicked iOS      | `NOTIFICATION_CLICKED_IOS_MOE`  | Push              |
+| Notification Received Web     | `NOTIFICATION_RECEIVED_WEB_MOE` | Push              |
+| Notification Clicked Web      | `NOTIFICATION_CLICKED_WEB_MOE`  | Push              |
+| Connector Sent                | `MOE_CONNECTOR_SENT`            | Connector         |
+| Card Sent                     | `MOE_CARD_SENT`                 | Cards             |
+| Card Delivered                | `MOE_CARD_DELIVERED`            | Cards             |
+| Card Viewed                   | `MOE_CARD_VIEWED`               | Cards             |
+| Card Clicked                  | `MOE_CARD_CLICKED`              | Cards             |
+| Mobile In-App Shown           | `MOE_IN_APP_SHOWN`              | Mobile In-Apps    |
+| Mobile In-App Clicked         | `MOE_IN_APP_CLICKED`            | Mobile In-Apps    |
+| Mobile In-App Closed          | `MOE_IN_APP_DISMISSED`          | Mobile In-Apps    |
+| On-site Message Shown         | `MOE_ONSITE_MESSAGE_SHOWN`      | On-site Messaging |
+| On-site Message Clicked       | `MOE_ONSITE_MESSAGE_CLICKED`    | On-site Messaging |
+| On-site Message Closed        | `MOE_ONSITE_MESSAGE_DISMISSED`  | On-site Messaging |
+| User Entered Flow             | `USER_ENTERED_FLOW`             | Flows             |
+| User Exited Flow              | `USER_EXITED_FLOW`              | Flows             |
+| User Added to Control Group   | `MOE_CAMPAIGN_CONTROL_GROUP`    | すべてのチャネル  |
+
+- 上記のイベントでは、次のイベント属性がデフォルトでエクスポートされます: `campaign_id`、`campaign_name`、`campaign_type`、`campaign_channel`。
+- 次のイベント属性は、現在 Streams でのエクスポートに対応していません: `email_subject`、`email_click_url`、`inapp_widget_clicked`、`onsite_message_url_clicked`。
+
+キャンペーンイベントと属性がトラッキングされるタイミングの詳細については、[Data Exports Glossary](/ja/user-guide/data/exports/events/data-export-glossary) を参照してください。
+
+## API リクエスト形式
+
+Streams が API エンドポイントにイベントを送信する際のリクエスト形式は次のとおりです。
+
+**ヘッダー:** `"Content-Type":"application/json"`
+
+**リクエストボディ:**
+
+<Tabs>
+  <Tab title="JSON">
+    ```json
+    {
+        "app_name": "App Name",
+        "source": "MOENGAGE",
+        "moe_request_id": "moengage unique request id for each request",
+        "events": [{
+            "event_name": "Notification Received Android",
+            "event_code": "NOTIFICATION_RECEIVED_MOE",
+            "event_uuid": "moengage unique id for each event",
+            "event_time": 1580967474,
+            "event_type": "CAMPAIGN_EVENT",
+            "event_source": "MOENGAGE",
+            "push_id": "recipient device’s push token",
+            "uid": "<MoEngage customer_id>",
+            "event_attributes": {
+                "campaign_id": "353df897hkbh67658",
+                "campaign_name": "Name of the Campaign",
+                "campaign_type": "Event Trigger",
+                "campaign_channel": "Push"
+            },
+            "user_attributes": {
+                "moengage_user_id": "moe_internal_user_id",
+                "user_attr_1": "user_attr_val1",
+                "user_attr_2": "user_attr_val2"
+            },
+            "device_attributes": {
+                "moengage_device_id": "moe_internal_device_id",
+                "device_attr_1": "device_attr_val1",
+                "device_attr_2": "device_attr_val2"
+            }
+        }]
+    }
+    ```
+  </Tab>
+</Tabs>
+
+## Streams データ用語集
+
+<Info>
+  更新されたイベントと属性の完全な一覧については、[Data Exports Glossary](/ja/user-guide/data/exports/events/data-export-glossary) を参照してください。
+</Info>
+
+API リクエストのキーとその説明は次のとおりです。
+
+| キー               | 説明                                                         |
+| :----------------- | :----------------------------------------------------------- |
+| workspace name     | MoEngage におけるワークスペース名。                          |
+| source             | MoEngage からのリクエストであることを識別するための `MoEngage`。 |
+| event_name         | MoEngage ダッシュボードに表示されるイベントの表示名。        |
+| event_code         | MoEngage システム内に存在する未加工のイベントコード。        |
+| event_uuid         | 重複排除のための一意のイベント識別子。                       |
+| event_time         | UTC でのイベント発生時刻（秒単位のエポック時間）。           |
+| event_type         | `CAMPAIGN_EVENT` または `USER_ACTION_EVENT`。                |
+| event_source       | ソース識別子（値 = `MoEngage`）。                            |
+| push_id            | プッシュトークン（Push 関連イベントで使用可能）。            |
+| email_id           | 受信者のメールアドレス（Email 関連イベントで使用可能）。     |
+| mobile_number      | 受信者の携帯電話番号（SMS 関連イベントで使用可能）。         |
+| uid                | MoEngage の `customer_id` 一意識別子。                       |
+| campaign_name      | MoEngage におけるキャンペーン名。                            |
+| campaign_id        | MoEngage におけるキャンペーン ID。                           |
+| event_attributes   | 追加のイベント属性のディクショナリ。                         |
+| campaign_channel   | チャネルの種類: Push / Email / SMS。                         |
+| user_attributes    | 追加のユーザープロパティのディクショナリ。                   |
+| moengage_user_id   | MoEngage の内部ユーザー ID。                                 |
+| device_attributes  | 追加のデバイス属性のディクショナリ。                         |
+| campaign_type      | 種類: Periodic、Active、One-time。                           |
+| variation_id       | キャンペーンのバリエーションがある場合に含まれます。         |
+| locale_id          | 複数のロケールを持つキャンペーンの場合に含まれます。         |
+| locale_name        | ロケールの表示名。                                           |
+| parent_campaign_id | ローカライズされたキャンペーンの親の識別子。                 |
+| parent_flow_id     | MoEngage Flow 内のキャンペーンの識別子。                     |
+| parent_flow_name   | MoEngage Flow の名前。                                       |
+
+## 認証方式
+
+Streams は次の種類の認証に対応しています。
+
+- **No auth**
+- **Basic Auth**: Streams は標準的な Basic Auth の実装に対応しています。Streams の設定時に、ユーザー名とパスワードを MoEngage に提供する必要があります。MoEngage は、システム内のすべての認証データを常に暗号化します。
+- **OAuth 2.0**: Streams は Client Credentials グラントタイプを使用した OAuth 2.0 認証に対応しており、MoEngage がアクセストークンの取得と更新を代行します。Streams で OAuth 2.0 を直接選択するセルフサービスのオプションはまだ提供されていません。設定手順については、[Streams 用に OAuth 2.0 を設定する](#configure-oauth-20-for-streams) を参照してください。
+
+API Key、Bearer Token などのその他の認証方式に対応するには、有効化チケットでその旨を伝え、渡すヘッダーキーと静的な値を MoEngage に提供してください。Authorization configuration を通じて MoEngage がアクセストークンを取得・更新する OAuth 2.0 を除き、MoEngage は API キーやトークンの動的な更新には対応できません。
+
+## Streams 用に OAuth 2.0 を設定する
+
+Streams の認証方式として OAuth 2.0 を使用するには、まず MoEngage で OAuth 2.0 設定を作成し、その後サポートチケットを通じて Streams エンドポイントの有効化をリクエストします。
+
+<Steps>
+  <Step title="OAuth 2.0 設定を作成する">
+    **Settings** \> **Advanced settings** \> **Authorization configuration** に移動し、Client Credentials グラントタイプを使用して OAuth 2.0 設定を追加します。認可サーバーのトークンエンドポイント、認証情報、レスポンス設定を指定します。詳しい手順については、[Authorization Configuration with OAuth 2.0](/ja/user-guide/settings/advanced-settings/authorization-configuration-with-oauth-20) を参照してください。
+  </Step>
+  <Step title="設定が有効であることを確認する">
+    設定を保存し、Authorization configuration ページでステータスが **Active** になっていることを確認します。ステータスが "Failed" の設定はトークンを取得できず、Streams には使用できません。
+  </Step>
+  <Step title="OAuth 設定 ID を控える">
+    作成した OAuth 2.0 設定を開きます。設定 ID はページ URL の最後のセグメントです。たとえば、URL が `.../advanced/auth-config/edit/69242b6047c75584338719e5` の場合、設定 ID は `69242b6047c75584338719e5` です。この ID をコピーして、有効化チケットに記載します。
+
+    ![OAuth 設定 ID は Authorization configuration ページ URL の最後のセグメントとして表示されます](/images/streams-oauth-config-full.png)
+  </Step>
+  <Step title="サポートチケットを作成して Streams の OAuth 2.0 を有効化する">
+    [アカウントで Streams を有効化する](#enable-streams-for-your-account) の手順に従い、OAuth 設定 ID を記載してください。これにより、サポートチームが OAuth 2.0 設定を Streams エンドポイントに関連付けることができます。
+  </Step>
+</Steps>
+
+## アカウントで Streams を有効化する
+
+<Note>
+  Streams は Streams アドオンの一部として提供されています。アカウントで有効化するには、担当の MoEngage カスタマーサクセスマネージャー（CSM）にお問い合わせください。
+</Note>
+
+Streams は、API エンドポイント、または MoEngage と連携しているパートナーのいずれかにデータをエクスポートできます。
+
+### API エンドポイントへのデータエクスポート用に Streams を設定する
+
+MoEngage からサーバーにデータをエクスポートするには、次の情報を添えて MoEngage カスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+
+1. データの送信先となる API エンドポイント。たとえば `https://api.example.com/events` のようなものです。
+2. この API エンドポイントに送信する必要があるイベントの一覧。エクスポート可能なキャンペーンイベントの一覧は、[キャンペーンインタラクションイベント](#campaign-interaction-events) セクションに記載されています。
+3. 各イベントとともに API エンドポイントに送信する必要があるユーザー属性とデバイス属性の一覧。
+4. すべてのキャンペーンインタラクションイベントが必要な場合、MoEngage は [キャンペーンインタラクションイベント](#campaign-interaction-events) セクションに記載されているイベントをエクスポートします。
+
+Streams の有効化リクエストには、次のテンプレートを使用できます。
+
+<Tabs>
+  <Tab title="サポートチケット">
+    ```text
+    Hey!
+    
+    Please enable Streams for my Workspace.
+    
+    Workspace Region: DC-01/DC-02/DC-03/DC-04
+    Workspace Name: MyWorkspace
+    Workspace ID: <my-workspace-id>
+    
+    API Endpoint: [https://www.example.com/api?url_param1=vaue1](https://www.example.com/api?url_param1=vaue1)
+    
+    Headers:
+    header1: value1
+    header2: value2
+    
+    Authentication:
+    Method: No auth/Basic Auth/OAuth 2.0
+    [Only for basic auth] Basic Auth username: "Username"
+    [Only for basic auth] Basic Auth password: "Password"
+    [Only for OAuth 2.0] OAuth configuration ID: "<oauth-config-id>"
+    
+    Events to export: All/List of events
+    [Optional] List of events: List of events to export
+    
+    User properties to export: All/List of user properties
+    [Optional] List of user properties: List of user properties to export
+    ```
+  </Tab>
+</Tabs>
+
+<Info>
+  **IP のホワイトリスト登録**
+
+  エンドポイントが Virtual Private Cloud（VPC）内にある場合、または一般公開されていない場合は、ワークスペースのリージョンに応じて[これらの](/ja/user-guide/settings/account/security/ip-whitelisting-in-moengage) MoEngage IP をホワイトリストに登録する必要があります。
+</Info>
+
+### パートナーへのデータエクスポート用に Streams を設定する
+
+Streams を使用すると、連携パートナーにデータを直接エクスポートし、それらのプラットフォームでのマーケティングや分析活動を強化できます。現在、Streams は次のパートナーにデータをエクスポートできます。
+
+- [Mixpanel](/ja/partner-guide/data-and-analytics/analytics/mixpanel)
+- [Amplitude](/ja/partner-guide/data-and-analytics/analytics/amplitude/amplitude-audiences)
+- [Segment](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/getting-started/moengage-source)
+- [mParticle](/ja/partner-guide/data-and-analytics/cdps/mparticle/getting-started/inbound-feed)
+- [Rudderstack](/ja/partner-guide/data-and-analytics/cdps/rudderstack/moengage-source)
+
+設定については、各パートナーの連携ドキュメントに従ってください。
+
+## 別の MoEngage アプリにイベントをストリーミングする
+
+MoEngage Streams を使用すると、ある MoEngage アプリから別のアプリにイベントを同期できます。一般的なユースケースは次のとおりです。
+
+- **クロスプロダクトプロモーション**: さまざまな製品を扱うチームがある場合、2 つのアプリを同期しておくことで製品のクロスプロモーションを行い、アップセルやコンバージョンの向上につなげることができます。
+- **一元的な分析**: 複数のアプリを持つ企業は、アプリ横断の分析を行うことで、LTV の向上、クロスセル、ブランドロイヤルティの向上を実現できます。
+
+設定手順は次のとおりです。
+
+<Steps>
+  <Step title="Streams エンドポイントを取得する">
+    CSM に連絡し、送信先アプリ専用の Streams エンドポイントを取得します。
+  </Step>
+  <Step title="送信元アプリで Streams を設定する">
+    [有効化の手順](#enable-streams-for-your-account)に従い、次の詳細情報を使用して送信元アプリを設定します。
+
+    - **Endpoint:** 送信先アプリ用に提供された専用の MoEngage エンドポイントを使用します。
+    - **Authentication:** Basic Auth を有効にします。ユーザー名には送信先アプリの **Workspace ID** を、パスワードには **Data API Key** を使用します。
+    - **Header:** `"Content-Type" : "application/json"` を指定します。
+    - **Events/Properties:** ストリーミングするイベントとユーザープロパティの一覧を選択します。
+  </Step>
+</Steps>
+
+## 制限事項
+
+Streams をサードパーティアプリと連携する際は、次の制約や制限事項に注意してください。
+
+- MoEngage がデータを送信できるのは 1 つの静的エンドポイントのみです。アクセストークンに有効期限がある場合は、MoEngage がトークンを取得・更新できるように OAuth 2.0 設定を使用してください（[認証方式](#authentication-methods) を参照）。その他の認証方式では、アクセストークンやリンクが数時間ごとに失効または更新されるエンドポイントとは連携できません。
+- MoEngage は、データのストリーミング中にボディやキー名を変更することはできません。
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="スループット、平均ボリューム、バッチサイズはどのくらいですか？">
+    各 API リクエストのスループットと平均ボリュームは、MoEngage に取り込まれる選択したイベントのボリュームによって異なります。デフォルトのバッチサイズ（API リクエストあたりのイベント数）は 100 です。
+  </Accordion>
+  <Accordion title="Streams の再試行の仕組みはどのようになっていますか？">
+    イベントのバッチが失敗した場合（2XX 以外のレスポンス）、バッチ全体が再試行されます。再試行は合計 3 回、30 秒、60 秒、120 秒の間隔で行われます。
+  </Accordion>
+  <Accordion title="Streams を一時停止した場合、後からデータを取得できますか？">
+    いいえ。Streams を一時停止すると、エクスポート用のデータは収集されず、後日再送することもできません。
+  </Accordion>
+  <Accordion title="Streams では最新のユーザー属性が保証されますか？">
+    いいえ。Streams はほぼリアルタイムのイベントエクスポート用に構築されています。ユーザー属性は非同期で更新されるため、MoEngage はエクスポートに最新の値が含まれることを保証できません。
+  </Accordion>
+  <Accordion title="Streams を使用して過去のデータをエクスポートできますか？">
+    いいえ。エクスポートできるのは、Streams の設定が有効化された後に生成されたデータのみです。
+  </Accordion>
+</AccordionGroup>

@@ -1,0 +1,74 @@
+---
+title: "NexG Platforms の設定"
+---
+
+# はじめに
+
+NexG は、複数のチャネルを通じて、企業と消費者の間で会話型のやり取りや取引を迅速、シームレス、かつ安全に行うためのコミュニケーションプラットフォームを提供しています。
+
+<Info>
+  **前提条件**
+
+  NexG Platforms ダッシュボードにアクセスでき、NexG Reach アカウントの API キーを保有していることを確認してください。
+</Info>
+
+# NexG をカスタム SMS コネクター（サービスプロバイダー）として設定する
+
+この記事では、MoEngage ダッシュボードで NexG をカスタムコネクターとして設定する方法を説明します。NexG をカスタム SMS コネクターとして設定するには、次の手順を実行します。
+
+1. MoEngage ダッシュボードにログインします。
+2. **Settings** \> **Channel** \> **SMS** \> **Sender Configuration** に移動します。
+3. 右上の **\+ Add Service Provider** をクリックします。
+4. **Sender Details** 画面で次の詳細を追加します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **Mark as default** | このトグルをオンにすると、設定中のサービスプロバイダーのデフォルト送信者としてこの送信者がマークされます。デフォルトに設定すると、キャンペーン作成時に別の送信者を選択しない限り、MoEngage から送信されるすべての SMS キャンペーンでこの送信者が使用されます。 |
+| **Service provider name** | このフィールドは MoEngage ダッシュボードで設定するサービスプロバイダーを識別するもので、一意である必要があります。ここにサービスプロバイダー名を入力します。 |
+| **Sender name** | このフィールドは、キャンペーンやアラートの作成時に使用できる、読みやすい送信者名を識別します。 |
+| **Sender type** | Sender type は **Promotional** または **Transactional** のいずれかです。 <ul><li>ブランドに関する情報の送信、キャンペーンやお得な情報の宣伝、ユーザーとのエンゲージメントに Sender を使用する場合は、**Sender type** として **Promotional** を選択します。</li><li>取引に関するアラート、OTP、セキュリティ情報、またはトランザクションの性質を持つと分類できる情報の送信に Sender を使用する場合は、**Sender type** として **Transactional** を選択します。</li></ul> |
+
+5. 次の詳細を追加して Webhook を設定します。
+
+| フィールド | 説明 |
+| --- | --- |
+| **API URL** | このフィールドには、Sender に API リクエストを送信する際に使用する URL の情報が含まれます。この情報は Sender の API ドキュメントで確認できます。ここに Sender の API エンドポイントを入力します。nexG の API URL は次のとおりです: [https://automate.nexgplatforms.com/api/v1/sms/save](https://automate.nexgplatforms.com/api/v1/sms/save) |
+| **Method** | HTTP メソッドとして **POST** を選択します。 |
+| **URL Parameters** | このオプションを使用して、API に渡す URL パラメーターをキーと値のペアとして追加します。この情報は Sender の API ドキュメントで確認できます。たとえば、API URL の呼び出しで GET メソッドを使用する場合、API Key や Authorization などのすべてのパラメーターは URL パラメーターとして渡されます。 |
+| **Headers** | このオプションを使用して、API に渡すリクエストヘッダーをキーと値のペアとして追加します。リクエストヘッダーには必ず次を含めてください: <ul><li>キーとして Content-Type、値として application/json</li><li>キーとして Authorization、値として NexG から提供された YOUR\_API\_KEY</li></ul> |
+
+6. Body Type として **JSON** を選択し、次の詳細を追加します。 
+   <CodeGroup>
+   ```json JSON
+   {
+   "serviceType": "Transactional"
+   "msgDetails":[
+    {
+     "messageid": "YOUR_MESSAGE_ID",
+     "contactnumber": "Moesms_destination",
+     "message": "Moesms_message",
+     "messagetype": "normal",
+     "header": "YOUR_HEADER",
+     "templateid": "Moesms_dltTemplateId",
+       "campaignid": "Moesms_campaignId"
+      }
+      ]
+   }
+   ```
+   </CodeGroup>
+   次のキーの値を変更します。
+   - header: キャンペーン用に承認された Sender ID に置き換えます。
+   - serviceType: 正しいルート名（"TRANS" や "PROMO" など）を使用します。
+   - PEID: nexG から提供された固有の Entity ID に置き換えます。
+7. **Send a test SMS** で設定を確認します。
+8. **Save** をクリックして Sender Configuration を保存します。
+9. MoEngage ダッシュボードで送信者を作成した後、配信トラッキングを設定できます。配信トラッキングの詳細については、[カスタムコネクターの配信トラッキング](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-custom-connector-for-sms)を参照してください。
+10. 配信トラッキングレスポンスの属性は、手動または自動でマッピングできます。\
+    <img src="/images/partner_39153405054996.png" alt="nexg.png" />
+
+# 次のステップ
+
+- [SMS キャンペーン作成の手引き](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/create-an-sms-campaign)を使用して SMS キャンペーンを作成します。
+- [SMS の頻度上限](/ja/user-guide/settings/channels/delivery-controls/frequency-capping)を設定します。
+- [現在のサービスプロバイダー](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/getting-started-with-sms/configure-an-sms-sender)を設定します。
+- [キャンペーン分析の詳細はこちら。](/ja/user-guide/campaigns-and-channels/connectors/analyze/connector-campaign-analytics)

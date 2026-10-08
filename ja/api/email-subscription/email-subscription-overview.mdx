@@ -1,0 +1,99 @@
+---
+title: "Email Subscription の概要"
+description: "ユーザーのメール再購読、オプトインステータス、カテゴリ設定を管理します。"
+icon: "file-magnifying-glass"
+---
+
+MoEngage Email Subscription Management API を使用すると、MoEngage プラットフォーム内でユーザーのメール設定を直接更新できます。この API 群により、外部のメールサービスプロバイダー（ESP）と再購読ステータスを同期し、カテゴリ単位のきめ細かなオプトインを管理して、コンプライアンスの確保とユーザーエクスペリエンスの向上を実現できます。
+
+## エンドポイント
+
+Email Subscription API は次のエンドポイントで構成されています。
+
+- [Bulk Resubscribe Users](/ja/api/resubscribe/bulk-resubscribe-users): ユーザーを再購読させ、必要に応じて ESP の抑制リストを更新します。
+- [Update User Email Opt-in Preferences](/ja/api/opt-in-management/update-user-email-opt-in-preferences): 全体のオプトインステータスとカテゴリ別の設定を更新します。
+
+## API の機能
+
+| 機能                    | Bulk Resubscribe       | Opt-in Management  |
+| ----------------------- | ---------------------- | ------------------ |
+| **ESP との同期**        | ✓（SendGrid に対応）   | ✗                  |
+| **カテゴリ管理**        | ✗                      | ✓                  |
+| **一括処理**            | ✓（最大 100 ユーザー） | ✗（単一ユーザー）  |
+| **非同期処理**          | ✓                      | ✗                  |
+
+## 実装に関する注意事項
+
+<Note>
+  **ESP のサポート:** 
+
+  Resubscription API は現在 **SendGrid** のみに対応しています。`update_esp` が `true` に設定されている場合、MoEngage は SendGrid の抑制リストからメールアドレスを自動的に削除します。
+
+  **オプトインの ID 管理:**
+
+  - **PII Tokenization:** `customer_id` を渡す必要があります。メール ID は保存されないため、MoEngage はこれを使用してユーザーを特定します。
+  - **PII Encryption:** `customer_id` または復号済みの `email_id` のいずれかを渡します。メール ID のみを渡した場合、そのメールに関連付けられたすべてのユーザーが更新されます。
+</Note>
+
+## よくある質問
+
+### 再購読
+
+<AccordionGroup>
+  <Accordion title="リクエストで update_esp フィールドが送信されない場合はどうなりますか？">
+    MoEngage が自動的に ESP を呼び出し、リクエストで送信された受信者のメールアドレスを抑制リストから削除します。
+  </Accordion>
+  <Accordion title="MoEngage でユーザーのメールアドレスを保存する属性はどれですか？">
+    この属性は、Email チャネルの General Settings にある、ユーザーのメールアドレスフィールドを保存する User Attribute で設定されます。MoEngage がデフォルトで使用する "Email Standard" 属性を使用するか、ユーザーのメールアドレスを保存するために任意のカスタム属性を設定できます。この属性は、各ユーザーの User Profile で確認できます。
+
+    Resubscription API は、この属性を使用して受信者リスト内のメールアドレスに対応するユーザーを検索し、購読ステータスを更新します。
+  </Accordion>
+  <Accordion title="アカウントで複数のコネクタが有効になっている場合はどうなりますか？">
+    Email -\> General Settings の Current Connector フィールドに、使用されている ESP の情報が含まれています。Resubscription API はこの情報を使用して ESP の抑制リストを更新します。
+  </Accordion>
+  <Accordion title="リクエストで SENDGRID 以外の ESP が指定された場合はどうなりますか？">
+    リクエストでその他の ESP が送信された場合、またはデフォルトのコネクタとして設定されている場合は、MoEngage の Unsubscribe 標準属性のみが false に更新され、ESP は更新されません（Resubscription API は Sendgrid ESP のみに対応しています）。
+  </Accordion>
+  <Accordion title="MoEngage ダッシュボードで ESP が変更されたときに再購読リクエストを実行するとどうなりますか？">
+    Email General Settings で ESP が変更された場合、設定が反映されるまで最大 15 分かかります。この時間内に再購読リクエストが実行されると、古い設定が使用されます。たとえば、ESP を Amazon から SendGrid に変更し、設定の更新から 15 分以内に再購読リクエストを実行した場合、ESP は引き続き Amazon になります。この場合、unsubscribe フラグは MoEngage ダッシュボードでのみ更新されます。
+  </Accordion>
+  <Accordion title="Data API を使用した再購読と Resubscribe Email API の違いは何ですか？">
+    Data API は MoEngage の unsubscribe 属性のみを更新します。Resubscribe Email API は、さらに ESP（SendGrid）と同期して、抑制リストからメールを削除します。
+  </Accordion>
+</AccordionGroup>
+
+### オプトインとカテゴリ
+
+<AccordionGroup>
+  <Accordion title="複数のユーザー属性でメール ID をトラッキングしている場合、Email Opt-in Management API でメール ID を渡したとき、MoEngage はオプトイン値を更新するユーザーをどのように特定しますか？">
+    メールの General Settings で指定されたユーザー属性を使用して、指定されたメール ID に一致するユーザーが検索されます。
+  </Accordion>
+  <Accordion title="メール ID と顧客 ID の両方が渡された場合はどうなりますか？">
+    メール ID が優先され、MoEngage は同じメール ID を持つすべてのユーザーを検索し、渡されたオプトインステータスの値で更新します。ただし、同じメール ID を持つプロファイル間でオプトインステータスや購読解除情報を引き継がないようにリクエストしている場合、MoEngage は customer_id を使用してオプトインステータスを更新します。
+  </Accordion>
+  <Accordion title="同じメール ID を持つプロファイルが複数ある場合はどうなりますか？オプトインステータスはそれらすべてのプロファイルに引き継がれますか？">
+    はい、デフォルトで引き継がれます。ユーザー A と B が同じメール ID を持ち、MoEngage が A から同意を受け取った場合、A と B の両方がダブルオプトイン済みとしてマークされます。この動作はいつでも制御できます。制御するには、MoEngage チームにお問い合わせください。
+  </Accordion>
+  <Accordion title="API ペイロードで送信されたカテゴリが無効になっている、またはワークスペースに存在しない場合はどうなりますか？">
+    API ペイロードに、ワークスペースで有効でない、または存在しないカテゴリが 1 つでも含まれている場合、MoEngage はエラーを返し、リクエストを破棄します。
+  </Accordion>
+  <Accordion title="オプトイン設定をカテゴリ単位でトラッキングすることは必須ですか？">
+    いいえ、必須ではありません。必要に応じて、いつでもグローバルレベルでトラッキングできます。
+  </Accordion>
+  <Accordion title="この API は API キーのローテーションとどのように連携しますか？">
+    API キーのローテーションを実施しており、スムーズに移行するためにワークスペースに複数の有効な API キーがあるとします。その場合、Email Double optin に関連付けられた任意の有効な API キーを認証に使用できます。
+
+    ![複数の API キー](/images/MultiAPIkey.png)
+  </Accordion>
+  <Accordion title="オプトインステータスが更新されたユーザーをセグメント化するにはどうすればよいですか？">
+    この API、Resubscribe API、Update Subscription Preference API、またはエンドユーザーの操作によってユーザーのオプトインステータスが更新されるたびに、MoEngage は必要な情報を含む Email Optin Status Updated というイベントを発生させます。
+  </Accordion>
+  <Accordion title="PII Encryption または Tokenization を使用している場合、オプトインステータスを更新するにはどうすればよいですか？">
+    - メールに PII Tokenization を使用している場合は、Email Opt-in Management API を呼び出す際に必ずユーザー ID を渡してください。MoEngage はこのユーザー ID を使用してユーザーを特定し、オプトインステータスを更新します。この場合、MoEngage はメール ID を保存しないため、メール ID を渡しても効果はありません。
+    - メールの送信に PII Encryption を使用している場合は、ユーザー ID または復号済みのメール ID のいずれかを必ず渡してください。MoEngage はこの情報を使用して、関連するユーザーを特定してオプトインステータスを更新するか、そのメール ID を持つすべてのユーザーのオプトインステータスを更新します。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+Postman コレクションを使用して、これらの購読 API をすぐにテストできます。Postman コレクションを表示 → [**Resubscribe API**](https://www.postman.com/moengage-dev/api-docs/collection/xt2ptnc/moengage-resubscribe-api) および [**Email Optin Management**](https://www.postman.com/moengage-dev/api-docs/request/fcc8l9m/email-optin-managment?tab=overview)。

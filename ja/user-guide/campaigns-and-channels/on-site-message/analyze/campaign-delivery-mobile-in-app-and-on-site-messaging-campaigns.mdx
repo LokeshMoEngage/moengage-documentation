@@ -1,0 +1,123 @@
+---
+title: "キャンペーン配信: Mobile In-App および On-Site Messaging キャンペーン"
+description: "SDK 同期、トリガー、表示ルール、頻度上限など、Mobile In-App キャンペーンと On-site Messaging キャンペーンがユーザーに配信される仕組みについて説明します。"
+---
+
+この記事では、Mobile In-App キャンペーンと On-Site Messaging (OSM) キャンペーンがユーザーに配信される仕組みについて説明します。以下の各セクションでは、これらのメッセージの配信に影響する依存関係と設定について説明します。
+
+Mobile In-App キャンペーンと OSM キャンペーンに共通する以下のモジュールは、エンドユーザーのデバイスでのキャンペーンの配信とレンダリングにおいて重要です。
+
+## SDK 同期
+
+アクティブな Mobile In-App キャンペーンと OSM キャンペーンは、ユーザーがアプリを開いたときにレンダリングのために SDK に配信されます。キャンペーンが SDK に配信された後、表示コントロールや配信コントロールなどの他のキャンペーン条件が満たされていれば、ユーザーがトリガーアクションを実行するとすぐに表示されます。
+
+## セグメンテーション
+
+Mobile In-App キャンペーンまたは OSM キャンペーンを作成する際、すべてのユーザーをターゲットにするか、フィルターを指定してターゲットとするオーディエンスを選択できます。
+
+- **All users** を選択した場合:
+  ![6.png](/images/moengage_c84085.png)
+  これらのキャンペーンは、初めてアプリを開くユーザーを含むすべてのユーザーに配信されます。
+- **Filter users by** のオプションを選択した場合:
+  ![UserProperty.png](/images/moengage_aa02cc.png)
+  スケジュールされた時刻にキャンペーンが開始されると、フィルター条件が評価され、セグメンテーションクエリを実行してフィルター条件を満たすユーザーが評価されます。このユーザーリストは MoEngage 側で管理され、いずれかのユーザーがアプリ/ウェブサイトを開くと、キャンペーンが SDK に配信されます。
+
+<Info>
+  - キャンペーンセグメントは、ユーザー属性セグメントについてはリアルタイムで評価されます。ユーザー属性、および過去 30 日以内のデータのイベントとイベント属性を使用するセグメントもリアルタイムで評価されます。([詳細はこちら](/ja/user-guide/segment/getting-started/types-of-segments#segment-processing-for-different-campaign-types))
+  - 30 日を超えるイベントおよびイベント属性データを使用するセグメントは、新しいユーザーがキャンペーンセグメントリストに追加されてキャンペーンを表示し始められるよう、頻繁に評価されます。セグメント評価の頻度は、キャンペーンタイプに応じて 30 分から数時間まで異なります。頻度は設定可能です。
+</Info>
+
+## トリガーアクション
+
+トリガーアクションは、テンプレートやテンプレートのパーソナライズされたプロパティを含むキャンペーンペイロードを取得し、アプリ/ウェブサイト上に In-App または OSM をレンダリングするために使用されます。
+
+#### Mobile In-App キャンペーンのトリガーアクション
+
+Mobile In-App キャンペーンを作成する際、以下のいずれかのトリガーアクションを選択できます。
+
+![TriggerCriteria\_onAppOpen.png](/images/moengage_b6e2b3.png)
+
+- **On app open**: ユーザーがアプリまたは任意の画面を起動すると、これらのキャンペーンが即座にトリガーされます。
+- **On specific screen**: ユーザーが指定した画面に移動したときに In-App メッセージを送信します。
+- **On custom event**: SDK でカスタムイベントが追跡されると、これらのキャンペーンが即座にトリガーされます。Mobile In-App キャンペーンのトリガーアクションとして使用できるのは、それぞれの Android または iOS SDK から追跡されるイベントのみであることに注意してください。
+
+#### OSM キャンペーンのトリガーアクション
+
+OSM キャンペーンを作成する際、以下のいずれかのトリガーアクションを選択できます。
+
+![OnPageLoad.png](/images/moengage_33dd86.png)
+
+- **On Page Load**: After Delay または After Scroll に値が指定されていない限り、これらのキャンペーンはページ読み込み時に即座にトリガーされます。値が指定されている場合は、条件が満たされた後にキャンペーンがトリガーされます。
+- **On custom event**: SDK でカスタムイベントが追跡されると、これらのキャンペーンが即座にトリガーされます。OSM キャンペーンのトリガーアクションとして使用できるのは、Web SDK で追跡されるイベントのみであることに注意してください。
+- **On Exit Intent**: ユーザーがウェブサイトを離れようとしたときに、これらのキャンペーンがトリガーされます。Exit Intent の詳細については、こちらの[記事](/ja/user-guide/campaigns-and-channels/on-site-message/create/exit-intent-technology)を参照してください。
+
+<Info>
+  - トリガーアクションでは、同じデバイス上で生成され、MoEngage SDK によって追跡されたアクションのみがサポートされます。S2S から追跡されたイベントや、_App / Site Opened、Device Uninstall、Device ReInstall、User ReInstall など MoEngage がサーバー側で内部的に生成するイベントはサポートされていません。_
+  - 実際のキャンペーンテンプレートは、SDK がトリガーアクションを検出するとすぐにリアルタイムで取得されます。レンダリングをリアルタイムに保つため、イベントの処理を待たずに MoEngage サーバーからキャンペーンテンプレートを取得します。
+  - 同じトリガーアクションを持つキャンペーンが複数ある場合、モバイルアプリまたはウェブサイトに表示するキャンペーンとして SDK が選択するのは 1 つのみです。
+</Info>
+
+## キャンペーンの優先度
+
+同じトリガーアクションを持つキャンペーンが複数ある場合は、キャンペーンの優先度が使用されます。トリガーアクションが実行されるたびに、最も優先度の高いキャンペーンのみが表示されます。
+
+2 つのキャンペーンのトリガーアクションと優先度が同じ場合は、最近作成されたキャンペーンが表示されます。
+
+## 配信コントロール
+
+配信コントロールは、In-App および OSM がアプリやウェブサイトに頻繁に表示されすぎないように制御するために使用されます。以下の配信コントロールがあります。
+
+- Maximum times to show message ever: キャンペーン作成時に定義した最大回数までしかキャンペーンが表示されないように制限します。
+- Minimum delay between 2 messages on this campaign: ユーザーが短時間に複数回トリガーアクションを実行した場合に、キャンペーンが頻繁に表示されるのを防ぎます。
+- Ignore Global Delay between 2 On-site Messaging campaigns: グローバル遅延は、ユーザーが特定の時間内に多数の In-App/OSM キャンペーンを目にすることを防ぎます。この特定のキャンペーンでグローバル遅延を考慮しない場合は、このオプションをオンにします。
+- Auto dismiss message after: 定義した自動非表示時間が経過するとアプリ内メッセージを閉じ、ユーザーの妨げにならないようにします。
+
+<Info>
+  - 配信コントロールはデバイス単位で適用されるため、同じユーザー一意 ID で 2 台の異なるデバイスにログインしている 1 人のユーザーに対しては、配信コントロールが個別に適用されます。
+  - Android デバイスと iOS デバイスにログインしているユーザー 1 の場合、Mobile In-App キャンペーンは各デバイスでそれぞれ 2 回表示されます。
+  - ユーザーがログアウトするかデバイスのキャッシュをクリアすると、配信コントロールはリセットされ、ログアウト/キャッシュクリア後は最初から配信コントロールの評価が行われます。
+  - OSM キャンペーンには、同じページに 2 回以上表示されないというデフォルトの動作があることに注意してください。キャンペーンは次回の再読み込み時または別のページで表示されます。
+</Info>
+
+## キャンペーンのスケジュール設定と初回同期
+
+開始後、キャンペーンが表示され始めるには、以下の依存関係があります。
+
+- セグメンテーションの後、キャンペーンはユーザーがアプリ/ウェブサイトを開いたときにのみ SDK に配信されます。
+
+## パーソナライゼーション
+
+- キャンペーンは、ユーザーがトリガーアクションを実行し、SDK がレンダリングするキャンペーンを選択したときにパーソナライズされます。その後、SDK は MoEngage からキャンペーンテンプレートを取得します。この処理中に、パーソナライズされたテンプレートを SDK に送信します。詳細については、[Personalize With Campaign Attributes](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/overview#types-of-personalization) を参照してください。
+- パーソナライゼーションに失敗した場合、キャンペーンにフォールバックが設定されていなければキャンペーンはレンダリングされません。パーソナライゼーションに失敗した場合、その後に他のキャンペーンが試行されることはないため、パーソナライズされた In-App/OSM メッセージングキャンペーンには常にフォールバックを追加することがベストプラクティスです。詳細については、[Common Personalization Errors and FAQs](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/common-personalization-errors-and-faqs) を参照してください。
+
+## 接続性
+
+- インターネット接続は、Mobile In-App キャンペーンと OSM キャンペーンのレンダリングにおいて重要な役割を果たします。インターネット接続が不安定な場合、MoEngage からのテンプレート取得の遅延、画像ダウンロードの遅延や失敗により、キャンペーンのレンダリングが遅れる可能性があります。
+- 画像のダウンロードに失敗した場合、Mobile In-App キャンペーンはモバイルアプリ上にまったくレンダリングされません。
+
+## In-App および OSM キャンペーンの仕組みを示すデータフロー図
+
+![Untitled\_Diagram.png](/images/moengage_fccd8f.png)
+
+## Mobile In-App キャンペーンの SDK 統合
+
+モバイルアプリで Mobile In-App キャンペーンを表示するには、[Android](https://www.moengage.com/docs/developer-guide/android-sdk/in-app-messages/in-app-nativ) および [iOS](https://www.moengage.com/docs/developer-guide/ios-sdk/in-app-messages/in-app-nativ) の統合ドキュメントに記載されている統合手順に従っていることを確認してください。
+
+アプリで Nudge テンプレートを表示するには、こちらに記載されている統合手順に従う必要があることに注意してください - [Android](https://www.moengage.com/docs/developer-guide/android-sdk/in-app-messages/in-app-nativ) および [iOS](https://www.moengage.com/docs/developer-guide/ios-sdk/in-app-messages/in-app-nativ)。
+
+また、Self-Handled In-App メッセージを使用する予定の場合は、[Android](https://www.moengage.com/docs/developer-guide/android-sdk/in-app-messages/in-app-nativ) および [iOS](https://www.moengage.com/docs/developer-guide/ios-sdk/in-app-messages/in-app-nativ) の統合ドキュメントを参照してください。
+
+## Mobile In-App キャンペーンの SDK バージョン依存関係
+
+以下は、特定の SDK バージョンでのみサポートされる機能の一部です。
+
+| Mobile In-App の機能 | サポート対象の Android SDK バージョン(これより上) | サポート対象の iOS SDK バージョン(これより上) |
+| --- | --- | --- |
+| Ignore Global Delay | 10000 | 6.0.0 |
+| ユーザーによる星半分の評価を許可 | 10000 | 6.0.0 |
+| 評価テンプレートでの 5 つを超える星 | 10000 | 6.0.0 |
+| Action -\> SMS | 10000 | 6.0.0 |
+| Action -\> Custom Action | 10000 | 6.0.0 |
+| Action -\> Track Event with Event Attribute | 10000 | 6.0.0 |
+
+OSM には SDK 統合は不要であり、SDK バージョンに依存する OSM の機能もないことに注意してください。

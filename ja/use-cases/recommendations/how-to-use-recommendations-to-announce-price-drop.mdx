@@ -1,0 +1,142 @@
+---
+title: "レコメンデーションを使用して値下げを告知する方法"
+---
+
+# はじめに
+
+Price Drop キャンペーンは、カートを放棄したユーザーや、商品を閲覧したものの購入しなかったユーザーにアプローチし、値下げされたアイテムについて知らせることを目的としています。このキャンペーンは、クライアントの売上を増加させる実績があります。
+
+このようなキャンペーンを実施することで、企業は次のメリットを得られます。
+
+- 収益とコンバージョンの増加
+- ユーザーへのパーソナライズされたエクスペリエンスの提供
+- 非アクティブユーザーの再活性化
+- リピート購入行動の増加
+
+この記事では、ユーザーがチェックしたが購入しなかった商品が値下げされたときにレコメンデーションをトリガーする Push キャンペーンを作成します。
+
+# 期待される結果
+
+ユーザーのスマートフォンに、値下げされた商品のレコメンデーションを含むプッシュ通知が届きます。
+
+<img
+  src="/images/moengage_465bc4.png"
+  alt="image-20231202-162532.png"
+  style={{ width:"62%" }}
+/>
+
+<img
+  src="/images/moengage_e3680e.png"
+  alt="image-20231202-162336.png"
+  style={{ width:"60%" }}
+/>
+
+<Tip>
+  - ユーザーが商品をチェックする、商品を検索する、アイテムをカートに追加する、商品を購入するといったアクションと、プラットフォーム、購入した商品の ID、名前、価格など各アクションに関連する情報をトラッキングするイベント。イベントのトラッキング方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - 上記でトラッキングしたイベントと、対応する MoEngage イベントとのマッピング。カスタムイベントを MoEngage イベントにマッピングする方法については、[こちら](/ja/user-guide/content/recommendations/getting-started/map-user-actions-settings) を参照してください。
+  - セール価格または割引価格の列を含むカタログとそれに対応するフィード。最新の割引価格情報を追加できるよう、フィードを毎日更新するように設定してください。商品カタログとフィードの詳細については、[こちら](/ja/user-guide/content/recommendations/getting-started/catalogs) を参照してください。
+  - Push、Email、SMS、WhatsApp など 1 つ以上のチャネルの設定。
+  - アカウントで Linked Condition 機能が有効になっていること。
+</Tip>
+
+# レコメンデーションを作成する
+
+このセクションでは、ユーザーのアクションに基づいてレコメンデーションを作成します。
+
+1. MoEngage ダッシュボードに移動し、左側のナビゲーションから **Content** \> **Recommendations** を選択します。Recommendations ページが表示されます。詳細については、[Creating User Action Recommendations](/ja/user-guide/content/recommendations/basic-recommendations/user-actions-model) を参照してください。
+2. 右上の **\+ Create recommendation** をクリックします。最初のステップ "Select recommendation model" に移動します。 <img src="/images/moengage_415bc9.png" alt="image-20231126-104436.png" />
+3. **User Actions** モデルを選択し、**Next** をクリックします。2 番目のステップ "Create recommendation" に移動します。次の詳細を入力します。
+   1. **Recommendation name**: レコメンデーションの名前を入力します。例: "ProductsViewed\_By\_Users"。この名前を使用して、このレコメンデーションモデルの出力を参照します。
+   2. **Recommendation description**: レコメンデーションの説明を入力します。この説明は、モデルの目的を理解するのに役立ちます。
+   3. **Catalog**: レコメンデーションの対象となるカタログを選択します。この例では "Demo - ECommerce" を選択します。 <img src="/images/moengage_4109ba.png" alt="image-20231126-112521.png" />
+4. **Filter recommendations by user actions** で、**Items where user performed** ドロップダウンリストから "Product Viewed in the last 7 Days OR added to Cart in the last 7 Days" を選択し、過去 7 日間に購入されたアイテムを除外します。
+5. **Sort the filtered items** で、**Order results by** ドロップダウンリストから "Most recent" を選択します。 <img alt="image-20231126-110141.png" src="/images/moengage_1f6634.png" />
+6. **Create** をクリックして変更を保存し、モデルを実行します。Recommendations のホームページでは、ステータスが 'Active' 状態になります。Recommendation エンジンは、ユーザーが過去 7 日間に閲覧またはカートに追加したが購入していない商品のセットを、新しい順に並べて共有します。
+
+レコメンデーションを作成したので、次に最後に閲覧した時点から価格が下がった商品についてユーザーにナッジする Push キャンペーンを作成しましょう。
+
+# Push キャンペーンを作成する
+
+このセクションでは、値下げされた商品のレコメンデーションを含む Push キャンペーンを作成します。
+
+## ステップ 1: ターゲットユーザー
+
+1. 左側のサイドバーで **Engage** \> **Campaigns** をクリックして **\+ Create campaign** をクリックするか、**\+ Create new** \> **Campaign** をクリックします。
+2. **Outbound** で、**Push** \> **Event Triggered** を選択します。 <img src="/images/moengage_5af464.png" alt="UC-61 Event triggered.png" /> キャンペーン定義の最初のステップ "Target users" に移動します。
+3. 次の詳細を入力します。
+   - **Team**: 組織のアカウントでチームが有効になっている場合は、チームを選択します。詳細については、[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。例: "Journey"。
+   - **Campaign name**: キャンペーンの名前を入力します。例: "Price Drop Campaign"。
+   - **Campaign tags**: 必要なキャンペーンタグを選択します。 <img src="/images/moengage_27cd45.png" alt="UC-61 campaign details.png" />
+4. **Trigger Criteria** で条件を定義します。このユースケースでは、値下げを確認する前の初期チェックとして、ユーザーがカートに追加したものと同じ商品を購入していない場合にのみコミュニケーションをトリガーする必要があることに注意してください。つまり、動的なチェックを定義する必要があります。たとえば、Pants をカートに追加したユーザーについては、Pant を指す属性を持つ Purchase イベントを探す必要があります。Shoes をカートに追加したユーザーについては、特に Shoes を指す属性を持つ Purchase イベントを探す必要があります。\
+   このような動的な性質を実現するには、Trigger Condition を定義する際に Linked Conditions を使用する必要があります。Linked Conditions の詳細については、[こちら](/ja/user-guide/flows-cross-channel-messaging/create/create-flows/linked-conditions)をクリックしてください。
+5. 上記の動的なチェックを定義するには、次の手順を実行します。
+   1. **IF user** セクションで、ドロップダウンから **Added to Cart** を選択します。
+   2. **\+ Filter** をクリックし、**AND then** セクションで、2 つのドロップダウンからそれぞれ **Has not executed** と **Product Purchased** を選択します。
+   3. **\+ Attributes** をクリックし、**prod\_ID** を選択します。
+   4. 完全一致が必要なため演算子に "is" を選択し、**Constant value** を **Event attribute** に変更します。
+   5. **Added to Cart** イベントが持つ属性のリストから、カートに追加された商品を識別できる属性を選択します。この例では **prod\_ID** です。
+   6. THEN trigger the message で **With Delay** を選択し、要件に応じて遅延時間を定義します。これは、最初の条件が満たされた時点から、ユーザーが条件を満たすかどうかを評価する最大時間となります。\
+      **Select Condition** セクションは次のようになります。 <img src="/images/moengage_ff4937.png" alt="image-20231128-162022.png" />
+6. **Target Audience** セクションで **All users** を選択します。 <img src="/images/moengage_25cbab.png" alt="image-20231129-212852.png" />
+7. **Target Platforms** セクションで **Android** を選択します。ユーザーをターゲットにしたい他のプラットフォームを選択することもできます。
+8. **Next** をクリックして 2 番目のステップ "Content" に移動し、Push キャンペーンのコンテンツを定義します。
+
+## ステップ 2: コンテンツ
+
+1. 使用するテンプレートを選択します。この例では **Basic notification** を選択します。 <img alt="image-20231129-213115 (1).png" src="/images/moengage_eda752.png" />
+2. キャンペーンに必要なコンテンツを入力します。コンテンツは手動で入力するか、Merlin AI を使用して生成できます。詳細については、[Generate Push Messages with Merlin AI](/ja/user-guide/ai-and-intelligence/merlin-ai/merlin-ai-copywriter/generate-push-messages-with-merlin-ai) を参照してください。
+3. メッセージを定義する際に、[定義した](/ja/use-cases/recommendations/how-to-use-recommendations-to-announce-price-drop#create-a-recommendation)レコメンデーションによって生成された商品セットを選択します。Push Personalization ポップアップで "@" を入力し、作成したレコメンデーションの名前である "ProductViewed\_By\_Users" を検索します。 <img alt="image-20231126-112839.png" src="/images/moengage_d14127.png" />
+4. **Done** をクリックします。**Message** フィールドに次の JINJA コードが挿入されます。 <img alt="image-20231129-214008.png" src="/images/moengage_a152c4.png" />
+5. コードを編集して各商品をループ処理し、カートに追加したアイテムの価格が過去に閲覧した価格よりも低い場合にのみ表示するようにします。最終的な JINJA コードは次のようになります。 
+   <CodeGroup>
+   ```ruby JINJA
+   {% if ProductSet.ProductViewed_By_Users%}
+   {% for product in ProductSet.ProductViewed_By_Users%}
+   {% if product.product_id == EventAttribute['product_id'] AND EventAttribute['price']< product.price%}
+   Price for {{product.title}} has reduced further!
+   {% else %}
+   MOE_NOT_SEND
+   {% endif %}
+   {% endfor %}
+   {% else %}
+   MOE_NOT_SEND
+   {% endif %}
+   ```
+   </CodeGroup>
+
+   3 行目の "product.product\_id" は商品セット内の現在の Product ID を指し、"EventAttribute\['product\_id'\]" はトリガーイベントの商品 ID、つまりユーザーが追加したが購入しなかった商品の ID を指します。同様に、"EventAttribute\['price'\]" はトリガーイベントの価格属性を指し、"product.price" は商品の価格を指します。この行では、現在の商品がユーザーが追加した商品と同じかどうか、およびその価格がユーザーが閲覧した商品価格よりも低いかどうかを比較して確認します。該当する場合は、4 行目が出力されます。それ以外の場合、メッセージは送信されません。\
+   また、4 行目の `{{product.title}}` は、レコメンデーションから生成された商品セット内の商品のタイトルを指します。詳細については、[MoEngage Templating Language (JINJA)](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を参照してください。
+7. 上で選択した商品の画像を取得するには、次のコードを入力します。 
+   <CodeGroup>
+   ```ruby JINJA
+   {% if ProductSet.ProductViewed_By_Users%}
+   {% for product in ProductSet.ProductViewed_By_Users%}
+   {% if product.product_id == EventAttribute['product_id'] AND EventAttribute['price']< product.price%}
+   {{product.image_link}}
+   {% else %}
+   MOE_NOT_SEND
+   {% endif %}
+   {% endfor %}
+   {% else %}
+   MOE_NOT_SEND
+   {% endif %}
+   ```
+   </CodeGroup>
+
+   ![image-20231129-215529.png](/images/moengage_25d404.png)
+9. URL などの情報を入力したり、**Buttons** セクションでボタンを追加したり、**Advanced** セクションでクーポンを追加したりして、コンテンツをさらにパーソナライズします。
+   <Info>
+     商品を閲覧またはカートに追加したものの、商品価格が下がっていないユーザーについては、キャンペーンに "Personalization Errors" が表示される場合があります。このキャンペーンは、商品が値下げされ、かつユーザーがキャンペーンイベントを実行した場合にのみターゲットになります。
+   </Info>
+10. **Next** をクリックして 3 番目のステップ "Schedule and goals" に移動し、キャンペーンのスケジュールとゴールを定義します。
+
+## ステップ 3: スケジュールとゴール
+
+1. **Send campaign** セクションで、キャンペーンの開始日時と終了日時を定義します。 <img src="/images/moengage_bfee38.png" alt="3.png" />
+2. **Conversion goals** セクションで、トラッキングしたいコンバージョンゴールを追加します。
+3. 要件に応じて **Delivery controls** と **Advanced** の設定を定義します。詳細については、[Create Push Campaigns](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns) を参照してください。 <img src="/images/moengage_d042cc.png" alt="4.png" />
+4. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、ユーザーがチェックしたが購入しなかった商品が値下げされたときにレコメンデーションをトリガーする Push キャンペーンを作成しました。

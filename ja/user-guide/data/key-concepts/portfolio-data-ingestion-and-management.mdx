@@ -1,0 +1,216 @@
+---
+title: "Portfolio: データの取り込みと管理"
+description: "MoEngage Portfolio を使用して、プロジェクト全体のデータ取り込みを管理します。統合ワークスペースでユーザー属性、イベント、プロファイルがどのように機能するかを説明します。"
+---
+
+この記事では、[Portfolio](/ja/user-guide/settings/account/portfolio/portfolio) 機能が有効になっている MoEngage ワークスペースにおけるデータの取り込み、管理、表示について説明します。この機能はデータとユーザープロファイルを一元化し、すべてのプロジェクトにわたってユーザー属性とイベントをシームレスに管理できるようにします。この記事では以下の内容を扱います。
+
+- [データの取り込み](/ja/user-guide/data/key-concepts/portfolio-data-ingestion-and-management#data-ingestion): 対象プロジェクトを指定しながら、Data APIs、SDK、Data Warehouse を使用してデータを取り込む方法。
+- [データ管理](/ja/user-guide/data/key-concepts/portfolio-data-ingestion-and-management#data-management): Portfolio が有効なワークスペース内でデータ、イベント、ユーザー属性がどのように管理・表示されるか (ユニークイベントおよびユーザー属性の上限の内訳を含む)。
+- [ユーザープロファイルの表示](/ja/user-guide/data/key-concepts/portfolio-data-ingestion-and-management#user-profile): ポートフォリオレベルと個々のプロジェクトレベルの両方でユーザーデータがどのように表示されるか。
+- [派生ユーザー属性](/ja/user-guide/data/key-concepts/portfolio-data-ingestion-and-management#derived-user-attributes-behaviour): 派生ユーザー属性 (LTV、First Seen など) がプロジェクトレベルとポートフォリオレベルの両方でどのように計算・表示されるか。
+
+<Info>
+  [Portfolio](/ja/user-guide/settings/account/portfolio/portfolio) 機能は、ユニーク ID フィールドに基づいて複数のプロジェクトのユーザーデータを単一のプロファイルに統合するように設計されています。そのため、カスタム属性に基づく [ID 解決](/ja/user-guide/data/user-data/unified-identity-identity-resolution) (プロファイルを統合するプロセス) はサポートされていません。
+</Info>
+
+# データの取り込み
+
+お客様 (または開発チーム) は、以下を使用して Portfolio が有効なワークスペースにデータを取り込むことができます。
+
+- [Data APIs](/ja/user-guide/data/key-concepts/portfolio-data-ingestion-and-management#data-apis)
+- [SDK](/ja/user-guide/data/key-concepts/portfolio-data-ingestion-and-management#sdk)
+- [Data Warehouse](/ja/user-guide/data/key-concepts/portfolio-data-ingestion-and-management#data-warehouse)
+
+## Data APIs
+
+MoEngage では、データの取り込み時にユニーク ID を使用してユーザー属性またはイベントを更新します。Portfolio が有効なワークスペースでは、お客様 (または開発チーム) は Data APIs ([Track User](https://www.moengage.com/docs/api/user/track-user)、[Create Event](https://www.moengage.com/docs/api/event/track-event)、[Bulk Import API](https://www.moengage.com/docs/api/bulk/bulk-import-users-and-events) など) を使用して、パラメーターに _projectID_ を渡すことができます。この ID により、ユーザーまたはイベントがどのプロジェクトに属するかが識別されます。**Project ID** は、MoEngage ダッシュボードの **Settings** \> **Account** \> **Portfolio** で確認できます。
+
+**ユースケース** あるブランドが「Brand A」(Project 1) と「Brand B」(Project 2) の別々のアプリを持っているとします。ユーザーが両方のアプリをダウンロードすると、Portfolio 機能は Data APIs または SDK を使用してそのユーザーのすべてのデータを取り込みます。_projectID_ 属性によってデータがどのブランドから発生したかが識別されるため、すべてのイベントとユーザー属性が単一のユーザープロファイルに統合されつつ、正しいプロジェクトに関連付けられます。
+
+<Info>
+  Data APIs を使用してデータを取り込む際、projectID なしで渡された属性は、カスタムポートフォリオユーザー属性と見なされます。
+</Info>
+
+以下は、API エンドポイントで projectID を渡す Data APIs の cURL リクエストのサンプルです。
+
+**Track User:**
+
+JSON
+
+```json
+curl --location 'https://api-0X.moengage.com/v1/customer/{{APP_ID}}?app_id={{APP_ID}}&project_code={{project ID}}' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Basic {{Authorization_Key}}'\
+--data-raw '{
+    "type": "customer",
+    "customer_id": "{{customer_id}}",
+    "attributes": {
+        "name": "John Doe",
+        "first_name": "John",
+        "last_name": "Doe",
+        "age": "67",
+        "email": "2uV4@xyz.com",
+        "gender": "male",
+        "mobile": "{{mobile}}",
+        "geo": "88.90 89.00",
+        "birthday": "02-12-2001",
+        "created_time": "1756198118474",
+        "last_seen": "1756198118474",
+        "userdata": "insert",
+        "revenue": 100,
+        "transaction": "100",
+        "platforms": [
+           { "platform": "iOS",
+             "active": "true"
+           }
+         ]
+     }
+}'
+```
+
+**Create Event:**
+
+JSON
+
+```json
+curl --location 'https://api-0X.moengage.com/v1/event/{{appId}}?app_id={{appId}}&project_code={{projectId} \
+--header 'Content-Type: application/json' \
+--header {"Authorization": "Basic Base64_ENCODED_APPKEY_APIKEY"} \
+--data-raw '{
+        "type": "event",
+        "customer_id": "123",
+        "actions" : [
+                      {
+          "action": "ProductAdded",
+          "attributes": {
+          "product": "Accessories",
+          "color": "Black",
+          "Brand": "Adidas"
+          },
+      "platform": "Android",
+      "app_version": "1.2.3",
+      "user_time": "1708939453396",
+      "current_time" : "1708939453396"
+   }
+ ]
+}'
+```
+
+## SDK
+
+ポートフォリオの変更が利用可能なサポート対象の SDK:
+
+- Android ([14.03.04](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization))
+- iOS ([10.07.0](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization))
+
+## Data Warehouse
+
+[Portfolio](/ja/user-guide/settings/account/portfolio/portfolio) 機能はデータウェアハウス連携を強化し、複数プロジェクトのポートフォリオ内でデータを正しく管理する柔軟性を提供します。これにより、既存のバックエンドデータをブランド固有の分析と包括的な顧客理解の両方に活用できます。
+
+MoEngage は、データの種類ごとに次のように処理します。
+
+- イベント属性はプロジェクトレベルで取り込まれるため、特定のアクションを正しいブランドに帰属させることができます。
+- ユーザー属性はポートフォリオレベルで取り込まれ、更新はすべてのブランドにわたるユーザーのグローバルプロファイルに適用されます。
+
+### イベント属性 (プロジェクトレベル)
+
+ポートフォリオで正確な分析とセグメンテーションを行うには、すべてのイベントを特定のプロジェクトに関連付けることが重要です。そのためには、データソースの列を専用の MoEngage 属性 `moe_project_name` にマッピングする必要があります。
+
+![eventattr.png](/images/moengage_ffc676.png)
+
+**シナリオ例:**
+
+2 つのブランド、Project A (スポーツアプリ) と Project B (ショッピングアプリ) を管理しているとします。データテーブルには `brand` という列があり、各イベントに対して「Project A」または「Project B」といった値が含まれています。
+
+データウェアハウスのセットアップ時に、`brand` 列を MoEngage のイベント属性 `moe_project_name` にマッピングします。これにより、MoEngage はその列の値に基づいて各イベントを正しいプロジェクトに自動的に割り当てます。
+
+<Warning>
+  ソース列の値 (例:「Project A」) は、MoEngage ポートフォリオで設定されているプロジェクト名と**完全に一致**する必要があります。一致しない場合、イベントはポートフォリオレベルで取り込まれ、特定のプロジェクトには関連付けられません。このデータは、プロジェクト固有の分析やセグメンテーションでは使用できなくなります。
+</Warning>
+
+### ユーザー属性の取り込み (ポートフォリオレベル)
+
+一方、インポートするユーザー属性は常にポートフォリオレベルで適用されます。これによりユーザーの単一のグローバルプロファイルが更新され、特定のプロジェクトには紐付けられません。プロセスはポートフォリオ以外のアカウントと同じで、`User ID` や `Updated at` などの標準列をマッピングする必要があります。
+
+<Info>
+  この方法を使用して、_プロジェクト固有の_ユーザー属性をインポートまたは更新することはできません。データウェアハウスからのインポートでサポートされるのは、グローバルユーザー属性のみです。
+</Info>
+
+インポート設定の詳しい手順については、[Data Warehouse インポートガイド](https://moengage-user-guide.mintlify.app/user-guide/data/imports/data-warehouses-imports)を参照してください。
+
+# データ管理
+
+Portfolio が有効なワークスペースでは、**Settings** \>**Data** \> **Data Management** に以下の詳細が表示されます。
+
+- **Overview** タブには、ポートフォリオ全体のユニークイベントとユーザー属性の総数が表示されます。プロジェクト間でイベントやユーザー属性を受け渡すことはできますが、ポートフォリオレベルの上限はデフォルトで固定されています (ユニークイベント 1024 件、ユニークユーザー属性 1024 件)。すべてのプロジェクトにわたるユニークイベントとユーザー属性の合計がこれらの上限を超えないようにしてください。これにより、ビジネス全体のユニークイベントと属性の総数の追跡が簡素化され、固定の上限内に収めることができます。
+- **Events** タブと **User attributes** タブでは、すべてのプロジェクトにわたるイベントとユーザー属性を包括的に確認できます。**Select project** リストを使用してリストをフィルタリングし、特定のプロジェクトのデータを表示できます。 <img src="/images/moengage_29bd09.png" alt="filterbasedonproject.gif" />
+- **標準イベントとカスタムイベントの場合**: MoEngage は、取り込まれたすべてのイベントに _moe\_project\_name_ イベント属性を自動的に追加し、イベントの発生元プロジェクトを示します。たとえば、_Project1_ からの _Purchase_ イベントには、値が _Project1_ の _moe\_project\_name_ 属性が含まれます。 <img src="/images/moengage_8a97b8.png" alt="standard and custom events.png" />
+- **標準ユーザー属性の場合**: MoEngage は、ユーザー属性の **Display name** と **Key name** の両方にプロジェクト名をサフィックスとして追加します。たとえば、_newproject_ の _custom\_attr\_2_ ユーザー属性の表示名とキー名は _custom\_attr\_2\_newproject_ になります。 <img src="/images/moengage_48b837.png" alt="custom_attr_2.png" />
+- **カスタムユーザー属性の場合**: MoEngage は **Key name** にプロジェクト名をサフィックスとして追加し、**Display name** はユーザーが渡したものがサフィックスなしでそのまま使用されます。たとえば、_newproject_ の _custom\_attr\_2_ ユーザー属性のキー名は _custom\_attr\_2\_newproject_ となり、表示名は _custom\_attr\_2_ となります。
+
+# ユーザープロファイル
+
+Portfolio が有効な場合、ユーザープロファイルの **User Info** タブには、ポートフォリオレベルとプロジェクトレベルの両方の情報が表示されます。たとえば、「Brand A」と「Brand B」の両方を利用するユーザーは単一のプロファイルを持ち、そこで合計の _LTV Portfolio_ (両プロジェクトの LTV の合計) を確認できます。
+
+ユーザープロファイルでは、ポートフォリオレベルで以下の詳細を確認できます。
+
+- First Name
+- Last Name
+- Email (Standard)
+- Mobile Number (Standard)
+- MoEngage ID
+- ID
+- Lifecycle
+- Conversion
+- Acquisition
+- Reachability
+
+![PORTFOLIO LEVEL-USER PROFILE.png](/images/moengage_6db38a.png)
+
+ドロップダウンメニューからプロジェクトを選択すると、特定のプロジェクトの **User Properties** を表示できます。
+
+![USERPROPERTIES.png](/images/moengage_d26d30.png)
+
+# 派生ユーザー属性の動作
+
+<Info>
+  異なるプロジェクト間で同じ名前のカスタム属性がある場合は、Data Management で名前を変更してください。これにより混乱を避け、パーソナライゼーションとコンバージョンの正確性を確保できます。
+</Info>
+
+次の表は、プロジェクトレベルおよびポートフォリオレベルで追跡される派生ユーザー属性の一覧です。
+
+| 派生ユーザー属性 | プロジェクトレベルで表示されるか | ポートフォリオレベルで表示されるか | 計算方法 (該当する場合) |
+| --- | --- | --- | --- |
+| LTV | はい | はい | <ul><li>LTV はコンバージョンゴールの設定に基づいて計算されます。詳細については、[Lifetime Value (LTV) の設定](/ja/user-guide/data/user-data/derived-user-attributes#configure-lifetime-value-ltv)を参照してください。</li><li>**LTV Portfolio** には、すべてのプロジェクトレベルの LTV の合計が表示されます。</li><li>プロジェクトレベルの LTV を一貫して追跡するには、同じイベント (プロジェクト間で設定されたイベント属性) を使用してください。</li></ul> |
+| First Seen | はい | はい | **First Seen Portfolio** には、ポートフォリオ内のすべてのプロジェクトの中で最も古い First Seen が表示されます。 |
+| Last Seen | はい | はい | **Last Seen Portfolio** には、ポートフォリオ内のすべてのプロジェクトの中で最新の Last Seen が表示されます。 |
+| No. of conversions | はい | はい |  |
+| No. of Sessions | はい | はい | セッション数は MoEngage SDK を通じてプロジェクトレベルで追跡され、ポートフォリオレベルで合算されます。 |
+| Reachability Push Android | はい | はい | ポートフォリオ内の少なくとも 1 つのプロジェクトでリーチ可能な場合、そのユーザーはプッシュ通知でリーチ可能と見なされます。 |
+| Reachability Push iOS | はい | はい |  |
+| Reachability Push Web | はい | はい |  |
+| Install status <ul><li>Uninstall time</li><li>Device reinstall</li><li>User reinstall</li></ul> | はい | いいえ |  |
+| Location attributes | はい | いいえ |  |
+| First name, Last name, birthday | いいえ | はい |  |
+| Email (Standard) | いいえ | はい |  |
+| Hard Bounce (Email) | いいえ | はい |  |
+| Spam (Email) | いいえ | はい |  |
+| Unsubscribe (Email) | いいえ | はい |  |
+| Mobile number (Standard) | いいえ | はい |  |
+| SMS subscription | いいえ | はい |  |
+| Whatsapp subscription | いいえ | はい |  |
+| Advertising ID (GAID, IDFV) | いいえ | はい |  |
+| Subscription Categories (Email) | いいえ | はい |  |
+| Consent for ad user data (Google Audience sync) | いいえ | はい |  |
+| Consent for ad personalization | いいえ | はい |  |
+
+# FAQ
+
+<Accordion title="すべてのプロジェクトにわたるユニークユーザー属性とイベントの総数が 1024 の上限を超えるとどうなりますか？">
+  この上限を超えたすべてのユニークユーザー属性とイベントは自動的にブロックされます。
+</Accordion>
+
+<Accordion title="Portfolio が有効なワークスペースで、カスタムユーザー属性を使用してユーザープロファイルを統合することはできますか？">
+  いいえ、できません。
+</Accordion>

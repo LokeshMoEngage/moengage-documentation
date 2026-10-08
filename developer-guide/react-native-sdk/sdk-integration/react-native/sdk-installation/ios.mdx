@@ -1,35 +1,114 @@
 ---
 title: "iOS"
-description: "Set up iOS dependencies for the MoEngage React Native SDK with Turbo architecture support."
+description: "Set up iOS dependencies for the MoEngage React Native SDK using CocoaPods or Swift Package Manager."
+keywords: ["react native spm", "npx react-native spm", "swift package manager", "cocoapods", "new architecture", "prebuilt frameworks"]
 ---
 
+Install the iOS dependencies for the MoEngage React Native plugins with either CocoaPods or Swift Package Manager (SPM). CocoaPods is the default for this release. MoEngage publishes new SDK versions to CocoaPods until December 2, 2026, and SPM support is experimental. To move an existing app to SPM, refer to [Migrate From CocoaPods to SPM](/developer-guide/react-native-sdk/migration/migration-of-moengage-sdk-from-cocoapods-to-spm).
+
 <Info>
-  Due to the recent [CocoaPods Specs Repo deprecation](https://blog.cocoapods.org/CocoaPods-Specs-Repo/), you must explicitly define your dependency sources to ensure your project builds successfully.
-
-  Please add the following lines at the very top of your `Podfile`, above any `target` blocks:
-
-  ```ruby Ruby
-  source 'https://github.com/moengage/PodSpecs.git'
-  source 'https://github.com/CocoaPods/Specs.git'
-  ```
-
-  <ul><li>MoEngage Source is required to successfully resolve and fetch MoEngage-specific SDK pods.</li><li>CocoaPods Source is required to ensure all your other standard third-party React Native dependencies continue to resolve correctly.</li></ul>
-
-  After adding these lines to your `Podfile`, run the following command from your ios directory:
-
-  ```bash Bash
-  pod install --repo-update
-  ```
+  From Core 13.0.0, the plugins support only the React Native New Architecture, so they require React Native 0.68 or later with the New Architecture enabled. It is on by default from React Native 0.76. If your application disables it, enable it before you upgrade.
 </Info>
 
-We now offer support for turbo architecture starting from version 10.0.0.
+<Tabs>
+  <Tab title="CocoaPods">
+    <Info>
+      Due to the [CocoaPods Specs Repo deprecation](https://blog.cocoapods.org/CocoaPods-Specs-Repo/), you must explicitly define your dependency sources for your project to build successfully.
 
-To run the application in the  new architecture, follow these steps:
+      Add the following lines at the very top of your `Podfile`, above any `target` blocks:
 
-1. Navigate to the iOS folder.
-2. Run the command **_RCT\_NEW\_ARCH\_ENABLED=1 bundle exec pod install_** to install the necessary dependencies.
+      ```ruby Ruby
+      source 'https://github.com/moengage/PodSpecs.git'
+      source 'https://github.com/CocoaPods/Specs.git'
+      ```
 
-To run the application in the old react architecture, follow these steps:
+      <ul><li>MoEngage Source is required to successfully resolve and fetch MoEngage-specific SDK pods.</li><li>CocoaPods Source is required to ensure all your other standard third-party React Native dependencies continue to resolve correctly.</li></ul>
 
-1. Navigate to the iOS folder.
-2. Run the command **_pod install_** to install the necessary dependencies
+    </Info>
+
+    To install the iOS dependencies, follow these steps:
+
+    1. Navigate to the `ios` directory.
+    2. Run the following command:
+
+       ```bash Bash
+       bundle exec pod install --repo-update
+       ```
+
+    <Note>
+      On React Native 0.68 to 0.75, the New Architecture is off by default. Run `RCT_NEW_ARCH_ENABLED=1 bundle exec pod install --repo-update` instead, so that pods install for the New Architecture.
+    </Note>
+  </Tab>
+  <Tab title="Swift Package Manager (SPM)">
+    <Warning>
+      SPM support is experimental and requires React Native 0.87 or later, because it uses React Native's own SPM autolinking. For more information, refer to [Experimental Swift Package Manager support for iOS](https://reactnative.dev/blog/2026/08/11/react-native-0.87#experimental-swift-package-manager-support-for-ios) in the React Native 0.87 release announcement.
+    </Warning>
+
+    <Note>
+      To migrate an existing CocoaPods integration to SPM, refer to [Migrate From CocoaPods to SPM](/developer-guide/react-native-sdk/migration/migration-of-moengage-sdk-from-cocoapods-to-spm).
+    </Note>
+
+    ### Supported Packages
+
+    The following packages support SPM:
+
+    - `react-native-moengage`
+    - `react-native-moengage-cards`
+    - `react-native-moengage-geofence`
+    - `react-native-moengage-inbox`
+    - `react-native-moengage-personalize`
+
+    ### Integration Steps
+
+    1. Install the npm packages as usual:
+
+       ```bash Bash
+       npm install react-native-moengage
+       ```
+
+    2. Navigate to the `ios` directory and set up SPM:
+
+       - If the iOS project still uses CocoaPods, which includes a new application created from the React Native template, convert it once:
+
+         ```bash Bash
+         npx react-native spm add --deintegrate
+         ```
+
+         For more information, refer to [Migrate From CocoaPods to SPM](/developer-guide/react-native-sdk/migration/migration-of-moengage-sdk-from-cocoapods-to-spm).
+
+       - If the iOS project already uses SPM, run:
+
+         ```bash Bash
+         npx react-native spm
+         ```
+
+       This command is the SPM equivalent of `pod install`. It runs codegen, regenerates the autolinking graph, and links React Native's prebuilt frameworks. The first run takes longer because it downloads and caches those frameworks.
+
+    3. Run `npx react-native spm` again after a fresh clone, after resetting `node_modules`, and after any dependency change. Unlike CocoaPods, `npx react-native run-ios` does not run it automatically.
+
+    4. Build and run with `npx react-native run-ios`, or open `ios/<YourApp>.xcodeproj` in Xcode. Open the `.xcodeproj`, not the `.xcworkspace`: with SPM the workspace is no longer used.
+
+    5. In `ios/<YourApp>/AppDelegate.swift`, import the plugin module and the MoEngage SDK:
+
+       ```swift Swift
+       import ReactNativeMoEngage
+       import MoEngageSDK
+       ```
+
+       The module name is the same as with CocoaPods.
+
+    With SPM you no longer run `pod install`. The MoEngage native SDKs resolve automatically from their SPM repositories. Keep `ios/Podfile`: the React Native CLI still uses it to detect the iOS project, even though CocoaPods no longer installs anything.
+
+    ### Limitations
+
+    <Warning>
+      After you switch to SPM, no target in the Xcode project, including the notification extensions, can use CocoaPods. Use CocoaPods or SPM for the whole application, not both.
+    </Warning>
+
+    - **Minimum iOS version is 15.0.** React Native's generated SPM packages require iOS 15, so this value cannot be lowered. To set it, open `ios/<YourApp>.xcodeproj`, select the app target, and set **General > Minimum Deployments** to 15.0. Do the same for any notification extension targets. The Podfile `platform :ios` line no longer applies. CocoaPods retains iOS 13.
+    - **tvOS is not supported.** React Native's prebuilt frameworks have no tvOS slice. tvOS applications must use CocoaPods.
+    - **Expo is not supported.** The `react-native-expo-moengage` package has no SPM manifest. Expo applications keep using the MoEngage Expo config plugin, with no change.
+    - **Don't add the MoEngage iOS SDK (`apple-sdk`) to Xcode yourself.** The plugins already include it, including `MoEngageRichNotification` for push extensions. If your own extension code needs it, match the exact version the plugin uses. For more information, refer to [Set Up iOS Notification Extensions for Rich Push and Impression Tracking](/developer-guide/react-native-sdk/push/basic/integrating-moengage-service-and-content-extensions/set-up-ios-notification-extensions-for-rich-push-and-impression-tracking).
+    - **Every other React Native library in the application must also support SPM**, either through its own `Package.swift` or through `npx react-native spm scaffold`. This constraint comes from the React Native ecosystem, not from MoEngage.
+  </Tab>
+</Tabs>

@@ -1,0 +1,418 @@
+---
+title: "Webhook"
+---
+
+Webhook アラート送信先を使用すると、指定した URL に詳細な JSON ペイロードを含む HTTP POST リクエストを送信することで、リアルタイムのアラート通知を受信できます。このガイドでは、JSON ペイロードの構造について詳しく説明し、さまざまなアラートタイプのサンプルリクエストを紹介します。
+
+<Info>
+  設定したアラートがトリガーされると、MoEngage は指定された Webhook URL に HTTP POST リクエストを送信します。これにより、社内システム、監視ツール、またはサードパーティサービスとシームレスに統合できます。
+</Info>
+
+## Webhook URL の設定
+
+Webhook 送信先を設定するには、URL を指定する必要があります。URL は、JSON 本文を含む `HTTP POST` リクエストを受け付ける、公開アクセス可能なエンドポイントである必要があります。
+
+<Info>
+  Webhook URL は、受信したアラート通知をリッスンして処理するアプリケーションまたはサービスのアドレスです。
+</Info>
+
+これらのいずれかの方法で URL を取得したら、アラート送信先を設定する際に Webhook URL フィールドに入力します。
+
+## Webhook ペイロードの構造
+
+すべての Webhook 通知は、一貫した JSON 構造に従います。以下の表は、ペイロード内の各フィールドについて説明しています。一部のフィールド、特に `entity_data` オブジェクト内のフィールドは、特定のアラートタイプに固有のものです。
+
+| フィールド名 | データ型 | 説明 |
+| --- | --- | --- |
+| `alert_id` | String | トリガーされたアラートの一意の識別子です。 |
+| `alert_name` | String | ユーザーが定義したアラートの名前です。 |
+| `alert_type` | String | アラートのタイプです。指定可能な値: `CAMPAIGN_STATS`, `FLOW_STATS`, `CAMPAIGN_EXPIRY`, `APNS_TOKEN_EXPIRY`, `FACEBOOK_TOKEN_EXPIRY`. |
+| `db_name` | String | アラートに関連付けられたワークスペースの名前です。 |
+| `alert_evaluation_frequency` | Object | アラート条件をチェックする頻度を示すオブジェクトです。 |
+| `alert_evaluation_frequency.value` | Number | 頻度の数値です（例: `1`）。 |
+| `alert_evaluation_frequency.unit` | String | 頻度の単位です（例: `day`、`hour`）。 |
+| `alert_triggered_at` | String | アラートがトリガーされた日時を示す ISO 8601 タイムスタンプです。 |
+| `alert_evaluation_criteria` | Object | アラートをトリガーした具体的な条件を含むオブジェクトです。 |
+| `alert_evaluation_criteria.name` | String | 評価対象の指標の名前です（例: `DELIVERY_RATE`、`EXPIRY_DAYS`）。 |
+| `alert_evaluation_criteria.operator` | String | 使用される比較演算子です。例: `gt`（より大きい）、`lt`（より小さい）。 |
+| `alert_evaluation_criteria.threshold` | Number | 超過したしきい値です。 |
+| `alert_evaluation_criteria.unit` | String | しきい値の単位です（例: `percentage`、`count`、`day`）。 |
+| `alert_evaluation_criteria.range_start` | String | 評価期間の開始を示す ISO 8601 タイムスタンプです。 |
+| `alert_evaluation_criteria.range_end` | String | 評価期間の終了を示す ISO 8601 タイムスタンプです。 |
+| `alert_evaluation_criteria.moving_avg_range` | Object | 相対アラートでのみ使用できます。移動平均の計算に使用される期間を示します（例: 過去 7 日間）。 |
+| `entity_data` | Object | アラートをトリガーした特定のエンティティ（例: キャンペーン、Flow）の詳細を含む柔軟なオブジェクトです。このオブジェクトは、`APNS_TOKEN_EXPIRY` などの一部のアラートでは使用できません。 |
+| `entity_data.count` | Number | `content` 配列に含まれるエンティティの総数です。 |
+| `entity_data.content` | Array | オブジェクトの配列で、各オブジェクトはアラート条件を満たした 1 つのエンティティを表します。各オブジェクト内のフィールドは `alert_type` によって異なります。 |
+
+### entity\_data.content オブジェクト
+
+以下の表は、`entity_data.content` 配列の各オブジェクトに含まれる可能性のあるフィールドについて説明しています。
+
+| フィールド名 | データ型 | 説明 |
+| --- | --- | --- |
+| `campaign_name` | String | キャンペーンの名前です。 |
+| `campaign_id` | String | キャンペーンの一意の識別子です。 |
+| `flow_name` | String | Flow の名前です。 |
+| `flow_id` | String | Flow の一意の識別子です。 |
+| `version_name` | String | Flow バージョンの名前です。 |
+| `channel` | String | コミュニケーションチャネルです（例: `PUSH`、`EMAIL`）。 |
+| `delivery_type` | String | 配信タイプです（例: `PROMOTIONAL`、`TRANSACTIONAL`）。 |
+| `current_value` | Number | アラートをトリガーしたエンティティの指標の現在値です。 |
+| `moving_avg_value` | Number | 計算された指標の移動平均値です。相対アラートでのみ使用できます。 |
+| `expiry_in_days` | Integer | キャンペーンの有効期限までの日数です。 |
+| `event_type` | String | トラッキング対象のイベントのタイプです。 |
+| `event_name` | String | トラッキング対象のイベントの名前です。 |
+
+## Webhook 署名の検証
+
+Webhook リクエストが本物であり MoEngage から送信されたものであることを保証するため、リクエストヘッダーにデジタル署名が含まれています。
+
+<Info>
+  不正アクセスを防止し、データの整合性を確保するため、サーバー側でこの署名を検証することをお勧めします。
+</Info>
+
+署名は `Signature` HTTP ヘッダーで渡されます。署名は、API キーと未加工のリクエスト本文を連結した文字列の SHA-256 ハッシュを作成することで生成されます。
+
+### 署名の生成と検証
+
+1. **Campaign Report API キーを取得する**: MoEngage ダッシュボードで **Settings \> Account \> APIs** に移動して、このキーを確認します。
+2. **署名文字列を準備する**: [Campaign Report API](/ja/api/campaign-reports/download-campaign-report) キー、パイプ文字（`|`）、未加工の JSON リクエスト本文を連結します。形式: `YOUR_API_KEY|RAW_REQUEST_BODY`
+3. **ハッシュを計算する**: 署名文字列の SHA-256 ハッシュを作成し、16 進ダイジェストとしてエンコードします。
+4. **署名を比較する**: 生成したハッシュを、受信したリクエストの `Signature` ヘッダーの値と比較します。一致すれば、リクエストは本物です。
+
+```python Python
+from hashlib import sha256
+request_body_str = '{"alert_id":"","alert_name":"",...}'
+campaigns_report_api_key = "YOUR_CAMPAIGN_REPORT_API_KEY"
+signature_base_string = campaigns_report_api_key + "|" + request_body_str
+generated_signature = sha256(signature_base_string.encode('utf-8')).hexdigest()
+print("Generated Signature: ", generated_signature)
+```
+
+## サンプルペイロードと cURL リクエスト
+
+以下は、Webhook エンドポイントが受信する `POST` リクエストと JSON ペイロードを示す `cURL` コマンドのサンプルです。`'https://your-webhook-url.com/endpoint'` を実際のエンドポイント URL に置き換えてください。
+
+### キャンペーン統計（CAMPAIGN\_STATS）
+
+#### 絶対しきい値アラート
+
+このアラートは、指標が固定値を超えたときにトリガーされます。
+
+```bash cURL
+curl -X POST 'https://your-webhook-url.com/endpoint' \
+-H 'Content-Type: application/json' \
+-d '{
+    "alert_id": "{{alert_id}}",
+    "alert_name": "Delivery Rate Breach",
+    "alert_type": "CAMPAIGN_STATS",
+    "db_name": "{{db_name}}",
+    "alert_evaluation_frequency": {
+        "value": 1,
+        "unit": "day"
+    },
+    "alert_triggered_at": "2025-03-21T23:59:00Z",
+    "alert_evaluation_criteria": {
+        "name": "DELIVERY_RATE",
+        "operator": "gt",
+        "threshold": 10,
+        "unit": "percentage",
+        "range_start": "2025-03-21T23:59:00Z",
+        "range_end": "2025-03-22T23:59:00Z"
+    },
+    "entity_data": {
+        "count": 2,
+        "content": [
+            {
+                "campaign_name": "",
+                "campaign_id": "",
+                "flow_name": "",
+                "flow_id": "",
+                "version_name": "",
+                "channel": "",
+                "delivery_type": "",
+                "current_value": 70.5
+            },
+            {
+                "campaign_name": "",
+                "campaign_id": "",
+                "flow_name": "",
+                "flow_id": "",
+                "version_name": "",
+                "channel": "",
+                "delivery_type": "",
+                "current_value": 70.5
+            }
+        ]
+    }
+}'
+```
+
+#### 相対しきい値アラート（移動平均あり）
+
+このアラートは、指標が過去の移動平均から乖離したときにトリガーされます。移動平均とは、特定の過去期間（例: 過去 7 日間）における指標の平均値であり、最近のパフォーマンス傾向からの大きな乖離を特定するのに役立ちます。
+
+```bash cURL
+curl -X POST 'https://your-webhook-url.com/endpoint' \
+-H 'Content-Type: application/json' \
+-d '{
+    "alert_id": "{{alert_id}}",
+    "alert_name": "Delivery Rate Breach",
+    "alert_type": "CAMPAIGN_STATS",
+    "db_name": "{{db_name}}",
+    "alert_evaluation_frequency": {
+        "value": 1,
+        "unit": "day"
+    },
+    "alert_triggered_at": "2025-03-21T23:59:00Z",
+    "alert_evaluation_criteria": {
+        "name": "DELIVERY_RATE",
+        "operator": "gt",
+        "threshold": 10,
+        "unit": "percentage",
+        "moving_avg_range": {
+            "value": 7,
+            "unit": "day"
+        },
+        "range_start": "2025-03-21T23:59:00Z",
+        "range_end": "2025-03-22T23:59:00Z"
+    },
+    "entity_data": {
+        "count": 2,
+        "content": [
+            {
+                "campaign_name": "",
+                "campaign_id": "",
+                "flow_name": "",
+                "flow_id": "",
+                "version_name": "",
+                "channel": "",
+                "delivery_type": "",
+                "current_value": 70.5,
+                "moving_avg_value": 10.9
+            },
+            {
+                "campaign_name": "",
+                "campaign_id": "",
+                "flow_name": "",
+                "flow_id": "",
+                "version_name": "",
+                "channel": "",
+                "delivery_type": "",
+                "current_value": 70.5,
+                "moving_avg_value": 10.9
+            }
+        ]
+    }
+}'
+```
+
+### Flow 統計（FLOW\_STATS）
+
+これらのアラートはキャンペーン統計と似ていますが、Flow レベルの指標に焦点を当てています。
+
+```bash cURL
+curl -X POST 'https://your-webhook-url.com/endpoint' \
+-H 'Content-Type: application/json' \
+-d '{
+    "alert_id": "{{alert_id}}",
+    "alert_name": "new alert for the flow commons",
+    "alert_type": "FLOW_STATS",
+    "db_name": "{{db_name}}",
+    "alert_evaluation_frequency": {
+        "value": 1,
+        "unit": "day"
+    },
+    "alert_triggered_at": "2025-03-21T23:59:00Z",
+    "alert_evaluation_criteria": {
+        "name": "TRIP_STARTED",
+        "operator": "lt",
+        "threshold": 20,
+        "unit": "count",
+        "range_start": "2025-03-21T23:59:00Z",
+        "range_end": "2025-03-22T23:59:00Z"
+    },
+    "entity_data": {
+        "count": 2,
+        "content": [
+            {
+                "campaign_name": "",
+                "campaign_id": "",
+                "flow_name": "",
+                "flow_id": "",
+                "version_name": "",
+                "channel": "",
+                "delivery_type": "",
+                "current_value": 70.5
+            },
+            {
+                "campaign_name": "",
+                "campaign_id": "",
+                "flow_name": "",
+                "flow_id": "",
+                "version_name": "",
+                "channel": "",
+                "delivery_type": "",
+                "current_value": 70.5
+            }
+        ]
+    }
+}'
+```
+
+### キャンペーンの有効期限（CAMPAIGN\_EXPIRY）
+
+このアラートは、キャンペーンの有効期限が近づいたときに通知します。
+
+```bash cURL
+curl -X POST 'https://your-webhook-url.com/endpoint' \
+-H 'Content-Type: application/json' \
+-d '{
+    "alert_id": "{{alert_id}}",
+    "alert_name": "Expiry Breach",
+    "alert_type": "CAMPAIGN_EXPIRY",
+    "db_name": "{{db_name}}",
+    "alert_evaluation_frequency": {
+        "value": 1,
+        "unit": "day"
+    },
+    "alert_triggered_at": "2025-03-21T23:59:00Z",
+    "alert_evaluation_criteria": {
+        "name": "EXPIRY_DAYS",
+        "operator": "lt",
+        "threshold": 7,
+        "unit": "day",
+        "range_start": "2025-03-21T23:59:00Z",
+        "range_end": "2025-03-22T23:59:00Z"
+    },
+    "entity_data": {
+        "count": 2,
+        "content": [
+            {
+                "campaign_name": "",
+                "campaign_id": "",
+                "channel": "",
+                "delivery_type": "",
+                "expiry_in_days": 5
+            },
+            {
+                "campaign_name": "",
+                "campaign_id": "",
+                "channel": "",
+                "delivery_type": "",
+                "expiry_in_days": 5
+            }
+        ]
+    }
+}'
+```
+
+### APNS トークンの有効期限（APNS\_TOKEN\_EXPIRY）
+
+このアラートは、Apple Push Notification Service（APNS）トークンの有効期限が近づいたときに警告します。このペイロードには `entity_data` オブジェクトが含まれないことに注意してください。
+
+```bash cURL
+curl -X POST 'https://your-webhook-url.com/endpoint' \
+-H 'Content-Type: application/json' \
+-d '{
+    "alert_id": "{{alert_id}}",
+    "alert_name": "Apns token Breach",
+    "alert_type": "APNS_TOKEN_EXPIRY",
+    "db_name": "{{db_name}}",
+    "alert_evaluation_frequency": {
+        "value": 1,
+        "unit": "day"
+    },
+    "alert_triggered_at": "2025-03-21T23:59:00Z",
+    "alert_evaluation_criteria": {
+        "name": "EXPIRY_DAYS",
+        "operator": "lt",
+        "threshold": 7,
+        "unit": "day",
+        "range_start": "2025-03-21T23:59:00Z",
+        "range_end": "2025-03-22T23:59:00Z"
+    }
+}'
+```
+
+### Facebook トークンの有効期限（FACEBOOK\_TOKEN\_EXPIRY）
+
+このアラートは、Facebook トークンの有効期限が近づいたときに警告します。このペイロードにも `entity_data` オブジェクトは含まれません。
+
+```bash cURL
+curl -X POST 'https://your-webhook-url.com/endpoint' \
+-H 'Content-Type: application/json' \
+-d '{
+    "alert_id": "{{alert_id}}",
+    "alert_name": "fb token Breach",
+    "alert_type": "FACEBOOK_TOKEN_EXPIRY",
+    "db_name": "{{db_name}}",
+    "alert_evaluation_frequency": {
+        "value": 1,
+        "unit": "day"
+    },
+    "alert_triggered_at": "2025-03-21T23:59:00Z",
+    "alert_evaluation_criteria": {
+        "name": "EXPIRY_DAYS",
+        "operator": "lt",
+        "threshold": 7,
+        "unit": "day",
+        "range_start": "2025-03-21T23:59:00Z",
+        "range_end": "2025-03-22T23:59:00Z"
+    }
+}'
+```
+
+## Webhook URL を使用したアラート管理の統合
+
+<Steps>
+  <Step title="App marketplace を開く">
+    MoEngage ダッシュボードの左側のナビゲーションメニューで、**App marketplace** をクリックします。
+
+    <Frame>
+      ![Left Navigation](/images/left-navigation.png)
+    </Frame>
+  </Step>
+  <Step title="Webhooks を選択する">
+    App marketplace ページで **Alert management** をクリックし、**Webhooks** を選択します。
+
+    <Frame>
+      ![Webhook1](/images/webhook1.png)
+    </Frame>
+  </Step>
+  <Step title="Integrate タブを開く">
+    Webhooks ページで、**Integrate** タブをクリックします。
+
+    <Frame>
+      ![Webhook2](/images/webhook2.png)
+    </Frame>
+  </Step>
+  <Step title="接続の詳細を入力する">
+    Integrate タブで、次の詳細を入力します。
+
+    - **Connection name**: 接続の名前を入力します。
+    - **Connection URL**: [Webhook URL の設定](#set-up-your-webhook-url)セクションで作成した Webhook URL を入力します。
+  </Step>
+  <Step title="接続する">
+    **Connect** をクリックします。
+
+    <Frame>
+      ![Webhooks3](/images/webhooks3.png)
+    </Frame>
+  </Step>
+  <Step title="アラート送信先として Webhook を選択する">
+    接続を定義したら、Alert management ページでアラートを作成する際に、**Send Alerts On** リストから新しい送信先を選択します。_Email_、_Slack_、またはその両方を選択できます。
+
+    <Frame>
+      ![Dashboard4](/images/dashboard4.png)
+    </Frame>
+  </Step>
+  <Step title="設定済みの送信先を表示する">
+    送信先を追加すると、Alert management ページで定義済みのアラート送信先を確認できます。
+
+
+    <Frame>
+      ![Alert](/images/alert.png)
+    </Frame>
+  </Step>
+</Steps>

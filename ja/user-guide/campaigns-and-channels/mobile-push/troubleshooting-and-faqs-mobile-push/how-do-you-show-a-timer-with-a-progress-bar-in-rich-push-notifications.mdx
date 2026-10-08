@@ -1,0 +1,49 @@
+---
+title: "リッチプッシュ通知でプログレスバー付きタイマーを表示するにはどうすればよいですか？"
+description: "MoEngage を使用して、Android のリッチプッシュ通知にプログレスバー付きタイマーを表示します。テンプレートの設定と必要なマニフェスト権限について説明します。"
+keywords: ["timer push notification", "progress bar notification", "countdown timer push", "Android rich push template", "manifest permissions", "timer template"]
+---
+
+## 問題
+
+Android で、リッチプッシュ通知のプログレスバー付きタイマーを表示できません。
+
+## 手順
+
+以下の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. All campaigns ページで **Create new** をクリックします。
+3. **Create campaign** ペインの **Outbound** で **Push** をクリックし、配信タイプをクリックします。
+4. ステップ 2 の Content で、**Timer with progress bar** テンプレートを選択します。
+   ![content edited.png](/images/moengage_e8d592.png)
+5. このテンプレートの **Timer** セクションを設定します。このセクションはプログレスバーと同期します。 <img alt="timer edited.png" src="/images/moengage_269fb4.png" />
+6. テストプッシュキャンペーンを送信する前に、Android Manifest.xml ファイルに以下の権限を追加します。
+
+```xml Code
+  Android Manifest.xml
+             
+   <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+       xmlns:tools="http://schemas.android.com/tools">
+       <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+   </manifest>
+```
+
+7. Android 12 以降では、以下のコードを使用してユーザーに SCHEDULE\_EXACT\_ALARM 権限をリクエストし、有効にします。
+   ```json Code
+   if (Build.VERSION.SDK_INT = Build.VERSION_CODES.S) {
+       val alarmManager = ContextCompat.getSystemService(this, AlarmManager::class.java)
+      if (alarmManager?.canScheduleExactAlarms() == false) {
+           startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+       }
+       else {
+       Toast.makeText(this, "Notification Permission already granted", Toast.LENGTH_LONG).show()
+       }
+   }
+   ```
+8. これで、タイマーとプログレスバー付きのリッチプッシュ通知を表示できます。
+   <img
+     alt="timer progress bar.png"
+     src="/images/moengage_96b276.png"
+     style={{ width:"39%" }}
+   />

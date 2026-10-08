@@ -1,0 +1,294 @@
+---
+title: "Personalize SDK"
+description: "MoEngage Personalize SDK を使用して、Android アプリからネイティブにパーソナライズされたエクスペリエンスおよびオファリングキャンペーンを取得し、トラッキングします。"
+---
+
+# 概要
+
+MoEngage Android SDK は、パーソナライズされたキャンペーンを配信するための安全なフレームワークを提供します。ユーザー ID と認証を内部で処理することで連携を簡素化し、API シークレットの管理や手動での HTTPS 呼び出しを不要にします。これにより、合理化されたネイティブインターフェースを通じて、パーソナライズされたキャンペーン情報を直接取得およびトラッキングできます。
+
+<Tip>
+  **前提条件**
+
+  パーソナライズされたエクスペリエンスを取得する前に、以下が完了していることを確認してください。
+
+  - Android SDK に BOM を連携していることを確認してください。詳細については、[BOM を使用したインストール](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)を参照してください。
+  - 初期化: アプリケーションのエントリーポイント（Android では `onCreate()`）内で SDK の `initialize()` メソッドを呼び出します。初期化の詳細については、[SDK の初期化](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization)を参照してください。
+</Tip>
+
+# MoEngage Personalization の連携
+
+BOM を設定したら、`app/build.gradle` に必要なアーティファクトを追加します。バージョン番号は BOM によって管理されます。
+
+<CodeGroup>
+
+```groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:personalization-core")
+}
+```
+
+```kotlin build.gradle.kts wrap
+dependencies {
+    implementation("com.moengage:personalization-core")
+}
+```
+
+</CodeGroup>
+
+# 実装ワークフロー
+
+`MoEPersonalizeHelper` SDK オブジェクトは、動的でパーソナライズされたコンテンツの取得と操作を簡素化するように設計されています。以下は、主な役割ごとに分けたコードの内訳です。
+
+## 1. メタエクスペリエンスの取得
+
+特定のペイロードまたはエクスペリエンスを取得する前に、必ずメタデータの呼び出しを実行してください。この呼び出しを使用すると、指定したステータスのすべてのエクスペリエンスキーを取得でき、後続のリクエストを適切に構成するために必要なコンテキストが得られます。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEPersonalizeHelper.fetchExperiencesMeta(
+        context = context,
+        status = listOf(ExperienceStatus.ACTIVE),
+        onSuccess = { metadata ->
+            println("Success: $metadata")
+        },
+        onFailure = { reason, message ->
+            println("Failure: $reason")
+        }
+    )
+```
+
+```java Java wrap
+MoEPersonalizeHelper.INSTANCE.fetchExperiencesMeta(
+			context,
+			Collections.singletonList(ExperienceStatus.ACTIVE),
+			metadata -> {
+				System.out.println("Success: " + metadata);
+			},
+			(reason, message) -> {
+				System.out.println("Failure: " + reason);
+				return Unit.INSTANCE;
+			}
+		);
+```
+
+</CodeGroup>
+
+必要なエクスペリエンスキーを取得するために、最初に `fetchExperiencesMeta` を呼び出してください。
+
+`onSuccess` コールバックは、メインスレッドでキャンペーンを実行するために必要なすべてのメタデータを含む `ExperienceCampaignsMetadata` オブジェクトを返します。一方、`onFailure` コールバックは、 [`RequestFailureReasonCode` ](https://moengage.github.io/android-api-reference/core/com.moengage.core.model/-request-failure-reason-code/index.html) と、リクエストが失敗した具体的な理由を特定するためのオプションのメッセージを提供します。
+
+## 2. パーソナライズされたコンテンツの取得
+
+メタデータを取得したら、実際のパーソナライズされたペイロードを取得できます。SDK には、単一のエクスペリエンスまたは複数のエクスペリエンスを同時に取得するメソッドが用意されています。
+
+<Info>
+  EXPERIENCE\_KEY は、MoEngage ダッシュボードでキャンペーンを作成する際にエクスペリエンスキャンペーンで使用される一意のキーです。これらのキーは fetchExperiencesMeta の呼び出しを使用して取得できます。
+</Info>
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+// Fetch Single Experience Payload
+    MoEPersonalizeHelper.fetchExperience(
+        context = context,
+        // EXPERIENCE_KEY must be one of the keys returned in the fetchExperiencesMeta call.
+        experienceKey = EXPERIENCE_KEY,
+        attributes = mapOf("customOptionalAttributeKey" to "customOptionalAttributeValue"),
+        onSuccess = { campaignsResult ->
+            println("Success: $campaignsResult")
+        },
+        onFailure = { reason, message ->
+            println("Failure: $reason")
+        }
+    )
+
+    // Fetch Multiple Experience Payload
+    MoEPersonalizeHelper.fetchExperiences(
+        context = context,
+        // EXPERIENCE_KEY must be one of the keys returned in the fetchExperiencesMeta call.
+        experienceKeys = setOf("EXPERIENCE_KEYS"),
+        attributes = mapOf("customOptionalAttributeKey" to "customOptionalAttributeValue"),
+        onSuccess = { campaignsResult ->
+            println("Success: $campaignsResult")
+        },
+        onFailure = { reason, message ->
+            println("Failure: $reason")
+        }
+    )
+```
+
+```java Java wrap
+        // Fetches single personalized experience campaign.
+		MoEPersonalizeHelper.INSTANCE.fetchExperience(
+			context,
+        // EXPERIENCE_KEY must be one of the keys returned in the fetchExperiencesMeta call.
+			EXPERIENCE_KEY,
+			attributes,
+			campaignsResult -> {
+				System.out.println("Success: " + campaignsResult);
+			},
+			(reason, message) -> {
+				System.out.println("Failure: " + reason);
+				return Unit.INSTANCE;
+			}
+		);
+
+		// Fetches multiple personalized experience campaigns.
+		Set<String> hashSet = new HashSet<>();
+		hashSet.add("KEY1");
+		hashSet.add("KEY2");
+
+		MoEPersonalizeHelper.INSTANCE.fetchExperiences(
+			context,
+			hashSet,
+			attributes,
+			campaignsResult -> {
+				System.out.println("Success: " + campaignsResult);
+			},
+			(reason, message) -> {
+				System.out.println("Failure: " + reason);
+				return Unit.INSTANCE;
+			}
+		);
+```
+
+</CodeGroup>
+
+`onSuccess` コールバックは、メインスレッドでキャンペーンを実行するために必要なすべてのメタデータを含む `ExperienceCampaignsResult` オブジェクトを返します。一方、`onFailure` コールバックは、 [`RequestFailureReasonCode` ](https://moengage.github.io/android-api-reference/core/com.moengage.core.model/-request-failure-reason-code/index.html) と、リクエストが失敗した具体的な理由を特定するためのオプションのメッセージを提供します。
+
+以下を取得できます。
+
+- 単一のエクスペリエンス: 単一の `experienceKey` を使用して特定のペイロードを取得します。
+- 一括エクスペリエンス: `experienceKeys` の Set\<String\> を渡して、複数のペイロードを一度に取得します。
+
+ユースケース:
+
+**コンテキストに応じたターゲティング**: 取得の呼び出し時に属性のマップ（例: current\_page: "home"、cart\_value: "500"）を渡すことができます。これにより、MoEngage SDK はリアルタイムで状態に応じたコンテンツ（カートの金額が十分に高い場合の「送料無料」バナーなど）を配信できます。
+
+## 3. インプレッションのトラッキング
+
+パーソナライズされたコンテンツを取得して UI にレンダリングした後は、キャンペーンのパフォーマンスを測定するためにユーザーのインタラクションをトラッキングすることが不可欠です。
+
+パフォーマンスを測定するには、エクスペリエンスが表示されたタイミングをトラッキングする必要があります。これには `campaignEntity` が必要です。UI がコンテンツをレンダリングしたときに、以下のメソッドを使用して「インプレッション」（`experienceShown / experiencesShown`）を記録できます。
+
+### 3a. エクスペリエンスキャンペーンのインプレッションのトラッキング
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+  // campaignEntity are placeholders for the campaign objects returned by the fetchExperiences function. They contain the metadata and payload required by the SDK to attribute impressions and clicks to the correct campaign.
+    MoEPersonalizeHelper.experiencesShown(context, listOf(campaignEntity))
+    MoEPersonalizeHelper.experienceShown(context, campaignEntity)
+```
+
+```java Java wrap
+// campaignEntity are placeholders for the campaign objects returned by the fetchExperiences
+// function. They contain the metadata and payload required by the SDK to attribute impressions and clicks to the correct campaign.
+		MoEPersonalizeHelper.INSTANCE.experiencesShown(context, Arrays.asList(campaignEntity));
+		MoEPersonalizeHelper.INSTANCE.experienceShown(context, campaignEntity);
+```
+
+</CodeGroup>
+
+### 3b. オファリングキャンペーンのインプレッションのトラッキング
+
+[オファリング](/ja/user-guide/decisioning/offer-decisioning/create-offerings)とは、キャンペーン内に含まれる特定のパーソナライズされたアイテム（商品のレコメンデーションやクーポンなど）です。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+ // offeringPayload is the specific data object extracted from an campaignEntity using the unique offering key assigned during campaign creation. It enables tracking at the offering campaign, which is essential when an experience contains multiple offerings within a single payload.
+    MoEPersonalizeHelper.offeringShown(context, offeringPayload)
+    MoEPersonalizeHelper.offeringsShown(
+        context,
+        listOf(offeringPayload1, offeringPayload2)
+    )
+```
+
+```java Java wrap
+// offeringPayload is the specific data object extracted from an campaignEntity using the
+// unique offering key assigned during campaign creation. It enables tracking at the offering campaign, which is essential when an experience contains multiple offerings within a single payload..
+		MoEPersonalizeHelper.INSTANCE.offeringShown(context, offeringPayload);
+		MoEPersonalizeHelper.INSTANCE.offeringsShown(
+			context,
+			Arrays.asList(offeringPayload1, offeringPayload2)
+		);
+```
+
+</CodeGroup>
+
+## 4. クリックのトラッキング
+
+### 4a. エクスペリエンスキャンペーンのクリックのトラッキング
+
+ユーザーがレンダリングされた UI 要素を操作したときに、以下のメソッドを使用して「クリック」（`experienceClicked`）を記録できます。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+// campaignEntity are placeholders for the campaign objects returned by the fetchExperiences function. They contain the metadata and payload required by the SDK to attribute impressions and clicks to the correct campaign.
+    MoEPersonalizeHelper.experienceClicked(context, campaignEntity)
+```
+
+```java Java wrap
+// campaignEntity are placeholders for the campaign objects returned by the fetchExperiences
+// function. They contain the metadata and payload required by the SDK to attribute impressions and clicks to the correct campaign.
+		MoEPersonalizeHelper.INSTANCE.experienceClicked(context, campaignEntity);
+```
+
+</CodeGroup>
+
+### 4b. オファリングキャンペーンのクリックのトラッキング
+
+[オファリング](/ja/user-guide/decisioning/offer-decisioning/create-offerings)とは、キャンペーン内に含まれる特定のパーソナライズされたアイテム（商品のレコメンデーションやクーポンなど）です。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+// offeringPayload is the placeholder for the specific "Offering" payload extracted from inside a campaignEntity. You can use these objects when you want to track interactions at the individual item level rather than the whole campaign.
+    // campaignEntity are placeholders for the campaign objects returned by the fetchExperiences function. They contain the metadata and payload required by the SDK to attribute impressions and clicks to the correct campaign.
+    MoEPersonalizeHelper.offeringClicked(
+        context,
+        campaignEntity,
+        offeringPayload
+    )
+```
+
+```java Java wrap
+// offeringPayload is the placeholder for the specific "Offering" payload extracted from inside a campaignEntity. You can use these objects when you want to track interactions at the individual item level rather than the whole campaign.
+// campaignEntity are placeholders for the campaign objects returned by the fetchExperiences function. They contain the metadata and payload required by the SDK to attribute impressions and clicks to the correct campaign.
+		MoEPersonalizeHelper.INSTANCE.offeringClicked(
+			context,
+			campaignEntity,
+			offeringPayload
+		);
+```
+
+</CodeGroup>
+
+<Info>
+  これらのオファリング固有の関数は、データがオファリングペイロードの一部である場合にのみ使用できます。その他のすべてのエクスペリエンスデータには、標準のエクスペリエンス表示/クリック関数を使用してください。
+</Info>
+
+詳細については、[API ドキュメント](https://moengage.github.io/android-api-reference/personalization-core/com.moengage.campaigns.personalize/-mo-e-personalize-helper/index.html)を参照してください。
+
+# よくある質問
+
+<Accordion title="SDK は UI のレンダリングを処理しますか？">
+  いいえ。SDK は未加工の JSON ペイロードを返します。データの解析と UI コンポーネント（バナーやカルーセルなど）の構築はお客様の責任で行う必要があります。
+</Accordion>
+
+<Accordion title="SDK は画像や動画をキャッシュしますか？">
+  いいえ。SDK はメディアアセットをダウンロードまたはキャッシュしません。JSON で参照されている画像、動画、フォントを処理するには、標準的なメディア読み込みライブラリを使用してください。
+</Accordion>
+
+<Accordion title="取得できるエクスペリエンスの数に制限はありますか？">
+  はい。1 回の呼び出しで最大 25 件のエクスペリエンスを取得できます。これを超えると、SDK は最近更新された 25 件のエクスペリエンスを返し、取得されなかったキーを通知します。
+</Accordion>
+
+<Accordion title="デバイスがオフラインで有効なキャッシュがない状態で取得リクエストが行われた場合はどうなりますか？">
+  SDK は、標準化されたエラーコード（例: NETWORK\_ERROR）とともに空のペイロードを返します。すべてのエラーの詳細については、[こちら](https://moengage.github.io/android-api-reference/personalization-core/com.moengage.campaigns.personalize.model/-experience-failure-reason/index.html)を参照してください。
+</Accordion>

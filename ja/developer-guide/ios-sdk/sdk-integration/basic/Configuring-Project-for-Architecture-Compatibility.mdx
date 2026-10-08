@@ -1,0 +1,57 @@
+---
+title: "アーキテクチャ互換性のためのプロジェクト構成"
+description: "MoEngage iOS SDK v10.x.x での arm64 アーキテクチャ互換性のために Xcode プロジェクトを構成します。"
+---
+
+## 概要
+
+<Note>
+  **注意**
+
+  この記事で説明する変更は、CI/CD 環境にも適用されます。
+</Note>
+
+MoEngage iOS SDK v10.x.x 以降、`x86_64` および `x86` アーキテクチャのサポートは終了しました。SDK は `arm64` アーキテクチャのみをサポートしています。
+
+[Rosetta](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment) シミュレーターで使用される x86_64 アーキテクチャ上で動作するシミュレーター、または Intel ベースの Mac(x86_64)上で動作するシミュレーター向けにプロジェクトをビルドしようとすると、リンカーエラーが発生する場合があります。この記事では、これらのエラーを解決するために Xcode プロジェクトを構成する手順を説明します。
+
+![Architecturecompa](/images/architecturecompa.png)
+
+## ホストマシンのアーキテクチャを特定する
+
+適切な構成手順を判断するために、ターミナルで以下のコマンドを実行して開発マシンのアーキテクチャを特定します。
+
+<CodeGroup>
+
+```shellscript Shell
+uname -m
+```
+
+</CodeGroup>
+
+
+このコマンドは、以下のいずれかの出力を返します。
+
+- **`arm64`**: Apple シリコン搭載の Mac。
+- **`x86_64`**: Intel ベースの Mac。
+
+## 構成手順
+
+### Apple シリコン搭載の Mac の場合(`arm64`)
+
+Apple シリコン搭載の Mac では、`x86_64` アーキテクチャ上で動作する [Rosetta](https://developer.apple.com/documentation/apple-silicon/about-the-rosetta-translation-environment) シミュレーターをビルドのターゲットにすると、リンカーエラーが発生します。これを防ぐには、以下のようにネイティブシミュレーター(`arm64` アーキテクチャ)でのみ実行するようにビルドを構成します。
+
+1. Xcode の **Project Navigator** でプロジェクトを選択し、すべてのターゲット(Pods ターゲットを含む)に対して以下の手順を実行します。
+2. **Build Settings** タブに移動します。
+3. `Debug` ビルドに以下の構成を適用します。
+   - **`Excluded Architectures (EXCLUDED_ARCHS)`**
+     - シミュレータービルドでこの設定に `arm64` が含まれていないことを確認します。
+   - **`Build Active Architecture Only (ONLY_ACTIVE_ARCH)`**
+     - この値を **Yes** に設定します。この設定により、Xcode は現在選択されているシミュレーターのアーキテクチャ向けにのみビルドします。
+   - **Architectures** を ARCHS_STANDARD に設定するか、arm64 を含めます。
+
+![Architeccomp2](/images/architeccomp2.png)
+
+### Intel ベースの Mac の場合(`x86_64`)
+
+Intel ベースの Mac では、iOS シミュレーターは `x86_64` アーキテクチャ上で動作します。MoEngage SDK v10.x.x 以降はこのアーキテクチャをサポートしていないため、プロジェクトをシミュレーターで実行することはできません。アプリケーションをビルドしてテストするには、物理的な iOS デバイスを使用してください。

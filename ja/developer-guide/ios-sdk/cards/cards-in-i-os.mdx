@@ -1,0 +1,388 @@
+---
+title: "iOSのカード"
+description: "SPMまたはCocoaPods経由でMoEngage Cards SDKを使用して、iOSアプリでカードキャンペーンを作成および表示します。"
+---
+
+さまざまなカテゴリーにグループ化できる、ターゲット型または自動化されたApp Inbox/NewsFeedメッセージを作成し、指定した期間Inbox/Feedに保持されるさまざまな最新情報やオファーでユーザーをターゲティングできます。カードの詳細については、[ヘルプ記事](https://www.moengage.com/docs/user-guide/campaigns-and-channels/cards/create/create-a-card-campaign)を参照してください。
+
+<img
+  src="/images/cardsinios1.png"
+  alt="Cardsinios1"
+  title="Cardsinios1"
+  style={{ width:"45%" }}
+/>
+
+# SDKのインストール
+
+## Swift Package Managerを使用したインストール
+
+MoEngageCardsは、SDKバージョン3.2.0からSPMでサポートされています。統合するには、次のGitHub URLリンクを使用し、ブランチをmasterに、またはバージョンを4.11.1以上に設定してください。https://github.com/moengage/MoEngage-iOS-Cards.git
+
+## CocoaPodを使用したインストール
+
+<Info>
+  **情報**
+
+  CocoaPodsは非推奨になりつつあります。MoEngageでは、すべての新規統合にSwift Package Managerを使用することを推奨しています。CocoaPodsの詳細については、[CocoaPods統合ガイド](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/basic/integration-through-cocoa-pods)を参照してください。
+</Info>
+
+次の画像のように、podファイルに依存関係を追加してMoEngageCardsフレームワークを統合します。
+
+<CodeGroup>
+
+```ruby Ruby wrap
+pod 'MoEngage-iOS-SDK/Cards',
+```
+
+</CodeGroup>
+
+次に、`pod install` を実行してフレームワークをインストールします。
+
+## 手動統合
+
+<Info>
+  **手動統合**
+
+  `MoEngageCards` SDKをプロジェクトに手動で統合するには、この[ドキュメント](https://www.moengage.com/docs/developer-guide/ios-sdk/manual-integration/manual-integration)に従ってください。
+</Info>
+
+# AppInbox/Feedの表示
+
+モジュールを統合したら、以下のメソッドを使用して、トランジション付きで `MoEngageCardsListViewController` を表示します。
+
+<CodeGroup>
+
+```swift Swift lines wrap
+// To Push MoEngageCardsListViewController
+MoEngageSDKCards.sharedInstance.pushCardsViewController(toNavigationController: self.navigationController!)
+
+// To Present MoEngageCardsListViewController
+MoEngageSDKCards.sharedInstance.presentCardsViewController()
+```
+
+
+```objective-c objective-c
+// To Push MoEngageCardsListViewController
+[[MoEngageSDKCards sharedInstance] pushCardsViewControllerToNavigationController:navigationController withUIConfiguration:nil withCardsViewControllerDelegate:nil forAppID:@"YOUR_WORKSPACE_ID"];
+
+// To Present MoEngageCardsListViewController
+[[MoEngageSDKCards sharedInstance] presentCardsViewControllerWithUIConfiguration:nil withCardsViewControllerDelegate:nil forAppID:@"YOUR_WORKSPACE_ID"];
+```
+
+</CodeGroup>
+
+<Note>
+  iOS SDK [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) 以降、`presentCardsViewController` と `pushCardsViewController` には `@MainActor` アノテーションが付いています。Objective-Cの呼び出し元には影響しません。（上記のように）`UIViewController` 内のSwiftコードはすでにメインアクター上で実行されるため、これらの呼び出しは変更なしでコンパイルされます。メインアクター以外のSwiftコンテキストから呼び出す場合は、`await MainActor.run { ... }` を使用してメインアクターに移行してください。
+</Note>
+
+上記のように、SDKではPushとPresentのトランジションをサポートしています。Inboxを表示する際のトランジションを独自に処理したい場合は、以下のように [_getCardsViewController(withUIConfiguration:withCardsViewControllerDelegate:forAppID:withCompletionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)getCardsViewControllerWithUIConfiguration:withCardsViewControllerDelegate:forAppID:withCompletionBlock:) メソッドを使用してView Controllerのインスタンスを取得します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.getCardsViewController(withUIConfiguration: nil, withCardsViewControllerDelegate: nil, forAppID: "YOUR_WORKSPACE_ID") { cardsController in
+ print("fetched CardsController")
+}
+```
+
+
+```objective-c Objective C wrap
+[[MoEngageSDKCards sharedInstance] getCardsViewControllerWithUIConfiguration:nil withCardsViewControllerDelegate:nil forAppID:@"YOUR_WORKSPACE_ID" withCompletionBlock:^(MoEngageCardsListViewController * _Nullable) {
+        self.cardsController = cardsController;
+}];
+```
+
+</CodeGroup>
+
+<Note>
+  iOS SDK [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) 以降、`getCardsViewController` には `@MainActor` アノテーションが付いています。Objective-Cの呼び出し元には影響しません。（上記のように）`UIViewController` 内のSwiftコードはすでにメインアクター上で実行されるため、この呼び出しは変更なしでコンパイルされます。メインアクター以外のSwiftコンテキストから呼び出す場合は、`await MainActor.run { ... }` を使用してメインアクターに移行してください。
+</Note>
+
+# Inbox UIのカスタマイズ
+
+前述のスナップショットは、InboxのデフォルトUIの外観を示しています。さらに、アプリのテーマに合わせてApp Inbox画面をカスタマイズすることもできます。画面をカスタマイズするには、[_MoEngageCardsUIConfiguration_](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardsUIConfiguration.html) インスタンスを使用し、上記のメソッドに渡します。以下の例を参照してください。
+
+<CodeGroup>
+
+```swift Swift wrap
+let uiConfig = MoEngageCardsUIConfiguration()
+// Do customization using uiConfig
+// provide the argument while obtaining the MoEngageCardsListViewController instance
+
+// Present Cards View Controller
+MoEngageSDKCards.sharedInstance.presentCardsViewController(withUIConfiguration: uiConfig)
+
+// Push Cards View Controller 
+MoEngageSDKCards.sharedInstance.pushCardsViewController(toNavigationController: self.navigationController!, withUIConfiguration: uiConfig)
+
+// Obtaining the ViewController
+MoEngageSDKCards.sharedInstance.getCardsViewController(withUIConfiguration: uiConfig, withCardsViewControllerDelegate: uiConfig, forAppID: "YOUR_WORKSPACE_ID") { cardsController in
+    self.cardsController = cardsController
+}
+```
+
+</CodeGroup>
+
+<img
+  src="/images/cardsinios2.png"
+  alt="Cardsinios2"
+  title="Cardsinios2"
+  style={{ width:"42%" }}
+/>
+
+これは、ニーズに合わせてInboxのUIを完全にカスタマイズした例です。[_MoEngageCardsUIConfiguration_](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardsUIConfiguration.html) インスタンスを使用してカスタマイズできるUI属性を以下に示します。
+
+## ナビゲーションバーのカスタマイズ：
+
+ナビゲーションバーのカスタマイズには、タイトル、ナビゲーションバーの色、タイトルの色、タイトルのフォントなどの更新が含まれます。[_MoEngageCardsNavigationBarStyle_](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardsNavigationBarStyle.html) のインスタンスを作成し、以下のようにすべての属性を設定してから、それを [_MoEngageCardsUIConfiguration_](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardsUIConfiguration.html) インスタンスに割り当てます。
+
+<CodeGroup>
+
+```swift Swift wrap
+ let uiConfig = MoEngageCardsUIConfiguration()
+              
+// Navigation Bar Customizations
+let navBarStyle = MoEngageCardsNavigationBarStyle()
+navBarStyle.navigationBarColor = UIColor(hex: "#0A1D1F")
+navBarStyle.navigationBarTitleFont = UIFont.systemFont(ofSize: 20.0, weight: .semibold)
+navBarStyle.navigationBarTitleColor = UIColor(hex: "#FFFFFF")
+navBarStyle.navigationBarTintColor = UIColor(hex: "#FFFFFF")
+navBarStyle.navigationBarTransluscent = true
+
+uiConfig.navigationBarTitle = "Hello!!!"
+uiConfig.navigationBarStyle = navBarStyle
+```
+
+</CodeGroup>
+
+## カテゴリータブバーのカスタマイズ：
+
+以下のように、カテゴリータブバーのビューで変更したい [_MoEngageCardsUIConfiguration_](https://moengage.github.io/ios-api-reference/Classes/MoEngageCardsUIConfiguration.html) インスタンスの属性を直接設定します。
+
+<CodeGroup>
+
+```swift Swift wrap
+  let uiConfig = MoEngageCardsUIConfiguration()
+ // Category Tabs Customizations
+ uiConfig.categoryTabsContainerBGColor = UIColor(hex: "#6EA6CF")
+ uiConfig.categoryTabsBGColor = UIColor(hex: "#6EA6CF")
+ uiConfig.categoryTabsTextColor = UIColor(hex: "#0A1D1F")
+ uiConfig.categorySelectedTabBGColor = UIColor(hex: "#BB4D3E")
+ uiConfig.categorySelectedTabTextColor = UIColor(hex: "#FFFFFF")
+ uiConfig.categorySelectionIndicatorBarColor = UIColor(hex: "#B0BF40")
+ uiConfig.categoryTabFont = UIFont.systemFont(ofSize: 12.0, weight: .medium)
+ uiConfig.categorySelectedTabFont = UIFont.systemFont(ofSize: 16.0, weight: .bold)
+```
+
+</CodeGroup>
+
+## 空のInboxのカスタマイズ：
+
+Inboxが空の場合に、メッセージと画像を設定するオプションを提供しています。デフォルトでは、空のInboxは次の画像のように表示されます。
+
+<img
+  src="/images/customizeemptyinbox.jpeg"
+  alt="Customizeemptyinbox"
+  title="Customizeemptyinbox"
+  style={{ width:"45%" }}
+/>
+
+これも、以下のようにUI設定インスタンスを使用してカスタマイズできます。
+
+<CodeGroup>
+
+```swift Swift wrap
+let uiConfig = MoEngageCardsUIConfiguration()
+
+// Empty Inbox Customization
+uiConfig.emptyInboxText = "No New Messages!!!"
+uiConfig.emptyInboxTextColor = UIColor(hex:"#BB4D3E") ?? .white
+uiConfig.emptyInboxTextFont = UIFont.systemFont(ofSize: 28.0, weight: .bold)
+uiConfig.emptyInboxImage = UIImage(named: "emptyInbox")
+```
+
+</CodeGroup>
+
+## Inboxコンテナーのカスタマイズ：
+
+`MoEngageCardsListViewController` のいずれかのプロパティをカスタマイズする必要がある場合は、以下の例を参照してください。
+
+<CodeGroup>
+
+```swift Swift wrap
+let uiConfig = MoEngageCardsUIConfiguration()
+
+// Cards Container customization
+uiConfig.cardsViewControllerBGColor = UIColor(hex:"#0A1D1F")
+uiConfig.cardsTableViewBGColor = UIColor(hex:"#0A1D1F")
+uiConfig.pullToRefreshTintColor = UIColor(hex:"#BB4D3E")
+        
+// To disable Pull to refresh set it to false, set to true by default
+uiConfig.enablePullToRefresh = false
+       
+// To change the Delete/Cancel text in Action Sheet
+uiConfig.actionSheetDeletionText = "Remove"
+uiConfig.actionSheetCancelText = "Never Mind" // New Updates Button Customizations
+uiConfig.newUpdatesButtonTitle = "Updates Available!!"
+uiConfig.newUpdatesButtonFont = UIFont.systemFont(ofSize: 14.0, weight: .semibold)
+uiConfig.newUpdatesButtonBGColor = UIColor(hex:"#BB4D3E")
+uiConfig.newUpdatesButtonTextColor = UIColor(hex: "#FFFFFF")
+```
+
+</CodeGroup>
+
+<Info>
+  **注**
+
+  Inboxではプルして更新がサポートされています。そのアクティビティインジケーターの色は、上記のように更新できます。
+</Info>
+
+## カードプロパティのカスタマイズ：
+
+キャンペーン作成時にダッシュボードでカードをカスタマイズするオプションを提供していますが、それに加えて、キャンペーンを作成するたびに設定しなくて済むように、デフォルトの属性値を設定することもできます。以下の例を参照してください。
+
+<CodeGroup>
+
+```swift Swift wrap
+let uiConfig = MoEngageCardsUIConfiguration()
+
+// Cards Default parameters
+uiConfig.defaultCardBackgroundColor = UIColor(hex:"#6EA6CF")
+
+// On highlighting the cell
+uiConfig.cardSelectionTintColor = UIColor(hex:"#333333")
+
+// Header Label textcolor and font
+uiConfig.cardHeaderLabelFont = UIFont.init(name: "AmericanTypewriter", size: 20.0)!
+uiConfig.cardHeaderLabelDefaultTextColor = UIColor(hex:"#0A1D1F")
+
+// Message Label textcolor and font
+uiConfig.cardMessageLabelFont  = UIFont.init(name: "Baskerville", size: 16.0)!
+uiConfig.cardMessageLabelDefaultTextColor = UIColor(hex:"#0F2E2A")
+
+// TimeStamp Date Format, Label textcolor and font
+uiConfig.timestampDateFormat = "dd/MM, HH:mm"
+uiConfig.cardTimestampLabelFont  = UIFont.init(name: "Courier", size: 14.0)!
+uiConfig.cardTimestampLabelDefaultTextColor = UIColor(hex:"#0F2E2A")
+
+// CTA Button customizations
+uiConfig.cardButtonFont  = UIFont.init(name: "SavoyeLetPlain", size: 16.0)!
+uiConfig.cardButtonDefaultTextColor = UIColor(hex:"#FFFFFF")
+uiConfig.cardButtonDefaultBGColor = UIColor(hex:"#BB4D3E")
+
+// Image Customizations
+uiConfig.cardImageBackgroundColor = UIColor.clear
+uiConfig.cardPlaceholderImage  = UIImage(named: "card-placeholder")
+
+// Card Pinned Indicator
+uiConfig.cardPinnedImage  = UIImage(named: "pinned")
+
+// Unclicked Indicator
+// Either Color OR Image NOT Both, If both are set then image will be considered
+uiConfig.cardUnclickedIndicatorColor = UIColor(hex:"#7EC247")
+uiConfig.cardUnclickedIndicatorImage = UIImage(named: "unclicked")
+
+// Separator
+uiConfig.cardSeparatorBackgroundColor = UIColor(red: 10.0/255.0, green: 90.0/255.0, blue: 190.0/255.0, alpha: 0.30)
+```
+
+</CodeGroup>
+
+# カード数取得API
+
+## 新しいカードの数の取得：
+
+ユーザーがまだ見ていないカードは新しいカードとみなされます。新しいカードの数を取得するには、以下のように [_getNewCardsCount(forAppID:withCompletionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)getNewCardsCountForAppID:withCompletionBlock:) メソッドを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.getNewCardsCount(forAppID: "YOUR_WORKSPACE_ID") { count, accountMeta in
+   print("Card count is \(count)")
+})
+```
+
+</CodeGroup>
+
+## 未クリックのカードの数の取得：
+
+ユーザーがクリックしていないカードの数を取得するには、以下のように [_getUnclickedCardsCount(forAppID:withCompetionBlock:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)getUnclickedCardsCountForAppID:withCompletionBlock:) メソッドを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.getUnclickedCardsCount(forAppID: "YOUR_WORKSPACE_ID") { count, accountMeta in
+  print("UnClicked Card count is \(count)")
+}
+```
+
+</CodeGroup>
+
+# MoEngageCardsDelegateを使用したコールバック
+
+Cardsモジュールからコールバックを受け取るには、[_MoEngageCardsDelegate_](https://moengage.github.io/ios-api-reference/Protocols/MoEngageCardsDelegate.html) プロトコルを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+@objc public protocol MoEngageCardsDelegate {
+   // Called when the Cards data is synced successfully
+    @objc optional func cardsSyncedSuccessfully(forAccountMeta accountMeta: MoEngageAccountMeta)
+}
+```
+
+</CodeGroup>
+
+上記のコールバックを受け取るには、以下のように [_setCardsDelegate(delegate:forAppID:)_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html#/c:@M@MoEngageCards@objc\(cs\)MoEngageSDKCards\(im\)setCardsDelegateWithDelegate:forAppID:)（[_MoEngageSDKCards_](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCards.html) インスタンスのプロパティ）を設定します。
+
+<CodeGroup>
+
+```swift Swift wrap
+class DelegateClass: MoEngageCardsDelegate {
+//  ...
+MoEngageSDKCards.sharedInstance.setCardsDelegate(delegate: self)// Pass delegate instance
+```
+
+</CodeGroup>
+
+# MoEngageCardsViewControllerDelegateを使用したコールバック
+
+Cardsモジュールからコールバックを受け取るには、`MoEngageCardsViewControllerDelegate` プロトコルを使用します。
+
+<CodeGroup>
+
+```swift Swift wrap
+@objc public protocol MoEngageCardsViewControllerDelegate {
+    // Called when MoEngageCardsListViewController is dismissed after being presented
+   @objc optional func cardsViewControllerDismissed(forAccountMeta accountMeta: MoEngageAccountMeta)
+    
+    // Called when a Card is deleted
+    @objc optional func cardDeleted(withCardInfo card: MoEngageCardCampaign, forAccountMeta accountMeta: MoEngageAccountMeta)
+    
+    // Called when a Card is clicked by the user
+    @objc optional func cardClicked(withCardInfo card: MoEngageCardCampaign, andAction action:MoEngageCardAction, forAccountMeta accountMeta: MoEngageAccountMeta) -> Bool
+}
+```
+
+</CodeGroup>
+
+以下の関数のパラメーターとしてデリゲートを渡して、`MoEngageCardsViewControllerDelegate` を設定します。
+
+<CodeGroup>
+
+```swift Swift wrap
+class DelegateClass: MoEngageCardsViewControllerDelegate {
+//  ...
+//Pass delegate instance when presenting the controller
+MoEngageSDKCards.sharedInstance.presentCardsViewController(withUIConfiguration: nil, withCardsViewControllerDelegate: self)
+       
+//Pass delegate instance when pushing the controller
+MoEngageSDKCards.sharedInstance.pushCardsViewController(toNavigationController: self.navigationController!, withUIConfiguration: nil, withCardsViewControllerDelegate: self)
+
+//Pass delegate instance when fetching the controller
+ MoEngageSDKCards.sharedInstance.getCardsViewController(withUIConfiguration: uiConfig, withCardsViewControllerDelegate: uiConfig, forAppID: "YOUR_WORKSPACE_ID") { cardsController in
+            
+}
+```
+
+</CodeGroup>

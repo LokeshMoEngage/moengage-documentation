@@ -1,0 +1,508 @@
+---
+title: "Unified Identity (Identity Resolution)"
+description: "Unified Identity は、複数のソースからのユーザーデータを 1 つのプロファイルに紐付けます。MoEngage の Identity Resolution によって重複ユーザーを排除する仕組みについて説明します。"
+---
+
+<Tip>
+  - すべての MoEngage ワークスペースでは、ログイン時に匿名プロファイルと登録済みプロファイルが自動的にマージされます。この常時有効の動作については、[匿名ユーザーから登録済みユーザーへのマージ](/ja/user-guide/data/user-data/anonymous-to-registered-user-merge) を参照してください。デフォルトの ID 以外の識別子 (メール、携帯電話番号、最大 5 つのカスタム属性など) に基づいて、Data API、SDK、ファイルインポート、Shopify などの統合全体でプロファイルをマージしたい場合は、この記事を参照してください。 
+  - 2 つの仕組みには異なるルールがあります。この機能はオプトイン方式で、一度有効化すると元に戻せません。一方、匿名ユーザーから登録済みユーザーへのマージは常に有効です。どちらも上限なしですべてのイベントを移行します。
+</Tip>
+
+# 概要
+
+ユーザーは、ウェブサイト、アプリ、オフラインストア、ソーシャルログインなどのさまざまなチャネルでブランドとやり取りします。チャネルごとに、同じ人物に対して別々のプロファイルが生成される可能性があります。MoEngage の _Identity Resolution_ 機能は、Data API、MoEngage SDK、または CSV ファイルを通じて取り込まれたデータの ``ID``、``Email``、``Mobile Number`` などの識別子属性を使用して、これらのプロファイルを 1 つにマージします。これにより、セグメンテーション、パーソナライゼーション、レポートのために、各ユーザーの正確なビューを 1 つ得ることができます。
+
+<Callout icon="bars-progress" color="#FFC107" iconType="regular">
+ **前提条件**
+
+  Identity Resolution を使用するには、ユーザーを一意に識別する既存のユーザー属性 (電話番号やメール ID など) を識別子として選択し、識別子として有効化します。この設定にアクセスできるのは Admin のみです。
+</Callout>
+
+
+# ユースケース
+
+Identity Resolution は、次のようなシナリオで重要な役割を果たします。
+- **オンラインとオフラインの照合**: ユーザーがメールアドレスでサイトを閲覧し、その後、電話番号を使用して店舗で購入を完了した場合、Identity Resolution は両方のレコードを同じ人物に紐付けます。
+- **複数のサインイン方法**: ユーザーがメール、モバイル OTP、Facebook ログインで登録し、それぞれ別のプロファイルが作成された場合、より多くの識別子が収集されるにつれて、Identity Resolution がそれらを 1 つに統合します。
+
+# 複数の識別子の設定
+
+<Info>
+  - ワークスペースごとに最大 5 つの識別子を設定できます。``ID`` はデフォルトで常に有効です。少なくとも 1 つの識別子が常に有効である必要があります。
+  - メールや携帯電話番号など、他のユーザー属性を追加の識別子として設定することもできます。たとえば、メール ID と携帯電話番号を識別子として選択した場合、MoEngage はすべてのユーザーのメール ID と携帯電話番号を確認します。複数のユーザーが同じ携帯電話番号を共有しているものの、メール ID が異なる場合、識別子の値の 1 つが一致するため、システムはそれらのユーザーを 1 つのプロファイルに統合します。
+ - 2 つのプロファイルが有効な識別子のいずれかの値を共有している場合、MoEngage はそれらをマージします。プロファイル間でデータが競合する場合は **保持されるプロファイル (retained profile)** が優先され、**マージされるプロファイル (merged profile)** はイベントと属性が移行された後に削除されます。
+</Info>
+
+MoEngage ダッシュボードで複数の識別子を設定するには、次の手順を実行します (Identity resolution を表示およびアクセスできるのは Admin のみです)。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**Settings** \> **Data** \> **Identity resolution** に移動します。
+2. **Identity resolution** ページで、**\+Add identifier(s)** をクリックします。Identity Resolution には最大 5 つの識別子を追加できます。 
+     <Tip>
+     **適切な識別子の選び方**
+
+     適切な識別子とは、1 人の人物を一意に識別し (世帯で共有される電話番号や汎用的なサポート用メールアドレスではないもの)、使用予定のすべてのデータソース (SDK、API、ファイルインポート) で一貫して利用でき、時間の経過とともに別の人物に再利用されないものです。誤った識別子を選択することが、予期しないマージやマージに失敗するプロファイルの最も一般的な原因です。
+     </Tip>
+     <img alt="multi id 2.png" src="/images/moengage_3b4315.png" />
+   1. デフォルトでは、Identity Resolution を使用してユーザープロファイルをマージするための識別子として **ID** が表示されています。**Active** タグは、現在のワークスペースでユーザーのマージに Identity Resolution として現在使用されている識別子を表します。
+   2. 追加したすべての識別子がこのページに一覧表示されます。省略記号アイコン ( <Icon icon="ellipsis-vertical" iconType="solid" /> ) をクリックして、次の操作を実行します。
+      - **Pause identity resolution**: このオプションを使用すると、その識別子に基づくユーザーのマージを一時停止できます。 <img src="/images/moengage_5e13df.png" alt="Screenshot 2025-02-19 at 11.13.42 AM.png" />
+      - **View/Edit exceptions**: このオプションを使用すると、その識別子の例外を表示または編集できます。**View/Edit exception** ダイアログボックスで、リストから例外を選択し、**Save** をクリックします。 <img src="/images/moengage_dad5f1.png" alt="Screenshot 2025-02-19 at 11.09.44 AM.png" />
+3. **Merge settings** オプションを選択すると、[ステップ 2: マージルールの確認](/ja/user-guide/data/user-data/unified-identity-identity-resolution#step-2-review-merge-rules) に移動します。
+4. **Add identifier(s)** ページでは、次の手順を実行できます。
+
+## ステップ 1: 識別子の選択
+
+![Screenshot 2025-02-17 at 11.33.59 AM.png](/images/moengage_26a0bc.png)
+
+1. Identity Resolution の識別子として選択する **User attributes** の横にあるチェックボックスをオンにします。
+2. 各属性の **Description** を確認できます。 
+3. **Exceptions**: null 値と空白値は常に識別子の照合プロセスから除外され、編集や削除はできません。文字列形式でさらに例外を追加できます。
+4. これらの識別子が取得される各種 **Data sources** を確認できます。より多くのデータソースに裏付けられた識別子ほど照合の信頼性が高くなるため、選択する前に Data sources を確認してください。
+5. **Tracked data types** は、その属性のデータがこれまでに MoEngage で追跡されたさまざまなデータ型を示します。
+   <Info>
+    - 識別子にできるのは _string_ 型の属性のみです。その他の型は自動的に文字列に変換されます。
+    - 識別子の照合プロセスでは、文字列の値が完全一致で使用されます。
+   </Info>
+6. **Next** をクリックします。
+
+<Tip>
+大文字と小文字の区別
+
+識別子の照合では大文字と小文字が区別され、正規化は行われません。同じ値がソースによって異なる大文字/小文字で届く可能性がある場合 (例: ウェブでは ``John@brand.com``、CSV インポートでは ``john@brand.com`` として取得されたメールアドレス)、取り込み前に大文字/小文字を統一しない限り、それらのプロファイルはマージされません。
+</Tip>
+
+## ステップ 2: マージルールの確認
+
+1. **プロファイル保持ルール:** このルールは、マージ時にどのユーザープロファイルを残すかを決定し、順番に評価されます。プロファイル保持ルールを追加するには、次の手順を実行します。
+   1. **Rule 1** リストで、ユーザー属性を選択します。2 つのプロファイルのうち一方のみにその属性のデータがある場合、そのプロファイルが保持されます。両方のプロファイルにデータがある場合、Rule 1 では優劣を決められないため、代わりに Rule 2 が実行されます。Rule 1 は任意で、デフォルトでは空です。
+   2. **Rule 2** リストで、ユーザー行動を選択します。これはタイブレーカーとなるルールで、デフォルトは _Latest Last Seen_ です。その行動に一致するプロファイルが保持されます。
+     
+     たとえば、同じユーザーについて 2 つの顧客プロファイルがあり、Profile 1 はオンラインで、Profile 2 はオフラインで受信されたとします。
+      
+      | シナリオ | 一般ルール | Profile 1 (オンライン) | Profile 2 (オフライン) | 結果 |
+      | --- | --- | --- | --- | --- |
+      | **Rule 1 で決定** | 選択した属性にデータがあるプロファイルが、保持されるプロファイルとみなされます。 | Rule 1 = Email<br />ID、名前、メール、携帯電話 — すべて入力済み | ID、名前、携帯電話、メールなし | Profile 1 が保持されます。Rule 1 の属性 (Email) にデータがあるプロファイルだからです。 |
+      | **Rule 1 が同点、Rule 2 で決定** | 両方のプロファイルで選択した属性にデータがある場合、Rule 1 は決定できず (同点)、Rule 2 が評価されて優劣が決まります。 | <ul><li>Rule 1 = Email</li><li>Rule 2 = Latest Last Seen</li></ul><br />ID、名前、メール、携帯電話、first seen — すべて入力済み | ID、名前、メール、携帯電話、first seen — すべて入力済み | 両方のプロファイルに Email があるため、Rule 1 は同点になります。Rule 2 により、"last seen" のタイムスタンプがより新しいプロファイルが保持されます。 |
+       
+       <img src="/images/moengage_b75c28.png" alt="profile retention nw.png" />
+2. **属性ルール**: このルールは、マージ時に特定のカスタム属性をどのように結合するかを制御します。このようなルールは最大 5 つまで追加できます。  
+   独自のカスタムユーザー属性ルールを追加するには、次の手順を実行します。
+   1. **Add rule** をクリックします。
+   2. **User attributes** と **Merge rules** を選択します。
+      たとえば、同じユーザーについて 2 つの顧客プロファイルがあり、Profile 1 はオンラインで、Profile 2 はオフラインで受信されたとします。各プロファイルには _Loyality\_points_ 属性があり、データが入っています。これら 2 つのプロファイルがマージされるときに両方の _Loyality\_points_ の _SUM_ (合計) を求めたい場合は、次の操作を行います。
+      1. **User attribute** リストで **_Loyality_points_** を選択します。
+      2. **Merge rules** リストで _Sum of values_ を選択します。
+         これにより、ユーザープロファイルがマージされるたびに、結果のプロファイルには両方のプロファイルのロイヤルティポイントの合計が含まれます。LTV には _Sum of values_ があらかじめ設定されているため、設定は不要です。
+         <img src="/images/moengage_21c82e.png" alt="Screenshot 2025-02-17 at 11.52.56 AM.png" />
+3. **Verify merge** セクションには、設定したプロファイル保持ルールと属性ルールに基づいてユーザーがどのようにマージされるかが表示されます。マージシナリオを確認したら、**I have verified all merge scenarios** チェックボックスをオンにします。 <img src="/images/moengage_7922ce.png" alt="Screenshot 2025-02-18 at 11.58.16 AM.png" />
+4. **Next** をクリックします。
+
+<Info>
+  既存ユーザーの新しいデータが取り込まれるたびに、MoEngage は既存のユーザープロファイルとそのプロパティを自動的に更新します。プロファイル保持ルールはマージ時にのみ適用されます。
+  </Info>
+
+## ステップ 3: Identity Resolution の有効化
+
+このステップでは、Identity Resolution を有効化する前後に考慮すべき事項について説明します。
+
+<Warning>
+ 有効化する前に考慮すべき、元に戻せない変更: 
+
+ - マージされたユーザーのマージを解除することはできません。
+ - 有効化後 48 時間は、Identity resolution ページで次の操作を実行できません。
+    - 新しい識別子の追加
+    - 識別子の一時停止/再有効化、および例外の編集
+    - Merge settings の変更
+ - Identity Resolution が有効になっている場合、[Merge User API](/ja/api/user/merge-users) は無効になります。
+ - Merge setting を変更すると、変更 **後** に行われるマージ、つまり新たにマージされるユーザーにのみ適用されます。
+ - 変更 **前** にマージされたユーザーは、古い設定でマージされたままです。再評価や取り消しは行われません。
+</Warning>
+
+Identity Resolution を有効化した後:
+
+- ワークスペース内の既存ユーザーは 48 時間かけてマージされます
+- 新たに受信したユーザーは、プロファイル保持ルールに基づいて既存ユーザーとマージされます
+
+<Tip>
+
+マージの上限:
+
+  - ワークスペース内で同じ識別子の値を持つユーザーのうち、マージされるのは **最初の 50 ユーザー** のみで、残りはマージされないままになります。
+  - マージ済みの 50 ユーザーがすでに保持している識別子の値を共有する新しいユーザーが取り込まれた場合、そのユーザー自体は作成されますが、識別子の値はそのプロファイルから削除され、今後のマージには参加しません。
+  - 上限を超えてマージされないままのユーザーに送信された更新も、同様に破棄されます。 
+  - ワークスペースの 50 ユーザーの上限を引き上げるには、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームにお問い合わせください。
+</Tip>
+
+![Screenshot 2025-02-19 at 11.51.05 AM.png](/images/moengage_c5797a.png)
+
+**By activating identity resolution, I understand the impact of merging the user** チェックボックスをオンにし、**Activate** をクリックして Identity Resolution を有効化します。
+
+# データ取り込みのサポート
+
+ MoEngage は、Data API、SDK、ファイルインポート、Shopify などのネイティブ統合といった、すべての取り込み経路で複数の識別子をサポートしています。
+
+<Tabs>
+  <Tab title="Data APIs">
+    - Data API (Track User、Create Event、Bulk Import) は、``ID`` だけでなく、任意の有効な識別子を使用してユーザーを作成または更新できます。 
+    - 別の識別子が存在する限り、ID をまったく持たない Server-to-Server ユーザーを作成できます。
+   
+    ### リクエストボディ
+
+    以下は、User ペイロードと Event ペイロードで構成される Bulk Import API のサンプル cURL リクエストです。
+
+    - User ペイロードには、``attributes`` 内に設定済みの識別子が少なくとも 1 つ含まれている必要があります。 
+    - Event ペイロードには、以下の例のように ``user_identifiers`` 内に識別子を含める必要があります。この例では、_moe\_mobile_ がワークスペースの識別子の 1 つです。
+    
+    <CodeGroup>
+      ```json JSON wrap
+      "user_identifiers":{
+      "moe_mobile":"{{Mobile_Number}}"
+      }
+      ```
+      </CodeGroup>
+
+    #### **Bulk Import API のサンプル cURL リクエスト:**
+
+    **以下の Bulk Import API には、ユーザーとイベントの両方のペイロードが含まれています。**
+
+    cURL
+
+    ```json wrap
+    curl --location 'https://api-xx.moengage.com/v1/transition?app_id=O7NIHY0AT1K1FL8DR1J1' \
+    --header 'Content-Type: application/json' \
+    --header 'Authorization: Basic {{Authorization_Key}}' \
+    --data '{
+        "type": "transition",
+        "elements": [
+          {
+          "type": "customer",
+          "attributes": {
+            "moe_mobile": "{{Mobile_Number}}",
+            "first_name": "John"
+          }
+       },
+    {
+          "type": "event",
+          "user_identifiers": {
+             "moe_mobile": "{{Mobile_Number}}"
+         },
+         "actions": [
+           {
+          "action": "AddToCart",
+          "attributes": {
+              "product": "MacBook Air",
+              "Brand": "Apple"
+           }
+        }
+       ]
+      }
+     ]
+    }'
+
+    ```
+
+    ### S2S ユーザー作成の事前チェックリスト
+
+    複数の識別子を含む S2S リクエストを送信する前に、次の点を確認してください。
+
+    - 送信予定のすべての識別子が、Settings > Data > Identity resolution で有効な識別子として設定されていること。
+    - あいまいな照合を避けるため、可能な限り、リクエストに設定済みの識別子の一部ではなく全部が含まれていること。
+    - 競合時にどのデータソース (オンラインとオフライン、プライマリシステムとセカンダリシステム) を優先するかを反映するように、プロファイル保持ルールが設定されていること。
+    - マージの競合に関する API エラーレスポンスを、黙って再試行するのではなく処理するプロセスがあること。
+    - この方法でトリガーされたマージは元に戻せないため、本番環境に展開する前にステージングワークスペースでテストすること。
+
+    ### プロファイル間の識別子の照合
+
+    1 つの取り込みペイロードに、すでに異なる既存ユーザーに属している識別子の値が含まれる場合があります。たとえば、ペイロード内の `id` がユーザー A に一致し、`moe_mobile` がユーザー B に一致する場合があります。このような場合:
+
+    - 一致するすべてのプロファイルが 1 つのプロファイルにマージされます。識別子の優先順位や「最初に一致したものが優先」というロジックはなく、いずれかの有効な識別子で一致するすべての既存プロファイルがマージの対象になります。
+    - マージは自動的に行われます。リクエストは拒否されず、手動レビューのためにキューに入れられることもありません。
+    - 保持されるプロファイルの値は、設定した [プロファイル保持ルール](/ja/user-guide/data/user-data/unified-identity-identity-resolution#step-2-review-merge-rules) によって決定されます。デフォルトの *Latest Last Seen* タイブレーカーでは、通常、受信したリクエストが最新のアクティビティとなるため、その識別子の値が保持されます。
+
+    <Info>
+      **例**
+
+      `id`、`email`、`moe_mobile` がすべて有効な識別子で、デフォルトのプロファイル保持ルール (*Latest Last Seen*) が適用されているとします。
+
+      既存の状態:
+
+      - **User 1:** `id = ID1`、`email = E1`
+      - **User 2:** `id = ID2`、`email = E2`、`moe_mobile = M2`
+
+      受信ペイロード: `id = ID3`、`email = E1`、`moe_mobile = M2`
+
+      新しいペイロードは、`email` で User 1 に、`moe_mobile` で User 2 に一致します。両方が受信レコードとともにマージされ、次のようになります。
+
+      - **マージ後のユーザー:** `id = ID3`、`email = E1`、`moe_mobile = M2`
+
+      新しいリクエストの last-seen タイムスタンプが最新であるため、`ID3` と受信した値が優先されます。`ID1`、`ID2`、`E2` は削除されます。
+    </Info>
+    
+    プロファイル間の識別子の照合は、すべての Data API (Track User、Create Event、Bulk Import) と、SDK、ファイルインポート、Shopify などのネイティブ統合を含む他のすべての取り込み経路で同じように機能します。マージは、データがどの API やソースから届いたかではなく、Identity Resolution の設定によって決まります。
+    
+    <Warning>
+      1 つのリクエストで 2 つ以上の既存プロファイルが統合される可能性があるため、Identity Resolution を有効化する前に、プロファイル保持ルールと属性マージルールを慎重に確認してください。マージは元に戻せません。
+    </Warning>
+
+    ### 一部の識別子のみを含むペイロード
+
+    Data API の呼び出しに、ワークスペースで設定された識別子の一部のみが含まれている場合 (たとえば、ワークスペースでは `id`、`moe_email`、`moe_mobile` が有効になっているが、リクエストには `moe_mobile` のみが含まれている場合)、MoEngage はその呼び出しをマージではなく、単純なユーザー更新として扱います。
+
+    - **検索:** MoEngage は、リクエストに含まれている識別子 (上記の例では `moe_mobile`) を使用して既存ユーザーを検索します。
+    - **更新:** リクエストペイロード内のすべての属性が、一致したプロファイルに書き込まれます。リクエストに含まれていない識別子の値は、既存のプロファイル上でそのまま維持されます。
+    - **マージなし:** 解決されるプロファイルは 1 つのみであるため、プロファイル保持ルールや属性マージルールは評価されません。これは、複数の既存プロファイルが 1 つに統合され、保持ルールによって残る値が決定される、上記の [プロファイル間の識別子の照合](#cross-profile-identifier-matching) とは異なります。
+
+    <Info>
+      一部の識別子のみを含むペイロード自体がデータ損失を引き起こすことはありません。リクエストに含まれない属性は既存のプロファイル上で保持されます。データ損失が発生するのは、ペイロードの値が同じ属性の既存の値を上書きする場合のみであり、これはすべての取り込み経路における標準的な更新動作です。
+    </Info>
+  </Tab>
+  <Tab title="SDK">
+    サポートされている SDK:
+
+    - Android ([13.6.00](/ja/developer-guide/android-sdk/data-tracking/basic/track-user-attributes))
+    - iOS ([9.23.0](https://www.moengage.com/docs/developer-guide/ios-sdk/data-tracking/basic/tracking-user-attributes))
+    - WebSDK ([2.52.2](https://www.moengage.com/docs/developer-guide/web-sdk/data-tracking/web-sdk-user-attributes-tracking))
+    - [GTM](https://moengage-sdk-docs.mintlify.app/developer-guide/web-sdk/other-supported-web-sdk-integration/google-tag-manager-gtm-templates#track-custom-user-attributes)
+    - [AMP](https://moengage-sdk-docs.mintlify.app/developer-guide/web-sdk/other-supported-web-sdk-integration/configure-and-integrate-amp-event-analytics#tracking-user-attributes)
+    - ReactNative
+    - Flutter
+    - Capacitor
+
+    Identity Resolution に対応した新しい SDK バージョンでは、_identifyUser()_ 関数が導入されています。この関数は _SetUniqueID_ 関数を直接置き換えるもので、複数の識別子属性でユーザーを追跡できます。_IdentifyUser_ 関数を実装する前に、必ず MoEngage でこれらの識別子を設定してください。
+
+    以下は、特定のワークスペースで email と id が識別子として設定されている場合の SDK サンプルコードの例です。
+
+    ### サンプルコード
+
+    <CodeGroup>
+
+    ```text Native Android
+    MoEAnalyticsHelper.identifyUser(context, "android-native-uid")
+    MoEAnalyticsHelper.identifyUser(
+     context,
+     mapOf(
+      "email" to "android@moengage.com",
+      "id" to "android"
+     )
+    )
+    ```
+
+    ```text iOS
+    MoEngageSDKAnalytics.sharedInstance.identifyUser(identity: "ios-native-uid")
+    MoEngageSDKAnalytics.sharedInstance.identifyUser(identities: [
+     "email": "ios@moengage.com",
+     "id": "ios"
+     ])
+
+    ```
+
+    ```text WebSDK
+    Moengage.identifyUser({
+      uid: 'uid1',
+      u_em: 'email1@someEmail.com'
+    })
+    ```
+
+    ```text ReactNative
+    ReactMoE.identifyUser("react-native-uid");
+    ReactMoE.identifyUser({
+     "id": "react-native",
+     "email": "react-native@moengage.com"
+    })
+
+    ```
+
+    ```text Flutter
+    final MoEngageFlutter _moengagePlugin = MoEngageFlutter(WORKSPACE_ID);
+    _moengagePlugin.identifyUser("flutter-uid");
+    _moengagePlugin.identifyUser({
+     "email": "flutter@moengage.com",
+     "id": "flutter"
+    })
+    ```
+
+    </CodeGroup>
+
+    <Info>
+      ユーザー識別とセッション管理を改善するため、SDK 関数が更新されています。
+
+      - **強制ログアウト**: MoEngage SDK は、デバイス上で新しいユーザーが検出されたときに、以前のユーザーを自動的にログアウトしなくなりました。データの破損を防ぐため、Identity Resolution が有効になっているワークスペースでは、ログアウトを明示的に呼び出す必要があります。
+      - **SetUniqueID**: _IdentifyUser_ 関数は複数の識別子をサポートしており、ユーザー識別に _SetUniqueID_ 関数を使用する必要がなくなります。_SetUniqueID_ は今後の SDK バージョンのリリースで削除される予定であるため、特にワークスペースで Identity Resolution を使用している場合は、代わりに _identifyUser_ を使用することが重要です。
+      - **SetAlias**: Identity Resolution 機能が有効になっているワークスペースでは、MoEngage SDK は以前の識別子の値を保存します。_IdentifyUser_ 関数を使用して新しい識別子の値を追跡すると、MoEngage SDK は識別子の値の変更を検出し、それに応じて報告します。
+    </Info>
+     **リンクされたプロファイルのプログラムによる取得**
+     非同期ゲッター ``getUserIdentities()`` を使用すると、現在のローカルセッションにどの識別子が紐付けられているかをクライアント側で確認できます。ローカルの SDK ストレージを照会し、現在紐付けられているすべての識別子のキーと値の JSON ディクショナリを返します。
+      <Tip> 
+      明示的なユーザーログアウトの前に ``getUserIdentities()`` を実行して、リンクされている識別子を確認し、アクティブなデバイスの ID リンクが切れないようにしてください。
+      </Tip>
+  </Tab>
+  <Tab title="ファイルインポート">
+    ワークスペースに設定された複数の識別子は、次のセクションで確認できます。
+
+    ### Segment でのユーザーインポート
+
+     - 特定のワークスペースに複数の識別子を設定している場合、新しいユーザーインポートを作成する際のステップ 2 の **Map identifiers** セクションにそれらが表示されます。設定していない場合は ``ID`` のみが表示されます。  <img src="/images/moengage_68f0b5.png" alt="Screenshot 2025-02-24 at 1.05.49 PM.png" />
+     - 匿名ユーザーのインポートで、識別子となっているユーザー属性を匿名 ID として選択した場合、インポートされたユーザーが同じ識別子の値を持つ既存ユーザーとマージされる可能性があります。たとえば、メール ID を識別子として設定しており、識別子のマッピング時にメール ID を匿名 ID として選択した場合、インポートされたユーザーが同じメール ID を持つ他のユーザーとマージされる可能性があります。 <img src="/images/moengage_16823a.png" alt="Screenshot 2025-02-24 at 4.37.35 PM.png" />
+     <Info>
+        - アップロードする CSV には、設定済みの識別子に一致する列が少なくとも 1 つ含まれている必要があります。
+        - 新しい識別子を有効化した後は、既存の定期インポートを更新して、それらを正しくマッピングしてください。
+      </Info>
+    
+    ### Data でのデータインポート
+      特定のワークスペースに複数の識別子を設定している場合:
+
+    - 新しいユーザーデータインポートを作成する際に、**Map identifiers** セクションでそれらを確認できます。設定していない場合は ``ID`` のみが表示されます。
+    - 新しいイベントデータインポートを作成する際に、**Step 2: Import configuration and action** の **Map identifiers** セクションでそれらを確認できます。設定していない場合は ``ID`` と ``Event time`` のみが表示されます。 <img src="/images/moengage_d6a331.png" alt="Screenshot 2025-02-24 at 2.41.57 PM.png" />
+    - 新しい補助データインポートを作成する際に、**Step 2: Import configuration and action** で **Map identifiers** セクションの **Update user profile attributes** (任意) トグルをオンにすると、それらを確認できます。設定していない場合は ``ID.`` のみが表示されます。 <img src="/images/moengage_2ea26e.png" alt="Screenshot 2025-02-24 at 2.39.25 PM.png" />
+    
+    ### ファイルインポートと Segment の CSV 処理ルール
+    
+    CSV アップロードは、有効な Identity Resolution の設定に完全に従い、次のように動作します。
+    - **複数キーでの取り込み**: 行に複数の有効な識別子の値 (例: メールと携帯電話の両方) が含まれている場合、MoEngage は両方を既存のレコードと照合します。1 つの行が 2 つの異なるプロファイルをつなぐ場合、バックグラウンドでのマージが即座にトリガーされます。
+  </Tab>
+  <Tab title="Shopify">
+    ## 識別子の設定
+
+  <Tip>
+    **前提条件**
+
+    ワークスペースで Identity Resolution を有効にするには、CSM にお問い合わせください。
+  </Tip>
+
+  MoEngage でユーザーをマージするための識別子は、最大 5 つまで設定できます。ビジネス要件に基づいて識別子を指定してください。
+
+  ## 既存の重複ユーザーの処理
+
+  MoEngage は、有効化した識別子とワークスペースで選択したマージ設定に基づいて、ワークスペース内の既存ユーザーをマージする 1 回限りのスクリプトを実行します。
+
+  識別子が有効化されると、機能の有効化を追跡するためのサポートチケットが発行されます。機能はバックエンドから有効化され、識別子が有効になり、設定された識別子に基づいて既存ユーザーのマージが開始されます。機能が有効化されると、実行されたすべてのユーザーマージアクションを示すレポートが生成されます。このレポートは、リクエストに応じてサポートチームから提供されます。
+
+  このセクションでは、Shopify で MoEngage の Identity Resolution を使用する方法について説明します。
+
+  <Tip>
+    **前提条件**
+
+    Shopify が MoEngage と統合されており、Email-id または携帯電話番号がプロファイルマージの識別子として設定されていることを確認してください。
+
+    ![](/images/moengage_15d1a4.png)
+  </Tip>
+
+  ### シナリオ 1: Email-id を識別子とする場合
+
+  ユーザーがメール ID を使用して Shopify に登録するか、アプリケーションを通じて商品を購入します。
+
+  ユーザーが **Check Out** をクリックすると:
+
+  - その注文のカートトークンが生成され、新しい購入を行うたびに定期的に更新されます。
+  - 商品購入時にメール ID やその他の詳細を提供した後、ユーザーは匿名として扱われなくなります。
+
+  このシナリオでは、以下で説明するように、ユーザーが異なるメール ID でアプリケーションを閲覧する 3 つのインスタンスを考えます。
+
+  #### インスタンス 1:
+
+  匿名ユーザー U1 がカートに商品を追加し、メール ID として [_Demo@gmail.com_](mailto:Demo@gmail.com) を入力して、登録済みユーザーに変換されます。カートトークン (C1) が生成されます。
+
+  <img
+    src="/images/moengage_ebc687.png"
+    style={{ width:"57%" }}
+  />
+
+  #### インスタンス 2:
+
+  匿名ユーザー U2 がカートに商品を追加し、メール ID として [_Demo2@gmail.com_](mailto:Demo2@gmail.com) を入力して、登録済みユーザーに変換されます。カートトークン (C2) が生成されます。
+
+  #### インスタンス 3:
+
+  匿名ユーザー U3 がカートに商品を追加し、メール ID として [_Demo@gmail.com_](mailto:Demo@gmail.com) を入力すると、そのプロファイルが U1 とマージされます。カートトークン (C3) が更新されます。
+
+  メール ID を識別子として設定しているため、MoEngage は User 1 と User 3 が同じ Email-id を共有していることを識別し、それらのプロファイルをマージします。
+
+  すべてのユーザーイベントは、MoEngage ダッシュボードの **Segment \> User Profile \> Activity Info** で確認できます。
+
+  <img
+    src="/images/moengage_229499.png"
+    style={{ width:"88%" }}
+  />
+
+  ### シナリオ 2: 携帯電話番号を識別子とする場合
+
+  ユーザーがメール ID でウェブサイトに登録し、注文取引時に携帯電話番号を入力しました。次にそのユーザーがオフラインストアを訪れ、商品購入時に同じ携帯電話番号を入力します。
+
+  - User1 は Shopify で携帯電話番号 (M1) を使用してオンラインで登録し、ウェブサイトで何らかのアクティビティを行います。
+  - User2 はオフラインストアを訪れ、商品購入時に携帯電話番号 (M1) を入力します。その後、オフラインデータは CSV インポートを使用して MoEngage にアップロードされます。このような場合、MoEngage は User 1 と User 2 が同じ携帯電話番号を共有していることを識別し、それらのプロファイルをマージします。
+
+  </Tab>
+</Tabs>
+
+# マージシナリオのシミュレーション
+
+ID 解決によって実行されたマージは元に戻せません。ワークスペースで識別子を有効化する前に、<a href="https://user-merge-stimulator.lovable.app/identity-resolution-sandbox.html" target="_blank" rel="noopener noreferrer">Identity Resolution Sandbox</a> を使用して、具体的なシナリオを検証してください。たとえば、プロファイル間の識別子の照合、プロファイル保持ルールの結果、属性値が保持されるか削除されるかをテストできます。
+
+<Note>
+このサンドボックスは、学習および検証専用のシミュレーションです。お使いの MoEngage ワークスペースには接続されておらず、ここで実行した操作がユーザーデータに影響することはありません。
+</Note>
+
+# ユーザーのマージによる影響
+
+マージは、データ、セグメント、キャンペーンに影響し、内部システムイベントをトリガーします。有効化する前に、それぞれを確認してください。
+
+<Tabs>
+  <Tab title="データへの影響">
+    - ユーザー属性情報: 保持されるプロファイルの属性が優先されます。保持されるプロファイルにない属性は、マージされるプロファイルから補完されます。
+    - デバイス: 両方のプロファイルのすべてのデバイスが保持されるプロファイルに引き継がれ、デバイスデータが失われることはありません。
+    - イベント: マージされるプロファイルのイベントは、保持されるプロファイルに移行されます。これには、推移的な複数 ID のマージ (ユーザーが、それ自体すでにマージされたプロファイルにマージされる場合) も含まれます。
+  </Tab>
+  <Tab title="セグメントへの影響">
+    - アクティブなセグメント: ユーザーがマージされると、重複したプロファイルが 1 つに統合されるため、アクティブなセグメントの総ユーザー数が減少する場合があります。
+    - カスタムセグメント: カスタムセグメントが更新されるたびに、ユーザー数が変わる場合があります。
+  </Tab>
+  <Tab title="キャンペーンへの影響">
+    - ユーザーのマージは、全体のリーチ可能数に影響する場合があります。マージされると、マージされるユーザーの連絡先情報が失われるため、キャンペーン全体のリーチ可能数が減少する可能性があります。これはキャンペーン全体の統計にも影響します。
+    - 複数の識別子をサポートしているのは Data API (Track User、Create Event、Bulk Import API) のみです。MoEngage のその他の API では、引き続き ID が必要な場合があります。
+  </Tab>
+  <Tab title="システムイベントへの影響">
+    ### システム生成のマージイベント
+    自動化された Identity Resolution が重複プロファイルを統合すると、MoEngage はシナリオに応じて内部システムイベントを発生させます。
+    - ``MOE_USER_MERGE_EVENT``: 標準的なプロファイルマージが開始されるたびに、グローバルに発生します。
+    - ``MOE_USER_MERGED``: データフィールドが正常に結合されると、プライマリ (保持される) プロファイルで発生します。
+    - ``MULTI_ID_USER_MERGED``: 複数識別子の設定によって複数のレコードが解決され、統合された場合にのみ発生します。
+    
+    つまり、通常の単一識別子のマージでは ``MOE_USER_MERGE_EVENT`` と ``MOE_USER_MERGED`` が発生します。複数 ID のマージでは、``MULTI_ID_USER_MERGED`` を含む 3 つすべてが発生します。
+    <Info>
+     デフォルトで非表示
+
+     ``MULTI_ID_USER_MERGED`` の表示はデフォルトで OFF になっているため、Segment や Flow のイベントドロップダウンには表示されません。表示するには、**Settings** > **Data Management** > **User Events** に移動し、表示を ON に切り替えます。
+    </Info>
+  </Tab>
+  <Tab title="リーチ可能性への影響">
+    |  |  |  |
+    | --- | --- | --- |
+    | **チャネル** | **リーチ可能性の属性** | **マージの結果** |
+    | Email | Hard bounce | マージされる複数のユーザーが同じメール ID を持ち、hard bounce の値が競合している場合、結果は hard Bounce = true になります。  マージされるユーザーのメール ID が異なる場合、マージ後は保持されるユーザーのメール設定が維持されます。 |
+    |  | Spam | マージされる複数のユーザーが同じメール ID を持ち、Spam ステータスが競合している場合、結果は Spam = true になります。  マージされる複数のユーザーのメール ID が異なる場合、保持されるユーザーの Spam ステータスが維持されます。 |
+    |  | Unsubscribe | マージされる複数のユーザーが同じメール ID を持ち、Spam ステータスが競合している場合、結果は Unsubscribe = true になります。  マージされる複数のユーザーのメールの値が異なる場合、保持されるユーザーの Unsubscribe ステータスが維持されます。 |
+    |  | Subscription Categories | 保持されるユーザーのサブスクリプションカテゴリが維持されます。 |
+    | Push | Reachability push status code (iOS、Android、Web) | ユーザーがマージされると、すべてのデバイスが保持されるユーザーに追加されます。  最終的なリーチ可能性は、保持されるユーザーが持つすべてのデバイスに基づいて算出されます。 |
+    | SMS | Subscription status | 保持されるユーザーの携帯電話番号の設定が維持されます。 |
+    | WhatsApp | Subscription status | 保持されるユーザーの携帯電話番号の設定が維持されます。 |
+  </Tab>
+</Tabs>
+
+# よくある質問
+<AccordionGroup>
+  <Accordion title="マージ中に一部のユーザー属性やイベントが失われたようです。そのようなことはありますか?">
+    はい。
+
+    - 例 1: 2 人のユーザーが共有の識別子でマージされたものの、属性の値が異なる場合、マージされたプロファイルには保持ルールに基づく値のみが残ります。そのため、属性値の一方が失われます。
+
+    - 例 2: 2 人のユーザーが共有の携帯電話番号でマージされたものの、メールアドレスが異なる場合、マージされるプロファイルのメールアドレスは失われ、保持されるプロファイルのメールアドレスのみが残ります。
+
+    これを制御するには、プロファイル保持ルールを慎重に設定する必要があります。マージは元に戻せません。
+  </Accordion>
+
+  <Accordion title="Identity Resolution を有効化した後、ユーザー数と MTU の数値が急に減少しました。なぜですか?">
+    2 つのプロファイルが 1 つにマージされると、一方のプロファイルが削除されます。これにより、Total users、MTU、MAU などの主要な指標が減少します。
+
+    マージされていない重複プロファイルはそれぞれ、Monthly Tracked Users (MTU) に個別にカウントされます。MTU は MoEngage の請求額を決める主要な要素です。重複を 1 つのプロファイルにマージすると MTU 数が減少するため、既存の重複を整理することで、データの精度が向上するだけでなく、コストも削減できる場合があります。
+  </Accordion>
+</AccordionGroup>

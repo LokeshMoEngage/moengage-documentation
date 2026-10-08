@@ -1,0 +1,64 @@
+---
+title: "MoEngage のメールエディター（Custom HTML Editor）に追加した HTML テンプレートに対して、MoEngage はどのような自動フォーマットを行いますか？"
+description: "メタタグ、ブラウザで表示リンク、トラッキングなど、MoEngage が Custom HTML Editor で適用する HTML の自動フォーマットについて説明します。"
+---
+
+## Auto-format HTML Code トグルに依存しない自動フォーマット
+
+MoEngage は、メールの **General Settings** にある **Auto-format on HTML code** トグルの設定にかかわらず、[カスタム HTML エディター](/ja/user-guide/campaigns-and-channels/email/create/create-content-with-custom-html-editor)内の HTML コードに次の編集を自動的に適用します。
+
+- **Head タグと Meta タグの管理**
+  - HTML コードに `<head>` タグがすでに存在する場合、MoEngage はその中にメタタグを追加します。
+  - `<head>` タグが見つからない場合、MoEngage は `<head>` タグを追加し、その中に次のメタタグを挿入します。
+    <CodeGroup>
+    ```html HTML wrap
+    <head><meta charset=\"utf-8\" content=\"text/html\" http-equiv=\"Content-Type\"/><meta content=\"noindex, nofollow, noarchive\" name=\"robots\"/><meta content=\"noindex, nofollow, noarchive\" name=\"googlebot\"/></head>
+    ```
+    </CodeGroup>
+
+- **View In Browser（VIB）リンクの挿入**：View in browser（VIB）リンクは sentry の設定に基づいており、以下のように必要なスタイルとともに追加されます。
+  <CodeGroup>
+  ```html HTML wrap
+  <p style=\"text-align:center;\"><a href=\"https://moe_nlbl.em-staging.moestaging.com/v1/emailview?q=Mi6d.xBht5tyEj_INcLCXHXCfdjsi4QiAB_v9uDLewPUx.zAQxMn8bsBVaBuGQAMKnWX-Uls1vA2j_VWB3TF08b96XTmXPHkzeKjJjEgvUPXzpj2KP0CVfWrkGXdI9udDE2M9JyIyacapt5wnhwK2HJ626fQWjhYquY59_LAqcE0dy8c1XaHwW1aEnIXS9uzmqMprgAW5y3.b9zoqHQ4-fx9y8VvO0l7VVrdCBge.TqlUwDYjtB8z0f4ZBQ21hL2_U5pMrfI3sEVNAW5xc7rcj8ej06K2xw&amp;event_date=2025-07-11&amp;event_time=1752206312\" id=\"moe_internal_email_vib\">View in browser</a></p>
+  ```
+  </CodeGroup>
+
+- **開封トラッキングピクセル**：以下のように、必要なスタイルとともに開封トラッキングピクセルが HTML に挿入されます。
+  <CodeGroup>
+  ```html HTML wrap
+  <img src=\"https://moe_nlbl.em-staging.moestaging.com/v1/emailopen?q=j1vTe6H7y09dUFUqGje78kyXWHatIRHnWOAe9ucVceX0wJPLnHLjDhYLCMcVAOGoSbbd-M4qee2b.VrSS8f8Y9dK.ubhElcv6QztFhjr8F2xwk9VJBN1AGczayfUxAtOcOFR8SOEIg28JIHWLN2y6iRxB18jeLGuMxpb_mcxyblAU.fPh0kZbt26XSV_INzcCU.H5EfMePgrEPOEBbF4-slGc1jyHVUX7JF2nv3dDjYrkLJpsCfcij8ehbjgEr1ocZtAPBR4cwGcFQIWzPVsZWxdM2eVavw-cBlXQLUsIhZRFvLotuGTxbrjDTfqPi.tRLk4wigGo.UlCAS1_NyfEq7MkDUg4Wty5WD_c3kJq4Rp\" alt=\"\" style=\"display:none;width:1px;height:1px;\" height=\"1\" width=\"1\">
+  ```
+  </CodeGroup>
+
+- **HTML タグの修正**：MoEngage はバックエンドライブラリ（BeautifulSoup）を使用して、不完全または不正な形式の HTML タグを修正します。
+  HTML に対応する終了タグのない開始タグがある場合、BeautifulSoup が終了タグを追加します。たとえば、HTML コードが次のようになっている場合（終了タグと開始タグが欠けている場合）：
+  <CodeGroup>
+  ```html HTML wrap
+  <!DOCTYPE html> <html> <body> <h1>My First Heading</h1> <strong>test 123 <p>My first paragraph
+  ```
+  </CodeGroup>
+
+  MoEngage によって編集された HTML コードは次のとおりです。
+  <CodeGroup>
+  ```html HTML wrap
+  <!DOCTYPE html> <html> <body> <h1>My First Heading</h1> <strong>test 123 </strong><p>My first paragraph</p></body></html>
+  ```
+  </CodeGroup>
+
+- 有効な HTML ではない空の `<b />` タグは、適切な `<b></b>` タグのペアに変換されます。
+  たとえば、HTML コードが `<a><b /></a>` の場合、MoEngage によって編集された HTML コードは `<a><b></b></a>` になります。
+- 対応する開始タグがなく終了タグのみが存在する場合、そのタグは完全に無視されるか、可能であれば修正されます。
+  たとえば、HTML コードが `<a></p>` の場合、MoEngage によって編集された HTML コードは `<a></a>` になります。
+
+## Auto-format HTML Code トグルに依存する自動フォーマット
+
+MoEngage は、メールの **General Settings** で **Auto-format HTML code** トグルを有効にした場合にのみ、次の編集を行います。詳細については、[Configure Email Channel](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel) を参照してください。
+
+- 空のタグを削除する（_htmlAllowedEmptyTags_ に含まれている場合を除く）。
+- 空白を正規化し、不要なスペースや末尾のスペースを削除する。
+- 視覚的な改行のために構造上必要な箇所に _`<br>`_ を挿入する。
+- _`<table>`_ 内への _`<tbody>`_ の自動挿入など、リストとテーブルをサニタイズする。
+- 冗長な _`<br>`_ タグや _`<div>`_ タグをクリーンアップする。
+- 非推奨または無効なタグと属性を HTML5 標準に変換する。
+- エディターの設定に基づいて、無効または不明な属性を削除する。
+- HTML のルールに準拠していないネスト構造を修正する。

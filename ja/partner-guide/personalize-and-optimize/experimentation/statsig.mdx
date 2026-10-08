@@ -1,0 +1,127 @@
+---
+title: "Statsig"
+description: "Statsig からフィーチャーゲート、動的設定、テストのエクスポージャーを MoEngage に転送し、ユーザープロファイルを充実させて機能を考慮したキャンペーンをトリガーします。"
+keywords: "Statsig, feature management, feature gates, experimentation, exposure events, webhook, A/B testing"
+---
+
+# はじめに
+
+[Statsig](https://statsig.com/) は、チームが本番環境でフィーチャーゲート、動的設定、A/B テストを実行するために使用する機能管理およびテストプラットフォームです。Statsig はエクスポージャーと設定変更に関するリアルタイムのイベント Webhook を送信するため、機能やテストのアクティビティに発生と同時に対応できます。
+
+# MoEngage × Statsig
+
+MoEngage と Statsig の連携では、リアルタイムの機能およびテストのデータを使用して、ユーザープロファイルを充実させ、パーソナライズされたエンゲージメントを実現します。Statsig がエクスポージャーイベントを MoEngage に転送すると、機能の利用資格でユーザーをセグメント化したり、テストに基づくキャンペーンを実行したり、マーケティングスタック全体で機能の状態を一貫させたりできます。
+
+## ユースケース
+
+Statsig を MoEngage と連携すると、以下のユースケースに対応できます。
+
+- **テストに基づくパーソナライゼーション**: ユーザーが属するテストグループに基づいてパーソナライズされたキャンペーンをトリガーし、データに応じてメッセージを変えることができます。
+- **フィーチャーゲートによるセグメンテーション**: 特定のフィーチャーゲートにエクスポーズされたユーザーの動的セグメントを作成し、ターゲットを絞ったオンボーディング、ベータテスト、早期アクセスキャンペーンに活用できます。
+- **設定に基づくジャーニー**: 動的設定のエクスポージャーを使用して、Statsig が評価するルールに基づいて異なるジャーニーフローをトリガーし、メッセージを機能の利用可否に合わせることができます。
+- **リアルタイムの機能状態の同期**: MoEngage のユーザープロファイルをフィーチャーゲートのステータスと同期させ、機能のロールアウトやロールバックにキャンペーンが即座に対応できるようにします。
+
+## 主な機能
+
+Statsig 連携は、MoEngage で以下の機能を提供します。
+
+- **リアルタイムのイベント同期**: Statsig はゲート、設定、テストのエクスポージャーを発生と同時に MoEngage に同期するため、タイムリーで機能を考慮したキャンペーンをトリガーできます。
+- **ユーザープロファイルの充実**: MoEngage は Statsig から送信されたエクスポージャーのメタデータでユーザープロファイルを更新します。このデータはセグメンテーションやジャーニーのオーケストレーションに使用できます。
+- **柔軟なイベントフィルタリング**: 転送するイベントタイプを選択できるため、データ量とその関連性を管理できます。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  開始する前に、以下のアクセス権があることを確認してください。
+
+  - Statsig ワークスペースの管理者アクセス権。
+  - MoEngage ワークスペースの管理者アクセス権。
+</Info>
+
+Statsig と MoEngage の連携は、3 つのステップで行います。
+
+1. [認証情報を生成して連携エンドポイントをリクエストする](/ja/partner-guide/personalize-and-optimize/experimentation/statsig#step-1-generate-authentication-credentials-and-request-the-integration-endpoint)
+2. [Statsig でイベント Webhook を設定する](/ja/partner-guide/personalize-and-optimize/experimentation/statsig#step-2-configure-the-event-webhook-in-statsig)
+3. [MoEngage でイベントを確認する](/ja/partner-guide/personalize-and-optimize/experimentation/statsig#step-3-verify-events-in-moengage)
+
+## ステップ 1: 認証情報を生成して連携エンドポイントをリクエストする
+
+MoEngage サポートに連絡する前に、MoEngage プロファイルにマッピングするプライマリ ID として使用する Statsig のユーザー識別子を決定します。`userID`、`email`、カスタム ID、または `stableID` を使用できます。
+
+認証情報を収集するには、以下の手順を実行します。
+
+1. MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。
+2. **Workspace ID (earlier App ID)** の下にある ID をコピーします。
+3. **API keys** セクションで、**Data** タイルの API キーをコピーします。
+
+   ![Settings と Account の下にある MoEngage の APIs 設定ページ](/images/statsig-moengage-api-keys.png)
+
+次に、[MoEngage サポート](/ja/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard)に連絡し、専用の Statsig Webhook エンドポイントをリクエストします。以下の詳細を提供してください。
+
+| 詳細 | 説明 |
+| --- | --- |
+| **Workspace ID** | APIs ページからコピーした ID。 |
+| **Data API key** | **Data** タイルからコピーしたキー。MoEngage サポートはこれを使用して Webhook エンドポイント URL を作成します。 |
+| **Primary identity mapping** | MoEngage プロファイルを解決する Statsig のユーザー識別子（`email`、`userID`、`custom_id` など）。 |
+| **Integration name** | 任意。連携のわかりやすい名前（`statsig_prod`、`feature_experiments` など）。 |
+
+MoEngage サポートが Statsig 連携用の一意の Webhook URL をプロビジョニングし、共有します。
+
+<Warning>
+  プライマリ ID は慎重に選択してください。MoEngage はすべてのエクスポージャーを指定された識別子に対して記録するため、一貫性のない選択をすると、重複したプロファイルが作成されたり、意図しないプロファイルがマージされたりします。
+</Warning>
+
+## ステップ 2: Statsig でイベント Webhook を設定する
+
+MoEngage サポートからエンドポイント URL が共有されたら、Statsig で Webhook を設定します。Webhook を設定するには、以下の手順を実行します。
+
+1. Statsig コンソールにログインし、**Settings** \> **Product Configuration** \> **Integrations** に移動します。
+
+   ![Product Configuration の下に Integrations がある Statsig の Settings メニュー](/images/statsig-settings-integrations.png)
+2. **Your Integrations** で、**Webhook** タイルをクリックします。
+3. **Integration Name** ボックスに、連携の名前（`MoEngage` など）を入力します。
+4. **Webhook URL** ボックスに、[ステップ 1](/ja/partner-guide/personalize-and-optimize/experimentation/statsig#step-1-generate-authentication-credentials-and-request-the-integration-endpoint) で MoEngage サポートがプロビジョニングした MoEngage エンドポイント URL を貼り付けます。
+5. **Enable** をクリックします。
+
+   ![Integration Name と Webhook URL ボックスが表示された Statsig の Webhook ダイアログボックス](/images/statsig-webhook-dialog.png)
+6. **Event Filtering** タブをクリックします。
+7. **Statsig Events** で、**Exposures** と **Custom Events** のチェックボックスをオンにします。
+8. **Save** をクリックします。
+
+   ![Statsig のイベントカテゴリが表示された Event Filtering タブ](/images/statsig-event-filtering.png)
+
+**Exposures** は、フィーチャーゲート、テスト、動的設定、レイヤーのエクスポージャーを含むすべてのエクスポージャータイプを 1 つのチェックボックスでカバーします。一部のみを転送するには、**View Detailed Options** をクリックして必要なものを選択します。
+
+<Note>
+  **Configuration Changes** はクリックしないでください。これらのイベントはユーザーのエクスポージャーではなく Statsig コンソールで行われた変更を記録するため、MoEngage はこれらをユーザープロファイルにマッピングできません。
+</Note>
+
+## ステップ 3: MoEngage でイベントを確認する
+
+イベントがリアルタイムで MoEngage に到達していることを確認するには、以下の手順を実行します。
+
+1. **MoEngage** アカウントの左側のナビゲーションバーで、**Segment** メニュー項目にカーソルを合わせ、**Search Users** をクリックします。
+2. **Search Users** ボックスに、ステップ 1 で指定した識別子を使用してテストユーザーの ID を入力します。
+
+   ![MoEngage のユーザー検索画面](/images/nitrox-search-users.png)
+3. ユーザープロファイルを開き、**Event History** をクリックします。
+
+Statsig のイベントがイベント履歴に表示されます。簡単に確認するには、以下の主要な属性を確認してください。
+
+| 属性 | 示す内容 |
+| --- | --- |
+| `exposure_type` | イベントがゲートのエクスポージャーかテストのエクスポージャーか。 |
+| `gate` または `config` | 機能または設定の名前。 |
+| `experimentGroupName` | テストのエクスポージャーの場合、ユーザーに割り当てられたバリアント。 |
+| `gateValue` | ユーザーがゲートを通過したかどうか（true または false）。 |
+| `ruleID` | このユーザーの割り当てを決定したルール。 |
+| `timestamp` | エクスポージャーが発生した日時。 |
+
+属性はイベントごとに異なるため、これは網羅的なリストではありません。Statsig が送信するペイロードの全体については、[Statsig のイベント Webhook ドキュメント](https://docs.statsig.com/integrations/event_webhook)を参照してください。
+
+# 関連記事
+
+- [Connected Sources](/ja/partner-guide/integrate-with-us/build-integration/connected-sources)
+- [ユーザープロファイル](/ja/user-guide/data/user-data/user-profile)

@@ -1,0 +1,85 @@
+---
+title: "Ticketek"
+description: "Content API を使用して、Ticketek のライブイベントの詳細とチケットの在庫状況を MoEngage のキャンペーンテンプレートに取り込みます。"
+---
+
+[Ticketek](https://www.ticketek.com.au) は、オーストラリアとニュージーランドで圧倒的なシェアを持つライブイベントチケッティングプラットフォームで、NRL、AFL、Cricket Australia などの主要スポーツリーグ、アリーナコンサート、演劇作品を取り扱っています。Ticketek は年間数百万枚のチケットを処理しており、オーストラリアとニュージーランドの多くの大規模会場における主要なチケッティング基盤となっています。
+
+## MoEngage × Ticketek
+
+MoEngage × Ticketek 統合を使用すると、Content API を介して Ticketek のライブイベントとチケットの在庫データを MoEngage キャンペーンに動的に取り込むことができます。送信時に、MoEngage はキャンペーンに関連するイベント識別子を使用して Ticketek API を呼び出し、リアルタイムのチケットデータを取得して、メール、プッシュ、SMS、アプリ内、WhatsApp のメッセージに直接挿入します。
+
+一般的なユースケースには、お気に入りのチームの次のホームゲームのチケット販売開始をファンに通知する、残りのチケット数を表示してプロモーションキャンペーンの緊急性を高める、ユーザーが関心を示したイベントの会場や日付の情報でコミュニケーションをパーソナライズする、などがあります。
+
+# 統合
+
+<Warning>
+  **公開 API はありません**
+
+  Ticketek は、公開のセルフサービス型開発者プログラムを提供していません。API へのアクセスには、Ticketek との直接のパートナー関係が必要です。この統合を進める前に、Ticketek のアカウント担当者に連絡するか、[ticketek.com.au/contact](http://www.ticketek.com.au/contactus) からパートナー API アクセスについてご相談ください。
+</Warning>
+
+## ステップ 1: Ticketek API の認証情報をリクエストする
+
+Ticketek は公開の開発者ポータルを提供していないため、アクセスは直接手配する必要があります。
+
+1. Ticketek のアカウント担当者、または [ticketek.com.au/contact](https://www.ticketek.com.au/contact) から Ticketek のパートナーチームに連絡し、キャンペーンのパーソナライゼーションを目的とした API アクセスをリクエストします。
+2. 想定するユースケース、具体的にはマーケティングオートメーションプラットフォームを介してキャンペーン送信時にイベントとチケットの在庫データを取得するために API を使用する理由を Ticketek に伝えます。この情報は、Ticketek が適切なアクセスティアを判断するのに役立ちます。
+3. アクセスが承認されると、Ticketek から **Bearer token**（契約内容によっては API キー）が発行されます。
+4. 契約に基づいて利用可能なイベント ID またはエンドポイントを Ticketek に確認します。Ticketek から、特定のイベントコードとご利用環境のベース URL が提供されます。
+
+<Info>
+  **注意**
+
+  Ticketek API のサードパーティによる機能概要が [SportsFirst](https://www.sportsfirst.net/sportsapi/ticketek-ticket-api) で公開されています。エンドポイントパターンやレスポンス構造の例が記載されているため、Ticketek の認証情報が届く前に MoEngage の設定を準備するのに役立ちます。
+</Info>
+
+## ステップ 2: MoEngage で Content API を設定する
+
+Ticketek API の認証情報を受け取ったら、次の手順を実行します。
+
+- **Dashboard > Settings > APIs** に移動し、**Content API** タブを開きます。
+- *Add Content API* をクリックします。
+- 以下の表を参考に詳細を入力します。
+
+| キー | 値 |
+| --- | --- |
+| **Name** | わかりやすい名前を選択します（例: `Ticketek Event Availability`）。この名前は、キャンペーンテンプレート内で API を参照する際の識別に使用されます。 |
+| **Method** | GET |
+| **API URL** | `https://api.ticketek.com.au/v1/events/{eventId}/tickets`  `{eventId}` を、キャンペーンで表示するイベントについて Ticketek から提供された特定のイベントコードに置き換えます。チケットの在庫状況ではなくイベントの一般的な詳細を取得する場合は、events エンドポイントを使用します。  `https://api.ticketek.com.au/v1/events/{eventId}`  正確なベース URL とアカウントで利用可能なエンドポイントは、認証情報の発行時に Ticketek から案内されます。 |
+| **Headers** | すべてのリクエストを認証するために、次のヘッダーを追加します。 |
+
+| ヘッダー | 値 |
+| --- | --- |
+| `Authorization` | `Bearer YOUR_TICKETEK_API_TOKEN` |
+| `Content-Type` | `application/json` |
+| `Accept` | `application/json` |
+
+- **Validate** をクリックしてプラットフォームからレスポンスが返されることを確認し、**Save** をクリックします。これで、サポートされているすべてのチャネルのあらゆるキャンペーンで Content API を参照できるようになります。
+
+![MoEngage ダッシュボードでの Ticketek Content API の設定](/images/Tickete1.png)
+
+注意: この API が OAuth 2.0 認証を使用している場合は、OAuth トグルを有効にして、そこで認証情報を設定してください。OAuth 2.0 を初めて使用する場合は、[OAuth 2.0 による認可設定](/ja/user-guide/settings/advanced-settings/authorization-configuration-with-oauth-20) を参照してください。
+
+保存後、キャンペーンテンプレート内で Ticketek のレスポンスフィールドを参照する方法については、MoEngage ドキュメントの [キャンペーンでの Content API の使用](/ja/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を参照してください。
+
+## API レスポンスについて
+
+MoEngage が送信時に Ticketek API を呼び出すと、レスポンスはイベントの詳細と `ticketTypes` 配列を含む JSON オブジェクトとして返されます。この配列内の各オブジェクトは、イベントで利用可能な 1 つのチケットカテゴリーを表します。キャンペーンテンプレートで最もよく参照されるフィールドを以下に示します。
+
+| レスポンスフィールド | テンプレート変数の例 | 説明 |
+| --- | --- | --- |
+| `eventName` | `{{ContentApi.eventName}}` | イベントの正式名称です（例: "State of Origin Game 1"）。 |
+| `date` | `{{ContentApi.date}}` | ISO 8601 形式によるイベントの日時です。 |
+| `venue` | `{{ContentApi.venue}}` | イベントが開催される会場名です。 |
+| `ticketTypes[0].category` | `{{ContentApi.ticketTypes[0].category}}` | 最初に利用可能なチケットカテゴリーの名前です（例: "General Admission"）。 |
+| `ticketTypes[0].price` | `{{ContentApi.ticketTypes[0].price}}` | 最初に利用可能なチケットカテゴリーの価格です。 |
+| `ticketTypes[0].availability` | `{{ContentApi.ticketTypes[0].availability}}` | そのカテゴリーの残りのチケット数です。緊急性を訴求するメッセージに役立ちます。 |
+| `saleStatus` | `{{ContentApi.saleStatus}}` | イベントの現在の販売状況です（例: `ON_SALE` または `SOLD_OUT`）。 |
+
+![キャンペーンテンプレートで参照される Ticketek Content API のレスポンスフィールド](/images/Ticketek2.png)
+<Tip>
+  **ヒント**
+
+  Content API 設定画面の *Test* ボタンを使用して、テストユーザーの生の JSON レスポンスを確認します。これにより、キャンペーンテンプレートで参照する前に正確なフィールドパスを確認でき、Bearer トークンとイベント ID が正しく設定されていることを検証できます。
+</Tip>

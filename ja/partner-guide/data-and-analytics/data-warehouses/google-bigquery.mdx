@@ -1,0 +1,161 @@
+---
+title: "Google BigQuery"
+description: "Google BigQuery を MoEngage に接続して、ウェアハウスのオーディエンスの同期、ユーザーとイベントのインポート、キャンペーンインタラクションイベントのエクスポートを行います。"
+---
+
+# はじめに
+
+[BigQuery](https://cloud.google.com/bigquery) は、Google Cloud Storage（GCS）Platform で利用できる、フルマネージドかつサーバーレスのデータウェアハウスソリューションです。インフラストラクチャを管理することなく、テラバイト規模のデータに対して複雑な分析をリアルタイムで実行できます。
+
+# MoEngage × BigQuery
+
+MoEngage と BigQuery の連携では、MoEngage の GCS データインポートおよびエクスポートを使用して Google BigQuery にデータを転送し、高度な分析を行います。
+
+## ユースケース
+
+BigQuery と MoEngage の連携は、以下のユースケースに役立ちます。
+
+- BigQuery からリアルタイムのオーディエンスを同期する
+- BigQuery からユーザーとイベントをインポートする
+- キャンペーンインタラクションイベントを BigQuery にエクスポートする（GCS 経由）
+
+## メリット
+
+BigQuery と MoEngage の連携により、以下のメリットが得られます。
+
+### 連携にかかる時間の短縮
+
+- MoEngage は BigQuery と直接連携するため、適切な Extract、Transform、Load（ETL）ツールを探す必要がなくなります。
+- 長く複雑な ETL パイプラインは、MoEngage がデータに直接アクセスできる一度きりの連携設定に置き換えられます。
+- これにより、技術チームへの依存が大幅に軽減されます。
+
+### データ処理の高速化
+
+- BigQuery のインフラストラクチャにより、MoEngage は膨大な量のデータをほぼリアルタイムで保存、処理、クエリできます。
+- 元のスキーマの変更は、MoEngage 側の構成を変更することなく即座に反映されます。これは従来の ETL パイプラインに対する大きなメリットです。
+- インポートのコストは従来のデータパイプラインよりも大幅に低く、ETL ツールや外部のクラウドプロバイダーは必要ありません。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  新しいユーザー、スキーマ、テーブルを作成する権限を持つ BigQuery アカウントがあることを確認してください。
+</Info>
+
+## ステップ 1：MoEngage に権限を付与する
+
+<Tabs>
+  <Tab title="オーディエンスの同期とインポート">
+    MoEngage に権限を付与するには、特定の BigQuery テーブルへの読み取りアクセス権を付与し、MoEngage が BigQuery Jobs API を介してジョブを送信し、クエリ結果をダウンロードできるようにする必要があります。以下の手順は、BigQuery データセットをホストしている Google Cloud Platform プロジェクトで管理者権限を持っていることを前提としています。
+
+    **MoEngage 用のサービスアカウントを作成する**
+
+    MoEngage 用のサービスアカウントを作成するには、以下の手順を実行します。
+
+    1. **Google Cloud Console** を開きます。
+    2. BigQuery データセットを含むプロジェクトに移動します。
+    3. **IAM & Admin** セクションに移動し、**Service Accounts** を選択します。 <img src="/images/partner_39929968858260.png" />
+    4. **Create Service Account** をクリックします。
+    5. 名前と説明（例：moengage-access）を入力します。 <img src="/images/partner_39929953595284.png" />
+    6. サービスアカウントのロールとして **BigQuery Job User** を選択します。 <img src="/images/partner_39929968858900.png" />
+    7. サービスアカウントを作成します。
+    8. サービスアカウントに移動し、**KEYS** タブを選択します。
+    9. **ADD KEY** リストをクリックし、**Create new key** を選択します。 <img src="/images/partner_39929968859412.png" />
+    10. ポップアップウィンドウで、キーのタイプとして **JSON** を選択します。
+    11. **CREATE** をクリックして、JSON キーファイルを生成してダウンロードします。
+    12. JSON キーファイルは安全に保管してください。
+
+    **特定のテーブルへのアクセス権を MoEngage と共有する**
+
+    特定のテーブルへのアクセス権を MoEngage と共有するには、以下の手順を実行します。
+
+    1. **BigQuery コンソール**で、MoEngage にアクセスさせるテーブルを含むデータセットに移動します。
+    2. **Sharing** ドロップダウンリストをクリックし、**Permissions** を選択します。 <img src="/images/partner_39929953596308.png" />
+    3. サービスアカウントのメールアドレス（JSON キーファイルに記載）を、"**BigQuery Data Viewer** " ロールを持つメンバーとして追加します。 <img src="/images/partner_39929953597716.png" />
+    4. **Save** をクリックして、データセットへのアクセス権を付与します。
+
+    **BigQuery Jobs API へのアクセス権を付与する**
+
+    **注**：サービスアカウントの作成時にこのアクセス権をすでに付与している場合は、このステップをスキップしてください。BigQuery Jobs API へのアクセス権を付与するには、以下の手順を実行します。
+
+    1. **Google Cloud Console** で、**IAM & Admin** セクションに移動し、**IAM** を選択します。
+    2. **Grant Access** をクリックして、新しいメンバーを追加します。
+    3. サービスアカウントのメールアドレス（JSON キーファイルに記載）を入力します。
+    4. BigQuery Jobs API とのやり取りを可能にするため、ロールとして **BigQuery Job User** を割り当てます。
+    5. **Save** をクリックしてアクセス権を付与します。 <img src="/images/partner_39929953598228.png" />
+
+    **特定のテーブルへのアクセスを制限する（任意）**
+
+    特定のテーブルへのアクセスを制限するには、以下の手順を実行します。
+
+    1. **BigQuery コンソール**で、目的のテーブルを含むデータセットを開きます。
+    2. アクセスを制限するテーブルを選択し、コンテキストメニューから **Share Table** をクリックします。
+    3. サービスアカウントのメールアドレスをメンバーとして追加し、これらの特定のテーブルに対してのみ **BigQuery Data Viewer** ロールを割り当てます。
+
+    以上の手順により、MoEngage に特定の BigQuery テーブルへの読み取りアクセス権が付与され、BigQuery Jobs API へのアクセスが承認されます。
+  </Tab>
+  <Tab title="エクスポート">
+    MoEngage から BigQuery にデータをエクスポートするには、MoEngage を Google Cloud プロジェクトに接続する必要があります。プロジェクト内で必要な管理者権限を持っていること、およびサービスアカウントの認証情報が有効であることを確認してください。
+
+    - **接続を作成するには**：MoEngage App Marketplace 内でプロジェクトとデータセットの詳細を検証するために、BigQuery Data Viewer および BigQuery Job User ロールが必要です。
+    - **エクスポートを実行するには**：サービスアカウントには、BigQuery テーブルに対してデータを読み書きするための BigQuery Data Editor ロールが必要です。詳細については、[BigQuery エクスポート](https://www.moengage.com/docs/user-guide/data/exports/events/data-warehouse/bigquery-exports)を参照してください。
+  </Tab>
+</Tabs>
+
+## ステップ 2：App Marketplace で BigQuery を接続する
+
+App Marketplace で BigQuery を接続するには、以下の手順を実行します。
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**App marketplace** をクリックします。
+2. App Marketplace ページで、**BigQuery** を検索します。 <img src="/images/partner_39929968863124.png" />
+3. **BigQuery** タイルをクリックします。
+4. **BigQuery** ページで、**Integrate** タブに移動し、\+**Add Connection** をクリックします。
+5. 以下の詳細を入力します。
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | Connection name | はい | BigQuery 接続の名前を入力します。 |
+   | Project ID | いいえ | Google Cloud Platform（GCP）内のプロジェクトに割り当てられた一意の識別子です。MoEngage はこの ID を使用して、接続する Google Cloud プロジェクトを正確に特定します。この ID は Google Cloud Console のダッシュボードで確認できます。 |
+   | Service account credentials | はい | Google Cloud プロジェクトのサービスアカウントから生成した JSON キーファイルをアップロードする必要があります。JSON ファイルにはパスワードとして機能する秘密鍵が含まれており、個人のログイン情報を共有することなく、MoEngage が BigQuery データに安全かつ自動的にアクセスできるようになります。または、[こちら](/ja/partner-guide/data-and-analytics/data-warehouses/google-bigquery#step-1-grant-permissions-to-moengage)に記載されている手順（10 ～ 12）に従うこともできます。 |
+   | Enable GCS for faster segmentation and exports | 任意 | GCS ステージングのトグルをオンにすると、MoEngage が BigQuery に対してデータを読み書きする速度と効率が向上します。この機能により、MoEngage は Google Cloud Storage（GCS）をデータの一時的なステージング領域として使用できます。**注**：Warehouse Audiences でこの機能を有効にするには MoEngage サポートチームに連絡する必要があります。エクスポートの場合はサポートチケットは不要です。 |
+   | GCS Bucket name | 任意 | GCP プロジェクトで作成した GCS バケットの名前を入力します。MoEngage はこのバケットを使用して、BigQuery からエクスポートされたセグメントデータをインポート前に一時的に保存します。 |
+   | GCS Folder path | 任意 | MoEngage が一時ファイルを保存する GCS バケット内のフォルダ名を指定する必要があります。これにより、データを整理された状態に保つことができます（例：`moengage_imports/`）。 |
+   ![BigQuery 接続フォーム](/images/partner_45896783209364.png)
+6. **Connect** をクリックします。これで BigQuery 接続が統合されました。
+
+BigQuery 接続を設定した後は、それを使用して MoEngage でさまざまなインポートやエクスポートを設定できます。
+
+### サポートされている日時形式
+
+| 日付と時刻の形式 | 例 |
+| --- | --- |
+| `"datetime_format": "YYYY-MM-DD"` | <ul><li>2022-01-22</li></ul> |
+| `"datetime_format": "YYYY/MM/DD"` | <ul><li>2022/01/22</li></ul> |
+| `"datetime_format": "DD/MM/YYYY"` | <ul><li>22/01/2022</li></ul> |
+| `"datetime_format": "DD-MM-YYYY"` | <ul><li>22-01-2022</li></ul> |
+| `"datetime_format": "DD-MM-YYYY hh:mm:ss"` | <ul><li>31-12-2022 12:10:33</li></ul> |
+| `"datetime_format": "DD/MM/YYYY hh:mm:ss"` | <ul><li>31/12/2022 12:10:33</li></ul> |
+| `"datetime_format": "YYYY-MM-DD hh:mm:ss"` | <ul><li>2019-02-22 17:54:14</li></ul> |
+| `"datetime_format": "YYYY/MM/DD hh:mm:ss"` | <ul><li>2019/02/22 17:54:14</li></ul> |
+| `"datetime_format": "DD-MM-YYYYThh:mm:ss.s"` | <ul><li>31-12-2022T12:10:33.882</li></ul> |
+| `"datetime_format": "DD/MM/YYYYThh:mm:ss.s"` | <ul><li>31/12/2022T12:10:33.882</li></ul> |
+| `"datetime_format": "DD-MM-YYYYThh:mm:ssTZD"` | <ul><li>31-12-2022T12:10:33Z, 31-12-2022T12:10:33\+08:00, 31-12-2022T12:10:33-08:00</li></ul> |
+| `"datetime_format": "DD/MM/YYYYThh:mm:ssTZD"` | <ul><li>31/12/2022T12:10:33Z, 31/12/2022T12:10:33\+08:00, 31/12/2022T12:10:33-08:00</li></ul> |
+| `"datetime_format": "YYYY-MM-DD hh:mm:ss.s"` | <ul><li>2019-02-22 17:54:14.933</li></ul> |
+| `"datetime_format": "YYYY/MM/DD hh:mm:ss.s"` | <ul><li>2019/02/22 17:54:14.933</li></ul> |
+| `"datetime_format": "YYYY-MM-DDThh:mm:ssTZD"` | <ul><li>2019-11-14T00:01:02Z</li><li>2019-11-14T00:01:02\+08:00</li><li>2019-11-14T00:01:02Z-08:00</li></ul> |
+| `"datetime_format": "YYYY/MM/DDThh:mm:ssTZD"` | <ul><li>2019/11/14T00:01:02Z</li><li>2019/11/14T00:01:02\+08:00</li><li>2019/11/14T00:01:02-08:00</li></ul> |
+| `"datetime_format": "YYYY-MM-DDThh:mm:ss.sTZD"` | <ul><li>2019-02-22T17:54:14.957Z</li><li>2019-02-22T17:54:14.957299-08:00</li><li>2019-02-22T17:54:14.957299\+08:00</li></ul> |
+| `"datetime_format": "YYYY/MM/DDThh:mm:ss.sTZD"` | <ul><li>2019/02/22T17:54:14.957Z</li><li>2019/02/22T17:54:14.957299-08:00</li><li>2019/02/22T17:54:14.957299\+08:00</li></ul> |
+
+## BigQuery を使用した Warehouse Segments
+
+BigQuery は Warehouse Segments で利用できます。詳細については、[Warehouse Segments](https://www.moengage.com/docs/user-guide/segment/create-segments/warehouse-segments) を参照してください。
+
+## BigQuery から MoEngage にユーザーとイベントをインポートする
+
+アカウントで MoEngage × BigQuery のインポートを設定するには、[BigQuery インポートガイド](https://www.moengage.com/docs/user-guide/data/imports/data-warehouses-imports/bigquery-imports)を参照してください。
+
+## MoEngage から BigQuery にイベントをエクスポートする
+
+MoEngage から BigQuery のテーブルにイベントをエクスポートできます。エクスポートを設定するには、[BigQuery エクスポートガイド](https://www.moengage.com/docs/user-guide/data/exports/events/data-warehouse/bigquery-exports)を参照してください。

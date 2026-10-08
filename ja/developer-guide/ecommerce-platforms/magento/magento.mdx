@@ -1,0 +1,76 @@
+---
+title: "Magento"
+description: "Google Tag Manager または直接統合を使用して、Magento ストアに MoEngage Web SDK を統合します。"
+---
+
+# 概要
+
+Magento は、15 万以上のオンラインストアで使用されているオープンソースの e コマースプラットフォームです。このドキュメントでは、MoEngage Web SDK を Magento ストアに統合する複数の方法と、その手順について説明します。
+
+MoEngage と Magento の統合は、次の 2 つの方法で行えます。
+
+- Google Tag Manager 経由
+- 直接統合
+
+## Google Tag Manager を使用する
+
+- Magento ストアに Google Tag Manager（GTM）を追加します。詳細な手順については、この [Magento ドキュメント](https://docs.magento.com/user-guide/v2.3/marketing/google-enhanced-ecommerce.html)を参照してください。
+- [こちら](/ja/partner-guide/data-and-analytics/analytics/google-tag-manager-gtm-server-side)の統合手順に従って、GTM と MoEngage の統合を完了します。
+- GTM を介して、ストアから MoEngage に任意のユーザーイベントやユーザープロパティをトラッキングできます。
+
+この統合により、さらに以下の MoEngage チャネルと統合できます。
+
+| チャネル             | サポート |
+| ------------------- | ---------- |
+| On-site messaging   | はい        |
+| Web personalization | はい        |
+| WebPush             | いいえ         |
+
+## Magento との直接統合
+
+<Info>
+  Magento 2.2.0 未満のバージョンはサポートされていないことにご注意ください。
+</Info>
+
+- Magento ストアをインストールしてセットアップします。詳しくは、Magento の[ドキュメント](https://experienceleague.adobe.com/en/docs/commerce-operations/installation-guide/composer)を参照してください。
+- ストアの管理パネルにログインし、Admin Panel \> Content \> Configuration に移動します。
+- head タグを変更するストアビューを選択するか、_Global_ を選択してすべてのストアビューで変更します。\\
+
+  ![Magento1](/images/Magento1.png)
+- **HTML Head** セクションを見つけ、**Scripts and Style Sheets** フィールドに [SDK スクリプト](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)のコードを追加します。\\
+
+  ![Magento2](/images/magento2.png)
+- 設定を保存し、キャッシュをフラッシュします。
+
+顧客データのプライバシーに関する潜在的な問題を回避するため、MoEngage WebSDK の URL をホワイトリストに登録してください。ルールの追加については、公式[ドキュメント](https://developer.adobe.com/commerce/php/development/security/content-security-policies#configure-a-modules-csp-mode)に従ってください。ホワイトリストに登録すべき URL の一覧は[こちら](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)です。
+
+### データトラッキング
+
+Magento で既存の要素に対するイベントやユーザー属性をトラッキングするには、デフォルトの HTML を編集する必要があります。たとえば、「Add to Cart」ボタンのクリック時にイベントをトラッキングするには、次のようにします。
+
+Add to Cart ボタンが定義されている phtml ファイルにスクリプトを追加します。Add to Cart ボタンは通常、catalog/product/view/addtocart.phtml ファイルにあります。
+
+<CodeGroup>
+
+```php Code
+<script> 
+      document.querySelector('.tocart').addEventListener('click', function() { 
+      MoEngage && MoEngage.track_event('Add to Cart', {productTitle: '<?= $_product->getName() ?>'}) 
+      }); 
+</script>
+```
+
+</CodeGroup>
+
+この統合により、MoEngage を次の用途に使用できます。
+
+| チャネル名                          | サポート                                                                                                          |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| On-site messaging                     | はい                                                                                                                 |
+| Web personalization                   | はい（[統合](/ja/developer-guide/personalize-sdk/sdk-integration/web-personalization-v2)スクリプトを追加する必要があります） |
+| ユーザーイベントとユーザープロパティのトラッキング | はい                                                                                                                 |
+| WebPush                               | はい                                                                                                                 |
+
+WebPush をサポートするには、Service Worker ファイルをプロジェクトのルート（通常は /pub フォルダー内）に追加できます。これには .htaccess ファイルの変更が必要です。何らかの理由でこれができない場合は、Service Worker を media フォルダー、または /pub ディレクトリ内の任意のカスタムフォルダーに配置してください。
+
+Service Worker ファイルがルートディレクトリに配置されていない場合は、SDK の初期化時に swPath と swScope を追加できます。 

@@ -1,0 +1,78 @@
+---
+title: "リアルタイムトリガー"
+description: "iOS でユーザーがイベントを実行したときに即座に発火する、デバイストリガー型のプッシュ通知を設定します。"
+---
+
+リアルタイムデバイストリガーは、（キャンペーンの作成時に構成された）トリガーイベントが SDK の [trackEvent:](/ja/developer-guide/ios-sdk/data-tracking/basic/tracking-events) メソッドでトラッキングされるたびに、デバイス内で即座にトリガーされるプッシュ通知です。この場合、通知はデバイス内でトリガーされるため、オフラインの状況でも通知を表示できます。
+
+<Warning>
+リアルタイムトリガーは、SDK バージョン [4.0.0](/ja/release-notes/sdks/ios#23rd-april-2018) から利用できます。
+</Warning>
+# SDK のインストール
+
+MoEngage-iOS-SDK バージョン 8.2.0 から、MoEngageRealTimeTrigger モジュールは SDK から MoEngageRealTimeTrigger という別のモジュールとして分離されたため、個別に追加する必要があります。
+
+[![Version](https://img.shields.io/cocoapods/v/MoEngageRealTimeTrigger.svg?style=flat)](http://cocoapods.org/pods/MoEngageRealTimeTrigger)
+
+## CocoaPods を使用したインストール
+
+以下のように Podfile に依存関係を追加して、RealTimeTrigger フレームワークを統合します。
+
+<CodeGroup>
+```auto Ruby
+pod 'MoEngageRealTimeTrigger','~>1.2.0'
+```
+
+</CodeGroup>
+次に、`pod install` を実行してフレームワークをインストールします。
+
+## Swift Package Manager を使用したインストール
+
+MoEngageRealTimeTrigger は、SDK バージョン 1.2.0 から SPM でサポートされています。統合するには、次の GitHub の URL リンクを使用し、ブランチを master に、またはバージョンを 1.2.0 以上に設定します。[https://github.com/moengage/MoEngage-iOS-RealTimeTrigger.git](https://github.com/moengage/MoEngage-iOS-RealTimeTrigger.git)
+
+# 手動同期
+
+MoEngage SDK は、アプリが**起動されるか、フォアグラウンドに移行する**たびに、すべてのリアルタイムトリガーキャンペーンを同期します。ただし、バックグラウンドタスクのためにデバイストリガーを手動で同期する必要がある場合は、以下に示すように `syncRealTimeTriggersWithCompletionBlock:` を使用します。
+
+<CodeGroup>
+```swift Swift
+MORealTimeTrigger.sharedInstance.syncRealTimeTriggers { (rtSyncCompleted) in
+          if(rtSyncCompleted){
+             print("Real-Time trigger sync successfull")
+      }
+}
+```
+
+```objectivec Objective-C
+[[MORealTimeTrigger sharedInstance] syncRealTimeTriggersForAppID:@"YOUR_WORKSPACE_ID" andCompletionHandler:^(BOOL rtSyncCompleted) {
+      if (rtSyncCompleted) {
+            NSLog(@"Real-Time trigger sync successfull");
+      }
+}];
+```
+
+</CodeGroup>
+# iOS 10 未満のバージョン向けの追加コールバック
+
+<Warning>
+iOS 10 以上では、MoEngage SDK は通知のトリガーに UserNotification フレームワークを使用し、通知ペイロードの取得と処理を **UNUserNotificationCenter** からのコールバックに依存しています。そのため、こちらの[ドキュメント](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial)に記載されているとおり、UNUserNotificationCenter のデリゲートコールバックで SDK のメソッドが呼び出されていることを確認してください。
+</Warning>
+iOS 10 未満の iOS バージョンでは、以下に示すように MoEngage SDK の `didReceieveNotificationinApplication: withInfo:openDeeplinkUrlAutomatically:` メソッドを呼び出します。
+
+<CodeGroup>
+```swift Swift
+func application(_ application: UIApplication, didReceive notification: UILocalNotification) {
+        if let userInfo = notification.userInfo  {
+            MoEngage.sharedInstance().didReceieveNotificationinApplication(application, withInfo: userInfo, openDeeplinkUrlAutomatically: true)
+        }
+}
+```
+
+```objectivec Objective-C
+-(void)application:(UIApplication *)application didReceiveLocalNotification:(UILocalNotification *)notification{
+    NSDictionary* userInfo = notification.userInfo;
+    [[MoEngage sharedInstance]didReceieveNotificationinApplication:application withInfo:userInfo openDeeplinkUrlAutomatically:YES];
+}
+```
+
+</CodeGroup>

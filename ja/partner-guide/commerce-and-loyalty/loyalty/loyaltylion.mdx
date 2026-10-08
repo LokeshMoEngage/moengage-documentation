@@ -1,0 +1,110 @@
+---
+title: "LoyaltyLion"
+description: "MoEngage の Connector キャンペーンで購入イベントを LoyaltyLion に転送し、MoEngage の Content API を使用して顧客の報酬ポイントをキャンペーンに表示します。"
+---
+
+# 概要
+
+[LoyaltyLion](https://loyaltylion.com/) は、e コマース向けの顧客ロイヤルティおよびエンゲージメントプラットフォームです。データドリブンなロイヤルティプログラムを通じて、成長とリテンションを促進します。
+
+# MoEngage × LoyaltyLion
+
+MoEngage と LoyaltyLion の統合により、MoEngage で顧客のアクティビティをトラッキングし、それに応じて LoyaltyLion 内で報酬を付与できます。LoyaltyLion の REST API を使用すると、アプリで行われた購入を LoyaltyLion に転送し、購入後のエンゲージメントを図るパーソナライズされたキャンペーンを送信できます。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  - LoyaltyLion の API を使用するには、LoyaltyLion のトークンとシークレットが必要です。
+</Info>
+
+## MoEngage の購入を LoyaltyLion に転送する
+
+MoEngage の Connector キャンペーンを使用すると、ユーザーがアプリまたは Web サイトで購入したときに、購入イベントを LoyaltyLion に転送できます。
+
+MoEngage で Connector キャンペーンを作成するには、次の手順を実行します。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最も適した配信タイプを選択します。この例では、「Event Triggered」を選択し、イベントとして「Purchased」を選択します。 <img src="/images/partner_19614809395604.png" />
+2. キャンペーンのステップ 2 で、次の操作を行います。
+
+### LoyaltyLion API を呼び出す
+
+購入イベントを LoyaltyLion に送信するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして POST を選択します。
+- URL Parameters:
+  - `api_key`: `<your_api_key>`
+- Headers
+  - `Authorization`: オンラインツールを使用して、ユーザー名に `token`、パスワードに `secret` を指定して Basic 認証を作成します。\
+    <img src="/images/partner_19614378396692.png" />\
+    上の例では、このヘッダーの値は `Basic dG9rZW46c2VjcmV0` になります。
+  - `Content-Type`: `application/json`
+- Webhook URL としてエンドポイントを追加します: `https://api.loyaltylion.com/v2/orders`
+- Body:\
+  @ を入力してペイロードをパーソナライズします。
+  <CodeGroup>
+  ```json JSON
+  {
+      "merchant_id": "6253e03b",
+      "merchant_number": "1001",
+      "customer_id": {{UserAttribute['customer_id']}},
+      "customer_email": "{{UserAttribute['Email (Standard)']}}",
+      "total": "{{EventAttribute['price']}}",
+      "total_shipping": "{{EventAttribute['price']}}",
+      "payment_status": "paid",
+      "date": "{{EventAttribute['event_time']}}",
+      "discount_codes": [
+        {
+          "code": "{{EventAttribute['coupon_code']}}",
+          "amount": "{{EventAttribute['coupon_code_discount']}}"
+        }
+      ]
+    }
+  ```
+  </CodeGroup>
+
+![](/images/partner_19614782841364.png)
+
+- 詳細については、[LoyaltyLion の API ドキュメント](https://developers.loyaltylion.com/api-reference/v2/resources/orders/create-order)を参照してください。
+
+### リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整っています。Connector キャンペーン作成のステップ 2 にあるテスト機能を使用して、コネクタの設定をテストすることもできます。<img src="/images/partner_19614809409684.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+
+その後、キャンペーンを公開できます。
+
+## MoEngage キャンペーンで顧客の報酬を表示する
+
+MoEngage の Content API を使用すると、MoEngage キャンペーン内で顧客の報酬ポイントを動的に取得し、よりパーソナライズされた体験を提供できます。
+
+### ステップ 1: MoEngage Content API を設定する
+
+1. **Settings** -\> **Advanced settings** -\> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。<img src="/images/partner_21979026575124.png" alt="ContentAPI_Navogation.png" />
+2. エンドポイント URL に LoyaltyLion API を追加します。エンドポイントはユースケースによって異なります。
+
+![](/images/partner_19615149966356.png)
+
+顧客の報酬を表示するには、LoyaltyLion の [Get Available Rewards API](https://developers.loyaltylion.com/api/resources/rewards#get-v2customersmerchant_idavailable_rewards) を使用します。
+
+Content API の設定時に、次の URL を挿入します。
+
+`https://api.loyaltylion.com/v2/customers/{{UserAttribute['customer_id']}}/available_rewards`
+
+Headers に次の内容を追加します。
+
+1. `Authorization`: オンラインツールを使用して、ユーザー名に `token`、パスワードに `secret` を指定して Basic 認証を作成します。 <img src="/images/partner_19614378396692.png" />\
+   上の例では、このヘッダーの値は `Basic dG9rZW46c2VjcmV0` になります。
+2. `Content-Type`: `application/json`
+3. 「Save」をクリックし、成功のレスポンスが表示されたら「Done」をクリックします。
+   **注** - API をテストすることもできます。API をテストするには、Content API のアクションメニューから「Test」をクリックします。API のレスポンスを確認して検証できます。
+
+### ステップ 2: MoEngage キャンペーン内で顧客の報酬を表示する
+
+MoEngage キャンペーンでこの API を使用するには、次の手順を実行します。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 1 で設定した LoyaltyLion の Content API を選択できます。
+3. [MoEngage テンプレート言語](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。 <img src="/images/partner_19616447980820.png" />
+4. Preview タブをクリックすると、リアルタイムのパーソナライゼーションでキャンペーンを確認できます。 <img src="/images/partner_19616419328532.png" />
+5. 結果に問題がなければ、キャンペーンを公開できます。

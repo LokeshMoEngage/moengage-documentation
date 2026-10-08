@@ -1,0 +1,94 @@
+---
+title: "Inkit"
+---
+
+# はじめに
+
+[Inkit](https://www.inkit.com/) を使用すると、自動化されたパーソナライズされたダイレクトメールキャンペーンの配信、ペーパーレスドキュメントの大規模なレンダリング、顧客の郵送先住所の検証によって、顧客にリーチしてコミュニケーションを取ることができます。
+
+## MoEngage Inkit
+
+MoEngage では、MoEngage コネクターを介して、MoEngage 内で取得されたすべてのユーザーまたはユーザーのセグメントに Inkit メールを送信できます。これは、スケジュールに基づいて、またはユーザーが対象となるイベントを実行したとき（イベントトリガーキャンペーンを使用）に行うことができます。[こちらに記載されている Inkit API](https://docs.inkit.com/docs/using-the-api) を使用して、ポストカードやレターを送信できます。
+
+# インテグレーション
+
+<Info>
+  **前提条件**
+
+  1. Inkit ダッシュボードへのアクセス権があることを確認してください。
+  2. 次の詳細情報があることを確認してください。 \
+     Inkit API key - このキーは [Inkit Dashboard](https://app.inkit.io/#/account/integrations) で確認でき、Inkit アカウントを MoEngage に接続できるようになります \
+     Inkit template ID - このキーは各テンプレートの URL 内にあり、テンプレートを MoEngage に送信できるようになります。たとえば、URL [https://app.inkit.io/#/templates/design/bd9b0b8c-c47b-40ae-8787-80dd76f6d2bb](https://app.inkit.io/#/templates/design/bd9b0b8c-c47b-40ae-8787-80dd76f6d2bb) では、Template ID は bd9b0b8c-c47b-40ae-8787-80dd76f6d2bb です。 \
+     Http header - Inkit アカウントで確認でき、Inkit API Key と組み合わせて、MoEngage テンプレート内でキーと値のペアとして接続を承認します。
+</Info>
+
+## ステップ 1：Inkit テンプレートを作成する
+
+Inkit プラットフォームで、MoEngage キャンペーンで使用するテンプレートを作成します。使用する [Inkit API（こちらに記載）](https://docs.inkit.com/docs/using-the-api)を選択します - ポストカードまたはレターの送信
+
+## ステップ 2：MoEngage でコネクターキャンペーンを作成する
+
+MoEngage でコネクターキャンペーンを作成するには、
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動します
+
+![Screenshot\_2022-02-21\_at\_10.48.46\_PM.png](/images/partner_4455800640660.png)
+
+2. キャンペーンのステップ 2 で、次を選択します -
+
+#### a) URL の詳細
+
+| キー | 値 |
+| --- | --- |
+| Method | POST |
+| Webhook URL | [https://internal.inkit.io/integrations/webhook](https://internal.inkit.io/integrations/webhook) |
+
+![Screenshot\_2022-02-21\_at\_11.32.39\_PM.png](/images/partner_4456134176916.png)
+
+#### b) ヘッダー
+
+![Screenshot\_2022-02-21\_at\_11.35.07\_PM.png](/images/partner_4456205525396.png)
+
+次の 2 つのヘッダーを追加します -
+
+| キー | 値 |
+| --- | --- |
+| Authorization | Basic `{{` '\<INKIT\_API\_TOKEN\>' \| base64\_encode `}}` |
+| Content-Type | application/json |
+
+#### c) リクエストボディ
+
+Jinja が、以下に示す必須フィールドおよび任意フィールドに関連付けられた適切なカスタム属性と一致していることを確認してください。任意のリクエストで、MoEngage のトラッキング済み標準属性やローカリゼーション属性、またはトラッキング済みカスタム属性を使用できます。
+
+<CodeGroup>
+
+```json JSON
+{
+	"api_token": "<INKIT_API_TOKEN>",
+	"template_id": "<INKIT_TEMPLATE_ID>",
+	"first_name": "{{UserAttribute['First Name']}}",
+	"last_name": "{{UserAttribute['Last Name']}}",
+	"email": "{{UserAttribute['Email']}}",
+	"company": "{{UserAttribute['Company Name']}}",
+	"phone": "{{UserAttribute['Phone Number']}}",
+	"address_line_1": "{{UserAttribute['Address Line 1']}}",
+	"address_line_2": "{{UserAttribute['Address Line 2']}}",
+	"address_city": "{{UserAttribute['City']}}",
+	"address_state": "{{UserAttribute['Address State']}}",
+	"address_zip": "{{UserAttribute['Address Zip']}}",
+	"address_country": "{{UserAttribute['Country']}}",
+	"source": "MoEngage"
+}
+```
+
+</CodeGroup>
+
+![Screenshot\_2022-02-21\_at\_11.35.12\_PM.png](/images/partner_4456178509844.png)
+
+## ステップ 3：設定をテストする
+
+この時点で、キャンペーンをテストして送信する準備が整っているはずです。コネクターキャンペーン作成のステップ 2 で利用できるテスト機能を使用して、コネクターの設定をテストすることもできます。
+
+![Screen\_Shot\_2022-02-22\_at\_11.12.42\_AM.png](/images/partner_4460596653716.png)
+
+設定をテストするか、キャンペーンをトリガーしたら、Inkit ダッシュボードを確認してください。テストが成功すれば、セットアップは完了です。キャンペーンを公開できます。

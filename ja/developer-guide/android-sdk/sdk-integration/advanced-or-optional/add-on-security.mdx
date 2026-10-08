@@ -1,0 +1,229 @@
+---
+title: "アドオンセキュリティ"
+description: "暗号化ストレージモジュールを使用して、MoEngage Android SDK がデバイスに保存するデータを暗号化します。"
+---
+
+# 暗号化ストレージ
+
+デフォルトでは、SDK がデバイスに保存するすべてのデータはアプリケーションのサンドボックス内にあります。これにより、他のアプリケーションがデータにアクセス (読み取りと書き込みの両方) することを防ぎます。ただし、コンプライアンス基準やその他のユースケースにより、SDK が保存するデータをさらに暗号化したい場合もあります。
+
+この暗号化を有効にするには、以下を行う必要があります。
+
+- **_app/build.gradle_** ファイルに以下の依存関係を追加します。
+- SDK の初期化時に、[MoEngage.Builder](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) オブジェクトで [configureStorageSecurity()](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-storage-security.html) を呼び出して暗号化を有効にします。
+
+## SDK のインストール
+
+`com.moengage:security` の依存関係は、このページの暗号化ストレージ、暗号化ネットワーク通信、ネットワークリクエスト認証で共通です。別の機能のためにすでに追加している場合は、設定のステップに進んでください。
+
+### BOM を使用したインストール
+
+BOM を使用した統合が推奨される方法です。まだ設定していない場合は、[Install Using BOM](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) を参照して設定してください。BOM を設定したら、以下のように **_app/build.gradle_** ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```Groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:security")
+}
+```
+
+</CodeGroup>
+
+または、[Installation using Artifact ID](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/advanced-or-optional/installing-sdk-using-artifact-id) で説明されているように、Artifact ID を使用して依存関係を追加することもできます。ただし、Artifact ID を使用したインストールでは、マッピングが正しくない場合にバージョンの不一致が発生する可能性があるため、BOM を使用したインストールを推奨します。
+
+## 暗号化の有効化
+
+SDK の初期化時に、[_MoEngage.Builder_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) の [configureStorageSecurity()](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-storage-security.html) API を使用してストレージの暗号化を有効にできます。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.StorageEncryptionConfig
+import com.moengage.core.config.StorageSecurityConfig
+
+val moEngage = MoEngage.Builder(
+        application = this,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureStorageSecurity(StorageSecurityConfig(StorageEncryptionConfig(isEncryptionEnabled = true)))
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```java Java
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+import com.moengage.core.config.StorageEncryptionConfig;
+import com.moengage.core.config.StorageSecurityConfig;
+
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureStorageSecurity(new StorageSecurityConfig(new StorageEncryptionConfig(true)))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+注:
+
+- 上記の依存関係を追加せずに初期化でストレージの暗号化を有効にすると、SDK は機能しません。つまり、イベントやユーザー属性はトラッキングされず、プッシュ通知も表示されません。
+- ストレージの暗号化を有効にしてビルドを本番環境 (Play ストアまたはその他の同等のストア) にリリースした後は、暗号化を無効にしないでください。ビルドのリリース後に暗号化を無効にすると、ユーザーがアプリケーションを更新した際に MoEngage システムで新しいユーザーが作成されます。
+
+# 暗号化ネットワーク通信
+
+デフォルトでは、SDK から送信されるすべてのリクエストに HTTPS プロトコルを使用しており、HTTPS はデフォルトでリクエストを暗号化します。MoEngage SDK は、HTTPS による暗号化に加えて、オプションで別の暗号化レイヤーを追加します。\
+この追加の暗号化を有効にするには、以下を行う必要があります。
+
+- **_app/build.gradle_** ファイルに以下の依存関係を追加します。
+- SDK の初期化時に、[MoEngage.Builder](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) オブジェクトで [configureNetworkRequest()](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-network-request.html) を呼び出します。
+
+## SDK のインストール
+
+**_ストレージの暗号化を有効にしている場合は、インストールのステップをスキップして「暗号化の有効化」のステップに進むことができます。_**
+
+### BOM を使用したインストール
+
+BOM を使用した統合が推奨される統合方法です。まだ BOM を設定していない場合は、[Install Using BOM](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) ドキュメントを参照して設定してください。BOM を設定したら、以下のように **_app/build.gradle_** ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```Groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:security")
+}
+```
+
+</CodeGroup>
+
+または、[Installation using Artifact ID](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/advanced-or-optional/installing-sdk-using-artifact-id#push-templates) で説明されているように、Artifact ID を使用して依存関係を追加することもできます。ただし、Artifact ID を使用したインストールでは、マッピングが正しくない場合にバージョンの不一致が発生する可能性があるため、BOM を使用したインストールを推奨します。
+
+## 暗号化の有効化
+
+SDK の初期化時に、[_MoEngage.Builder_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) の [configureNetworkRequest()](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-network-request.html) API を使用してネットワークの暗号化を有効にできます。
+
+### キーを取得する
+
+キーはダッシュボードで確認できます。**Settings -\> APIs -\> API Keys** に移動し、Test 環境と Live 環境の **SDK encryption key** をコピーします (注: Test 環境と Live 環境にはそれぞれ別のキーがあり、現在選択している環境のキーのみにアクセスできます)。
+
+![Fetchthekeys](/images/fetchthekeys.png)
+
+### ネットワークリクエストを設定する
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.NetworkDataSecurityConfig
+import com.moengage.core.config.NetworkRequestConfig
+
+val moEngage = MoEngage.Builder(
+        application = this,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureNetworkRequest(
+        NetworkRequestConfig(
+            NetworkDataSecurityConfig(
+                isEncryptionEnabled = true,
+                testEnvironmentEncryptionKey = "YOUR_TEST_ENVIRONMENT_ENCRYPTION_KEY",
+                liveEnvironmentEncryptionKey = "YOUR_LIVE_ENVIRONMENT_ENCRYPTION_KEY"
+            )
+        )
+    )
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```java Java
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+import com.moengage.core.config.NetworkDataSecurityConfig;
+import com.moengage.core.config.NetworkRequestConfig;
+
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNetworkRequest(new NetworkRequestConfig(new NetworkDataSecurityConfig(true, "YOUR_TEST_ENVIRONMENT_ENCRYPTION_KEY", "YOUR_LIVE_ENVIRONMENT_ENCRYPTION_KEY")))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+**_注:_** 暗号化ネットワーク通信を使用する場合は、ストレージの暗号化も有効にすることを強くお勧めします。
+
+# ネットワークリクエスト認証
+
+ネットワークリクエスト認証を有効にするには、以下を行う必要があります。
+
+- **_app/build.gradle_** ファイルに以下の依存関係を追加します。
+- SDK の初期化時に、[MoEngage.Builder](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) オブジェクトで [configureNetworkRequest()](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-network-request.html) を呼び出して認証を有効にします。
+
+## SDK のインストール
+
+**_ストレージの暗号化または暗号化ネットワーク通信を有効にしている場合は、インストールのステップをスキップして「認証の有効化」のステップに進むことができます。_**
+
+### BOM を使用したインストール
+
+BOM を使用した統合が推奨される統合方法です。まだ BOM を設定していない場合は、[Install Using BOM](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) ドキュメントを参照して設定してください。BOM を設定したら、以下のように **_app/build.gradle_** ファイルに依存関係を追加します。
+
+<CodeGroup>
+
+```Groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:security")
+}
+```
+
+</CodeGroup>
+
+または、[Installation using Artifact ID](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/advanced-or-optional/installing-sdk-using-artifact-id#device-triggered) で説明されているように、Artifact ID を使用して依存関係を追加することもできます。ただし、Artifact ID を使用したインストールでは、マッピングが正しくない場合にバージョンの不一致が発生する可能性があるため、BOM を使用したインストールを推奨します。
+
+## 認証の有効化
+
+SDK の初期化時に、[_MoEngage.Builder_](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/index.html) の [configureNetworkRequest()](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-engage/-builder/configure-network-request.html) API を使用してネットワーク認証を有効にできます。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.NetworkAuthorizationConfig
+import com.moengage.core.config.NetworkRequestConfig
+
+val moEngage = MoEngage.Builder(
+        application = this,
+        appId = "YOUR_WORKSPACE_ID",
+        dataCenter = DataCenter.DATA_CENTER_X
+    )
+    .configureNetworkRequest(NetworkRequestConfig(NetworkAuthorizationConfig(isAuthorizationEnabled = true)))
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+
+```java Java
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+import com.moengage.core.config.NetworkAuthorizationConfig;
+import com.moengage.core.config.NetworkRequestConfig;
+
+MoEngage moEngage = new MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureNetworkRequest(new NetworkRequestConfig(new NetworkAuthorizationConfig(true)))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+<Info>
+  この機能を動作させるには、上記の依存関係を追加してフラグを有効にするだけでは不十分です。この機能を完全に有効にするには、MoEngage 側で追加の設定が必要です。この機能を使用したい場合は、アカウントマネージャーまたは MoEngage サポートチームにお問い合わせください。
+</Info>

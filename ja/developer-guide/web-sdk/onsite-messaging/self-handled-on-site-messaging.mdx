@@ -1,0 +1,234 @@
+---
+title: "Self Handled On-Site Messaging"
+description: "On-site Messaging キャンペーンのデータを JSON として受け取り、Web サイト用のカスタム UI を構築します。"
+---
+
+## 概要
+
+Self-Handled On-site Messaging (OSM) は、開発者がキャンペーンデータを JSON ペイロードとして直接受け取れる柔軟性を提供する強力な機能です。MoEngage SDK に事前定義済みのテンプレートをレンダリングさせる代わりに、この方法ではアプリケーション側で、Web サイトのネイティブなデザインやユーザー体験とシームレスに統合されたカスタム UI を構築して表示できます。\
+この方法は、高度にカスタマイズされた、動的で深く統合された On-site メッセージを作成するのに最適です。
+
+<Check>
+  MoEngage Web SDK バージョン _2.55.0_ 以降を使用する必要があります。
+</Check>
+
+## キャンペーンデータの受信
+
+キャンペーンデータを受信するには、コールバック関数を登録する必要があります。MoEngage SDK は、Self-Handled OSM キャンペーンのトリガー条件が満たされたときにこの関数を実行します。
+
+### _Moengage.onsite.getSelfHandledOSM(callbackFunction)_
+
+このメソッドは、Self-Handled OSM キャンペーンのリスナーを登録します。リスナーが有効になり、データを受信できる状態にするため、MoEngage はページの読み込み時にこのメソッドを呼び出すことを推奨します。
+
+実装例:
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage.onsite.getSelfHandledOSM(function(fullCampaignData) {
+  // This callback function is the entry point for handling campaign data.
+  console.log("Received Self-Handled OSM Data:", fullCampaignData);
+  
+  // Proceed with custom UI rendering and event tracking.
+});
+```
+
+</CodeGroup>
+
+## キャンペーンデータのペイロードについて
+
+キャンペーンによって登録済みのコールバックがトリガーされると、関数はキャンペーンに関する必要な情報をすべて含む `fullCampaignData` オブジェクトを受け取ります。
+
+`fullCampaignData` ペイロードの例:
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+[{
+  "campaignId": "000000000000000000000001",
+  "campaignName": "Holiday Sale Banner",
+  "expiryTime": "2025-12-31T23:59:59.000Z",
+  "updatedTime": "2025-10-06T10:30:00.000Z",
+  "status": "ACTIVE",
+  "jsonPayload": "{\"title\":\"Holiday Sale!\",\"message\":\"Get up to 50% off all items.\"}",
+  "dismissInterval": 86400,
+  "context": {
+    "campaign_name": "Holiday Sale Banner",
+    "cid": "000000000000000000000001_v2",
+    "moe_locale_id": "eng-us",
+    "moe_locale_name": "English (US)",
+    "moe_variation_id": "variation_b_12345"
+  },
+  "urlFilters": null
+}]
+```
+
+</CodeGroup>
+
+### ペイロードのフィールド
+
+| フィールド           | 型   | 説明                                                                                                                                                                                                                                                    |
+| --------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| campaignId      | String | キャンペーンの一意の識別子。                                                                                                                                                                                                                        |
+| campaignName    | String | MoEngage ダッシュボードで定義されたキャンペーンの名前。                                                                                                                                                                                                 |
+| expiryTime      | String | キャンペーンの有効期限。                                                                                                                                                                                                                               |
+| updatedTime     | String | キャンペーンが更新された日時。                                                                                                                                                                                                                        |
+| status          | String | キャンペーンの現在のステータス。常に ACTIVE になります。                                                                                                                                                                                                       |
+| jsonPayload     | String | UI 用のカスタムデータを含む、文字列化された JSON オブジェクト。内容にアクセスするには、この文字列を解析してください。                                                                                                                                                    |
+| dismissInterval | Number | キャンペーンが自動的に閉じられるまでの時間を秒単位で指定します。デフォルト値は 86400 (24 時間) です。                                                                                                                                       |
+| context         | Object | キャンペーンを正確にトラッキングするために必要なメタデータを含むオブジェクト。トラッキングメソッドを呼び出す際には、このオブジェクトを含める必要があります。                                                                                                                         |
+| urlFilters      | Object | キャンペーンの URL ベースのターゲティングルールを定義します。開発者は、現在のページの URL が定義されたターゲティングルールに一致するかどうかを確認するロジックを実装し、一致した場合にのみキャンペーンを表示する必要があります。null の場合、URL 固有のターゲティングは適用されません。 |
+
+`urlFilters` オブジェクトの例
+
+`urlFilters` オブジェクトは、キャンペーンをどのページに表示できるかを決定するロジックを定義します。以下の例は、URL に "loc" または "hos" のいずれかが含まれている場合にキャンペーンを表示する設定を示しています。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+"urlFilters": {
+    "included_filters": {
+        "filters": [
+            {
+                "executed": true,
+                "execution": {
+                    "count": 1,
+                    "type": "atleast"
+                },
+                "action_name": "MOE_PAGE_URL_EVENT",
+                "attributes": {
+                    "filter_operator": "or",
+                    "filters": [
+                        {
+                            "name": "URL",
+                            "data_type": "string",
+                            "operator": "containsInTheFollowing",
+                            "value": [
+                                "loc"
+                            ],
+                            "value1": "",
+                            "negate": false,
+                            "case_sensitive": false,
+                            "array_filter_type": "any_of"
+                        },
+                        {
+                            "name": "URL",
+                            "data_type": "string",
+                            "operator": "containsInTheFollowing",
+                            "value": [
+                                "hos"
+                            ],
+                            "value1": "",
+                            "negate": false,
+                            "case_sensitive": false,
+                            "array_filter_type": "any_of"
+                        }
+                    ]
+                },
+                "filter_type": "actions"
+            }
+        ],
+        "filter_operator": "or"
+    }
+}
+```
+
+</CodeGroup>
+
+## キャンペーン配信のロジックとベストプラクティス
+
+イベントがトリガーされると、MoEngage は対象となるすべてのキャンペーンを評価し、配信するキャンペーンを 1 つ選択します。
+
+### キャンペーンの選択アルゴリズム:
+
+- **フィルタリング**: MoEngage は、ユーザーの適格性とターゲティング条件に基づいてキャンペーンをフィルタリングします。
+
+
+- **除外**: MoEngage は、フリークエンシーキャップ、遅延、有効期限のステータスなどのルールに基づいて、対象外のキャンペーンを除外します。
+- **優先順位付け**: MoEngage は、残りのキャンペーンを優先度順 (P0 が最高) に並べ替えます。
+- **タイブレーク**: 複数のキャンペーンが最高の優先度を共有している場合、MoEngage は「最終更新」のタイムスタンプが最も新しいキャンペーンを選択します。
+
+`getSelfHandledOSM` コールバックは、選択された 1 つのキャンペーンのみを受け取ります。
+
+### キャンペーンを整理するためのベストプラクティス:
+
+適切なコンテキストで正しいキャンペーンを表示するために、明確な優先度を設定してキャンペーンを整理してください。
+
+- **ホームページのコンテキスト**: Campaign A (P0)、Campaign B (P1)
+- **商品ページのコンテキスト**: Campaign C (P0)、Campaign D (P1)
+- **チェックアウトのコンテキスト**: Campaign E (P0)
+
+## キャンペーン統計のトラッキング
+
+UI はアプリケーションが制御するため、ユーザーのインタラクションを SDK に通知する責任はお客様にあります。この手順は、正確な分析のために不可欠です。
+
+| メソッド                                     | 説明                                                             |
+| ------------------------------------------ | ----------------------------------------------------------------------- |
+| Moengage.onsite.selfHandledShown(data)     | メッセージがレンダリングされ、ユーザーに表示された後にこのメソッドを呼び出します。 |
+| Moengage.onsite.selfHandledClicked(data)   | ユーザーがメッセージをクリックしたときにこのメソッドを呼び出します。                   |
+| Moengage.onsite.selfHandledDismissed(data) | ユーザーがメッセージを閉じたときにこのメソッドを呼び出します。                   |
+
+### トラッキングデータオブジェクトの作成
+
+トラッキングメソッドに渡す _data_ オブジェクトは、`fullCampaignData` オブジェクト全体ではありません。トラッキング用に、新しい専用のオブジェクトを作成する必要があります。
+
+必要な `trackingData` の形式:
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+const trackingData = {
+  campaignId: fullCampaignData.campaignId,
+  campaignName: fullCampaignData.campaignName,
+  context: fullCampaignData.context // Pass the context object exactly as received.
+};
+```
+
+</CodeGroup>
+
+## コードの実装例
+
+この例では、データを受信し、トラッキングメソッド用に準備するための主要なロジックを示します。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+// Register the callback function to listen for campaigns.
+Moengage.onsite.getSelfHandledOSM(function(fullCampaignData) {
+  
+  console.log("Full campaign data received:", fullCampaignData);
+  var firstCampaignData = fullCampaignData[0];
+  // Construct the specific object required for tracking events.
+  const trackingData = {
+    campaignId: firstCampaignData.campaignId,
+    campaignName: firstCampaignData.campaignName,
+    context: firstCampaignData.context
+  };
+  
+  // --- Example Tracking Calls ---
+  
+  // Call this once your custom UI is rendered and visible.
+  Moengage.onsite.selfHandledShown(trackingData);
+
+  // In your button's click handler, call this.
+  // myButton.addEventListener('click', () => {
+  //   Moengage.onsite.selfHandledClicked(trackingData);
+  // });
+  
+  // In your dismiss element's click handler, call this.
+  // myDismissButton.addEventListener('click', () => {
+  //   Moengage.onsite.selfHandledDismissed(trackingData);
+  // });
+});
+```
+
+</CodeGroup>
+
+## トラブルシューティング
+
+`Moengage.onsite.getSelfHandledOSM` コールバック関数がトリガーされない場合は、以下の一般的な問題を確認することを推奨します。
+
+- **SDK の初期化**: `getSelfHandledOSM()` は、MoEngage SDK が正常に初期化された後にのみ呼び出してください。ページ読み込みのシーケンスでこのメソッドを早く呼び出しすぎると、コールバックが正しく登録されない可能性があります。
+- **正しいメソッド**: `Moengage.onsite.getSelfHandledOSM()` メソッドを使用していることを確認してください。誤って別のモジュールのメソッドを呼び出していないことを確認してください。
+- **SDK バージョンの互換性**: Web SDK のバージョンが、前提条件に記載されている最小要件を満たしていることを確認してください。
+- **ブラウザコンソールのエラー**: ブラウザで開発者コンソールを開き、MoEngage SDK の動作を妨げる可能性のある、MoEngage SDK に起因する JavaScript エラーがないかを確認してください。

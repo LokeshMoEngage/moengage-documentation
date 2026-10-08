@@ -1,0 +1,309 @@
+---
+title: "ユーザーごとのプライマリデバイス"
+description: "ユーザーが最後にログインしたデバイスにのみプッシュ通知を送信し、機密情報を保護して共有デバイスへの配信を防ぎます。"
+keywords: ["primary device", "most recently logged-in device", "shared device push", "single device targeting", "detect primary device", "push to primary device", "Push API primary device", "Inform API push token"]
+---
+
+<Note>
+  これはアーリーアクセス機能です。アカウントで有効にするには、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
+</Note>
+
+# 概要
+
+機密情報を含むプッシュ通知を送信するマーケターは、意図した受信者が最後にログインしたデバイスで通知を受け取れるようにしたいと考えています。Email、SMS、WhatsApp の通知は、一般に個々のユーザーに固有のメールアドレスや携帯電話番号に送信されるため、この点は問題になりません。また、携帯電話番号やメールアドレスは通常ユーザー間で共有されません。しかし、デバイスレベルで送信されるプッシュ通知では、デバイスがユーザー間で共有される可能性があるため、機密性の高い通知が他者の目に触れるおそれがあります。
+
+_Primary Device Per User_ 機能を使用すると、ユーザーが最後にログインしたデバイスにのみプッシュ通知を送信できるため、機密性の高い通知を受信する際のプライバシーを保つことができます。なお、ユーザーごとに単一のデバイス（プライマリデバイス）をターゲットにしても、ユーザーに関連付けられたすべてのデバイスは削除されずに保持されますが、キャンペーンは最後にログインしたデバイスにのみ送信されます。
+
+# プライマリデバイスの検出
+
+プライマリデバイスを検出するために、MoEngage はユーザーレベルですべてのデバイスに追加のフラグを保持しています。このフラグにより、最後にログインしたデバイスがプライマリデバイスとしてマークされます。
+
+MoEngage は、ユーザーのデバイスに _Primary_ フラグを保持することでプライマリデバイスを検出します。このフラグは、MoEngage SDK が取得した最新の明示的なログインアクションが行われたデバイスに割り当てられます。プライマリフラグを持てるのは 1 台のデバイスのみで、それ以外のデバイスは持つことができません。\
+デバイス D1、D2、D3 に関連付けられたユーザー U1 の場合、ユーザーが最後に明示的にログインしたデバイスが D3 であれば、D3 がプライマリデバイスとしてマークされます。その後 D2 でイベントがトラッキングされても、D3 はプライマリのステータスを保持します。プライマリフラグが D2 に移るのは、ユーザーが D2 で再度新たにログインアクションを行った場合のみです。
+
+<Info>
+  - この機能は、Push キャンペーン（Push API の使用を含む）、Push ステージを含む Flows、および Push チャネルを使用する Inform アラート（Inform API の使用を含む）にのみ適用されます。
+  - MoEngage は、この機能を有効にした後にのみユーザーデバイスをプライマリとしてマークし始めます。この機能を有効にする前に実行された過去のイベントは、プライマリデバイスの検出には使用されません。
+  - 機能を有効にした後、すべての月間アクティブユーザー（MAU）について、ログインに基づいてプライマリデバイスが検出されるまで 30 日間待つことをお勧めします。必要に応じて、MoEngage サポートチームが 1 回限りのスクリプトを実行し、ワークスペース内の既存のデバイスを最新のログイン時刻に基づいてプライマリデバイスとしてマークすることもできます。
+  - これらの通知には機密情報が含まれるため、プッシュ通知は検出済みのプライマリデバイスにのみ送信されます。ユーザーのプライマリデバイスが検出されていない場合、そのユーザーには通知は送信されません。
+</Info>
+
+# プライマリデバイスへのキャンペーン送信
+
+プライマリデバイスには、次の方法でキャンペーンを送信できます。
+
+- [MoEngage ダッシュボードを使用する](#using-the-moengage-dashboard)
+- [API を使用する](#using-apis)
+
+## MoEngage ダッシュボードを使用する
+
+プライマリデバイスをターゲットにする機能は、MoEngage 内の次のキャンペーンタイプに適用されます。
+
+### Push キャンペーン
+
+Push キャンペーンの作成時にこの機能を使用するには、次の手順を実行します。
+
+1. **Step 3: Schedule and Goals** に移動します。
+2. **Advanced** セクションで **Primary device** チェックボックスを選択すると、この Push キャンペーンがターゲットユーザーのプライマリデバイスにのみ送信されます。
+
+![last active device push.png](/images/moengage_5dd14c.png)
+
+### Push ステージを含む Flows キャンペーン
+
+Push ステージを含む Flows キャンペーンの作成時にこの機能を使用するには、次の手順を実行します。
+
+1. **Step 3: Who will enter the flow** に移動し、必要な詳細を入力して **Next** をクリックします。
+2. キャンバスでプラスアイコンをクリックし、**Add stage** \> **Actions** \> **Push** を選択します。
+3. **Push campaign** ページで必要な詳細を入力し、**Advanced** セクションに移動します。
+4. **Primary device** チェックボックスを選択すると、この Flow キャンペーンがターゲットユーザーのプライマリデバイスにのみ送信されます。
+
+![flow with push.png](/images/moengage_a9b02e.png)
+
+### Push チャネルで設定されたアラート
+
+Push チャネルを使用するアラートキャンペーンの作成時にこの機能を使用するには、次の手順を実行します。
+
+1. **Step 2: Content** に移動します。
+2. Push チャネルに必要な詳細を入力し、**Advanced Settings** セクションに移動します。
+3. **Primary device** チェックボックスを選択すると、このアラートがターゲットユーザーのプライマリデバイスにのみ送信されます。
+
+![Inform alerts- push-last active device.png](/images/moengage_99dec9.png)
+
+## API を使用する
+
+次の API を使用して、ユーザーのプライマリデバイスにキャンペーンを送信できます。
+
+- [Push API](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/primary-device-per-user#using-the-push-api)
+- [Inform API](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/primary-device-per-user#using-the-inform-api)
+
+### Push API を使用する
+
+Push API を使用すると Push キャンペーンを作成できます。このキャンペーンをユーザーのプライマリデバイスに送信する場合は、パラメータ _targetLastActiveDevice=true._ を渡します。以下はそのサンプル cURL リクエストです。
+
+<CodeGroup>
+
+```JSON cURL wrap
+curl --location 'https://pushapi-0X.moengage.com/v2/transaction/sendpush
+--header 'accept: application/json' \
+--header 'Content-Type: application/json' \
+--header 'MOE-APPKEY: {{Workspace_ID or APP_ID}}' \
+--header 'Authorization: Basic {{Authorization_Key}}' \
+--data '{
+"signature": "{{signature}}",
+"requestType": "push",
+"responseId": "{{repsonseId}}",
+"appId": "{{appId}}",
+"campaignName": "Sample Campaign",
+"targetAudience": "All Users",
+"targetPlatform": [
+"ANDROID",
+"IOS"
+],
+"payload": {
+"ANDROID": {
+"message": "Sample Message",
+"title": "Sample Title",
+"Summary": "Sample Summary",
+"richContent": [
+{
+"type": "image",
+"value": "https://www.planwallpaper.com/static/images/desktop-year-of-the-tiger-images-wallpaper.jpg"
+},
+{
+"type": "coupon",
+"value": "free"
+},
+{
+"type": "sound",
+"value": "tring"
+}
+],
+"defaultAction": {
+"type": "navigation",
+"value": "com.moengage.demoapp.SecondActivity"
+},
+"additionalActions": [
+{
+"type": "call",
+"value": "12345678",
+"name": "Call button",
+"iconURL": "abc"
+},
+{
+"type": "copy",
+"value": "12345678",
+"name": "Copy button",
+"iconURL": "abc"
+}
+],
+"fallback": {
+"message": "Sample Message",
+"title": "Sample Title",
+"richContent": [
+{
+"type": "image",
+"value": "https://picsum.photos/200/300/?random"
+},
+{
+"type": "coupon",
+"value": "free"
+},
+{
+"type": "sound",
+"value": "tring"
+}
+],
+"defaultAction": {
+"type": "richlanding",
+"value": "https://www.google.co.in/webhp?sourceid=chrome-instant&ion=1&espv=2&ie=UTF-8"
+},
+"additionalActions": [
+{
+"type": "call",
+"value": "12345678",
+"name": "Call button",
+"iconURL": "abc"
+},
+{
+"type": "copy",
+"value": "12345678",
+"name": "Copy button",
+"iconURL": "abc"
+}
+]
+}
+},
+"IOS": {
+"message": "Sample Message",
+"title": "Sample Title",
+"contentAvailable": 1,
+"richContent": [
+{
+"type": "sound",
+"value": "custSound2.wav"
+},
+{
+"type": "image",
+"value": "https://picsum.photos/200/300/?random"
+},
+{
+"type": "coupon",
+"value": "This is an automated API message:51"
+}
+],
+"additionalActions": [
+{
+"category": "abc"
+}
+],
+"defaultAction": {
+"type": "navigation",
+"value": "",
+"kvPairs": {
+"key1": "value1",
+"Key2": "value2"
+}
+},
+"fallback": {
+"message": "Sample Message",
+"title": "Sample Title",
+"richContent": [
+{
+"type": "coupon",
+"value": "iOS"
+}
+],
+"additionalActions": [
+{
+"category": "abc"
+}
+]
+}
+}
+},
+"campaignDelivery": {
+"type": "soon"
+},
+"advancedSettings": {
+"ttl": {
+"ANDROID": 12,
+"WEB": 24
+},
+"ignoreFC": "true",
+"targetLastActiveDevice": "true",
+"notificationPrioritySettings": {
+"ANDROID": "normal",
+"IOS": 5
+}
+}
+}'
+```
+
+</CodeGroup>
+
+Push API の詳細については、[Push API](/ja/api/push/push-api) を参照してください。
+
+### Inform API を使用する
+
+Inform API を使用すると、ユーザーのプライマリデバイスに限定してプッシュ通知を送信できます。この機能は、MoEngage ダッシュボードで事前に設定されたアラートの通知をトリガーする場合に限られます。MoEngage ダッシュボードでまだ設定されていない新しいアラートを、Inform API を使用して作成または送信することはできません。
+
+Inform API の詳細については、[Inform API](/ja/api/transactional-alerts/send-transactional-alert) を参照してください。
+
+#### ユースケース 1: Push トークンパラメータを含む cURL リクエスト
+
+次の cURL リクエストには Push トークンパラメータが含まれており、以前に作成されたアラートのプッシュ通知をトリガーするために送信されます。プッシュ通知は、cURL リクエストにユーザーのプライマリデバイスの Push トークンが含まれている場合にのみ配信されます。
+
+たとえば、ユーザーが D1、D2、D3 の 3 台のデバイスを持ち、D3 がプライマリであるシナリオを考えます。MoEngage ダッシュボードでアラートを設定する際に、アラートをプライマリデバイスに送信するよう設定します。cURL リクエストにプライマリデバイス（D3）の Push トークンパラメータが含まれている場合、リクエストで指定された User ID のユーザーにプッシュ通知が配信されます。一方、API リクエストに D1 または D2 の Push トークンが含まれている場合、プッシュ通知は配信されません。
+
+<CodeGroup>
+
+```json cURL wrap
+curl --location --request POST 'https://inform-api-0X.moengage.com/v1/send' \
+--header 'MOE-APPKEY: YOUR_APP_KEY_HERE' \
+--header 'Authorization: Basic Base64_ENCODED_APPKEY_APIKEY' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+"alert_id": "636b77e6e2cf83277195fb60",
+"alert_reference_name": "Demo_ID",
+"user_id": "USER_ID",
+"transaction_id": "YOUR_TRANSACTION_ID_VAL_HERE",
+"payloads": {
+"PUSH": {
+"recipient":""
+}
+}
+}'
+```
+</CodeGroup>
+
+#### ユースケース 2: Push トークンパラメータを含まない cURL リクエスト
+
+次の cURL リクエストには Push トークンパラメータが含まれておらず、以前に作成されたアラートのプッシュ通知をトリガーするために送信されます。プッシュ通知はユーザーのプライマリデバイスに配信されます。
+
+たとえば、ユーザーが D1、D2、D3 の 3 台のデバイスを持ち、D3 がプライマリであるシナリオを考えます。MoEngage ダッシュボードでアラートを設定する際に、アラートをプライマリデバイス（D3）に送信するよう設定します。cURL リクエストには Push トークンが含まれていないため、リクエストで指定された User ID のユーザーのプライマリデバイスにプッシュ通知が配信されます。
+
+<CodeGroup>
+
+```json cURL wrap
+curl --location --request POST 'https://inform-api-0X.moengage.com/v1/send' \
+--header 'MOE-APPKEY: YOUR_APP_KEY_HERE' \
+--header 'Authorization: Basic Base64_ENCODED_APPKEY_APIKEY' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+"alert_id": "636b77e6e2cf83277195fb60",
+"alert_reference_name": "Demo_ID",
+"user_id": "USER_ID",
+"transaction_id": "YOUR_TRANSACTION_ID_VAL_HERE",
+"payloads": {
+"PUSH": {
+}
+}
+}'
+```
+</CodeGroup>
+
+<Info>
+  - プライマリデバイスは、モバイルデバイス、つまり Android および iOS プラットフォームに対してのみ算出されます。
+  - アラートの作成時に Web プラットフォームが選択されている場合、プッシュ通知はすべての Web デバイスに配信されます。\
+ たとえば、ユーザーが D1（Web デバイス）、D2（Web デバイス）、D3（Android デバイス）の 3 台のデバイスを持ち、D3 がプライマリであるシナリオを考えます。MoEngage ダッシュボードでアラートを設定する際に Android と Web のプラットフォームを選択し、さらにアラートをプライマリデバイス（D3、Android デバイス）に送信するよう選択したとします。この場合、プッシュ通知はプライマリデバイス（D3）に加えて、両方の Web デバイス（D1 と D2）にも配信されます。
+</Info>

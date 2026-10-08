@@ -1,0 +1,242 @@
+---
+title: "OpenAI Ads Conversions"
+description: "MoEngage App MarketplaceでOpenAI Ads Conversionsを接続し、Web、アプリ、オフラインのコンバージョンイベントをサーバー間でOpenAI Ads Managerに送信します。"
+keywords: ["OpenAI Ads", "conversions", "CAPI", "server-to-server", "attribution", "MoEngage integration"]
+---
+
+# はじめに
+
+MoEngageとOpenAI Ads Conversionsの連携は、安全なサーバー間（S2S）接続を確立します。Cookieの制限、Intelligent Tracking Prevention（ITP）、広告ブロッカーなどのブラウザ側の障害を回避することで、クライアント側のトラッキングでは見逃されがちなコンバージョンを取得します。
+
+MoEngageは、MoEngage App Marketplaceの**OpenAI Ads Conversions**アプリを通じて、OpenAI向けの単一のオムニチャネルコネクタを提供しています。Webサイト、モバイルアプリ、実店舗など、すべての環境で取得したコンバージョンイベントをOpenAI Ads Managerに直接送信します。
+
+## ユースケース
+
+OpenAI Ads ConversionsをMoEngageと連携すると、イベントデータを同期して以下のユースケースに対応できます。
+
+- **シグナルの回復力**: 通常はブラウザのプライバシー設定や広告ブロッカーによってブロックされる「失われた」コンバージョンを回復します。
+- **リアルタイムのアトリビューション**: サーバー側のシグナルをOpenAIに直接送信し、クリックスルーおよびビュースルーのアトリビューションの精度を向上させます。
+- **広告費用対効果（ROAS）の最適化**: リアルタイムのコンバージョンデータをOpenAIに送信し、広告配信、オーディエンスマッチング、顧客獲得単価（CPA）を改善します。
+- **マルチソーストラッキング**: あらゆるチャネルからの購入、サブスクリプション、サインアップ、予約、カスタムイベントを取得し、広告クリックにアトリビューションします。
+- **コンバージョンレポート**: OpenAI Ads Managerでコンバージョンの量と価値をレポートし、投資収益率を測定します。
+
+<Info>
+  **前提条件**
+
+  コネクタを設定する前に、以下を用意してください。
+
+  - **OpenAI Ads Managerへのアクセス**: [ステップ1: OpenAI Ads Managerで認証情報を生成する](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/openai-ads-conversions#step-1-generate-credentials-in-openai-ads-manager)でPixel IDを取得し、APIキーを生成する権限を持つアカウント。
+  - **Connected Channelsアドオン**: OpenAI Ads Conversionsは**Connected Channels**アドオンの一部です。アカウントで有効にするには、担当のMoEngage CSM（カスタマーサクセスマネージャー）にお問い合わせください。
+</Info>
+
+# 連携
+
+## ステップ1: OpenAI Ads Managerで認証情報を生成する
+
+接続を確立するには、OpenAI Ads ManagerでPixel IDを取得し、APIキーを生成します。
+
+### ステップ1.1: Pixel IDを取得する
+
+Pixel IDを取得するには、以下の手順を実行します。
+
+1. OpenAI Ads Managerアカウントにログインします。
+2. 左側のナビゲーションメニューで、**Settings** \> **General** \> **Manage conversion keys**に移動します。
+3. 右上隅にある**Create**をクリックし、**Data Source**を選択します。
+4. **Data Source Name**ボックスに、データソースの名前を入力します。
+5. **Type**リストで、**Web**を選択します。
+6. **Create**をクリックします。
+
+   ![Data Source Nameボックス、Webに設定されたTypeリスト、Createボタンを含むCreate new data sourceダイアログボックス](/images/openai-conversions-create-data-source.png)
+
+OpenAIにPixel IDが表示されます。**Copy**をクリックし、[ステップ2: App MarketplaceでOpenAI Ads Conversionsを接続する](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/openai-ads-conversions#step-2-connect-openai-ads-conversions-in-the-app-marketplace)セクションで使用するために、値を安全な場所に貼り付けます。
+
+![Copyオプション付きのPixel ID](/images/openai-conversions-pixel-id.png)
+
+### ステップ1.2: Conversions APIキーを生成する
+
+Conversions APIキーを生成するには、以下の手順を実行します。
+
+1. OpenAI Ads Managerで、**Settings** \> **General** \> **Manage conversion keys**に移動します。
+2. 右上隅にある**Conversion keys**をクリックします。
+3. **Create new key**をクリックします。
+4. **Name**ボックスに、キーの名前を入力します。
+5. **Create**をクリックします。
+
+   ![NameボックスとCreateボタンを含むCreate New Conversion Keyダイアログボックス](/images/openai-conversions-conversion-key.png)
+
+OpenAIに表示されたアクセストークンをコピーします。
+
+<Note>
+  アクセストークンは安全な場所に保存してください。ダイアログボックスを閉じると取得できなくなるため、紛失した場合は新しいキーを生成する必要があります。
+</Note>
+
+### ステップ1.3: OpenAI Ads Managerでコンバージョンイベントを作成する
+
+OpenAI Adsでは、MoEngageが送信するイベントが反映される前に、Ads Managerで各コンバージョンイベントを作成する必要があります。MoEngageからイベントが正しく送信されていても、OpenAI Ads Managerに対応するコンバージョンイベントが存在しない場合、レポートには表示されません。
+
+追跡するイベントごとに、以下の手順を実行します。
+
+1. OpenAI Ads Managerアカウントにログインします。
+2. 左側のナビゲーションメニューで、**Settings** \> **General** \> **Manage conversion keys**に移動します。
+3. **Conversion Events**タブをクリックします。
+4. 右上隅にある**Create**をクリックし、**Conversion Event**を選択します。
+5. **Base Event**リストで、追跡するイベントを選択します。
+6. コンバージョンイベントの名前を入力します。
+7. **Data source**で、[ステップ1.1: Pixel IDを取得する](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/openai-ads-conversions#step-1-1-retrieve-your-pixel-id)セクションで作成したデータソースを選択します。
+8. **Create**をクリックします。
+
+追跡するすべてのイベントについて、これらの手順を繰り返します。OpenAIがサポートするイベントについては、OpenAIドキュメントの[Supported Events](https://developers.openai.com/ads/supported-events)を参照してください。
+
+## ステップ2: App MarketplaceでOpenAI Ads Conversionsを接続する
+
+App MarketplaceでOpenAI Ads Conversionsを接続するには、以下の手順を実行します。
+
+1. MoEngage UIの左側のナビゲーションメニューで、**App Marketplace**をクリックします。
+2. 検索ボックスに「OpenAI Ads Conversions」と入力します。
+3. **Search results**で、**OpenAI Ads Conversions**タイルをクリックします。
+4. **Integrate**タブをクリックします。
+5. **\+ Add integration**をクリックします。
+6. 以下の詳細を入力します。
+
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | Connection name | はい | 接続の一意の内部名（例: OpenAI Ads - Production）。 |
+   | API Key | はい | [ステップ1.2: Conversions APIキーを生成する](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/openai-ads-conversions#step-1-2-generate-a-conversions-api-key)セクションで生成した、OpenAI Ads ManagerのBearerトークン。API呼び出しを承認します。 |
+   | Pixel ID | はい | [ステップ1.1: Pixel IDを取得する](/ja/partner-guide/retargeting-and-audience-sync/ad-conversions/openai-ads-conversions#step-1-1-retrieve-your-pixel-id)セクションで取得した、OpenAI Ads ManagerのPixel ID。コンバージョンシグナルを正しいデータセットに送信します。 |
+
+7. **Test**をクリックして接続を検証し、保存します。
+
+   ![IntegrateタブのConnection details フォーム。Connection name、API Key、Pixel IDフィールドとTestボタンが表示されています](/images/openai-conversions-connection.png)
+
+**Integrate**タブには、作成した各接続が、そのステータス、連携タイプ、最終更新者とともに一覧表示されます。**Status**トグルを使用すると、接続を削除せずにオフにできます。
+
+<Note>
+  接続への変更がキャンペーンに反映されるまで、最大15分かかります。
+</Note>
+
+## ステップ3: OpenAI Ads Conversionsキャンペーンを作成する
+
+OpenAI Ads Conversionsキャンペーンを作成するには、以下の手順を実行します。
+
+1. MoEngage UIの左側のナビゲーションメニューで、**+ Create New**をクリックし、**Campaign**をクリックします。
+2. **Connected Apps**で、**See all**をクリックします。
+3. **Connected Apps**ダイアログボックスで**OpenAI Ads**を検索し、**OpenAI Ads Conversions**タイルをクリックします。
+4. 必要な配信タイプ（**One Time**、**Periodic**、または**Event Triggered**）をクリックします。
+
+   ![OpenAI Adsが検索され、One Time、Periodic、Event Triggeredの配信タイプが表示されたConnected Appsダイアログボックス](/images/openai-conversions-delivery-type.png)
+5. **Step 1**（Target users）で、オーディエンスを選択します。
+6. **Step 2**（Content）の**Select connector**で、**Connector**リストから**Track OpenAI Ad Conversions**を選択し、**Connections**リストから接続を選択します。
+7. **Conversion Goals**で、以下を入力します。
+
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | Event Type | はい | OpenAIの標準分類から選択する、追跡対象のコンバージョンイベント。デフォルトは**Order Created**です。 |
+   | Custom Event Name | 条件付き | **Event Type**が**Custom**の場合にのみ必須です。小文字、数字、アンダースコア、ダッシュを使用して1～64文字で入力します。 |
+   | Action Source | はい | コンバージョンが発生したチャネル（**Web**、**Mobile App**、**Offline**、**Physical Store**、**Phone Call**、**Email**など）。デフォルトは**Web**です。 |
+   | Event ID | はい | 重複排除に使用される一意の取引ID、注文ID、またはイベントID。このIDを持つ最初のシグナルのみが記録されるようにします。 |
+   | Currency | 条件付き | コンバージョン値のISO 4217通貨コード。**Conversion Value**を入力する場合は必須です。デフォルトは**USD**です。 |
+   | Conversion Value | いいえ | コンバージョンの金銭的価値。通貨の最小単位の整数で指定します。 |
+
+   **Action Source**によってオムニチャネルトラッキングが可能になり、アプリでのインタラクション、Webサイトへの訪問、実店舗での購入にコンバージョンをアトリビューションできます。任意のテキストボックスに`@`と入力すると、ユーザー属性またはイベント属性を使用して値をパーソナライズできます。
+
+   ![Select connectorセクションとConversion Goalsフィールド。選択されたコネクタとEvent Type、Action Source、Event ID、Currencyが表示されています](/images/openai-conversions-conversion-goals.png)
+
+8. **Attribution**で、以下を入力します。
+
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | Source URL | 条件付き | コンバージョンが発生したURL（例: `https://shop.example.com/checkout/confirmation`）。**Action Source**が**Web**の場合は必須です。 |
+   | IP Address | いいえ | ユーザーマッチングの改善に使用されるIPv4またはIPv6アドレス。ハッシュ化されずにそのまま送信されます。 |
+   | Browser Details | いいえ | ブラウザのUser-Agent文字列。クロスデバイスのアトリビューションに役立ちます。 |
+
+   <Note>
+     Webコンバージョンのクリックスルーアトリビューションの精度が向上するため、可能な限り**Source URL**を含めてください。
+   </Note>
+
+   ![Source URL、IP Address、Browser Detailsボックスを示すAttributionセクション](/images/openai-conversions-attribution.png)
+
+9. **Advanced Matching**で、以下を入力します。これらの識別子は、OpenAIがコンバージョンを特定のユーザーに関連付けるのに役立ちます。MoEngageは、送信前に個人を特定できる情報（PII）を正規化し、SHA-256でハッシュ化します。
+
+   | フィールド | 必須 | 説明 |
+   | --- | --- | --- |
+   | External ID | いいえ | 社内の顧客IDまたはユーザーID（例: `customer_12345`）。SHA-256ハッシュ化で保護されます。 |
+   | Country | いいえ | 2文字のISO 3166-1国コード（例: `US`）。そのまま送信されます。 |
+   | City | いいえ | 都市名。自動的に小文字に変換されます。最大128文字です。 |
+   | Zip Code | いいえ | 郵便番号またはZIPコード。そのまま送信されます。最大32文字です。 |
+
+   MoEngageはメールアドレスを独自に送信するため、メールアドレスが登録されていないユーザーについては、これらの識別子を少なくとも1つマッピングしてください。マッチングシグナルがまったくないコンバージョンは、広告にアトリビューションできません。
+
+   <Note>
+     ユーザーのメールアドレスは標準属性から自動的に取得されるため、フィールドとしては表示されません。MoEngageは、エイリアスとピリオドを除去し、文字列を小文字に変換してから、SHA-256ハッシュ化を適用して送信します。
+   </Note>
+
+   ![External ID、Country、City、Zip Codeボックスを示すAdvanced Matchingセクション](/images/openai-conversions-advanced-matching.png)
+
+10. **Event Data**の**Conversion Event Data**ブロックで、**Key**ボックスにキーを入力し、隣接するボックスにその値を入力します。追加のペアごとに**+ New KV Pair**をクリックします。
+
+    | キー | 適用対象 | 説明 |
+    | --- | --- | --- |
+    | amount | すべてのイベント | アイテムの金銭的価値。ISO 4217に従った通貨の最小単位の整数で指定します。たとえば、$42.00 USDの場合は`4200`です。 |
+    | currency | `amount`を含むすべてのイベント | アイテムのISO 4217通貨コード（`USD`や`EUR`など）。`amount`が存在する場合は常に必須です。 |
+    | plan_id | Subscriptions、Custom | 社内のサブスクリプションまたはプランの識別子（例: `plan_starter`）。 |
+    | item_id | Purchase、Subscriptions、Custom | 社内の製品またはアイテムの識別子（例: `sku_12345`）。 |
+    | item_name | Purchase、Subscriptions、Custom | 製品名（例: Premium Subscription）。 |
+    | item_quantity | Purchase、Subscriptions、Custom | アイテムの数（整数）。 |
+    | content_type | すべてで任意 | アイテムのカテゴリまたはタイプ（例: `product`）。 |
+    | group_id | すべてで任意 | 製品グループまたはバンドルの識別子（例: `bundle_summer_2024`）。 |
+    | variant_dict.size | すべてで任意 | 製品バリアントのサイズ（例: `large`）。 |
+    | variant_dict.color | すべてで任意 | 製品バリアントの色（例: `blue`）。 |
+
+    `amount`キーと`currency`キーは、個々のアイテムの価値を設定します。**Conversion Goals**の**Currency**フィールドと**Conversion Value**フィールドは、コンバージョンイベント自体の価値を設定するため、この2つは別のものです。
+
+    ![Keyボックス、値ボックス、New KV Pairコントロールを含むConversion Event Dataのキーと値のブロック](/images/openai-conversions-event-data.png)
+
+11. **Test Campaign**で、識別子のタイプを選択し、テストユーザーの値を入力して、**Test**をクリックします。
+12. **Next**をクリックし、**Step 3**（Schedule and Goals）を設定して、キャンペーンを公開します。
+
+    ![識別子リスト、値ボックス、Testボタンを含むTest Campaignセクション。横にPreviousボタンとNextボタンがあります](/images/openai-conversions-test-campaign.png)
+
+テストキャンペーンではフリークエンシーキャップが無視されます。本番環境に公開する前に、コネクタの設定をテストしてください。
+
+## カスタムイベント
+
+OpenAIの標準分類以外のコンバージョンを追跡するには、以下の手順を実行します。
+
+1. **Conversion Goals**で、**Event Type**リストから**Custom**を選択します。
+2. **Custom Event Name**ボックスに、小文字、数字、アンダースコア、ダッシュを使用して1～64文字の名前を入力します。スペースはサポートされていません。
+3. **Event Data**で、イベントに適用されるキーをマッピングします。
+
+有効なカスタムイベント名の例としては、`video_completed`、`ebook_downloaded`、`webinar_registered`があります。
+
+## サポートされるコンバージョンイベント
+
+MoEngageは、OpenAIの標準イベント分類への直接マッピングをサポートしています。**Event Type**リストで追跡するイベントを選択します。サポートされるイベントの完全なリストと、各イベントが受け付けるデータについては、OpenAIドキュメントの[Supported Events](https://developers.openai.com/ads/supported-events)を参照してください。
+
+<Note>
+  **Order Created**がデフォルトのイベントタイプです。ファネル上部の目標をターゲットにする場合は、キャンペーン設定で**Event Type**を調整してください。
+</Note>
+
+## 使用上の制約
+
+- **金額の形式**: コンバージョン値は、通貨の最小単位の整数で送信します。たとえば、$42.00 USDは`4200`、€29.99 EURは`2999`、£1.50 GBPは`150`、¥100 JPYは`10000`です（JPYには小数の補助単位がないため）。コンバージョン値を送信する場合は、必ず**Currency**フィールドを設定してください。
+- **重複排除の衛生管理**: 取引IDや注文IDなど、一意の**Event ID**をマッピングします。OpenAIはEvent IDの最初の発生のみを記録し、重複を無視するため、過大なレポートを防止できます。
+- **ユーザーマッチングとプライバシー**: MoEngageは個人を特定できる情報（PII）をネイティブに正規化し、SHA-256でハッシュ化するため、生の値をコネクタに直接渡してください。
+- **タイムスタンプの精度**: イベントのタイムスタンプは過去7日以内である必要があり、10分以上先の未来にすることはできません。タイムスタンプを省略した場合、MoEngageは現在のタイムスタンプを入力します。
+- **レート制限とバッチ処理**: OpenAI Conversions APIは、1リクエストあたり最大1,000件のイベントのバッチを受け付けます。バッチ内の1つのイベントがスキーマ検証に失敗すると、バッチ全体が失敗するため、すべてのイベントのデータの整合性を確認してください。
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="同じキャンペーンで複数のチャネルからイベントを送信できますか？">
+    はい。各イベントに適切な**Action Source**を割り当てると、OpenAIがチャネル全体でコンバージョンをアトリビューションします。
+  </Accordion>
+  <Accordion title="同じEvent IDを2回送信するとどうなりますか？">
+    OpenAIはEvent IDに基づいてイベントの重複を排除します。最初に受信したインスタンスのみが記録され、以降の同一IDは無視されます。
+  </Accordion>
+  <Accordion title="アイテムごとの収益を追跡できますか？">
+    はい。**Conversion Value**に全体の値を設定し、**Conversion Event Data**ブロックにアイテム固有の詳細を追加します。サイズや色などのアイテム属性には`variant_dict`キーを使用します。
+  </Accordion>
+  <Accordion title="複数アイテムの注文はどのように処理すればよいですか？">
+    **Conversion Value**に注文の合計金額を設定し、複数単位のアイテムには`item_quantity`を使用します。複雑な複数製品の注文の場合は、個々のアイテムイベントを送信するか、単一のバンドル識別子の下にグループ化します。
+  </Accordion>
+</AccordionGroup>

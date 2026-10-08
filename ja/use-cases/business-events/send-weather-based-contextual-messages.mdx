@@ -1,0 +1,172 @@
+---
+title: "天気に基づくコンテキストメッセージを送信する"
+---
+
+# はじめに
+
+天気は、何を着るか、どこへ行くか、何を買うかといった消費者の意思決定に影響を与える普遍的な要因です。天気は消費者の行動や購買意欲に大きく影響するため、天気に基づくコンテキストメッセージの送信は効果的です。これにより、マーケターはより関連性が高くパーソナライズされたメッセージを配信でき、最終的にエンゲージメントとコンバージョンの向上につながります。
+
+マーケターは、天気の最新情報をユーザーに通知するプロセスを自動化できます。これにより、天気が変わるたびに手動でキャンペーンを送信する必要がなくなります。
+
+#### 天気に基づくコンテキストメッセージを送信するメリット
+
+- **関連性とパーソナライゼーションの向上**: 現在の天候に合わせてメッセージを調整することで、消費者によりパーソナライズされた関連性の高い体験を提供できます。
+- **キャンペーン効果の向上**: 天気が消費者の行動にどのように影響するかを理解することで、適切なタイミングで消費者のニーズや欲求に響くようにキャンペーンを最適化できます。
+- **顧客体験の向上**: 天気に基づくメッセージングは、天気に関連する割引や商品のおすすめなど、タイムリーで関連性の高い情報を提供することで、顧客体験を向上させます。
+- **データドリブンなインサイト**: 天気データは消費者の行動や購買意欲に関するリアルタイムのインサイトを提供するため、データに基づいた意思決定を行い、最大の効果を得られるようにキャンペーンを最適化できます。
+- **天気に基づくメッセージングの例**:
+  - **旅行業界**: 航空会社は天気ターゲティングを使用して、寒い時期に温暖な目的地への旅行をプロモーションしたり、悪天候に見舞われている地域の顧客に割引を提供したりできます。
+  - **小売**: 小売業者は、現在の天候に基づいて、季節商品や傘、日焼け止めなどの天気関連商品をプロモーションできます。
+  - **飲食**: レストランや飲料メーカーは、天気に基づくメッセージングを使用して、寒い日には温かい飲み物、暑い日には冷たい飲み物など、天候に適した飲み物や食事をプロモーションできます。
+
+このユースケースは、次の手順で実現できます。
+
+1. [ビジネスイベントを作成する](/ja/use-cases/business-events/send-weather-based-contextual-messages#step-1-create-a-business-event)
+2. [Email キャンペーンを作成する](/ja/use-cases/business-events/send-weather-based-contextual-messages#step-2-create-an-email-campaign)
+3. [ビジネスイベントをトリガーしてキャンペーンをトリガーする](/ja/use-cases/business-events/send-weather-based-contextual-messages#step-3-trigger-campaign-by-triggering-business-events)
+
+# 期待される結果
+
+ユーザーは、自分の都市の現在の天気に関するメール通知を受け取り、その天候に関連する商品のオファーを受け取ります。
+
+![weather.png](/images/moengage_1ba789.png)
+
+<Tip>
+  - お使いのアカウントで、_Business Events_ 機能を含む Enterprise プランが有効になっている必要があります。
+  - ユーザーの都市がコミュニケーションのトリガーとなるため、都市を属性としてトラッキングする必要があります。
+</Tip>
+
+# ステップ 1: ビジネスイベントを作成する
+
+このセクションでは、お使いのアカウント用に[ビジネスイベント](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/overview-business-events)を作成します。これにより、必要な詳細をすべて取得するためのイベントテンプレートを作成できます。MoEngage Business Event パブリック API を使用できます。イベントを設定した後、このイベント形式を使用して、都市で異常な気象状況が発生した際に通知できます。この例では、次の情報がビジネスイベントに含まれます。
+
+- イベント名: _WeatherUpdate1_
+- イベントの属性とそのデータ型:
+  - **City**: string
+  - **Current Weather**: string
+  - **Suggested tool**: string
+
+次の手順を実行します。
+
+1. 上記の情報を JSON 形式で記述し、Postman または任意のツールを使用して MoEngage に送信します。詳細については、Business Events API の[ドキュメント](/ja/api/introduction)を参照してください。JSON
+   ```json
+   {
+     "event_name": "WeatherUpdate1",
+     "event_attributes": [
+     {
+       "attribute_name": "City",
+       "attribute_data_type": "string"
+     },
+     {
+       "attribute_name": "Current Weather",
+       "attribute_data_type": "string"
+     },
+      {
+       "attribute_name": "Suggested tool",
+       "attribute_data_type": "string"
+     }
+   ```
+2. API コールを実行します。イベントが正常に作成されると、MoEngage は次のレスポンスを送信します。
+   <Tabs>
+     <Tab title="JSON">
+       ```json
+       {
+           "message": "The business event has been created",
+           "_id": "664f9cebd52979785bcadaf4"
+       }
+       ```
+     </Tab>
+   </Tabs>
+3. イベントが正常に追加されたかどうかを確認するには:
+   1. MoEngage ダッシュボードで、Business Event Triggered Email キャンペーンに移動します。
+   2. **Select Business Event** リストで、イベントを確認できます。_WeatherUpdate1_ イベントがリストに表示されていることを確認できます。<img src="/images/wether-2.png" alt="天気 2" />
+
+# ステップ 2: Email キャンペーンを作成する
+
+このセクションでは、ビジネスイベントでトリガーされるメール通知を使用して、天気に基づくアラートを作成します。
+
+## ステップ 2.1: ターゲットユーザー
+
+1. 左側のサイドバーで **Engage** \> **Campaigns** をクリックし、**\+ Create campaign** をクリックするか、**\+ Create new** \> **Campaign** をクリックします。
+2. **Outbound** で、**Email** \> **Business Event Triggered** を選択します。 
+   <Frame>
+     ![天気 3](/images/weather-3.png)
+   </Frame>
+   キャンペーン定義の最初のステップである **Target users** に移動します。
+3. 次の詳細を入力します。
+   - **Team**: 組織でアカウントのチーム機能が有効になっている場合は、チームを選択します。詳細については、[MoEngage のチーム](/ja/user-guide/settings/account/team-management/teams-in-moengage)を参照してください。
+   - **Campaign Name**: キャンペーンの名前を入力します。例: _Weather-Based Contextual Comm_。
+   - **Campaign Content Type**: **Promotional/Marketing** を選択します。
+   - **Subscription Categories**: カテゴリを選択します。例えば、_Last\_Hour\_Discount_ を選択します。これにより、特定のカテゴリに関するコミュニケーションの受信をオプトインしたユーザーのみをターゲットにできます。
+   - **User attribute with email address**: _Email (Standard)_ を選択します。
+     <Frame>
+       ![2 1](/images/2-1.png)
+     </Frame>
+4. **Select business event** リストから、_WeatherUpdate1_ イベントを選択します。<img src="/images/weather-5.png" alt="天気 5" />
+5. **Target Audience** セクションで、**User property** タブをクリックします。
+6. ユーザー属性 **City** を選択し、Business Event Attribute _City_ にマッピングします。これにより、ビジネスイベント API でイベント属性の値がユーザーの都市と一致するたびに、一致したすべてのユーザーがメールコミュニケーションを受け取ります。
+   <Frame>
+     ![天気 6](/images/weather-6.png)
+   </Frame>
+   \
+   ビジネスイベントの属性がドロップダウンリストで使用できるようになりました。イベント属性 **City** は、ビジネスイベントがトリガーされるたびに動的な値を持つことができ、**City** の値はセグメンテーションクエリで自動的に置き換えられます。
+7. **Next** をクリックして、2 番目のステップである **Content** に進みます。ここでは、Email キャンペーンのコンテンツを定義できます。
+
+## ステップ 2.2: コンテンツ
+
+1. 使用するテンプレートを選択します。この例では、**Custom HTML editor** タブの空白の HTML テンプレートを使用します。
+2. 次の詳細を追加します。
+   - 件名
+   - プレビューテキスト
+   - 送信者名
+   - 送信元メールアドレス
+   - 返信先メールアドレス
+3. **Template editor** セクションで、メールメッセージのコンテンツを入力します。
+   <Frame>
+     ![天気 7](/images/weather-7.png)
+   </Frame>
+   \
+   このようなコミュニケーションのコンテンツには、ビジネスイベントの属性から取得した値を含める必要があります。これは、他のパーソナライゼーションと同様の方法で行えます。
+4. ユーザー名などの情報を含めてメッセージをパーソナライズします。これにより、メッセージがよりコンテキストに沿ったものになり、ユーザーがつながりを感じやすくなります。手順は次のとおりです。
+   1. 「@」と入力します。Email Personalization ポップアップが表示されます。
+   2. ビジネスイベントまたはユーザー属性から情報を選択します。
+      <Frame>
+        ![天気 8](/images/weather-8.png)
+      </Frame>
+   3. **Done** をクリックします。
+5. **Next** をクリックして、3 番目のステップである **Schedule and goals** に進みます。ここでは、キャンペーンのスケジュールと目標を定義できます。
+
+## ステップ 2.3: スケジュールと目標
+
+1. 要件に基づいて、このキャンペーンの開始日時と終了日時、およびコンバージョン目標を定義します。
+2. 要件に基づいて、配信設定を変更します。詳細については、[Email キャンペーンの作成](/ja/user-guide/campaigns-and-channels/email/create/create-an-email-campaign)を参照してください。
+3. **Publish** をクリックします。
+   <Frame>
+     ![天気 9](/images/weather-9.png)
+   </Frame>
+
+# ステップ 3: ビジネスイベントをトリガーしてキャンペーンをトリガーする
+
+これで、コミュニケーションのトリガーを開始する準備が整いました。都市の天気に更新があった場合、_Trigger Business Event_ トリガーを使用してキャンペーンを開始できます。ビジネス要件に基づいて、このイベントを MoEngage に渡すタイミングを決定できます。
+
+ペイロードの例を次に示します。
+
+JSON
+
+```json
+{
+      "event_name": "WeatherUpdate1",
+      "event_attributes": {
+          "City": ["Bengaluru", "NewDelhi", "Kolkata"],
+          "Current Weather": "Rainy",
+          "Suggested tool": "Raincoat"
+      },
+       "triggered_by": "john.joe@example.com"
+}
+```
+
+# まとめ
+
+このユースケースでは、メール通知による天気の最新情報を作成しました。これを実現するために、MoEngage のビジネスイベントを使用しました。このイベントをトリガーするロジックはお客様側にあります。例えば、都市の天気に更新があるたびにビジネスイベントを作成し、それを使用してキャンペーンをトリガーできます。
+
+![天気 10.png](/images/moengage_61e877.png)

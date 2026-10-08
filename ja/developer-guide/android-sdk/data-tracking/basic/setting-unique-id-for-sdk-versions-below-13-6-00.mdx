@@ -1,0 +1,72 @@
+---
+title: "SDK バージョン 13.6.00 未満での Unique ID の設定"
+description: "MoEngage Android SDK バージョン 13.6.00 未満で、ログインとログアウトのための一意のユーザー ID を設定します。"
+---
+
+# ログイン/ログアウトの実装
+
+- ユーザーがアプリにログインしたときに、ユーザー属性 Unique ID を設定することが重要です。
+- これにより、既存のユーザーが存在する場合は新しいユーザーが既存のユーザーとマージされ、不要な/古いユーザーの作成を防ぐことができます。
+- Unique ID の設定は、デバイス間、インストール/アンインストール間、およびすべてのプラットフォーム (iOS、Android、Windows、Web) 間でユーザーを紐付けるための重要な要素です。ユーザーが**ログイン**したらすぐに **USER_ATTRIBUTE_UNIQUE_ID** 属性を設定してください。Unique ID には、メール ID、(一意の) ユーザー名、データベース ID、またはバックエンドで生成された任意の ID などを使用できます。
+- ログインしていないユーザーにはこれを設定しないでください。
+
+## ログイン
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEAnalyticsHelper.setUniqueId(context, UNIQUE_ID)
+```
+
+
+```java Java
+MoEAnalyticsHelper.INSTANCE.setUniqueId(context, UNIQUE_ID);
+```
+
+</CodeGroup>
+
+**注:** UniqueID フィールドでは、以下の値は使用できません: "unknown", "guest", "null", "0", "1", "true", "false", "user_attribute_unique_id", "(empty)", "na", "n/a", "", "dummy_seller_code", "user_id", "id", "customer_id", "uid", "userid", "none", "-2", "-1", "2"
+
+<Warning>
+  **UNIQUE ID の混乱**
+
+  - MoEngage Android SDK を初めて本番環境で運用する際は、すでにログインしているユーザーの Unique ID を他のユーザー属性とともに設定していることを確認してください。
+  - すべてのユーザーに単一の UNIQUE ID を使用していないことを確認してください。これは、値をサーバーから取得せずにハードコーディングした場合に発生する可能性があります。
+  - 間に [logoutUser](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-e-core-helper/logout-user.html) メソッドを呼び出さずに 2 つの異なる UNIQUE ID 情報を渡すと、SDK は内部的に既存のユーザーを強制的にログアウトさせます。
+</Warning>
+
+## ログアウト
+
+ユーザーがアプリケーションからログアウトするたびに、アプリケーションは MoEngage SDK に通知する必要があります。SDK に通知するには、ユーザーがアプリケーションからログアウトするたびに API を呼び出します。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoECoreHelper.logoutUser(context)
+```
+
+
+```Java Java
+MoECoreHelper.INSTANCE.logoutUser(context);
+```
+
+</CodeGroup>
+
+アプリケーションがプッシュトークンを登録している場合は、ユーザーのログアウト後に新しいプッシュトークンを MoEngage SDK に渡す必要があります。プッシュトークンの受け渡しの詳細については、[Android SDK のプッシュ設定](https://www.moengage.com/docs/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+
+## ユーザー属性 Unique ID の更新
+
+ユーザー属性 Unique ID を更新するには、異なる値で _setUniqueId()_ を使用するのではなく、_setAlias()_ メソッドを使用します。新しい値で _setUniqueId()_ メソッドを使用すると、MoEngage に意図しないユーザーが作成されます。
+
+<CodeGroup>
+
+```Kotlin Kotlin wrap
+MoEAnalyticsHelper.setAlias(ALIAS)
+```
+
+
+```Java Java
+MoEAnalyticsHelper.INSTANCE.setAlias(ALIAS);
+```
+
+</CodeGroup>

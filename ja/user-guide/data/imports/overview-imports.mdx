@@ -1,0 +1,119 @@
+---
+title: "概要 - インポート"
+description: "MoEngageのデータインポートを始めましょう。ソースを比較し、各ソースがサポートするエンティティタイプを確認して、ユーザー、イベント、Auxiliary Dataに適したインポート方法を選択します。"
+keywords: "data imports, S3, SFTP, Snowflake, BigQuery, Databricks, manual upload, auxiliary data, entity matrix"
+---
+
+import UniversalImportFaqs from '/ja/snippets/imports-faq-universal.mdx';
+import MappingFileConcept from '/ja/snippets/imports-mapping-file-concept.mdx';
+import DatetimeFormats from '/ja/snippets/imports-datetime-formats.mdx';
+import TimezoneDisplayNote from '/ja/snippets/imports-timezone-display-note.mdx';
+
+# はじめに
+
+MoEngageでは、ファイル (Amazon S3、SFTP、または手動CSVアップロード) から、またデータウェアハウス (Snowflake、BigQuery、またはDatabricks) から直接、ユーザー、イベント、Auxiliary Dataをワークスペースにインポートできます。このページは、ユースケースに適したソースを選択するのに役立ちます。方法を選択すると、専用のセットアップページでプロセス全体を順を追って確認できます。
+
+<Info>
+  システムでIPホワイトリスト登録が必要な場合は、データインポートを設定する前に [MoEngageでのIPホワイトリスト登録](/ja/user-guide/settings/account/security/ip-whitelisting-in-moengage) を参照してください。
+</Info>
+
+# ソースとサポートされているエンティティ
+
+ソースごとにサポートされるエンティティタイプが異なります。このマトリックスを使用して、必要なデータをソースからインポートできるかを確認してください。
+
+**ファイルソース**
+
+| ソース | Registered Users | Anonymous Users | Events | Auxiliary Data |
+| --- | :---: | :---: | :---: | :---: |
+| Amazon S3 | ✅ | ✅ | ✅ | ✅ |
+| SFTP | ✅ | ✅ | ✅ | ✅ |
+| 手動アップロード (CSV) | ✅ | ✅ | ✅ | ✅ |
+
+**データウェアハウス**
+
+| ソース | Registered Users | Anonymous Users | Events | Auxiliary Data |
+| --- | :---: | :---: | :---: | :---: |
+| Snowflake | ✅ | ✅ | ✅ | ❌ |
+| BigQuery | ✅ | ✅ | ✅ | ❌ |
+| Databricks | ✅ | ✅ | ✅ | ❌ |
+
+**エンティティタイプ:**
+
+- **Registered Users**: MoEngageにすでに登録されているユーザーです。既存ユーザーの一括更新にも使用します。
+- **Anonymous Users**: MoEngageにまだ登録されていないユーザーです。
+- **Events** (標準およびユーザー定義): Campaign Interaction Eventsなどの標準イベントと、独自のユーザー定義イベントです。
+- **Auxiliary Data**: 特定のビジネス目的のために一時的にMoEngageに取り込まれるユーザーデータです。ファイルベースのソース (S3、SFTP、手動アップロード) でのみ利用でき、データウェアハウスでは利用できません。
+
+# インポート方法を選択する
+
+データの保存場所に合ったインポート方法を選択してください。
+
+<CardGroup cols={2}>
+  <Card title="ファイルインポートを設定する" href="/ja/user-guide/data/imports/setting-up-a-file-import" icon="folder">
+    Amazon S3またはSFTPサーバーに配置されたファイルからのインポートを、1回限りまたは定期的なスケジュールで自動化します。
+  </Card>
+  <Card title="データウェアハウスインポートを設定する" href="/ja/user-guide/data/imports/setting-up-a-data-warehouse-import" icon="database">
+    Snowflake、BigQuery、またはDatabricksのテーブルやビューから直接インポートします。接続ベースで、1回限りまたは定期的な同期が可能です。
+  </Card>
+  <Card title="手動アップロード" href="/ja/user-guide/data/imports/manual-uploads" icon="upload">
+    ユーザーまたはイベントのCSVをダッシュボードで直接アップロードします。1回限りのみで、定期的なスケジュール設定はできません。
+  </Card>
+  <Card title="Auxiliary Data" href="/ja/user-guide/data/imports/auxiliary-data" icon="table">
+    シンプルなプライマリキーマッピングモデルを使用して、S3、SFTP、またはCSV経由で補助データをインポートします。
+  </Card>
+</CardGroup>
+
+# インポートの仕組み
+
+以下の仕組みは、すべてのインポートソースに共通です。ソース固有のセットアップ手順、制限、失敗時の動作については、各ソースのセットアップページを参照してください。
+
+## インポートダッシュボード
+
+Data Importsダッシュボードには、すべてのインポートとその主な詳細が一覧表示されます。
+
+| **列** | **説明** |
+| --- | --- |
+| **Name** | セットアップ時にインポートに付けた名前。 |
+| **Type** | インポートのソース (S3、SFTP、CSV、Snowflake、BigQuery、またはDatabricks)。インポートタイプ (One-TimeまたはPeriodic) は括弧内に表示されます。 |
+| **Custom Segment** | ユーザーインポートがセグメントに保存される場合、そのセグメント名がここに表示されます。 |
+| **Created at** | インポートが作成された日時。 |
+| **Last Sync Status** | インポートの最新ステータス (以下のステータスを参照)。 |
+| **Files Processed** | これまでに処理されたファイルの数。 |
+| **Rows Processed** | これまでに処理された行の合計数。 |
+| **Actions** | インポートのView Details、Edit、Duplicate、Delete。 |
+
+<TimezoneDisplayNote />
+
+## インポートステータス
+
+ダッシュボード上の各インポートには、次のいずれかのステータスが表示されます。
+
+- **Scheduled**: インポートは将来実行されるようにスケジュールされています。
+- **Processing**: インポートは現在実行中です。
+- **Successful**: インポートは正常に完了しました。
+- **Partial Success**: 少なくとも1つのファイル (または行) が部分的に成功してインポートされました。
+- **Failed**: インポートは失敗しました。ステータスにカーソルを合わせると理由が表示されます。
+
+ファイルごとの詳細 (ファイル内の行数、作成/更新/失敗したユーザー数、追加/失敗したイベント数、追加/失敗したAux data数、スキップされた行数) を確認するには、3点リーダーのActionsメニューを開き、**View Details** を選択します。インポートされたファイルのコピーは最大60日間エクスポートできます。
+
+## インポートをトリガーする
+
+インポートは次の方法でトリガーできます。
+
+1. **手動**: インポートページで **Actions** をクリックして、定期インポートをトリガーします。スケジュールされた時刻の5分以内にインポートをトリガーすると、エラーが発生する場合があります。
+2. **API**: [File Imports Trigger API](https://www.moengage.com/docs/api/file-import/trigger-file-imports) を使用してインポートをトリガーします。データウェアハウスは現在これらのAPIをサポートしていません。
+
+# マッピングファイルとデータマッピング
+
+<MappingFileConcept />
+
+# サポートされている日時フォーマット
+
+これらのフォーマットは、マッピングファイルの `datetime_format` フィールドで、またはセットアップ時に日時列を設定する際に使用します。
+
+<DatetimeFormats />
+
+# よくある質問
+
+<UniversalImportFaqs />
+

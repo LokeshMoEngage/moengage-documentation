@@ -1,0 +1,225 @@
+---
+title: "Flows の概要"
+description: "MoEngage Flows を一覧表示、参照、制御します。"
+---
+
+import ApiAuthentication from '/ja/snippets/api-authentication.mdx';
+
+Flows エンドポイントを使用すると、フローの検索、単一フローの表示（バージョンやステージを含む）、フローのステータス変更を行うことができます。これらのエンドポイントはフローの参照と制御を行うものであり、フローの作成は行いません。
+
+<Note>
+  Flows エンドポイントはアーリーアクセス段階です。この期間中、MoEngage はフィードバックに基づいてこれらのエンドポイントを改善しますが、破壊的変更は行いません。
+</Note>
+
+## エンドポイント
+
+Flows API は、次のエンドポイントで構成されています。
+
+* [Search Flows](/ja/api/flows/search-flows): フィルターとキーセットページネーションを使用してフローを一覧表示します。
+* [Get a Single Flow](/ja/api/flows/get-a-single-flow): 単一のフローを返します。`version_no` を指定して特定のバージョンを返すこともできます。
+* [Get a Specific Version of a Flow](/ja/api/flows/get-a-specific-version-of-a-flow): バージョン ID で指定した特定のバージョン時点のフローを返します。
+* [Update Flow Status](/ja/api/flows/update-flow-status): フローの一時停止、再開、停止、終了（retire）、アーカイブ、アーカイブ解除を行います。
+
+## 認証
+
+<ApiAuthentication />
+
+<Note>
+  この API 用の API キーを作成する際は、**Select APIs for access** で **Campaigns** チェックボックスが選択されていることを確認してください（Flows は Campaigns の権限を再利用します）。選択したキーの権限によってアクセスレベルが決まります。
+  - 読み取りエンドポイント（Search Flows、Get a Single Flow、Get a Specific Version of a Flow）には **View**
+  - フローのステータスを更新するには **Create & Manage**
+</Note>
+
+ワークスペースは、`Authorization` ヘッダーの Basic Auth 認証情報から特定されます。オプションで `X-MOE-Request-Id` を送信することもできます。
+
+リクエストは、お使いのデータセンターのホスト `https://api-{dc}.moengage.com` に送信されます。データセンターとその識別子の完全な一覧については、[データセンター](/ja/api/introduction#data-centers) を参照してください。
+
+## 規約
+
+- ID は 24 文字の未加工の ObjectId です。`flow_id` はフローを、`version_id` は 1 つのバージョンを指します。
+- 成功したレスポンスはすべて `{response_id, type, data}` のエンベロープを使用します。
+- 日時は ISO 8601 UTC（`YYYY-MM-DDThh:mm:ssZ`）形式です。
+- 検索結果はページ分割されます。各レスポンスには `next_cursor` が含まれます。次のページを取得するには、次のリクエストでその値を `cursor` パラメーターとして送信します。
+
+## フロー構造とノード
+
+**Get a single flow** と **Get a specific version of a flow** は、フローのステージを `data.structure.nodes[]` で返します。各エントリはノード（フローの 1 つのステージ）です。ノードは共通のエンベロープを持ち、ノードの `type` と `sub_type` によって形式が異なる `config` オブジェクトを含みます。
+
+すべてのノードには次のフィールドが含まれます。
+
+| フィールド | 説明 |
+| --- | --- |
+| `stage_id` | フロー内のノードの一意の ID。 |
+| `type` | ノードのカテゴリ: `TRIGGER`、`ACTION`、`CONDITION`、`SPLIT`、`BRANCH`、または `CONTROL`。 |
+| `sub_type` | `type` 内の特定のバリアント。 |
+| `parent_stage_id` | 上流ノードの ID。エントリ（`TRIGGER`）ノードの場合は `null`。 |
+| `child_stage_ids` | 直下の下流ノードの ID。 |
+| `label` | フロービルダーでの人間が読めるラベル。`null` の場合があります。 |
+| `config` | タイプ固有の設定。値が null のフィールドは省略されます。 |
+
+以下のセクションでは、各ノードタイプの `config` の形式について説明します。フィールドセットは実際のフローに基づいて記載されています。ノードには、ここに示されていない追加のキーが含まれる場合があります。
+
+### Condition ノード
+
+`CONDITION` ノードは条件を評価し、ユーザーを 2 つのパスのいずれかに振り分けます。`child_stage_ids` には常に 2 つのエントリがあります。インデックス `0` は条件に一致した場合のパス、インデックス `1` は一致しなかった場合のパスです。
+
+`config` のフィールド:
+
+- `condition` — 評価するルール。トリガーのイベントフィルターと同じフィルター文法（`filter_operator`、`filters[]`、およびフィルターごとの `action_name`、`executed`、`execution.type`/`execution.count`、ネストされた `attributes`）を再利用します。
+- `wait` — 評価前の待機時間。`{ duration, unit }` の形式で指定します。`unit` は `mins`、`hours`、または `days` です。
+- `evaluation_timing` — 条件を評価するタイミング: `ON_ENTRY` または `SINCE_PREVIOUS_STAGE`。
+
+確認されている `sub_type` の値: `HAS_DONE_EVENT`、`ON_EMAIL_CLICK`、`ON_EMAIL_OPEN`。
+
+```json Two-way CONDITION node
+{
+  "stage_id": "Y8nSUSRe6",
+  "type": "CONDITION",
+  "sub_type": "HAS_DONE_EVENT",
+  "parent_stage_id": "ZL4rtyzrd",
+  "child_stage_ids": ["2iuY5k_zy", "TOGBwROjc7"],
+  "label": "Email Clicked",
+  "config": {
+    "condition": {
+      "filter_operator": "and",
+      "filters": [
+        {
+          "action_name": "MOE_EMAIL_CLICK",
+          "executed": true,
+          "filter_type": "actions",
+          "execution": { "count": 1, "type": "atleast" },
+          "attributes": { "filter_operator": "and", "filters": [] }
+        }
+      ]
+    },
+    "wait": { "duration": 5, "unit": "mins" },
+    "evaluation_timing": "SINCE_PREVIOUS_STAGE"
+  }
+}
+```
+
+### Branch ノード
+
+`BRANCH` ノードは、親の `CONDITION` または `SPLIT` の 1 つの分岐を表します。`sub_type` は親の `sub_type` と同じで、唯一の子はそのパス上の次の実際のステージです。`config` は親によって異なります。
+
+- `CONDITION` の分岐（明示的な YES/NO パターン）: `config` は `{ "outcome": "YES" }` または `{ "outcome": "NO" }` です。
+- `CONDITIONAL_SPLIT` の分岐: `config` には `branch_index`（0 始まり）が含まれ、条件付きの分岐の場合は `branch_type: "main"` と `condition` オブジェクトが含まれます。それ以外をすべて受け取る分岐は `branch_type: "default"` を使用し、`condition` はありません。
+- `AB_SPLIT` または `IPO` の分岐: `config` には `name` と `percentage` が含まれます。
+
+```json BRANCH arms of a CONDITIONAL_SPLIT
+{
+  "stage_id": "KFs3PrkZJ",
+  "type": "BRANCH",
+  "sub_type": "CONDITIONAL_SPLIT",
+  "parent_stage_id": "f3OFPd5GNe",
+  "child_stage_ids": ["dJ0FjUCcC"],
+  "label": "Signed up and Purchased",
+  "config": {
+    "branch_type": "main",
+    "branch_index": 0,
+    "condition": { "filter_operator": "and", "filters": [] }
+  }
+}
+```
+
+### Split ノード
+
+`SPLIT` ノードは、ユーザーを 3 つ以上のパス（`IPO` の場合は 2 つのパス）に分割します。`child_stage_ids` は `BRANCH` の子と 1 対 1 で対応します。`config` のフィールドは `sub_type` によって異なります。
+
+- `CONDITIONAL_SPLIT` は、条件に基づいて各ユーザーを分岐に振り分けます。`config` には `branch_order`（子の `stage_id` の順序付きリスト）、`evaluation_timing`、`wait` が含まれます。
+- `AB_SPLIT` は、ユーザーを割合に応じてランダムに分割します。`config.branches[]` には、各分岐が `{ stage_id, name, percentage }` として列挙されます。
+- `IPO`（Intelligent Path Optimizer）は、`AB_SPLIT` と同じ `config.branches[]` に加えて、`optimization_metric`（確認されている値: `ENGAGEMENT`）を使用します。順序は `branches[]` によって決まるため、`branch_order` はありません。
+
+```json Multi-way CONDITIONAL_SPLIT
+{
+  "stage_id": "f3OFPd5GNe",
+  "type": "SPLIT",
+  "sub_type": "CONDITIONAL_SPLIT",
+  "child_stage_ids": ["KFs3PrkZJ", "CfwMAJthB", "EfjrVVREJ9"],
+  "label": "Has Signed Up and Purchased a Policy?",
+  "config": {
+    "evaluation_timing": "ON_ENTRY",
+    "branch_order": ["KFs3PrkZJ", "CfwMAJthB", "EfjrVVREJ9"],
+    "wait": { "duration": 0, "unit": "hours" }
+  }
+}
+```
+
+```json AB_SPLIT
+{
+  "stage_id": "uMQdmCeJia",
+  "type": "SPLIT",
+  "sub_type": "AB_SPLIT",
+  "parent_stage_id": "CfwMAJthB",
+  "child_stage_ids": ["LsyB1exIx", "eElEw9Uaq8", "fxHKPCJ-M"],
+  "label": "A/B Split",
+  "config": {
+    "branches": [
+      { "stage_id": "LsyB1exIx", "name": "Branch 1", "percentage": 33 },
+      { "stage_id": "eElEw9Uaq8", "name": "Branch 2", "percentage": 33 },
+      { "stage_id": "fxHKPCJ-M", "name": "Branch 3", "percentage": 34 }
+    ]
+  }
+}
+```
+
+### Action ノード
+
+`ACTION` ノードは、キャンペーンを送信するか、チャネルを選択します。チャネル送信（`EMAIL`、`PUSH`、`SMS`、`WHATSAPP` など）の場合、`config` には `campaign_id`、`channel`、`campaign_name` が含まれます。
+
+`NBA`（Next Best Action）sub_type は `ACTION` ノードです。別のノードタイプではなく、チャネル送信と同じ位置を占めます。`config` のフィールドは次のとおりです。
+
+- `channels[]` — 対象となるチャネルごとに 1 つのエントリがあり、それぞれ `{ channel, stage_id, campaign_id }` の形式です。`stage_id` は、実際の送信を担う（そのチャネルの）兄弟 `ACTION` ノードを参照します。NBA ノード自体はキャンペーンコンテンツを保持しません。
+- `fallback_channel` — 最適なチャネルを特定できない場合に使用されるチャネル（確認されている値: `PUSH`）。
+- `best_time_to_send` — 送信時刻の戦略（確認されている形式: `{ "default_time": "SEND_IMMEDIATELY" }`）。
+
+```json ACTION node with NBA sub_type
+{
+  "stage_id": "0-5G1JPQX",
+  "type": "ACTION",
+  "sub_type": "NBA",
+  "parent_stage_id": "abw_MALGPa",
+  "child_stage_ids": ["dgVoYPiUPT"],
+  "label": "Next Best Action",
+  "config": {
+    "channels": [
+      { "channel": "PUSH", "stage_id": "x_-NueaX4X", "campaign_id": "69844f63316edd32518c5aef" },
+      { "channel": "EMAIL", "stage_id": "zN9ibHPXbE", "campaign_id": "69844f63316edd32518c5af1" }
+    ],
+    "fallback_channel": "PUSH",
+    "best_time_to_send": { "default_time": "SEND_IMMEDIATELY" }
+  }
+}
+```
+
+### Control ノード
+
+`CONTROL` ノードは、フロー制御とパスの合流を管理します。確認されている `sub_type` の値:
+
+- `EXIT` — ユーザーをフローから退出させます。
+- `WAIT_FOR_TIMER` — 設定した期間、ユーザーを待機させます。
+- `GO_TO` — ユーザーを共有の下流ステージ（`config.target_stage_id`）に振り分けます。並行する分岐を再び合流させるために使用されます。
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="これらのエンドポイントでフローを作成または編集できますか？">
+    いいえ、サポートされていません。既存のフローの検索、参照、ステータス変更が可能です。
+  </Accordion>
+  <Accordion title="API を通じてユーザーをフローに登録するにはどうすればよいですか？">
+    ユーザーを直接登録することはできません。イベントトリガー型のフローでは、Track Event API を使用します。トラッキングされたイベントがフローのエントリ条件に一致すると、ユーザーはフローに入ります。ビジネスイベントトリガー型のフローでは、Trigger Business Event API を使用します。定期フローはオーディエンス主導であり、API による登録には対応していません。
+  </Accordion>
+  <Accordion title="flow_id と version_id の違いは何ですか？">
+    `flow_id` はフローを識別します。`version_id` はそのバージョンの 1 つを識別します。特定のバージョンを参照するには、**Get a single flow** で `version_no` を渡すか、`version_id` を指定して **Get a specific version of a flow** を呼び出します。
+  </Accordion>
+  <Accordion title="どのようなステータス変更を行えますか？">
+    フローに対して `pause`、`resume`、`stop`、`retire`、`archive`、`unarchive` を実行できます。各変更はフローの現在のステータスに照らして検証され、無効な変更の場合は `409` が返されます。公開（Publish）は利用できません。
+  </Accordion>
+  <Accordion title="どのような権限が必要ですか？">
+    読み取りエンドポイント（search、get flow、get version）には `campaigns:view` 権限が必要です。ステータスエンドポイントには `campaigns:create_manage` 権限が必要です。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+事前設定済みの Postman コレクションを使用して、これらのエンドポイントをすばやくテストできます: [MoEngage Flows APIs コレクションを表示](https://www.postman.com/moengage-dev/api-docs/collection/wtlm44a/moengage-flows-apis)。

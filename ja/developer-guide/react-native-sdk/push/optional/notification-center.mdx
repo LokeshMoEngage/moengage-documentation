@@ -1,0 +1,219 @@
+---
+title: "通知センター"
+description: "React Native で通知センターを構築するために、MoEngage Inbox プラグインをインストールして設定します。"
+---
+
+# インストール
+
+npm パッケージマネージャーを使用して、MoEngage の Inbox プラグインをアプリケーションにインストールします。その後、ネイティブの依存関係をリンクします。
+
+<CodeGroup>
+
+```shell Shell
+$ npm install react-native-moengage-inbox
+      
+# required only if you are using versions that do not support auto linking
+# This command is removed in version 0.69 of react-native
+$ react-native link react-native-moengage-inbox
+```
+
+</CodeGroup>
+
+注: このプラグインは `react-native-moengage` プラグインに依存しています。`react-native-moengage` プラグインもインストールされていることを確認してください。詳細については、こちらの[リンク](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-installation/framework-dependency)を参照してください。
+
+## iOS でのインストール
+
+新しい React アーキテクチャでアプリケーションを実行するには、以下の手順に従います。
+
+1. iOS フォルダに移動します。
+2. コマンド **_RCT_NEW_ARCH_ENABLED=1 bundle exec pod install_** を実行して、必要な依存関係をインストールします。
+
+古い React アーキテクチャでアプリケーションを実行するには、以下の手順に従います。
+
+1. iOS フォルダに移動します。
+2. コマンド **_pod install_** を実行して、必要な依存関係をインストールします。
+
+<Warning>
+  SDK が受信した通知を保存できるように、iOS プロジェクトで [App Target の AppGroup ID](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization) を設定し、[Notification Service Extension](/ja/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial) をセットアップしてください。
+</Warning>
+
+# Inbox の初期化
+
+Inbox を初期化するには、以下に示すように、`MoEReactInbox` の `initialize(YOUR_WORKSPACE_ID)` メソッドにパラメータとして Workspace ID を渡します。
+
+<CodeGroup>
+
+```typescript TypeScript
+import MoEReactInbox from "react-native-moengage-inbox";
+MoEReactInbox.initialize(YOUR_WORKSPACE_ID);
+```
+
+</CodeGroup>
+
+# メッセージの取得
+
+すべての Inbox メッセージを取得するには、以下に示すように `fetchAllMessages()` メソッドを使用します。`MoEInboxData` のインスタンスが返されます。
+
+<CodeGroup>
+
+```typescript TypeScript
+import MoEReactInbox from "react-native-moengage-inbox";
+var inboxData= await MoEReactInbox.fetchAllMessages()
+```
+
+</CodeGroup>
+
+## InboxData のペイロード
+
+MoEInboxData は次の形式で受け取ります。
+
+<CodeGroup>
+
+```typescript TypeScript
+class MoEInboxData  {
+  /// Native platform from which the callback was triggered.(ios/android)
+  platform: String;
+
+  /// List of [MoEInboxMessage]
+  messages:Array = [];
+}
+
+class MoEInboxMessage {
+  /// internal identifier used by the SDK for storage.(Only Android)
+  id: number;
+
+  /// Unique identifier for a message.
+  campaignId: string;
+
+  /// Text content of the message. Instance of MoETextContent
+  text: MoETextContent;
+
+  /// true if the message has been clicked by the user else false
+  isClicked: boolean;
+
+  /// Media content associated with the message.
+  media: MoEMedia;
+
+  /// List of actions to be executed on click. Instances of [MoEAction]
+  action: Array = [];
+
+  /// Tag associated with the message.
+  tag: string;
+
+  /// The time in which the message was received on the device.
+  ///
+  /// Format - ISO-8601 yyyy-MM-dd'T'HH:mm:ss'Z'
+  receivedTime: string;
+
+  /// The time at which the message expiry.
+  ///
+  /// Format - ISO-8601 yyyy-MM-dd'T'HH:mm:ss'Z'
+  expiry: string;
+
+  /// Complete message payload. This will vary for platforms
+  payload: Map<String, Object>;
+
+  /// A key representing the group to which the inbox message belongs. 
+  /// @since 6.0.0
+  groupKey: string | null;
+
+  /// Notification Replacement Id.
+  /// @since 6.0.0
+  notificationId: string | null;
+
+  /// The timestamp indicating when the message was sent. 
+  /// Format - ISO-8601 yyyy-MM-dd'T'HH:mm:ss'Z' 
+  /// @since 6.0.0
+  sentTime: string | null;
+}
+
+class MoEAction {
+  /// actionType- navigation
+  actionType: MoEActionType;
+   
+  /// navigationType- deepLink, richLanding, screenName
+  navigationType: string;
+  
+  /// Value associated with navigation action eg: url / screen name
+  value: string;
+  
+  /// Custom Key-Value Pairs associated with action
+  kvPair?: Map<String, Object>;
+}
+
+class MoEMedia {
+  /// Content type of the Media. (image/video/audio)
+  mediaType: MoEMediaType;
+
+  /// Url for the media content. Generally a http(s) url.
+  url: string;
+
+  /// Accessibility information associated with media content.
+  /// @since 6.0.0
+  accessibilityData: MoEAccessibilityData | null;
+}
+
+class MoETextContent  {
+  /// Tiitle content of the message
+  title: string;
+
+  /// Subtitle content of the message
+  subtitle?: string;
+
+  /// Message content of the message
+  message: string;
+
+  /// Summary content of the message
+  summary?: string;
+}
+
+/// @since 12.0.0 of react-native-moengage package
+class MoEAccessibilityData {
+  /// The accessibility text
+  text: string | null;
+
+  /// The accessibility hint
+  hint: string | null;   
+}
+```
+
+</CodeGroup>
+
+# 未クリックのメッセージ数の取得
+
+Inbox から未クリックのメッセージ数を取得するには、以下に示すように `getUnClickedCount()` メソッドを使用します。
+
+<CodeGroup>
+
+```typescript TypeScript
+import MoEReactInbox from "react-native-moengage-inbox";
+var count = await MoEReactInbox.getUnClickedCount()
+```
+
+</CodeGroup>
+
+# メッセージクリックのトラッキング
+
+Inbox 内のメッセージのクリックをトラッキングするには、以下に示すように `trackMessageClicked()` メソッドを使用します。
+
+<CodeGroup>
+
+```typescript TypeScript
+import MoEReactInbox from "react-native-moengage-inbox";
+MoEReactInbox.trackMessageClicked(message)  //Pass the instance of MoEInboxMessage here
+```
+
+</CodeGroup>
+
+# メッセージの削除
+
+メッセージのリストから特定のメッセージを削除するには、以下に示すように `deleteMessage()` メソッドを使用します。
+
+<CodeGroup>
+
+```typescript TypeScript
+import MoEReactInbox from "react-native-moengage-inbox";
+MoEReactInbox.deleteMessage(message)  //Pass the instance of MoEInboxMessage here
+```
+
+</CodeGroup>

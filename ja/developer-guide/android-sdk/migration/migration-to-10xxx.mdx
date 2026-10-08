@@ -1,0 +1,70 @@
+---
+title: "10.x.xx への移行"
+description: "API の更新、GCM サポートの削除、動作の変更を含む MoEngage Android SDK 10.x.xx に移行します。"
+---
+
+# Manifest ベースの統合からの移行
+
+SDK バージョン `9.0.00` では、Java/Kotlin コードを介して MoEngage SDK を統合する新しい方法を導入し、Manifest ファイルのメタデータを使用した統合を非推奨にしました。バージョン `10.0.00` 以降、Manifest のメタデータを使用する統合のサポートを削除します。コードベースの統合への移行の詳細については、[ドキュメント](https://www.moengage.com/docs/developer-guide/android-sdk/migration/moving-from-manifest-to-code-based-integration)を参照してください。
+
+# 動作の変更
+
+* セルフハンドルのアプリ内メッセージはメインスレッドで配信されます
+* GCM のサポートを削除しました
+* Baidu のサポートを削除しました
+* SDK バージョン `10.0.00` より前は、アプリ内メッセージで GIF を表示するために SDK は Fresco に依存していました。SDK バージョン `10.0.00` 以降、SDK は GIF の表示に Glide を使用します。GIF を使用する場合は、アプリケーションに Glide を依存関係として追加してください。
+* "nav\_provier"、"nav\_source" は、プッシュペイロードやディープリンクの URL に含まれなくなります。
+* SDK の初期化時に送信者 ID が指定されている場合、`google-services.json` ファイルのデフォルトの送信者 ID の代わりに、その ID がトークン登録に使用されます。
+* InApp コールバック - InApp コールバックリスナーは、インターフェースではなく具象クラスになりました。
+* InstallReceiver は SDK から削除されました。マニフェストに `com.moe.pushlibrary.InstallReceiver` を追加している場合は削除してください。
+
+# 削除された API の更新
+
+SDK のバージョン `10.0.00` では、長期間非推奨となっていた多くの API を削除しました。非推奨の API をまだ使用している場合は、新しい API に更新する必要があります。以下は、削除された API とそれに相当する API の対応表です。機能が内部で処理されるようになった、またはサポートされなくなったため、代替 API がない場合もあります。
+
+| 非推奨の API | 代替 API |
+| --- | --- |
+| MoEngage.Builder#setTrackingOptOut(List) | MoEngage.Builder#optOutActivityTracking(List) |
+| MoEngage.Builder#setInAppOptOut(List) | MoEngage.Builder#optOutInAppFromActivity   (List) |
+| MoEHelper#setFlushInterval(long) | MoEngage.Builder#setFlushInterval(long) |
+| MoEHelper#setExistingUser(boolean) | MoEHelper#setAppStatus(AppStatus) |
+| MoEHelper#optOutOfAdIdCollection   (Context, boolean) | MoEngage.Builder#optOutGAIDCollection() |
+| MoEHelper#optOutOfLocationTracking   (Context, boolean) | MoEngage.Builder#optOutLocationTracking() |
+| MoEHelper#optOutOfGeoFences   (Context, boolean) | MoEngage.Builder#optOutGeoFence() |
+| MoEHelper#setLogLevel(int) | MoEngage.Builder#setLogLevel(int) |
+| MoEHelper#setLogStatus(boolean) | MoEngage.Builder#enableLogsForSignedBuild() |
+| MoEHelper#optOutOfAndroidIdCollection(Context, boolean) | MoEngage.Builder#optOutAndroidIdCollection() |
+| MoEHelper#optOutOfOperatorNameCollection   (Context, boolean) | MoEngage.Builder#optOutCarrier   NameCollection() |
+| MoEHelper#optOutOfDeviceAttributeCollection   (Context, boolean) | MoEngage.Builder#optOutDevice   AttributeCollection() |
+| MoEHelper#redirectDataToRegion(int) | MoEngage.Builder#redirectDataToRegion   (MoEngage.DATA\_REGION) |
+| MoEHelper#setPeriodicFlushState(boolean) | MoEngage.Builder#optOutPeriodicFlush() |
+| PushManager#optoutBackStackBuilder(Boolean) | MoEngage.Builder#optOutBackStackBuilder() |
+| MoEPushCallBacks.OnMoEPushReceiveListener | PushMessageListener#onNotificationReceived() |
+| MoEPushCallBacks.OnMoEPushNavigationAction | PushMessageListener#onHandleRedirection() |
+| MoEPushCallbacks.OnMoEPushClickListener | PushMessageListener#onHandleRedirection() |
+| MoEPushCallBacks.OnMoEPushClearedListener | PushMessageListener#onNotificationCleared() |
+| MoEPushCallBacks#setOnMoEPushReceiveListener | MoEPushHelper#setMessageListener\|(PushMessageListener) |
+| MoEPushCallBacks#setOnMoEPush   NavigationAction | MoEPushHelper#setMessageListener(   PushMessageListener) |
+| MoEPushCallBacks#setOnMoEPush   ClearedListener | MoEPushHelper#setMessageListener   (PushMessageListener) |
+| MoEHelper#setBirthDate(String) | MoEHelper#setBirthDate(Date) |
+| PushManager#optOutMoEngageExtras(boolean) | 不要になりました |
+| MoEHelper#showInAppIfAny(boolean) | 不要になりました |
+| MoEHelper#autoIntegrate(Application) | 不要になりました |
+| MoEHelper#onStart(Activity) | 不要になりました |
+| MoEHelper#onStop(Activity) | 不要になりました |
+| MoEHelper#onResume(Activity) | 不要になりました |
+| MoEHelper#onFragmentStart(Activity, String) | 不要になりました |
+| MoEHelper#onFragmentStop(Activity, String) | 不要になりました |
+| MoEHelper#optOutOfIMEICollection   (Context, boolean) | 不要になりました |
+| MoEngage.Builder#optOutMoEngageExtras() | 不要になりました |
+| MoEngage.Builder#enableInstantApp() | MoEngage.Builder#setSenderId() に統合されました |
+| MoEngage.Builder#enableBaiduPush(String) | Baidu Push はサポートされていません。 |
+
+# 10.0.00 で非推奨になった API
+
+バージョン `10.0.00` では、パフォーマンスの向上と今後のより良いサポートのために、いくつかの API を非推奨にしました。以下は非推奨の API とその代替の一覧です。最新のメソッドに更新してください。
+
+| 非推奨の API | 代替 API |
+| --- | --- |
+| MoEngage.Builder#setNotificationType(int) | MoEngage.Builder#enableMultipleNotificationInDrawer() |
+| PayloadBuilder | Properties |

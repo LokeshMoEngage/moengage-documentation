@@ -1,0 +1,109 @@
+---
+title: "Custom Connector キャンペーンを通じてカードの削除をトリガーする"
+---
+
+# はじめに
+
+マーケターは、目的を果たさなくなった無関係または古いプロモーションコンテンツを削除するために、カードを削除する必要が生じることがあります。理想的には、有効期限の条件を満たしたときにカードを削除する必要があります。ただし、次のように、有効期限前にユーザーのカードを削除する必要があるシナリオもあります。
+
+- **ユーザーが特典を利用した場合**: ユーザーがすでにカードの特典を利用しているため、カードが無関係になった場合。
+- **ユーザーのフィードバック**: ユーザーが特定のカードを一貫して無視したり、否定的に反応したりする場合は、そのカードを削除することでキャンペーンのパフォーマンスを向上させることができます。
+- **不要なカードの整理**: 冗長なカードや類似のカードを削除することで、ユーザーにより合理化された体験を提供し、焦点を絞ったメッセージングを配信できます。
+
+#### カードの削除をトリガーするメリット
+
+- **ユーザー体験の向上**: 特定のトリガー条件に基づいて _Card Deletion_ を自動化することで、ユーザー体験を向上させ、キャンペーンの関連性を確保できます。
+- **関連性の高い情報**: ユーザーが特定のアクションを実行した後や、プロモーションの対象外になったときにカードを削除することで、ユーザーインターフェースをすっきりと保ち、関連性の高い情報に集中させることができます。
+- **リソース消費の削減**: 古いカードを削除することで、システムパフォーマンスを最適化し、リソースを節約できます。
+- **効率の向上**: カードの自動削除により、キャンペーン管理が効率化され、手作業が削減されます。
+
+このユースケースは、事前定義されたトリガー条件に基づいてカードを自動的に削除する [Custom Connector キャンペーンを作成](/ja/use-cases/cards/trigger-card-deletion-through-custom-connector-campaigns#create-a-custom-connector-campaign)することで実現します。
+
+<Info>
+  [Delete Cards API](/ja/api/cards/delete-cards-for-user) を使用して、特定のユーザーのカードを手動で削除することもできます。
+</Info>
+
+# 期待される結果
+
+トリガー条件に応じてカードが削除されます。
+
+<Tip>
+  - 商品をプロモーションする Card キャンペーンが公開されている必要があります。この例では、商品 ID は 8137850880291 です。
+  - ユーザーが商品をチェックアウトするアクションをトラッキングするためのイベントが MoEngage で利用可能である必要があります。この例では、イベント _Checkout Started_ を使用します。イベントのトラッキング方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - Card キャンペーンをトラッキングするためのイベントが MoEngage で利用可能である必要があります。この例では、イベント _Card Campaign Sent_ と _Card Campaign Dismissed_ を使用します。イベントのトラッキング方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - Card の情報ページの **Campaign ID** を控えておく必要があります。
+</Tip>
+
+# Custom Connector キャンペーンを作成する
+
+このセクションでは、カードを自動的に削除する Custom Connector キャンペーンを作成します。
+
+## ステップ 1: ターゲットユーザー
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで、**Engage** をクリックし、**Campaigns** をクリックします。
+2. All campaigns ページで、**\+ Create campaign** をクリックします。
+3. **Connectors** で、**Custom** \> **Event Triggered** をクリックします。詳細については、[イベントトリガー型キャンペーン](/ja/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign)を参照してください。<img src="/images/moengage_c9f626.png" alt="customconnect.png" /> キャンペーン定義の最初のステップである **Target users** に移動します。
+4. 名前とタグを使用してキャンペーンを定義します。次の詳細を入力します。
+   - **Team**: 組織でアカウントのチーム機能が有効になっている場合は、チームを選択します。詳細については、[MoEngage のチーム](/ja/user-guide/settings/account/team-management/teams-in-moengage)を参照してください。
+   - **Campaign name**: キャンペーンの名前を入力します。例: _Delete Card API Connector_。
+   - **Campaign tags**: 必要なキャンペーンタグを選択します。<img src="/images/moengage_7436a7.png" alt="12usecase2.png" />
+5. **Trigger criteria** セクションで、次の手順を実行してトリガー条件を定義します。
+   1. **IF user** セクションで、_Checkout Started_ を選択します。
+   2. **\+ Attribute** をクリックし、_Product IDs_ を選択します。これはカードの識別に役立つ一意の属性であるためです。
+   3. 完全一致が必要なため、(any of) is 演算子を選択します。
+   4. **Select Option** リストで、_8137850880291_ を選択します。<img src="/images/moengage_34b6ea.png" alt="12usecase3.gif" />
+6. **Select audience** セクションで、以下に示すように、控えておいた _Campaign Id_ で過去 3 日間に _Card Campaign Sent_ イベントを 1 回以上実行したユーザーをオーディエンスとして定義します。<img src="/images/moengage_333898.png" alt="12usecase4.png" />
+7. **Control groups** セクションで、**Global control group** トグルをオフにします。<img src="/images/moengage_416fe7.png" alt="12usecase5.png" />
+8. **Next** をクリックして、2 番目のステップである **Content** に進みます。ここでは、Custom Connector キャンペーンのコンテンツを定義できます。
+
+## ステップ 2: コンテンツ
+
+1. **Method** セクションで、**DELETE** オプションを選択して API リクエストを設定します。<img src="/images/moengage_29f84a.png" alt="12usecase6.png" />
+2. **Webhook URL** ボックスに URL を入力します。例: [**https://api-0X.moengage.com/v1/cards/delete**](https://api-0X.moengage.com/v1/cards/delete)。
+   <Info>
+     各ユーザーは異なるデータセンターでホストされているため、[MoEngage のデータセンター](/ja/user-guide/data/key-concepts/data-centers-in-moengage)の記事を参照して、お使いのデータセンター番号 (**X** の値) を確認してください。
+   </Info>
+3. **Headers** で、次の表に示すようにキー名とその値を入力します。
+   | キー | サンプル値 |
+   | --- | --- |
+   | Authorization | `{"Authorization": "Basic Base64_ENCODED_WORKSPACEID_APIKEY=="}` |
+   | Content\_Type | `{"Content_Type": "application/json"}` |
+   ![12usecase7.png](/images/moengage_c093a9.png)
+   このリクエストで使用する認証キーの詳細については、[Delete Cards API](/ja/api/cards/delete-cards-for-user) を参照してください。
+4. **Body type** として **Raw** を選択し、次のように入力フィールドに JSON コードを入力します。JSON
+   ```json wrap
+   {
+   "uid": "{{UserAttribute['ID']}}",
+   "campaign_ids": [
+   "{{readable_campaign_id}}"
+   ],
+   "platforms": [
+   "android","web","ios"
+   ]
+   }
+   ```
+   ![12usecase8.png](/images/moengage_c11a44.png)
+   | 属性 | 説明 |
+   | --- | --- |
+   | uid | _ID_ を、ユーザーを識別する一意の MoEngage Standard ID (Email ID Standard、Mobile Number Standard、または MoEngage 標準属性にマッピングされた任意の一意の識別子) に置き換えます。Delete API はこの識別子を使用して、正しいユーザーのカードを削除します。この値は、**ID** 属性でパーソナライズすることで追加できます。 |
+   | campaign\_ids | _readable\_campaign\_id_ を、削除するカードの控えておいた _Campaign ID_ に置き換えます。その他の設定については、[Delete Cards API](/ja/api/cards/delete-cards-for-user) のドキュメントを参照してください。 |
+5. **Next** をクリックして、3 番目のステップである **Schedule and goals** に進みます。ここでは、キャンペーンのスケジュールと目標を定義できます。
+
+## ステップ 3: スケジュールと目標
+
+1. **Send campaign** セクションで、このキャンペーンの開始日時と終了日時を定義します。<img src="/images/moengage_fcbbff.png" alt="12usecase10.png" />
+2. **Conversion goals** セクションで、事前に特定した属性 _Campaign ID_ を使用して、コンバージョン目標を _Card Campaign Dismissed_ に設定します。<img src="/images/moengage_74b2a8.png" alt="12usecase11.png" />
+3. **Delivery controls** セクションで、要件に基づいて設定を定義します。
+4. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、カードを自動的に削除する Custom Connector キャンペーンを作成しました。
+
+カードとその Delete Card API Connector キャンペーンを作成して公開したので、キャンペーンはトリガー条件を満たすユーザーを監視し、関連するカードの削除をリクエストします。
+
+<Info>
+  - ユーザーがカードを利用でき、delete API がそのユーザーのカードを正常に削除した場合、ユーザーアクティビティに Card Campaign Dismissed というステータスが表示されます。
+  - 定期キャンペーンの場合、本文の **Campaign ID** フィールドに親 ID を使用すると、すべての子キャンペーンが削除されます。
+  - 削除リクエストが処理され、カードの変更がユーザーの受信トレイに反映されるまでに数分かかる場合があります。
+</Info>

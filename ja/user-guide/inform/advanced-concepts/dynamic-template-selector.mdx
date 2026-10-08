@@ -1,0 +1,117 @@
+---
+title: "Dynamic Template Selector"
+description: "MoEngage InformでRule-Based Templatesを設定し、リアルタイムのユーザー属性またはAPI属性に基づいて単一のアラートで適切なメッセージバリアントを動的に配信することで、重複する複数のアラートを作成する必要をなくします。"
+---
+
+# 概要
+
+MoEngage Informは、**Rule-Based Templates** による **Dynamic Template Selector** をサポートしています。同じトランザクショントリガーのバリエーションごとに個別のアラートを複数作成する代わりに、適切なテンプレートバリアントを動的に配信する単一のアラートを作成できます。メッセージテンプレートのバリエーションは、標準的なランダムな割合での分割や最適化ルールではなく、ユーザー属性またはAPI属性に基づいてリアルタイムで選択されます。
+
+# ユースケース
+
+複雑なトランザクション通知（銀行取引やセキュリティ警告など）を扱う場合、最適なメッセージのコンテキストは個々のデータ変数に大きく依存します。たとえば、"Account Withdrawal" 通知には複数のバリエーションが考えられます。
+
+- バリエーションA: 標準的な国内ATM取引向け（例: "You successfully withdrew $100 from an ATM at [Location]. If this wasn't you, lock your card instantly in the app."）
+- バリエーションB: 承認済みの海外取引向け（例: "International withdrawal detected: $100 withdrawn in [Country]. Since your travel notice is active, no action is required."）
+- バリエーションC: ブロックされた高リスクのセキュリティ脅威向け（例: "Security Alert: We blocked a suspicious withdrawal attempt of $1,000 in [Location]. Tap here to verify your identity."）
+
+この機能がない場合、すべての組み合わせに対応するために最大30個の個別のアラートを作成して管理する必要があります。Rule-Based Templatesを使用すると、受信者を適切にローカライズまたはコンテキスト化されたメッセージテンプレートバリアントへ条件付きでルーティングする単一のアラートを管理できます。
+
+# Dynamic Template Selectorを設定する
+
+Dynamic Template Selectorを設定するには、次の手順を実行します。
+
+1. [ルールセットを作成する](/ja/user-guide/inform/advanced-concepts/dynamic-template-selector#create-a-rule-set)
+2. [ルールセットを使用してアラートを作成する](user-guide/inform/advanced-concepts/dynamic-template-selector#configure-an-alert-with-rule-sets)
+3. [バリアントのテンプレートとコンテンツを定義する](/ja/user-guide/inform/advanced-concepts/dynamic-template-selector#define-variant-templates-&-content)
+
+## ルールセットを作成する
+
+アラートに動的な選択を適用する前に、**Rule Set** 内で条件の基準を構築する必要があります。
+
+1. MoEngageダッシュボードにログインし、左側のパネルで **Settings \>Inform** に移動します。
+2. **Rule-based Templates** タブを選択します。
+3. **\+ New rule set** ボタンをクリックします。
+   <Frame>
+     ![Rule Temp 1](/images/rule-temp-1.png)
+   </Frame>
+
+### ルールセットの詳細を設定する
+
+<Frame>
+  ![Screenshot 2026 05 18 At 10 11 00 PM 1](/images/Screenshot-2026-05-18-at-10.11.00-PM-1.png)
+</Frame>
+
+- **Rule set name:** トランザクションのユースケースやイベントフローを識別できる、一意でわかりやすい名前を入力します（例: `Bill_Ready_Notification_Flow`）。この名前により、後でアラートを作成するときに、この特定のロジックフレームワークを簡単に識別して選択できます。
+- **Rule set description:** このセット内で管理される条件の概要を任意で追加します（最大250文字）。
+
+### ルールを定義する
+
+**Rule definition** セクションで、評価属性を使用して1つ以上の個別のルールを設定します。このセクションを使用して、テンプレートの個別の条件パスを構築します。各ルールは "IF" ステートメントとして機能し、受信したユーザーデータまたはAPIデータがここで定義した条件に一致すると、MoEngageはこのルールに関連付けられた特定のメッセージテンプレートを配信します。
+
+<Frame>
+  ![Screenshot 2026 05 18 At 10 11 16 PM](/images/Screenshot-2026-05-18-at-10.11.16-PM.png)
+</Frame>
+
+1. **Rule Name:** このオプションの一意の識別子を入力します（例: `Autopay_Enabled` または `Limit_Exceeded`）。
+2. **条件の選択（"If" 基準）:** ドロップダウンメニューから **API Attribute** または **User Attribute** を選択します。
+   - 基準を定義します（例: Attribute Name: `autopay_status`、Operator: `Is`、Value: `true`）。
+3. **複数のルールを追加する:** **Add rule** をクリックして論理評価を追加し、他のバリエーションを優先順位に従って並べます。
+4. **Rule Name:** ルールパスの明確でわかりやすいラベルを入力します（例: `Autopay_Enabled` または `High_Risk_Alert`）。この名前は、アラート作成のステップ2でメッセージコンテンツを作成するときに、専用のタブタイトルとしてそのまま表示されます。
+5. **属性ドロップダウン（**`User attribute `**/** `API attribute`**）:** 実行時にMoEngageに評価させるデータのカテゴリを選択します。
+   - トリガー経由で送信されるリアルタイムのトランザクションペイロードデータに基づいてバリエーションをルーティングする場合は、**API attribute** を選択します。
+   - 顧客のプロファイルに保存されている永続的なプロパティに基づいてバリエーションをルーティングする場合は、**User attribute** を選択します。
+6. **Select attribute:** 評価する必要がある特定のデータフィールドまたは変数キーです（例: `account_status`、`order_amount`、`country`）。変数があらかじめ入力されたドロップダウンに表示されない場合は、フィールドに名前を直接入力できます。
+7. **\+ Nested filter:** このボタンをクリックすると、主要な属性行の下にサブ条件を追加して、複雑な依存関係を構築できます（例: `User attribute` がTrueであるか **AND** 2つ目のサブ変数が特定の値に一致するかを確認）。
+8. **\+ Filter:** このボタンをクリックすると、同じルールカード内に新しい条件行を追加し、論理演算子（AND/ORなど）を使用して複数の属性検証行を結合できます。
+9. **Add rule:** このボタンをクリックすると、新しい別のルールカードブロックが生成されます。これにより、同じルールセット内で複数の異なるバリエーションを優先順位に従って連結できます。
+
+### アクション
+
+<Frame>
+  ![Actions On Rule](/images/Actions-on-rule.png)
+</Frame>
+
+- **Copy Icon:** 現在のルールカードを、事前設定されたすべてのフィルターを保持したまま複製し、類似したルールの設定時間を短縮します。
+- **Delete Icon（**`X`**）:** 特定のルールカードを設定から完全に削除します。
+
+### フォールバックアクションを設定する
+
+**Fallback rule** は、実行時に受信したデータが上記で明示的に定義した条件ルールのいずれにも一致しない場合の、包括的な安全策として機能します。フォールバックアクションには次のオプションがあります。
+
+<Frame>
+  ![Screenshot 2026 05 18 At 10 14 55 PM](/images/Screenshot-2026-05-18-at-10.14.55-PM.png)
+</Frame>
+
+- **Use default rule:** 標準のフォールバックバリエーションテンプレートを配信し、ユーザーが引き続き通知を受け取れるようにします。
+- **Don't use any rule:** 一致する条件がない場合、通知の送信を完全に取りやめます。
+
+**Save** をクリックして、新しいテンプレートロジックフレームワークを保存します。
+
+## ルールセットを使用してアラートを設定する
+
+ルールセットを保存したら、対象のトランザクションワークフローに直接リンクできます。
+
+<Frame>
+  ![Screenshot 2026 05 19 At 11 52 18 AM](/images/Screenshot-2026-05-19-at-11.52.18-AM.png)
+</Frame>
+
+1. Informアラート作成ジャーニーの[**ステップ1: Alert Details**](/ja/user-guide/inform/create/create-alert#alert-details)に移動します。
+2. **Use rule set** チェックボックスをオンにします。
+3. **Rule set** セクションで、ドロップダウンから事前に設定したルールセットを選択します。
+4. **Next** をクリックします。
+
+## バリアントのテンプレートとコンテンツを定義する
+
+Informアラート作成ジャーニーの **ステップ2: Content** では、MoEngageが指定したルールセット内で設定されたすべてのルールに対してレイアウトブロックを動的に作成します。\
+
+<Frame>
+  ![Screenshot 2026 05 19 At 12 00 20 PM](/images/Screenshot-2026-05-19-at-12.00.20-PM.png)
+</Frame>
+
+1. カスタムルールに直接対応するタブが表示されます（例: `Rule 1`、`Rule 2` など）。
+2. 各タブを選択して、その条件パスに割り当てる固有のメッセージコンテンツを設定します。
+3. ルールセットの設定時にフォールバックルールを有効にした場合は、**Default** タブが自動的に生成されます。このタブには、実行時に受信した顧客データまたはAPIデータにどのカスタム評価ルールも一致しない場合にMoEngageが配信するベースラインテンプレートが含まれます。
+4. 各ルールタブ内では、有効なチャネルのサブタブ間を移動して、そのチャネル固有のコンテンツパラメーターをカスタマイズできます。
+
+すべてのルールブロックと有効なチャネルでコンテンツを体系的に設定して検証したら、**Next** をクリックしてステップ3に進み、アラートを **Publish** します。公開すると、MoEngageはすべての条件付き実行パスをシームレスに処理する統合APIペイロード形式を出力します。

@@ -1,0 +1,113 @@
+---
+title: "Android SDK のインストール"
+description: "BOM または手動の依存関係設定を使用して、Capacitor プロジェクトに MoEngage Android SDK をインストールします。"
+---
+
+# ビルド設定の構成
+
+## オプション 1：BOM を使用する（推奨）
+
+![](https://img.shields.io/maven-central/v/com.moengage/android-bom)
+
+Bill of Materials（BOM）を使用すると、互換性のある SDK モジュールのバージョンを自動的に管理できます。
+
+<CodeGroup>
+
+```auto build.gradle
+dependencies {
+    ...
+    // Import the MoEngage BOM
+    implementation(platform("com.moengage:android-bom:<bomVersion>"))
+    
+    // Add optional modules as needed
+     implementation("com.moengage:inapp")
+}
+```
+
+</CodeGroup>
+
+**\<bomVersion\>\`** を最新の BOM バージョンに置き換えてください。BOM を使用した統合の詳細については、[こちら](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM)を参照してください。
+
+## オプション 2：手動統合
+
+### Maven リポジトリの追加
+
+プロジェクトレベルの **_build.gradle_** ファイルに _mavenCentral()_ リポジトリがまだ存在しない場合は追加してください。
+
+パス - **_android/build.gradle(.kts)_**
+
+<CodeGroup>
+
+```auto Groovy
+buildscript {
+    repositories {
+        mavenCentral()
+    }
+}
+allprojects {
+    repositories {
+        mavenCentral()
+    }
+}
+```
+
+</CodeGroup>
+
+### Java 8 の有効化
+
+SDK のターゲットおよびソースは Java プログラミング言語のバージョン 8 と互換性があります。まだ有効にしていない場合は、アプリケーションの **_build.gradle_** で Java 8 を有効にしてください。
+
+パス - **_android/app/build.gradle(.kts)_**
+
+<CodeGroup>
+
+```auto build.gradle
+android {
+  ...
+  compileOptions {
+     sourceCompatibility JavaVersion.VERSION_1_8
+     targetCompatibility JavaVersion.VERSION_1_8
+  }
+  kotlinOptions {
+     jvmTarget = '1.8'
+  }
+}
+```
+
+
+```auto build.gradle.kts
+android {
+  ...
+  compileOptions {
+     sourceCompatibility = JavaVersion.VERSION_1_8
+     targetCompatibility = JavaVersion.VERSION_1_8
+  }
+  kotlinOptions {
+     jvmTarget = "1.8"
+  }
+}
+```
+
+</CodeGroup>
+
+### Androidx ライブラリの追加
+
+SDK は動作のためにいくつかの Androidx ライブラリに依存しています。まだ追加していない場合は、アプリケーションの build.gradle ファイルの dependencies ブロックに以下の Androidx ライブラリを追加してください。
+
+パス - **_android/app/build.gradle(.kts)_**
+
+<CodeGroup>
+
+```auto Groovy
+
+    dependencies {
+    ...
+      implementation("androidx.core:core:1.9.0")
+      implementation("androidx.appcompat:appcompat:1.4.2")
+      implementation("androidx.lifecycle:lifecycle-process:2.7.0")
+    }
+```
+
+</CodeGroup>
+
+MoEngage SDK は、いくつかの主要機能を動作させるために **lifecycle-process** ライブラリに依存しており、最新バージョンの **lifecycle-process** は **androidx.startup:startup-runtime** ライブラリに依存しています。そのため、マニフェストから **InitializationProvider** コンポーネントを削除しないでください。**startup-runtime** を使用して他の Initializer を追加する場合は、**lifecycle-process** ライブラリの Initializer も追加されていることを確認してください。Initializer の追加方法については、[ドキュメント](https://developer.android.com/jetpack/androidx/releases/lifecycle#2.4.0)を参照してください。

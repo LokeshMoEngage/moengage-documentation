@@ -1,0 +1,126 @@
+---
+title: "Native iOS、Objective-C、MoEngage-iOS-SDK（バージョン 7.x.x、8.x.x、9.x.x）を使用する iOS デバイスでよくあるプッシュ通知の問題を回避するには"
+description: "Native iOS Objective-C と MoEngage SDK バージョン 7〜9.x.x を使用する場合の、iOS プッシュ通知の配信、ディープリンク、リッチランディングの問題をトラブルシューティングします。"
+keywords: ["native iOS push issues", "Objective-C", "MoEngageAppDelegate", "deep linking not working", "rich landing", "Notification Service Extension", "iOS SDK 7.x.x 8.x.x 9.x.x"]
+---
+
+## 問題
+
+Native iOS、Objective-C、MoEngage-iOS-SDK（バージョン 7.x.x、8.x.x、9.x.x）を使用する iOS デバイスで、配信の失敗、画面遷移、ディープリンク、リッチランディングなど、プッシュ通知に関するよくある問題が発生しています。
+
+## 解決策
+
+次の手順を実行します。
+
+1. **Firebase プロキシを無効にする**：
+   - Firebase のプッシュ通知を使用していない場合は、info.plist に FirebaseAppDelegateProxyEnabled キーを値 Boolean = False/NO で追加して、Firebase プロキシを無効にします。
+   - プッシュ通知をテストします。正常に動作する場合、それ以上の対応は不要です。
+   - Firebase のプッシュ通知を使用している場合は、この手順をスキップして次の手順に進みます。
+2. **UNUserNotificationCenterDelegate を設定する**：
+   - AppDelegate.m の didFinishLaunch メソッドで UNUserNotificationCenterDelegate を設定します。
+   - didFinishLaunch で Firebase を初期化している場合は、MoEngage SDK を初期化する前に行います。
+   - UNUserNotificationCenterDelegate がこのメソッドの冒頭で設定されていることを確認します。
+     ```objective-c Objective-C wrap
+     //7.xx
+     #import 
+     //8.xx
+     #import 
+     //9.xx
+     @import MoEngageSDK;
+     @implementation AppDelegate
+       
+      - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
+     {
+       UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+       center.delegate = self;
+       
+       [FIRApp configure]; //Firebase configuration syntx could differ according to versions
+       
+       //MoEngage Initializatoin - use specific version code only
+         
+       //7.xx version with sdkConfig
+       MOSDKConfig* sdkConfig = [[MOSDKConfig alloc] initWithAppID: @"XXXXXXXXXXXXXXXX"];
+       sdkConfig.moeDataCenter = DATA_CENTER_0X;
+       sdkConfig.appGroupID = @"group.com.XXXXXXXXXXXXXXXX";
+       #ifdef DEBUG
+         [[MoEngage sharedInstance] initializeTestWithConfig:sdkConfig andLaunchOptions:launchOptions];
+       #else
+         [[MoEngage sharedInstance] initializeLiveWithConfig:sdkConfig andLaunchOptions:launchOptions];
+       #endif
+       
+       //8.xx version with sdkConfig
+       MOSDKConfig* sdkConfig = [[MOSDKConfig alloc] initWithAppID:@"XXXXXXXXXXXXXXXX"];
+       sdkConfig.enableLogs = true;
+       sdkConfig.moeDataCenter = MODataCenterData_center_0X; 
+       sdkConfig.appGroupID = @"group.com.XXXXXXXXXXXXXXXX";
+       #ifdef DEBUG
+         [[MoEngage sharedInstance] initializeDefaultTestInstanceWithConfig:sdkConfig andLaunchOptions:nil];
+       #else
+         [[MoEngage sharedInstance] initializeDefaultLiveInstanceWithConfig:sdkConfig andLaunchOptions:nil];
+       #endif
+       
+       //9.xx version with sdkConfig
+       MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"XXXXXXXXXXXXXXXX" dataCenter: MoEngageDataCenterData_center_0X];
+       MoEngageConsoleLogConfig *logConfig = [[MoEngageConsoleLogConfig alloc] initWithIsLoggingEnabled:YES loglevel:MoEngageLoggerTypeVerbose];
+       sdkConfig.consoleLogConfig = logConfig;
+       sdkConfig.appGroupID = @"group.com.XXXXXXXXXXXXXXXX";
+       #ifdef DEBUG
+         [[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
+       #else
+         [[MoEngage sharedInstance] initializeDefaultLiveInstance:sdkConfig];
+       #endif
+       
+       // Rest of the implementation related to developer's app
+       
+       return YES;
+     }
+     ```
+3. **AppDelegate.h を拡張する**：
+   - AppDelegate.h を拡張して UNUserNotificationCenterDelegate に準拠させます。AppDelegate.h は次のコードスニペットのようになっている必要があります。
+     ```objective-c Objective-C wrap
+     #import 
+     @interface AppDelegate : UIResponder <uiapplicationdelegate, unusernotificationcenterdelegate="UNUserNotificationCenterDelegate"></uiapplicationdelegate,>
+     ```
+4. **MoEngage プロキシを無効にする**：
+   - info.plist に MoEngageAppDelegateProxyEnabled キーを値 Boolean = False/NO で追加します
+      <img alt="boolean.png" src="/images/moengage_3e6d66.png" />
+5. **プッシュ通知トークンを手動で渡す**：
+   - AppDelegate.m の didRegisterForRemoteNotificationsWithDeviceToken 関数を使用して、プッシュ通知トークンを手動で渡します。
+     ```objective-c Objective-C
+     - (void)application:(UIApplication *)application didRegisterForRemoteNotificationsWithDeviceToken:(NSData *)deviceToken
+     {
+       //7.xx version
+       [[MoEngage sharedInstance] setPushToken:deviceToken];
+       
+       //8.xx version
+       [[MOMessaging sharedInstance] setPushToken:deviceToken];
+       
+       //9.xx version
+       [[MoEngageSDKMessaging sharedInstance] setPushToken:deviceToken];
+     }
+     ```
+6. **UNUserNotificatoinCenter Delegate 関数を実装する**：
+   - AppDelegate.m に UNUserNotificatoinCenter Delegate 関数が実装されていることを確認します。
+     ```objective-c Objective-C wrap
+     -(void)userNotificationCenter:(UNUserNotificationCenter *)center willPresentNotification:(UNNotification *)notification withCompletionHandler:(void (^)(UNNotificationPresentationOptions options))completionHandler
+     {
+       if (@available(iOS 14.0, *)) {
+         completionHandler(UNNotificationPresentationOptionBadge | UNNotificationPresentationOptionSound | UNNotificationPresentationOptionList | UNNotificationPresentationOptionBanner);
+       } else {
+         // Fallback on earlier versions
+         completionHandler(UNAuthorizationOptionSound | UNAuthorizationOptionAlert | UNAuthorizationOptionBadge);
+       }
+     }
+     - (void)userNotificationCenter:(UNUserNotificationCenter *)center didReceiveNotificationResponse:(UNNotificationResponse *)response withCompletionHandler:(void (^)(void))completionHandler
+     {
+       //7.xx version
+       [[MoEngage sharedInstance] userNotificationCenter:center didReceiveNotificationResponse:response];
+       //8.xx version
+       [[MOMessaging sharedInstance] userNotificationCenter:center didReceive:response];
+       
+       //9.xx version
+       [[MoEngageSDKMessaging sharedInstance] userNotificationCenter:center didReceive:response];
+       
+       completionHandler();
+     }
+     ```

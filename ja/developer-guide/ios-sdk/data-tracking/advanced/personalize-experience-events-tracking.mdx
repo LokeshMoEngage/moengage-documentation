@@ -1,0 +1,104 @@
+---
+title: "Personalizeエクスペリエンスイベントのトラッキング"
+description: "iOSアプリで、MoEngage Personalize APIから取得したエクスペリエンスのインプレッションイベントとクリックイベントをレポートします。"
+---
+
+このドキュメントでは、[MoEngage Personalize API](https://www.moengage.com/docs/api/experiences/fetch-experience) を使用して取得したエクスペリエンスのインプレッションとクリックをレポートするために、MoEngage iOS SDKで利用できる新しいメソッドについて説明します。これらのメソッドは現在、**iOS SDK** でのみ利用できます。
+
+# 前提条件
+
+## SDKバージョン
+
+<Note>
+  ネイティブiOS SDKのバージョンを **10.01.0** 以上に更新する必要があります。
+</Note>
+
+## MoEngageアカウントの設定
+
+MoEngageワークスペースでPersonalize APIが利用できるよう有効になっていることを確認してください。Personalize APIエクスペリエンスの設定の詳細については、[こちらの記事](https://www.moengage.com/docs/user-guide/personalize/server-side-personalization/create-server-side-personalization-experience)を参照してください。
+
+# エクスペリエンス表示イベントのレポート
+
+SDKは表示イベントをトラッキングするためのヘルパーAPIを提供しています。詳細については、[APIドキュメント](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKAppPersonalization.html)を参照してください。
+
+インプレッションは、エクスペリエンスがユーザーに視覚的に提示されたときにレポートする必要があります。
+
+## 単一のエクスペリエンス
+
+単一のエクスペリエンスのインプレッションをレポートするには、エクスペリエンスの **experienceContext** をマップとして渡します。
+
+**experienceContext** は、[Personalize APIリクエストの](https://www.moengage.com/docs/api/experiences/fetch-experience#response-experiences-additional-properties-experience-context)レスポンスの一部として返されるJSONオブジェクトです。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAppPersonalization.sharedInstance.experienceShown(experienceAttribute: experienceContext)
+```
+
+```objective-c Objective C wrap
+[[MoEngageSDKAppPersonalization sharedInstance] experienceShownWithExperienceAttribute:experienceContext];
+```
+
+</CodeGroup>
+
+## 複数のエクスペリエンス
+
+複数のエクスペリエンスのエクスペリエンス表示イベントをトラッキングするには、各エクスペリエンスの **experienceContext** の **リスト** をマップとして渡します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAppPersonalization.sharedInstance.experienceShown(experienceAttributes: [experienceContext1, experienceContext2, experienceContext3])
+```
+
+```objective-c Objective C wrap
+[[MoEngageSDKAppPersonalization sharedInstance] experienceShownWithExperienceAttributes:@[experienceContext1, experienceContext2, experienceContext3]];
+```
+
+</CodeGroup>
+
+# エクスペリエンスクリックイベントのレポート
+
+SDKはクリックイベントをトラッキングするためのヘルパーAPIを提供しています。詳細については、[APIドキュメント](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKPersonalize.html)を参照してください。
+
+クリックイベントは、Personalize APIのレスポンスを使用してパーソナライズされた要素をユーザーがクリックしたときにレポートする必要があります。
+
+<Warning>
+  - `experienceClicked()` を呼び出す場合、`experienceAttribute` ディクショナリには `cid` と `experience` の両方のキーが含まれている必要があります。いずれかのキーがない場合、または初期化されていないWorkspace IDに対して呼び出しが行われた場合、`DEBUG` ビルドではSDKが致命的な例外をスローしてアプリがクラッシュします。ReleaseビルドおよびTestFlightビルドでは、クリックイベントは通知なく破棄され、ログに記録されます。
+  - アップグレード中にこれらの `DEBUG` 検証によってアプリがクラッシュする場合は、SDKを初期化する前に `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` を呼び出して一時的にオプトアウトしてください。問題が修正されたら、この呼び出しを削除してください。
+
+</Warning>
+
+## 単一のエクスペリエンス
+
+単一のエクスペリエンスのクリックイベントをレポートするには、エクスペリエンスの **experienceContext** をマップとして渡します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAppPersonalization.sharedInstance.experienceClicked(experienceAttribute: experienceContext)
+```
+
+```objective-c Objective C wrap
+[[MoEngageSDKAppPersonalization sharedInstance] experienceClickedWithExperienceAttribute:experienceContext];
+```
+
+</CodeGroup>
+
+## 複数のエクスペリエンス
+
+複数のエクスペリエンスのエクスペリエンス表示イベントをトラッキングするには、各エクスペリエンスの **experienceContext** の **配列** をマップとして渡します。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKAppPersonalization.sharedInstance.experienceClicked(experienceAttributes: [experienceContext1, experienceContext2, experienceContext3])
+```
+
+```objective-c Objective C wrap
+[[MoEngageSDKAppPersonalization sharedInstance] experienceClickedWithExperienceAttributes:@[experienceContext1, experienceContext2, experienceContext3]];
+```
+
+</CodeGroup>
+
+オプションで、**experienceContext** オブジェクトに **b\_id** キーを含めて、クリックに関する追加のコンテキストを提供できます。その値には、クリックされたエクスペリエンス内の特定のコンポーネントまたはインタラクションを記述する必要があります。これは、複数のインタラクティブな要素で構成されるエクスペリエンスで特に役立ち、同じエクスペリエンス全体の異なる部分でのクリックを区別するのに役立ちます。

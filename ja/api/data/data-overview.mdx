@@ -1,0 +1,633 @@
+---
+title: "Data の概要"
+description: "ユーザーの管理、イベントのトラッキング、デバイスの処理、一括データ操作を実行します。"
+icon: "file-magnifying-glass"
+---
+
+MoEngage Data API は、MoEngage 内のデータ管理を支援するように設計された包括的なエンドポイント群を提供します。この API を使用すると、ユーザープロファイルの作成と更新、ユーザーのアクション (イベント) のトラッキング、デバイス情報の管理、一括インポートおよびファイルインポート操作による大規模なデータ取り込みを行うことができます。
+
+## エンドポイント
+
+Data API は、次の API エンドポイントで構成されています。
+
+- [Track User](/ja/api/user/track-user): MoEngage でユーザーとユーザープロパティを追加または更新します。
+- [Get User](/ja/api/user/get-user): ユーザーの情報を取得します。
+- [Merge User](/ja/api/user/merge-users): ID に基づいて MoEngage 内の 2 人のユーザーを統合します。
+- [Delete User](/ja/api/user/delete-users): MoEngage のユーザーを削除します。
+- [Track Event](/ja/api/event/track-event): ユーザーのアクションをトラッキングします。
+- [Track Device](/ja/api/device/track-device): MoEngage でデバイスとデバイスプロパティを追加または更新します。
+- [Device Opt-out](/ja/api/device/device-opt-out): 特定のデバイスがプッシュ通知を受信できないようにブロック、またはブロックを解除します。
+- [Trigger File Imports](/ja/api/file-import/trigger-file-imports): スケジュールされたファイルインポートをトリガーします。
+- [Import Details](/ja/api/file-import/import-details): インポートレベルでステータスを取得します。
+- [Import File Run History](/ja/api/file-import/import-file-run-history): インポートに含まれる各ファイルのファイル処理ステータスを取得します。
+- [Bulk Import](/ja/api/bulk/bulk-import-users-and-events): 複数のユーザーリクエストとイベントリクエストをバッチで MoEngage に送信します。
+- [Install Tracking](/ja/api/tracking/track-app-install): MoEngage でインストールのアトリビューションデータをトラッキングします。
+- [Test connection](/ja/api/utilities/test-connection-api): 入力されたエンドポイントの詳細が有効かどうかを検証します。
+
+<Note>
+  - MoEngage で _User Identity Resolution_ 機能が有効になっているワークスペースでは、次の Data API を使用して、**Settings** \> **Data** \> **Identity Resolution** で設定された特定の識別子 (携帯電話番号やメール ID など) を使用してユーザーを作成または更新します。
+
+      - Track User
+      - Create Event
+      - Bulk Import
+
+    詳細については、[User Identity Resolution](/ja/user-guide/data/user-data/unified-identity-identity-resolution) を参照してください。
+     次のことが可能です。
+
+      - ID を持たない (ただし他の識別子を持つ) ユーザーでも、Server-to-Server Data API を通じてユーザーを作成できます。
+      - ID 以外の識別子 (メール ID や電話番号など) がわかっている場合に、ユーザーを作成したり、ユーザーのイベントをトラッキングしたりできます。
+
+  - Data API は [IP ホワイトリスト](/ja/user-guide/settings/account/security/ip-whitelisting-in-moengage)をサポートしています。IP アドレスをホワイトリストに登録するには、[MoEngage サポートチーム](/ja/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard)にお問い合わせください。設定後、MoEngage はこれらのホワイトリストに登録された IP から送信された API ペイロードのみを取り込みます。
+</Note>
+
+## Data の認証
+
+MoEngage Data API は、Basic 認証と OAuth 2.0 の 2 つの認証方法をサポートしています。Data API リクエストにはどちらの方法でも使用できます。
+
+<Tabs>
+  <Tab title="Basic 認証" id="basic-auth">
+    認証は Basic 認証で行われます。これには、'username:password' の形式で認証情報を base64 エンコードした文字列が必要です。
+
+    - **ユーザー名**: MoEngage のワークスペース ID (App ID とも呼ばれます) を使用します。MoEngage ダッシュボードの **Settings** > **Account** > **APIs** > **Workspace ID (earlier app id)** で確認できます。
+    - **パスワード**: **Data** タイル内にある API キーを使用します。
+
+    <Warning>
+    Data API キーを生成して保存した後は、セキュリティ侵害がない限り新しいキーを生成しないでください。別の Data API キーを生成して保存すると、古いキーでの認証が失敗し始めるため、既存のデータトラッキングを更新して新しいキーを使用する必要があります。
+    </Warning>
+
+    認証と認証情報の取得の詳細については、[認証情報の取得](/ja/api/introduction#getting-your-credentials)を参照してください。
+  </Tab>
+
+  <Tab title="OAuth 2.0" id="oauth-2">
+    OAuth 2.0 では、リクエストのたびに Data API キーを送信する代わりに、有効期間の短いアクセストークンを使用します。アクセストークンを生成し、Data API リクエストの `Authorization` ヘッダーで渡します。
+
+    <Note>
+    エンドポイント URL の `{dc}` は、MoEngage のデータセンター (DC) を指します。DC は 01、02、03、04、05、06、または 101 のいずれかです。DC と API エンドポイントの対応については、[データセンター](/ja/api/introduction#data-centers)を参照してください。
+    </Note>
+
+    {/* TODO (DOC-2541): Ticket uses {OX} as the placeholder. Confirm with PM that it maps to the standard DC values above. */}
+
+    <Steps>
+      <Step title="Data API で OAuth 2.0 を有効にする">
+        API Keys ダッシュボードで OAuth 2.0 を有効にします。詳細については、[API Key Dashboard](/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard) を参照してください。
+
+        OAuth 2.0 を有効にした後、ダッシュボードで生成された API キーを次のステップで使用します。
+      </Step>
+
+      <Step title="アクセストークンを生成する">
+        MoEngage OAuth サービスにアクセストークンをリクエストします。
+
+        **エンドポイント:**
+
+        ```http
+        POST https://oauth2-{dc}.moengage.com/v1/oauth/token
+        ```
+
+        **リクエストヘッダー:**
+
+        ```http
+        Content-Type: application/x-www-form-urlencoded
+        Authorization: Basic <base64(Workspace_ID:API_Key)>
+        ```
+
+        **リクエスト本文:**
+
+        | パラメーター | 必須 | 説明 |
+        |---|---|---|
+        | `grant_type` | はい | OAuth 2.0 のグラントタイプ。サポートされている値は `client_credentials` です。 |
+        | `client_id` | はい | ワークスペースのクライアント ID。 |
+        | `client_secret` | はい | ワークスペースのクライアントシークレット。 |
+
+        {/* TODO (DOC-2541): Confirm with PM: (1) Are both the Basic header and client_id/client_secret in the body required? (2) Where does the user find client_id and client_secret — do they map to Workspace ID and API Key? */}
+
+        **cURL の例:**
+
+        ```bash
+        curl -L -X POST 'https://oauth2-{dc}.moengage.com/v1/oauth/token' \
+          -H 'Content-Type: application/x-www-form-urlencoded' \
+          -H 'Authorization: Basic <base64(Workspace_ID:API_Key)>' \
+          -d 'grant_type=client_credentials' \
+          -d 'client_id=<client_id>' \
+          -d 'client_secret=<client_secret>'
+        ```
+
+        **レスポンス:**
+
+        ```json
+        {
+          "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+          "token_type": "Bearer",
+          "expires_in": 3600
+        }
+        ```
+
+        | フィールド | 説明 |
+        |---|---|
+        | `access_token` | Data API リクエストで使用するアクセストークン。 |
+        | `token_type` | トークンタイプ。値は常に `Bearer` です。 |
+        | `expires_in` | アクセストークンの有効期間 (秒)。 |
+      </Step>
+
+      <Step title="アクセストークンを検証する (任意)">
+        Data API リクエストで使用する前に、アクセストークンを検証することをお勧めします。
+
+        {/* TODO (DOC-2541): Ticket cURL uses internal host iam-auth-service.moeinternal.com. Confirm the public endpoint below with PM, and confirm this step is customer-facing. Also get the success and failure responses. */}
+
+        **エンドポイント:**
+
+        ```http
+        POST https://oauth2-{dc}.moengage.com/v1/iam/auth/validate
+        ```
+
+        **リクエストヘッダー:**
+
+        ```http
+        Content-Type: application/json
+        ```
+
+        **リクエスト本文:**
+
+        | パラメーター | 必須 | 説明 |
+        |---|---|---|
+        | `uri` | はい | トークンを使用して呼び出す Data API のパス。例: `/v1/customer/{Workspace_ID}`。 |
+        | `method` | はい | 呼び出す Data API の HTTP メソッド。例: `POST`。 |
+        | `auth` | はい | `Bearer <access_token>` 形式のアクセストークン。 |
+
+        **cURL の例:**
+
+        ```bash
+        curl -L -X POST 'https://oauth2-{dc}.moengage.com/v1/iam/auth/validate' \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "uri": "/v1/customer/{Workspace_ID}",
+            "method": "POST",
+            "auth": "Bearer <access_token>"
+          }'
+        ```
+      </Step>
+
+      <Step title="Data API リクエストでアクセストークンを使用する">
+        Data API リクエストの `Authorization` ヘッダーでアクセストークンを渡します。
+
+        **リクエストヘッダー:**
+
+        ```http
+        Authorization: Bearer <access_token>
+        Content-Type: application/json
+        ```
+
+        **cURL の例:**
+
+        ```bash
+        curl -X POST 'https://api-{dc}.moengage.com/v1/customer/{Workspace_ID}' \
+          -H 'Authorization: Bearer <access_token>' \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "type": "customer",
+            "customer_id": "john@example.com",
+            "attributes": {
+              "name": "John Doe",
+              "first_name": "John"
+            }
+          }'
+        ```
+      </Step>
+    </Steps>
+
+    ### トークンの有効期限
+
+    - アクセストークンは、`expires_in` フィールドで指定された期間が経過すると期限切れになります。
+    - アクセストークンの有効期限が切れたら、新しいトークンを生成してください。
+    - 最適なパフォーマンスを得るには、リクエストごとに新しいトークンを生成するのではなく、連携にトークンのキャッシュと更新のロジックを実装してください。
+
+    {/* TODO (DOC-2541): Ticket says expiry is set "while setting up the API keys". Confirm whether token validity is configurable on the dashboard or fixed at 3600 seconds. */}
+  </Tab>
+</Tabs>
+
+## リクエスト本文
+
+リクエスト本文には、`customer_id` という必須フィールドが含まれます。これは、MoEngage SDK から `USER_ATTRIBUTE_UNIQUE_ID` として設定および渡される一意の識別子で、ダッシュボードでは `ID` として表示されます。
+
+`customer_id` は次の目的で使用されます。
+
+- MoEngage でユーザーを識別または作成する。
+- MoEngage で、イベントを対応する一意のユーザープロファイルに関連付ける。
+
+MoEngage で Data API リクエストを受信すると、`customer_id` を使用してユーザーが MoEngage に存在するかどうかが確認されます。ユーザーが存在しない場合は、属性またはイベントを使用して新しいユーザーが作成されます。
+
+<Note>
+  - リクエスト本文の上限は 128 KB です。
+  - `customer_id` には、次の値を除き、1 文字を超える任意の文字列を使用できます - ['unknown', 'guest', 'null', '0', '1', 'true', 'false', 'user_attribute_unique_id', '(empty)', 'na', 'n/a', '', 'dummy_seller_code', 'user_id', 'id', 'customer_id', 'uid', 'userid', 'none', '-2', '-1', '2']
+</Note>
+
+<Warning>
+各要素の `type` フィールドは大文字と小文字が区別され、小文字 (`customer`、`event`、または `device`) である必要があります。レコードが処理されず、ユーザー、イベント、またはデバイスが作成されない場合は、`type` の値が小文字であることを確認してください。`Customer` のように大文字と小文字が異なる値は受け付けられません。
+</Warning>
+
+たとえば、次のリクエストを使用して作成されたユーザーは、表示されているとおりにダッシュボードのユーザープロファイルに表示されます。
+
+### リクエスト本文のサンプル
+
+以下は、Create User API のリクエスト本文のサンプルです。
+
+```json
+{
+"type": "customer",
+"customer_id": "USERID1234",
+"attributes": {
+   "first_name":"John",
+   "name":"John Smith",
+   "plan_expiry_date":"2020-05-31T00:00:00Z",
+   "super_user":true,
+   "user_persona":"browsers",
+   "platforms" : [{"platform":"ANDROID", "active":"true"}]
+   }
+}
+```
+
+<Note>
+  イベント、イベント属性、またはユーザー属性の命名時に、プレフィックスとして "moe\_" を使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なく定期的にブラックリストに登録される可能性があります。
+</Note>
+
+### サポートされている日時形式
+
+リクエスト本文では、次の形式で日時を渡すことができます。
+
+| 日時形式                              | 例              |
+| :------------------------------------------- | :------------------- |
+| `“datetime_format”:YYYY-MM-DD[T]HH:mm:ss[Z]` | 2019-03-12T17:36:05Z |
+| `“datetime_format”: "YYYY-MM-DD"`            | 2022-01-22           |
+
+<Note>
+  MoEngage は、システムにデータを取り込む前に、日時形式に対して次の検証を実行します。
+
+  - 未来および過去の日付値は受け付けられ、取り込まれます。
+  - 不正なカレンダー値を含む日付値 (例: 15 が有効な月ではない 2019-15-12) は、文字列として取り込まれます。
+  - 上記の形式と互換性のない日時値は、文字列に変換されてから取り込まれます。
+</Note>
+
+<Warning>
+  `user_time` および `current_time` フィールド (Track Event および Bulk Import) では、MoEngage は次の形式のみを受け付けます。
+
+  - **秒単位のエポック時間** (10 桁) — 例: `1710740192`
+  - **ISO-8601 文字列** — 例: `2020-05-31T16:33:35Z`
+
+  **ミリ秒単位のエポック時間 (13 桁) は受け付けられません。** `user_time` または `current_time` がサポートされていない形式や解析できない形式で送信された場合、MoEngage はリクエストを拒否しません。代わりに、サーバーが受信した (Kafka) 時刻を使用してイベントが取り込まれるため、イベントの記録時刻が送信しようとした時刻と異なる場合があります。
+</Warning>
+
+## レスポンス
+
+Data API のレスポンスは JSON オブジェクトです。Data API リクエストが成功すると、次のレスポンスが返されます。
+
+```json
+{
+  "status": "success",
+  "message": "Your request has been accepted and will be processed soon.",
+  "request_id": "kXwpDESb"
+}
+```
+
+Data API リクエストが失敗すると、次のレスポンスが返されます。
+
+```json
+{
+  "status": "fail",
+  "error": {
+    "type": "TypeError",
+    "message": "expected string",
+    "request_id": "kXwpDESb"
+  }
+}
+```
+
+### レスポンスコード
+
+リクエストがエラーになった場合、次のステータスコードと関連するエラーメッセージが返されます。
+
+| エラーコード | タイプ | メッセージ | 説明 |
+| :--------- | :---------------------------- | :--------------------------------------------------------------------------------- | :----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400        | Missing header value          | The Content-Type Header is required                                                | Content-Type のヘッダー値がありません                                                                                                                 |
+| 400        | Empty request body            | A valid JSON document is required                                                  | リクエスト本文が空です                                                                                                                                    |
+| 400        | Malformed JSON                | Could not decode the request body. The JSON was incorrect or not encoded as UTF-8. | リクエストの JSON が正しく構成されていません                                                                                                                     |
+| 400        | Blacklisted                   | Your account is blacklisted, Please contact MoEngage.                              | お使いのアプリが MoEngage でブラックリストに登録されています                                                                                                                          |
+| 400        | InvalidParams                 | Given app_id is invalid.                                                           | App ID が無効です。                                                                                                                                       |
+| 400        | ParamsRequired                | app_id is required in path/query params.                                           | パスまたはクエリパラメーターに App ID がありません。                                                                                                               |
+| 400        | Empty request body            | A valid JSON document is required                                                  | リクエスト本文が空です。                                                                                                                                   |
+| 400        | Body type is not JSON         | A valid JSON document is required.                                                 | 文字列のペイロードです。                                                                                                                                              |
+| 400        | MissingAttributeError         | key is expected to be datatype                                                     | 指定された属性が無効です                                                                                                                         |
+| 401        | Authentication Required       | Authentication Header Required                                                     | リクエストに認証ヘッダーがありません。                                                                                                           |
+| 401        | Authentication required       | No identity information found                                                      | 認証ヘッダーが空です。                                                                                                                              |
+| 401        | Authentication required       | Invalid identity information found                                                 | app_key と app_secret のデコードに失敗しました。                                                                                                                    |
+| 401        | Authentication required       | APP_KEY missing in the authentication header                                       | 認証ヘッダーに App_key がありません。                                                                                                         |
+| 401        | Authentication required       | APP_SECRET missing in the authentication header                                    | 認証ヘッダーに App_secret がありません。                                                                                                      |
+| 401        | Authentication required       | App Secret key mismatch. Please login to the dashboard to verify key               | App secret key が間違っています。                                                                                                                                     |
+| 401        | Authentication required       | Invalid APP_ID used in Authentication Header                                       | 認証ヘッダーで無効な APP ID が使用されています。                                                                                                |
+| 403        | Account Suspended             | Account Suspended                                                                  | アカウントが停止されています。                                                                                                                                   |
+| 403        | Account Temporarily Suspended | Account Temporarily Suspended                                                      | アカウントが一時的に停止されています。                                                                                                                       |
+| 409        | Authentication Mismatch       | App key mismatch in params and authentication                                      | パラメーターと認証の App_key が一致しません。                                                                                                     |
+| 409        | Authentication required       | App Secret key is not set. Please login to the dashboard to set a key              | App Secret が設定されていません。                                                                                                                                          |
+| 413        | Payload too large             | The payload can not exceed 128KB                                                   | リクエストのペイロードサイズが大きすぎます。                                                                                                                           |
+| 415        | Unsupported Media Type        | Unsupported Media Type                                                             | サポートされていないメディアタイプです。                                                                                                                                      |
+| 429        | Rate Limit Exceeded           | Rate Limits for User / Event exceeded                                              | MoEngage アカウントに定義されているレート制限 (1 分あたりのユーザー数またはイベント数) を超えました。                                                  |
+| 5xx        | Server Error                  | Any other exception                                                                | このレスポンスは、システムで予期しないエラーが発生した場合に返されます。このような場合は、2 秒ごとに最大 5 回再試行することをお勧めします。 |
+
+## 使用状況のモニタリング
+
+レート制限のあるエンドポイントは、すべてのレスポンスで次のヘッダーを返します。これにより、連携では `429` を待つのではなく、残りの容量をリアルタイムで追跡できます。
+
+```http
+x-ratelimit-limit: 100
+x-ratelimit-remaining: 95
+x-ratelimit-reset: 30
+```
+<img alt="monitor_your_usage.png"  src="/images/monitor_your_usage.png" width="50%" />
+
+| ヘッダー | 説明 |
+| --- | --- |
+| `x-ratelimit-limit` | 現在の 60 秒間のウィンドウ (w=60) 内で許可されるリクエストの最大数。 |
+| `x-ratelimit-remaining` | 現在の 60 秒間のウィンドウで、上限に達するまでにまだ使用できるリクエスト数。 |
+| `x-ratelimit-reset` | 現在のウィンドウがリセットされる UTC エポックタイムスタンプ。ウィンドウは 60 秒 (w=60) であるため、この値は常に現在時刻から 60 秒以内になります。|
+
+<Note>
+  一部の高スループットのエンドポイント (Push API など) では、代わりに `x-envoy-ratelimited: true` ヘッダーでスロットリングを通知します。エンドポイントが返すヘッダーについては、各エンドポイントのリファレンスページを確認してください。
+</Note>
+
+### 上限に達した場合
+
+リクエストが `HTTP 429` で拒否された場合:
+
+1. ウィンドウがリセットされる (`x-ratelimit-reset`) まで、そのエンドポイントへのリクエストの送信を停止します。
+2. すぐに再試行するのではなく、指数バックオフを使用して再試行します。
+3. エンドポイントがサポートしている場合はバッチ処理を行います。たとえば、ユーザーごとに 1 回呼び出すのではなく、1 回の Track User リクエストで複数のユーザー更新を送信します。
+
+適切にバッチ処理された正当な使用で連携が常に上限に近づいている場合は、CSM またはサポートチームに連絡して、上限の引き上げをリクエストしてください。
+
+
+
+
+## ユーザー属性
+
+| キー名                | 表示名                          | Get User API での取得 | Track User API での更新 | Track User API での作成 |
+| :---------------------- | :------------------------------------ | :------------------------- | :---------------------------- | :---------------------------- |
+| publisher_name          | Publisher Name                        | はい                        | いいえ                            | はい                           |
+| campaign_name           | Campaign Name                         | はい                        | いいえ                            | はい                           |
+| t_rev                   | LTV                                   | はい                        | いいえ                            | いいえ                            |
+| t_trans                 | No of Conversions                     | はい                        | いいえ                            | いいえ                            |
+| moe_ip_city             | Last Known City                       | はい                        | いいえ                            | いいえ                            |
+| moe_ip_pin              | Last Known Pincode                    | はい                        | いいえ                            | いいえ                            |
+| moe_ip_subdivision      | Last Known State                      | はい                        | いいえ                            | いいえ                            |
+| moe_ip_country          | Last Known Country                    | はい                        | いいえ                            | いいえ                            |
+| moe_dtzo                | User Timezone Offset (Mins)           | はい                        | いいえ                            | いいえ                            |
+| u_s_c                   | No. of Sessions                       | はい                        | いいえ                            | いいえ                            |
+| u_l_a                   | Last Seen                             | はい                        | いいえ                            | はい                           |
+| cr_t                    | First Seen                            | はい                        | いいえ                            | はい                           |
+| u_mb                    | Mobile Number (Standard)              | はい                        | はい                           | はい                           |
+| uid                     | ID                                    | はい                        | はい                           | はい                           |
+| u_bd                    | Birthday                              | はい                        | はい                           | はい                           |
+| u_em                    | Email (Standard)                      | はい                        | はい                           | はい                           |
+| locale_language_display | Local Language                        | はい                        | いいえ                            | いいえ                            |
+| locale_country_display  | Local Country                         | はい                        | いいえ                            | いいえ                            |
+| uninstall_time          | Uninstall time                        | はい                        | いいえ                            | いいえ                            |
+| installed               | Install Status                        | はい                        | いいえ                            | いいえ                            |
+| moe_cr_from             | User Creation Source                  | はい                        | いいえ                            | いいえ                            |
+| u_n                     | Name                                  | はい                        | はい                           | はい                           |
+| u_ln                    | Last Name                             | はい                        | はい                           | はい                           |
+| u_gd                    | Gender                                | はい                        | はい                           | はい                           |
+| u_fn                    | First Name                            | はい                        | はい                           | はい                           |
+| geo                     | Geolocation                           | はい                        | いいえ                            | いいえ                            |
+| moe_wa_subscription     | WhatsApp Subscription Status          | はい                        | はい                           | はい                           |
+| moe_em_unsub_categories | Email Unsubscribed Categories         | はい                        | はい                           | はい                           |
+| moe_gaid                | Google Advertising ID (Android)       | はい                        | いいえ                            | はい                           |
+| advertising_identifier  | Advertising Identifier (iOS &Windows) | はい                        | いいえ                            | はい                           |
+| web subscription url    | Web Push Subscription Page URL        | -                          | -                             | -                             |
+| moe_sub_w               | Web Push Subscription Status          | はい                        | はい                           | はい                           |
+| moe_w_ds                | Browser Details                       | はい                        | いいえ                            | いいえ                            |
+| moe_mweb                | Mobile User                           | はい                        | いいえ                            | はい                           |
+| moe_i_ov                | OS Version iOS                        | -                          | -                             | -                             |
+| moe_it                  | Creation Source                       | いいえ                         | いいえ                            | いいえ                            |
+| moe_spam                | Spam                                  | はい                        | はい                           | はい                           |
+| moe_unsubscribe         | Unsubscribe                           | はい                        | はい                           | はい                           |
+| moe_hard_bounce         | Hard Bounce                           | はい                        | はい                           | はい                           |
+| moe_rsp_android         | Reachability Push Android             | はい                        | いいえ                            | いいえ                            |
+| moe_rsp_ios             | Reachability Push iOS                 | はい                        | いいえ                            | いいえ                            |
+| moe_rsp_web             | Reachability Push Web                 | はい                        | いいえ                            | いいえ                            |
+| moe_rsu                 | Reachability Push                     | はい                        | いいえ                            | いいえ                            |
+| moe_sms_subscription    | SMS Subscription Status               | はい                        | はい                           | はい                           |
+| moe_ds_bts_push_hour    | Best time to send Push                | はい                        | いいえ                            | いいえ                            |
+| moe_ds_bts_email_hour   | Best time to Email                    | はい                        | いいえ                            | いいえ                            |
+| moe_ds_bts_sms_hour     | Best time to send SMS                 | はい                        | いいえ                            | いいえ                            |
+| moe_ds_mpc_best_channel | Most Preferred Channel                | はい                        | いいえ                            | いいえ                            |
+
+## ユーザー属性の予約キーワード
+
+以下は、ユーザー属性をトラッキングする際に使用してはならないキーの一覧です。
+
+* USER_ATTRIBUTE_UNIQUE_ID
+* USER_ATTRIBUTE_USER_EMAIL
+* USER_ATTRIBUTE_USER_MOBILE
+* USER_ATTRIBUTE_USER_NAME
+* USER_ATTRIBUTE_USER_GENDER
+* USER_ATTRIBUTE_USER_FIRST_NAME
+* USER_ATTRIBUTE_USER_LAST_NAME
+* USER_ATTRIBUTE_USER_BDAY
+* USER_ATTRIBUTE_NOTIFICATION_PREF
+* USER_ATTRIBUTE_OLD_ID
+* MOE_TIME_FORMAT
+* MOE_TIME_TIMEZONE
+* USER_ATTRIBUTE_DND_START_TIME
+* USER_ATTRIBUTE_DND_END_TIME
+* MOE_GAID
+* INSTALL
+* UPDATE
+* MOE_ISLAT
+* status
+* user_id
+* source
+
+## ユーザープロファイルダッシュボード
+
+Data API を通じてデータを送信すると、次に示すようにユーザープロファイルに反映されます。
+
+![新しいユーザープロファイル](/images/user_profile_new.png)
+
+## 制限
+
+Data API は、お客様全体で大量のデータを処理できるように設計されています。API を責任を持って使用していただくために、API の制限を設けています。レート制限については、各エンドポイントのドキュメントを参照してください。
+
+<Note>
+  - 要件がデフォルトの制限を超える場合は、MoEngage サポートチームに連絡して制限を引き上げることができます。
+  - 高頻度のユーザーデータ取り込みについては、フェアユースポリシー (FUP) を必ず遵守してください。これは、ワークスペースでのデータ処理の中断を防ぐために必須です。詳細については、[フェアユースポリシー (FUP)](/ja/user-guide/data/key-concepts/fair-usage-policy-fup) を参照してください。
+</Note>
+
+## よくある質問
+
+### Track User
+
+<AccordionGroup>
+  <Accordion icon="sparkles" title="1 秒あたりまたは 1 分あたりのリクエストが多すぎることによる 5xx エラーを減らすにはどうすればよいですか?">
+    5xx エラーによるデータ損失を防ぐため、リクエストの指数バックオフを試してください。
+  </Accordion>
+  <Accordion icon="sparkles" title="ユーザーデータが MoEngage に取り込まれたかどうかを確認するにはどうすればよいですか?">
+    MoEngage からレスポンスとして 200 ステータスコードが返されることは、API ペイロード内のユーザーが処理のために受け付けられたことを示すだけです。MoEngage に送信されたユーザーが正常に取り込まれたことを保証するものではありません。 \
+    ただし、取り込みに失敗することはごくまれです。新しく取り込まれたユーザーは次の場所で検索できます:\
+    **Segment \> Create Segment \> ID を使用してユーザーを検索**
+  </Accordion>
+  <Accordion icon="sparkles" title="ユーザー属性が更新されていないのに、API リクエストが成功を返したのはなぜですか?">
+    MoEngage はデータを非同期で処理します。API はリクエストを受信した時点で成功レスポンスを返しますが、その後の処理で、無効なデータ、制限の超過、その他の理由によりデータが破棄される場合があります。データの破棄に気付いた場合は、カスタマーサクセスマネージャー (CSM) または MoEngage サポートチームにお問い合わせください。
+  </Accordion>
+  <Accordion title="この API を使用してユーザーをエクスポートすることもできますか?">
+    ユーザーをエクスポートするには、[Get User API](/ja/api/user/get-user) を使用してください。
+  </Accordion>
+  <Accordion title="この API を使用して MoEngage からユーザーを削除できますか?">
+    MoEngage の既存のユーザーを削除するには、[Delete User API](/ja/api/user/delete-users) を使用してください。
+  </Accordion>
+</AccordionGroup>
+
+### Get User
+
+<AccordionGroup>
+  <Accordion icon="sparkles" title="どのユーザーがエクスポート可能で、どのユーザーが MoEngage でエクスポートできないかを知るにはどうすればよいですか?">
+    利用可能なすべてのユーザーは `users` キーに、利用できないユーザーは `users_not_found` キーに含まれます。このドキュメントのサンプルレスポンスを参照してください。
+  </Accordion>
+  <Accordion icon="sparkles" title="フィールドを指定せずに、ユーザー ID に基づいて利用可能なすべてのユーザーデータを取得したい場合はどうすればよいですか?">
+    `user_fields_to_export` を渡さない場合、すべてのカスタム属性とエクスポート可能な標準属性が返されます。特定のフィールドを取得するには、必要なフィールドのリストとともに `user_fields_to_export` を渡す必要があります。
+  </Accordion>
+</AccordionGroup>
+
+### Merge User
+
+<AccordionGroup>
+  <Accordion icon="sparkles" title="この API を使用した後も、統合されたユーザーの情報は利用できますか?">
+    いいえ。この API を呼び出すと、統合されたユーザーは削除されます。統合されたユーザーのすべてのユーザー属性とデバイスは、保持されるユーザーに移行されます。
+  </Accordion>
+  <Accordion icon="sparkles" title="保持されるユーザーのリーチはどうなりますか?">
+    ユーザーのリーチステータスは、ユーザーの統合後に存在するデバイスに基づいて再計算されます。
+  </Accordion>
+  <Accordion icon="sparkles" title="任意の 2 人のユーザーを統合できますか?">
+    MoEngage システムに存在する登録済みユーザーであれば、作成元にかかわらず、別の登録済みユーザーと統合できます。
+  </Accordion>
+  <Accordion icon="sparkles" title="統合する前に、両方のユーザーにデバイスが関連付けられている必要がありますか?">
+    必ずしもそうではありません。デバイスの有無にかかわらず、ユーザーを統合できます。
+  </Accordion>
+  <Accordion icon="sparkles" title="ユーザーを統合できる回数に制限はありますか?">
+    いいえ。
+  </Accordion>
+  <Accordion icon="sparkles" title="統合されたユーザーまたは保持されるユーザーが持つことのできるデバイス数に制限はありますか?">
+    いいえ。
+  </Accordion>
+  <Accordion icon="sparkles" title="統合後、merged_user はどうなりますか?">
+    このユーザーは削除され、このユーザーにデバイスが関連付けられている場合は、それらのデバイスが `retained_user` に関連付けられます。`merged_user` のすべてのイベントとユーザーの詳細は、`retained_user` に反映されます。統合イベント `MOE_USER_MERGE_EVENT` が `merged_user` (この時点で MoEngage ID のみを持つ) に追加されます。
+  </Accordion>
+  <Accordion icon="sparkles" title="統合後、retained_user はどうなりますか?">
+    `retained_user` は、自身の既存の詳細に加えて、`merged_user` のすべてのユーザー、デバイス、イベントの詳細を持つようになります。`MOE_USER_MERGED` イベントが `retained_user` に追加されます。
+  </Accordion>
+  <Accordion icon="sparkles" title="削除されたユーザーと同じ ID でユーザー作成リクエストが送信された場合はどうなりますか?">
+    その ID で新しいユーザーが作成されますが、このユーザーの MoEngage ID は削除されたユーザーとは異なります。
+  </Accordion>
+  <Accordion icon="sparkles" title="両方のユーザーがデバイスを持っていない場合、リーチはどうなりますか?">
+    そのユーザーにはリーチできません。
+  </Accordion>
+  <Accordion icon="sparkles" title="統合後にユーザーの詳細が反映されるまでの SLA はどのくらいですか?">
+    最大 SLA は 30 分です。
+  </Accordion>
+  <Accordion icon="sparkles" title="統合されたユーザーから保持されるユーザーにイベントはどのようにコピーされますか?">
+    ユーザープロファイルでは、過去 30 日間のすべてのイベントが、統合されたユーザーから保持されるユーザーに移動されます。
+  </Accordion>
+</AccordionGroup>
+
+### Delete User
+
+<AccordionGroup>
+  <Accordion icon="sparkles" title="削除操作を元に戻すことはできますか?">
+    削除操作を元に戻すためのロールバックの仕組みはありません。削除リクエストが処理されると、ユーザーは MoEngage から削除されます。
+  </Accordion>
+  <Accordion icon="sparkles" title="ユーザーのイベントも削除されますか?">
+    いいえ。ユーザーに対応するイベントが個別に削除されることはありません。削除 API リクエストが処理されると、ユーザーとユーザー属性のみが削除されます。
+
+    ただし、ユーザーが MoEngage から削除されると、そのユーザーに対応するイベントにはアクセスできなくなります。たとえば、イベントがセグメンテーションクエリで使用されている場合、そのイベントを実行した削除済みユーザーは、計算されたセグメントやキャンペーンに追加されません。
+  </Accordion>
+  <Accordion icon="sparkles" title="ユーザーが MoEngage から削除されたかどうかを確認するにはどうすればよいですか?">
+    MoEngage ダッシュボードで **Segment** -\> **Create Segment** に移動します。削除されたユーザーの一意の識別子 (ID、MoEngage ID、電話番号、メールアドレス、または設定したその他の一意の識別子) を入力します。ユーザーが削除 (完全削除) されている場合、検索結果は表示されません。ユーザーの検索の詳細については、[Search User in Segmentation] を参照してください。
+  </Accordion>
+</AccordionGroup>
+
+### Create Event
+
+<AccordionGroup>
+  <Accordion icon="sparkles" title="特定のユーザーのイベントを識別するにはどうすればよいですか? どの識別子を使用できますか?">
+    ペイロード内のイベントは、そのイベントを実行した特定のユーザーにマッピングする必要があります。顧客にマッピングされたイベントを識別するには、Customer ID を使用する必要があります。
+  </Accordion>
+  <Accordion icon="sparkles" title="匿名ユーザーのイベントを送信できますか?">
+    いいえ。匿名ユーザーは MoEngage SDK を使用してトラッキングできます。
+  </Accordion>
+  <Accordion icon="sparkles" title="イベントを更新または変更できますか?">
+    MoEngage のイベントはイミュータブル (不変) です。つまり、イベントは作成のみが可能で、更新や削除はできません。
+  </Accordion>
+</AccordionGroup>
+
+### Track Device
+
+<AccordionGroup>
+  <Accordion icon="sparkles" title="Device API を使用してカスタムデバイス属性を渡すことはできますか?">
+    いいえ。渡すことができるのは、上記のデバイス属性のみです。API ペイロードで渡された追加のカスタム属性は、処理中に破棄されます。
+  </Accordion>
+  <Accordion icon="sparkles" title="API で Identifier for Vendors (IDFV) の値を渡すとどうなりますか?">
+    デバイスは Android プラットフォームに基づいて作成され、API で渡された IDFV の値は破棄されます。プラットフォームが iOS で GAID の値が渡された場合、デバイスは iOS で作成されますが、GAID 属性は破棄されます。
+  </Accordion>
+  <Accordion icon="sparkles" title="1 人のユーザーに対していくつのデバイスを作成できますか?">
+    1 人のユーザーに対して最大 1000 台のデバイスを作成できます。ユーザーに対して 1001 台目のデバイスが作成されると、そのユーザーはブロックされます。
+  </Accordion>
+  <Accordion icon="sparkles" title="MoEngage ワークスペース内のユーザーに関連付けられた既存のデバイスに既に存在する moe_gaid、idfv、または push_id の値で新しいデバイスを作成するとどうなりますか?">
+    このような場合、既存のデバイスが削除され、新しいデバイスが追加されます。
+  </Accordion>
+</AccordionGroup>
+
+### MoEngage Streams
+
+<AccordionGroup>
+  <Accordion icon="sparkles" title="想定されるスループット、平均ボリューム、バッチサイズはどのくらいですか?">
+    各 API リクエストのスループットと平均ボリュームは、MoEngage に取り込まれる選択したイベントのボリュームによって異なります。デフォルトのバッチサイズ (API リクエストごとのイベント数) は 100 です。
+  </Accordion>
+  <Accordion icon="sparkles" title="Streams の再試行の仕組みはどのようになっていますか?">
+    再試行の仕組みにより、MoEngage は指定されたエンドポイントに複数回リクエストを送信できます。イベントのバッチが失敗した場合 (エンドポイントからの "2XX" 以外のレスポンスはすべて失敗とみなされます)、バッチ全体が再試行されます。MoEngage は、次の間隔で合計 3 回の再試行を行います。
+
+    - **1 回目の再試行:** 30 秒
+    - **2 回目の再試行:** 60 秒
+    - **3 回目の再試行:** 120 秒
+  </Accordion>
+  <Accordion icon="sparkles" title="Streams を一時停止した場合、後でデータを取得できますか?">
+    Streams を一時停止すると、エクスポート用のデータは収集されないため、後日再生することはできません。
+  </Accordion>
+  <Accordion icon="sparkles" title="Streams では最新のユーザー属性が保証されますか?">
+    いいえ。Streams は主に、イベントをほぼリアルタイムでエクスポートするために構築されています。MoEngage のユーザー属性は非同期で更新されるため、現時点ではエクスポートでユーザー属性の最新の値を保証することはできません。
+  </Accordion>
+  <Accordion icon="sparkles" title="Streams を使用して履歴データをエクスポートできますか?">
+    現時点では、Streams を設定する前に発生したデータはエクスポートできません。設定後は、エクスポートを有効にした時点から各イベントのデータが表示されるようになります。
+  </Accordion>
+</AccordionGroup>
+
+### Bulk Import
+
+<AccordionGroup>
+  <Accordion icon="sparkles" title="Track User API と Create Event API の MoEngage 内部の検証は、Bulk API にも適用されますか?">
+    はい。Bulk API リクエスト内では、Track User API の検証が `Customer` ペイロードタイプに適用され、Create Event API の検証が `Event` ペイロードタイプに適用されます。
+  </Accordion>
+  <Accordion icon="sparkles" title="1 秒あたりまたは 1 分あたりのリクエストが多すぎることによる 5xx エラーを減らすにはどうすればよいですか?">
+    リクエストに**指数バックオフ**戦略を実装してください。これにより、高負荷の期間中にシステムがリクエストの頻度を徐々に減らし、サーバー側のエラーによるデータ損失を防ぐことができます。
+  </Accordion>
+  <Accordion icon="sparkles" title="ユーザーデータが MoEngage に取り込まれたかどうかを確認するにはどうすればよいですか?">
+    **200 OK** ステータスコードを受信することは、API ペイロード内のユーザーが処理のために正常に受け付けられたことを示すだけです。取り込み処理が完了したことを保証するものではありません。
+
+    失敗することはまれですが、MoEngage ダッシュボードでユーザーを検索して取り込みを確認できます: **Segment** \> **Create Segment** \> **Search for users** に移動し、一意の ID を使用して検索します。
+  </Accordion>
+</AccordionGroup>
+
+### Trigger File Imports
+
+<Accordion icon="sparkles" title="トリガー API によってインポートのスケジュールは変更されますか?">
+  いいえ。スケジュールは、MoEngage ダッシュボードで最初に設定したとおりのままです。
+</Accordion>
+
+## Postman コレクション
+
+API を簡単にテストできるようにしています。Postman でコレクションを表示するには、[こちら](https://www.postman.com/moengage-dev/api-docs/collection/p593wcu/moengage-data-apis)をクリックしてください。

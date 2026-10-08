@@ -1,0 +1,276 @@
+---
+title: "S3 インポート"
+description: "MoEngage で Amazon S3 インポートを設定し、S3 バケットに保存されたファイルからユーザー、イベント、補助データを取り込みます。完全なセットアップガイドです。"
+---
+
+# 概要
+
+MoEngage では、S3 バケット内に保存されたファイルを使用して、ユーザーとイベントをインポートできます。
+
+# インポートの種類
+
+MoEngage は、S3 バケットから次のものをインポートできます。
+
+1. **Registered Users**: MoEngage にすでに登録されているユーザーです。
+2. **Anonymous Users**: MoEngage にまだ登録されていないユーザーです。
+3. **Events**（標準およびユーザー定義）: MoEngage は、Campaign Interaction Events などの標準イベントと、独自のユーザー定義イベントの両方をインポートできます。
+4. **Auxiliary Data**: 一時的に追加されるユーザーです。
+
+# ファイルの準備
+
+サポートされているファイルタイプ、命名規則、ファイル構造などについては、[File Imports ヘルプドキュメント](/ja/user-guide/data/imports/overview-imports)を参照してください。ファイルの準備ができたら、S3 バケット内のフォルダーに配置する必要があります。
+
+## フォルダー構造
+
+すべてのファイルを Amazon S3 フォルダーに配置します。フォルダーパスはインポートの設定時に構成できます。
+
+<img alt="FolderStructure.png"  src="/images/moengage_43030a.png"  />
+
+MoEngage はサブフォルダー内のファイルを検索しないことに注意してください。
+
+# 必要なアクセス権限
+
+MoEngage がバケットにアクセスしてファイルを正しくインポートできるよう、新しいポリシーを作成する必要があります。次の権限をリクエストします。
+
+1. `s3:Get\*` - ファイルのダウンロードに必要な権限を付与します。
+2. `s3:List\*` - ファイルの表示と一覧表示に必要な権限を付与します。
+
+## 新しいポリシーを作成する
+
+ナビゲーションバーの Policies タブに移動し、"Get Started"、"Create Policy" の順に選択します。これにより、ユーザーに権限を追加できます。"Create Your Own Policy" を選択します。これにより権限が制限され、指定したバケットにのみアクセスできるようになります。
+
+独自のポリシーを作成する際に、以下のコードを入力します。任意の "Policy Name" を指定し、以下のコードを "Policy Document" セクションに入力します。`` を Statement ID に、`` を Policy ID に、`` をバケット名に必ず置き換えてください。Principal も置き換えてください（アクセスキー ID とシークレットアクセスキーがこのユーザー/アカウントに属していることを確認してください）。
+
+JSON
+
+__PROTECTED_54__
+
+ポリシーの作成方法の詳細については、__PROTECTED_30__ を参照してください。
+
+# S3 からのインポートを設定する
+
+__PROTECTED_0__
+
+S3 インポートを設定するには、次の手順を実行します。
+
+1. MoEngage のサイドバーメニューで、Data メニュー項目 __PROTECTED_2__ にカーソルを合わせます。**Data** メニューが表示されます。
+2. **Data imports** をクリックします。  
+    __PROTECTED_3__
+3. Data imports ページで、**+ Import** をクリックし、**Users** または **Events** を選択して新しいインポートを作成します。  
+    __PROTECTED_4__
+4. **S3** をクリックして、Users（次のステップで Registered/Anonymous を選択できます）または Events の新しいインポートを作成します。  
+    __PROTECTED_5__
+
+## ステップ 1: S3 認証情報とファイル形式を設定する
+
+#### **User Imports**
+
+Registered users と Anonymous users のどちらをインポートするかを選択できます。
+
+__PROTECTED_6__
+
+インポートするものを選択します。登録ユーザーのインポートと匿名ユーザーのインポートでは、想定されるファイル名が異なります。詳細については、__PROTECTED_31__ セクションを参照してください。
+
+#### **Event Imports**
+
+Event インポートの場合、インポートするイベントを選択できます。
+
+__PROTECTED_7__
+
+選択したイベントによって、ファイル名が異なります。ファイル名は、選択したイベントの Event Name で始まる必要があります。"Select event" ドロップダウンには、MoEngage アプリで利用可能なすべてのイベントの Display Name が表示されます。これらのイベントの中には、Display Name と Event Name が異なるものがあります。イベントを選択すると、そのイベントに対して想定されるファイル名が Event Description ボックスに表示されます。
+
+__PROTECTED_8__
+
+上の例では、"App/Site Opened" が選択したイベントの Display Name で、その Event Name は `MOE_APP_OPENED` です。そのため、ファイル名は `MOE_APP_OPENED` で始まる必要があります。詳細については、__PROTECTED_32__ セクションを参照してください。
+
+ドロップダウンの最後にある "+ Create event" オプションをクリックして、新しいイベントを作成することもできます。
+
+__PROTECTED_9__
+
+イベントに一意の名前を付けます。デフォルトでは、Display Name は Event Name と同じになります。__PROTECTED_33__ ページに移動すると、このイベントやその他の MoEngage イベントを表示または編集できます。ここで作成した新しいイベントは、最初のインポートが成功した後にのみアプリで利用可能になることに注意してください。
+
+### S3 認証情報の追加
+
+この最初のステップ "Source and format" では、MoEngage が S3 バケットに接続する方法と、ファイルを検索する場所も指定する必要があります。
+
+__PROTECTED_10__
+
+これらのフィールドの入力方法については、以下の表を参照してください。
+
+| フィールド | 説明 |
+| --- | --- |
+| **S3 bucket name** | S3 バケットの名前です。**確認方法**: AWS Console で Amazon S3 に移動します。リストからバケットをクリックすると、バケット名が上部に表示されます。  __PROTECTED_34__  バケットの Properties タブでも確認できます。S3 ARN を確認し、`arn:aws:s3:::` の後の部分がバケット名です。  __PROTECTED_35__  **例**: `users_to_import` |
+| **S3 access key** | MoEngage がバケットに接続する際に使用するアカウントの Access Key ID です。既存ユーザー（プログラムによるアクセスまたはコンソールアクセス）の Access Key ID を指定するか、MoEngage 専用に Programmatic Access を持つ __PROTECTED_36__ ことができます。  **確認方法**: AWS Console で __PROTECTED_37__ >> Users に移動します。ここで各ユーザーのキーを管理できます。既存ユーザーの場合は、"Security credentials" タブで "Access keys" セクションまでスクロールします。既存のアクセスキーをコピーするか、新しいアクセスキーを作成します（推奨）。ここに Access Key ID を入力します。  __PROTECTED_38__  __PROTECTED_39__。  **例**: `23478207027842073230762374023` |
+| **S3 secret key** | AWS は各ユーザーに Access Key ID とシークレットキーのペアを提供します。上記のアカウントの Access Key ID に対応する Secret Access Key を入力します。**確認方法**: Secret Access Key は、新しい Access Key ID を作成するときに提供されます。__PROTECTED_40__。  **例**: `wJa...lr/.../bPxRf...LEKEY` |
+| **Region** | 必要に応じて、バケットがホストされているリージョンを MoEngage に指定できます。**確認方法**: バケットのリージョンは、バケットの Properties で確認できます。  __PROTECTED_41__  __PROTECTED_42__。   **例**: `Asia Pacific (Mumbai)`(ap-south-1) |
+| **Folder path** | ファイルが配置されるフォルダーのパスです。MoEngage はサブフォルダー内を検索しません。末尾のスラッシュは含めないでください。現在ルートフォルダーはサポートされていないため、すべてのファイルがフォルダー内にあることを確認してください。**確認方法**: S3 バケット内のオブジェクトのリストから、インポート元のフォルダーを開きます。Properties タブで、フォルダーの S3 URI を確認します。フォルダーパスは、`s3://[your-bucket-name]/` の後の部分から末尾のスラッシュを除いたものです。  __PROTECTED_43__  上の例では、フォルダーパスは `my-dump/to_import` です。  **例:**   - `my_folder` - `my_folder/sub_folder` |
+| **Is your file encrypted?** | MoEngage は暗号化されたファイルのインポートをサポートしています。現在、__PROTECTED_44__ をサポートしています。詳細については、 __PROTECTED_45__ を参照してください。暗号化されたファイルをインポートする場合は、チェックボックスを選択します。 |
+| **Decryption Key** | **Is your file encrypted** チェックボックスが選択されている場合、MoEngage は Decryption Key を要求します。これは **Private PGP Key** です。PGP キーは自分で生成することも、MoEngage に生成を依頼することもできます。  **例**:  -----BEGIN PGP PRIVATE KEY BLOCK----- xcMGBGVqq74BCADKpWRLSAdcTtDKpT+LCUCqDoZQ2dlgeBiXNovBVyTPlAOPQSqX bnNGs+U4RpHebjvTxaWCLDBGYOvtZbtv6WvPIF7lzXrIv+DcgLMBQp2b3t+ohRBi 41Ch8CZ04F2lxbVBo  -----END PGP PRIVATE KEY BLOCK----- |
+| **Signing Key** | 署名キーも設定されている場合は、署名キーの公開キーを次の形式で Signing key セクションに入力する必要があります。**例**:  -----BEGIN PGP PUBLIC KEY BLOCK-----  xqq74BCADKpWRLSAdcTtD45nl24KpT+LCUCqDoZQ2dlgeBiXNovBVyTPlAOPQSqX bnNGs+U4RpHebjvTxaWCLDBGYOvtZbtv6WvPIF7lzXrIv+DcgLMBQp2b3t+ohRBi 41Ch8CZ04F2lxboksCwnl31laEuQkk8MERlcthB9AiKvSEf6jihLcPSVVanrQUQN77UZf sFCynJXweqijZxtmUl9V1838sUVOoTzfmGwu7PzV99tAiOlxBjYF9SXIYY/GOoJN Zuz8uOaXWtFPmV536uQT  -----END PGP PUBLIC KEY BLOCK----- |
+| **Key passphrase** | 暗号化キーペアとともに生成されたパスフレーズを入力します。 |
+
+### インポート名
+
+__PROTECTED_16__
+
+Imports Dashboard で簡単に識別できるよう、このインポートの名前を入力します。
+
+### ファイル設定
+
+__PROTECTED_17__
+
+ファイル名に含まれる DateTime 形式を選択します。上記で定義した __PROTECTED_46__ に従い、ファイル名は `_.csv` で終わる必要があります。サポートされている DateTime 形式については、前述の[表を参照してください](/ja/user-guide/data/imports/overview-imports)。以下の情報メッセージは選択した DateTime 形式に応じて更新されるため、ファイル名が想定どおりかどうかを簡単に照合できます。
+
+S3 認証情報とファイル名の形式を設定すると、MoEngage は S3 バケットへの接続を試み、指定された形式で利用可能な最新のファイルを取得します。指定した場所に少なくとも 1 つのファイルがあることを確認してください。ファイルがない場合は続行できません。準備ができたら、"Fetch file" ボタンをクリックして最新のファイルを取得します。
+
+S3 認証情報と選択したファイル形式が正しい場合、MoEngage は最新のファイルの上位 5 行のプレビューを表示します。
+
+<img alt="FilePreviewSuccess.png"  src="/images/moengage_5d8991.png"  />
+
+ただし、S3 バケットからファイルを取得する際にエラーが発生する場合があります。一般的なエラーは次のとおりです。
+
+- **Given S3 Access Key is not valid** - S3 認証情報が正しくないことを意味します。正しい認証情報を入力して、もう一度ファイルを取得してください。
+- **Please check the folder path and try again** - フォルダーパスが正しくないか、指定されたフォルダーパス内に CSV ファイルが存在しないことを意味します。
+- **Found zero data rows in the file** - MoEngage が取得したファイルのヘッダー行の後に行がない（ファイルの合計行数が 1）ことを意味します。最初の行は常にヘッダー行として扱われるため、ファイルには少なくとも 2 行（ヘッダー行 1 行 + データ行 1 行）が必要です。詳細については、[File Structure](/ja/user-guide/data/imports/overview-imports) を参照してください。
+
+ファイルのプレビューに問題がなければ、Next をクリックしてマッピングのステップに進みます。
+
+## ステップ 2: 列を MoEngage の属性にマッピングする
+
+このステップでは、CSV ファイルの列を MoEngage に存在する属性にマッピングする必要があります。すべての列が縦に並んで表示されます。
+
+<img alt="Step2.png" src="/images/moengage_c16e1d.png" />
+
+1. **Column name** - マッピングする列名です（前のステップで取得したファイルの最初の行から取得されます）。列名の下には、参考としてサンプル値（前のステップで取得したファイルの 2 行目から取得されます）も表示されます。
+2. **Map attribute** - CSV の列をマッピングする MoEngage の属性を選択する必要があります。新しい属性を作成することもできます。一部の属性は複数のデータタイプからの取り込みをサポートしているため、列のデータタイプも選択する必要があります。"DateTime" 列の場合は、[形式](/ja/user-guide/data/imports/overview-imports)も選択する必要があります。
+3. **More actions** - 必要に応じて、列をスキップすることもできます。スキップした列はインポートされません。
+
+インポートの種類に応じて、いくつかの必須マッピングがあります。
+
+1. **User imports** - 次の内容を含む列を選択する必要があります。
+   1. Registered -
+      1. User ID - ファイルには、一意のユーザー識別子（システム内のユーザーアカウントを識別するもの）を含む列が必須です。
+   2. Anonymous - 
+      1. Anonymous ID - ファイルの列（メールアドレス、携帯電話番号など）を、これらのユーザーの識別子としてマークする必要があります。
+2. **Event imports** - 次の内容を含む列を選択する必要があります。
+   1. User ID - この列は、MoEngage のユーザーと CSV ファイルを照合するために使用されます。
+   2. Event Time - Event Time (UTC) または Event Time (App Timezone) のいずれかをマッピングする必要があります。Event Time (UTC) を選択した場合、インポートされたイベントの "Event Time" は、MoEngage Dashboard の設定で選択されたタイムゾーンに変換されます: <img alt="AppTimezone.png" src="/images/moengage_7d2509.png" />
+
+必須マッピングを指定すると、マッピングテーブルの列名に反映され、その列をスキップ可能としてマークできなくなります。
+
+<img alt="MappingIdentifier.png"  src="/images/moengage_caf68e.png"  />
+
+新しいイベントと同様に、ドロップダウンから "+ Create attribute" をクリックして新しい属性を作成することもできます。
+
+<img alt="CreateNewAttribute.png"  src="/images/moengage_3665d8.png"  />
+
+属性に名前を付け、Data type を選択します。この属性や既存の属性は、[Data Management](/ja/user-guide/settings/data-management/overview-data-management) ページで編集できます。ここで作成した新しい属性は、最初のインポートが成功した後にのみアプリで利用可能になることに注意してください。
+
+### フィールドの追加
+
+**+Add Field** をクリックして、ダッシュボードから直接フィールドを追加することもできます。これにより、リストの下部に新しいフィールドが作成され、属性のマッピングを手動で入力できます。
+
+<img alt="AddField (1).png" src="/images/moengage_7d804b.png" />
+
+### Manifest ファイル
+
+必要に応じて、[manifest ファイル](/ja/user-guide/data/imports/overview-imports)をアップロードして、これらの列を自動マッピングすることもできます。 
+
+manifest ファイルをアップロードするには、マッピングテーブルの右上にある "Upload mapping file" オプションをクリックします。
+
+<img alt="UploadMapping.png" src="/images/moengage_4a8a1a.png" />
+
+新規インポートの場合は、サンプルの manifest ファイルを確認できます。これは、インポートに適したマッピングファイルを作成する際の参考として使用できます。
+
+既存のインポートを複製してマッピングファイルをアップロードする場合は、既存のマッピングファイルがすでに追加されており、ダウンロードできます。
+
+<img alt="UploadMapping_1.png"  src="/images/moengage_30d3db.png"  />
+
+manifest ファイルをアップロードし、**Done** をクリックします。マッピングがそれに応じて自動的に設定されます。manifest ファイルに記載されているものの MoEngage に現在存在しない追加の属性がある場合は、モーダルが開き、これらの属性が一覧表示されるので、属性を作成できます。
+
+<img alt="CreateNewAttributes.png" src="/images/moengage_8d0e71.png" />
+
+manifest ファイルには存在するものの CSV ファイルには存在しない追加の列は無視されます。また、既存の CSV 列のマッピングが manifest ファイルに存在しない場合、MoEngage はマッピングを空白のままにするため、手動で設定できます。
+
+manifest ファイル内の列が存在しない MoEngage 属性にマッピングされている場合、マッピングは空白になります。その場合は、まず UI から新しい属性を手動で作成してから、マッピングする必要があります。
+
+### インポート通知の送信
+
+<img alt="ImportStatus.png"  src="/images/moengage_fcb3f7.png"  />
+
+必要に応じて、インポートのステータスについてメールで通知を受け取ることができます。ステータスメールの送信先として最大 10 件のメールアドレスを選択します。次の場合にメールが届きます。
+
+1. インポートが成功した場合。
+2. インポートが失敗した場合（考えられる失敗の原因も記載されます）。
+
+すべてのマッピングに問題がなければ、Next をクリックします。エラーがある場合は、修正してから先に進んでください。
+
+## ステップ 3: インポート頻度を選択する
+
+<img alt="Frequency.png"  src="/images/moengage_c6057a.png"  />
+
+このステップでは、S3 バケットからファイルをインポートするタイミングを定義する必要があります。次のタイプのインポートがサポートされています。
+
+1. **One-Time Imports**: インポートをできるだけ早く実行するか、後の日時に実行する（スケジュール）かを選択できます。
+2. **Periodic**: インポートを毎時、毎日、毎週、毎月、または間隔や詳細設定を使用して実行するよう選択できます。
+
+各実行で、MoEngage は設定された [DateTime 形式](/ja/user-guide/data/imports/overview-imports)のファイルを取得しようとするため、[ファイル名](/ja/user-guide/data/imports/overview-imports)が適切に設定されていることを確認してください。必要に応じて、指定した回数の実行後、または特定の日付にインポートを終了するかどうかを指定できます。準備ができたら "Done" をクリックします。
+
+## 重複インポート
+
+一度に設定できる一意のインポートは 1 つのみです。次の**すべて**が同じ場合、そのインポートは重複インポートと見なされます。
+
+1. **Import Type** - Users / Events
+2. **Import Sub-Type** - Event Name / Registered / Anonymous - イベント名が同じ場合、または同じ S3 パスとバケット名を持つ登録/匿名ユーザーのインポートがすでに存在する場合。
+3. **S3 Folder Path**
+4. **Bucket Name**
+
+上記のいずれか 1 つでも異なれば、そのインポートは一意と見なされます。
+
+# よくある質問
+
+<Accordion title="インポートが失敗しました。何が問題だったかを確認するにはどうすればよいですか？">
+
+右側の省略記号をクリックし、**View** をクリックしてインポートの詳細を確認します。**Failed** ステータスにカーソルを合わせると、理由を確認できます。
+
+</Accordion>
+<Accordion title="S3/SFTP フォルダーからのファイルの取得中にエラーが発生した場合はどうなりますか？">
+
+デフォルトでは、失敗した場合にインポートは再試行されません。ただし、失敗時にメールアラートを受け取るよう設定できます。
+
+</Accordion>
+<Accordion title="スケジュールされたインポートが、最近アーカイブされたセグメントにデータを追加した場合はどうなりますか？">
+
+このような場合でも、新しいデータはアーカイブされたセグメントに追加されます。必要に応じてセグメントのアーカイブを解除できます。
+
+</Accordion>
+<Accordion title="定期実行で MoEngage はどのように新しいファイルを取得しますか？">
+
+特定のワークスペースのスケジュールされた実行では、MoEngage はファイル名のプレフィックスに基づいて S3/SFTP フォルダー内で識別されたすべての新しいファイルを取得し、処理します。特定の MoEngage ワークスペースのデータインポートでは、フォルダーの場所とファイル名の組み合わせによってこれらのファイルを一意に識別します。
+
+</Accordion>
+<Accordion title="定期的なデータインポートで、以前に処理されたファイルが再度取得されることはありますか？">
+
+いいえ。一度処理されたファイルは、ファイル名が同じで同じフォルダーの場所にある場合、再度処理されることはありません。ただし、同じファイルが別のフォルダーの場所にも配置されている場合、新しいフォルダーの場所を設定した MoEngage の新しいデータインポートでそのファイルが取得されます。
+
+</Accordion>
+<Accordion title="1 つの CSV ファイルにユーザーデータとイベントデータの両方を含めることはできますか？">
+
+いいえ。MoEngage ワークスペースのダッシュボードでは、データインポートをユーザーデータとイベントデータで個別に設定する必要があります。そのため、ファイルにはユーザー属性データまたはイベントデータのいずれかを含める必要があります。
+
+</Accordion>
+<Accordion title="実行中のインポートを停止できますか？">
+
+インポートプロセスが開始されると、途中で停止することはできません。これは、データがいくつかのステップを経て処理されるため、中断すると結果が不完全または不整合になる可能性があるためです。現在のインポートは完了させることをお勧めします。
+
+</Accordion>
+<Accordion title="スケジュールされたインポートの今後の実行を停止するにはどうすればよいですか？">
+
+はい、今後スケジュールされたインポートが自動的に実行されないよう停止できます。これを行うには、Data Imports ダッシュボードでインポートスケジュールを見つけ、Actions メニューから "Archive" オプションを選択します。これにより、次回のスケジュール時刻に実行されなくなります。
+
+</Accordion>
+<Accordion title="インポートが停止しているように見える場合や、時間がかかっている場合はどうすればよいですか？">
+
+インポートが停止しているように見える場合や、通常より時間がかかっている場合は、待つことをお勧めします。システムにはこのような状況を自動的に処理するチェック機能があり、必要に応じて再試行します。処理中に同じインポートを手動で再度開始すると、競合が発生し、元のインポートが正常に完了しなくなる可能性があります。
+
+</Accordion>

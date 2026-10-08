@@ -1,0 +1,174 @@
+---
+title: "カスタムドメインの設定(リンクブランディング)"
+description: "MoEngageでカスタムドメインのリンクブランディングを設定し、キャンペーンメッセージやトラッキングリンク内のデフォルトURLをブランドドメインに置き換えます。"
+---
+
+# 概要
+
+この機能を使用すると、標準のMoEngageドメインの代わりに、メッセージで使用するカスタムドメインを設定できます。カスタムドメインとは、ブランドに信頼性と権威を与え、競合他社との差別化を図るパーソナライズされたドメイン名です。多くの場合、カスタムドメインはブランドのオンライン上のアイデンティティになります。たとえば、Google検索を意味するときに「ググる(Google it)」と言うのは一般的です。Googleのドメイン名はGoogle.comであり、同社の検索機能の愛称として誰もが使っています。
+
+カスタムドメイン機能を使用すると、SMS、WhatsApp、またはEmailのメッセージ本文で送信されるURLにカスタムドメインを使用できます。
+
+<Info>
+  MoEngageのEmailのコンテキストでは、カスタムドメインはリンクブランディング(Link Branding)と呼ばれます。
+</Info>
+
+SMSおよびWhatsAppキャンペーンでは、メッセージ本文に追加されたURLやリンクは、設定で選択したブランドで短縮されます。たとえば、SMSまたはWhatsAppキャンペーンで使用されるリンクが[_www.xyz.com/products/mobiles_](http://www.xyz.com/products/mobiles)で、選択したカスタムドメインがyourbrand.comの場合、リンクは _yourbrand.com/1234_ と表示されます。
+
+Emailキャンペーンでは、Email本文内のURLやリンクは、選択したカスタムドメインでラップされます。たとえば、Emailキャンペーンで選択したドメインが _yourbrand.com_ で、Emailに[_www.xyz.com/products/mobiles_](http://www.xyz.com/products/mobiles)というリンクがある場合、URLは[_www.yourbrand.com/abc_](http://www.yourbrand.com/abc)としてレンダリングされます。
+
+# 用語集
+
+| 用語と定義 | 適用対象(SMS & WhatsApp、Email) | 注記 |
+| --- | --- | --- |
+| **ドメイン**: ドメインとは、ユーザーが探しているWebページのコンテンツを取得するためにWebサーバーへ誘導するURLの部分です。Webページにアクセスするには、ユーザーはサイトのファイルの場所を含むドメイン名を入力する必要があります。ドメインはURLの主要な部分であり、そのURLが誰のものかを示します。これにより、ユーザーはコミュニケーションの中でこのURLを送信しているブランドを識別できます。 | すべて |  |
+| **ドメイン名**: ブランドが所有する一意の文字列で、ユーザーを混乱させることなくブランド名を反映できるものです。例: moengage.com、google.com、wikipedia.org。**カスタムドメイン**は購入したドメインであり、名前を自由に選択できます。たとえば、ドメインをYourBrand.comにしたい場合は、そのドメイン名を購入する必要があります。 | すべて |  |
+| **DNS**: Domain Name System(ドメインネームシステム)。一般に、インターネットの電話帳と呼ばれています。ドメイン名をリソースの実際のアドレスにマッピングし、ブラウザーが要求されたWebページを読み込めるようにします。たとえば、ブラウザーでgoogle.comと入力すると、DNSサーバーはWebサイトのページが配置されている実際の場所を検索し、それをブラウザーに返します。ブラウザーはその特定の場所にリクエストを送信し、表示するWebページを取得します。詳細については、[DNS](https://en.wikipedia.org/wiki/Domain_Name_System)を参照してください。 | すべて |  |
+| **CNAME**: 正規名(CNAME)レコードは、エイリアス名を実際のドメイン名にマッピングするDNSレコードの一種です。詳細については、[CNAMEレコード](https://en.wikipedia.org/wiki/CNAME_record)を参照してください。 | すべて |  |
+| **クリックトラッキング**: メッセージに追加されたリンクをどのユーザーがクリックしたかを追跡する機能です。これはMoEngage独自の技術によって実現されています。ユーザーがメッセージ本文内のURLをクリックすると、クリックアクションが追跡され、このイベントが記録されます。これはクリック行動とエンゲージメントを理解するのに役立ちます。 | すべて |  |
+| MoEngage標準トラッキングドメイン | SMS & WhatsApp | ux.mnge.co  APIエンドポイントURL内の「X」は、MoEngageのデータセンター(DC)を指します。MoEngageは各顧客を異なるDCでホストしています。DCとAPIエンドポイントのマッピングを[こちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)で参照して、DC番号(Xの値)を確認し、URL内の「X」の値を置き換えてください。 |
+|  | Email | DC1の場合:  email-10.moengage.com  DC2、3、4、5、6、100の場合:  api-0X.moengage.com  APIエンドポイントURL内の「X」は、MoEngageのデータセンター(DC)を指します。MoEngageは各顧客を異なるDCでホストしています。DCとAPIエンドポイントのマッピングを[こちら](https://moengage.com/docs/user-guide/data/key-concepts/data-centers-in-moengage)で参照して、DC番号(Xの値)を確認し、URL内の「X」の値を置き換えてください。 |
+
+# CNAMEレコードの仕組み
+
+<Tabs>
+  <Tab title="SMS & Whatsapp">
+    ドメイン名が _yourbrand.com_ で、SMSまたはWhatsAppのメッセージ本文に次のリンクを追加し、MoEngageのデフォルトのURL短縮機能で短縮した場合: [_http://www.yourbrand.com/producregistrationpage_](http://www.yourbrand.com/producregistrationpage)、URLは _ux.moengage.com/register_ と表示されます。短縮URLを _ux.mnge.co_ ではなく _YourBrand_ にしたい場合は、以下のようにDNSにCNAME DNSレコードを追加する必要があります。これにより、短縮URLは _yourbrand.com/register_ になります。
+
+    |  |  |  |
+    | --- | --- | --- |
+    | Name | Type | Value |
+    | YourBrand | CNAME | ux.mnge.co  APIエンドポイントURL内の「X」は、MoEngageのデータセンター(DC)を指します。MoEngageは各顧客を異なるDCでホストしています。DCとAPIエンドポイントのマッピングを[こちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)で参照して、DC番号(Xの値)を確認し、URL内の「X」の値を置き換えてください。 |
+
+    Webページをリクエストすると、次の処理が行われます。
+
+    1. URL内のドメイン名に対応するリソースの実際の場所を検索するためのDNSリクエストが作成されます。
+    2. DNSリゾルバーは、CNAMEレコードを取得して、ドメイン名にマッピングされた実際の場所を見つけます(これをDNSの名前解決と呼びます)。
+    3. このCNAMEがブラウザーに返されます。CNAMEにより、ユーザーのアプリやブラウザーはリクエストする必要のあるサーバードメインを把握できます。
+    4. ブラウザーはCNAMEにマッピングされたIPやドメインに対して新しいDNSリクエストを送信し、要求されたリソースのWebページが特定されて返されます
+  </Tab>
+  <Tab title="Email">
+    ドメイン名が _yourbrand.com_ で、Email本文に次のリンクを追加した場合: [_www.xyz.com/products/mobiles_](http://www.xyz.com/products/mobiles)、URLは _api-0x.moengage.com/abc_ と表示されます。URLを _api-0x.moengage.com_ ではなく _YourBrand_ にしたい場合は、以下のようにDNSにCNAME DNSレコードを追加する必要があります。これにより、URLは _yourbrand.com/register になります。これにより、URLは yourbrand.com/abc になります_
+
+    |  |  |  |
+    | --- | --- | --- |
+    | Name | Type | Value |
+    | YourBrand | CNAME | bapi-0X.moengage.com  APIエンドポイントURL内の「X」は、MoEngageのデータセンター(DC)を指します。MoEngageは各顧客を異なるDCでホストしています。DCとAPIエンドポイントのマッピングを[こちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)で参照して、DC番号(Xの値)を確認し、URL内の「X」の値を置き換えてください。 |
+
+    Webページをリクエストすると、次の処理が行われます。
+
+    1. URL内のドメイン名に対応するリソースの実際の場所を検索するためのDNSリクエストが作成されます。
+    2. DNSリゾルバーは、CNAMEレコードを取得して、ドメイン名にマッピングされた実際の場所を見つけます(これをDNSの名前解決と呼びます)。
+    3. このCNAMEがブラウザーに返されます。CNAMEにより、ユーザーのアプリやブラウザーはリクエストする必要のあるサーバードメインを把握できます。
+    4. ブラウザーはCNAMEにマッピングされたIPやドメインに対して新しいDNSリクエストを送信し、要求されたリソースのWebページが特定されて返されます。
+  </Tab>
+</Tabs>
+
+# 前提条件
+
+<Info>
+  ドメインのSSL証明書を発行できる認証局(CA)を制御するために、ドメインにCertificate Authority Authorization(CAA)レコードを設定している場合は、MoEngageでカスタムドメインを設定する前に、[http://sectigo.com/](http://sectigo.com/)をCAAレコードに追加してください。
+</Info>
+
+MoEngageで設定する前に、カスタムドメインをセットアップする必要があります。セットアップするには、次の手順を実行します。
+
+1. 一般的なドメイン登録事業者(ドメイン名登録事業者は、一般向けにドメイン名の登録サービスを提供しています。例: GoDaddy、Google Domains)を探し、使用されていないドメイン名を検索します。
+2. ドメイン名を購入します。Webホスティングプロバイダーからカスタムドメインを購入することもできます。すでにカスタムドメインをお持ちの場合は、次の手順に進んでください。
+3. DNSにCNAMEレコードを追加して、MoEngageドメインを指すようにします。詳細については、[CNAMEレコードの仕組み](https://en.wikipedia.org/wiki/CNAME_record)を参照してください。
+4. このレコードのTime To Live(TTL)を30分に設定します。\
+   **注**: DNSプロバイダーが30分のTTLをサポートしていない場合は、DNSプロバイダーがサポートする最小のTTL時間枠を選択してください。
+5. レコードと詳細がDNSに正常に追加され検証されたら、MoEngageにカスタムドメインを追加できます。
+   <Info>
+     SMSとWhatsAppには同じカスタムドメインを使用できます。Emailには別のカスタムドメインを設定する必要があります。
+   </Info>
+
+# カスタムドメインの設定
+
+SMS、WhatsApp、およびEmailチャネルのカスタムドメインを設定するには、次の手順を実行します。
+
+MoEngageダッシュボードに移動し、**Settings** -\> **Advanced settings** -\> **Custom domain** を選択します。**Custom domain** 画面でそれぞれのタブをクリックして、**SMS & WhatsApp** または **Email** のカスタムドメインを作成できます。
+
+<Tabs>
+  <Tab title="SMS & WhatsApp">
+    SMSおよびWhatsAppのカスタムドメインを設定するには、次の手順を実行します。
+
+    1. カスタムドメインが検証されるように、記載されている **Pre-requisites** に必ず従ってください。
+    2. **Custom domain name** フィールドにカスタムドメイン名を追加し、**Verify** をクリックします。ドメイン名に _http://_、_https://_、または[_www_](http://www)_._ を追加しないでください。CNAMEレコードに追加したとおりの名前を追加してください。
+    3. 検証後、以下のようにカスタムドメインが検証されたことを示すメッセージが表示されます。<img src="/images/moengage_2c2ad5.png" alt="SMSカスタムドメイン (1).gif" />
+    4. **Shorten and track URL** **by default** を切り替えて有効にすると、カスタムドメインを使用して、SMSおよびWhatsAppメッセージに追加されたリンクの短縮とトラッキングが有効になります。これにより、すべてのSMSおよびWhatsAppキャンペーンでURLの短縮とトラッキングがオンになります。これにより、トラッキングが自動化され、漏れることがなくなります。また、クリックをトラッキングしたくない場合は、キャンペーン内でチェックを外すか、ここの設定でオフにすることもできます。
+  </Tab>
+  <Tab title="Email">
+    Emailキャンペーンには、複数のリンクブランディングドメインを追加できます。Emailキャンペーンのリンクブランディングドメインを設定するには、次の手順を実行します。
+
+    1. リンクブランディングドメインを追加するには、**\+** **Add link branding** をクリックします。
+    2. **Add link branding** ページで、次のいずれかのオプションを選択してリンクブランディングドメインを追加できます。
+       1. **Self managed**: MoEngageにSSL証明書を代理で取得させたくない場合は、このオプションを選択します。SSL証明書を監視および管理する必要があり、特に有効期限が近づいたときは、適時に更新する必要があります。
+       2. **MoEngage managed**: MoEngageにSSL証明書を代理で取得させたい場合は、このオプションを選択します。この場合、MoEngageがSSL証明書を取得し、有効期限が近づいたときに管理して、適時に更新します。
+          <Info>
+            MoEngage managedオプションを選択し、リンクブランディングドメインでCAAが有効になっている場合は、MoEngageはSectigo.comからSSL証明書を取得するため、CAAにSectigo.comを含める必要があります。これを希望しない場合は、Self managedオプションを選択できます。
+          </Info>
+    3. SSL証明書を管理するために選択したオプションに基づいて、次の **Prerequisites** を満たしていることを確認します。
+       <Tip>
+         **前提条件**
+         1. Self managedオプションを選択した場合、MoEngage内でカスタムドメインが検証されるために満たす必要がある前提条件は次のとおりです。
+            - MoEngageを指すCNAMEレコードをDNSに追加します。追加する詳細は次のとおりです。
+              - Type: CNAME
+              - Name: 任意のリンクドメイン(url.example.com)。https:// または http:// は追加しないでください
+              - Value: api-0x.moengage.com
+            - このレコードのTime To Live(TTL)を30分に設定します。DNSプロバイダーが30分のTTLをサポートしていない場合は、DNSプロバイダーがサポートする最小のTTL時間枠を選択してください。
+         2. MoEngage managedオプションを選択した場合、MoEngage内でカスタムドメインが検証されるために満たす必要がある前提条件は次のとおりです。
+            - MoEngageを指すCNAMEレコードをDNSに追加します。追加する詳細は次のとおりです。
+              - Type: CNAME
+              - Name: 任意のリンクドメイン(url.example.com)。https:// または http:// は追加しないでください
+              - Value: `<your workspace's name>`.bapi-0x.moengage.com
+            - このレコードのTime To Live(TTL)を30分に設定します。DNSプロバイダーが30分のTTLをサポートしていない場合は、DNSプロバイダーがサポートする最小のTTL時間枠を選択してください。
+       </Tip>
+    4. **Custom domain name** フィールドにカスタムドメイン名を入力します。
+    5. このドメインをデフォルトドメインにする場合は、**Mark this domain as default** オプションを選択します。
+    6. 前提条件が満たされており、ESP設定でクリックトラッキングがオフになっていることを確認する確認オプションを選択します。
+    7. **Save** をクリックします。
+       <Info>
+         - 追加できるドメインの最大階層数は6です。たとえば、sub1.sub2.sub3.sub4.sub5.sub6.comドメインの階層数は6です。
+         - Emailのカスタムドメインを設定すると、標準のMoEngageドメインではなく独自のドメインでリンクがブランディングされます。SMSやWhatsAppでの使用とは異なり、この機能ではリンクは短縮されません。リンクの長さに影響を与えることなく、URLにブランドを適用するためだけに使用されます。
+       </Info>
+    8. 正常に検証されて保存されると、カスタムドメインが **Custom domain** 画面に一覧表示され、そのカスタムドメインに **Verified** タグが付きます。<img src="/images/moengage_143b37.png" alt="2025-02-06_17-42-07.gif" />
+    9. いずれかのカスタムドメインの横にある省略記号アイコン( <Icon icon="ellipsis-stroke-vertical" />)をクリックして、**Default** に設定するか、**Delete** します。
+       - デフォルトのリンクブランドドメインを1つだけ設定していて、それを削除した場合、Emailキャンペーンの作成時にこのブランディングドメインを追加することはできません。
+       - 複数のデフォルトリンクブランディングドメインを設定していて、そのうちの1つを削除した場合、削除されたリンクブランディングドメインを使用しているアクティブなキャンペーンは、新しいデフォルトのリンクブランディングドメインにフォールバックします。\
+         Emailキャンペーンの作成時にリンクブランディングドメインを使用する方法の詳細については、[Emailキャンペーンの作成](/ja/user-guide/campaigns-and-channels/email/create/create-an-email-campaign)を参照してください。
+  </Tab>
+</Tabs>
+
+ブランドのディープリンクドメインを設定する場合は、MoEngageのDeep linking機能をお勧めします。詳細については、[ディープリンクドメインの設定](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-a-deep-linking-domain)を参照してください。
+
+# キャンペーンのプレビュー
+
+SMSおよびWhatsAppでは、メッセージ本文にリンクを追加し、**Shorten and Track URLs option** が選択されている場合、以下のようにプレビューに短縮リンクが表示されます。
+
+<Tabs>
+  <Tab title="SMS">
+    ![CustomDomain (1).png](/images/moengage_f01a79.png)
+  </Tab>
+  <Tab title="WhatsApp">
+    ![CustomDomain\_WA.png](/images/moengage_410f50.png)
+  </Tab>
+</Tabs>
+
+<Info>
+  - プレビューに表示されるURLは、実際のメッセージ本文がどのように表示されるかを示す例にすぎず、キャンペーンで送信される実際のURLではありません。
+  - ユーザーがSMS、WhatsAppメッセージ、またはEmailをどのように受信するかをテストするには、Test Message(SMS)、Test Campaign(WhatsApp、Email)機能を使用してテストメッセージを送信してください。ライブキャンペーンで表示されるとおりのURLを確認できます。
+</Info>
+
+# トラブルシューティング
+
+「Unable to verify. Check domain settings where this domain is managed and retry」というエラーが表示された場合は、ご利用のドメイン登録事業者でDNSとCNAMEのマッピングが正しく行われていることを確認してください。確認するには、登録事業者が記載している手順に従ってください。必要なアクセス権がない場合は、これらの詳細をIT管理者と共有すると、設定を支援してもらえます。
+
+- [GoDaddy](https://ie.godaddy.com/help/add-a-cname-record-19236)
+- [Cloudflare](https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/#create-dns-records)
+- [Microsoft Azure](https://azure.microsoft.com/en-us/blog/a-records-cname-and-using-dns-with-windows-azure-web-sites-waws/#:~:text=into%20the%20picture.-,CNAME%20record,-In%20a%20situation)
+- [Google Domains](https://support.google.com/a/answer/47283?hl=en)
+- [Shopify](https://help.shopify.com/en/manual/domains/managing-domains/edit-dns-settings#add-dns-record)
+
+<Info>
+  **Email Settings** で追加された **Unsubscribe URL** は、配信停止URLがカスタマイズされており、MoEngageのデフォルトの配信停止URLではない場合、ブランディングされたリンクにはなりません。
+</Info>

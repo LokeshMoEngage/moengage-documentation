@@ -1,0 +1,176 @@
+---
+title: "SDK認証"
+description: "JWTトークンを使用したSDK認証でユーザーリクエストを検証し、不正なアプリアクティビティをブロックして、MoEngageのデータの整合性を保護します。"
+---
+
+# 概要
+
+<Note>
+  SDK認証はBeta機能です。詳細については、カスタマーサクセスマネージャー（CSM）にお問い合わせください。
+</Note>
+
+SDK認証でデータの整合性を保護しましょう。このセキュリティ機能は、すべてのリクエストにサーバーで生成された固有のデジタル署名であるJSON Web Token（JWT）を付与することで、正当なログイン済みユーザーのみがアプリから情報を送信できるようにします。
+
+MoEngageは、不正または無効なデータを受信時に（無効なJWTトークンに基づいて）自動的にブロックします。これにより、データの破損や悪意のあるアクティビティのない、信頼できるユーザー分析と請求が実現します。
+
+次の画像は、SDK認証のダッシュボードを示しています。
+
+![](/images/moengage_a14e89.png)
+
+## ユースケース
+
+SDK認証は、次のユースケースで役立ちます。
+
+- **ユーザーのなりすましの防止**: 悪意のある攻撃者（不正な試行）が、他のユーザーのプロファイル情報（名前、都市、設定など）を悪意を持って更新したり、そのユーザーになりすましてイベントを送信したりすることをブロックします。
+- **重要度の高いイベントの保護**: _purchase\_completed_、_subscription\_started_、_demo\_requested_ などの重要なユーザーアクションの整合性を確保します。これにより、偽のイベントによって分析が損なわれたり、誤ったマーケティングキャンペーンがトリガーされたりすることを防ぎます。
+- **データのクリーンな状態の維持**: 認証されていないリクエストによる不要なデータの送信、不正なユーザープロファイルの作成、ユーザーデータベースの破損を阻止し、高いデータ品質を維持します。
+
+## 主要な概念
+
+始める前に、この機能の次の主要な概念を理解しておきましょう。
+
+| 概念 | 説明 |
+| --- | --- |
+| 🔑 公開鍵と秘密鍵 | この機能は公開鍵暗号方式を使用します。チームで鍵のペアを生成します。**秘密鍵**は、リクエストに署名するためにサーバー上で秘密に保管されます。**公開鍵**は、それらの署名を検証するためにMoEngageにアップロードされます。 |
+| 🚦 強制モード | この設定は、MoEngageが認証をどの程度厳密に強制するかを制御します。**Disabled(Default)** または **Required (Recommended)** の2つのモードから選択できます。 |
+
+## 鍵とJWTを生成する
+
+MoEngageダッシュボードを設定する前に、チームはサーバー上で鍵の生成とJWTの作成を設定する必要があります。
+
+1. **RSA256の公開鍵/秘密鍵ペアを生成する**: 公開鍵（Privacy Enhanced Mail（PEM）ファイル）をMoEngageダッシュボードに追加し、秘密鍵はサーバー上に安全に保管する必要があります。MoEngageでは、RS256 JWTアルゴリズムで使用するために、2048ビットのRSA鍵を推奨しています。
+2. **現在のユーザー用のJSON Web Tokenを作成する**: 秘密鍵を用意したら、サーバー側のアプリケーションでそれを使用して、現在ログインしているユーザーのJWTをアプリまたはWebサイトに返す必要があります。通常、このロジックは、ログインエンドポイントや現在のユーザーのプロファイルを更新するエンドポイントなど、アプリが通常現在のユーザーのプロファイルをリクエストする場所に配置できます。
+
+JWTを生成する際は、ヘッダーとペイロードに次のフィールドを含める必要があります。
+
+**ヘッダー**
+
+| フィールド | 必須 | 説明 |
+| --- | --- | --- |
+| alg | はい | サポートされているアルゴリズムはRS256です。 |
+| typ | はい | タイプはJWTに設定する必要があります。 |
+
+**ペイロード**
+
+| フィールド | タイプ | キー | 必須 | 説明 |
+| --- | --- | --- | --- | --- |
+| sub | JSON | key | はい | `sub` 内のkeyフィールドは、User IDキー（uidなど）と一致する必要があります。 |
+|  |  | Value | はい | `sub` 内のvalueフィールドには、`changeUser` メソッドを呼び出す際にMoEngage SDKに渡すUser IDの値を含める必要があります。 |
+| exp | Int | NA | はい | このトークンの有効期限（エポックタイムスタンプ）。 |
+
+JWTトークンとペイロードの例は次のとおりです。
+
+<CodeGroup>
+
+```json Example wrap
+JWT_Token = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJzdWIiOnsia2V5IjoidWlkIiwidmFsdWUiOiJ1c2VyQG1vZW5nYWdlLmNvbSJ9LCJleHAiOjE3NTgyNjA0NzZ9.Wonz61_b89MZjUtPuvYC4WBTDt_ahdbihscbQvhLlzWjCM6ud5SFLrrzoJJG3eZ7BRikVNV8_ovaPPDmUtXu6Eba1j2MNrBC5ZK3ULv1MsYnhjUyX8puCfq4bdrYOvA1NSGIEjg_HcS18Zm7oY9_5QyrMANw2GpjnasfKsnUopbsfxjJN-oWJpJ5Kz6wY0kFfN1eW3oXvkPoP_EuXk6fPgL0KSXOEBJyjB9f08pgLmGRKLg28y8tJk8j_GLLopcU3dIO6SDfKIlhm7t7jqFbp2HK8JxDcRa7AsJ5HvufLrKRKdf5_y6vcTjJc4VfJIjfvXQGpvt1oeUjz_Mx8kyts28pzb2k3-sqE2QmPGFfGGVEHz9f2E__xZZOBrSHxUEFnNGVioTXmhYzJFNz2nRiunpj1aYeCu0naU8qpxakB7DWglQgf3etdIxpOHnwnhKdikY1v03JIbKX1XOWwnLw4AeW1qtx4DkZlAcMkF0CYUQ0b7kEJYa-UglUVVNhl3W8puwkPxCvUvjutoBlpyrZqYBXikat6qmZgc9rfPQfR08zTz1xS-IOq3dmW43z3GwIAyToJni65aWHBAVr0qM_jrEniyqTXBC4Nw9_RiRildxZzdP2OLfF0-3lyL7886nKShH11szbDcqWlP13rTppQkucO5IiUcjw7eRlGk7rj6s'
+jwt_header: {
+"alg": "RS256",
+"typ": "JWT"
+}
+jwt_payload:
+{
+"sub": {
+"key": "uid",
+"value": "user@moengage.com"
+},
+"exp": 1755112555
+}
+public_key = """
+-----BEGIN PUBLIC KEY-----
+MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAkFOpbMqO3sgQHBwATjz3
+YQG3WXRaaych06Rvvpmxw6vA+Tbv/9LCbptZvnxXrL/h4bkdlyXKwe3ViN3lZsKR
+eDG/a/gm85Zkb04O+/DujiOuoP6djxrm5KbAS6PrRaY9aPCH5IfTlFJjjOjFK4oO
+wx/RbWNco4Kkb4wnhkGzKUAjO7w575uRMMv4T+RvdgpixaWpj6G7rKp7fqByqXYw
+23xWSUodF0JNM5SatgQ3S2Imwnf0/7aEoPOhRAkH3XyTR+qIE66nof+YLLgqlnYC
+s01MR26haoANxqijYFKZqwRXKBMxiV+NiUX0PaZpcfL2enIfBD6rGiBq9vdDX7Yr
+aqZnpt1AhEGFcKCI+7MvIkDSKJ3K/QRnLvaL92Cj7ZYcaNrhfPfmHOTmFGrpsuln
+DsCGazJbzsi+jqfzSF5Ewoc6Pte9b5u521QKbP8SpPYN8wEIIbDB8ZMwCUuUMBDd
+Oy9wELkORwhcKmjVhD2CPcbmidbxCkm/691KDP7nOeIau2jOiytc1Q7pmYr0RErj
+GUx1IbtQRFBozxCwWJ1rn0k1Ngt8WLc/Tm+dUu5Gb5ChHYd1wLWd6QITzt1cihGI
+emtk9uqqW92X4YV3O1u+AM+sScvVehErHGF3WcyFgTQE0ZSruy4pliOO1rfxxMLW
+rzOm15jmMVTnueqsgGbkMx0CAwEAAQ==
+-----END PUBLIC KEY-----
+"""
+```
+
+</CodeGroup>
+
+## SDK認証ページにアクセスする
+
+SDK認証ページにアクセスするには、次の手順を実行します。
+
+1. MoEngageダッシュボードの左側のナビゲーションメニューで、**Settings** \> **Account** \> **Security** をクリックします。
+2. **Security** ページで、**SDK Authentication** タブを選択します。 <img src="/images/moengage_deec7f.png" />
+
+## アクセスに必要な権限
+
+| 機能 | 必要な権限 | 説明 |
+| --- | --- | --- |
+| 設定の管理 | Adminロール、または **Security Settings** に対するSetup & manage権限を持つカスタムロール。  <br />**注:** **Login Settings** コンポーネントは、**Security Settings** に名称変更されました。 | 完全な管理アクセス権を付与します。ユーザーは公開鍵の追加/削除や、強制モード（**Disabled (Default)** または **Required (Recommended**）の変更を行うことができます。 |
+
+# SDK認証を設定する
+
+アカウントでJWT認証を設定して有効にするには、次の手順に従います。
+
+### ステップ1: 前提条件を満たす
+
+JWT認証を開始する前に、次の条件を満たしていることを確認してください。
+
+1. **MoEngage SDKの統合**: 開発チームが最新バージョンのMoEngage SDKをアプリケーションに統合していることを確認します。詳細については、次のプラットフォームのドキュメントを参照してください。
+   - [Android](https://www.moengage.com/docs/developer-guide/android-sdk/sdk-integration/advanced-or-optional/jwt-authentication)
+   - [iOS](https://www.moengage.com/docs/developer-guide/ios-sdk/sdk-integration/advanced/jwt-authentication)
+2. **公開鍵と秘密鍵のペア**: 以下の技術要件を満たす鍵ペアを生成する必要があります。**秘密鍵**はサーバー上に安全に保管し、**公開鍵**はMoEngageダッシュボードにアップロードします。
+   | 要件 | 仕様 |
+   | --- | --- |
+   | 形式 | -----BEGIN PUBLIC KEY----- および -----END PUBLIC KEY----- ヘッダーで囲まれた、標準のPrivacy Enhanced Mail（PEM）形式である必要があります。 |
+   | 内容 | ヘッダー間の文字列は、有効で空でないBase64エンコードされた鍵である必要があります。 |
+   | アルゴリズム | MoEngageはRSA256とRSA512をサポートしています。JWTヘッダーへの記載は必須です。 |
+   | セキュリティ | RSA鍵のサイズは最低2048ビットである必要があります。 |
+   <Warning>
+     秘密鍵は必ず非公開にしてください。アプリやWebサイトで秘密鍵を公開したり、ハードコードしたりしないでください。秘密鍵を知っている人は誰でも、アプリケーションに代わってユーザーになりすましたり、ユーザーを作成したりできます。
+   </Warning>
+
+### ステップ2: 強制モードを選択する
+
+SDKリクエストを検証するための強制モードを選択します。
+
+1. **Secure SDK Requests with JWT** セクションで、3つの強制モードのいずれかを選択します。
+   - **Disabled (Default)**: これはデフォルトの状態です。認証は実行されません。すべてのSDKリクエストが処理されます。
+   - **Required (Recommended)**: MoEngageはすべてのリクエストを厳密に検証し、署名がないか無効なリクエストを拒否します。テストが成功した後にのみ有効にしてください。 <img src="/images/moengage_c0c49c.png" />
+     <Warning>
+       MoEngageでは、**Required (Recommended)** モードを推奨しています。**Required (Recommended)** モードを有効にする前に、開発チームが更新済みのアプリをユーザーに完全にロールアウトしていることを確認してください。このモードが有効になると、JWT署名を持たない古いバージョンのアプリから送信されたデータは永久にブロックされます。
+     </Warning>
+
+### ステップ3: 公開鍵を追加する
+
+**Required (Recommended)** を選択すると、公開鍵を追加するように求められます。
+
+1. **Public key details** セクションで、**Enter public key** ボックスに鍵を貼り付けます。
+2. 鍵を識別しやすくするために、**Enter description (optional)** ボックスにわかりやすい名前を入力します。 <img src="/images/moengage_d9a6e1.png" />
+
+### ステップ4: 保存して確認する
+
+最後に、設定を保存して構成を有効にします。
+
+1. ページの右下隅で、**Save** をクリックします。\
+   **Update your configuration** ダイアログボックスが表示されます。
+2. **Confirm** をクリックして設定を適用します。 <img src="/images/moengage_51aa21.png" /> 設定が正常に保存されます。
+
+# よくある質問
+
+<Accordion title="'Required'モードを有効にすると、古いバージョンのアプリを使用しているユーザーはどうなりますか？">
+  SDK認証に対応していない古いバージョンのアプリから送信されたデータは拒否され、永久に失われます。このモードを有効にする前に、ほとんどのユーザーが最新バージョンのアプリにアップグレードしていることを確認することを強くお勧めします。
+</Accordion>
+
+<Accordion title="サーバーに問題が発生してトークンを生成できない場合はどうすればよいですか？">
+  統合の問題が発生した場合は、すぐにMoEngageダッシュボードに戻り、強制モードを **Disabled** に戻すことができます。これにより、チームがサーバー側の問題を解決する間、認証されていないデータを再び収集できるようになります。
+</Accordion>
+
+<Accordion title="この機能で、単純なシークレットキーではなく公開鍵/秘密鍵を使用するのはなぜですか？">
+  この方法の方がセキュリティが高いためです。公開鍵/秘密鍵のペアを使用すると、シークレット（秘密鍵）がサーバーの外に出ることはありません。MoEngageでさえアクセスできないため、誰もユーザーになりすますことができません。
+</Accordion>
+
+<Accordion title="匿名（ログインしていない）ユーザーにSDK認証を使用できますか？">
+  いいえ。SDK認証は、既知のログイン済みユーザーからのリクエストのみを検証するように設計されています。匿名ユーザーからのデータは、認証なしで処理されます。
+</Accordion>

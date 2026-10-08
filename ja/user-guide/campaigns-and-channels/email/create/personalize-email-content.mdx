@@ -1,0 +1,211 @@
+---
+title: "メールコンテンツをパーソナライズする"
+description: "ユーザー属性、イベントデータ、ビジネスイベント、キャンペーン変数を使用して MoEngage のメールキャンペーンをパーソナライズし、開封率とコンバージョン率を向上させます。"
+---
+
+## 概要
+
+パーソナライズされたメールは、メールのコンテキストを活用し関連性が高いため、開封率とコンバージョン率が高くなります。メールキャンペーンは、次の要素に基づいてパーソナライズできます。
+
+- **ユーザー属性**: 名前、所在地\*、\*またはその他の属性（一般的なメールとイベントトリガーメールの両方）。
+- **イベント属性**: イベント _Added to Cart_ の商品画像、商品価格、商品名など（イベントトリガーメールのみ）。
+- **ビジネスイベント属性**: 商品 ID、アイテムコード、商品画像、価格、シリーズ名、シリーズのジャンル、ケースなど。
+- **キャンペーン属性**: キャンペーン名、キャンペーン ID、キャンペーンタグ。
+
+パーソナライゼーションを始める前に、[メール設定を構成](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel)していることを確認し、[メールキャンペーンの作成方法](/ja/user-guide/campaigns-and-channels/email/create/create-an-email-campaign)をお読みください。
+
+パーソナライゼーションは次の項目でサポートされています。
+
+- Email Subject
+- Email Content
+- Sender Name
+- From email address
+- Reply-to email address
+
+メールコンテンツのパーソナライゼーションに加えて、MoEngage は次の機能もサポートしています。
+
+- カート放棄、検索離脱などのための[パーソナライズ画像](https://moengage-user-guide.mintlify.app/user-guide/campaigns-and-channels/email/create/personalize-email-content#personalize-images)
+- ユーザーを適切なリンクにリダイレクトしてコンバージョンを向上させる[パーソナライズ URL](https://moengage-user-guide.mintlify.app/user-guide/campaigns-and-channels/email/create/personalize-email-content#personalize-urls)
+
+<Info>
+  _Custom HTML Editor_ を使用して _Email_ キャンペーンのパーソナライゼーション条件またはロジックを作成すると、チップとして表示されます。チップアクションの詳細については、[こちら](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/dynamic-content-personalization#chip-actions)を参照してください。
+</Info>
+
+## パーソナライゼーションを挿入する
+
+Email Subject/Content Text にパーソナライゼーションを挿入するには、"@" を入力してユーザー属性またはイベント属性を選択します。
+
+![Personlization.png](/images/moengage_c017fb.png)
+
+属性を選択すると、このユーザー属性のフォールバックメカニズムを選択するよう求められます。
+
+<Warning>
+  MoEngage UI でフォールバックメカニズムを利用できない場合は、[Jinja](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を使用してフォールバックを定義できます。
+
+  例:
+
+  Dear `{{UserAttribute['u_fn']|default('MOE_NOT_SEND')}}` または Dear `{{UserAttribute['u_fn']|default('Guest')}}`
+
+  - default('MOE\_NOT\_SEND') は、メッセージの送信を抑制します。
+  - default('Guest') は、パーソナライゼーション属性の値が利用できない場合に 'Guest' を使用します。
+</Warning>
+
+## フォールバックメカニズム
+
+フォールバックメカニズムは、ユーザーに属性が存在しない、または特定のユーザー属性を解決できないためにパーソナライゼーションが失敗した場合に役立ちます。
+
+<img
+  alt="Screenshot 2024-09-18 at 2.47.17 PM.png"
+  src="/images/moengage_df9134.png"
+  style={{ width:"55%" }}
+/>
+
+次のいずれかのフォールバックオプションを選択できます。
+
+- **No Fallback text**: ユーザーに対して属性が存在しない、または解決できない場合、そのユーザー属性は削除されます。\
+  **注**: **Sender Name** フィールドでは No fallback オプションは使用できません。
+- **Enter the Fallback text**: ユーザー属性は、入力したテキストに置き換えられます。
+- **Do not send this email if personalization fails**: パーソナライズされたユーザー属性がそのユーザーに存在しない、または解決できない場合、メールはそのユーザーに送信されません。
+
+<Info>
+  - キャンペーン属性は、パーソナライズプレビューでは編集できません。
+  - キャンペーンの作成中にキャンペーン ID をパーソナライゼーションに追加した場合、キャンペーン ID はキャンペーンの作成後にのみ生成されるため、パーソナライズプレビューではその代わりにダミー値が使用されます。
+  - カスタム属性の名前が MoEngage の標準属性と同じにならないようにしてください。同じ名前のカスタム属性と標準属性をパーソナライゼーションに使用すると、誤ったパーソナライゼーションになる可能性があります。
+</Info>
+
+メールコンテンツは、[Content Blocks](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-content-blocks)、[Auxiliary Data](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-auxiliary-data)、[Content APIs](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-content-apis)、[Recommendations](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-recommendations) を使用してパーソナライズすることもできます。
+
+## ビジネスイベントトリガーキャンペーンをパーソナライズする
+
+ビジネスイベントトリガーのメールキャンペーンでは、キャンペーンにマッピングされたビジネスイベントの属性を使用してキャンペーンをパーソナライズできます。詳細については、[ビジネスイベントトリガーキャンペーンをパーソナライズする](https://moengage-user-guide.mintlify.app/user-guide/campaigns-and-channels/getting-started/message-personalization/overview#event-attributes)を参照してください。
+
+## Content Blocks を使用してコンテンツをパーソナライズする
+
+Content Blocks は、さまざまなキャンペーンで使用できる再利用可能なコンテンツです。メールキャンペーンのヘッダー、フッター、署名ブロック、利用規約などに特に役立ちます。詳細については、[Content Blocks を使用してコンテンツをパーソナライズする](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-content-blocks)を参照してください。
+
+<Info>
+  メールキャンペーンのコンテンツをパーソナライズする際は、HTML タイプと Text タイプの両方のコンテンツブロックを追加できます。
+</Info>
+
+コンテンツブロックを追加した後、次のようにコンテンツをプレビューできます。
+
+<img
+  alt="Email_CB_Preview.png"
+  src="/images/moengage_4e8f51.png"
+  style={{ width:"53%" }}
+/>
+
+## Auxiliary Data を使用してコンテンツをパーソナライズする
+
+パーソナライゼーションエディターで補助データ属性を選択することで、補助データを使用してメールコンテンツをパーソナライズできます。詳細については、[Auxiliary Data を使用してコンテンツをパーソナライズする](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-auxiliary-data)を参照してください。
+
+## Content APIs を使用してコンテンツをパーソナライズする
+
+[Content APIs](/ja/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を使用すると、レコメンデーション、クーポン、またはその他のパーソナライゼーション API に基づいて、キャンペーン送信時にデータを動的に取得し、パーソナライズされたキャンペーンを作成できます。このようにターゲットを絞った、関連性が高くタイムリーなコミュニケーションは、一般的なメールキャンペーンよりもはるかに高いエンゲージメント率とコンバージョン率を実現することが実証されています。詳細については、[Content APIs を使用してコンテンツをパーソナライズする](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-content-apis)を参照してください。
+
+## メールのレンダリング: 動作とトラブルシューティング
+
+**想定されるレイテンシ**: メール内の各 Content API または動的コンテンツブロックは、メールのレンダリング時に個別に解決され、呼び出しごとのデフォルトのタイムアウトは 5 秒です。このようなブロックを複数使用するメールでは、すべてのブロックのレイテンシが加算されます。これは想定された動作であり、障害ではありません。
+
+**Personalized Preview が実際の送信と異なる場合がある理由**: [Personalized Preview](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalized-preview) は、常に Content API のデータを新たに取得します。ワークスペースでその API のレスポンスキャッシュが有効になっている場合、実際の送信ではキャッシュされた Content API レスポンス（最大 1 時間前のもの）が再利用されることがあります。レコメンデーション、クーポン、またはその他の動的コンテンツが最近変更された場合、プレビューと実際の送信で一時的に異なる結果が表示されることがあります。
+
+**診断チェックリスト**:
+
+1. テンプレートで使用している個別の Content API/動的ブロックの数を確認します。レイテンシはブロックごとに累積します。
+2. プレビューと送信でコンテンツが異なる場合は、ワークスペースで Content API のキャッシュが有効になっているかどうかを MoEngage サポートに確認します。
+3. アップストリームのデータ変更を除外するため、送信直前に Personalized Preview を再確認します。
+
+## Recommendations を使用してコンテンツをパーソナライズする
+
+レコメンデーションとは、一緒に販売またはマーケティングされることが多い関連商品のグループです。e コマース、小売、デジタルプラットフォームで一般的に使用されます。パーソナライズされたレコメンデーションは、ユーザーの好みや購入履歴に基づいて商品の選択を最適化します。詳細については、[Recommendations を使用してコンテンツをパーソナライズする](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-recommendations)を参照してください。
+
+## 画像をパーソナライズする
+
+画像のパーソナライゼーションを使用すると、メールにコンテキストに応じた画像を挿入できます。これは主にカート放棄メールで役立ちます。
+
+### ドラッグアンドドロップエディターを使用して画像をパーソナライズする
+
+- "Content" セクションで "Cart Abandonment" テンプレートを選択するか、独自のメールテンプレートを使用します。
+  <img
+    alt="ComposeEmail.png"
+    src="/images/moengage_7ccc40.png"
+    style={{ width:"45%" }}
+  />
+- コンテンツタブから 'Dynamic Content' アイコンをテンプレートにドラッグアンドドロップします。
+- テンプレート内の Dynamic Content をクリックします。コンテンツタブに、画像をパーソナライズできる **Add** ボタンが表示されます。
+  <img
+    alt="DragDropEditor_DynamicContent.png"
+    src="/images/moengage_ac44f4.png"
+    style={{ width:"45%" }}
+  />
+- **Add** をクリックすると、次の画面が表示されます。
+  <img
+    alt="Email_PersonalizeImages.png"
+    src="/images/moengage_fffd0a.png"
+    style={{ width:"45%" }}
+  />
+- 画像 URL を入力し、"@" を使用してパーソナライズします。画像 URL 全体を属性として追跡している場合は、"@" を使用してその属性を直接参照できます。
+- フォールバックメカニズムを選択します。これは、属性が正しく解決されない場合、または属性の解決後に URL に画像が存在しない場合に適用されます。フォールバック画像を入力する（パーソナライゼーションが失敗した場合に表示されます）か、画像がパーソナライズされない場合にメールを送信しないかを選択できます。
+- **Add** をクリックして、パーソナライズされた画像をテンプレートに追加します。
+
+### Custom HTML Editor を使用して画像をパーソナライズする
+
+1. キャンペーン作成の Step 2 で **Custom HTML Editor** をクリックし、**Edit/Paste HTML Template** オプションを選択します。次の画面が表示されます。
+   <img
+     alt="Screenshot 2024-09-11 at 5.17.02 PM.png"
+     src="/images/moengage_9bb2c9.png"
+     style={{ width:"90%" }}
+   />
+2. 上部ペインの **Image personalization** をクリックします。次の画面が表示されます。
+   <img
+     alt="Email_ImagePersonalization.png"
+     src="/images/moengage_75dc09.png"
+     style={{ width:"45%" }}
+   />
+3. 画像 URL を入力し、"@" を使用してパーソナライズします。画像 URL 全体を属性として追跡している場合は、"@" を使用してその属性を直接参照できます。
+4. フォールバックメカニズムを選択できます。これは、属性が正しく解決されない場合、または属性の解決後に URL に画像が存在しない場合に適用されます。フォールバック画像を入力する（パーソナライゼーションが失敗した場合に表示されます）か、画像がパーソナライズされない場合にメールを送信しないかを選択できます。
+   <img
+     alt="FallbackDetails_ImagePersonalization.png"
+     src="/images/moengage_fb1ba6.png"
+     style={{ width:"45%" }}
+   />
+5. **Copy And Close** をクリックして、この画像 URL をコピーして挿入します。画像 URL がクリップボードにコピーされ、Personalization ウィンドウが閉じます。Custom HTML Editor の右下隅付近に **URL Copied** というポップアップが表示されます。
+6. Custom HTML Editor の <Icon icon="upload" iconType="solid" /> アイコンをクリックして、パーソナライズされた画像を挿入します。 <img src="/images/moengage_3a6aa0.png" alt="Screenshot 2024-09-11 at 5.37.14 PM.png" /> テンプレート内の既存の画像を置き換えるか、新しい画像を挿入できます。
+
+#### テンプレート内の既存の画像を置き換える
+
+1. 画像を選択し、**Replace** をクリックします。
+   <img
+     src="https://help.moengage.com/hc/en-us/article_attachments/207982123/Screen_Shot_2016-09-28_at_3.53.35_PM.png"
+     style={{ width:"45%" }}
+   />
+2. **Image personalization** タブでパーソナライズされた URL を入力し、**Replace** をクリックします。
+   <img
+     src="https://help.moengage.com/hc/en-us/article_attachments/207981066/Screen_Shot_2016-09-28_at_3.41.47_PM.png"
+     style={{ width:"45%" }}
+   />
+
+#### テンプレートに新しい画像を挿入する
+
+1. エディターの上部バーにある **Insert Image** をクリックします。
+   <img
+     alt="Screenshot 2024-09-18 at 2.29.01 PM.png"
+     src="/images/moengage_110d47.png"
+     style={{ width:"45%" }}
+   />
+2. **Image personalization** タブでパーソナライズされた URL を入力し、**Insert** をクリックします。
+
+パーソナライズされた画像を挿入または置き換えた後、境界線を広げたり縮めたりするか、画像を選択した際の **Resize** オプションでサイズを指定することで、画像サイズを変更できます。画像サイズが実際の画像とフォールバック画像で一致していることを確認してください。一致していない場合、解像度によって画像が歪む可能性があります。
+
+## URL をパーソナライズする
+
+ユーザーがクリックしたときにリダイレクトする URL やディープリンクをパーソナライズすることもできます。
+
+1. 次のように **Link personalization** をクリックします。 <img src="/images/moengage_d1d786.png" alt="Screenshot 2024-09-11 at 5.40.42 PM.png" /> <img src="https://help.moengage.com/hc/en-us/article_attachments/207981506/Screen_Shot_2016-09-28_at_4.14.20_PM.png" style={{ width:"45%" }} />
+2. 表示されるテキストボックスで、パーソナライズされた URL を作成します。表示されたテキストボックスに @ を入力します。
+3. 表示される **Email Personalization** ダイアログボックスで、属性を選択して **Done** をクリックします。 <img src="/images/moengage_bd0b9d.png" alt="2024-09-11_17-54-36.gif" />
+4. その後、このリンクをコピーして、HTML コード内の必要な場所に貼り付けることができます。 <img src="/images/moengage_d351e2.png" alt="Screenshot 2024-09-11 at 5.44.17 PM.png" style={{ width:"45%" }} />
+
+<Info>
+  パーソナライズされた URL でユーザー属性が見つからない、または解決できない場合、メールはそのユーザーに送信されません。パーソナライズされた URL にはフォールバックメカニズムはありません。パーソナライズされたメールキャンペーンの作成で問題が発生した場合は、MoEngage の Customer Success Manager（CSM）またはサポートチームにお問い合わせください。
+</Info>

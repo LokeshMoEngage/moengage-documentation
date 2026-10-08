@@ -1,0 +1,103 @@
+---
+title: "MyPostcard"
+---
+
+# はじめに
+
+世界有数のポストカードアプリである [MyPostcard](https://www.mypostcard.com/) を使用すると、ダイレクトメールキャンペーンを簡単に実行でき、シームレスかつ収益性の高い方法で顧客とつながることができます。
+
+MyPostcard と MoEngage のインテグレーションを使用して、顧客に印刷郵便物を簡単に送信できます。
+
+# ユースケース
+
+ダイレクトメールキャンペーンを向上させるには、従来の大量郵送から脱却し、印刷郵便物をワークフローにシームレスに統合することが重要です。このアプローチにより、メールニュースレターの配信を停止した顧客や、メールがスパムとしてマークされている特定の顧客にリーチできます。MyPostcard を使用すると、MoEngage から直接、印刷郵便物キャンペーンを簡単に送信できます。
+
+- 技術的な専門知識がなくても、強力な新しいチャネルとして印刷郵便物を組み込んだ直感的なワークフローを構築できます。
+- いくつかの簡単な手順で、パーソナライズされた印刷郵便物の可能性を引き出せます。
+- 専任チームによるパーソナライズされたサポートに支えられた、簡単な導入のメリットを享受できます。
+
+# インテグレーション
+
+<Info>
+  以下へのアクセス権があることを確認してください
+
+  - MyPostcard B2B アカウント。
+  - B2B API キーと認証情報 - API キーと認証情報は MyPostcard B2B Admin Tool で確認できます
+  - MyPostcard B2B ツールで印刷郵便物キャンペーンをセットアップします。
+</Info>
+
+Paperplanes と連携するには、Paperplane API を使用して受信者データを MoEngage コネクターに送信します。
+
+## ステップ 1：MoEngage でコネクターキャンペーンを作成する
+
+MoEngage でコネクターキャンペーンを作成するには、
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動します
+
+![Screenshot\_2022-02-21\_at\_10.48.46\_PM.png](/images/partner_34807114696212.png)
+
+2. キャンペーンのステップ 2 で、次を選択します -
+
+#### a) URL の詳細
+
+| キー | 値 |
+| --- | --- |
+| Method | POST |
+| Webhook URL | B2B Admin Tool に表示される Webhook URL。 |
+| URL params | -- |
+
+#### b) ヘッダー
+
+次の 2 つのヘッダーを追加します
+
+| キー | 値 |
+| --- | --- |
+| Username | \<Username\> |
+| Password | \<Password\> |
+| ContentType | application/json |
+
+#### c) リクエストボディ
+
+B2B Admin Tool に表示されるリクエストボディをコピーし、MoEngage の Jinja パーソナライゼーションタグを使用してプレースホルダーにコンテンツを入力します。
+
+```json
+{
+"api_key": "<api_key>",
+"campaign_id": "<campaign_id>",
+"product_code": "J9GCU",
+"job_data": {
+"job_details": 1,
+"fontName": "Roboto",
+"text": "Hallo John,",
+"couponcode": "abc123",
+"textColor": "black",
+"fontSize": "L",
+"recipients": "l",
+"recipientName": "John",
+"addressLinel": "Hohenzollerndamm 3",
+"addressLine2": "*",
+"city": "Berlin",
+"zip": "10717",
+"country": "Germany",
+"countryiso": "DE"
+},
+"recipients": [
+{
+"recipientName": "{{UserAttribute['First Name']}}",
+"addressLine1": "{{UserAttribute['AddressLine1']}}",
+"addressLine2": "{{UserAttribute['AddressLine2']}}",
+"city": "{{UserAttribute['City']}}",
+"zip": "{{UserAttribute['PinCode']}}",
+"country": "{{UserAttribute['Country']}}"
+}
+]
+}
+```
+
+@ を使用して特定のユーザー属性/イベント属性を選択し、パーソナライゼーションを行うことができます。
+
+## ステップ 3：設定をテストする
+
+この時点で、キャンペーンをテストして送信する準備が整っているはずです。コネクターキャンペーン作成のステップ 2 で利用できるテスト機能を使用して、コネクターの設定をテストすることもできます。
+
+![Screen\_Shot\_2022-02-22\_at\_11.12.42\_AM.png](/images/partner_34807083193108.png)

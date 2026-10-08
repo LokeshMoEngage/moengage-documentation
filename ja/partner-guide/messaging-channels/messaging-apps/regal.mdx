@@ -1,0 +1,158 @@
+---
+title: "Regal "
+---
+
+# はじめに
+
+[Regal.io](https://regal.io/) は、より多くの会話を促進して成長目標をはるかに速く達成できるように構築された、電話および SMS のセールスソリューションです。
+
+# MoEngage × Regal
+
+MoEngage Connectors を介した MoEngage と Regal の統合により、ユーザーがアプリで特定のアクションを実行したときに Regal で通話をトリガーできます。MoEngage の高度なセグメンテーション、予測機能、パーソナライズ、トリガー機能を使用して、Regal 経由でユーザーに電話をかけることができます。
+
+# ユースケース
+
+- (Regal で通話やテキストの対象にしたい) ユーザーが MoEngage で作成されるたびに Regal を更新する
+- ユーザーのオプトインまたは配信停止を表すイベントが MoEngage にある場合、最新のオプトイン情報を Regal に送信する
+- (Regal で SMS や通話をトリガーするために重要な) 任意のカスタムイベントを MoEngage から Regal に送信する
+
+# 統合
+
+<Info>
+  - Regal アカウントを持っていることを確認してください。
+  - Regal API キーを持っていることを確認してください。お持ちでない場合は、[support@regal.io](mailto:support@regal.io) に連絡して取得してください。
+</Info>
+
+Regal に送信したい任意の主要イベントを追加できます。Regal では、Regal で SMS や通話をトリガーするために重要なイベント (サインアップや購入フローの各ステップでのイベントなど) や、コンタクトが Regal キャンペーンから離脱する終了条件として使用されるイベントを送信することを推奨しています。
+
+## 手順
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. Create Campaign \> Connectors \> Custom に移動し、ニーズに最も適した配信タイプを選択します。
+
+![Screenshot\_2022-02-21\_at\_10.48.46\_PM.png](/images/partner_17358527402260.png)
+
+2. line\_id が存在するユーザーのセグメントを選択します (他のセグメント条件と組み合わせることができます)。
+
+![Screen\_Shot\_2022-02-22\_at\_4.45.12\_PM.png](/images/partner_17358540181908.png)
+
+条件やユースケースに基づいてユーザーをフィルタリングできます。
+
+3. キャンペーンのステップ 2 で、次の操作を行います。
+
+- メソッドとして POST を選択します
+- Webhook URL として `https://events.regalvoice.com/events` を追加します
+- Headers に次を追加します
+  - Content-Type として application/json
+  - Authorization として `{regal_API_key}`
+- Body で Raw を選択し、送信するイベントの種類に応じた body を使用します。
+
+ユースケースに基づくいくつかの例を次に示します。
+
+### A) Regal のコンタクトを更新する
+
+この例では、すべてのコンタクトが音声と SMS のオプトインを承諾していることを前提としています。そうでない場合は、上記から optIn プロパティを削除し、optIn が収集されたときに Regal のコンタクトを更新する別の Flow またはキャンペーンを設定できます。
+
+### B) Regal のオプトイン詳細を更新する
+
+アプリのユーザーエクスペリエンスのさまざまな場面でオプトインとオプトアウトが発生する可能性がある場合は、ユーザーがオプトインまたはオプトアウトするたびに Regal を更新することが重要です。この body を使用して、最新のオプトイン情報を Regal に送信できます。これは、この情報を MoEngage のユーザー属性として保存していることを前提としていますが、そうでない場合は、ユーザーのオプトインまたは配信停止を表す MoEngage アカウント内のイベントをトリガーとして使用することも簡単にできます。
+
+- _ここでの例は電話のオプトインに関するものですが、SMS のオプトインを別途収集している場合は、同様の Flow またはキャンペーンを設定できます_。
+- _より多くの属性が同時に最新の状態になるようにしたい場合は、このペイロードに追加のユーザー属性を追加することもできます。_
+
+### C) Regal にカスタムイベントを送信する
+
+Regal に送信したい主要イベントごとにキャンペーンを設定することもできます。Regal では、Regal で SMS や通話をトリガーするために重要なイベント (サインアップや購入フローの各ステップでのイベントなど) や、コンタクトが Regal キャンペーンから離脱する終了条件として使用されるイベントを送信することを推奨しています。
+
+Regal のコンタクトを更新 オプトイン詳細を更新 カスタムイベント
+
+<Tabs>
+  <Tab title="Regal のコンタクトを更新">
+    ```json
+    {
+        "userId": "", //Optional
+        "traits": {
+            "phone": "",
+            "email": "",
+            "firstName": "",
+            "lastName": "",
+            "optIn": [
+                {
+                    "channel": "voice",
+                    "source": "",
+                    "subscribed": true
+                },
+                {
+                    "channel": "sms",
+                    "source": "",
+                    "subscribed": true
+                }
+            ],
+            "custom1": "",
+            "custom2": ""
+        },
+        "eventSource": "MoEngage"
+    }
+    ```
+  </Tab>
+  <Tab title="オプトイン詳細を更新">
+    ```json
+    {
+        "userId": "", //Optional
+        "traits": {
+            "phone": "",
+            "email": "",
+            "firstName": "",
+            "lastName": "",
+            "optIn": [
+                {
+                    "channel": "voice",
+                    "source": "",
+                    "subscribed": true
+                },
+                {
+                    "channel": "sms",
+                    "source": "",
+                    "subscribed": true
+                }
+            ],
+            "custom1": "",
+            "custom2": ""
+        },
+        "eventSource": "MoEngage"
+    }
+    ```
+  </Tab>
+  <Tab title="カスタムイベント">
+    ```json wrap
+    {
+        "userId": "<uniqueIdentifier>", //Optional 
+        "traits": { 
+            "phone": "<phoneNumber>", 
+            "firstName": "<firstName>", 
+            "lastName": "<lastName>", 
+            "custom1": "<custom1>", 
+            "custom2": "<custom2>", 
+            "custom3": "<custom3>" }, 
+        "name": "Application Step 1 Completed", 
+        "properties": { 
+            "educationalLevel": "<educationalLevel>", 
+            "preferredLocation": "<preferredLocation>", 
+            "preferredSubject": "<preferredSubject>", 
+            "readytoCommit": true }, 
+        "eventSource": "MoEngage"
+    }
+    ```
+  </Tab>
+</Tabs>
+
+4. これで、キャンペーンをテストして送信する準備が整いました。Create Connector Campaign のステップ 2 にある Test 機能を使用して、コネクターの設定をテストすることもできます。
+
+![Screen\_Shot\_2022-02-22\_at\_11.12.42\_AM.png](/images/partner_17358512580884.png)
+
+テストユーザーがメッセージを正常に受信できれば、セットアップは完了です。キャンペーンを公開してください。
+
+## 最新のコンタクト属性
+
+必須ではありませんが、主要イベントが利用可能になった時点で Regal が最新のコンタクト属性にアクセスできるように、イベントワークフローのイベントペイロードで主要なユーザープロファイルのデータフィールドも送信することを Regal は推奨しています。

@@ -1,0 +1,262 @@
+---
+title: "Microsoft Dynamics 365 Sales"
+---
+
+[Microsoft Dynamics 365 Sales](https://www.microsoft.com/en-us/dynamics-365/products/sales) は、連絡先、リード、商談、アクティビティを通じて顧客関係を管理するエンタープライズ向け CRM ソリューションです。この統合では _Power Automate_ を使用して、Microsoft Dynamics 365（D365）Sales から MoEngage プラットフォームにリアルタイムの営業データを自動的にプッシュします。
+
+この自動データ同期により、マーケティングチームやサポートチームは、営業活動や顧客ライフサイクルに基づいて、コンテキストに即した高度にパーソナライズされたエンゲージメントキャンペーンをトリガーできます。
+
+## MoEngage と Microsoft Dynamics 365
+
+D365 Sales と MoEngage の統合により、マーケティングと営業の連携を強化できます。この統合により、次のことができます。
+
+- D365 Sales から MoEngage に Contacts、Leads、Opportunities を同期する。
+- Calls、Meetings、Tasks などの営業活動を行動イベントとしてインポートする。
+- カスタム属性やリレーションシップを取り込み、包括的な顧客プロファイリングを行う。
+- 営業でのやり取りや商談のライフサイクルイベントに基づいて、コンテキストに応じたキャンペーンをトリガーする。
+
+## ユースケース
+
+Microsoft Dynamics 365 を MoEngage と統合すると、次のユースケースに対応できます。
+
+- **リードからエンゲージメントへ**: D365 で新しい Lead が作成されると、リードの完全なデータが MoEngage に自動的にプッシュされます。これにより、パーソナライズされたウェルカムキャンペーンを即座にトリガーし、リードのソースやスコアに基づいて関連するナーチャリングシーケンスにリードを登録できます。
+- **連絡先の同期**: Opportunity のステージが変化したとき（例: _Qualify_ から _Propose_ へ）に、更新を MoEngage にプッシュして、ターゲットを絞ったコンテンツ、商談ステータスの通知、または受注/失注分析を送信します。
+- **営業活動イベント**: Calls、Meetings、Tasks が記録されたときに、これらを MoEngage の行動イベントとして取り込み、エンゲージメントのアトリビューションに活用します。
+- **CSAT と再エンゲージメント**: Opportunities がクローズされたときや商談が受注したときに、満足度調査や顧客オンボーディングキャンペーンをトリガーします。
+
+### 同期モジュール
+
+次の表は、D365 Sales の各モジュールのデータ同期タイプの概要です。
+
+| モジュール | MoEngage の同期タイプ |
+| --- | --- |
+| Contacts | ユーザー |
+| Leads | ユーザー |
+| Opportunities | イベント |
+| Tasks | イベント |
+| Calls | イベント |
+| Meetings | イベント |
+| Custom Entities | イベント（カスタム） |
+
+## 統合
+
+<Info>
+  **前提条件**
+
+  Power Automate と D365 Sales 環境への管理者アクセス権。
+</Info>
+
+### ステップ 1: MoEngage エンドポイントを取得する
+
+統合用の専用エンドポイントを取得するには、MoEngage サポートチームにお問い合わせください。リクエストでは、MoEngage とパートナープラットフォームの間でユーザープロファイルを紐付けるために使用する共通の識別子を指定してください。
+
+### ステップ 2: Power Automate フローを作成する
+
+<Steps>
+  <Step title="Power Automate を開く">
+    [Power Automate](https://www.microsoft.com/en-us/power-platform/products/power-automate) に移動します。
+  </Step>
+  <Step title="自動化されたクラウドフローを作成する">
+    **Create** \> **Automated Cloud Flow** をクリックします。
+  </Step>
+  <Step title="フローに名前を付ける">
+    フロー名を指定します。例: `D365 - Sync Contact to MoEngage`。
+  </Step>
+  <Step title="トリガーを選択する">
+    トリガー _When a row is added, modified, or deleted_（Dataverse）を選択します。
+  </Step>
+  <Step title="トリガーの詳細を設定する">
+    次のトリガーの詳細を設定します。
+
+    - **Table**: 同期するエンティティ（例: Contact、Lead、Opportunity）を選択します。
+    - **Scope**: **Organization** を選択します。
+    - **Trigger on**: **Added** または **Modified** を選択します。
+
+    <Frame>
+      ![Table、Scope、Trigger on フィールドがある Power Automate のトリガー設定画面](/images/partner_42988363210388.png)
+    </Frame>
+  </Step>
+</Steps>
+
+### ステップ 3: HTTP Webhook アクションを設定する
+
+<Steps>
+  <Step title="新しい HTTP ステップを追加する">
+    **New Step** \> **HTTP** をクリックします。
+  </Step>
+  <Step title="HTTP リクエストの詳細を指定する">
+    次の値で HTTP Webhook を設定します。
+
+    | HTTP Webhook のセクション | 説明 |
+    | --- | --- |
+    | **Method** | `POST` |
+    | **URL** | MoEngage から提供された専用の Webhook URL を次の形式で入力します: `https://api-0X.moengage.com/v1/partner/d365-sales/{events/users}/?configName={config_name}` |
+    | **Custom Headers** | 以下のヘッダー設定を参照してください。 |
+
+    **カスタムヘッダー**
+
+    | ヘッダー | 値 |
+    | --- | --- |
+    | `Content-Type` | `application/json` |
+    | `Authorization` | `Basic [Base64(Workspace_ID:API_Key)]` |
+    | `Body` | [ステップ 4](#step-4-add-the-request-body-payload) に記載されているサンプルペイロードのいずれか。 |
+
+    **Authorization** トークンを生成するには、次の手順を実行します。
+
+    1. [Basic Auth Header Generator ツール](https://www.debugbear.com/basic-auth-header-generator)を使用します。
+    2. ユーザー名として **Workspace ID** を、パスワードとして **Data API Key** を入力します。
+
+    認証情報を確認するには、次の手順を実行します。
+
+    1. MoEngage UI で、**Settings** \> **Account** \> **APIs** に移動します。
+    2. **Workspace ID**（旧称 _App ID_）の下にある ID をコピーします。
+    3. **API keys** の下にある **Data** キーをコピーします。
+
+    Basic 認証トークンは、**Workspace ID** と **Data** の組み合わせを Base64 エンコードしたものです。
+
+    ```text
+    Authorization: Basic {base64_encoded_credentials}
+    ```
+
+    <Warning>
+      トークンは余分なスペースを含めず、完全にコピーしてください。
+    </Warning>
+  </Step>
+</Steps>
+
+<Frame>
+  ![メソッド、URL、カスタムヘッダーが設定された Power Automate の HTTP Webhook アクション](/images/partner_42988331640724.png)
+</Frame>
+
+### ステップ 4: リクエスト本文のペイロードを追加する
+
+リクエスト本文のペイロードを追加するには、次の手順を実行します。
+
+1. 以下から適切なペイロードテンプレートをコピーし、HTTP アクションの **Body** フィールドに貼り付けます。
+2. プレースホルダーの値（例: `@{triggerBody()?['firstname']}`）を、D365 トリガーの対応する動的コンテンツフィールドに置き換えます。
+
+<CodeGroup>
+
+```json Contacts and Leads (User Sync)
+{
+  "customer_id": "@{triggerBody()?['contactid']}",
+  "u_fn": "@{triggerBody()?['firstname']}",
+  "u_ln": "@{triggerBody()?['lastname']}",
+  "u_em": "@{triggerBody()?['emailaddress1']}",
+  "u_mb": "@{triggerBody()?['mobilephone']}",
+  "updated_at": "@{triggerBody()?['modifiedon']}",
+  "user_attributes": {
+    "job_title": "@{triggerBody()?['jobtitle']}",
+    "company_name": "@{triggerBody()?['companyname']}",
+    "account_id": "@{triggerBody()?['_accountid_value']}",
+    "business_phone": "@{triggerBody()?['telephone1']}",
+    "status": "@{triggerBody()?['statecode']}"
+  }
+}
+```
+
+```json Opportunities (Event)
+{
+  "customer_id": "@{triggerBody()?['opportunityid']}",
+  "u_fn": "@{triggerBody()?['name']}",
+  "u_ln": "",
+  "u_em": "",
+  "u_mb": "",
+  "updated_at": "@{triggerBody()?['modifiedon']}",
+  "event_attributes": {
+    "event_name": "opportunity_updated",
+    "opportunity_id": "@{triggerBody()?['opportunityid']}",
+    "opportunity_name": "@{triggerBody()?['name']}",
+    "deal_value": "@{triggerBody()?['estimatedvalue']}",
+    "stage": "@{triggerBody()?['stageid']}",
+    "probability": "@{triggerBody()?['closeprobability']}",
+    "close_date": "@{triggerBody()?['estimatedclosedate']}",
+    "owner_id": "@{triggerBody()?['_ownerid_value']}"
+  }
+}
+```
+
+```json Tasks, Calls and Meetings (Activity Events)
+{
+  "customer_id": "@{triggerBody()?['regardingobjectid']}",
+  "u_fn": "@{triggerBody()?['subject']}",
+  "u_ln": "",
+  "u_em": "",
+  "u_mb": "@{triggerBody()?['phonenumber']}",
+  "updated_at": "@{triggerBody()?['modifiedon']}",
+  "event_attributes": {
+    "event_name": "task_created",
+    "activity_id": "@{triggerBody()?['taskid']}",
+    "subject": "@{triggerBody()?['subject']}",
+    "priority": "@{triggerBody()?['prioritycode']}",
+    "due_date": "@{triggerBody()?['duedate']}",
+    "status": "@{triggerBody()?['statecode']}",
+    "owner_id": "@{triggerBody()?['_ownerid_value']}"
+  }
+}
+```
+
+</CodeGroup>
+
+<Info>
+  - 各アクティビティタイプについて、`event_name` を `{{activity name}}` またはカスタム値に設定します。
+  - 追加のカスタムイベントフィールドは `event_attributes` の下に追加します。
+  - 追加のカスタムユーザーフィールドは `user_attributes` の下に追加します。
+</Info>
+
+#### 必須フィールド
+
+| フィールド（キー） | 必須 |
+| --- | --- |
+| `customer_id` | はい |
+| `u_fn` | はい |
+| `u_ln` | はい |
+| `u_em` | はい |
+| `u_mb` | はい |
+| `updated_at` | はい |
+| `user_attributes` | いいえ |
+| `event_name` | はい（イベント） |
+| `event_attributes` | はい（イベント） |
+
+#### データマッピングのガイドライン
+
+- **一意の識別子（Customer ID）**: D365 と MoEngage の間でユーザープロファイルを紐付けるために、一貫性があり変更されない識別子を使用します。この値を MoEngage ペイロードの `customer_id` フィールドにマッピングします。これは、データのマージと重複するユーザープロファイルの防止に不可欠です。次のいずれかを使用します。
+  - メールアドレス（一意の場合）。
+  - D365 レコードの GUID（例: `contactid`、`leadid`）。
+  - 外部 ID（D365 で設定されている場合）。
+- **イベント名（`event_name`）**: MoEngage でアクションを識別および分類するため、常にわかりやすい `event_name` を含めます。これにより、分析とセグメンテーションのためにすべてのイベントが正確にトラッキングされます。
+
+### ステップ 5: 統合をテストする
+
+<Steps>
+  <Step title="フローをトリガーする">
+    Power Automate で **Test** をクリックし、クラウドフローを手動でトリガーします。
+  </Step>
+  <Step title="D365 Sales でテストレコードを作成または更新する">
+    たとえば、D365 Sales で新しい Contact を作成します。
+  </Step>
+  <Step title="フローの実行を監視する">
+    Power Automate でフローの実行を監視し、HTTP `200` または `201` の成功レスポンスが返されることを確認します。
+  </Step>
+  <Step title="MoEngage で確認する">
+    1～5 分以内にテストデータが正しく同期されたことを MoEngage UI で確認します。
+
+    <Frame>
+      ![想定どおりの属性を持つ同期済みの D365 連絡先が表示された MoEngage UI](/images/partner_42993491240724.png)
+    </Frame>
+
+    <Check>
+      テストレコードが、マッピングされたすべての属性が入力された状態で MoEngage に表示されます。
+    </Check>
+  </Step>
+</Steps>
+
+## レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Microsoft Dynamics 365 Sales データの取り込みを、ワークスペースごとに最大 500 リクエスト/秒（RPS）に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。
+
+レート制限がデータフローにどのように影響するかについては、Microsoft Dynamics 365 Sales のデフォルトの再試行ポリシーを参照してください。
+
+<Warning>
+  **再試行の上限到達**: Microsoft Dynamics 365 Sales がデータのバッチに対するすべての再試行を使い果たした場合は、Microsoft サポートチームに連絡して、失敗したリクエストを再実行してもらう必要があります。
+</Warning>

@@ -1,0 +1,107 @@
+---
+title: "Xeno"
+---
+
+# はじめに
+
+[Xeno](https://www.getxeno.com/) は、企業がロイヤルティプログラム、報酬、プロモーションを構築および管理できるよう支援する顧客ロイヤルティおよびエンゲージメントプラットフォームです。パーソナライズされた顧客体験の作成、顧客の行動とエンゲージメントの追跡、ロイヤルティキャンペーンの効果測定のためのツールを提供します。
+
+# MoEngage × Xeno
+
+MoEngage と Xeno の連携により、Content API を使用して、メールやプッシュなどのさまざまなチャネルにわたる MoEngage キャンペーン内に顧客のロイヤルティデータを動的に表示できます。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  - Xeno API とやり取りするには、認証トークンが必要です。
+</Info>
+
+## 顧客のロイヤルティポイントを表示する
+
+### ステップ 1: MoEngage Content API を設定する
+
+Xeno の REST API を使用して、キャンペーンにパーソナライズされたコンテンツを挿入します。これは、MoEngage Content API に Xeno の REST API エンドポイントを追加することで実現できます。
+
+1. **Settings** -\> **Advanced settings** -\> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。 <img src="/images/partner_21979907211668.png" alt="ContentAPI_Navogation.png" />
+2. エンドポイント URL に Xeno API を追加します。ユースケースに応じてエンドポイントは異なります。\
+   <img src="/images/partner_19583816901140.png" />\
+   顧客のロイヤルティポイントを表示するには、Xeno の [Get Loyalty Points API](https://xeno.in/apidoc#/Loyalty/getLoyaltyPoints) を使用します。
+3. Content API の設定時に、次の URL を挿入します。
+
+`https://xeno.in:2223/api/xeno/loyalty/getLoyaltyPoints`
+
+URL Parameters に次を追加します。
+
+1. `api_key`: 認証のために Xeno サーバーと通信する際の API キーは、Xeno から提供されます。
+2. `store_key`: 店舗のキー。
+3. `customer_phone`: @ を入力してパーソナライズし、MoEngage から該当するユーザー属性を選択します。
+
+Headers に次を追加します: `accept: application/json`
+
+1. 正常なレスポンスが表示されたら、「Save」をクリックしてから「Done」をクリックします。
+
+<Note>
+  API をテストすることもできます。API をテストするには、Content API のアクションメニューから「Test」をクリックします。API のレスポンスをテストして検証できます。
+</Note>
+
+### ステップ 2: MoEngage キャンペーン内に顧客のロイヤルティポイントを表示する
+
+MoEngage キャンペーンでこの API を使用するには、次の手順を実行します。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 1 で設定した Xeno Loyalty Points を選択できます。
+3. [MoEngage Templating Language](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。 <img src="/images/partner_19583877595540.png" />
+4. Preview タブをクリックすると、リアルタイムでパーソナライズされたキャンペーンを確認できます: <img src="/images/partner_19583810010644.png" />
+
+## Xeno に新しい顧客を追加する
+
+MoEngage のコネクターキャンペーンを使用すると、顧客がアプリや Web サイトでアクションを実行したときに、その顧客を Xeno に追加できます。
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最も適した配信タイプを選択します。この例では、「Event Triggered」を選択し、イベントとして「Purchased」を選択します。 <img src="/images/partner_19588356363412.png" />
+2. キャンペーンのステップ 2 で、次の操作を行います。
+
+### Xeno API を呼び出す
+
+顧客を Xeno に送信するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして POST を選択します
+- URL Parameters:
+  - `api_key`: `<your_api_key>`
+- Headers:
+  - `accept`: `application/json`
+  - `Content-Type`: `application/json`
+- Webhook URL としてエンドポイントを追加します: `https://xeno.in:2223/api/xeno/customers/add`
+- Body:\
+  @ を入力してペイロードをパーソナライズします。
+  <CodeGroup>
+  ```json JSON wrap
+  {
+    "customer_details": [
+      {
+        "number": "{{UserAttribute['Mobile Number (Standard)']}}",
+        "email_id": "{{UserAttribute['Email (Standard)']}}",
+        "name": "{{UserAttribute['First Name']}} {{UserAttribute['Last Name']}}",
+        "gender": "{{UserAttribute['Gender']}}",
+        "amount": "{{EventAttribute['price']}}",
+        "channel": "Website",
+        "store_id": "A123",
+        "admin_id": "123"
+      }
+    ]
+  }
+  ```
+  </CodeGroup>
+
+![](/images/partner_19588770557332.png)
+
+- 詳細については、[Xeno API ドキュメント](https://xeno.in/apidoc#/Customer/post_customers_add)を参照してください。
+
+### リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整っています。コネクターキャンペーン作成のステップ 2 にあるテスト機能を使用して、コネクターの設定をテストすることもできます。<img src="/images/partner_19588865313172.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+
+その後、キャンペーンを公開できます。

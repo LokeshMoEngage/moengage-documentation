@@ -1,0 +1,94 @@
+---
+title: "イベントのトラッキング"
+description: "MoEngage React Native SDK を使用して、キャンペーン向けにユーザーイベントとそのプロパティをトラッキングします。"
+---
+
+<Info>
+  SDK は MoEngage の FUP ポリシーに準拠しています。詳細については、[フェアユーセージポリシー](https://www.moengage.com/docs/user-guide/data/key-concepts/fair-usage-policy-fup)を参照してください。
+</Info>
+
+イベントのトラッキングとは、ユーザーが実行したアクションを、そのアクションを説明するプロパティとともに記録することです。trackEvent を 1 回呼び出すごとに、1 つのユーザーアクションが記録されます。チームの誰もがすぐに意味を理解できるよう、イベント名は人が読んでわかりやすいものにすることをお勧めします。
+
+すべての **_trackEvent()_** API は、イベント名とイベント属性（**_MoEProperties_** のインスタンス）の 2 つのパラメーターを必要とします。 
+
+キャンペーン作成時のセグメンテーションに役立つと思われる追加情報をすべて追加してください。
+
+たとえば、次のコードは商品の Purchase イベントをトラッキングします。トラッキングするイベントを説明する属性として、価格、数量、購入日、店舗の場所などを含めています。
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE, {
+  MoEGeoLocation,
+  MoEProperties,
+} from "react-native-moengage";
+let properties = new MoEProperties();
+properties.addAttribute("quantity", 1);
+properties.addAttribute("product", "iPhone");
+properties.addAttribute("currency", "dollar");
+properties.addAttribute("price", 699);
+properties.addAttribute("new_item", true);
+properties.addAttribute("models", ["iPhone15", "iPhone14"]);
+properties.addDateAttribute("purchase_date", "2020-06-10T12:42:10Z");
+properties.addLocationAttribute(
+  "store_location",
+  new MoEGeoLocation(90.00001, 180.00001)
+);
+ReactMoE.trackEvent("Purchase", properties);
+```
+
+</CodeGroup>
+
+<Warning>
+  - イベント名には "\_" 以外の特殊文字を含めないでください。使用できるのはスペースとアンダースコアのみです。また、"between"、"greater"、"less"、"in_the_last"、"in_the_next"、"equal"、"contains"、"starts"、"is_not" を含めないでください。
+  - イベント、イベント属性、ユーザー属性の名前に "moe\_" をプレフィックスとして使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なく定期的にブラックリストに登録される可能性があります。
+  - カスタム属性の名前に "user_id" を使用することはできません。これは予約済みのシステムフィールドであり、使用するとエラーが発生する可能性があります。
+</Warning>
+
+# 分析
+
+MoEngage SDK は、ユーザーセッションとアプリケーションのトラフィックソースをトラッキングします。ユーザーセッションとアプリケーションのトラフィックソースのトラッキングの仕組みについて詳しくは、以下のドキュメントを参照してください。 
+
+-  [セッションとソースの分析](https://www.moengage.com/docs/user-guide/analyze/analytics/session-and-source/session-and-source-analysis) 
+-  [セッションとソースの高度な分析](https://www.moengage.com/docs/user-guide/analyze/analytics/session-and-source/advanced-session-and-source-analysis)
+
+
+ユーザーセッションのトラッキングに伴い、イベントを選択的に非インタラクティブとしてマークできる柔軟性を導入しました。
+
+## 非インタラクティブイベントとは
+
+セッションの計算に一切影響しないイベントを、非インタラクティブイベントと呼びます。非インタラクティブイベントには以下の特性があります。
+
+- 新しいセッションを開始しません。
+- セッションを延長しません。
+- ユーザーセッションに関連する情報を持ちません。
+
+## イベントを非インタラクティブとしてマークする方法
+
+イベントを非インタラクティブとしてマークするには、以下のように **_MoEProperties_** インスタンスの **_setNonInteractive()_** を呼び出します。
+
+<CodeGroup>
+
+```javascript JavaScript
+import ReactMoE, {
+  MoEGeoLocation,
+  MoEProperties,
+} from "react-native-moengage";
+let properties = new MoEProperties();
+properties.addAttribute("quantity", 1);
+properties.addAttribute("product", "iPhone");
+properties.addAttribute("currency", "dollar");
+properties.addAttribute("price", 699);
+properties.addAttribute("new_item", true);
+properties.addAttribute("models", ["iPhone15", "iPhone14"]);
+properties.addDateAttribute("purchase_date", "2020-06-10T12:42:10Z");
+properties.addLocationAttribute(
+  "store_location",
+  new MoEGeoLocation(90.00001, 180.00001)
+);
+//Marking it as Non Interactive
+properties.setNonInteractiveEvent();
+ReactMoE.trackEvent("Purchase", properties);
+```
+
+</CodeGroup>

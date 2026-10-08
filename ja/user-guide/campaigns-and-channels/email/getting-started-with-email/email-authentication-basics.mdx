@@ -1,0 +1,73 @@
+---
+title: "メール認証の基本"
+description: "なりすましを防ぎ、到達率を向上させ、ISP のガイドラインを満たすための SPF、DKIM、DMARC などのメール認証方式について説明します。"
+---
+
+## メール認証とは
+
+メール認証とは、メールメッセージや送信者の真正性と完全性を検証するためのプロセスです。メッセージが名乗っている送信者から送られたものであり、送信中に改ざんされていないことを確認することで、メールのなりすまし、フィッシング、その他のメール詐欺を防止します。
+
+Gmail や Yahoo などの ISP は、最新の到達率ガイドラインの一環として、SPF、DKIM、DMARC などの認証方式の使用を義務付けています。これらの方式は以前から推奨されており、迷惑メール、スパム、詐欺メールからユーザーを保護するのに役立ちます。これらへの準拠は、メールキャンペーンの効果と到達率に直接影響します。
+
+## SPF、DKIM、DMARC とは
+
+SPF、DKIM、DMARC は、ブランドがメールコミュニケーションの信頼性を高め、メール詐欺やなりすまし攻撃のリスクを低減するために導入できる認証方式です。
+
+- **Sender Policy Framework (SPF):** SPF を使用すると、ドメイン所有者は自社ドメインに代わってメールを送信することが許可された IP のリストを公開できます。メールを受信すると、受信者のメールサーバーはドメインの DNS 内の SPF レコードを確認し、メールリクエストの送信元 IP がそのドメインのメールを送信することを許可されているかどうかを検証します。
+- **DKIM** は、メールヘッダーに追加されるデジタル署名を使用して、メッセージが改ざんされていないことを検証します。送信者のドメインは秘密鍵でメールに署名し、受信者のメールサーバーは DNS レコードに保存された公開鍵を使用して署名を検証します。
+- **Domain-based Message Authentication, Reporting, and Conformance (DMARC):** DMARC は、SPF と DKIM を基盤とするメール認証ポリシーフレームワークです。ドメイン所有者は、認証チェックに失敗したメールをどのように処理するかを指定できます。DMARC は、SPF または DKIM のチェックに失敗したメールをスパムとしてマークする、または拒否するなど、その処理方法を受信メールサーバーに指示します。さらに、DMARC では管理者にレポートを送信して、認証されていないメールの送信元を特定することもできます。
+
+MoEngage のメールをご利用の場合、オンボーディングの一環として、これらのレコードを DNS レコードの形式で共有しますので、お使いのドメインネームサーバー (DNS) で更新してください。
+
+## DNS レコードとは
+
+DNS は Domain Name System の略で、インターネットのディレクトリとして機能します。ドメイン名を IP アドレスに変換し、コンピューター同士が互いを見つけて通信できるようにします。DNS レコードは、ドメインのさまざまな側面をどのように処理するかをサーバーに指示する一連の命令です。
+
+MoEngage がオンボーディング時に共有する DNS レコードには、次の 3 種類があります。
+
+1. **ドメインおよび IP 認証用**
+   - 認証用の SPF (レコードタイプ: CNAME)
+   - 認証用の DKIM (レコードタイプ: CNAME)
+   - 専用 IP のドメインルックアップ (レコードタイプ: A)
+   - DMARC (レコードタイプ: TXT)
+2. **URL ブランディング用の DNS レコード**  
+   - DNS リンクブランディング (レコードタイプ: CNAME)
+3. **Google Postmaster でドメインレピュテーションにアクセスするための DNS レコード**
+   - Google Postmaster
+
+これらのレコードの例を以下に示します:  <img alt="Screenshot 2024-01-29 at 21.14.50.png" src="/images/moengage_972090.png" />
+
+## ドメインにこれらが設定されているかどうかを確認するには
+
+Gmail アドレスにテストメールを送信し、以下のスクリーンショットを参考に認証が最新の状態かどうかを確認できます。右上の 3 点メニューをクリックし、「Show Original」をクリックします。
+
+- 「*Received: from*」を検索し、次の点を確認します  
+  - IP に関する **Received from domain** が、お使いのドメインのサブドメインになっている必要があります。
+  - 「*Authentication-Results:*」に **dkim=pass、spf=pass、dmarc=pass** と表示されている必要があります。
+
+**<img alt="Screenshot 2024-01-29 at 20.48.54.png" src="/images/moengage_64835d.png" />**
+
+- メール内の画像やリンクにカーソルを合わせると、左下に表示されるリンクドメインがお使いのドメインのサブドメインになっている必要があります。  
+    
+   <img alt="Screenshot 2024-01-29 at 20.56.50.png" src="/images/moengage_a3e801.png" />
+
+### 一致しない場合の対処方法
+
+MoEngage のカスタマーサクセスマネージャーに連絡し、DNS に設定する必要がある正確なレコードを入手してください。
+
+## どこで更新するか
+
+ドメインレジストラがどこかを把握しておく必要があります。以下に、主要なプロバイダーごとの具体的な手順を示します。必要なアクセス権がない場合は、これらの詳細を IT 管理者と共有して設定を依頼してください。
+
+1. [GoDaddy](https://www.godaddy.com/en-ie/domains)
+   - [「CNAME」レコードを追加する。](https://ie.godaddy.com/help/add-a-cname-record-19236)
+   - [「TXT」レコードを追加する。](https://ie.godaddy.com/help/add-a-txt-record-19232)
+   - [「A」レコードを追加する。](https://ie.godaddy.com/help/add-an-a-record-19238)
+2. [Cloudflare](https://developers.cloudflare.com/dns/manage-dns-records/how-to/create-dns-records/#create-dns-records)
+3. [Microsoft Azure](https://azure.microsoft.com/en-us/blog/a-records-cname-and-using-dns-with-windows-azure-web-sites-waws/)
+4. [Google Domains](https://support.google.com/domains/answer/3290350#zippy=%2Cadd-a-resource-record)
+5. [Shopify](https://help.shopify.com/en/manual/domains)
+   - [Shopify で管理されているドメインの DNS を管理する](https://help.shopify.com/en/manual/domains/managing-domains/edit-dns-settings)
+   - [サードパーティのドメインを Shopify に接続する](https://help.shopify.com/en/manual/domains/add-a-domain/connecting-domains/connect-domain-manual)
+6. [Akamai](https://techdocs.akamai.com/edge-dns/docs/config-prim-zones#add-a-new-record-set)
+7. [AWS - Amazon Route 53](https://docs.aws.amazon.com/Route53/latest/DeveloperGuide/resource-record-sets-creating.html)

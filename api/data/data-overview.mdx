@@ -31,7 +31,7 @@ The Data API is a collection of the following API endpoints:
       - Create Event
       - Bulk Import
 
-    For more information, refer to [User Identity Resolution](https://help.moengage.com/hc/en-us/articles/24050999467284-Unified-Identity-Identity-Resolution).
+    For more information, refer to [User Identity Resolution](/user-guide/data/user-data/unified-identity-identity-resolution).
      You can:
 
       - Create users through Server-to-Server Data APIs even when they do not have an ID (but have other identifiers).
@@ -39,6 +39,58 @@ The Data API is a collection of the following API endpoints:
 
   - Data APIs support [IP whitelisting](/user-guide/settings/account/security/ip-whitelisting-in-moengage). Contact the [MoEngage support team](/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard) to whitelist your IP addresses. After configuration, MoEngage exclusively ingests API payloads originating from these whitelisted IPs.
 </Note>
+
+## Data Authentication
+
+MoEngage Data APIs support two authentication methods: Basic Auth and OAuth 2.0. You can use either method for your Data API requests.
+
+<Tabs>
+  <Tab title="Basic Auth" id="basic-auth">
+    Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format 'username:password'.
+
+    - **Username**: Use your MoEngage workspace ID (also known as the App ID). You can find it in the MoEngage dashboard at **Settings** > **Account** > **APIs** > **Workspace ID (earlier app id)**.
+    - **Password**: Use your API Key, which you can find within the **Data** tile.
+
+    <Warning>
+    After you generate and save the Data API Key, don't generate a new key unless there is a security breach. When you generate and save a different Data API Key, authentication with the old key starts failing, and you must update your existing data tracking to use the new key.
+    </Warning>
+
+    For more information on authentication and getting your credentials, refer to [Getting Your Credentials](/api/introduction#getting-your-credentials).
+  </Tab>
+
+  <Tab title="OAuth 2.0" id="oauth-2">
+    OAuth 2.0 authenticates your Data API requests with a short-lived access token instead of an API key sent on every call. You exchange the credentials of an OAuth 2.0 API key for an access token, send that token in the `Authorization` header as a Bearer token, and then refresh the access token before the token expires.
+
+    <Steps>
+      <Step title="Create an OAuth 2.0 API Key">
+        On the API keys dashboard, create a key with **Authentication Type** set to **OAuth 2.0**, and select **Data APIs** under **Select APIs for access**. For the full procedure, refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard).
+      </Step>
+      <Step title="Generate an Access Token">
+        Exchange the Workspace ID and API key of that key for an access token and a refresh token. For the request parameters, the response fields, and the error codes, refer to [Generate Access Token](/api/oauth/generate-access-token).
+      </Step>
+      <Step title="Call the Data APIs">
+        Send the access token in the `Authorization` header as a Bearer token.
+
+        ```bash Call a Data API with an Access Token
+        curl --request POST \
+          --url https://api-{dc}.moengage.com/v1/customer/YOUR_WORKSPACE_ID \
+          --header 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
+          --header 'Content-Type: application/json' \
+          --data '{ "type": "customer", "customer_id": "user_12345" }'
+        ```
+      </Step>
+      <Step title="Refresh the Access Token">
+        Before the access token expires, exchange the refresh token for a new access token. For the request parameters, the response fields, and the error codes, refer to [Refresh Access Token](/api/oauth/refresh-access-token).
+      </Step>
+    </Steps>
+
+    <Note>
+      The `{dc}` in the endpoint URL refers to your MoEngage Data Center. For the data center and endpoint mapping, refer to [Data Centers](/api/introduction#data-centers).
+    </Note>
+
+    For the end-to-end integration, including the OAuth base URLs, the token lifecycle, the rate limits, and the authentication error codes, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+  </Tab>
+</Tabs>
 
 ## Request Body
 
@@ -102,6 +154,15 @@ You can pass the datetime in the following formats in the request body:
   - Any datetime values incompatible with the formats mentioned above are converted to strings and then ingested.
 </Note>
 
+<Warning>
+  For the `user_time` and `current_time` fields (Track Event and Bulk Import), MoEngage accepts only:
+
+  - **Epoch time in seconds** (10-digit). For example, `1710740192`.
+  - **ISO-8601 string**. For example, `2020-05-31T16:33:35Z`.
+
+  **Epoch time in milliseconds (13-digit) is not accepted.** If `user_time` or `current_time` is sent in an unsupported or unparseable format, MoEngage does not reject the request; the event is ingested using the server-received (Kafka) time instead, which may cause the event's recorded time to differ from what you intended to send.
+</Warning>
+
 ## Response
 
 Response to the Data API is a JSON object. On a successful data API request, you will receive the following response:
@@ -156,7 +217,7 @@ The following status codes and associated error messages are returned when the r
 | 413        | Payload too large             | The payload can not exceed 128KB                                                   | Request payload size is too large.                                                                                                                           |
 | 415        | Unsupported Media Type        | Unsupported Media Type                                                             | Unsupported media type.                                                                                                                                      |
 | 429        | Rate Limit Exceeded           | Rate Limits for User / Event exceeded                                              | You have exceeded the rate limits (number of users or events per minute) defined for your MoEngage account.                                                  |
-| 5xx        | Server Error                  | Any other exception                                                                | This response is returned when the system runs into an unexpected error. We recommend that you retry every 2 seconds for a maximum of 5 times in such cases. |
+| 5xx        | Server Error                  | Any other exception                                                                | This response is returned when the system runs into an unexpected error. MoEngage recommends that you retry every 2 seconds for a maximum of 5 times in such cases. |
 
 ## Monitor Your Usage
 
@@ -185,7 +246,7 @@ When a request is rejected with `HTTP 429`:
 
 1. Stop sending further requests to that endpoint until the window resets (`x-ratelimit-reset`).
 2. Retry with exponential backoff rather than retrying immediately.
-3. Batch where the endpoint supports it — for example, send multiple user updates in a single Track User request instead of one call per user.
+3. Batch where the endpoint supports it. For example, send multiple user updates in a single Track User request instead of one call per user.
 
 If your integration consistently approaches a limit through legitimate, well-batched usage, contact your CSM or the Support team to request an increase.
 
@@ -299,6 +360,9 @@ The Data API is designed to handle high volumes of data across our customer base
     Although, this happens very rarely and you can search for newly ingested users in:\
     **Segment \> Create Segment \> Search for users using their IDs**
   </Accordion>
+  <Accordion icon="sparkles" title="Why did my API request return success even though the user attribute was not updated?">
+    MoEngage processes data asynchronously. The API returns a success response when it receives the request, but downstream processing can still drop the data because of invalid data, breached limits, or other reasons. If you notice drops, contact your Customer Success Manager (CSM) or the MoEngage Support team.
+  </Accordion>
   <Accordion title="Can I use this API to also export users?">
     Please use the [Get User API](/api/user/get-user) to export the users.
   </Accordion>
@@ -355,7 +419,7 @@ The Data API is designed to handle high volumes of data across our customer base
     The maximum SLA is 30 minutes.
   </Accordion>
   <Accordion icon="sparkles" title="How are events copied from the merged user to the retained user?">
-    In the user profile, all events of the last 30 days are moved from the merged user to the retained user.
+    In the user profile, all events are moved from the merged user to the retained user.
   </Accordion>
 </AccordionGroup>
 

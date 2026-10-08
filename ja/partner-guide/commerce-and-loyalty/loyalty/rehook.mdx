@@ -1,0 +1,102 @@
+---
+title: "Rehook"
+---
+
+# はじめに
+
+[Rehook](https://rehook.ai/) は、技術的な依存なしにユーザーへの報酬付与やエンゲージメントを実現できる、強力なユーザーインセンティブ専用ソリューションです。
+
+# MoEngage × Rehook
+
+MoEngage と Rehook の連携により、MoEngage から Rehook にユーザーとイベントを転送できます。これを利用して、MoEngage でイベントが取得されたときに Rehook 上でカスタムのルールベースのプロモーションをトリガーしたり、MoEngage がアプリや Web サイトで新規ユーザーを識別したときに Rehook ダッシュボードに新規ユーザーを追加したりできます。また、Content API を使用して、MoEngage キャンペーン内に顧客の報酬の進捗状況を表示することもできます。
+
+# 連携
+
+<Info>
+  **前提条件**
+
+  - Rehook の [API キーとシークレットキー](https://rehook.readme.io/reference/getting-started-copy)を把握している必要があります。
+</Info>
+
+## MoEngage のイベントを Rehook に転送する
+
+MoEngage のコネクターキャンペーンを使用すると、ユーザーがアプリや Web サイトで何らかのアクションを実行したときに、そのイベントを Rehook に転送できます。
+
+MoEngage でコネクターキャンペーンを作成するには、次の手順を実行します。
+
+1. Create Campaign \>\> Connectors \>\> Custom に移動し、ニーズに最も適した配信タイプを選択します。この例では、「Event Triggered」を選択し、イベントとして「Purchased」を選択します。 <img src="/images/partner_20174965334164.png" />
+2. キャンペーンのステップ 2 で、次の操作を行います。
+
+### Rehook API を呼び出す
+
+イベントを Heap に送信するには、`POST` メソッドを使用してペイロードを設定します。
+
+- メソッドとして POST を選択します
+- Headers
+  - `Authorization`: オンラインツールを使用して、`API Key` をユーザー名、`Secret Key` をパスワードとして Basic 認証を作成します: <img src="/images/partner_20174943398804.png" />\
+    上記の例では、このヘッダーの値は `Basic dG9rZW46c2VjcmV0` になります
+  - `Content-Type`: `application/json`
+  - `accept`: `application/json`
+- Webhook URL としてエンドポイントを追加します: `https://api.rehook.ai/events/invoke`
+- Body:\
+  @ を入力してペイロードをパーソナライズします。
+  <CodeGroup>
+  ```json JSON
+  {
+      "event_name": "Purchase",
+      "source_id": "{{UserAttribute['Email (Standard)']}}",
+      "metadata": {
+          "item_names": "{{EventAttribute['Item Names']}}",
+          "value": "{{EventAttribute['Value']}}"
+      }
+  }
+  ```
+  </CodeGroup>
+
+![](/images/partner_20174960041364.png)
+
+- 詳細については、[Rehook API ドキュメント](https://rehook.readme.io/reference/getting-started-copy)を参照してください。
+
+### リクエストをプレビューする
+
+この時点で、キャンペーンをテストして送信する準備が整っています。コネクターキャンペーン作成のステップ 2 にあるテスト機能を使用して、コネクターの設定をテストすることもできます。<img src="/images/partner_20174981204884.png" alt="Screen_Shot_2022-02-22_at_11.12.42_AM.png" />
+
+その後、キャンペーンを公開できます。
+
+## MoEngage のユーザーを Rehook に転送する
+
+MoEngage のユーザーを Rehook に転送する、または Rehook 上のユーザーのプロパティを更新するには、上記のとおり MoEngage コネクターキャンペーンを設定し、[Rehook の Create or Update API](https://rehook.readme.io/reference/create-customer) を使用して Rehook 内でユーザーを作成または更新します。
+
+## MoEngage キャンペーンで顧客の報酬の進捗状況を表示する
+
+MoEngage の Content API を使用すると、MoEngage キャンペーン内に顧客の報酬の進捗状況を動的に取得して、よりパーソナライズされたエクスペリエンスを提供できます。
+
+### ステップ 1: MoEngage Content API を設定する
+
+1. **Settings** \> **Advanced settings** \> **Content API** に移動します。Content API 画面の右上にある **\+ Add content API** をクリックします。<img src="/images/partner_21979456577812.png" alt="ContentAPI_Navogation.png" />
+2. エンドポイント URL に Rehook API を追加します。ユースケースに応じてエンドポイントは異なります。 <img src="/images/partner_20174960050324.png" />
+
+顧客の報酬の進捗状況を表示するには、Rehook の [Get Reward Progress API](https://rehook.readme.io/reference/get-reward-progress) を使用します。
+
+Content API の設定時に、次の URL を挿入します: `https://api.rehook.ai/campaigns/reward-progress/{{UserAttribute['Customer ID']}}`
+
+Headers に次を追加します。
+
+- `Authorization`: オンラインツールを使用して、`API Key` をユーザー名、`Secret Key` をパスワードとして Basic 認証を作成します。上記の例では、このヘッダーの値は `Basic dG9rZW46c2VjcmV0` になります
+- `Content-Type`: `application/json`
+
+3. 正常なレスポンスが表示されたら、**Save** をクリックしてから **Done** をクリックします。
+
+<Note>
+  API をテストすることもできます。API をテストするには、Content API のアクションメニューから「Test」をクリックします。API のレスポンスを検証できます。
+</Note>
+
+### ステップ 2: MoEngage キャンペーン内に顧客の報酬の進捗状況を表示する
+
+MoEngage キャンペーンでこの API を使用するには、次の手順を実行します。
+
+1. キャンペーン作成のステップ 2 で、@ を入力します。
+2. ポップアップで、ステップ 1 で設定した Rehook の Content API を選択できます。
+3. [MoEngage Templating Language](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) を使用して API レスポンスを解析し、そのコンテンツをキャンペーンで使用できます。 <img src="/images/partner_20174965348500.png" />
+4. Preview タブをクリックすると、リアルタイムでパーソナライズされたキャンペーンを確認できます: <img src="/images/partner_20174943412116.png" />
+5. 結果に問題がなければ、キャンペーンを公開できます。

@@ -1,0 +1,155 @@
+---
+title: "On-site Messaging の設定と統合"
+description: "On-site Messaging キャンペーンを設定して、Web サイト上にパーソナライズされたポップアップやバナーを表示します。"
+---
+
+On-site Messaging キャンペーンを使用すると、Web サイト上にパーソナライズされたポップアップや控えめなバナーを表示できます。
+
+On-site Messaging の Web SDK 統合は、Web SDK が統合されているすべてのページで自動的に動作を開始します。 
+
+詳細については、[Web SDK の統合](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration)を参照してください。
+
+## On-site Messaging の無効化
+
+<Info>
+  On-Site Messaging のオプションの手順
+</Info>
+
+Web サイトの一部のページまたはすべてのページで On-site Messaging を無効にしたい場合は、MoEngage Web SDK が有効なページに、次のように `disable_onsite: true` を追加する必要があります。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+Moengage = moe({
+  appId: "YOUR_WORKSPACE_ID",
+  env: 'LIVE',
+  logLevel: 0,
+  disable_onsite: true
+});
+```
+
+</CodeGroup>
+
+## On-site Messaging イベントのコールバック
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+window.addEventListener('MOE_AUTOMATED_EVENTS', function (event) {
+    if (event.detail.name === 'MOE_ONSITE_MESSAGE_SHOWN' && event.detail.data && event.detail.data.length) {
+      //do some processing on event.detail.data
+    }
+});
+```
+
+</CodeGroup>
+
+上記の例では、`event.detail.name` = `'MOE_ONSITE_MESSAGE_SHOWN'` となっています。同様に、他の On-site Messaging イベントに対してもコールバックを提供しています。
+
+| event.detail.name | 説明 |
+| --- | --- |
+| MOE\_ONSITE\_MESSAGE\_SHOWN | On-site メッセージがユーザーに表示された |
+| MOE\_ONSITE\_MESSAGE\_CLICKED | ユーザーが `moe-inapp-click` クラスが付与された要素をクリックした |
+| MOE\_ONSITE\_MESSAGE\_DISMISSED | ユーザーが `moe-inapp-close` クラスが付与された要素をクリックした |
+| MOE\_ONSITE\_MESSAGE\_AUTO\_DISMISS | On-site Messaging キャンペーンの作成時に設定した時間が経過した後、On-site メッセージが自動的に閉じられた |
+
+以下は、`event.detail.name` = `'MOE_ONSITE_MESSAGE_SHOWN'` の場合の `event.detail.data` のサンプルです。
+
+<CodeGroup>
+
+```javascript JSON lines wrap
+  [
+    {
+      "key": "campaign_id",
+      "value": < the campaign ID >
+    },
+    {
+      "key": "campaign_name",
+      "value": < the campaign name >
+    },
+    {
+      "key": "type",
+      "value": "onsite" //this is fixed value
+    },
+    {
+      "key": "templateType",
+      "value": "POP_UP" //just an example, the templateType can be POP_UP, SELF_HANDLED or BANNER according to the type of template you had chosen for your campaign 
+    },
+    {
+      "key": "cid",
+      "value": "643e2a69dcb2c753d3a1b8a3_F_T_ON_AB_1_P_0_L_0" //just an example, this is an extension of the campaign ID
+    },
+    {
+      "key": "moe_locale_name",
+      "value": "Default" //just an example
+    },
+    {
+      "key": "moe_locale_id",
+      "value": "0" //just an example
+    },
+    {
+      "key": "moe_variation_id",
+      "value": "1" //just an example
+    },
+    {
+      "key": "moe_logged_in_status",
+      "value": false //just an example, tells us if the user is a logged-in user 
+    },
+    {
+      "key": "moe_first_visit",
+      "value": true //just an example
+    },
+    {
+      "key": "URL",
+      "value": < the url of the page on which the On-site message is shown >
+    }
+  ]
+```
+
+</CodeGroup>
+
+他の On-site Messaging イベント (例: `MOE_ONSITE_MESSAGE_DISMISSED`) の `event.detail.data` も、類似した (同一ではない) ペイロードになります。データは、コンソールに出力して確認できます: `console.log(event.detail.data)`
+
+## トラブルシューティング
+
+### Sticky Banner タイプのキャンペーンが Web サイトのヘッダーと重なる
+
+Sticky Banner タイプのキャンペーンは、`top: 0` の `fixed` ポジションを持ちます。そのため、Web サイトにも `top: 0` の固定ポジションの要素がある場合、重なってしまいます。これは技術的な制限であり、お客様側で対処する必要があります。
+
+解決策:
+
+MoEngage から OSM テンプレートが表示されたらすぐに、固定ポジションの要素の位置を更新できます。次のコードを使用してください。
+
+<CodeGroup>
+
+```javascript JavaScript lines wrap
+window.addEventListener('MOE_AUTOMATED_EVENTS', function (event) {
+    if (event.detail.name === 'MOE_ONSITE_MESSAGE_SHOWN' && event.detail.data && event.detail.data.length) {
+      const campaign = event.detail.data.find(item => item.key === "campaign_id");
+      if (campaign && campaign.value === < your campaign ID > ) {
+        //perform your action here
+      }
+    }
+});
+```
+
+</CodeGroup>
+
+### On-site Messaging キャンペーンが表示されない
+
+以下を確認してください。
+
+1. Trigger Action の条件が一致しているかどうかを確認します。
+2. On-site Messaging で Selected Pages を指定している場合は、URL が一致しているかどうかを確認します。
+3. オーディエンスのセグメンテーションが一致しているかどうかを確認します。
+4. プラットフォーム (Web または Mobile Web) が適切に選択されているかどうかを確認します。
+
+### On-site Messaging のテストキャンペーンが機能しない
+
+MoEngage Web SDK は、テスト用の OSM キャンペーンを表示するために、window.opener.postMessage を使用して MoEngage ダッシュボードと Web サイトの間で通信します。 
+
+ただし、Web サイト内で異なるオリジン間の window.opener がブロックされている可能性があります。Web サイトに `Cross-Origin-Opener-Policy': 'same-origin'` ヘッダーが追加されているかどうかを確認してください。
+
+上記のヘッダーが Web サイトに存在する場合、テストキャンペーンは機能しません。このヘッダーを削除してテストするか、ライブキャンペーンを作成し、セグメンテーションを使用して自分自身をターゲットにしてください。
+
+さらにサポートが必要な場合は、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームにお問い合わせください。

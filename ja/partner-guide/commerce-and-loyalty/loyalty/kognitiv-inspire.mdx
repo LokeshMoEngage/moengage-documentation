@@ -1,0 +1,84 @@
+---
+title: "Kognitiv Inspire"
+description: "カスタム Webhook を使用して Kognitiv Inspire から MoEngage にイベントとユーザーを転送し、ロイヤルティプログラムの新規会員にパーソナライズされたウェルカムメッセージを送信します。"
+---
+
+# 概要
+
+[Kognitiv Inspire](http://kognitiv.com/) は、世界の大手ブランドから信頼されているロイヤルティテクノロジーシステムです。インテリジェントなオムニチャネル SaaS プラットフォームを通じて、顧客とのより深い関係の構築と顧客生涯価値の向上を支援します。
+
+# MoEngage × Kognitiv Inspire
+
+Kognitiv Inspire と MoEngage の統合により、ロイヤルティプログラムへの登録プロセスを効率化できます。これは、会員が希望するコミュニケーションチャネルを通じてパーソナライズされたウェルカムメッセージを配信することで実現します。この統合により、次のことが可能になります。
+
+1. Kognitiv Inspire から MoEngage にイベントを転送する
+2. Kognitiv Inspire から MoEngage にユーザーを転送する
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  - Kognitiv アカウントにアクセスできることを確認してください。
+</Info>
+
+この統合では、Kognitiv のカスタム Webhook 機能を使用して MoEngage にデータを転送します。
+
+## ステップ 1: Kognitiv の Webhook を作成する
+
+Webhook を使用するには、まず Kognitiv のサービスチームに連絡して、クライアントごとに Azure Service Bus を有効にしてもらう必要があります。
+
+1. Webhook を作成するには、ユーザー名とパスワードを使用して Kognitiv Loyalty にログインします。
+2. メニューから **Settings** をクリックし、**Webhooks** をクリックします。
+3. **Create Webhook** ボタンをクリックします。
+4. 必要な情報を入力して作成プロセスのステップ 1 を完了し、**Continue** をクリックします。
+   - Webhook 名は必須フィールドです。
+   - Webhook 名の末尾にスペースを含めることはできません。
+   - Webhook 名は、KLS のクライアントプログラム/環境内で一意である必要があります (大文字と小文字を区別)。
+   - 説明はオプションのフィールドです。
+   - ユーザーはイベントグループを設定する必要があります。
+5. 必要な情報を入力して作成プロセスのステップ 2 を完了し、**Continue** をクリックします。
+6. 入力した情報を確認し、**Submit** をクリックします。
+
+Kognitiv の Webhook の詳細については、[こちら](https://info.kognitivloyalty.com/f/page%3FW2024.html)をお読みください。
+
+## ステップ 2: Kognitiv から MoEngage にイベントを送信する
+
+Member Rewards などのイベントを転送するには、上記の手順に従って Webhook を作成します。次に、MoEngage の [Event API](/ja/api/event/track-event) に従って次の情報を指定します。
+
+| **フィールド** | **説明** |
+| --- | --- |
+| Method | POST |
+| Webhook URL | `https://api-0X.moengage.com/v1/event/&lt;Workspace_ID&gt;`<br />API エンドポイント URL の「X」は、MoEngage のデータセンター (DC) を指します。MoEngage は顧客ごとに異なる DC でホストしています。DC と API エンドポイントの対応については[こちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)を参照して DC 番号 (X の値) を確認し、URL 内の「X」の値を置き換えてください。 |
+| Request Headers | 1. Authorization: Basic `AUTH_TOKEN`<br />2. Content-Type: `application/json`<br />3. MOE-APPKEY: `Workspace_ID`<br />`AUTH_TOKEN` の確認方法については、以下を参照してください。 |
+| \<Workspace\_ID\> | MoEngage アカウントの Workspace ID は、**Settings -\> Account -\> APIs -\> Workspace ID** で確認できます。 |
+| \<API\_KEY\> | MoEngage アカウントの Data API キーは、**Settings -\> Account -\> APIs -\> API keys \> Data** API 設定で確認できます。 |
+| \<AUTH\_TOKEN\> | API リクエストは Basic 認証によって認証されます。Basic 認証では、ユーザー名とパスワードを含む Base64 エンコードされた文字列を API リクエストごとに送信します。「\<APP\_ID\>:\<API\_KEY\>」の文字列を Base64 でエンコードし、エンコードされた文字列の前に「Basic 」を付加します。[オンラインで生成](https://www.blitter.se/utils/basic-authentication-header-generator/)することもできます。 |
+
+Request Body には、次のコードを入力できます。
+
+<CodeGroup>
+
+```json JSON
+{
+      "type": "event",
+      "customer_id": "{{memberId}}",
+      "actions": [
+            {
+                  "action": "rewards_issued",
+                  "attributes": {
+                        "time" : "{{issuedDate}}", 
+                        "issued_date" : "{{issuedDate}}", 
+                        "issued_location_name" : "{{issuedLocationName}}", 
+                        "reward_type" : "{{rewardType}}" 
+                  }
+            }
+      ]
+}
+```
+
+</CodeGroup>
+
+## ステップ 3: MoEngage キャンペーンを送信する
+
+このイベントデータを活用するには、新しいイベントトリガーキャンペーンを作成し、トリガーとして「rewards\_issued」を選択します。これで、ユーザーに報酬が付与されたときにコミュニケーションを行えるようになります。

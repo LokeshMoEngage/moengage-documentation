@@ -1,0 +1,77 @@
+---
+title: "Oztix"
+description: "Content API を使用して、Oztix のライブイベントの詳細とチケットの在庫状況を MoEngage のキャンペーンテンプレートに取り込みます。"
+---
+
+[Oztix](https://www.oztix.com.au) は、2003 年に設立されたオーストラリア最大の独立系チケッティング会社で、音楽フェスティバル、インディーズコンサート、地域のライブイベント、草の根スポーツを専門としています。会場が所有する大手チケッティング会社とは異なり、Oztix はオーストラリア全土の幅広い独立系プロモーターやイベント主催者にサービスを提供しており、インディーズのライブ音楽やフェスティバルシーンの大きな部分において主要なチケッティングプラットフォームとなっています。
+
+## MoEngage × Oztix
+
+MoEngage × Oztix 統合を使用すると、Content API を介して Oztix のライブイベントとチケットの在庫データを MoEngage キャンペーンに動的に取り込むことができます。送信時に、MoEngage はイベント識別子を使用して Oztix API を呼び出し、リアルタイムのチケットデータを取得して、メール、プッシュ、SMS、アプリ内、WhatsApp のメッセージに直接挿入します。
+
+一般的なユースケースには、今後開催されるフェスティバルのチケット販売開始をファンに通知する、直前のプロモーション送信でリアルタイムのチケット在庫状況を表示して緊急性を高める、ユーザーの都市や関心のあるジャンルのイベントについて会場、日付、価格情報でメッセージをパーソナライズする、などがあります。
+
+# 統合
+
+<Warning>
+  **公開 API はありません**
+
+  Oztix API へのアクセスには、開発者ポータルでの登録とパートナー承認が必要です。この統合を進める前に、[oztix.com.au/developers](https://www.oztix.com.au/developers) にアクセスしてアクセスをリクエストしてください。認証情報は自動的には発行されず、Oztix チームによる審査が行われます。
+</Warning>
+
+## ステップ 1: Oztix API の認証情報をリクエストする
+
+1. [oztix.com.au/developers](https://www.oztix.com.au/developers) または [oztix.com.au/contact/](https://www.oztix.com.au/contact/) に移動し、アクセスリクエストを送信します。ご利用のプラットフォーム、想定するユースケース、予想される API 呼び出しのおおよその量についての詳細を提供してください。
+2. 統合がマーケティングオートメーションプラットフォームを介したキャンペーン送信時のリアルタイムイベントデータ取得に使用されることを明記します。これにより、Oztix がアクセスパターンを把握し、適切なレート制限を割り当てることができます。
+3. 承認されると、Oztix は統合の種類に応じて **OAuth access token** または **API key** を発行します。この認証情報は安全に保管してください。
+4. キャンペーンのパーソナライゼーションの対象とする特定のイベントのイベント ID を取得します。イベント ID は、Oztix の主催者ダッシュボードで確認するか、アカウント設定時に Oztix チームから入手できます。
+
+<Info>
+  **注意**
+
+  Oztix API のサードパーティによる機能概要が [SportsFirst](https://www.sportsfirst.net/sportsapi/oztix-api) で公開されています。エンドポイントパターンやレスポンス構造の例が記載されているため、Oztix の認証情報が届く前に MoEngage の設定を準備するのに役立ちます。
+</Info>
+
+## ステップ 2: MoEngage で Content API を設定する
+
+Oztix API の認証情報を受け取ったら、次の手順を実行します。
+
+- **Dashboard > Settings > APIs** に移動し、**Content API** タブを開きます。
+- *Add Content API* をクリックします。
+- 以下の表を参考に詳細を入力します。
+
+| キー | 値 |
+| --- | --- |
+| **Name** | わかりやすい名前を選択します（例: `Oztix Event Details`）。この名前は、キャンペーンテンプレート内で API を参照する際の識別に使用されます。 |
+| **Method** | GET |
+| **API URL** | `https://api.oztix.com.au/v1/events/{eventId}`<br /><br />`{eventId}` を、キャンペーンで表示する Oztix イベントの特定のイベント識別子に置き換えます。チケットの在庫状況を取得する場合は、次を使用します。<br />`https://api.oztix.com.au/v1/events/{eventId}/tickets`<br /><br />正確なベース URL とアカウントで利用可能なエンドポイントは、認証情報の発行時に Oztix から案内されます。 |
+| **Headers** | すべてのリクエストを認証するために、次のヘッダーを追加します。<br /><br /><table><thead><tr><th>ヘッダー</th><th>値</th></tr></thead><tbody><tr><td><code>Authorization</code></td><td><code>Bearer YOUR_OZTIX_ACCESS_TOKEN</code></td></tr><tr><td><code>Content-Type</code></td><td><code>application/json</code></td></tr><tr><td><code>Accept</code></td><td><code>application/json</code></td></tr></tbody></table> Oztix から OAuth トークンではなく API キーが発行された場合は、認証に Bearer トークン、`X-API-Key` などのカスタムヘッダー、クエリパラメーターのいずれを使用すべきかを Oztix の担当者に確認してください。 |
+
+
+- **Validate** をクリックしてプラットフォームからレスポンスが返されることを確認し、**Save** をクリックします。これで、サポートされているすべてのチャネルのあらゆるキャンペーンで Content API を参照できるようになります。
+
+![MoEngage ダッシュボードでの Oztix Content API の設定](/images/Ozitix1.png)
+
+保存後、キャンペーンテンプレート内で Oztix のレスポンスフィールドを参照する方法については、MoEngage ドキュメントの [キャンペーンでの Content API の使用](/ja/user-guide/campaigns-and-channels/getting-started/campaign-content/content-apis) を参照してください。
+
+## API レスポンスについて
+
+MoEngage が送信時に Oztix API を呼び出すと、レスポンスは `event` キーの下にネストされた JSON オブジェクトとして返されます。キャンペーンテンプレートで最もよく参照されるフィールドを以下に示します。
+
+| レスポンスフィールド | テンプレート変数の例 | 説明 |
+| --- | --- | --- |
+| `event.name` | `{{ContentApi.event.name}}` | イベントの正式名称です（例: "Summer Music Festival 2025"）。 |
+| `event.date` | `{{ContentApi.event.date}}` | タイムゾーンオフセット付きの ISO 8601 形式によるイベントの日時です。 |
+| `event.venue.name` | `{{ContentApi.event.venue.name}}` | イベントが開催される会場名です。 |
+| `event.venue.city` | `{{ContentApi.event.venue.city}}` | イベントが開催される都市です。 |
+| `event.tickets[0].type` | `{{ContentApi.event.tickets[0].type}}` | 最初に利用可能なチケットカテゴリーの名前です（例: "General Admission"）。 |
+| `event.tickets[0].price` | `{{ContentApi.event.tickets[0].price}}` | 最初に利用可能なチケットカテゴリーの価格（AUD）です。 |
+| `event.tickets[0].available` | `{{ContentApi.event.tickets[0].available}}` | そのカテゴリーの残りのチケット数です。緊急性を訴求するメッセージに役立ちます。 |
+| `event.seat_map_url` | `{{ContentApi.event.seat_map_url}}` | 会場のインタラクティブな座席表への URL です。メールキャンペーンのリンクとして使用できます。 |
+
+![キャンペーンテンプレートで参照される Oztix Content API のレスポンスフィールド](/images/ozitix2.png)
+<Tip>
+  **ヒント**
+
+  Content API 設定画面の *Test* ボタンを使用して、テストユーザーの生の JSON レスポンスを確認します。これにより、キャンペーンテンプレートで参照する前に正確なフィールドパスを確認でき、アクセストークンとイベント ID が正しく設定されていることを検証できます。
+</Tip>

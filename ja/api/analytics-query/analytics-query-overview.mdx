@@ -1,0 +1,65 @@
+---
+title: "Analytics Query API の概要"
+description: "MoEngage の Analytics クエリ(Behavior、Funnels、Retention、Session/Source、User Property Analysis)を実行し、その結果をプログラムで取得します。"
+icon: "chart-mixed"
+keywords: ["analytics api", "behavior analysis", "funnels", "retention", "session source", "user property analysis", "async query"]
+---
+
+Analytics Query API を使用すると、MoEngage の分析クエリをプログラムで実行し、その結果を取得できます。MoEngage ダッシュボードで利用できるものと同じ分析、つまり Behavior、Funnels、Retention、Session/Source(BFRS)、User Property Analysis(UPA)に対応しています。
+
+これらのクエリは非同期で処理されます。`POST` でクエリを登録すると、すぐに `request_id` が返されます。クエリはバックグラウンドで実行されるため、その後ステータスをポーリングして結果を取得します。
+
+## エンドポイント
+
+Analytics Query API には、以下のエンドポイントが含まれます。
+
+- [Register a Behavior Query](/ja/api/analytics-queries/register-a-behavior-query): Behavior 分析を実行します。
+- [Register a Funnels Query](/ja/api/analytics-queries/register-a-funnels-query): Funnels 分析を実行します。
+- [Register a Retention Query](/ja/api/analytics-queries/register-a-retention-query): Retention 分析を実行します。
+- [Register a Session-Source Query](/ja/api/analytics-queries/register-a-session-source-query): Session/Source 分析を実行します。
+- [Register a User Analysis Query](/ja/api/analytics-queries/register-a-user-analysis-query): User Property Analysis を実行します。
+- [Get Query Status](/ja/api/analytics-queries/get-query-status): 登録済みクエリの実行ステータスを確認します。
+- [Get Query Results](/ja/api/analytics-queries/get-query-results): 完了したクエリの結果を取得します。
+
+## 一般的なワークフロー
+
+各分析は、送信、ポーリング、取得という同じ手順で進みます。
+
+<Steps>
+  <Step title="クエリを送信する">
+    いずれかの分析エンドポイント(例: [Register a Behavior Query](/ja/api/analytics-queries/register-a-behavior-query))を呼び出します。レスポンスには分析の `type` がそのまま返され、`request_id` も返されます。
+  </Step>
+  <Step title="ステータスをポーリングする">
+    その `request_id` を指定して [Get Query Status](/ja/api/analytics-queries/get-query-status) を呼び出します。`status` が `PENDING` または `PROCESSING` の間はクエリが実行中のため、最終ステータスである `SUCCESSFUL` または `FAILED` になるまでポーリングを続けます。クエリが失敗した場合、レスポンスには `failure_reason` も返されます。
+  </Step>
+  <Step title="結果を取得する">
+    同じ `request_id` を指定して [Get Query Results](/ja/api/analytics-queries/get-query-results) を呼び出し、結果を取得します。`data` 配列の形式は分析タイプによって異なります。
+  </Step>
+</Steps>
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="クエリの完了にはどのくらい時間がかかりますか?">
+    完了までの時間は、期間、イベント数、スキャンされるデータ量によって異なります。ステータスが `SUCCESSFUL` になるまで [Get Query Status](/ja/api/analytics-queries/get-query-status) をポーリングし、その後結果を取得してください。短いループでポーリングすることは避け、呼び出しの間に少し間隔を空けてください。
+  </Accordion>
+  <Accordion title="同じ request_id でクエリを再実行できますか?">
+    いいえ。`request_id` は 1 回のクエリ実行を識別するものです。分析を再度実行するには、新しいクエリを登録し、新しい `request_id` を使用してください。
+  </Accordion>
+  <Accordion title="クエリで 428 が返されたのはなぜですか?">
+    `428` は、ワークスペースが Analytics 利用に関する月間の Fair Usage Policy(FUP)上限に達したことを意味します。請求サイクルの残り期間中、Analytics クエリはブロックされます。クォータを拡張するには、カスタマーサクセスマネージャーにお問い合わせください。
+  </Accordion>
+  <Accordion title="Get Query Results がクエリごとに異なるフィールドを返すのはなぜですか?">
+    返される行は、クエリが登録された分析タイプによって異なります。Behavior、Funnels、Retention、Session/Source、User Analysis は、それぞれ共通フィールドに加えて独自のフィールドを追加します。各行は柔軟なキーのセットとして扱ってください。各形式の例については、[Get Query Results](/ja/api/analytics-queries/get-query-results) を参照してください。
+  </Accordion>
+  <Accordion title="クエリが 400 で検証エラーになったのはなぜですか?">
+    各分析では、1 つのクエリに含めることができるイベント、セグメント、ブレークダウンの数に制限があります。エラーメッセージには、失敗したフィールドの名前が示されます。エンドポイントページでそのフィールドの説明を確認し、使用可能な値と制限を確認してください。
+  </Accordion>
+  <Accordion title="API が返すデータはダッシュボードと比べてどう違いますか?">
+    これらのエンドポイントは、MoEngage ダッシュボードの Analyze セクションと同じ分析を、認証されたワークスペースの範囲で実行します。新しいクエリを実行する代わりに保存済みのダッシュボードチャートからデータを読み取るには、[Custom Dashboards API](/ja/api/analytics/analytics-overview) を使用してください。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+事前設定済みの Postman コレクションを使用して、これらのエンドポイントをすばやくテストできます: [MoEngage Analytics Query API コレクションを表示](https://www.postman.com/moengage-dev/api-docs/collection/xk31arr/moengage-analytics-query-api-s)。

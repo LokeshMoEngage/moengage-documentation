@@ -1,0 +1,419 @@
+---
+title: "HTML In-App 向け JavaScript Bridge"
+description: "MoEngage JavaScript Bridge API を使用して、HTML In-App メッセージテンプレートから SDK とやり取りします。"
+---
+
+Android 向けの HTML In-App メッセージは、Web アプリが MoEngage SDK とやり取りするためのブリッジインターフェースをサポートしています。
+
+ブリッジには、グローバル変数 `moengage` を使用してアクセスできる一連の API が含まれています。
+
+以下の表に JS Bridge のすべてのメソッドを示します。後続のセクションで、各 API について詳しく説明します。
+
+| メソッド名 | 説明 |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| moengage.dismissMessage() | In-App メッセージを閉じるために、このメソッドをテンプレートに組み込みます |
+| moengage.navigateToScreen("screen-name", "optional-data-json") | テンプレート要素のクリック時にユーザーを特定の画面に遷移させるには、このメソッドを使用します。パラメータ：  "screen-name"：リダイレクト先の画面名  "optional-data-json"：追加のキーと値のペア |
+| moengage.openDeepLink("deeplink-url", "optional-data-json") | HTML In-App テンプレートからディープリンクを開く場合は、このメソッドを使用します  "deeplink-url"：ディープリンク URL  "optional-data-json"：追加のキーと値のペア |
+| moengage.openRichLanding("richlanding-url", "optional-data-json") | アプリの WebView 内で URL を開く場合は、このメソッドを使用します  "richlanding-url"：開きたい URL  "optional-data-json"：追加のキーと値のペア |
+| moengage.openWebURL("web-url", "optional-data-json"). | アプリのデフォルトブラウザで URL を開く場合は、このメソッドを使用します  "web-url"：開きたい URL  "optional-data-json"：追加のキーと値のペア |
+| moengage.copyText("text-to-copy", "message") | HTML In-App テンプレートからクーポンコードやオファーコードをクリップボードにコピーするには、このメソッドを使用します  "text-to-copy"：このテキストがクリップボードにコピーされます  "optional-message"：コピー後にこのメッセージが表示されます |
+| moengage.call("mobile-number") | HTML In-App テンプレートから通話を開始するには、このメソッドを使用します  "mobile-number"：この番号がダイヤラーに表示されます |
+| moengage.sms("mobile-number", "message") | HTML In-App テンプレートから SMS を開始するには、このメソッドを使用します  "mobile-number"：SMS の送信先  "message"：SMS として送信されるメッセージ |
+| moengage.share("share-text") | デバイス上で利用可能な任意のアプリを介して共有アクションを開始するには、このメソッドを使用します。 |
+| moengage.customAction("data-json") | アプリで定義されたカスタムアクションを開始するには、このメソッドを使用します。  "data-json"：キーと値のペア |
+| moengage.showPushOptIn() | iOS 専用です。現在の通知ステータスに基づいて、通知許可のポップアップが表示されるか、通知ステータスを更新できる設定画面に遷移します。 |
+| moengage.navigateToSettings() | デバイスの設定画面に遷移するには、このメソッドを使用します |
+| moengage.trackEvent(eventName, generalAttrJson) | HTML In-App テンプレートからイベントをトラッキングするには、このメソッドを使用します  "eventName"：トラッキングするイベントの名前  "generalAttrJson"：イベントとともにトラッキングされるイベント属性 |
+| moengage.trackClick("widgetId") | キャンペーンのパフォーマンス測定のためにクリック統計をトラッキングするには、このメソッドを使用します。  "widgetId"：オプションの引数で、渡すとクリック分布テーブルの作成に役立ちます。1 つのテンプレートに複数の CTA がある場合に効果的です |
+| moengage.trackDismiss(widgetId) | キャンペーンのパフォーマンス測定および In-App メッセージを閉じたユーザーの特定のために、閉じる操作の統計をトラッキングするには、このメソッドを使用します  "widgetId"：オプションの引数で、渡すとクリック分布テーブルの作成に役立ちます。1 つのテンプレートに複数の閉じる CTA がある場合に効果的です |
+| moengage.setEmailId("value") | ユーザーの email_id を取得するには、このメソッドを使用します。これはユーザープロファイルに自動的に保存され、メールキャンペーンの送信に使用できます。  リード獲得フォームやサインアップフォームで使用できます。  "value"：ユーザーの email_id |
+| moengage.setMobileNumber("value") | ユーザーの携帯電話番号を取得するには、このメソッドを使用します。これはユーザープロファイルに自動的に保存され、SMS キャンペーンの送信に使用できます。  リード獲得フォームやサインアップフォームで使用できます。  "value"：ユーザーの携帯電話番号 |
+| moengage.setUserName("value") | ユーザーの名前を取得するには、このメソッドを使用します。これはユーザープロファイルに自動的に保存されます。  リード獲得フォームやサインアップフォームで使用できます。  "value"：ユーザーのユーザー名 |
+| moengage.setFirstName("value") | ユーザーの名（ファーストネーム）を取得するには、このメソッドを使用します。これはユーザープロファイルに自動的に保存されます。  リード獲得フォームやサインアップフォームで使用できます。  "value"：ユーザーの名 |
+| moengage.setLastName("value") | ユーザーの姓（ラストネーム）を取得するには、このメソッドを使用します。これはユーザープロファイルに自動的に保存されます。  リード獲得フォームやサインアップフォームで使用できます。  "value"：ユーザーの姓 |
+| moengage.setUniqueId() | ユーザーの Client ID を設定するには、このメソッドを使用します。 |
+| moengage.setAlias() | ユーザーの既存の Client ID を更新するには、このメソッドを使用します。 |
+| moengage.setGender() | ユーザーの性別を設定するには、このメソッドを使用します。 |
+| moengage.setBirthDate() | ユーザーの生年月日を設定するには、このメソッドを使用します。 |
+| moengage.setUserLocation(lat, lng) | ユーザーの位置情報（lat,lng）を設定するには、このメソッドを使用します。 |
+| moengage.setUserAttribute(name,value) | 属性のデータ型が文字列、数値、またはブール値の場合に、ユーザーのカスタム属性を設定するには、このメソッドを使用します。  name：トラッキングするユーザー属性の名前  value：トラッキングするユーザー属性の値 |
+| moengage.setUserAttributeDate(name,value) | 属性のデータ型が日付の場合に、ユーザーのカスタム属性を設定するには、このメソッドを使用します  name：トラッキングするユーザー属性の名前  value：ISO 8601 形式のトラッキングするユーザー属性の値 |
+| moengage.setUserAttributeLocation(name,lat,lng) | 属性のデータ型が位置情報の場合に、ユーザーのカスタム属性を設定するには、このメソッドを使用します  name：トラッキングするユーザー属性の名前  lat,lng：ユーザーの位置情報 |
+| moengage.trackRating() | 評価テンプレートからユーザーの評価を取得するには、このメソッドを使用します。 |
+
+後続のセクションでは、各 API の使用方法について詳しく説明します。提供されている JS メソッドは、アクション用の JS メソッドとデータトラッキング用の JS メソッドの 2 つのカテゴリに分類されます。
+
+# アクション
+
+以下のセクションでは、アクション用の JS メソッドについて詳しく説明します。
+
+<Info>
+  **アクション用の JS メソッド**
+
+  アクション用の JS メソッドを HTML テンプレートに統合すると、メッセージを閉じる、画面や Web ページへのリダイレクトなどのナビゲーションアクション、その他 In-App キャンペーンでサポートされているアクションなどのクリック時アクションを実行できます。
+</Info>
+
+# In-App メッセージを閉じる
+
+In-App メッセージを閉じるには、`moengage.dismissMessage()` API を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+moengage.dismissMessage();
+```
+
+</CodeGroup>
+
+<Info>
+  `moengage.dismissMessage()` API を使用している場合は、他の API を使用しないでください。
+</Info>
+
+# ナビゲーションアクション
+
+## 画面への遷移
+
+`moengage.navigateToScreen(<screen-name>, <optional-data-json>)` を使用して画面を開くことができます。
+
+<CodeGroup>
+
+```javascript JavaScript
+var screenName = "com.moengage.sampleapp.ui.activity.MainActivity";
+// Optionally add data json object
+var attributes = {
+  "nav_screen_attr1": "val1",
+  "nav_screen_attr2": 100,
+  "nav_screen_attr3": 123.11,
+  "nav_screen_attr4": true
+};
+    
+moengage.navigateToScreen(value, attributes);
+```
+
+</CodeGroup>
+
+## ディープリンク URL を開く
+
+ディープリンク URL を開くには、`moengage.openDeepLink(<deeplink-url>, <optional-data-json>)` を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+var value = "moengage://testdeeplink/testActivity";
+// Optionally add data json object
+var attributes = {
+  "nav_screen_attr1": "val1",
+  "nav_screen_attr2": 100,
+  "nav_screen_attr3": 123.11,
+  "nav_screen_attr4": true
+};
+moengage.openDeepLink(value, attributes);
+```
+
+</CodeGroup>
+
+## Richlanding 画面を開く
+
+Richlanding 画面を開くには、`moengage.openRichLanding(<richlanding-url>, <data-json>)` を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+var value = "https://www.google.com";
+// Optionally add data json object
+var attributes = {
+  "nav_screen_attr1": "val1",
+  "nav_screen_attr2": 100,
+  "nav_screen_attr3": 123.11,
+  "nav_screen_attr4": true
+};
+moengage.openRichLanding(value, attributes);
+```
+
+</CodeGroup>
+
+## Web URL を開く
+
+Web ブラウザで URL を開くには、`moengage.openWebURL(<web-url>, <optional-data-json>)` を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+var value = "https://www.google.com";
+// Optionally add data json object
+var attributes = {
+  "nav_screen_attr1": "val1",
+  "nav_screen_attr2": 100,
+  "nav_screen_attr3": 123.11,
+  "nav_screen_attr4": true
+};
+    
+moengage.openWebURL(value, attributes);
+```
+
+</CodeGroup>
+
+# テキストをクリップボードにコピー
+
+テキストをクリップボードにコピーするには、`moengage.copyText(<text-to-copy>, <message>)` API を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+moengage.copyText("COUPON100", "Rs.100 OFF!");
+```
+
+</CodeGroup>
+
+# 通話
+
+通話アクションを実行するには、`moengage.call(<mobile-number>` API を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+moengage.call("1234567890");
+```
+
+</CodeGroup>
+
+# SMS
+
+SMS を送信するには、`moengage.sms(<mobile-number>, <message>)` API を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+moengage.sms("1234567890", "Hi There!");
+```
+
+</CodeGroup>
+
+# 共有
+
+文字列コンテンツを共有するには、`moengage.share(<share-text>)` API を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+moengage.share("Content to share");
+```
+
+</CodeGroup>
+
+# カスタムアクション
+
+カスタムアクションを実行するには、`moengage.customAction(<data-json>)` API を使用してデータを設定します。
+
+<CodeGroup>
+
+```javascript JavaScript
+var attributes = {
+  "attr1": "val1",
+  "attr2": 100,
+  "attr3": 123.11,
+  "attr4": {
+    "int": 30
+  }
+};
+moengage.customAction(attributes);
+```
+
+</CodeGroup>
+
+# データトラッキング
+
+以下のセクションでは、データトラッキング用の JS メソッドについて詳しく説明します。
+
+<Info>
+  **データトラッキング用の JS メソッド**
+
+  以下のユースケースでは、データトラッキング用の JS メソッドをテンプレートに統合する必要があります。
+
+  - 統計のトラッキング（クリック、閉じる）
+  - イベントのトラッキング（アンケート、評価、リード獲得向け）
+  - ユーザー属性のトラッキング（リード獲得、サインアップなど向け）
+</Info>
+
+## イベントのトラッキング
+
+イベントをトラッキングするには、`moengage.trackEvent(eventName, generalAttrJson, locationAttrJson, dateAttrJson, isNonInteractive, shouldAttachCampaignMeta)` API を使用します。
+
+trackEvent() は最大 6 つのパラメータを受け取ります。
+
+- eventName：String
+- generalAttrJson：一般属性の JSON オブジェクト。使用可能なデータ型は string、float、boolean、int、JSON オブジェクトです。
+
+<CodeGroup>
+
+```javascript JavaScript
+{
+  " <attribute_name >": " <attribute_value >",
+  " <attribute_name >": " <attribute_value >",
+  ...  
+}
+```
+
+</CodeGroup>
+
+- locationAttrJson：位置情報属性の JSON オブジェクト。属性名と緯度・経度を受け取ります
+
+<CodeGroup>
+
+```javascript JavaScript
+{
+  " <attribute_name >": {
+    "latitude":  <latitude >,
+    "longitude":  <longitude >
+  },
+  " <attribute_name >": {
+    "latitude":  <latitude >,
+    "longitude":  <longitude >
+  },
+  ...
+}
+```
+
+</CodeGroup>
+
+- dateAttrJson：日時属性の JSON オブジェクト。ISO-8601 形式の日付のみを受け付けます
+
+<CodeGroup>
+
+```javascript JavaScript
+{
+  " <attribute_name >": "yyyy-MM-dd'T'HH:mm:ss.fff'Z'",
+  " <attribute_name >": "yyyy-MM-dd'T'HH:mm:ss.fff'Z'",
+  ...
+}
+```
+
+</CodeGroup>
+
+- isNonInteractive：イベントを非インタラクティブにする場合は true、それ以外の場合は false。
+- shouldAttachMetaData：キャンペーンのメタデータをイベントに添付する場合は true、それ以外の場合は false。
+
+<Info>
+  `eventName` パラメータ以外のパラメータは必須ではなく、`{}` を渡すことができます。\
+  パラメータを渡す順序を維持することが重要です。つまり、位置情報属性のみを渡したい場合は、一般属性として `{}` を渡す必要があります。
+
+  一般的なケースでは、イベント名とイベント属性の JSON のみを渡し、その他のパラメータは省略できます。この場合のメソッドは次のようになります - **`moengage.trackEvent("Response_Submitted", {"response1":"johndoe@gmail.com","response2":"approved"})`**
+</Info>
+
+## クリックイベントのトラッキング
+
+ウィジェットのクリックイベントをトラッキングするには、`moengage.trackClick(widgetId)` API を使用します。`<widgetId>` は int または string である必要があり、それ以外の場合、クリックイベントはトラッキングされません。
+
+<CodeGroup>
+
+```javascript JavaScript
+//track click event
+moengage.trackClick("image_1");
+moengage.trackClick(10);
+```
+
+</CodeGroup>
+
+## 閉じる操作のトラッキング
+
+In-App を閉じるイベントをトラッキングするには、`moengage.trackDismiss(widgetId)` API を使用します。`<widgetId>` は int または string を指定できます。渡されない場合、閉じるイベントは widgetID なしでトラッキングされます。渡されない場合、イベントは `<widgetId>` なしでトラッキングされます。
+
+<CodeGroup>
+
+```javascript JavaScript
+moengage.trackDismiss("dismiss_btn_1");
+moengage.trackDismiss(1);
+```
+
+</CodeGroup>
+
+## 閉じる操作のトラッキング（非推奨 - 代わりにウィジェット ID を指定する上記の API を使用してください）
+
+In-App を閉じる操作をトラッキングするには、`moengage.trackDismiss()` API を使用します。
+
+<CodeGroup>
+
+```javascript JavaScript
+moengage.trackDismiss();
+```
+
+</CodeGroup>
+
+## デフォルトユーザー属性のトラッキング
+
+デフォルトのユーザー属性をトラッキングするために、以下の JavaScript メソッドを使用できます。
+
+| API 名 | API の説明 |
+| ---------------------------- | ---------------------------------------------------------------------------- |
+| moengage.setAlias() | 以前に \`moengage.setUniqueId() で設定されたユーザーの一意の ID を更新します |
+| moengage.setUniqueId() | ユーザーの UniqueId を設定します |
+| moengage.setUserName() | ユーザー名を設定します |
+| moengage.setFirstName() | ユーザーの名を設定します |
+| moengage.setLastName() | ユーザーの姓を設定します |
+| moengage.setEmailId() | ユーザーのメール ID を設定します |
+| moengage.setMobileNumber() | ユーザーの携帯電話番号を設定します |
+| moengage.setGender() | ユーザーの性別を設定します（"male"/"female"/"other"） |
+| moengage.setBirthDate() | ユーザーの誕生日を設定します  注：値は ISO-8601 形式の日付である必要があります。 |
+| moengage.setUserLocation(, ) | ユーザーの位置情報を設定します |
+| moengage.trackRating() | ユーザー入力アクションの評価をトラッキングします |
+
+例：
+
+<CodeGroup>
+
+```javascript JavaScript
+// Set alias            
+moengage.setAlias("user-alias");
+// Set UniqueId
+moengage.setUniqueId("unique-id");
+// Set user name        
+moengage.setUserName("John Doe");
+// Set user first name
+moengage.setFirstName("Jane");
+//Set user last name                     
+moengage.setLastName("Doe");
+// Set Email id                    
+moengage.setEmailId("abc@abc.com");
+// Set mobile number
+moengage.setMobileNumber("1234567890");
+// Set User gender
+moengage.setGender("female");
+// Set user birthday    
+moengage.setBirthDate("2017-08-02T06:05:30.000Z");
+//Set user location       
+moengage.setUserLocation(3.0539652, 77.672683);     
+// Set rating value       
+moengage.trackRating(4.5);
+```
+
+</CodeGroup>
+
+## カスタムユーザー属性のトラッキング
+
+カスタムユーザー属性をトラッキングするために、以下の JavaScript メソッドを使用できます。
+
+| API 名 | API の説明 |
+| --------------------------------------- | ------------------------- |
+| moengage.setUserAttribute(, ) | カスタムユーザー属性を設定します |
+| moengage.setUserAttributeDate(, ) | カスタムユーザー日付を設定します |
+| moengage.setUserAttributeLocation(, , ) | カスタムユーザー位置情報を設定します |
+
+例：
+
+<CodeGroup>
+
+```javascript JavaScript
+// Set custom user attribute
+moengage.setUserAttribute("int", 100);
+moengage.setUserAttribute("float", 10.5);
+moengage.setUserAttribute("String", "test");
+moengage.setUserAttribute("Boolean", true);
+
+//Set custom date attribute
+moengage.setUserAttributeDate("Date1", "2017-08-02T06:05:30.000Z");
+
+//Set custom user location
+moengage.setUserAttributeLocation("Location 1", 3.0539652, 77.672683);
+```
+
+</CodeGroup>

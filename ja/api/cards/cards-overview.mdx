@@ -1,0 +1,57 @@
+---
+title: "Cards の概要"
+description: "MoEngage Cards API を使用して、アプリケーションのユーザー固有のカードを取得、フィルタリング、削除できます。"
+icon: "file-magnifying-glass"
+---
+
+MoEngage Cards API を使用すると、MoEngage データベースからユーザー固有のカードを取得および削除できます。これらのエンドポイントを使用して、ユーザーのカードを取得し、プラットフォームやカテゴリでフィルタリングし、前回の同期以降の更新を確認し、特定のカードキャンペーンを削除できます。
+
+<Info>
+  お使いのアカウントでこの API が有効になっていない場合は、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームに連絡して、有効化をリクエストしてください。
+</Info>
+
+## エンドポイント
+
+Cards API は、次のエンドポイントで構成されています。
+
+- [Fetch Cards](/ja/api/cards/fetch-cards-for-user): 特定のユーザーのアクティブなカードと更新されたカードをすべて取得します。フィルタリングとページネーションをサポートしています。
+- [Delete Cards](/ja/api/cards/delete-cards-for-user): MoEngage Cards データベースから、ユーザーの特定のカードキャンペーンを削除します。
+
+## よくある質問
+
+### Fetch Cards
+
+<AccordionGroup>
+  <Accordion title="前回の同期以降に更新されたカードのみを取得するにはどうすればよいですか?" icon="sparkles">
+    リクエスト本文で `prev_sync_card_ids` (前回の同期時のカード ID のリスト) と `last_updated_time` (前回の同期の Unix エポックタイムスタンプ) フィールドを使用できます。API は新規または更新されたカードのみを返します。
+  </Accordion>
+  <Accordion title="プラットフォームやカテゴリでカードをフィルタリングできますか?" icon="sparkles">
+    はい。リクエスト本文で、`platforms` 配列 (例: `["ANDROID", "WEB"]`) を使用してプラットフォームでフィルタリングし、`card_category` 文字列フィールドを使用してカテゴリでフィルタリングできます。
+  </Accordion>
+  <Accordion title="ユーザーにはどの識別子を使用すればよいですか?" icon="sparkles">
+    `uid` (メールアドレスや携帯電話番号などの MoEngage Standard ID) または `unique_id` (プラットフォーム固有のデバイス識別子) のいずれかを指定する必要があります。どちらか一方が必須です。
+  </Accordion>
+  <Accordion title="unique_id と uid の違いは何ですか?" icon="sparkles">
+    _unique_id_ は、カードを表示する対象のユーザーを識別する一意の値です。これは生成可能なプラットフォーム固有のデバイス識別子です。 
+
+    _uid_ は、ユーザーを識別する一意の MoEngage Standard ID (Email ID Standard または Mobile Number Standard) です。
+  </Accordion>
+</AccordionGroup>
+
+### Delete Cards
+
+<AccordionGroup>
+  <Accordion title="Delete API でリクエスト本文が必要なのはなぜですか?" icon="sparkles">
+    Delete Cards API では複雑なフィルタリングパラメーター (キャンペーン ID、特定のプラットフォーム、ユーザー識別子) が必要であり、これらは JSON 本文で送信するのが最適です。ただし、これは `DELETE` リクエストの標準的な REST パターンとは異なります。
+  </Accordion>
+  <Accordion title="特定のプラットフォームのカードのみを削除できますか?" icon="sparkles">
+    はい。リクエスト本文で `platforms` 配列 (例: `["android"]`) を指定すると、それらの特定のプラットフォームからのみカードを削除できます。省略した場合は、関連付けられているすべてのプラットフォームから削除されます。
+  </Accordion>
+  <Accordion title="unique_id と uid の違いは何ですか?" icon="sparkles">
+    _unique_id_ は、カードを削除する対象のユーザーを識別する一意の値です。これは生成可能なプラットフォーム固有のデバイス識別子です。_uid_ は、ユーザーを識別する一意の MoEngage Standard ID です。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+API を簡単にテストできるようにしています。Postman コレクションを表示するには、[こちら](https://www.postman.com/moengage-dev/api-docs/collection/dpuqrlz/moengage-cards)をクリックしてください。

@@ -1,0 +1,54 @@
+---
+title: "Brand Indicators for Message Identification（BIMI）"
+description: "BIMI を設定して、Gmail、Yahoo、その他のプロバイダーの受信トレイに認証済みのブランドロゴを表示します。ブランドの認知度と送信者の信頼性を高めることができます。"
+---
+
+# 概要
+
+[BIMI](https://bimigroup.org/) は、[DMARC](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-glossary#dmarc) を基盤として構築された新しい技術です。
+
+**from address** にプロフィール画像を追加するのとは異なり、BIMI ではドメインに商標登録済みのロゴが付与され、BIMI をサポートするすべての ISP（Gmail、Yahoo、Proofpoint など）で表示されます。BIMI ロゴは、ブランディングの追加手段であると同時に、送信者の真正性を証明するものでもあります。
+
+# ブランドの BIMI の設定
+
+以下の手順に従ってブランドの BIMI を設定することで、即座にブランドを認知してもらい、ユーザーエクスペリエンスを向上させることができます。
+
+1. ドメインが BIMI の基準を満たしているかどうかを確認します。詳細については、[こちら](https://bimigroup.org/bimi-generator/)を参照してください。
+2. ルートドメインとサブドメインには、厳格な（pct=100 で reject または quarantine の）[DMARC](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-glossary) が設定されている必要があります。ルートドメインには SPF レコードと MX レコードも必要です。詳細については、[こちら](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/email-authentication-basics)を参照してください。\
+   例:
+   <CodeGroup>
+   ```text Code wrap
+   host -t txt _dmarc.moengage.com
+   _dmarc.moengage.com descriptive text "v=DMARC1; p=reject; sp=reject; pct=100; rua=mailto:dmarc@moengage.com; ruf=mailto:dmarc@moengage.com; fo=1"
+   ```
+   </CodeGroup>
+3. ブランドロゴの商標を登録します。
+4. 商標登録済みのブランドロゴの [SVG ファイル](https://support.google.com/a/answer/10911027)を作成し、Web サーバーにアップロードします。例: [MoEngage Logo](https://www.moengage.com/wp-content/uploads/Moengage-bimi.svg)、[Uber Logo](https://amplify.valimail.com/bimi/uber/WSc5-ZpWcvs-uber_tinyps_v4.svg)。
+5. ブランドロゴの VMC を取得します。
+   1. [VMC](https://support.google.com/a/answer/10911320?hl=en&ref_topic=10911234&sjid=5910716346830014538-AP&visit_id=638557578844068111-1183592240&rd=1) を申請します。
+   2. 現在、利用可能な VMC プロバイダーは [Entrust DataCard](https://www.entrust.com/products/digital-certificates/verified-mark) と [DigiCert](https://www.digicert.com/tls-ssl/verified-mark-certificates) です。Gmail では、認証済みの VMC がある場合にのみ受信トレイにブランドロゴが表示されます。一部のメールクライアントでは VMC は任意ですが、Gmail で BIMI を機能させるには VMC が必要です。
+6. BIMI レコードを[作成](https://bimigroup.org/bimi-generator/)して公開します。BIMI レコードやその他の[前提条件はこちら](https://bimigroup.org/bimi-generator/)で確認することもできます。
+7. 送信したメールにロゴが表示されるまで 2～3 日かかる場合があります。
+
+# BIMI が重要な理由
+
+BIMI は、視覚的なアイデンティティを確立するための手段です。BIMI の適用には厳格な認証が必要なため、ブランドドメインのなりすましの防止にも役立ちます。
+
+- BIMI は DMARC を基盤としているため、ルートドメインとサブドメインには厳格な DMARC ポリシーが必要であり、これによりドメインのなりすましが防止されます。
+- ユーザーの受信トレイにブランドロゴが表示されることで、常に真正性が高まり、信頼性、ひいてはエンゲージメントの向上につながります。
+- Gmail は現在（2023 年 5 月）、BIMI ユーザー向けに認証済みの青いチェックマークを導入しました。これは一般的に誰もが見慣れている真正性の証です。これにより、「本物の」送信者が他の送信者と区別され、顧客との信頼関係が構築されます。
+- 間接的には、進化する技術、特に厳格な認証ポリシーとブランディングに基づく技術に対応し続けることは、最新の状態を保ちベストプラクティスに沿っていることを ISP に示す良い指標となります。
+
+# 青い認証済みチェックマーク
+
+BIMI は DMARC と認証を基盤として構築されているため、一部の MBP は BIMI に加えて追加の視覚的ブランディングを導入しています。有効な BIMI が設定されているすべてのドメインでは、以下に示すように送信者名に青いチェックマークが表示されるようになりました。
+
+<img
+  src="/images/moengage_58686c.png"
+  alt="Screenshot 2024-05-21 at 00.27.19.png"
+  style={{ width:"78%" }}
+/>
+
+<Info>
+  BIMI による Gmail のセキュリティ強化に関する詳細については、[こちら](https://workspaceupdates.googleblog.com/2023/05/expanding-gmail-security-BIMI.html)を参照してください。
+</Info>

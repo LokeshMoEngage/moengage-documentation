@@ -1,0 +1,84 @@
+---
+title: "MoEngage での Huawei Push の設定"
+description: "MoEngage ダッシュボードで Huawei Push Kit のコールバック URL と HTTPS 証明書を設定します。"
+---
+
+# 開発者ガイド
+
+アプリケーションで Push Kit を設定済みであることを確認してください。設定には以下を使用します。
+
+- [HMS Push Kit の概要](https://developer.huawei.com/consumer/en/doc/development/HMS-Guides/push-introduction)
+- [Push Receipt](https://developer.huawei.com/consumer/en/doc/development/HMS-Guides/push-receipt#receiptright)
+
+# MoEngage コールバック URL
+
+| 新しいデータセンター | 新しいコールバック URL                        | 旧コールバック URL                        |
+| -------------- | --------------------------------------- | --------------------------------------- |
+| Data Center 1  | https://api-01.moengage.com/hmspush/dlr | https://smsapi.moengage.com/hmspush/dlr |
+| Data Center 2  | https://api-02.moengage.com/hmspush/dlr | https://smsapi.moengage.com/hmspush/dlr |
+| Data Center 3  | https://api-03.moengage.com/hmspush/dlr | https://smsapi.moengage.com/hmspush/dlr |
+| Data Center 4  | https://api-04.moengage.com/hmspush/dlr | NA                                      |
+
+受信者を有効にする際に、コールバックアドレスの URL を更新してください。
+
+## MoEngage コールバック URL の HTTPS 証明書
+
+- コールバック受信を有効にする際は、中国リージョン以外のデータストレージを選択してください。
+- 受信者を有効にする際に、以下のスクリプトを使用して HTTPS 証明書を生成します。詳細については、[Push Receipt](https://developer.huawei.com/consumer/en/doc/development/HMS-Guides/push-receipt#receiptright) を参照してください。
+
+<CodeGroup>
+
+```python HTTPS certificate generation using Python wrap
+import ssl
+print(ssl.get_server_certificate(('dashboard-01.moengage.com', 443)))
+```
+
+</CodeGroup>
+
+# Huawei Push の設定
+
+MoEngage ダッシュボードで Huawei を設定するには、以下の手順に従います。
+
+1. **Settings \> Channels \> Push \> App Push \> Huawei (Push Amp+)** に移動します。
+2. 上部のメニューにあるプラットフォームから Huawei (Push Amp+) を選択します。
+
+   ![Mceclip0(1)](/images/mceclip0\(1\).png)
+
+## App ID
+
+[Huawei Developer Console](https://developer.huawei.com/) で、以下の順に移動して App ID を取得します。\
+**Login \> AppGallery Connect \> My Apps \> Select Your App \> Distribute \> App Information**
+
+![Appsecret](/images/appsecret.png)
+
+## App Secret
+
+[Huawei Developer Console](https://developer.huawei.com/) で、以下の順に移動して App Secret を取得します。\
+**Login \> AppGallery Connect \> My Apps \> Select Your App \> Distribute \> App Information**
+
+![Appsecret1](/images/appsecret1.png)
+
+## パッケージ名
+
+アプリケーションのパッケージ名は、Play ストアがアプリケーションを識別するための一意の識別子です。アプリケーションのパッケージは、アプリケーションモジュールの **build.gradle** ファイルで確認できます。
+
+![Packagename](/images/packagename.png)
+
+デバッグビルドと署名済みビルドでパッケージ名が異なる場合は、Test/Live 環境でそれぞれのパッケージ名を設定してください。
+
+## Small Icon Path
+
+通知アイコンは通知メッセージの重要な要素であり、メッセージの内容と種類を識別するために使用されます。一貫したユーザーエクスペリエンスを確保するため、_HUAWEI Push Kit の通知アイコン_はネイティブ Android 通知アイコンのスタイルを継承します。
+
+つまり、通知バーの通知アイコンは単色で表示され、ステータスバーの通知アイコンは黒または白で表示されます。ステータスバーと通知バーは同じリソースを共有します。詳細については、[ガイドラインドキュメント](https://developer.huawei.com/consumer/en/doc/development/HMS-Guides/push-icon-spec)を参照してください。
+
+ 
+
+<img
+  src="/images/smalliconpath.png"
+  alt="Smalliconpath"
+  style={{ width:"48%" }}
+  title="Smalliconpath"
+/>
+
+アイコンファイルは、アプリの /res/raw ディレクトリに保存する必要があります。たとえば、値 **/raw/ic_launcher** は、**/res/raw** に保存されているローカルアイコンファイル **ic_launcher.xxx** を示します。現在サポートされているファイル形式は PNG と JPG です。

@@ -1,0 +1,204 @@
+---
+title: "Passkit"
+---
+
+# はじめに
+
+Passkit を使用すると、Apple Wallet と Google Pay のパスを顧客体験に統合することで、モバイルでのリーチを拡大できます。顧客が別のアプリを必要とすることなく、デジタルクーポン、ロイヤルティカード、会員カード、チケットなどを簡単に作成、管理、配布し、そのパフォーマンスを分析できます。
+
+# MoEngage × Passkit
+
+MoEngage と Passkit の統合により、Passkit で生成されたパスを MoEngage キャンペーンを通じてオーディエンスに送信し、ロイヤルティプログラムやクーポンプログラムを拡張できます。
+
+この統合により、次のことが可能になります。
+
+1. パスのインタラクションイベントを Passkit から MoEngage に送信する。
+2. Passkit の [SmartPass Links](https://help.passkit.com/en/articles/7731041-introduction-to-smartpass-links) を使用して、その場でパスを作成する。
+
+# 統合の前提条件
+
+- Passkit アカウントにアクセスできることを確認してください。
+- MoEngage の Data API キーを用意してください。
+- Data API ID と Data API Key は、**Settings** -\> **Account** -\> **APIs** で確認できます。Data API ID は **Workspace ID** と同じです。Data API Key は、同じ画面の **API Keys** -\> **Data** セクションで確認できます。
+
+## パスのインタラクションイベントを Passkit から MoEngage に送信する
+
+Passkit ダッシュボード内から MoEngage にデータを渡すことで、顧客のモバイルウォレット体験を強化できます。共有できるデータポイントの例は次のとおりです。
+
+1. Pass created: 新しいパスが作成されたときにイベントを追跡します。
+2. Pass updated: パスが更新されたときにイベントを追跡します。
+3. Pass installed: ユーザーがデジタルウォレットにパスを追加したときにイベントを追跡します。
+4. Pass deleted: メンバーレコードが削除されたときにイベントを追跡します。
+5. Pass uninstalled: ユーザーがウォレットからパスを削除したときにイベントを追跡します。
+6. Pass invalidated: パスレコードが無効化されたときにイベントを追跡します。
+
+データが MoEngage に渡されると、これらのアクションが実行された後に、セグメントの作成、パーソナライズされたコンテンツの送信、キャンペーンのトリガーを行うことができます。
+
+### ステップ 1: MoEngage の Data API 認証情報を取得する
+
+MoEngage Dashboard で、Workspace ID と Data API Key を控えておきます。
+
+| **フィールド** | **説明** |
+| --- | --- |
+| Workspace ID | MoEngage アカウントの Workspace ID は、**Settings - \> Account -\> APIs -\>Workspace ID** で確認できます。MoEngage アカウントの Data API ID と Workspace ID は同じです。 |
+| Data API Key | MoEngage アカウントの Data API key は、\*\*Settings - \> Account -\> APIs -\> API keys \*\*\>**Data** API settings で確認できます。 |
+
+### ステップ 2: Passkit で MoEngage 統合を設定する
+
+1. Passkit Dashboard にログインします。イベントを追跡したいキャンペーンに移動します。
+2. キャンペーン内で、_Settings \>\> Integrations_ タブ (Campaign Details の隣) に移動します。<img src="/images/partner_7260270815636.png" alt="Step1.png" />
+3. 一覧から MoEngage を選択します。Configure ボタンをクリックします。 <img src="/images/partner_7260374336020.png" alt="Step2.png" />
+4. フォームに入力します。
+   - API キーを入力します (ステップ 1 でコピーしたもの)
+   - Workspace ID を入力します (ステップ 1 でコピーしたもの)
+   - MoEngage アカウントを識別するための名前を指定します
+   - データセンターを選択します。MoEngage のデータセンターについては[こちら](/ja/user-guide/data/key-concepts/data-centers-in-moengage)をご覧ください <img src="/images/partner_7267126076052.png" alt="Screenshot_2022-06-24_at_12.19.43_AM.png" />
+5. Integration トグルを有効にします。
+6. MoEngage でキャンペーンのトリガーやパーソナライズに使用するパスイベントを選択します。
+7. "Save" をクリックします。
+
+### ステップ 3: MoEngage でイベントを追跡する
+
+これで、Passkit のイベントに基づいてカスタムセグメントを作成したり、MoEngage キャンペーンでイベントを使用したりできるようになりました。
+
+![Step5.png](/images/partner_7260429923476.png)
+
+## Passkit の SmartPass Links を使用してその場でパスを作成する
+
+[MoEngage のテンプレート言語](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language)を使用し、Passkit が提供する SmartPass Links を呼び出すことで、ユーザー向けのパスを動的に作成できます。SmartPass Links は、特別にハッシュ化された URL を使用してその場でパスを作成するために使用されます。これらのリンクの仕組みについて詳しくは、Passkit の [Introduction to SmartPass links](https://help.passkit.com/en/articles/7731041-introduction-to-smartpass-links) をご覧ください。
+
+### 前提条件
+
+SmartPass Links を作成するには、次のものが必要です。
+
+1. Passkit URL - PassKit Dashboard の Distribution \>\> SmartPass Settings で取得できます。
+2. PassKit Secret - 各 PassKit プロジェクトには、リンクの署名 HMAC ハッシュの作成に使用される一意のシークレットがあります。これは Passkit Dashboard 内の Distribution タブ \>\> Generate Pass Links \>\> Commmand Line Tool で確認できます。
+3. Program (またはプロジェクト) ID - PassKit の Program ID は、プロジェクトまたはプログラムの **Settings** タブにあります。
+
+### ステップ 1: Passkit の Program/Project URL を取得する
+
+Passkit の Program/Project URL は、Passkit プロジェクトの Distribution タブにあります。この URL を値とする新しい変数を作成します。
+
+`{% set projectUrl = "https://pub1.pskt.io/c/a4hrop" %}`
+
+### ステップ 2: ペイロードを生成する
+
+ペイロードには、パスレコードに含める必要があるクーポン/メンバー、PII、メタデータを含めることができます。
+
+<CodeGroup>
+
+```json JSON wrap
+{ 
+    "person.externalId": "UserAttribute['MoEngage_ID']",
+    "person.forename": "UserAttribute['First Name']", 
+    "person.surname": "UserAttribute['Last Name']", 
+    "person.emailAddress": "UserAttribute['Email (Standard)'] ",
+    "person.displayName": "UserAttribute['First Name']" + " " + "UserAttribute['Last Name']", 
+    "person.mobileNumber": "UserAttribute['Mobile Number (Standard)']"
+}
+```
+
+</CodeGroup>
+
+_サポートされているフィールドの完全な一覧については、こちらをご覧ください: [https://github.com/PassKit/smart-pass-link-from-csv-generator#available-field-names](https://github.com/PassKit/smart-pass-link-from-csv-generator#available-field-names)_
+
+このチュートリアルでは、上記のペイロードを使用します。次に、このペイロードを JINJA 互換の形式に変換し、別の変数に格納する必要があります。
+
+<CodeGroup>
+
+```jinja JINJA wrap
+{% set passData = "{\"person.externalId\": \"" + UserAttribute['MoEngage_ID']|default('12345') + "\",\"person.surname\": \"" + UserAttribute['Last Name'] + "\",\"person.forename\": \"" + UserAttribute['First Name'] + "\",\"person.emailAddress\": \"" + UserAttribute['Email (Standard)'] + "\",\"person.displayName\":\"" + UserAttribute['First Name'] + " " + UserAttribute['Last Name'] + "\",\"person.mobileNumber\":\"" + UserAttribute['Mobile Number (Standard)'] + "\",}\"" %}
+```
+
+</CodeGroup>
+
+メールが正しく解析されるように、引用符と構文を再確認してください。
+
+### ステップ 3: ペイロードをエンコードする
+
+次のステップでは、ペイロードを base64 形式にエンコードします。
+
+```text
+{% set base64JsonPayload = passData|base64encode %}
+```
+
+### ステップ 4: URL 文字列を作成する
+
+エンコードされたペイロードを取得したら、最終的な URL 文字列は次の形式になります。
+
+```text wrap
+https://pub1.pskt.io/c/&#123;programId or campaignId}?data={base64JsonPayload}&sig={signatureHash}
+```
+
+これを行うには、テンプレート言語を使用します。
+
+```text
+{% set url = projectUrl + "?data=" + base64JsonPayload %}
+```
+
+### ステップ 5: URL 全体のハッシュを生成する
+
+各 PassKit プロジェクトには、リンクの署名 HMAC ハッシュの作成に使用される一意のシークレットがあります。これは Passkit Dashboard の Distribution タブで確認できます。
+
+![Step11.png](/images/partner_7721179467796.png)
+
+上記のサンプルについて、サンプルリンクの SHA256 HMAC を作成してみましょう。
+
+```text
+{% set sig = url|convertToSHA256('{YOUR-PROJECT-SECRET} ') %}
+```
+
+### ステップ 6: 最終的な SmartPass URL を作成する
+
+あとは、上記のすべての変数をつなぎ合わせて SmartPass URL を作成するだけです。
+
+```text wrap
+{% set longURL = projectUrl + "?data=" + base64JsonPayload + "&sig=" + sig %}
+```
+
+### ステップ 7: キャンペーンでこのリンクを使用する
+
+最終的なコードは次のようになります。
+
+<CodeGroup>
+
+```jinja JINJA wrap
+{% set projectUrl = "https://pub1.pskt.io/c/a4hrop" %}
+{% set passData = "{\"person.externalId\": \"" + UserAttribute['MoEngage_ID']|default('12345') + "\",\"person.surname\": \"" + UserAttribute['Last Name'] + "\",\"person.forename\": \"" + UserAttribute['First Name'] + "\",\"person.emailAddress\": \"" + UserAttribute['Email (Standard)'] + "\",\"person.displayName\":\"" + UserAttribute['First Name'] + " " + UserAttribute['Last Name'] + "\",\"person.mobileNumber\":\"" + UserAttribute['Mobile Number (Standard)'] + "\",}\"" %}
+{% set base64JsonPayload = passData|base64encode %}
+{% set url = projectUrl + "?data=" + base64JsonPayload %}
+{% set sig = url|convertToSHA256('0WfoVtZ7MrJSfrHVuiESxZ') %}
+{% set longURL = projectUrl + "?data=" + base64JsonPayload + "&sig=" + sig %}
+```
+
+</CodeGroup>
+
+[Google](https://developers.google.com/pay/passes/guides/get-started/api-guidelines/button-guidelines) (Android) と [Apple](https://developer.apple.com/wallet/Add-to-Apple-Wallet-Guidelines.pdf) (iOS) それぞれのデザイン仕様に従って、パスの保存ボタンを追加します。
+
+1. テンプレート内に新しい画像を挿入します。
+2. File Manager で "Import" をクリックし、URL を選択します。 <img src="/images/partner_22017212132628.png" alt="importimage.png" />
+
+参考までに、URL は次のとおりです。
+
+Android の場合:
+
+```text wrap
+https://messagecontent-public.s3.amazonaws.com/wallet/add-to-wallet-buttons/Save_to_Google_Pay.svg
+```
+
+Apple の場合:
+
+```text wrap
+https://messagecontent-public.s3.amazonaws.com/wallet/add-to-wallet-buttons/Add_to_Apple_Wallet.svg
+```
+
+3. 表示する適切な画像を選択します。
+4. URL セクションに次のように入力します。
+
+`{{longURL}}`
+
+<Frame>
+  ![Passkit](/images/passkit.png)
+</Frame>
+
+これで準備は完了です。キャンペーンをテストして確認できます。

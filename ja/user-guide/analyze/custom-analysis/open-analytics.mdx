@@ -1,0 +1,123 @@
+---
+title: "Open Analytics"
+description: "Open Analytics を使用して MoEngage のデータウェアハウスに直接クエリを実行し、SQL クエリの実行、可視化の作成、API またはコンソールを介したデータのエクスポートを行います。"
+---
+
+グロースチームは、日々の業務のために多くのデータ分析を行う必要があります。この分析には、適切なタイミングで正しいデータにアクセスできることが必要です。MoEngage Open Analytics を使用すると、グロースチームは MoEngage プラットフォーム上の最新データにデータストレージから直接リアルタイムでアクセスできます。MoEngage では、お客様がデータウェアハウスに直接クエリを実行して、必要なデータを取得できます。
+
+## Open Analytics の機能
+
+MoEngage Open Analytics は、次のような用途に役立ちます。
+
+1. コンソールから、または API を介してプログラムで、SQL クエリを使用してデータを読み取り、クエリを実行する
+2. 利用可能な組み込みの可視化方法を使用して、Open Analytics コンソール上でデータを可視化する
+
+<Info>
+  MoEngage Open Analytics はデータエクスポートには適していません。データエクスポートには、[MoEngage Streams](https://www.moengage.com/docs/api/data/moengage-streams) または [S3 exports](/ja/user-guide/data/exports/events/data-warehouse/s3-exports) を使用してください。
+</Info>
+
+## Open Analytics を有効にする
+
+MoEngage で Open Analytics を有効にするには、次の 2 つの情報が必要です。
+
+1. ユーザーのメール ID
+2. 静的 IP アドレス(VPN の IP でも構いません。必ず静的 IP を提供してください。ネットワークプロバイダーから提供される IP は機能しません)
+
+## データカテゴリ
+
+MoEngage システムで受信するすべてのデータは、次の 3 種類に分類できます。
+
+1. デバイスデータ
+2. ユーザーデータ
+3. イベントデータ
+
+データは SDK および S2S イベントを使用して収集され、イベントとともに処理および保存されます。
+
+## データスキーマ
+
+MoEngage は、すべてのデバイス属性とイベント属性を処理し、イベントごとに個別のイベントテーブルに保存します。
+
+テーブル名 - account_name.event_name
+
+| attribute 1 | attribute 2 | attribute 3 | --  | attribute n-1 | attribute n |
+| ----------- | ----------- | ----------- | --- | ------------- | ----------- |
+| ...         | ...         | ...         | ... | ...           | ...         |
+| ...         | ...         | ...         | ... | ...           | ...         |
+
+分析の時間枠は、属性 **day** を使用して選択できます。このパーティション時間はすべてのテーブルで機能します。**コストを抑えるため、クエリでは必ずこれを使用してください。**
+
+例
+
+<CodeGroup>
+
+```sql SQL
+SELECT server_time, COUNT(server_time) as metric
+FROM
+"account_name"."moe_app_opened_828"
+WHERE
+day >= '2022-01-01'
+GROUP BY 1
+ORDER BY 1
+```
+
+</CodeGroup>
+
+イベントテーブルは、**user_id** などの共通のキー/属性を使用して結合できます。
+
+<CodeGroup>
+
+```sql SQL wrap
+SELECT user1
+FROM
+(SELECT user_id AS user1 FROM "account_name"."uptete_spa") table1
+INNER JOIN
+(SELECT user_id AS user2 FROM "account_name"."moe_user_merge") table2
+ON table1.user1 = table2.user2
+```
+
+</CodeGroup>
+
+### イベントと属性の命名規則
+
+イベント名は 'EventName_XXX' という構造になっています。例: moe_app_opened_828\
+イベント属性名は 'Datatype_AttributeName_XXX' という構造になっています。例: string_activity_name_880
+
+### ユーザー属性
+
+ユーザー属性はユーザーテーブルに保存され、テーブルは毎日 1 回更新されます。\
+テーブル名 - **users_base_table**  **MoEngage が生成したユーザー ID の列 - user_id**
+
+| attribute 1 | attribute 2 | attribute ... | attribute n |
+| ----------- | ----------- | ------------- | ----------- |
+| ...         | ...         | ...           | ...         |
+| ...         | ...         | ...           | ...         |
+
+## 重要な属性情報
+
+(これらの属性はすべてのイベントに存在する必要があります)
+
+1. **day** - この属性を使用して分析の時間枠を選択できます\*\*。\*\* このパーティション時間はすべてのテーブルで機能します。これはテーブルの日付属性とみなしてください。
+2. **server_time** - イベントが MoEngage サーバーに到達した UTC 時刻。
+3. **user_id** - MoEngage が生成したユーザー ID です。
+4. **string_uid_125** - お客様のアプリ/サイトが生成したユーザー ID です。
+5. **original_event_name** - イベント名
+6. **user_time** - ローカルタイムゾーンでのイベント時刻
+
+## Open Analytics 利用のベストプラクティス
+
+1. クエリのパフォーマンスを最適化するために、クエリでは **day** を使用してください。使用しない場合、MoEngage はテーブル全体をスキャンするため、スキャンコストが高くなります。
+2. MoEngage はカラムナーデータベースで動作するため、分析に必要な列(属性)のみを使用できます。不要な列を使用すると、コストが増加し、クエリのパフォーマンスが低下します。
+3. クエリを最適化するには、[ベストプラクティス](https://aws.amazon.com/blogs/big-data/top-10-performance-tuning-tips-for-amazon-athena/)を参照してください。
+4. Athena SQL クエリの作成に関する一般的なガイド -\
+   [https://docs.aws.amazon.com/athena/latest/ug/querying-athena-tables.html](https://docs.aws.amazon.com/athena/latest/ug/querying-athena-tables.html)
+
+## データへのプログラムによるアクセス
+
+Python や Java のコードを使用してデータを読み取れるように、Open Analytics では既存のクエリを利用してレポートを生成する API を提供しています。詳細については、[API の使用](https://redash.io/help/user-guide/integrations-and-api/api)を参照してください。
+
+## サンプルクエリ
+
+1. [Key Metrics Queries](/ja/user-guide/analyze/analytics-how-to/key-metrics-queries-for-open-analytics)
+2. [Reachability Queries](/ja/user-guide/analyze/analytics-how-to/reachability-queries-for-open-analytics)
+
+さらにサポートが必要な場合は、MoEngage のカスタマーサクセスマネージャー(CSM)またはサポートチームにお問い合わせください。

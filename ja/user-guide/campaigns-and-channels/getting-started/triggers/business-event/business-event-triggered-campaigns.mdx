@@ -1,0 +1,236 @@
+---
+title: "ビジネスイベントトリガーキャンペーン"
+description: "MoEngage で、商品の再入荷や新規リリースなどのビジネスイベントによってトリガーされるキャンペーンを作成し、関連するユーザーセグメントを自動的にターゲティングします。"
+---
+
+# 概要
+
+ビジネスイベントトリガーキャンペーンは、システム内で特定のビジネスイベントが発生したときに顧客にメッセージを送信します。これらのキャンペーンを作成して使用するには、次の主な手順に従います。
+
+1. API を使用して MoEngage で[ビジネスイベントを作成します](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/business-event-triggered-campaigns#create-the-business-event)。
+2. このイベントを使用する[ビジネスイベントトリガーキャンペーンを作成します](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/business-event-triggered-campaigns#create-a-business-event-triggered-campaign)。
+3. [ビジネスイベントをトリガーします](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/business-event-triggered-campaigns#trigger-the-business-event)。
+
+ビジネスイベントトリガーキャンペーンは、次のようなシナリオで活用できます。
+
+- OTT プラットフォームが新しいシリーズをリリースし、類似のコンテンツを視聴しているユーザーに通知したい場合。
+- 商品が再入荷し、以前にその商品を閲覧したユーザーに知らせる必要がある場合。
+- フライトや列車が遅延し、チケットを購入したユーザーにこの情報を伝える必要がある場合。
+
+## ビジネスイベントを作成する
+
+[Create Business Event API](https://www.moengage.com/docs/api/business-events/create-business-event) を使用して、NewSeriesAlert などのビジネスイベントを作成します。これは通常、イベントとその属性を定義するための 1 回限りの設定です。サンプルペイロードを以下に示します。
+
+<CodeGroup>
+
+```json Sample Payload wrap
+--data '{
+"event_name": "NewSeriesAlert",
+"event_attributes": [
+{
+"attribute_name": "season",
+"attribute_data_type": "string"
+},
+{
+"attribute_name": "episodes",
+"attribute_data_type": "int"
+},
+{
+"attribute_name": "cast",
+"attribute_data_type": "array"
+},
+{
+"attribute_name": "genre",
+"attribute_data_type": "string"
+}
+],
+"created_by": "john.doe@example.com"
+}'
+```
+
+</CodeGroup>
+
+ビジネスイベントを作成したら、キャンペーンの作成に進むことができます。
+
+## ビジネスイベントトリガーキャンペーンを作成する
+
+<Note>
+  1 つのビジネスイベントで開始できるキャンペーントリガーは、スライディングウィンドウで測定して、5 分間に最大 10 回、1 時間に最大 50 回です。制限を超えたトリガーでも `200` レスポンスが返されますが、キャンペーンは送信されずに停止状態で作成されます。ビジネスイベントのすべての制限については、[トリガーのレート制限](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/overview-business-events#trigger-rate-limits)を参照してください。
+</Note>
+
+<Tabs>
+  <Tab title="Push">
+    たとえば、商品の再入荷時にユーザーに通知するビジネスイベントトリガー Push キャンペーンを作成するには、次の手順を実行します。
+
+    1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+    2. All campaigns ページで、**\+** **Create campaign** をクリックします。
+    3. **Outbound** で **Push** をクリックし、**Business Event Triggered** をクリックします。
+    4. キャンペーン作成ページで、チーム (アカウントでチームが設定されている場合)、キャンペーン名、タグを追加します。
+    5. **Select Business Event** ドロップダウンリストで、**BackInStock** イベントをクリックします。
+
+       <Frame>
+         <img
+           src="/images/Push_Create.png"
+           alt="Push の作成"
+           title="Push の作成"
+           style={{ width:"73%" }}
+         />
+       </Frame>
+    6. **Target audience** セクションで、ユーザー属性またはイベント属性をビジネスイベントの属性と動的に照合します。これにより、1 つのキャンペーンを多数のビジネスイベントに使用できます。
+
+       たとえば、再入荷のビジネスイベントの場合、ユーザーが在庫切れの商品を閲覧していれば、その商品の 1 つ以上の属性 (商品 ID、商品名、アイテムコード、商品 URL、商品画像、ブランド、カテゴリーなど) をビジネスイベントの属性にマッピングできます。再入荷した任意の商品についてビジネスイベントがトリガーされると、このキャンペーンが実行されます。
+       - **User Property**: ユーザープロパティまたはユーザー属性をイベント属性と照合します。ユーザープロパティに商品 ID が保存されている場合は、再入荷商品の商品 ID を含むビジネスイベント属性と照合できます。
+
+         <Frame>
+           ![User Property Push](/images/UserProperty_Push.png)
+         </Frame>
+         **注**: Array 属性の場合、ビジネスイベントのセグメンテーションでは次の演算子がサポートされています: _exists、does not exist、(any of) in the following、(all of) in the following、not in the following。_
+       - **User Behavior**: 過去 25 日間に在庫切れ商品を閲覧したオーディエンスをターゲットにします。Business Event Attributes を使用して、ユーザーが閲覧した商品の属性と、再入荷した商品の属性を照合します。以下の例は、ユーザーが閲覧した商品の商品名、ブランド、アイテムコードを、再入荷した商品と照合する方法を示しています。
+
+         <Frame>
+           ![Push User Behavior(1)](/images/Push_Userbehavior\(1\).png)
+         </Frame>
+       - **User Affinity**: 以前に特定の商品に対して親和性を示したユーザーに商品をレコメンドします。以下の例では、過去 3 日間にその商品を閲覧したユーザーに再入荷商品が表示されます。
+
+         <Frame>
+           ![Push User Affinity](/images/Push_Useraffinity.png)
+         </Frame>
+    7. キャンペーンのプラットフォームとコントロールグループ (任意) を追加し、次のステップに進みます。
+    8. Push キャンペーンのコンテンツを作成し、配信スケジュールを追加します。メッセージ、タイトル、サマリーをビジネスイベントの属性でパーソナライズできます。詳細については、[パーソナライズ](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/overview#event-attributes)を参照してください。
+    9. キャンペーン作成のステップ 3 で、次の操作を行います。
+       1. キャンペーンの **Start date** と **End date**、および配信のタイムゾーンを選択します。
+       2. 必要に応じてコンバージョンゴールを追加します。
+       3. 配信コントロールを追加して、フリークエンシーキャップを無視し、デフォルトのスロットリング制限を上書きします。
+    1. キャンペーンを公開します。このキャンペーンは、ビジネスイベントがトリガーされたときに顧客にメッセージを送信します。
+  </Tab>
+  <Tab title="SMS、MMS、RCS">
+    たとえば、フライトの遅延についてユーザーに通知するビジネスイベントトリガー SMS、MMS、RCS キャンペーンを作成するには、次の手順を実行します。
+
+    1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+    2. All campaigns ページで、**\+** **Create campaign** をクリックします。
+    3. **Outbound** で **SMS** / **MMS** / **RCS** をクリックし、**Business Event Triggered** をクリックします。
+    4. キャンペーン作成ページで、キャンペーン名、タグ、および携帯電話番号を保存するユーザー属性を追加します。
+    5. **Select Business Event** ドロップダウンリストで、**FlightDelayEvent** をクリックします。
+
+       <Frame>
+         <img
+           src="/images/FlightDelay_BE.png"
+           alt="フライト遅延のビジネスイベント"
+           title="フライト遅延のビジネスイベント"
+           style={{ width:"62%" }}
+         />
+       </Frame>
+    6. **Select audience** セクションで、ユーザーのフライト情報を遅延したフライトの情報と動的に照合します。これにより、1 つのキャンペーンを多数のビジネスイベントに使用できます。
+
+       セグメンテーションでは、ユーザープロパティ、ユーザー行動、ユーザー親和性の情報をイベント属性と照合できます。ユーザーがフライトのチケットを購入しており、フライト番号と旅行情報がユーザープロパティとして保存されている場合は、以下に示すように、この情報を遅延したフライトのビジネスイベント属性と照合できます。
+
+       <Frame>
+         ![フライト遅延 SMS のユーザープロパティ](/images/FlightDelay_SMS_UserProperty.png)
+       </Frame>
+    7. キャンペーンのコントロールグループ (任意) を追加し、次のステップに進みます。
+    8. SMS、MMS、RCS キャンペーンのコンテンツを作成し、配信スケジュールを追加します。メッセージをビジネスイベントの属性でパーソナライズできます。詳細については、[ビジネスイベント属性によるパーソナライズ](/ja/user-guide/campaigns-and-channels/sms-mms-and-rcs/sms/personalize-sms-campaign)を参照してください。
+    9. キャンペーン作成のステップ 3 で、次の操作を行います。
+       1. キャンペーンの **Start date** と **End date**、および配信のタイムゾーンを選択します。
+       2. 必要に応じてコンバージョンゴールを追加します。
+       3. 配信コントロールを追加して、フリークエンシーキャップを無視し、デフォルトのスロットリング制限を上書きします。
+    1. キャンペーンを公開します。このキャンペーンは、ビジネスイベントがトリガーされたときに顧客にメッセージを送信します。
+  </Tab>
+  <Tab title="Email キャンペーン">
+    ビジネスイベントトリガー Email キャンペーンを作成するには、次の手順を実行します。
+
+    1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+    2. All campaigns ページで、**\+** **Create campaign** をクリックします。
+    3. **Outbound** で **Email** をクリックし、**Business Event Triggered** をクリックします。
+    4. キャンペーン作成ページで、キャンペーン名、タグ、サブスクリプションカテゴリー (有効な場合)、キャンペーンコンテンツタイプ (この場合はプロモーション) を追加します。
+    5. **Select Business Event** ドロップダウンリストで、**NewSeriesAlert** イベントをクリックします。
+    6. **Select audience** セクションで、ユーザーの興味のあるジャンルをビジネスイベント属性と動的に照合します。これにより、1 つのキャンペーンを多数のビジネスイベントに使用できます。
+       - **User Property**: ユーザープロパティまたはユーザー属性をイベント属性と照合します。ユーザーの好みのジャンルまたはユーザーが視聴したコンテンツのジャンルが **genre** という名前のユーザープロパティに保存されている場合は、以下に示すように、これをビジネスイベントのジャンルと照合できます。
+
+         <Frame>
+           ![User Property(1)](/images/UserProperty\(1\).png)
+         </Frame>
+       - **User Behavior**: **genre** が **Viewed Content** イベント (ユーザーが OTT プラットフォームでコンテンツを視聴したときにトリガーされる) のイベント属性であり、**genre** にそのセッションでユーザーが視聴したすべてのジャンルのリストが含まれている場合は、以下に示すようにこれらの属性をマッピングできます。
+
+         類似のコンテンツを視聴したオーディエンスをターゲットにしたり、新しいシリーズに出演する俳優の映画やシリーズに関心を示したユーザーに送信したりできます。以下の例では、過去 25 日間にユーザーが視聴したコンテンツのジャンルが新しいシリーズのジャンルと一致しています。
+
+         <Frame>
+           ![BET セグメンテーション](/images/BETSegmentation.png)
+         </Frame>
+       - **User Affinity**: 以前に特定のジャンルに対して親和性を示したユーザーに類似のコンテンツをレコメンドします。特定のジャンルを主に視聴するユーザーをターゲットにし、ビジネスイベントのジャンルと照合できます。
+
+         以下の例では、過去 25 日間に (新しいシリーズと) 類似したジャンルのコンテンツを視聴したユーザーに、新シリーズアラートのビジネスイベントが表示されます。
+
+         <Frame>
+           ![User Affinity Email](/images/UserAffinity-email.png)
+         </Frame>
+         **注**: Array 属性の場合、ビジネスイベントのセグメンテーションでは次の演算子がサポートされています: exists、does not exist、(any of) in the following、(all of) in the following、not in the following
+    7. キャンペーンのコントロールグループ (任意) を追加し、次のステップに進みます。
+    8. Email キャンペーンのコンテンツを作成し、配信スケジュールを追加します。件名、プレビューテキスト、Email コンテンツをビジネスイベントの属性でパーソナライズできます。詳細については、[ビジネスイベント属性によるパーソナライズ](/ja/user-guide/campaigns-and-channels/email/create/personalize-email-content)を参照してください。
+    9. キャンペーン作成のステップ 3 で、次の操作を行います。
+       1. キャンペーンの **Start date** と **End date**、および配信のタイムゾーンを選択します。
+       2. 必要に応じてコンバージョンゴールを追加します。
+       3. 配信コントロールを追加して、フリークエンシーキャップを無視し、デフォルトのスロットリング制限を上書きします。
+    1. キャンペーンを公開します。このキャンペーンは、ビジネスイベントがトリガーされたときに顧客にメッセージを送信します。
+  </Tab>
+  <Tab title="Flows">
+    ビジネスイベントトリガーのフローを作成するには、次の手順を実行します。
+
+    1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Flows** をクリックします。
+    2. **Flows** ページで、**\+ Create flow** をクリックします。
+    3. **Create new flow** ダイアログボックスで、**\+ Start with a blank canvas** をクリックします。
+    4. フローのゴールを定義し、その他の必要な詳細を追加します。詳細については、[詳細とゴール](/ja/user-guide/flows-cross-channel-messaging/create/create-flows/create-a-flow#details-and-goals)を参照してください。
+    5. **On the business event trigger** タブを選択して、ユーザーがフローに入るタイミングを定義します。詳細については、[ユーザーがフローに入るタイミング (On business event trigger)](/ja/user-guide/flows-cross-channel-messaging/create/create-flows/create-a-flow#when-will-users-enter-the-flow)を参照してください。
+    6. **Audience** セクションで、ユーザー属性またはイベント属性をビジネスイベントの属性と動的に照合します。これにより、1 つのフローを多数のビジネスイベントに使用できます。
+
+       たとえば、**Series launched** ビジネスイベントについて考えてみましょう。新しいスリラーシリーズが公開された場合、1 つ以上のビジネスイベント属性 (エピソード番号、エピソード名、エピソード評価、キャストなど) をイベント属性またはユーザー属性にマッピングできます。これにより、公開された任意のシリーズについてビジネスイベントがトリガーされるたびに、1 つのフローを実行できます。
+       - **User Property**: ユーザープロパティまたはユーザー属性をビジネスイベント属性と照合します。ユーザーの好みのジャンルまたはユーザーが視聴したエピソードのジャンルが **Genre** という名前のユーザープロパティに保存されている場合は、以下に示すように、これをビジネスイベントのジャンルと照合できます。
+
+         <Frame>
+           ![User Property Flows](/images/user-property-flows.png)
+         </Frame>
+       - **User Behavior**: **genre** が **Watched episode** イベント (ユーザーが OTT プラットフォームでコンテンツを視聴したときにトリガーされる) のイベント属性であり、**Genre** にそのセッションでユーザーが視聴したすべてのジャンルのリストが含まれている場合は、次の画像に示すようにこれらの属性をマッピングできます。
+
+         そのエピソードを視聴したオーディエンスや、新しいシリーズに出演する俳優の映画やシリーズに関心を示したオーディエンスをターゲットにできます。以下の例では、過去 3 日間にユーザーが視聴したエピソードのジャンルが、公開されたシリーズと一致しています。
+
+         <Frame>
+           ![User Behavior Flows](/images/user-behavior-flows.png)
+         </Frame>
+    7. フローのコントロールグループ (任意) を追加し、次のステップに進みます。
+    8. 戦略に沿ったステージを追加してフローを構築します。フローの [Action Stages](/ja/user-guide/flows-cross-channel-messaging/create/actions-in-flows/add-actions-to-flows) でメッセージをビジネスイベントの属性でパーソナライズすることもできます。詳細については、[ビジネスイベント属性によるパーソナライズ](/ja/user-guide/flows-cross-channel-messaging/create/actions-in-flows/personalization-in-flows)を参照してください。
+    9. フローを公開します。このフローは、ビジネスイベントが発生したときにトリガーされます。
+
+    <Note>
+      ビジネスイベントトリガーのフローには、キャンペーンとは異なるトリガー制限があります。スライディングウィンドウで測定して、1 時間あたり最大 3 回、1 日あたり最大 10 回のフロートリガーです。これらのフローはユーザーを一括で投入し、1 回の実行で数百万人のユーザーを処理できるため、ビジネスイベントがトリガーされてからユーザーがフローに入るまで最大 60 分かかる場合があります。時間に敏感なコミュニケーションを計画する際は、この点を考慮してください。ビジネスイベントのすべての制限については、[トリガーのレート制限](/ja/user-guide/campaigns-and-channels/getting-started/triggers/business-event/overview-business-events#trigger-rate-limits)を参照してください。
+    </Note>
+  </Tab>
+</Tabs>
+
+<Info>
+  - セグメンテーションは動的であるため、キャンペーンまたはフローの作成時に到達可能なユーザー数を確認することはできません。この数は、キャンペーンまたはフローをトリガーするビジネスイベントに基づいて、実行時に計算されます。たとえば、コメディを好むユーザーをターゲットにして今後公開されるコメディシリーズについて知らせたい場合、キャンペーンに定義された動的セグメントの条件を満たす、コメディを視聴した、またはコメディを好むユーザーのみが Email を受信します。
+  - セグメンテーションが機能するには、セグメンテーションで使用するイベント属性またはユーザープロパティのデータ型が、ビジネスイベントの属性のデータ型と一致している必要があります。属性が一致しない場合、セグメンテーションは実行されず、キャンペーンはユーザーに送信されません。
+  - **All Users** セグメンテーションオプションを使用して、システム内のすべてのユーザーにビジネスイベントトリガーのキャンペーンまたはフローを送信することもできます。
+  - ビジネスイベントのセグメンテーションフィルターでは、最大 60 日間の情報を参照できます。
+</Info>
+
+## ビジネスイベントをトリガーする
+
+ビジネスイベントを設定し、それを使用するキャンペーンを作成したら、[Trigger Business Event API](https://www.moengage.com/docs/api/business-events/trigger-business-event) を使用してビジネスイベントをトリガーします。このアクションにより、キャンペーンが開始され、ターゲットユーザーにメッセージが送信されます。サンプルペイロードを以下に示します。
+
+<CodeGroup>
+
+```json Sample Payload wrap
+--data '{
+"event_name": "NewSeriesAlert",
+"event_attributes": {
+"season": "Season 1",
+"episodes": 12,
+"cast": ["John Doe", "Jane Doe"],
+"genre": "Comedy"
+},
+"triggered_by": "john.doe@example.com"
+}
+```
+
+</CodeGroup>
+
+ビジネスイベントをトリガーする際に、すべての属性を送信する必要はありません。トリガーがアクティブになると、ユーザーはキャンペーンメッセージを受信します。キャンペーンの分析は、該当するキャンペーンの **Campaign Analytics and Info** ページで確認できます。ビジネスイベントトリガーキャンペーンは、MoEngage の他のイベントトリガーキャンペーンと同様にメッセージを送信します。

@@ -1,0 +1,94 @@
+---
+title: "非アクティブユーザーを呼び戻す方法"
+---
+
+# はじめに
+
+ウィンバックジャーニーは、非アクティブなユーザーに働きかけてWebサイトに呼び戻し、コンバージョンイベントを実行してもらうことを目的としています。これを計画することは、次の理由から重要です。
+
+- 一般的に、新規ユーザーを獲得するよりも既存ユーザーを維持する方がコスト効率が高く、ユーザーにサブスクリプションを更新してもらうことがユーザーをつなぎとめる最善の方法です。これは収益の増加にもつながります。
+- さらに、このプロセスにより、更新への意欲が低いユーザーからより良いフィードバックを得ることができます。これにより課題を解決でき、最終的にはより良いカスタマーエクスペリエンスの提供につながります。
+
+ウィンバックジャーニーは非常に有益ですが、常に効果があるとは限らない点に注意が必要です。各Flow/キャンペーンの成果を評価し、何が効果的で何が効果的でないかに基づいて戦略を調整することが不可欠です。
+
+この記事では、非アクティブな顧客とエンゲージし、商品の購入を促すFlowキャンペーンを作成します。このユースケースを実現するために、FlowsのConditional Split機能と[Next Best Action](/ja/user-guide/flows-cross-channel-messaging/create/intelligence-in-flows/next-best-action-in-flows)機能を使用します。
+
+# 期待される結果
+
+ユーザーのスマートフォンにプッシュ通知が届きます。
+
+<img
+  alt="image-20231214-043803.png"
+  src="/images/moengage_9c7554.png"
+  style={{ width:"63%" }}
+/>
+
+ユーザーにメールが届きます。
+
+<img
+  alt="image-20231214-044703.png"
+  src="/images/moengage_edb338.png"
+  style={{ width:"55%" }}
+/>
+
+<Tip>
+  - 業種に応じて、商品の購入や無料トライアル後のサブスクリプション登録など、ユーザーが主要なコンバージョンイベントを完了したアクションをトラッキングするイベント。この例では、「Product Purchased」を最終目標とします。また、各イベントに関連するプラットフォーム、商品ID、ブランド、価格などの情報もトラッキングすることが重要です。イベントのトラッキング方法については、[Developer Guide](/ja/developer-guide/introduction)を参照してください。
+  - ユーザーがアプリやWebサイトを開いたアクションと、各イベントにおけるプラットフォーム、アプリバージョン、タイムスタンプなどの関連情報をトラッキングするイベント。イベントのトラッキング方法については、[Developer Guide](/ja/developer-guide/introduction)を参照してください。この例では、イベント名を「App/Site Opened」とします。
+  - ユーザーの最終アクセス日とライフタイムバリューをトラッキングするユーザー属性。ユーザー属性を使ってこれらの情報をトラッキングする方法については、[Developer Guide](/ja/developer-guide/introduction)を参照してください。この例では、ユーザー属性名をそれぞれ「Last Seen」と「LTV」とします。
+  - プッシュ、メール、SMS、WhatsAppなど、1つ以上のチャネルの設定。
+</Tip>
+
+# Flowを作成する
+
+このセクションでは、非アクティブな顧客とエンゲージし、商品の購入を促すFlowを作成します。
+
+## Flowの詳細を追加する
+
+1. 左側のサイドバーで **Engage** \> **Flows** に移動して **\+ Create flow** をクリックするか、**\+ Create new** をクリックしてから **Flow** をクリックします。
+2. **\+ Start with a blank canvas** をクリックします。最初のステップ「Details and goals」に移動します。
+3. 次のFlowの詳細を入力します。
+   - **Flow Name**: Flow名を入力します。例:「Winback Journey」
+   - **Flow tags**: 必要なFlowタグを選択します。
+4. **Conversion goal** セクションで **Exit on conversion** トグルをオンにし、「Product Purchase」イベントを実行してコンバージョンしたユーザーをFlowから退出させます。これはプライマリコンバージョンゴールであり、ユーザーが新しい商品を購入するための支払いを正常に完了したときにトリガーされます。
+   ![image-20231214-024043.png](/images/moengage_ff8127.png)
+5. **Next** をクリックして、2番目のステップ「When will users enter the flow」に移動します。このステップでは、ユーザーをFlowに参加させるタイミングを定義します。
+6. **Users enter the flow** セクションで、**At Fixed Time** カードを選択します。 <img alt="image-20231214-024101.png" src="/images/moengage_6b591e.png" />
+7. Flowを実行する頻度を選択します。この例では **Monthly** オプションを選択し、開始時刻と終了時刻を指定します。
+8. **Next** をクリックして、2番目のステップ「Who will enter the flow」に移動します。ここでFlowのターゲットオーディエンスを選択します。
+9. **Audience** で、Last Seenユーザー属性が60日より前のユーザーを選択します。 <img alt="image-20231214-024232.png" src="/images/moengage_8d478c.png" />
+10. **Next** をクリックしてキャンバスセクションに移動し、ユーザーに通過させたいFlow構造を定義します。
+
+## Flow構造を定義する
+
+1. **\+** アイコンをクリックします。ドロワーが表示されます。
+2. **Conditions** で、エントリー条件として「Conditional Split」を追加し、ユーザーが持つLTVに基づいてユーザーを分割します。これにより、アクティブだった期間中のサービスとのインタラクションに基づいて、ユーザーごとに異なるアプローチを取ることができます。\
+   たとえば、LTVが10Kのユーザーは非常にアクティブで多くの購入を行っているため、複数回のフォールバックを含むオファーで働きかけることは良い投資になります。一方、LTVが数百程度のユーザーに同様の戦略を使用することは、メッセージごとにコストがかかるため、投資として適切ではない可能性があります。
+3. これを行うには、追加したConditional Splitステージの編集アイコンをクリックします。
+   ![image-20231214-025016.png](/images/moengage_6b2f69.png)
+4. 最初の2つのブランチに **Next Best Action**(NBA)ステージを追加し、3番目のブランチには任意のチャネルを追加します。これらのアクションキャンペーンを通じて、ユーザーにオファーを提供したり、何が問題だったかについてフィードバックを求めたり、最近発売された商品を告知して興味を引いたりすることができます。メッセージのトーンは、ブランチ1のユーザーにはFOMO(取り残される不安)を喚起するものに、ブランチ2には緊急性を伝えて強く促すものにできます。一方、Othersブランチのユーザーは数日間商品を使っただけのユーザーである可能性が高いため、無視するか、ニュートラルなトーンでやり取りする程度でよいでしょう。詳細については、[Next Best Action in Flows](/ja/user-guide/flows-cross-channel-messaging/create/intelligence-in-flows/next-best-action-in-flows)を参照してください。
+   <Info>
+     Action内の **Next Best Action** オプションはEnterpriseプランでのみ利用可能で、その他のプランではアドオンとなります。
+   </Info>
+5. NBAを追加することで、各ユーザーに適切なチャネルで適切なタイミングでアプローチできる点に留意してください。これによりエンゲージメントが高まる可能性が上がり、ひいてはコンバージョンの向上につながります。  <img alt="image-20231214-025726.png" src="/images/moengage_0356f1.png" />
+   1. **Next Best Action** ステージを定義するには、ステージにマウスをホバーして編集アイコンをクリックします。Next best actionポップアップが表示されます。
+      ![11.png](/images/moengage_32f40b.png)
+   2. **Choose a fallback channel** ドロップダウンリストからチャネルを選択します。フォールバックチャネルは、MoEngageがユーザーの優先チャネルを予測するのに十分なデータを持っていない場合に使用されます。
+   3. **Default time to send** セクションでオプションを選択します。デフォルト時間は、MoEngageがユーザーにコミュニケーションを送信する最適な時間を予測するのに十分なデータを持っていない場合に使用されます。
+   4. **Done** をクリックします。
+6. 使用する各チャネル(プッシュ、メール、SMS)でメッセージを定義します。
+7. 名前や性別など、ユーザーに関する追加情報がある場合は、アクションキャンペーンの編集時にそれを使用してメッセージをパーソナライズします。このような詳細を含めることでメッセージがよりコンテキストに沿ったものになり、ユーザーがつながりを感じる可能性が高まります。詳細については、[Personalization in Flows](/ja/user-guide/flows-cross-channel-messaging/create/actions-in-flows/personalization-in-flows)を参照してください。
+8. 上記のNBAステージ、またはブランチに応じたActionステージの後に、「Has Clicked Campaign」ステージを配置して、ユーザーがメッセージにインタラクションしたかどうかを確認できます。
+   - インタラクションした場合は、「Has done event」を使用して「App/Site Opened」イベントを実行したかどうかを確認します。
+   - メッセージにインタラクションしていない場合は、別のキャンペーンを送信します。例: プッシュ通知。
+   - このように繰り返しアプローチしてもユーザーがインタラクションしない、またはアプリを開かない場合は、フィードバックを依頼してからFlowから退出させるとよいでしょう。
+9. メッセージにインタラクションし、アプリやサイトを開いたなど、前向きな方向に進んでいるユーザーには、ウィッシュリストへの商品の追加、カートへの追加、商品の購入など、ファネルのさらに先のアクションを促すメッセージでフォローアップできます。
+10. Waitステージを使用して、2つのコミュニケーションの間に間隔を空け、ユーザーへのスパムを避けるようにしてください。詳細については、[Add Controls to Flow](/ja/user-guide/flows-cross-channel-messaging/create/conditions-and-controls-in-flows/force-move-or-delay-users-in-flows)を参照してください。
+11. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、非アクティブな顧客とエンゲージし、商品の購入を促すFlowキャンペーンを作成しました。
+
+- Flowを公開したら、Flowのパフォーマンスを[分析](/ja/user-guide/flows-cross-channel-messaging/faqs/analyzing-flows)できます。
+- キャンペーンによって何人のユーザーがFlowに参加したかを把握できます。「Flow ID」を指定して「User Entered Flow」イベントでセグメンテーションを作成します。詳細については、[Users who have entered/exited the Flow](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/tracking-users-in-flows)を参照してください。
+- キャンペーンによってユーザーが実際に商品を購入したかどうかも把握できます。「Flow ID」を指定して「Flow Trip Conversion」イベントでセグメンテーションを作成します。詳細については、[Conversion Tracking and Attribution in Flows](/ja/user-guide/flows-cross-channel-messaging/analyze-flows/conversion-attribution-in-flows)を参照してください。

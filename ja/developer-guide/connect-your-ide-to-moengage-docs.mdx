@@ -1,0 +1,133 @@
+---
+title: "IDE を MoEngage ドキュメントに接続する"
+description: "IDE を MoEngage ドキュメントの MCP サーバーに接続すると、統合作業中に AI アシスタントが最新の SDK ドキュメントを参照できるようになります。"
+keywords: "MoEngage docs MCP, AI アシスタント, LLM, IDE, Cursor, VS Code, Copilot, llms.txt, SDK 統合"
+---
+
+IDE を MoEngage ドキュメントの MCP サーバーに接続すると、AI アシスタントがこのドキュメントサイトに直接、オンデマンドでアクセスできるようになります。Model Context Protocol（MCP）は、AI ツールがドキュメントを取得・検索できるようにする標準規格です。アシスタントは、統合している SDK バージョンの正確なメソッドシグネチャ、パラメータ、実装手順を取得し、最新の MoEngage ドキュメントに基づいたコードを生成できます。
+
+<Info>
+  このページでは **docs MCP**（`https://www.moengage.com/docs/mcp`）について説明します。これは、AI アシスタントにこのドキュメントサイトへの読み取りアクセスを提供するものです。これは、アシスタントを MoEngage ワークスペースに接続してキャンペーンの作成、セグメントの管理、パフォーマンスの分析を行う [MoEngage MCP Server and Connector](/ja/user-guide/ai-and-intelligence/merlin-ai/moengage-mcp-server)（`https://mcp.moengage.com`）とは別のものです。
+</Info>
+
+## IDE を Docs MCP サーバーに接続する
+
+IDE やクライアントでリモート MCP サーバーまたはカスタムコネクタの入力を求められた場合は、次の URL を使用します。
+
+```text
+https://www.moengage.com/docs/mcp
+```
+
+<Tabs>
+  <Tab title="Cursor">
+    <Note>
+      最終確認日：2026 年 7 月
+    </Note>
+
+    1. **Cursor Settings** → **Tools & Integrations** → **MCP Tools** を開きます。
+    2. **Add Custom MCP** をクリックします。
+    3. `mcp.json` にエントリを追加します。
+
+    ```json
+    {
+      "mcpServers": {
+        "moengage-docs": {
+          "url": "https://www.moengage.com/docs/mcp"
+        }
+      }
+    }
+    ```
+  </Tab>
+  <Tab title="VS Code (Copilot)">
+    <Note>
+      **VS Code 1.99 以降**（リモート MCP のサポート）と Copilot の **agent mode** が必要です。最終確認日：2026 年 7 月。
+    </Note>
+
+    1. コマンドパレットを開き、**MCP: Add Server** を実行します（または `.vscode/mcp.json` を直接編集します）。
+    2. **HTTP (remote server)** を選択し、URL `https://www.moengage.com/docs/mcp` を入力します。
+    3. 保存してから **Copilot Chat** を開き、**Agent** モードに切り替えます。MoEngage ドキュメントのツールがツールピッカーに表示されます。
+  </Tab>
+</Tabs>
+
+<Tip>
+  Claude Code や Claude Desktop などの他のクライアントのセットアップ手順と、docs MCP サーバーが公開するツールの完全なリストについては、[エージェントへのドキュメントアクセス](/ja/documentation-access-to-agents)を参照してください。
+</Tip>
+
+<Note>
+  docs MCP サーバーは読み取り専用です。キーワードでこのドキュメントサイトを検索し、特定のページのコンテンツを取得できます。MoEngage のワークスペース、キャンペーン、アカウントデータにはアクセスせず、接続に認証は必要ありません。
+</Note>
+
+<Note>
+  プロンプトと取得されたドキュメントは、AI プロバイダーのクラウド（たとえば Copilot の場合は GitHub、Cursor の場合は設定されたモデルプロバイダー）を経由します。独自のコードをプロンプトとともに送信する前に、プロバイダーのデータ取り扱いポリシーを確認してください。
+</Note>
+
+### 接続を確認する
+
+アシスタントにドキュメントに関するクエリを送信し、トレーニングデータに頼るのではなくコネクタから情報を取得していることを確認します。例：
+
+```text
+Search the MoEngage docs for how to initialize the Android SDK, and tell me which page you found it on.
+```
+
+アシスタントの応答に MoEngage ドキュメントの URL が引用されていれば、接続は正常に機能しています。
+
+## SDK 開発のためのプロンプトの書き方
+
+docs MCP が接続されていない場合、アシスタントはトレーニングデータから SDK に関する質問に回答するため、非推奨のメソッドや別のプラットフォームの構文を提案する可能性があります。プロンプトで SDK、プラットフォーム、具体的なタスクを指定すると、接続されたアシスタントはコードを生成する前に適切なページを検索して引用するために必要なコンテキストを得られます。角かっこ内のプレースホルダーを実際の内容に置き換えてください。
+
+### Android SDK
+
+```text
+Using the MoEngage Android SDK, [initialize the SDK with my Workspace ID and data center / track a custom event called "<event_name>" with properties / set up FCM push notifications].
+```
+
+### iOS SDK
+
+```text
+Using the MoEngage iOS SDK, [initialize the SDK with my Workspace ID and data center / track a custom event called "<event_name>" with properties / configure APNs push notifications].
+```
+
+### Web SDK
+
+```text
+Using the MoEngage Web SDK, [initialize the SDK on my website using the CDN method / track a custom event called "<event_name>" / register for web push notifications].
+```
+
+### React Native SDK
+
+```text
+Using the MoEngage React Native SDK, [link native dependencies for Android and iOS / initialize the SDK / subscribe to in-app message callbacks].
+```
+
+### Flutter SDK
+
+```text
+Using the MoEngage Flutter SDK, [add moengage_flutter to my pubspec.yaml and initialize it / track a custom event called "<event_name>" with attributes].
+```
+
+## プレーンテキストのドキュメント
+
+MoEngage はこのドキュメントを [llms.txt](https://llmstxt.org/) 形式でも公開しており、プレーンテキストを読み取るアシスタントやツールに、MCP 経由での接続に代わる手段を提供しています。
+
+| ファイル | 内容 |
+| --- | --- |
+| [llms.txt](https://www.moengage.com/docs/llms.txt) | 短い説明付きのドキュメントページのインデックスです。個々のページをオンデマンドで取得するアシスタント向けです。 |
+| [llms-full.txt](https://www.moengage.com/docs/llms-full.txt) | ドキュメントの全コンテンツを 1 つのファイルにまとめたものです。コーパス全体を一度に読み取るアシスタント向けです。 |
+
+ファイルの内容をアシスタントのコンテキストに挿入するか、`llms.txt` をサポートするツールを設定して URL を直接参照させてください。
+
+## トラブルシューティング
+
+<AccordionGroup>
+  <Accordion title="接続後、アシスタントに MoEngage ドキュメントのツールが表示されない">
+    コネクタが正確な URL `https://www.moengage.com/docs/mcp` で保存されていること、および IDE が HTTP（stdio ではない）トランスポート用に設定されていることを確認してください。IDE を再起動してください。ほとんどのクライアントは、新しく追加された MCP サーバーを再起動時にのみ読み込みます。
+  </Accordion>
+
+  <Accordion title="アシスタントがドキュメントページを引用せずに回答する">
+    一部のクライアントでは、特定のチャットでコネクタのツールを明示的に有効にするか、ツールを呼び出す前に **Agent** モード（Copilot）を有効にする必要があります。クライアントのツールまたはコネクタのメニューで MoEngage ドキュメントのエントリを確認し、有効になっていることを確認してください。
+  </Accordion>
+
+  <Accordion title="アシスタントが古いページや誤ったページを引用する">
+    より具体的な用語（たとえば、正確な SDK メソッド名やプラットフォーム名）で再度検索するよう依頼してください。それでもページが誤っているか古いと思われる場合は、[機能の提案](/ja/user-guide/contact-support/suggest-a-feature)または docs MCP サーバーのフィードバックツールを使用して報告してください。
+  </Accordion>
+</AccordionGroup>

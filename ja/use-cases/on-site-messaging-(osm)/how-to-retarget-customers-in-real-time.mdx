@@ -1,0 +1,96 @@
+---
+title: "リアルタイムで顧客をリターゲティングする方法"
+---
+
+# はじめに
+
+Web サイトを訪れる匿名ユーザーの利用の流れを妨げずに、より多くの情報を収集するには、初回オファーや割引を含む "lead gen" テンプレートを使ったオンサイトのポップアップウィンドウを表示できます。
+
+この記事では、MoEngage で On-site Messaging (OSM) キャンペーンを作成し、Web サイトのリードを獲得して、リアルタイムで顧客をリターゲティングします。次の作業を行います。
+
+- OSM を使用して "lead gen" フォームを表示する
+- "lead gen" フォームに入力したユーザーに基づいてカスタムセグメントを作成する
+- カスタムセグメントからキャンペーンを作成する
+
+<Tip>
+  MoEngage Web SDK を Web サイトに統合しておく必要があります。詳細については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+</Tip>
+
+# OSM キャンペーンを作成する
+
+このセクションでは、初回訪問ユーザーから連絡先情報を収集する OSM キャンペーンを作成します。
+
+## ステップ 1: ターゲットユーザー
+
+1. 左側のサイドバーに移動して **Engage** \> **Campaigns** をクリックし、**\+ Create campaign** をクリックするか、**\+ Create new**\> **Campaign** をクリックします。
+2. **Inbound** で **On-site** をクリックします。
+   ![2.png](/images/moengage_683341.png)
+   キャンペーン定義の最初のステップである "Target users" に移動します。
+3. 次の詳細を入力します。
+   - **Campaign name**: キャンペーンの名前を入力します。例: "New User Retargetting"。
+   - **Campaign tags**: 関連するキャンペーンタグを選択します。
+4. **Target platforms** セクションで **Web** を選択します。
+5. ユーザーが Web サイトにアクセスしたときにポップアップを表示することが目的のため、**Trigger criteria** セクションで **On Page Load** を選択します。
+6. ユーザーが Web サイトにアクセスしたらすぐにポップアップを表示したいため、**Select trigger time** セクションで **Immediately** を選択します。
+7. **Select pages** セクションで **All pages** オプションを選択します。
+   ![1.png](/images/moengage_2b55f1.png)
+8. **Target Audience** セクションで、**User Property** でユーザーをフィルターし、属性を "Mobile Number (Standard) does not exist" として定義します。
+   ![14.png](/images/moengage_7934db.png)
+9. **Next** をクリックして 2 番目のステップ "Content" に移動し、キャンペーンに含めるコンテンツを定義します。
+
+## ステップ 2: コンテンツ
+
+1. **Search templates** フィールドでキーワード "lead gen" を検索し、ポップアップウィンドウの一覧を表示します。
+2. **Popup templates** セクションで **Popup: Lead Gen 1** テンプレートにマウスカーソルを合わせ、**Select Template** をクリックします。
+   ![13.png](/images/moengage_7f6489.png)
+3. 画面が読み込まれたら、要件に応じてテンプレートを編集し、キャンペーンを定義します。
+4. 左側の **\+** アイコンをクリックして、キャンペーンに新しい要素を追加します。
+   ![7.png](/images/moengage_fbd56d.png)
+5. OSM の定義の一環として、入力ボックスをクリックしてから最初のアイコンをクリックすると、次の設定が表示されます。
+   ![8.png](/images/moengage_09e32a.png)
+6. ここでは、基本的なレベルのチェックを実装できます。たとえば、最初のドロップダウンリストから "Tel" オプションを選択すると、MoEngage はユーザーが数字のみを入力しているかどうかを検証できます。
+7. **Advanced** タブでは、入力値を保存する "Attribute" を選択することで、MoEngage で作成されるプロファイルに入力値が確実に保存されるようにできます。これは、今後ユーザーとエンゲージするのに役立ちます。
+   ![9.png](/images/moengage_53b29d.png)
+8. セグメンテーションとのユーザー属性の同期が遅れる場合に対処するため、次の Jinja を追加して、携帯電話番号が入力されているかどうかを確認します。
+   ```text wrap
+   {% if UserAttribute['Mobile Number (Standard)']|length != 0 %} MOE_NOT_SEND {% endif %}
+   ```
+9. **Next** をクリックして 3 番目のステップ "Schedule and goals" に移動し、キャンペーンのスケジュールとゴールを定義します。
+
+## ステップ 3: スケジュールとゴール
+
+1. **Send campaign** セクションで、OSM キャンペーンを開始および終了するタイミングを定義します。
+   ![11.png](/images/moengage_d5adb2.png)
+2. **Conversion goals** セクションで、追跡したいコンバージョンゴールを追加します。
+3. **Campaign priority** セクションで、この OSM キャンペーンに優先度を割り当てます。優先度を割り当てることで、ユーザーが特定の時点で複数の OSM の対象となる場合に、どの OSM を表示するかを決定できます。たとえば、**Critical** を選択すると、ユーザーが対象となる他のキャンペーンがある場合でも、このキャンペーンが常に表示されるようになります。詳細については、[Create OSM Pro Campaign](/ja/user-guide/campaigns-and-channels/on-site-message/create/create-osm-campaign) を参照してください。
+4. **Global Delivery controls** セクションで **Ignore global minimum delay** トグルをオンにすると、設定で定義されている任意の 2 つのキャンペーン間の最小遅延をオーバーライドできます。
+5. **Local Delivery controls** セクションで、要件に応じてコントロールを定義します。詳細については、[Create OSM Pro Campaign](/ja/user-guide/campaigns-and-channels/on-site-message/create/create-osm-campaign) を参照してください。
+   ![12.png](/images/moengage_34ab06.png)
+6. **Publish** をクリックします。
+
+# レスポンスを送信したユーザーを特定する
+
+<Info>
+  ユーザーの入力内容は、テンプレートでマッピングされたユーザー属性に保存されます。たとえば、ユーザーが携帯電話番号を入力して **Subscribe** をクリックすると、下の画像に示すように、携帯電話番号が携帯電話番号のユーザー属性に保存され、そのユーザーのユーザープロファイルの MOE\_RESPONSE\_SUBMITTED イベントで利用可能になります。
+</Info>
+
+次の手順を実行すると、MOE\_RESPONSE\_SUBMITTED イベントを実行したユーザーを特定し、レスポンスに基づいてフィルターしてセグメントを作成し、そのデータを分析できます。
+
+1. MoEngage ダッシュボード -\> **Segment** -\> **Create Segment** に移動します。
+2. **Filter Users by** タブで **User Property** を選択し、**Has executed** イベントとして MOE\_RESPONSE\_SUBMITTED を追加します。
+3. イベントの期間を指定し、OSM キャンペーンのキャンペーン ID を追加すると、以下のようにキャンペーンにレスポンスを送信したユーザー数を確認できます。
+   ![Segmentation.gif](/images/moengage_e01c37.png)
+4. このセグメントをターゲットにしたキャンペーンを作成したり、セグメントを分析したり、詳細をエクスポートして、セグメントデータについて独自の分析を実行したりできます。
+
+# 顧客がページを開くとどうなるか
+
+- On-Site トリガーが呼び出され、そこからセグメンテーションによってユーザーの携帯電話番号属性がチェックされます。
+- コンテンツが生成されてレンダリングのために SDK に送信される際、Jinja スニペットがユーザー属性を再度検証し、属性が存在しない場合はコンテンツが SDK に送信されます。
+- Content セクションでのユーザー属性のチェックに失敗した場合、その特定のユーザーに対する On-Site メッセージは破棄されます。\
+  詳細については、[OSM Pro Templates](/ja/user-guide/campaigns-and-channels/on-site-message/create/osm-templates) を参照してください。
+
+# まとめ
+
+このユースケースでは、MoEngage でオンサイトキャンペーンを作成し、Web サイトのリードを獲得して、リアルタイムで顧客をリターゲティングしました。
+
+Jinja やセグメンテーションのセクションで他のユーザー属性のチェックを追加し、携帯電話番号、メールアドレス、誕生日など、ユーザーから収集したいその他の詳細情報を収集することもできます。

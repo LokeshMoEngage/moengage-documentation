@@ -1,0 +1,284 @@
+---
+title: "トランザクショナル Live Activity"
+description: "MoEngage Live Activities を使用して、iPhone のロック画面にリアルタイムのトランザクション更新を表示します。"
+---
+
+# 概要
+
+[iOS Live Activities](https://developer.apple.com/design/human-interface-guidelines/live-activities) は、アプリの最新データを、iPhone のロック画面および [Dynamic Island](https://support.apple.com/en-in/guide/iphone/iph28f50d10d/ios) にリアルタイムでインタラクティブな更新として表示します。トランザクショナル Live Activities は、注文追跡、配車サービスの更新、パーソナライズされた取引状況など、ユーザー固有の個別イベント向けに特別に設計されています。
+
+<Info>
+  **情報**
+
+  Live Activities とプッシュ通知では、ユーザー権限のモデルが異なります。デフォルトでは、アプリの Live Activities は有効になっています。ユーザーはデバイスの設定で、アプリごとに個別に権限を管理できます。
+</Info>
+
+<Note>
+  **前提条件**
+
+  開始する前に、プロジェクトとアカウントが正しく構成されていることを確認してください。
+
+  1. **Apple Developer アカウントの構成**:
+     - Apple Developer アカウントで、**Certificates**、**IDs & Profiles** \> **Identifiers** に移動し、アプリの識別子を選択します。
+     - **Capabilities** タブで、**Push Notifications** チェックボックスが選択されていることを確認します。これは、Apple Push Notification service (APNs) がアクティビティの更新を配信するために必須です。
+     - **APNs 認証キー**: MoEngage がお客様に代わってプッシュ通知を送信することを許可するには、APNs 認証キーを構成する必要があります。.p8 ファイルを MoEngage ダッシュボードにアップロードする詳細な手順については、APNs 認証キーに関する[ドキュメント](/ja/developer-guide/ios-sdk/push/basic/apns-authentication-key)を参照してください。
+  2. **SDK バージョン:** トランザクショナル Live Activities をサポートするには、MoEngage iOS SDK 10.09.0 以上が必要です。
+  3. **MoEngage Live Activity モジュール**: トランザクション更新を処理するには、MoEngageLiveActivity モジュールが必要です。
+  4. **Xcode と iOS のバージョン**:
+     - **Xcode**: Xcode 14.1 以降を使用してください。
+     - **iOS ターゲット**: Live Activity のターゲットは iOS 18 以降である必要があります。
+</Note>
+
+# トランザクショナル Live Activity の実装
+
+このセクションでは、トランザクショナル Live Activities のために Xcode プロジェクト内で必要なクライアント側の設定について説明します。
+
+## ステップ 1: Widget Extension を追加する
+
+1. Xcode で **File** \> **New** \> **Target** に移動します。
+2. **Widget Extension** を選択し、**Next** をクリックします。
+   <Frame>
+     ![Transla1](/images/transla1.png)
+   </Frame>
+3. ウィジェットのプロダクト名を入力します。
+4. **Include Live Activities** チェックボックスを選択します。
+   <Frame>
+     ![Transla2](/images/transla2.png)
+   </Frame>
+5. **Finish** をクリックします。
+
+## ステップ 2: アプリの Info.plist を構成する
+
+メインアプリの Info.plist に Live Activities のサポートを追加します。
+
+<CodeGroup>
+
+```xml XML wrap
+<key>NSSupportsLiveActivities</key>
+<true/>
+```
+
+</CodeGroup>
+
+## ステップ 3: MoEngageLiveActivity の統合
+
+<Info>
+  **情報**
+
+  MoEngageLiveActivity フレームワークを統合するには、MoEngage iOS SDK バージョン 10.09.0 以上を使用していることを確認してください。
+</Info>
+
+#### **Swift Package Manager を使用したインストール(推奨)**
+
+MoEngageLiveActivity フレームワークは SDK バージョン 10.09.0 から SPM でサポートされています。統合するには、GitHub URL [https://github.com/moengage/apple-sdk.git](https://github.com/moengage/apple-sdk.git) を使用し、ブランチを master または必要なバージョンに設定します。
+
+#### **CocoaPod を使用したインストール**
+
+<Info>
+  **情報**
+
+  CocoaPods は非推奨になりつつあります。MoEngage では、すべての新規統合に Swift Package Manager を使用することを推奨しています。CocoaPods の詳細については、[CocoaPods 統合ガイド](/ja/developer-guide/ios-sdk/sdk-integration/basic/integration-through-cocoa-pods)を参照してください。
+</Info>
+
+MoEngageLiveActivity フレームワークを統合するには、Podfile に以下の依存関係を追加します。
+
+<CodeGroup>
+
+```ruby Ruby wrap
+target 'MoETest' do
+  use_frameworks!
+
+  # Pods for app target
+  pod 'MoEngage-iOS-SDK' # specify version constraint
+  pod 'MoEngage-iOS-SDK/LiveActivity'
+
+  target 'LiveActivity' do
+    use_frameworks!
+    inherit! :search_paths
+    # Pods for live activity extension target
+    pod 'MoEngage-iOS-SDK/LiveActivity'
+  end
+end
+```
+
+</CodeGroup>
+
+## ステップ 4: Live Activity の属性を定義する
+
+ウィジェット拡張機能用に生成された Swift ファイルで、トランザクショナル Live Activity のデータ構造(例: フードデリバリーの注文)を定義します。
+
+1. ActivityAttributes を構成する: [ActivityAttributes](https://developer.apple.com/documentation/activitykit/activityattributes) に準拠する struct を作成します。この struct には以下が含まれます。
+   - **静的データ**: 一度設定されると変更されない属性(例: 注文番号)。
+   - **ContentState**: リアルタイムで更新される動的データ用のネストされた struct(例: 配達状況)。
+     <CodeGroup>
+     ```swift Swift wrap
+     import Foundation
+     import ActivityKit
+     import WidgetKit
+     import SwiftUI
+     struct FoodOrderAttributes: ActivityAttributes {
+         public struct ContentState: Codable, Hashable {
+             // Dynamic stateful properties about your order go here!
+             var status: String // e.g., "Out for Delivery"
+             var estimatedMinutes: Int
+         }
+         // Fixed non-changing properties about your order go here!
+         var orderNumber: String
+         var restaurantName: String
+     }
+     ```
+     </CodeGroup>
+2. ActivityConfiguration を作成する際は、トランザクションをサポートするために、ActivityAttributes の型として FoodOrderAttributes の代わりに _MoEngageTransactionActivityAttributes\<FoodOrderAttributes\>_ を使用します。
+3. moengageWidgetClickURL API でディープリンクとウィジェット ID を構成して、ウィジェットのクリックをトラッキングします。
+   <CodeGroup>
+   ```swift Swift wrap
+   import ActivityKit
+   import WidgetKit
+   import SwiftUI
+   import MoEngageLiveActivity
+   struct FoodOrderWidget: Widget {
+       var body: some WidgetConfiguration {
+           ActivityConfiguration(for: MoEngageTransactionActivityAttributes<FoodOrderAttributes>.self) { context in
+               // Lock screen/banner UI goes here
+               VStack(spacing: 12) {
+                   Text(context.attributes.appAttributes.restaurantName)
+                   Text(context.state.appContent.status)
+               }
+               .moengageWidgetClickURL(URL(string: "moeapp://order-tracking"), context: context, widgetId: 2)
+               
+           } dynamicIsland: { context in
+               DynamicIsland {
+                   // Expanded UI goes here
+               } compactLeading: {
+                   Text("Preparing")
+               } compactTrailing: {
+                   Text("\(context.state.appContent.estimatedMinutes)m")
+               } minimal: {
+                   Text("Preparing")
+               }
+               .moengageWidgetClickURL(URL(string: "moeapp://order-tracking"), context: context, widgetId: 1)
+           }
+       }
+   }
+   ```
+   </CodeGroup>
+4. **Target Membership を確認する**: ActivityAttributes struct がメインアプリのターゲットからアクセスできるようにします。
+   1. ActivityAttributes を定義した Swift ファイルを選択します。
+   2. **File Inspector** を開きます(Option \+ Command \+ 1)。
+   3. **Target Membership** セクションで、メインアプリのターゲットのチェックボックスをオンにします。
+
+## ステップ 5: Live Activities を監視する
+
+`monitorLiveActivities` メソッドを呼び出して、SDK がリアルタイム更新を監視する `ActivityAttributes` の型を登録します。**`This method must be invoked within your app's didFinishLaunchingWithOptions method.`**(このメソッドはアプリの didFinishLaunchingWithOptions メソッド内で呼び出す必要があります。)この登録は、トランザクショナルアクティビティの更新に必要なショートトークンを SDK が正しくトラッキングおよび管理するために必須です。
+
+<CodeGroup>
+
+```swift Swift wrap
+Task {
+         if #available(iOS 18, *) {
+             await MoEngageSDKLiveActivity.monitorLiveActivities(types: [ FoodOrderAttributes.self]) { data in
+                     print("Push token generated for live activity",data)
+             }
+          }
+      }
+
+   public struct MoEngageTransactionCampaignData {
+        public struct MoEngageTokenData {
+              public let transactionId: String
+              public let shortToken: String
+        }
+        
+        public let accountMeta: MoEngageAccountMeta
+        public let tokenData: MoEngageTokenData
+    }
+
+    public class MoEngageAccountMeta {
+        /// Account identifier, APP ID on the MoEngage Dashboard.
+        public let appID: String
+    }
+```
+
+</CodeGroup>
+
+# Live Activity のライフサイクル管理
+
+アプリの構成が完了したら、ローカルのアプリコードと MoEngage API を組み合わせて、トランザクショナル Live Activities を開始、更新、終了できます。
+
+## ステップ 6: トランザクショナル Live Activity を開始する
+
+<Warning>
+  **Live Activity トラッキングの検証**
+
+  - **初期化前のトラッキング。** Live Activity のトラッキングメソッドは、SDK の初期化後にのみ呼び出す必要があります。それより前に呼び出すと、`DEBUG` ビルドでは致命的な例外がスローされ、アプリがクラッシュします。Release ビルドおよび TestFlight ビルドでは、呼び出しは暗黙的に破棄され、ログに記録されます。
+  - **`trackStarted` の重複。** 同じ Live Activity に対して `MoEngageSDKLiveActivity.trackStarted` を複数回呼び出すと、`DEBUG` ビルドでは致命的な例外がスローされます。Release ビルドおよび TestFlight ビルドでは、重複した呼び出しは無視されます。
+  - アップグレード中にこれらの `DEBUG` 検証によってアプリがクラッシュする場合は、SDK を初期化する前に `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` を呼び出して一時的にオプトアウトしてください。問題が修正されたら、この呼び出しを削除してください。
+
+</Warning>
+
+トランザクショナル Live Activity は通常、エンドユーザーがトランザクションを開始したとき(例: フードの注文)にアプリからローカルで開始されますが、Inform API(サーバー側)を介してリモートで開始することもできます。
+
+### Push-to-Start(リモート)
+
+Inform API を使用してユーザーの Live Activity を開始します。詳細については、[こちら](https://www.moengage.com/docs/api/live-activities/start-broadcast-live-activity)を参照してください。
+
+### Click-to-Start(ローカル)
+
+ユーザーのアクションをトリガーとして、アプリ内からアクティビティを開始します。
+
+アプリケーションの ActivityAttributes データと、必須の MoEngage メタデータ(サーバーから取得)を組み合わせて、[createAttributes(withCampaign:completion:)](https://moengage.github.io/ios-api-reference/Enums/MoEngageSDKLiveActivity.html#/s:20MoEngageLiveActivity0ab7SDKLiveD0O16createAttributes12withCampaign4file0J2Id6method4line6column10completionyAC0I0Vy_xG_s12StaticStringVA2PS2uyAM6ResultVy_x_GSgScMYcct0D3Kit0dG0RzlFZ) または [createAttributes(withCampaign:) async](https://moengage.github.io/ios-api-reference/Enums/MoEngageSDKLiveActivity.html#/s:20MoEngageLiveActivity0ab7SDKLiveD0O16createAttributes12withCampaign4file0J2Id6method4line6columnAC0I0V6ResultVy_x_GSgALy_xG_s12StaticStringVA2SS2utYa0D3Kit0dG0RzlFZ) SDK API から Live Activity のデータを取得します。Live Activity を開始するには、pushType を `.token` に設定して Apple の Activity.request() メソッドを使用します。これにより、ローカルで開始されたアクティビティがキャンペーンにリンクされます。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKLiveActivity.createAttributes(
+    withCampaign: .init(
+        campaignId: campaignId,
+        campaignName: "Order Tracking \(orderId)",
+        transactionId: transactionId,
+        attributeType: "\(FoodOrderAttributes.self)",
+        instanceId: instanceId,
+        appAttributes: FoodOrderAttributes(orderNumber: "ORD-123", restaurantName: "Pizza Palace"),
+        appContent: FoodOrderAttributes.ContentState(status: "Preparing", estimatedMinutes: 30)
+    )
+) { [weak self] result in
+    guard let result = result else {
+        self?.view.makeToast("No Live Activity creation result")
+        return
+    }
+    
+    do {
+        let activity = try MoEngageTransactionActivity<FoodOrderAttributes>.request(
+            attributes: result.attributes,
+            content: .init(
+                state: result.content,
+                staleDate: .distantFuture,
+                relevanceScore: 10
+            ),
+            pushType: .token,
+            style: .standard
+        )
+        MoEngageSDKLiveActivity.trackStarted(activity: activity)
+        self?.view.makeToast("Order Tracking Live Activity started successfully")
+    } catch {
+        self?.view.makeToast("Activity request error: \"\(error.localizedDescription)\"")
+    }
+}
+```
+
+</CodeGroup>
+
+<Info>
+  **情報**
+
+  `pushType: .token,` を使用すると、Live Activity は固有のプッシュトークンを介して、このアクティビティインスタンスを対象としたトランザクション更新を受信するように構成されます。
+</Info>
+
+## ステップ 7: Live Activity を更新する
+
+アクティビティのプッシュトークンを対象としたプッシュ通知を使用して、トランザクショナルアクティビティのステータスを更新します。更新は Inform API を介してのみ実行する必要があります。詳細については、[Inform API](https://www.moengage.com/docs/api/transactional-alerts/send-transactional-alert) を参照してください。
+
+## ステップ 8: Live Activity を終了する
+
+アクティビティの終了は Inform API を介してのみ実行する必要があります。それ以外の場合は、構成された `dismissal_date` に達すると自動的に終了します。
+
+詳細については、[Inform API](https://www.moengage.com/docs/api/transactional-alerts/send-transactional-alert) を参照してください。

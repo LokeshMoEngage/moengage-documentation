@@ -1,0 +1,89 @@
+---
+title: "Catalog の概要"
+description: "商品やアイテムのカタログを管理し、属性を定義し、アイテムの一括取り込みを処理します。"
+icon: "file-magnifying-glass"
+---
+
+MoEngage Catalog API を使用すると、商品やアイテムのカタログを管理できます。これらのエンドポイントを使用して、新しいカタログを作成し、カスタムスキーマを定義し、アイテムの取り込み、更新、削除を一括で実行できます。
+
+<Note>
+  - ファイルベースのカタログと API ベースのカタログには相互運用性はありません。ファイルベースのカタログを API で更新したり、API ベースのカタログをファイルアップロードで更新したりすることはできません。
+  - MoEngage では、カタログを設定する際に、`id` フィールドとして Variation ID ではなく Item ID を使用することをお勧めします。ユースケース上、識別子として Variation ID が必要な場合は、カスタマーサクセスマネージャーにお問い合わせください。
+</Note>
+
+## エンドポイント
+
+Catalog API は、次のエンドポイントで構成されています。
+
+- [Create Catalog](/ja/api/catalog/create-catalog): 一意の名前を持つ新しいカタログを作成します。
+- [Add Catalog Attributes](/ja/api/catalog/add-catalog-attributes): カタログに新しい属性を追加します。
+- [Add Items](/ja/api/items/add-items): 既存のカタログにアイテムを取り込みます。
+- [Get Items](/ja/api/items/get-items): アイテムの属性の詳細を取得します。
+- [Update Items](/ja/api/items/update-items): アイテムを新しい属性値で更新します。
+- [Delete Items](/ja/api/items/delete-items): 指定したカタログ内の既存のアイテムを削除します。
+
+## よくある質問
+
+### カタログの管理
+
+<AccordionGroup>
+  <Accordion title="既に存在する名前でカタログを作成しようとするとどうなりますか?">
+    API は、エラーコード `duplicate-catalog-name` とともに `409 Conflict` エラーを返します。カタログ名はワークスペース内で一意である必要があります。
+  </Accordion>
+  <Accordion title="カタログの作成後に新しい属性を追加できますか?">
+    はい。**Add Catalog Attributes** (PATCH) エンドポイントを使用できます。スキーマに既に存在する属性を送信した場合、それらは無視され、レスポンスの `duplicate-item-attributes` 配列に一覧表示されます。
+  </Accordion>
+  <Accordion title="定義できるカスタム属性の最大数はいくつですか?">
+    4 つの必須属性を含め、カタログごとに最大 50 個の属性を定義できます。
+  </Accordion>
+  <Accordion title="ファイルベースのカタログではなく API カタログを使用するメリットは何ですか?">
+    API カタログでは、価格や数量などのリアルタイム更新を自動化できます。処理スケジュールのたびにファイル全体を置き換える必要があるファイルベースのカタログとは異なり、特定の商品のみを更新するため、効率性とスケーラビリティが向上します。これらの API には任意の場所からアクセスして更新に使用できます。
+  </Accordion>
+  <Accordion title="エラーコードとは何ですか?">
+    各エラーコードは、エラーの種類を表す一意に定義された短縮表現です。事前に定義された一連のエラー条件に基づいて、問題の診断、トラブルシューティング、対処に使用できるクイックリファレンスとなります。
+  </Accordion>
+  <Accordion title="API カタログの作成後に属性のデータ型を変更できますか?">
+    いいえ。カタログで属性が定義された後は、データ型を変更できません。必要に応じて、異なるデータ型で新しい属性をカタログに追加できます。
+  </Accordion>
+  <Accordion title="カタログにはいくつの属性を追加できますか?">
+    カタログには最大 50 個の属性を追加できます。
+  </Accordion>
+  <Accordion title="既存のアイテムの更新を送信する際に、ペイロードに新しい属性を追加できますか?">
+    既存のアイテムを新しい属性で更新する前に、まず 'Add catalog attribute' API を使用して新しい属性をカタログスキーマに追加する必要があります。そうして初めて、新しい属性を含む更新リクエストが成功します。
+  </Accordion>
+  <Accordion title="ペイロードにカタログに存在しないアイテムが含まれている場合はどうなりますか?">
+    リクエストは正常に処理され、そのようなアイテムは無効としてマークされます。レスポンスには、これらの無効なアイテム ID の数が含まれます。
+  </Accordion>
+</AccordionGroup>
+
+### アイテムの取り込みと更新
+
+<AccordionGroup>
+  <Accordion title="一括取り込み中に一部が失敗した場合、API はどのように処理しますか?">
+    API は詳細な内訳とともに `200 OK` を返します。レスポンス本文には、`valid` の件数と `invalid` の件数、およびどの `document_ids` がなぜ失敗したか (データ型の不一致や属性の欠落など) を示す `details` 配列が含まれます。
+  </Accordion>
+  <Accordion title="アイテム ID を更新できますか?">
+    いいえ。`id` は主キーです。ID を変更するには、既存のアイテムを削除し、新しいアイテムとして取り込む必要があります。
+  </Accordion>
+  <Accordion title="一度に削除できるアイテム数に上限はありますか?">
+    はい。一括削除エンドポイントでは、1 回のリクエストあたり最大 50 個のアイテム ID がサポートされています。
+  </Accordion>
+  <Accordion title="新しく追加したアイテムや更新が MoEngage に反映されるまでにどのくらいかかりますか">
+    MoEngage のカタログ API はすべて同期的に動作します。つまり、すべてのカタログ API リクエストはリアルタイムで処理され、変更をすぐに確認できます。
+  </Accordion>
+</AccordionGroup>
+
+### アイテムの詳細の取得
+
+<AccordionGroup>
+  <Accordion title="エラーコードとは何ですか?">
+    各エラーコードは、エラーの種類を表す一意に定義された短縮表現です。事前に定義された一連のエラー条件に基づいて、問題の診断、トラブルシューティング、対処に使用できるクイックリファレンスとなります。
+  </Accordion>
+  <Accordion title="API カタログの作成後に属性のデータ型を変更できますか?">
+    いいえ。カタログで属性が定義された後は、データ型を変更できません。必要に応じて、[Add new catalog attribute API](/ja/api/catalog/add-catalog-attributes) を使用して、異なるデータ型で新しい属性をカタログに追加できます。
+  </Accordion>
+</AccordionGroup>
+
+## Postman コレクション
+
+Postman コレクションを使用して、これらのエンドポイントをすぐにテストできます。[Postman コレクションを表示](https://www.postman.com/moengage-dev/api-docs/collection/seck3f6/moengage-catalog-api)

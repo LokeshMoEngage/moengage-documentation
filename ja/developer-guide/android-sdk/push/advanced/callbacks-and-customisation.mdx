@@ -1,0 +1,327 @@
+---
+title: "コールバックとカスタマイズ"
+description: "MoEngage PushMessageListener を使用して、Android アプリのプッシュ通知の表示と動作をカスタマイズします。"
+---
+
+<Info>
+  **高度なカスタマイズ**
+
+  アプリケーションで MoEngage SDK のデフォルトの動作をカスタマイズまたは変更したい高度なユースケースをサポートします。
+</Info>
+
+MoEngage SDK では、クライアントアプリケーションで必要に応じて通知の表示をカスタマイズしたり、通知の動作を拡張/カスタマイズしたりできます。可能なカスタマイズの例としては、通知を表示するかどうかの判断や、_NotificationCompat.Builder_ オブジェクトの調整などがあります。そのためには、MoEngage SDK が提供する [PushMessageListener](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.push/-push-message-listener/index.html) というクラスを拡張し、このクラスのインスタンスを MoEngage SDK に渡す必要があります。これが完了すると、要件に応じてデフォルトの実装をオーバーライドできます。上記の手順を詳しく見ていきましょう。
+
+# PushMessageListener の拡張
+
+通知をカスタマイズするためにまず必要なのは、[_PushMessageListener_](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.push/-push-message-listener/index.html) を拡張するクラスを作成することです。ここではこのクラスを **CustomPushMessageListener** と呼びます（説明のための名前であり、任意のクラス名を使用できます）。このクラスの基本構造は以下のようになります。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+class CustomPushMessageListener : PushMessageListener() {
+}
+```
+
+
+```java Java
+public class CustomPushMessageListener extends PushMessageListener {
+}
+```
+
+</CodeGroup>
+
+# CustomPushMessageListener のインスタンスを MoEngage SDK に渡す
+
+`Application` クラスの `onCreate()` で、 [`MoEPushHelper.getInstance().registerMessageListener()`](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase/-mo-e-push-helper/register-message-listener.html) を使用して `CustomPushMessageListener` のインスタンスを MoEngage SDK に渡します。
+
+<Warning>
+  リスナーは Activity ではなく `Application.onCreate()` で登録してください。プッシュのコールバックはアプリがバックグラウンドにある場合や終了している場合に発生するため、Activity レベルで登録すると、Activity がまだ生成されていないためコールバックを受け取れません。
+</Warning>
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoEPushHelper.getInstance().registerMessageListener(CustomPushMessageListener())
+```
+
+
+```java Java wrap
+MoEPushHelper.getInstance().registerMessageListener(new CustomPushMessageListener());
+```
+
+</CodeGroup>
+
+# 通知の表示を任意で制御する
+
+通知をユーザーに表示するかどうかを制御するには、上記で作成した _CustomPushMessageListener_ クラスで [isNotificationRequired()](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.push/-push-message-listener/is-notification-required.html) をオーバーライドする必要があります。\
+オーバーライドして通知を表示するかどうかに応じて、実装は **true** または **false** を返す必要があります。
+
+実装の構造は以下のとおりです。\
+このメソッドが **false** を返すと、この通知は SDK によって破棄されます。つまり、通知はデバイスに表示されず、インプレッションもトラッキングされません。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+class CustomPushMessageListener : PushMessageListener() {
+
+  // decide whether notification should be shown or not.
+  override fun isNotificationRequired(context: Context, payload: Bundle): Boolean {
+      // app's logic to decide whether to show notification or not.
+      // for illustration purpose reading notification preference from SharedPreferences and
+      // deciding whether to show notification or not. Logic can vary from application to
+      // application.
+      val preferences = context.getSharedPreferences("demoapp", 0)
+      return preferences.getBoolean("notification_preference", true)
+  }
+}
+```
+
+
+```java Java wrap
+public class CustomPushMessageListener extends PushMessageListener {
+  // decide whether a notification should be shown or not.
+  @Override public boolean isNotificationRequired(Context context, Bundle payload) {
+    // app's logic to decide whether to show a notification or not.
+    //For illustration purposes reading notification preference from SharedPreferences and
+    // deciding whether to show a notification or not. Logic can vary from application to
+    // application.
+    SharedPreferences preferences = context.getSharedPreferences("demoapp", 0);
+    return preferences.getBoolean("notification_preference", true);
+  }
+}
+```
+
+</CodeGroup>
+
+詳細については、[API リファレンス](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.push/-push-message-listener/is-notification-required.html)を参照してください。
+
+# 通知受信コールバック
+
+プッシュを受信するたびにコールバックを受け取るには、_CustomPushMessageListener_ クラスで [onNotificationReceived()](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.push/-push-message-listener/on-notification-received.html) をオーバーライドします。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+class CustomPushMessageListener : PushMessageListener() {
+  override fun onNotificationReceived(context: Context, payload: Bundle) {
+    super.onNotificationReceived(context, payload)
+    //callback for push notification received.
+  }
+}
+```
+
+
+```java Java wrap
+public class CustomPushMessageListener extends PushMessageListener {
+  @Override public void onNotificationReceived(Context context, Bundle payload) {
+    super.onNotificationReceived(context, payload);
+    //callback for push notification received.
+  }
+}
+```
+
+</CodeGroup>
+
+# 通知クリックコールバック
+
+プッシュがクリックされるたびにコールバックを受け取るには、通知受信コールバックで説明したように作成した _CustomPushMessageListener_ クラスで [onNotificationClicked()](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.push/-push-message-listener/on-notification-click.html) をオーバーライドします。\
+このメソッドはコールバックを兼ねており、リダイレクトの処理にも使用できます。通知クリック時のリダイレクトを自身で処理する場合、メソッドは true を返し、それ以外の場合は false を返す必要があります。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+class CustomPushMessageListener : PushMessageListener() {
+  override fun onNotificationClick(activity: Activity, payload: Bundle): Boolean {
+    // If you want to handle redirection on notification, click the method should return true, or else false.
+    return false
+  }
+}
+```
+
+
+```java Java wrap
+public class CustomPushMessageListener extends PushMessageListener {
+  @Override public boolean onNotificationClick(Activity activity, Bundle payload) {
+    // If you want to handle redirection on notification, click the method should return true, or else false.
+    return false;
+  }
+}
+```
+
+</CodeGroup>
+
+# 通知クリアコールバック
+
+プッシュがクリアされるたびにコールバックを受け取るには、上記で作成した _CustomPushMessageListener_ クラスで [onNotificationCleared()](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.push/-push-message-listener/on-notification-cleared.html) をオーバーライドします。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+class CustomPushMessageListener : PushMessageListener() {
+  override fun onNotificationCleared(context: Context, payload: Bundle) {
+    super.onNotificationCleared(context, payload)
+    // callback for notification cleared.
+  }
+}
+```
+
+
+```java Java wrap
+public class CustomPushMessageListener extends PushMessageListener {
+  @Override public void onNotificationCleared(Context context, Bundle payload) {
+    super.onNotificationCleared(context, payload);
+    // callback for notification cleared.
+  }
+}
+```
+
+</CodeGroup>
+
+# アクションボタンクリック時のカスタムアクション
+
+アクションボタンのクリック時にカスタムアクションを使用するには、上記で作成した _CustomPushMessageListener_ クラスで [handleCustomAction()](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.push/-push-message-listener/handle-custom-action.html) をオーバーライドします。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+class CustomPushMessageListener : PushMessageListener() {
+  override fun handleCustomAction(context: Context, payload: String) {
+    super.handleCustomAction(context, payload)
+    // callback for notification custom action
+  }
+}
+```
+
+
+```java Java wrap
+public class CustomPushMessageListener extends PushMessageListener {
+  @Override public void handleCustomAction(Context context, String payload) {
+    super.handleCustomAction(context, payload);
+    // callback for notification custom action
+  }
+}
+```
+
+</CodeGroup>
+
+# 通知のカスタマイズ
+
+通知オブジェクトをさらにカスタマイズするには、[customizeNotification()](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.push/-push-message-listener/customize-notification.html) をオーバーライドします。これにより、バイブレーションパターンや LED の色などの追加設定を追加または変更できます。デフォルトの設定が確実に適用されるように、カスタマイズを追加する前に super メソッドを呼び出す必要がある点に注意してください。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+class CustomPushMessageListener : PushMessageListener() {
+
+  override fun customizeNotification(notification: Notification, context: Context, payload: Bundle) {
+
+    super.customizeNotification(notification, context, payload)
+
+    // You can customize the `notification` object here
+
+  }
+
+}
+```
+
+
+```java Java wrap
+public class CustomPushMessageListener extends PushMessageListener {
+
+  @Override public void customizeNotification(Notification notification, Context context, Bundle payload) {
+
+    super.customizeNotification(notification, context, payload);
+
+    // You can customize the `notification` object here
+
+  }
+
+}
+```
+
+</CodeGroup>
+
+# Notification Builder のカスタマイズ
+
+SDK には、必要に応じて notification builder オブジェクトをカスタマイズするための [customizeNotificationBuilder()](https://moengage.github.io/android-api-reference/pushbase/com.moengage.pushbase.push/-push-message-listener/customize-notification-builder.html) コールバックが用意されています。この機能により、開発者はチャネル ID や自動消去時間など、notification builder のさまざまなプロパティを更新できます。デフォルトの設定が確実に適用されるように、カスタマイズを追加する前に super メソッドを呼び出す必要がある点に注意してください。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+class CustomPushMessageListener : PushMessageListener() {
+
+  override fun customizeNotificationBuilder(notificationBuilder: NotificationCompat.Builder, context: Context, notificationPayload: NotificationPayload) {
+
+    super.customizeNotificationBuilder(notificationBuilder, context, notificationPayload)
+
+    // You can customize the `notificationBuilder` object here
+
+  }
+
+}
+```
+
+
+```java Java wrap
+public class CustomPushMessageListener extends PushMessageListener {
+
+  @Override public void customizeNotificationBuilder(NotificationCompat.Builder notificationBuilder, Context context, NotificationPayload notificationPayload) {
+
+    super.customizeNotificationBuilder(notificationBuilder, context, notificationPayload);
+
+    // You can customize the `notificationBuilder` object here
+
+  }
+
+}
+```
+
+</CodeGroup>
+
+# Self-handled 通知受信コールバック
+
+ 
+
+`PushMessageListener` を登録する SDK コールバック方式を使用する場合、MoEngage SDK は self-handled 通知専用のメソッドを提供します。
+
+<Info>
+  **SDK バージョン**: self-handled 通知のチェックは、Android SDK バージョン **14.06.00** 以降でサポートされています。
+
+  **インプレッションの自動トラッキング:** このコールバックを使用する場合、MoEngage SDK は**通知のインプレッションを自動的にトラッキング**します。`logNotificationReceived` を呼び出す必要はありません。表示の処理と、カスタム UI を表示する場合のクリックの手動トラッキングのみを行う必要があります。
+</Info>
+
+このコールバックを受け取るには、カスタムリスナークラスで `onSelfHandledNotificationReceived()` をオーバーライドします。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+class CustomPushMessageListener : PushMessageListener() {
+
+override fun onSelfHandledNotificationReceived(context: Context, payload: Bundle) {
+    // Impression is already logged by the SDK automatically
+    
+    // 1. Logic to handle background data (e.g., sync, logout)
+    // 2. Logic to build and show a custom notification UI (if required)
+}
+
+}
+```
+
+
+```java Java wrap
+public class CustomPushMessageListener extends PushMessageListener {
+
+@Override
+public void onSelfHandledNotificationReceived(@NonNull Context context, @NonNull Bundle payload) {
+    // Impression is already logged by the SDK automatically
+    
+    // 1. Logic to handle background data (e.g., sync, logout)
+    // 2. Logic to build and show a custom notification UI (if required)
+}
+
+}
+```
+
+</CodeGroup>
+
+`Bundle` で受信するペイロードの構造の詳細については、[Background Update Templates](https://www.moengage.com/docs/user-guide/campaigns-and-channels/mobile-push/create/push-templates#background-update) を参照してください。

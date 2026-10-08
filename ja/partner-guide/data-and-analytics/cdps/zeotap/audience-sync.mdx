@@ -1,0 +1,82 @@
+---
+title: "オーディエンス同期"
+---
+
+# はじめに
+
+[Zeotap Audience](https://zeotap.com/platform/capabilities/audience-boost/) 統合は、Zeotap のオーディエンスを MoEngage に直接同期し、キャンペーンですぐに使用できるようにします。この統合を使用すると、次のことが可能になります。
+
+- キャンペーン用のカスタムセグメント（オーディエンス）を作成する。
+- MoEngage セグメントにユーザーをリアルタイムで追加または削除する。
+- セグメントを動的に最新の状態に保ち、常に新しいキャンペーンターゲティングを行う。
+
+<Info>
+  Zeotap 統合は現在、[Unified Identity (Identity Resolution)](/ja/user-guide/data/user-data/unified-identity-identity-resolution) および [Portfolio](/ja/user-guide/settings/account/portfolio/portfolio) をサポートしていません。
+</Info>
+
+# 統合
+
+<Info>
+  次のものがあることを確認してください。
+
+  - 有効な Zeotap アカウント。
+  - MoEngage ダッシュボードの設定へのアクセス権。
+</Info>
+
+## ステップ 1: Zeotap で MoEngage を Destination として設定する
+
+Zeotap で MoEngage を Destination として設定するには、次の手順を実行します。
+
+1. Zeotap ダッシュボードにログインし、**Integrate** \> **Destinations** に移動します。
+2. Destinations ページで、右上の **\+ Create Destination** をクリックします。 <img src="/images/partner_42007071061140.png" />
+3. **All Destinations** の **Search for a** **Destination** ボックスに **MoEngage** と入力します。\
+   <img src="/images/partner_42007071061396.png" />\
+   **Destination Details** 設定ページが表示されます。
+4. **Destination** **Details** タブで、次の詳細を入力します。
+   1. **Destination Name** ボックスに、Destination の名前を入力します。
+   2. **API Key box** に、MoEngage の API キーを入力します。
+   3. **Workspace ID** ボックスに、MoEngage アカウントの Workspace ID を入力します。
+   4. **Data Center** ボックスに、MoEngage のデータセンター番号を入力します。
+   5. **Next** をクリックします。これで、MoEngage Destination がジャーニーで有効になります。 <img src="/images/partner_42010991979924.png" />
+
+**Mapping** 設定ページが表示されます。
+
+<Info>
+  MoEngage の API 認証情報の取得方法の詳細については、[Outbound: User and Event Forwarding](/ja/partner-guide/data-and-analytics/cdps/zeotap/outbound-user-and-event-forwarding) \> ステップ 1 を参照してください。
+</Info>
+
+6. 具体的なユースケースに応じて、MoEngage で実行するアクション（**Add Audience to segment**、**Send events to moengage**、**Sync User**）を選択します。たとえば、このユースケースではアクションは **Create User** で、Zeotap のデータを使用して新しいユーザープロファイルを作成するか、既存のユーザープロファイルを更新するよう MoEngage に指示します。
+7. **Choose your Action** のドロップダウンリストで、**Create User** を選択します。
+8. **Map the Fields** で、Zeotap の **Catalogue Field** を MoEngage の対応する **Destination Field** にマッピングします。
+   - **Identifiers**: **Email Raw** フィールドを **Email/Customer ID**\* フィールドにマッピングします。これは必須フィールドです。
+   - **Attributes**: 必要な Zeotap のフィールドを、**Name** や **First Name** など、対応する MoEngage のフィールドにマッピングします。
+9. **Create Destination** をクリックして設定を保存します。\
+   **注**: 複数のユーザー識別子を同期するには、**\+ Add Mapping** をクリックします。これにより、標準属性（Name など）や必要なカスタムフィールドをマッピングするための新しい行を作成できます。 <img src="/images/partner_42010991980308.png" />
+10. **Save Mapping** をクリックします。
+
+Destination を作成したら、Zeotap Journey アプリで新しい Destination をリンクして、ユーザーデータを MoEngage に送信できます。
+
+## ステップ 2: オーディエンスに対して Destination を有効にする
+
+設定した MoEngage Destination にオーディエンスをリンクするには、次の手順を実行します。
+
+1. Zeotap の **Audiences** ページで、同期するオーディエンスを見つけます。
+2. そのオーディエンスの行で、右側の **More options** アイコン（...）をクリックします。
+3. 表示されるドロップダウンリストで、**Link to destinations** をクリックします。
+
+![](/images/partner_42007071062932.png)
+
+4. **Search** ボックスに、作成した MoEngage Destination を入力します。 <img src="/images/partner_42007041678228.png" />
+5. **Destination Details** タブをクリックし、Workspace ID、API キー、データセンターの各フィールドが事前に入力されていることを確認します。
+6. **Save Destination** をクリックします。\
+   保存すると、Destination がそのオーディエンスに関連付けられ、有効になります。 <img src="/images/partner_42007071064212.png" />
+
+## ステップ 3: MoEngage でオーディエンスを確認する
+
+同期後、オーディエンスは MoEngage でカスタムセグメントとして自動的に作成され、**Segment** \> **Custom Segments** に移動して確認できます。詳細については、[Custom Segments](https://moengage-user-guide.mintlify.app/user-guide/segment/create-segments/manage-segments) を参照してください。
+
+# レート制限
+
+プラットフォームの安定性を維持するため、MoEngage は Zeotap のオーディエンスデータの取り込みを、ワークスペースあたり最大 300 リクエスト/分（RPM）に制限しています。ワークスペースがこの制限を超えると、MoEngage は HTTP `429 (Too Many Requests)` ステータスコードを返します。レート制限がデータフローにどのように影響するかについては、デフォルトの再試行ポリシーに関する Zeotap のドキュメントを参照してください。
+
+**再試行の上限到達:** Zeotap がデータのバッチに対するすべての再試行を使い切った場合は、Zeotap サポートチームに連絡して、失敗したリクエストを再実行してもらう必要があります。

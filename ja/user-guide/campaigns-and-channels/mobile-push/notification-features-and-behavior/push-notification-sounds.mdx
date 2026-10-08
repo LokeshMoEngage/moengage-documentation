@@ -1,0 +1,83 @@
+---
+title: "プッシュ通知のサウンド"
+description: "通知チャネルの設定、キャンペーンのセットアップ、デバイスレベルの設定など、Android と iOS におけるプッシュ通知のサウンドの動作を制御します。"
+keywords: ["push notification sound", "custom notification sound", "sound file", "notification channel sound", "interruption level", "device sound settings", "silent notification"]
+---
+
+通知が配信されたときのサウンドは、次の要素によって決まります。
+
+- アプリレベルまたはチャネルレベルで統合されたサウンド
+- キャンペーンのセットアップ
+- ユーザーのデバイスにおけるアプリの通知設定
+- 配信時のユーザーのデバイスの状態
+
+この記事では、あらゆる条件下での通知サウンドの動作について説明します。
+
+# Android
+
+Android Oreo（8.0）以降では、通知サウンドは Notification Channels によって制御されます。
+
+## 実装
+
+アプリで通知チャネルを作成する場合、通知チャネルのサウンドは次の要素によって決まります。
+
+- チャネルに設定したサウンド。カスタムサウンドが設定されていない場合、システムはアプリで定義されたデフォルトの通知サウンドを再生します。
+- チャネルの割り込みレベル。
+
+<img alt="12.png" src="/images/moengage_365731.png" />
+
+Android デベロッパードキュメントの [Creating and managing notification channels](https://developer.android.com/develop/ui/views/notifications/channels) を参照してください。
+
+## ユーザーレベルのデバイス設定
+
+ユーザーは、デバイスレベルでいつでもこれらの設定を上書きできます。
+
+- デバイスの音量設定から、すべての通知のサウンドをオフにする。
+- チャネルの設定内に「Sound」のオプションがあります。ユーザーはこれをタップしてリストから別のサウンドを選択するか、そのチャネルでサウンドを鳴らしたくない場合は **None** を選択できます。
+- チャネルのプッシュ許可をオフにする。
+
+## キャンペーンでの使用
+
+アプリにチャネルを追加した後、MoEngage ダッシュボードに通知チャネルを追加できます。これらのチャネルを通じて送信される通知は、各チャネルに設定されたサウンドと重要度の設定に従います。
+
+**Manage notification channel** で宣言された重要度は、キャンペーンのチャネル選択画面で各チャネルの横に表示されます。チャネルを選択する前に、これを使用してサウンドの動作を確認してください。
+
+- [**Urgent**](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/android-push-notification-channels#channel-importance-levels-reference) と [**High**](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/android-push-notification-channels#channel-importance-levels-reference) — サウンドが再生されます。
+- [**Medium**](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/android-push-notification-channels#channel-importance-levels-reference)、[**Low**](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/android-push-notification-channels#channel-importance-levels-reference)、[**None**](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/android-push-notification-channels#channel-importance-levels-reference) — サイレントです。
+
+このラベルは情報提供を目的としたものです。実際のサウンドとバイブレーションの動作は、開発者がアプリのコードでチャネルに設定した内容によって決まります。詳細については、[Android Push Notification Channels](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/android-push-notification-channels) を参照してください。
+
+# iOS
+
+このセクションでは、iOS における通知サウンドの動作について説明します。
+
+## 実装
+
+アプリでは、通知が配信されたときに再生するカスタムサウンドを定義できます。これは通常、アプリバンドルに含まれる短いオーディオファイルです。
+
+オーディオデータは aiff、wav、または caf ファイルにパッケージ化できます。サウンドファイルの長さは 30 秒未満である必要があります。サウンドファイルが 30 秒を超える場合、システムは代わりにデフォルトのサウンドを再生します。詳細については、[UNNotificationSound Apple documentation](https://developer.apple.com/documentation/usernotifications/unnotificationsound) を参照してください。
+
+## ユーザーレベルのデバイス設定
+
+アプリの実装に関係なく、ユーザーはデバイスの設定アプリを通じて通知サウンドを制御できます。
+
+- ユーザーは **Settings** \> **Notifications** に移動してアプリを選択し、**Sounds** 設定でそのアプリの通知サウンドを選択できます。
+- デバイスがサイレントモードまたは集中モードになっている場合、あるいはおやすみモードが有効になっている場合、通知の割り込みレベルによってはサウンドが再生されないことがあります。
+
+## キャンペーンでの使用
+
+### 通知サウンド
+
+iOS 向けのプッシュ通知キャンペーンを作成する際は、次のように **Sound** フィールドにサウンドのファイル名を指定します。
+
+<img alt="13.png" src="/images/moengage_c81454.png" />
+
+サウンドに誤った名前または空の値が送信された場合は、代わりにデフォルトの通知サウンドが使用されます。
+
+### 割り込みレベル
+
+割り込みレベル（passive、active、time-sensitive、critical）は、通知がユーザーにどのように表示されるか、また集中モードやおやすみモードを突破するかどうかを決定します。
+
+サウンドプロパティは引き続き通知ペイロードまたはコンテンツで指定しますが、割り込みレベルはユーザーの現在の集中モード設定に基づいてデバイス設定を上書きし、サウンドの再生を許可または禁止する場合があります。
+
+たとえば、time-sensitive の割り込みレベルを持つ通知は、それらの設定を突破するほど重要であると見なされるため、ユーザーがおやすみモードを有効にしていてもサウンドが再生される場合があります。詳細については、[Notifications in iOS 15](/ja/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/notifications-in-ios-15) を参照してください。

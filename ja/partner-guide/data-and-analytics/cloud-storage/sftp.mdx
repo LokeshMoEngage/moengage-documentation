@@ -1,0 +1,151 @@
+---
+title: "SFTP"
+description: "SFTP サーバーを MoEngage に接続して、ユーザーデータとイベントデータをインポートおよびエクスポートします。SSH キーのローテーションにも対応しています。"
+---
+
+## 概要
+
+Secure File Transfer Protocol（SFTP）は、信頼性の高い任意のデータストリーム上で、大容量のファイルや機密データに安全にアクセスし、転送、管理するためのネットワークプロトコルです。Internet Engineering Task Force によって Secure Shell（SSH）バージョン 2.0 の拡張として設計された SFTP は、安全なファイル転送機能を提供します。
+
+## MoEngage と SFTP の連携の仕組み
+
+MoEngage では、SFTP サーバーからユーザーとイベントを自動的にインポートし、フラットファイルを通じて MoEngage からイベントをエクスポートできます。
+
+SFTP サーバーとの統合により、MoEngage は次のことが可能になります。
+
+- キャンペーンのインタラクションイベントの定期的なエクスポートを JSON 形式で共有する。
+- Username \+ Password 認証と Username \+ SSH Key 認証をサポートする。
+- Virtual Private Cloud（VPC）またはプライベートエンドポイント上のホストをサポートする。
+
+MoEngage によって作成、受信、または生成されたすべてのユーザーイベントとキャンペーンイベントを SFTP サーバーにエクスポートできます。これにより、エクスポートされたデータを分析して、ユーザーの行動、嗜好、その他の関連する事柄に関するインサイトを得ることができます。
+
+# 統合
+
+<Info>
+  **前提条件**
+
+  SFTP サーバーへの必要な接続アクセス権があることを確認してください。
+</Info>
+
+## 新しい SFTP 接続を設定する
+
+SFTP サーバーとの間でデータをインポートまたはエクスポートするには、MoEngage と SFTP サーバーの間の接続を設定する必要があります。
+
+新しい SFTP 接続を作成するには、次の手順を実行します。
+
+1. MoEngage UI の左側のナビゲーションメニューで、**App marketplace** をクリックします。
+2. App marketplace ページの検索バーに **SFTP** と入力します。
+3. **SFTP** タイルをクリックします。SFTP ページが表示されます。<img src="/images/partner_33213794695700.png" />
+4. **Integrate** タブに移動し、**\+ Add connection** をクリックします。
+5. **Connection details** セクションで、次の詳細を入力します。<img src="/images/partner_43256260917268.png" />
+   | フィールド | 説明 | 例 |
+   | --- | --- | --- |
+   | Connection Name | 接続を識別するための名前を指定します。 | SFTP Connection |
+   | Host | 接続先のホスト名を入力します。 | `128.0.0.0` または `ftp.moengage.com` |
+   | Port | SFTP サーバーを接続するポートを入力または選択します。有効なポートの範囲は 1～65535 です。デフォルトのポートは 22 です。 | 22 |
+   | Username | SFTP 接続のユーザー名を入力します。読み取りおよび書き込みアクセス権を持つ既存のユーザーを入力するか、MoEngage 用に新しいユーザーを作成できます。 | John Doe |
+   | Authentication Method | MoEngage が SFTP サーバーに接続するための方法として、次のいずれかを選択する必要があります。<ul><li>**Password**: **Password** ボックスに SFTP ユーザー（ユーザー名）のパスワードを入力します。</li><li>**Key**: MoEngage はキーペア認証方式を使用して SFTP サーバーに接続します。キーを生成するには、このオプションを使用する必要があります。詳細については、[SFTP キーを管理する（キーローテーション）](#manage-your-sftp-key-key-rotation)を参照してください。</li><li>**2FA (Both)**: MoEngage は Password 認証と Key 認証の両方を使用して接続を試みます。パスワードまたはキーのいずれかが一致すれば接続は正常に進みます。両方を必須とする厳密なチェックは行いません。</li></ul> **Key** 認証および **2FA (Both)** 認証の場合: <ol><li>認証方法として **Key** または **2FA (Both)** を選択します。</li><li>**Generate Key** アイコン <img src="/images/partner_33187158924564.png" alt="Generate Key アイコン" /> をクリックすると、MoEngage に公開鍵が表示されます。この公開鍵を SFTP サーバーに追加する必要があります。詳細については、[How to add a new SSH key to a cloud server](https://www.servers.com/support/knowledge/linux-administration/how-to-add-new-ssh-key-to-a-cloud-server)（未検証の公開記事）を参照してください。</li></ol> **注**: 生成されるキーは公開鍵です。2FA (Both) の場合は、パスワードを入力し、キーを生成または使用する必要があります。 | Password / Key / 2FA (Both) |
+   | <img src="/images/partner_43256271555348.png" alt="Key または 2FA (Both) 認証を選択したときに表示される生成済みの公開鍵" /> |  |  |
+6. 接続を保存する前に、**Test connect** をクリックして認証情報を検証し、詳細をテストできます。準備ができたら、**Connect** をクリックして接続を保存し、先に進みます。
+   <Note>
+     ローテーションのために新しいキーを生成した場合は、ローテーションを完了するために接続テストを成功させる必要があります。そうしないと、MoEngage は引き続き古いキーを使用します。
+   </Note>
+
+MoEngage と SFTP サーバーの間の接続が成功すると、その接続を使用して MoEngage でさまざまなインポートとエクスポートを設定できます。
+
+### SFTP キーを管理する（キーローテーション）
+
+MoEngage はキーローテーションもサポートしています。IT ポリシーでキーのローテーションが求められている場合は、次の手順を実行してローテーションできます。
+
+1. **App marketplace** \> **SFTP** \> **Integrate** に移動し、接続を編集します。
+2. **Generate new key** アイコン <img src="/images/partner_33187158924564.png" alt="Generate new key アイコン" /> をクリックします。**Generate a new key** ポップアップウィンドウが表示され、手順を確認するよう求められます。**注**: 手順をよくお読みください。新しく生成したキーで接続を保存すると、MoEngage は以前のキーを使用しなくなります。ローテーションが正しく機能するように、新しいキーを SFTP サーバーに必ず追加してください。接続を保存した後に新しいキーが追加されていない場合、インポートとエクスポートが中断される可能性があります。<img src="/images/partner_33213799352980.png" alt="Generate a new key ポップアップウィンドウ" />
+3. **Generate new key** をクリックします。MoEngage がキーを正常に生成すると、確認メッセージが表示されます。MoEngage では、<img src="/images/partner_33187158929940.png" alt="コピーアイコン" /> アイコンを使用してこの新しいキーをコピーし、SFTP サーバーに追加のキーとして登録することを強くお勧めします。<img src="/images/partner_33187183848852.png" alt="ダウンロードアイコン" /> アイコンを使用してキーをダウンロードすることもできます。新しいキーを登録した後、ローテーションを完了するために接続テストを成功させる必要があります。**注**: ローテーションのために新しいキーを生成した場合は、ローテーションを完了するために接続テストを成功させる必要があります。そうしないと、MoEngage は引き続き古いキーを使用します。
+
+## SFTP からのインポートを設定する
+
+MoEngage では、SFTP フォルダー内に保存されたファイルを通じてユーザーとイベントをインポートできます。詳細については、[SFTP インポート](https://www.moengage.com/docs/user-guide/data/imports/file-based-imports/sftp-imports)を参照してください。
+
+## SFTP へのエクスポートを設定する
+
+<Info>
+  - エクスポートオプションは、少なくとも 1 つの接続を設定した場合にのみ有効になります。
+  - MoEngage には、SFTP サーバー上でフォルダーを作成し、ファイルを書き込む権限が必要です。SFTP サーバー上の MoEngage 専用ディレクトリに完全な書き込みアクセス権を付与することをお勧めします。
+  - SFTP へのエクスポートは Streams アドオンの一部です。アカウントで有効にするには、MoEngage の専任 CSM（カスタマーサクセスマネージャー）にお問い合わせください。
+</Info>
+
+MoEngage App Marketplace で SFTP エクスポートを有効にするには、次の手順を実行します。
+
+1. MoEngage UI で App Marketplace に移動します。
+2. "SFTP" を検索します。
+3. **Integrate** タブに移動し、**\+ Add export** をクリックします。
+4. エクスポートの詳細を入力します。<img src="/images/partner_41519108724628.png" />
+   | フィールド | 説明 | 例 |
+   | --- | --- | --- |
+   | Export name | エクスポートに名前を付けます。 | SFTP Export |
+   | SFTP connection | [新しい SFTP 接続を設定する](#configure-a-new-sftp-connection)で作成した接続の一覧から、既存の SFTP 接続を選択します。 | SFTP Connection |
+   | Folder path | MoEngage がファイルをダンプするフォルダーパスです。最終的なファイルパスのプレビューが下に表示されます。 | `/exports/` |
+   | Export all files in one folder | MoEngage にすべてのファイルを単一のフォルダーにダンプさせる場合は、このオプションを選択します。無効にすると、MoEngage は指定されたフォルダーパス内に日ごとに新しいフォルダーを作成します。最終的なファイルパスのプレビューが下に表示されます。 | オン/オフの切り替え |
+   | User properties | イベントとともにエクスポートするユーザープロパティ（ユーザープロパティとデバイスプロパティ）を選択します。ユーザー属性（ユーザー属性、デバイス属性、カスタム属性など）は、そのデータベース/アプリの Data Management で確認できます。 | （ドロップダウン） |
+   | Select events | SFTP サーバーにエクスポートするイベントを選択します。使用可能なオプションは次のとおりです。<ul><li>**All events**</li><li>**Select events manually**</li></ul> "All events"（既存のイベントと、今後 MoEngage に送信される新しいイベント）をエクスポートするか、イベントを手動で選んでそれらのイベントのみをエクスポートするかを選択できます。 | All events / Select events manually |
+   | Select events（ドロップダウン） | このドロップダウンリストは、**Select events** で **Select events manually** を選択した場合にのみ表示されます。このドロップダウンリストのイベントには、そのワークスペースの Data Management にあるすべてのイベントが自動的に入力されます。 | （ドロップダウン） |
+   | Frequency | これらのイベントをエクスポートする頻度を選択します。MoEngage では次の 3 つの頻度を提供しています。<ul><li>**Every 15 mins**: MoEngage は 15 分間隔でファイルをダンプします。</li><li>**Daily**: MoEngage は毎日の終わり（02:00 UTC）にファイルをダンプします。</li><li>**Weekly**: MoEngage は毎週月曜日の 02:00 UTC にファイルをダンプします。</li></ul> Daily と Weekly の場合は、次回のダンプのプレビューが表示されます。 | Every 15 mins / Daily / Weekly |
+   <Warning>
+     データの損失や重複が発生する可能性があるため、MoEngage ではエクスポート頻度を頻繁に変更することは推奨していません。
+   </Warning>
+5. **Save export** をクリックします。エクスポートが保存され、**Export status** トグルがオンになると、MoEngage は選択したエクスポート頻度に基づいて、SFTP サーバー上の指定されたフォルダーパスへのファイルのエクスポートを開始します。
+
+<Info>
+  MoEngage は Paramiko (4.0.0) ライブラリを使用して、SFTP サーバーへのネイティブ接続を確立します。この定期的なアップグレードにより、すべての統合の堅牢性が維持され、最新の暗号化標準に準拠します。
+</Info>
+
+### イベントと属性
+
+MoEngage と SFTP の統合により、MoEngage に送信されるすべてのイベントを SFTP サーバーにエクスポートできます。デフォルトでは、MoEngage は SDK を通じていくつかの標準イベントとユーザープロパティをトラッキングします。[標準イベントと属性についてはこちら](https://www.moengage.com/docs/user-guide/data/event-data/derived-events-and-attributes)をお読みください。MoEngage でトラッキングした任意のカスタムのユーザー定義イベントもエクスポートできます。
+
+### データエクスポート形式
+
+| 情報 | 説明 |
+| --- | --- |
+| ファイル形式 | JSON |
+| 圧縮タイプ | GZip |
+| エクスポート頻度 | 15 分ごと、毎日、または毎週 |
+| サンプルフォルダーパス | `sftp://<host_name>/[<folder_path>/]<connection_name>/export_date={DD-MM-YYYY}/{filename=event_export}_<unique_string>[_<file_number>].json.gz` |
+
+サンプルフォルダーパスの説明:
+
+- `<folder_path>` は、指定したプレフィックスのフォルダーパスです。
+- `<connection_name>` は、入力した接続名をスラッグ化したものです。
+- ファイル番号は、ファイルを分割する場合に使用され、任意です。
+
+**注**: ファイルの命名規則の変更は 2025 年 12 月 25 日から有効になります。エクスポートのファイル命名形式は、エポックタイムスタンプから一意の文字列に更新されます。データパイプラインが新しい形式を処理できるように設定されていることを確認してください。
+
+- **現在の名前（エポックタイムスタンプ）**: export\_day=2025-10-28/event\_exports\_1761689701.json.gz
+- **新しい名前（一意の文字列）**: export\_day=2025-10-28/event\_exports\_50492790da7cc2a0674fb51fa5046e3c.json.gz
+
+サンプルファイルは[こちら](https://app-cdn.moengage.com/partners-integration-ui/app-marketplace-public/helpdoc/event_exports_sample_files.json.gz)からダウンロードできます。これは GZIP 圧縮されたファイルのため、ファイルを表示する前に展開する必要があります。
+
+エクスポートされるイベントと属性の完全な一覧については、[データエクスポート用語集](https://www.moengage.com/docs/user-guide/data/exports/events/data-export-glossary)を参照してください。
+
+# よくある質問
+
+<AccordionGroup>
+  <Accordion title="データの受信はいつから始まりますか？">
+    通常、アカウントで自動データエクスポートが設定され、データが表示され始めるまでに最大 30 分かかります。
+  </Accordion>
+
+  <Accordion title="後から追加のイベントをエクスポートできますか？">
+    はい。後から新しいイベントをエクスポートする必要がある場合は、いつでも App Marketplace で設定を編集し、新しいイベントをエクスポートに追加できます。
+  </Accordion>
+
+  <Accordion title="自動データエクスポートを使用して過去のデータをエクスポートできますか？">
+    現時点では、自動データエクスポートを使用して過去のデータをエクスポートすることはできません。設定が完了すると、エクスポートを有効にした時点以降の各イベントのデータが表示され始めます。
+  </Accordion>
+
+  <Accordion title="自動データエクスポートには料金がかかりますか？">
+    お使いの課金プランにまだ含まれておらず、後から有効にする必要がある場合は、カスタマーサクセスマネージャーと協力して課金プランに追加する必要があります。MoEngage が毎月データウェアハウス/パートナー/API に送信するデータ量によっては、追加料金が発生する場合があります。
+  </Accordion>
+
+  <Accordion title="データエクスポートでは最新のユーザー属性が保証されますか？">
+    いいえ。データエクスポートは主にイベントをほぼリアルタイムでエクスポートするために構築されており、MoEngage のユーザー属性は非同期で更新されるため、現時点ではエクスポートにユーザー属性の最新の値が含まれることを保証できません。
+  </Accordion>
+</AccordionGroup>

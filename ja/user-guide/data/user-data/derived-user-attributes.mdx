@@ -1,0 +1,136 @@
+---
+title: "派生ユーザー属性"
+description: "MoEngageの派生ユーザー属性について説明します。派生ユーザー属性は、ライフサイクルステージやLTVなど、セグメンテーションや分析に使用される自動生成プロパティです。"
+---
+
+MoEngageは、デフォルトでいくつかのユーザー属性を生成します。これらは派生ユーザー属性と呼ばれます。これらは、セグメンテーションや分析でユーザーをセグメント化するためのフィルターとして使用できます。
+
+<Info>
+  ワークスペースで[Portfolio](/ja/user-guide/settings/account/portfolio/portfolio)が有効になっている場合、派生ユーザー属性の動作が変わります。詳細については、[Portfolio: Data Ingestion and Management](/ja/user-guide/data/key-concepts/portfolio-data-ingestion-and-management)を参照してください。
+</Info>
+
+派生イベントとイベント属性の一覧については、[こちら](/ja/user-guide/data/event-data/derived-events-and-attributes)を参照してください。
+
+# ユーザー属性
+
+カテゴリ別のユーザー属性の一覧：
+
+<Info>
+  以下の表の**Internal**列と**External**列は、各ユーザー属性の作成または更新に使用できる特定の方法または発生源を指しており、以下のように定義されます。
+
+  - 内部：属性はMoEngage SDKを使用して作成または更新されるか、プラットフォーム内部のアクティビティから直接派生します。
+  - 外部：属性は、以下を含む外部入力を使用して作成または更新できます。
+    - MoEngage API（Track User APIなど）
+    - ファイルインポート
+    - パートナー統合
+    - その他の互換性のある外部ソース
+</Info>
+
+## ライフサイクル
+
+| 表示名とキー名 | 説明 | 内部で作成/更新\* | 外部から更新可能 | 外部から作成可能 |
+| --- | --- | --- | --- | --- |
+| First Seen  (cr\_t) | ユーザーが最初に確認された時刻。MoEngageシステムでユーザーが作成された時刻です。 | yes | no | yes |
+| LTV  (t\_rev) |  ユーザーのライフタイムバリュー。ユーザーが実行した _Conversion goal_ イベントに含まれる収益属性の合計です。LTVは、ユーザーがコンバージョンゴールイベントを実行するたびに更新されます | yes | no | no |
+| Last Seen  (u\_l\_a) | ユーザーの最新のApp/Site Openイベントの時刻。 | yes | no | yes |
+| No. of Conversions  (t\_trans) | ユーザーが実行したコンバージョンイベントの数。コンバージョンゴールは設定ページで変更できます。 | yes | no | no |
+| No. of Sessions  (u\_s\_c) | ユーザーのセッション数。ユーザーがApp/Site Openイベントを実行した回数です。 | yes | no | no |
+
+### ライフタイムバリュー（LTV）の設定
+
+LTVは、ブランドとの関係全体を通じて、1つの顧客アカウントから企業が得られると見込む総収益を表す重要な指標です。MoEngageでは、収益を生み出すイベントをマッピングすることで、ユーザープロファイル内でLTVを直接計算できます。
+
+LTVを設定するには、以下の手順を実行します。
+
+![Screenshot 2025-07-07 at 10.53.37 AM.png](/images/moengage_7e792e.png)
+
+1. MoEngageダッシュボードにログインし、**Settings** \> **General Settings**に移動します。
+2. **General settings**ページで、**Goal mapping**セクションに移動します。
+3. **Goal mapping**セクションで、以下の値を選択します。
+   - **Conversion goal**フィールドで、ユーザーによる収益を生み出すアクションを示す特定のイベントを選択します（例：Product Purchased、Order Placed、Subscription Renewed）。
+   - **Revenue attribute**フィールドで、そのイベント内で取引の実際の金額を含むイベント属性を選択します（例：price、total\_amount、revenue）。
+   - **Currency**フィールドで、金額の通貨を選択します（例：USD、EUR、INR）。これにより、LTVの正確な集計とレポートが保証されます。
+4. **Save**をクリックします。保存後、MoEngageは各ユーザーについて、指定されたイベント属性の金額を自動的に集計します。この集計された合計は、各ユーザープロファイルにLTVユーザー属性として保存されます。
+
+<Info>
+  - 関連する収益データを取り込む前に、MoEngageでGoal Mappingを設定しておくことが不可欠です。設定していない場合、すでに取り込まれた過去のデータについてはLTVが計算されません。つまり、LTVのゴールマッピングを設定した後に取り込まれたデータ（過去日付のイベントを含む）のみが、LTV属性の更新に反映されます。
+  - 現在、上記の方法で計算されたLTV属性は、APIやFile Importを使用して直接更新または上書きすることはできません。
+  - 標準のGoal Mapping機能では実現できない、より複雑またはカスタムなLTV計算が必要な場合は、代わりにカスタムユーザー属性を追跡することをお勧めします。
+</Info>
+
+## 獲得とアンインストール
+
+| 表示名とキー名 | 説明 | カテゴリ | 内部で作成/更新\* | 外部から更新可能 | 外部から作成可能 |
+| --- | --- | --- | --- | --- | --- |
+| Campaign Name  (campaign\_name) | ユーザーがアプリをインストールした経路となったキャンペーン広告の名前。 | Acquisition | yes | no | yes |
+| Publisher Name  (publisher\_name) | ユーザーがアプリをインストールした経路となったパブリッシャーの名前。 | Acquisition | yes | no | yes |
+| Install Status  (installed) | ユーザーの現在のインストールステータス。ユーザーがいずれかのデバイスにアプリをインストールしているか、Webデバイスでアクティブである場合、値は'_True_'になります。この派生属性は、ユーザーレベルでの全体的なインストールステータスを示します。MoEngage SDKを通じて追跡されるデバイスレベルの'Install'イベントとは異なります。 | Uninstall | yes | no | no |
+| Uninstall Time  (uninstall\_time) | ユーザーがアプリをアンインストールしたことをシステムが検出した時刻。 | Uninstall | yes | no | no |
+| Device ReInstall | デバイスで再インストールが検出されたときに追跡されます。 | Uninstall | yes | no | no |
+| User ReInstall | 識別済みユーザーがアプリを再インストールしたときに追跡されます。 | Uninstall | yes | no | no |
+
+## 到達可能性とローカライゼーション
+
+| 表示名とキー名 | 説明 | カテゴリ | 内部で作成/更新\* | 外部から更新可能 | 外部から作成可能 |
+| --- | --- | --- | --- | --- | --- |
+| Push Opt In Status (iOS) (Deprecated) | iOSデバイスにおけるユーザーのプッシュ許可ステータス。**注**：この属性はユーザーのサブスクリプションステータスの追跡に使用されていました。この属性は2024年3月12日をもって非推奨となりました。このデータは現在、_Reachability Push iOS_ ユーザー属性を使用して追跡できます。 | Reachability | yes | no | no |
+| Web Push Subscription Page URL  (web subscription url) | ユーザーがWebプッシュをサブスクライブしたWebページのURL。Webサイトのどこでサブスクリプションが発生しているかを確認したり、サブスクライバーを分類してターゲット通知を送信したりするために使用します。 | Reachability | yes | no | no |
+| Web Push Subscription Status (Deprecated)  (moe\_sub\_w) | ユーザーのWebプッシュのサブスクリプションステータスを示します（True / False）。サブスクライバーの総数や、一度サブスクライブした後にサブスクライブを解除したユーザーを確認するために使用します。**注**：この属性はユーザーのサブスクリプションステータスの追跡に使用されていました。この属性は2024年3月12日をもって非推奨となりました。このデータは現在、_Reachability Push Web_ ユーザー属性を使用して追跡できます。 | Reachability | yes | yes | yes |
+| Reachability Push Android  (moe\_rsp\_android) | ユーザーが少なくとも1台のAndroidデバイスで到達可能な場合、Reachability Push AndroidはTrue（200）になります。 | Android | yes | no | no |
+| Reachability Push iOS  (moe\_rsp\_ios) | ユーザーが少なくとも1台のiOSデバイスで到達可能な場合、Reachability Push iOSはTrue（200）になります。 | iOS | yes | no | no |
+| Reachability Push Web  (moe\_rsp\_web) | ユーザーが少なくとも1台のWebデバイスで到達可能な場合、Reachability Push WebはTrue（200）になります。 | Web | yes | no | no |
+| Last Known City  (moe\_ip\_city) | この属性は、逆引きIPルックアップを使用して導出された、ユーザーの最後に確認された推定位置に基づいています。 | Localization | yes | no | no |
+| Last Known Country  (moe\_ip\_country) | Localization | yes | no | no |  |
+| Last Known Pincode/Zipcode  (moe\_ip\_pin) | Localization | yes | no | no |  |
+| Last Known State  (moe\_ip\_subdivision) | Localization | yes | no | no |  |
+| User TimeZone Offset (Mins)  (moe\_dtzo) | GMTに対するユーザーのタイムゾーンの差（分単位）。 | Localization | yes | no | no |
+
+<Info>
+  IPアドレスを通じて取得される、最後に確認された市区町村、国、郵便番号、州/都道府県からなる位置情報は、各ユーザーセッション中に30分間隔で更新されます。ユーザーが移動中の場合、位置情報が異なる場合があることに注意してください。IPアドレスに基づく位置情報の精度は70～80%の範囲です。
+
+  正確で永続的な位置情報が必要な場合は、カスタム属性を作成し、MoEngageのデータAPI、SDK、ファイルインポート、またはその他のデータソースを使用して、位置情報をご自身で追跡/更新することをお勧めします。
+</Info>
+
+## デバイスデータとメール抑制タイプ
+
+| 表示名とキー名 | 説明 | カテゴリ | 内部で作成/更新\* | 外部から更新可能 | 外部から作成可能 |
+| --- | --- | --- | --- | --- | --- |
+| Hard Bounce  (moe\_hard\_bounce) | ユーザーへのメールがハードバウンスしたかどうかを示します。この値は、ユーザープロファイルのメールIDが変更されるたびにデフォルトの状態（false）にリセットされます。 | Email Suppression Type | no | yes | yes |
+| Spam  (moe\_spam) | ユーザーがメールをスパムとして報告したかどうかを示します。 | Email Suppression Type | no | yes | yes |
+| Unsubscribe  (moe\_unsubscribe) | ユーザーがメールの配信を停止したかどうかを示します。 | Email Suppression Type | no | yes | yes |
+| Advertising Identifier  (advertising\_identifier) | アプリがインストールされているデバイスの広告識別子。iOSとWindowsでのみ利用できます。ユーザーが複数のデバイスを持っている場合、最後にログインしたデバイスの値がこのユーザー属性の値になります。 | Device Data | yes | no | yes |
+| Browser Details  (moe\_w\_ds) | Webユーザーのブラウザー詳細（Platform、Browser、Manufacturerを含む）。 | Device Data | yes | no | no |
+| Google Advertising ID  (moe\_gaid) | アプリがインストールされているデバイスの広告識別子。Androidでのみ利用できます。ユーザーが複数のデバイスを持っている場合、最後にログインしたデバイスのGAIDがこのユーザー属性の値になります。 | Device Data | yes | no | yes |
+| Mobile User  (moe\_mweb) | ユーザーがモバイルでWebサイトにアクセスしたかどうかを示します。 | Device Data | yes | no | no |
+
+## 追跡される標準属性
+
+追跡される標準属性 - これらの属性は、MoEngageが提供する標準キーでクライアントによって追跡されます。これらの標準キーは、[統合ドキュメント](/ja/user-guide/getting-started/integration)で確認できます。
+
+| 表示名とキー名 | 説明 | 内部で作成/更新\* | 外部から更新可能 | 外部から作成可能 |
+| --- | --- | --- | --- | --- |
+| Birthday  (u\_bd) | ユーザーの生年月日。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | no | yes | yes |
+| User Creation Source  (moe\_cr\_from) | ユーザーが作成されたソースを示します。これは、ユーザーがSDKとServer to Serverのどちらのソースから作成されたかをMoEngageが導出する標準属性です。 | yes | no | no |
+| Creation Source  (moe\_it) | ユーザーが作成されたソースを示します。これは、ユーザーがFile Imports、パートナー統合ソースなどのどこから作成されたかをMoEngageが具体的に導出する標準属性です。 | yes | no | no |
+| Email (Standard)  (u\_em) | ユーザーのメールアドレス。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です | no | yes | yes |
+| Name | ユーザーの名前。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | no | yes | yes |
+| First Name  (u\_fn) | ユーザーの名。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | no | yes | yes |
+| Gender  (u\_gd) | ユーザーの性別。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | no | yes | yes |
+| ID  (uid) | アプリがユーザーに設定した一意のID。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | no | yes | yes |
+| Last Name  (u\_ln) | ユーザーの姓。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | no | yes | yes |
+| Locale Country  (locale\_country\_display) | デバイスのロケール設定から導出されたユーザーの国（例：The United States）。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | yes | no | no |
+| Locale Language  (locale\_language\_display) | デバイスのロケール設定から導出されたユーザーの言語（例：English）。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | yes | no | no |
+| Location  (geo) | ユーザーの緯度と経度。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | yes | no | no |
+| Mobile Number (Standard)  (u\_mb) | ユーザーの携帯電話番号。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | no | yes | yes |
+| Name  (u\_n) | ユーザーのフルネーム。これは、名前がMoEngageによって提供され、値がクライアントによって提供される標準属性です。 | no | yes | yes |
+| SMS Subscription Status  (moe\_sms\_subscription) | ユーザーのSMSサブスクリプションステータス。これは、ユーザーのサブスクリプション設定に基づいてSMSサブスクリプションステータスが追跡される標準属性です。 | no | yes | yes |
+| WhatsApp Subscription Status  (moe\_wa\_subscription) | ユーザーのWhatsAppサブスクリプションステータス。これは、ユーザーのサブスクリプション設定に基づいてWhatsAppサブスクリプションステータスが追跡される標準属性です。 | no | yes | yes |
+| Email Unsubscribed Categories  (moe\_em\_unsub\_categories) | ユーザーが配信停止したメールカテゴリ | no | yes | yes |
+| Best time to send Push  (moe\_ds\_bts\_push\_hour) | MoEngageのSherpaAIから導出 | yes | no | no |
+| Best time to send Email  (moe\_ds\_bts\_email\_hour) | MoEngageのSherpaAIから導出 | yes | no | no |
+| Best time to send SMS  (moe\_ds\_bts\_SMS\_hour) | MoEngageのSherpaAIから導出 | yes | no | no |
+| Most Preferred Channel  (moe\_ds\_mpc\_best\_channel) | MoEngageのSherpaAIから導出 | yes | no | no |
+
+<Warning>
+  MoEngageシステムで正しく機能させるには、携帯電話番号を[E.164形式](/ja/user-guide/settings/advanced-settings/e164-phone-number-format)の文字列データ型として追跡する必要があります。
+</Warning>

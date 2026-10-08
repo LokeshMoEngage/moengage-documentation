@@ -1,0 +1,49 @@
+---
+title: "Do Not Disturb"
+description: "MoEngage で Do Not Disturb の時間帯を設定し、アイドル時間やオフピーク時間にトリガーキャンペーンの通知がユーザーに届かないようにします。"
+---
+
+Do Not Disturb (DND) を使用すると、マーケターはトリガー通知をユーザーに送信しないアイドル時間を設定できます。
+
+_トリガーキャンペーン_ は、ユーザーが定義された時間内に定義されたアクションを実行したときに送信されます。例えば、「商品をカートに追加した」が 2 時間以内に「購入していない」場合などです。メッセージはユーザーのアクティビティに基づいて (マーケターが設定した遅延付きで) 送信されるため、これらの通知 (Push/Email/SMS、MMS & RCS) の一部が不適切な時間にトリガーされる可能性があります。例えば、ユーザーが午後 10 時に商品を追加した場合、対応する通知/メッセージは午前 0 時に送信されます。
+
+DND は、次のチャネルとそれぞれの配信タイプで設定できます。ここに記載されている以外のチャネルは DND をサポートしていません。
+
+| チャネル名 | DND をサポートするキャンペーンタイプ |
+| --- | --- |
+| Push | すべて <br />**注**: _One-Time_、_Periodic_、および _Business event-triggered_ キャンペーンの場合、DND は [Message Queuing](/ja/user-guide/settings/channels/delivery-controls/message-queuing) 機能が有効な場合にのみ設定できます。 |
+| Email | Event Triggered |
+| SMS, MMS & RCS | Event Triggered |
+| WhatsApp | Event Triggered |
+| Connectors | Event Triggered |
+
+## チャネルの DND を設定する
+
+上記のチャネルの DND を設定するには、次の手順を実行します。
+
+1. **Settings** \> **Channels** \> **Delivery Controls** \> **Do not disturb** タブに移動します。
+2. DND を設定するチャネルのトグルをオンにします。
+3. チャネルの DND 設定を有効にすると、次のフィールドが有効になります。
+   - **Do not disturb timing (User’s time zone)** - ユーザーのタイムゾーンで時間間隔を指定できます。_From_ フィールドと _To_ フィールドに、DND 間隔の開始時刻と終了時刻を指定します。<img src="/images/moengage_5eb235.png" alt="image (8).png" />
+   - **Action for messages generated during DND** - DND の時間間隔を設定した後、DND 期間中に生成されたメッセージの処理方法を選択できます。次のアクションを利用できます。<img src="/images/moengage_f66385.png" alt="dnd 2.png" />
+     | アクション | 説明 |
+     | --- | --- |
+     | **Discard these messages and do not send them later** | このオプションでは、DND ウィンドウ中に生成されたメッセージが破棄されます。 |
+     | **Save and send all the queued messages** | DND 期間の終了後に、すべての通知/メール/メッセージをユーザーに送信する場合は、このオプションを選択します。ユーザーがキャンペーンのトリガーアクションを複数回実行し、設定された他のすべての条件 (例: ターゲットオーディエンス) を満たした場合、そのユーザーは 1 つのキャンペーンからその回数分の通知/メール/メッセージを受信します。 |
+     | **Save and send message from only one campaign** | 各キャンペーンから 1 つの通知/メール/メッセージのみを送信する場合は、このオプションを選択します。この場合、ユーザーが特定のキャンペーンのトリガーアクションを複数回実行しても、1 つのキャンペーンから受信する通知/メール/メッセージは 1 つだけです。このオプションにより、ユーザーが 'x' 件を超える通知を受信しないようになります (ここで 'x' は、指定したチャネルでその日にアクティブなキャンペーンの数です)。 |
+     | **Save and send only one message across \<channel\_name\> campaigns** | ユーザーに送信する通知/メッセージ/メールを最大 1 つにする場合は、このオプションを選択します。他のチャネルでもキャンペーンを実行していて、ユーザーが受信する通知/メッセージ/メールの総数を制限したい場合に、このオプションを検討してください。 |
+   - **Order in which queued messages should be sent** - このオプションでは、通知がユーザーに配信される順序を制御できます。Discard message オプションを除くすべてのアクションに適用されます。ここで利用できるオプションは、Send the most recent message first (Last in first out) と Send least recent message first (First in first out) です。
+   - 例として、ユーザーが次のプッシュ通知 (PN) の対象になったとします。
+     - 午後 11 時に PN1
+     - 午前 0 時 30 分に PN2
+     - 午前 5 時に PN3
+     - 午前 6 時 30 分に PN4
+   - **Send the most recent message first (Last in first out)**: このオプションを選択すると、DND 期間の終了後、ユーザーはまず PN4 を受信し、続いて PN3、PN2、PN1 の順に受信します。選択したアクションが _Send only one message across Push Campaigns_ の場合、ユーザーは PN4 (最新の通知) のみを受信します。
+   - **Send least recent message first (First in first out)**: このオプションを選択すると、DND 期間の終了後、ユーザーはまず PN1 を受信し、続いて PN2、PN3、PN4 の順に受信します。選択したアクションが _Send only one message across Push Campaigns_ の場合、ユーザーは PN1 (最も古い通知) のみを受信します。
+   - **Gap between messages** - このオプションでは、複数の通知/メッセージ/メール間の遅延または間隔を設定できます。_Send only one message from each campaign"._ のいずれかを選択した場合にのみ適用されます。
+   - **Send all messages at once:** 2 つの通知間に間隔を空けずに、すべての通知/メッセージ/メールを一度に配信する場合は、このオプションを選択します。
+   - **Send messages at a gap of x mins:** このオプションを使用すると、2 つの通知/メッセージ/メールの配信間隔を設定できます。例えば、間隔を 5 分に設定すると、2 番目の通知/メッセージ/メールは最初の通知の 5 分後に配信されます。
+
+## Flows を使用して送信される Push/Email/SMS、MMS & RCS/WhatsApp の DND
+
+これらの DND 設定は、MoEngage Flow 内で作成されたキャンペーンにも適用されます。仕組みの詳細については、[こちら](/ja/user-guide/flows-cross-channel-messaging/create/configure-flows/frequency-capping-fc-and-do-not-disturb-dnd-for-flows#frequency-capping)を参照してください。

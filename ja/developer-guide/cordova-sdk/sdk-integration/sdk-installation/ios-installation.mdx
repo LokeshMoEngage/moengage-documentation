@@ -1,0 +1,82 @@
+---
+title: "iOS のインストール"
+description: "CocoaPods による依存関係管理を使用して、Cordova プロジェクトに MoEngage iOS SDK をインストールします。"
+---
+
+# SDK のインストール
+
+## CocoaPods を使用したインストール（プラグインバージョン 5.0.0 以上）
+
+**cordova-ios** バージョン 4.3.0 および **cordova-cli** バージョン 6.4.0 以降では、任意の iOS フレームワークをバンドルするための CocoaPod サポートが提供されています。そのため、当社のプラグインもバージョン 5.0.0 からこれをサポートするように更新しました。
+
+CocoaPods は iOS プロジェクト向けの依存関係マネージャーで、統合を容易にします。CocoaPods がインストールされていない場合は、ターミナルで次のコマンドを実行してインストールできます。
+
+<CodeGroup>
+
+```Ruby Ruby
+sudo gem install cocoapods
+```
+
+</CodeGroup>
+
+プラグインを追加したら、**platforms** 内の **ios** フォルダーに移動し、**pod install** コマンドを実行して **MoEngagePluginBase** を統合します。
+
+<CodeGroup>
+
+```Ruby Ruby
+pod repo update
+pod install
+```
+
+</CodeGroup>
+
+### 不要なアーキテクチャを削除するスクリプトの追加
+
+**まだ行っていない場合は、次の手順を実行してください:** App Target を選択して Build Phase に移動し、ビルドステップに Run Script ステップを追加します。**/bin/sh** を使用するように設定し、次のスクリプトを入力します。
+
+<CodeGroup>
+
+```Shell Shell
+APP_PATH="${TARGET_BUILD_DIR}/${WRAPPER_NAME}"
+
+# This script loops through the frameworks embedded in the application and
+# removes unused architectures.
+find "$APP_PATH" -name '*.framework' -type d | while read -r FRAMEWORK
+do
+    FRAMEWORK_EXECUTABLE_NAME=$(defaults read "$FRAMEWORK/Info.plist" CFBundleExecutable)
+    FRAMEWORK_EXECUTABLE_PATH="$FRAMEWORK/$FRAMEWORK_EXECUTABLE_NAME"
+    echo "Executable is $FRAMEWORK_EXECUTABLE_PATH"
+
+    EXTRACTED_ARCHS=()
+
+    for ARCH in $ARCHS
+    do
+        echo "Extracting $ARCH from $FRAMEWORK_EXECUTABLE_NAME"
+        lipo -extract "$ARCH" "$FRAMEWORK_EXECUTABLE_PATH" -o "$FRAMEWORK_EXECUTABLE_PATH-$ARCH"
+        EXTRACTED_ARCHS+=("$FRAMEWORK_EXECUTABLE_PATH-$ARCH")
+    done
+
+    echo "Merging extracted architectures: ${ARCHS}"
+    lipo -o "$FRAMEWORK_EXECUTABLE_PATH-merged" -create "${EXTRACTED_ARCHS[@]}"
+    rm "${EXTRACTED_ARCHS[@]}"
+
+    echo "Replacing original executable with thinned version"
+    rm "$FRAMEWORK_EXECUTABLE_PATH"
+    mv "$FRAMEWORK_EXECUTABLE_PATH-merged" "$FRAMEWORK_EXECUTABLE_PATH"
+
+done
+```
+
+</CodeGroup>
+
+このスクリプトは、ビルドのエクスポート時または App Store へのアプリ提出時に、サポートされていないアーキテクチャを削除するためのものです。
+
+<Frame>
+  ![iOS のインストール 1 1](/images/iOSInstallation1-1.png)
+</Frame>
+
+<Info>
+  **プラグインバージョン 3.2.0 以下の場合:**
+
+  Xcode でプロジェクトを開き、プロジェクトを選択します。**Build Settings -\> Linker -\> Other Linker Flags** に移動し、**-ObjC** フラグを追加します。
+</Info>

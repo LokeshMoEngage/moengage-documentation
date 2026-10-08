@@ -1,0 +1,140 @@
+---
+title: "WebView - WebSDK のサポート"
+description: "Android および iOS のモバイルアプリの WebView 内で MoEngage Web SDK を有効にする方法と、SDK に必要な JavaScript およびストレージの設定について説明します。"
+keywords: ["webview", "web sdk", "indexeddb", "dom storage", "wkwebview", "moe_queue_timeout"]
+---
+
+この記事では、モバイルアプリ内の WebView で MoEngage Web SDK を使用する方法について説明します。
+
+<Info>
+  - WebSDK は、イベントをキューに入れて永続化するためにブラウザストレージ（LocalStorage および IndexedDB）を使用します。通常のブラウザタブとは異なり、WebView ではこのストレージは**デフォルトで有効になっていません**。
+  - Android と iOS の両方でストレージを明示的に有効にしないと、SDK はイベントをキューに入れることができません。この失敗はサイレントに発生し、ユーザーに表示されるエラーはありませんが、アプリのエラー監視ツール（Bugsnag や Sentry など）に `No available storage method found` として表示され、その後に `MOE_QUEUE_TIMEOUT: exceeded 10000ms` が続く場合があります。
+  - モバイルアプリでは、JavaScript **と**ブラウザストレージの両方を明示的に有効にする必要があります。JavaScript だけでなく、両方が必要です。
+</Info>
+
+## WebView で WebSDK を有効にする手順
+
+WebView で WebSDK を実行するには、次の点を確認してください。
+
+- Web SDK が Web サイトに正しく統合されていること。
+- Android/iOS アプリで JavaScript の使用権限が付与されていること。
+- WebView でブラウザストレージ（LocalStorage/IndexedDB）が有効かつ永続化されていること。各プラットフォームのストレージ設定手順は以下を参照してください。
+
+## Android アプリの場合
+
+**ステップ 1: WebView を設定する**
+
+アプリ内で、JavaScript を有効にしたい `WebView` コンポーネントを特定します。適切なインポートがあることを確認してください。
+
+<CodeGroup>
+
+```java Java lines wrap
+import android.webkit.WebView;
+import android.webkit.WebSettings;
+```
+
+</CodeGroup>
+
+**ステップ 2: JavaScript と DomStorage の権限を有効にする**
+
+`WebSettings` クラスを使用して、JavaScript と DOM ストレージを有効にします。
+
+<CodeGroup>
+
+```java Java lines wrap
+WebView myWebView = (WebView) findViewById(R.id.webview);
+WebSettings webSettings = myWebView.getSettings();
+webSettings.setJavaScriptEnabled(true);
+webSettings.setDomStorageEnabled(true); // Required for LocalStorage — without this, the SDK cannot queue events
+```
+
+</CodeGroup>
+
+<Info>
+  `setDomStorageEnabled(true)` は LocalStorage/SessionStorage を対象とします。最新の Chromium ベースの WebView では、DOM ストレージを有効にすると通常 IndexedDB もデフォルトで利用可能になりますが、一部のカスタム WebView ビルドやプライバシー強化された構成では、IndexedDB が個別に制限される場合があります。DOM ストレージを有効にした後もストレージエラーが表示される場合は、`chrome://inspect` を使用して WebView セッション内で IndexedDB が利用可能かどうかを直接確認してください。
+</Info>
+
+**ステップ 3: 詳細設定**
+
+より細かく制御するには、次のような追加設定を使用できます。
+
+<CodeGroup>
+
+```java Java lines wrap
+webSettings.setJavaScriptCanOpenWindowsAutomatically(true); // Allow JS to open windows without user interaction
+```
+
+</CodeGroup>
+
+<Warning>
+  信頼できないスクリプトの実行を防ぐため、JavaScript によるナビゲーションを有効にする前に、`WebView` で読み込む URL を検証してください。
+</Warning>
+
+## iOS アプリの場合
+
+**ステップ 1: WebKit をインポートする**
+
+まず、ViewController に `WebKit` フレームワークをインポートしていることを確認します。
+
+<CodeGroup>
+
+```swift Swift lines wrap
+import WebKit
+```
+
+</CodeGroup>
+
+**ステップ 2: 永続ストレージを使用する WKWebView を作成する**
+
+`WKWebView` のインスタンスを作成し、その `WKWebViewConfiguration` が非永続（エフェメラル）ではなく**永続**の Web サイトデータストアを使用するようにしてください。非永続のデータストアでは、SDK がイベントのキューイングに依存しているストレージ API（LocalStorage/IndexedDB）がブロックされ、WebView が解放されると SDK のデータはすべて破棄されます。
+
+<CodeGroup>
+
+```swift Swift lines wrap
+var webView: WKWebView!
+let configuration = WKWebViewConfiguration()
+configuration.websiteDataStore = WKWebsiteDataStore.default() // Use .default(), not .nonPersistent()
+webView = WKWebView(frame: .zero, configuration: configuration)
+view.addSubview(webView)
+```
+
+</CodeGroup>
+
+**ステップ 3: JavaScript を有効にする**
+
+`WKWebView` では、JavaScript はデフォルトで有効になっています。設定を確認または変更するには、iOS 14 以降では `WKWebpagePreferences.allowsContentJavaScript` を使用し、それより前のバージョンでは `WKPreferences.javaScriptEnabled` にフォールバックします。
+
+<CodeGroup>
+
+```swift Swift lines wrap
+let configuration = WKWebViewConfiguration()
+
+if #available(iOS 14.0, *) {
+    configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+} else {
+    let preferences = WKPreferences()
+    preferences.javaScriptEnabled = true
+    configuration.preferences = preferences
+}
+
+webView = WKWebView(frame: .zero, configuration: configuration)
+```
+
+</CodeGroup>
+
+## ストレージが機能していることの確認
+
+WebView セッションでイベントが欠落または遅延している件についてサポートチケットを作成する前に、実際の WebView 内（通常のブラウザタブではありません。同じデバイスでも WebView のストレージの動作は異なる場合があります）で次の点を確認してください。
+
+- Android: サイトを読み込んでいる特定の `WebView` インスタンスで `setDomStorageEnabled(true)` が設定されていること。
+- iOS: `WKWebView` が非永続ストアではなく `WKWebsiteDataStore.default()` で設定されていること。
+- WebView セッション内で IndexedDB にアクセスできること。リモートインスペクター（Android の場合は `chrome://inspect`、iOS の場合は Safari Web Inspector）で、`window.indexedDB` が定義されており使用可能であることを確認してください。
+
+## サポートされているモジュール
+
+WebView では、次のモジュールをサポートしています。
+
+- データトラッキング
+- On-site Messaging
+- Cards
+- Web Personalization

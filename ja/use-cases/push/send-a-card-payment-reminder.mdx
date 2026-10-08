@@ -1,0 +1,90 @@
+---
+title: "カード支払いのリマインダーを送信する"
+---
+
+# はじめに
+
+銀行は、顧客に支払期日前にクレジットカードの請求額を支払うよう促すために、カード支払いのリマインダーを送信します。支払いの失敗や延滞料金は、銀行とユーザーの関係を損なったり、離脱につながったりする可能性があります。今後の請求について継続的にリマインドすることで、うっかり忘れによる支払い漏れという不幸な事態を防ぐことができます。
+
+#### カード支払いのリマインダーを送信するメリット
+
+- **顧客にとってのメリット:**
+  - **支払い漏れの防止**: リマインダーにより、顧客は迫っている支払期日を確実に把握でき、うっかりした支払い遅延を防げます。
+  - **延滞料金の回避**: 期日どおりに支払うことで、大きな経済的負担となりうる高額な延滞料金の発生を回避できます。
+  - **信用スコアの維持**: 支払い漏れや遅延は信用スコアに悪影響を及ぼし、将来ローンや与信を受けにくくなる可能性があります。
+  - **信頼と満足度の向上**: リマインダーはカスタマーサービスへの取り組みを示すものであり、銀行に対する信頼と満足度を高めることができます。
+- **企業にとってのメリット:**
+  - **キャッシュフローの改善**: 期日どおりの支払いにより安定した収益源が確保され、企業は財務を効果的に管理できます。
+  - **未回収債権の削減**: リマインダーは企業が期日どおりに支払いを回収するのに役立ち、未回収債権のリスクを最小限に抑えます。
+  - **顧客関係の強化**: 支払いに関する積極的なコミュニケーションにより、顧客関係が改善され、信頼が構築されます。
+
+このユースケースは、支払期日の 5 日前に未払いのクレジットカード支払いについてユーザーにリマインドする [Push キャンペーンを作成する](/ja/use-cases/push/send-a-card-payment-reminder#create-a-push-campaign)ことで実現します。
+
+# 期待される結果
+
+ユーザーは、クレジットカードの支払いに関するプッシュ通知をスマートフォンで受け取ります。
+
+<img
+  src="/images/moengage_7eb92f.png"
+  alt="card payment reminder.png"
+  style={{ width:"63%" }}
+/>
+
+<Tip>
+  - ユーザーの請求書を生成するアクションと、カード ID、請求額、クレジットカード名、支払期日などの関連情報を追跡するイベントが MoEngage で使用可能である必要があります。この例では、イベントを _Bill generated_ と名付けます。また、このイベントは、支払期日に関するリマインダーを送信する前に発生するように設定する必要があります。イベントの追跡方法については、[Developer Guide](/ja/developer-guide/introduction) を参照してください。
+  - ユーザーによる請求書の支払いアクションと、カード ID、請求額、支払額、クレジットカード名、支払期日などの関連情報を追跡するイベントが MoEngage で使用可能である必要があります。この例では、イベントを _Bill Paid_ と名付けます。
+  - [Push チャネル](/ja/user-guide/campaigns-and-channels/mobile-push/getting-started-with-mobile-push)が設定されている必要があります。
+  - アカウントで [Linked Conditions](/ja/user-guide/flows-cross-channel-messaging/create/create-flows/linked-conditions) 機能が有効になっている必要があります。
+</Tip>
+
+# Push キャンペーンの作成
+
+このセクションでは、未払いのクレジットカード支払いについてユーザーにリマインドする Push キャンペーンを作成します。
+
+## ステップ 1: ユーザーのターゲティング
+
+1. MoEngage ダッシュボードの左側のナビゲーションメニューで **Engage** をクリックし、**Campaigns** をクリックします。
+2. All campaigns ページで **\+ Create campaign** をクリックします。
+3. **Outbound** の下で **Push** \> **Event Triggered** をクリックします。<img src="/images/moengage_ba5c3c.png" alt="pushlessgoooo.png" /> キャンペーンを定義する最初のステップ **Target users** に移動します。
+4. キャンペーンの名前とタグを定義します。次の詳細を入力します。
+   - **Team**: 組織のアカウントで Teams が有効になっている場合は、チームを選択します。詳細については、[Teams in MoEngage](/ja/user-guide/settings/account/team-management/teams-in-moengage) を参照してください。
+   - **Campaign name**: キャンペーンの名前を入力します。たとえば、_Remind users about card payment_ です。
+   - **Campaign tags**: 必要なキャンペーンタグを選択します。<img src="/images/moengage_367a69.png" alt="usecase1.png" />
+5. **Trigger Criteria** セクションで、トリガー条件を定義します。\
+   ユーザーは複数のクレジットカードを持っている場合があり、請求書が生成された後にまだ支払っていないカードについて、具体的にリマインドする必要があります。そのため、チェックは静的ではなく動的である必要があります。カード 1 とカード 2 の請求書が生成されたユーザーの場合、各カードを指す属性を持つ購入イベントを探し、_Bill Paid_ イベントがないカードについてリマインダーを送信する必要があります。これを実現するには、トリガー条件を定義する際に Linked Conditions を使用する必要があります。
+6. 上記の動的なチェックを定義するには、次の手順に従います。
+   1. **IF user** セクションで _Bill generated_ を選択し、**\+ Filter** をクリックして追加のチェックを追加します。
+   2. **AND then** セクションで、最初のリストから _Has not executed_ を選択し、**Select an event** リストから _Bill Paid_ を選択します。
+   3. **\+ Attribute** をクリックし、カードの識別に役立つ一意の属性である _Card ID_ を選択します。
+   4. 完全一致が必要なため、_is_ 演算子を選択します。
+   5. この値はユーザーとカードによって変わるため、_Constant Value_ を _Event Attribute_ に変更します。_Bill generated_ イベントを参照することで、ユーザーのあらゆる状況に合わせてチェックがパーソナライズされます。
+   6. 属性のリストから、_Bill generated_ イベントの _Card ID_ 属性を選択します。これにより、_Bill Paid_ イベントの対象となっているカードを比較できます。
+7. **THEN trigger the message** セクションで **With Delay** オプションを定義し、支払期日の 5 日前にユーザーにリマインダーを送信します。これは、最初の条件が満たされた時点から、ユーザーが条件を満たすかどうかを評価される最大時間です。\
+   **Select condition** セクションは次のようになります。<img src="/images/moengage_b719cf.png" alt="usecase77.png" /> 上記のフィルターが正しく機能するためには、選択した属性がサポートされている形式である必要があります。詳細については、[Create an Event-Triggered Campaign](/ja/user-guide/campaigns-and-channels/getting-started/triggers/event/create-an-event-triggered-campaign) を参照してください。
+8. **Target audience** セクションで **All users** を選択します。
+9. **Target Platforms** セクションで **Android** を選択します。<img src="/images/moengage_a2eeb2.png" alt="usecase3.png" />
+10. **Next** をクリックして 2 番目のステップ **Content** に移動し、Push キャンペーンのコンテンツを定義します。
+
+## ステップ 2: コンテンツ
+
+1. 使用するテンプレートを選択します。たとえば、**Basic notification** を選択します。<img src="/images/moengage_0f8ab7.png" alt="usecase4.png" />
+2. キャンペーンに必要なタイトルとメッセージを入力します。コンテンツは手動で入力することも、Merlin AI を使用して生成することもできます。詳細については、[Generate Push Messages with Merlin AI](/ja/user-guide/ai-and-intelligence/merlin-ai/merlin-ai-copywriter/generate-push-messages-with-merlin-ai) を参照してください。
+3. ユーザーの名前、請求額、クレジットカード名などの情報を使用して、メッセージにパーソナライゼーションを追加します。このようなパーソナライゼーションにより、複数のカードを持つユーザーにとってメッセージがより状況に即したものになります。これを行うには、次の手順に従います。
+   1. _@_ と入力します。
+   2. **Push Personalization** ダイアログボックスで、請求額、クレジットカード名などのイベント属性や、名前などのユーザー属性を見つけます。<img src="/images/moengage_b308f9.png" alt="7.png" />
+   3. **Done** をクリックします。\
+      要件に基づいて属性を選択できます。名前やその他のパーソナライゼーションを選択すると、メッセージの内容は次のようになります。<img src="/images/moengage_7c7b52.png" alt="8.png" /> MoEngage はメッセージを送信する際に、必ず _Bill generated_ イベントからユーザーの名前、クレジットカード名、金額を確認し、それぞれ `{{UserAttribute['Name']}}`、`{{EventAttribute['Credit card name']}}`、`{{EventAttribute['amount']}}` の代わりに置き換えます。
+4. ディープリンクオプションを使用して、ユーザーをアプリ内の請求書支払いページに誘導します。
+   1. **Default click action** リストで _Navigate to a screen_ を選択します。
+   2. **Take user to a specific screen** リストで、該当する画面を選択します。<img src="/images/moengage_1ddfa5.png" alt="usecase5.png" />
+5. **Next** をクリックして 3 番目のステップ **Schedule and goals** に移動し、キャンペーンのスケジュールと目標を定義します。
+
+## ステップ 3: スケジュールと目標
+
+1. 要件に基づいて、このキャンペーンの開始日時と終了日時、およびコンバージョン目標を定義します。<img src="/images/moengage_100801.png" alt="10.png" />
+2. 要件に基づいて配信設定を変更します。詳細については、[Create Push Campaigns](/ja/user-guide/campaigns-and-channels/mobile-push/create/create-push-campaigns) を参照してください。<img src="/images/moengage_27d8e6.png" alt="11.png" />
+3. **Publish** をクリックします。
+
+# まとめ
+
+このユースケースでは、支払期日の 5 日前に、クレジットカードの未払いについてユーザーにリマインドする Push キャンペーンを作成しました。

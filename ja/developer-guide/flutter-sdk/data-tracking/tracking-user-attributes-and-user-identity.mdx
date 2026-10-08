@@ -1,0 +1,407 @@
+---
+title: "ユーザー属性とユーザー ID のトラッキング"
+description: "MoEngage Flutter SDK でユーザー属性をトラッキングし、クロスプラットフォームでのユーザー識別のための識別子を設定します。"
+---
+
+import IdentifyUserNetworkFailure from '/ja/snippets/identify-user-network-failure.mdx';
+
+ユーザー属性とは、ユーザーについて把握している情報のことです。年齢や性別などのデモグラフィック情報、プランなどのアカウント固有の情報、あるいはユーザーが特定の A/B テストのバリエーションを閲覧したかどうか、といったものが該当します。ユーザー属性は、顧客のライフサイクル全体を通じて参照できる顧客のプロパティです。
+
+## ユーザー属性とユーザー識別子の違い
+
+MoEngage において、ユーザー属性とユーザー識別子はそれぞれ異なる目的を持っています。
+
+**ユーザー識別子:**
+
+ユーザー識別子は、複数のセッションやデバイスをまたいで保持される一意の値であり、ユーザーが異なるプラットフォームを切り替えたり後からログインしたりした場合でも、MoEngage がそのユーザーを同一人物として認識できるようにします。このプロセスは ID 解決（Identity Resolution）と呼ばれ、統合されたユーザープロファイルの維持、一貫したユーザー体験の提供、ユーザー行動の正確なトラッキングに不可欠です。
+
+ユーザー識別子の一般的な例は次のとおりです。
+
+- メールアドレス: メールアドレスは個人に固有で、異なるプラットフォーム間でも一貫しているため、広く使用される識別子です。
+- 電話番号: メールアドレスと同様に、電話番号も一意の識別子として使用でき、特にモバイルアプリケーションで有効です。
+- ユーザー ID: MoEngage は登録時に各ユーザーに一意の ID を割り当てます。この ID は MoEngage プラットフォーム内で信頼性の高い識別子として使用されます。
+- 顧客 ID: EC や顧客関係管理（CRM）システムでは、さまざまなインタラクションを通じて個々の顧客をトラッキングするために顧客 ID が割り当てられます。
+
+これらの識別子は **_identifyUser()_** メソッドを使用して設定します。
+
+[ID 解決](https://www.moengage.com/docs/user-guide/data/user-data/unified-identity-identity-resolution#overview)が有効化され、ワークスペースで識別子がアクティブ化されていない限り、デフォルトではパラメーター **_ID_** がワークスペースで使用される識別子となります。
+
+**ユーザー属性**:
+
+ユーザーのプロファイルを充実させる、ユーザーに関する説明的な情報です。セグメンテーション、パーソナライゼーション、分析に使用されます。例: 名前、年齢、性別、好み、購入履歴。**_setFirstName()_** や **_setUserAttribute()_** などの専用メソッドを使用して設定します。パーソナライズされたユーザー体験の作成に役立ちます。
+
+簡単に言うと、識別子は「このユーザーは誰か？」に答え、属性は「このユーザーについて何を知っているか？」に答えるものです。
+
+## MoEngage の機能を活用する
+
+ユーザー属性と識別子は、MoEngage を効果的に活用するうえで非常に重要です。
+
+- **セグメンテーション:**
+  - 属性を使用して、デモグラフィックや行動などに基づいたターゲットユーザーグループを作成します。
+  - 例: 特定のキャンペーン向けに、年齢や購入履歴でユーザーをセグメント化します。
+- **パーソナライゼーション:**
+  - 識別子により、デバイスをまたいで一貫したユーザー体験を確保します。
+  - 属性により、メッセージやレコメンデーションなどのコンテンツを個別に最適化できます。
+  - 例: メールを名前でパーソナライズしたり、関連する商品をレコメンドしたりします。
+- **分析:**
+  - 属性は、ユーザーのアクションや行動データにコンテキストを付与します。
+  - セグメント別のコンバージョン率や、デモグラフィック別の機能エンゲージメントを分析します。
+  - データに基づく意思決定のために、より深いインサイトを得られます。
+
+属性と識別子を活用することで、より関連性が高く魅力的なユーザー体験を構築できます。
+
+# ログイン/ログアウトの実装
+
+SDK バージョン 9.2.00 未満については、[こちら](/ja/developer-guide/flutter-sdk/data-tracking/setting-unique-id-for-sdk-versions-below-920)のドキュメントを参照してください。
+
+## ユーザーのログイン
+
+**単一の識別子**
+
+アプリケーションがログインにメール ID などの単一の一意なユーザー識別子を使用している場合は、以下の API を使用して識別子を MoEngage SDK に渡します。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter();
+_moengagePlugin.initialise();
+
+_moengagePlugin.identifyUser("flutter-uid"); //Pass any unique value for your user
+```
+
+</CodeGroup>
+
+**複数の識別子**
+
+アプリケーションがメール ID、ユーザー ID、携帯電話番号など複数のログイン識別子をサポートしている場合は、次の関数を使用して関連するすべての識別子を SDK に渡します。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter();
+_moengagePlugin.initialise();
+_moengagePlugin.identifyUser({"email": "flutter@moengage.com", "id": "flutter"});
+```
+
+</CodeGroup>
+
+<Note>
+  ユーザー識別とセッション管理を改善するため、SDK の関数が更新されています。
+
+  - **強制ログアウト**: MoEngage SDK は、デバイス上で新しいユーザーが検出されても、以前のユーザーを自動的にログアウトしなくなりました。ID 解決が有効なワークスペースでは、データの破損を防ぐため、明示的にログアウトを呼び出す必要があります。
+  - **SetUniqueID**: _IdentifyUser_ 関数は複数の識別子をサポートしており、ユーザー識別のために _SetUniqueID_ 関数を使用する必要がなくなりました。_SetUniqueID_ は今後の SDK リリースで削除される予定であるため、特にワークスペースで ID 解決を使用している場合は、代わりに _identifyUser_ を使用することが重要です。
+  - **SetAlias**: ID 解決機能が有効なワークスペースでは、MoEngage SDK は以前の識別子の値を保存します。_IdentifyUser_ 関数を使用して新しい識別子の値をトラッキングすると、MoEngage SDK は識別子の値の変更を検出し、それに応じてレポートします。
+  - ログアウトせずに _IdentifyUser_ 関数を呼び出すと、既存のログイン済みユーザーの ID が更新されます。
+</Note>
+
+<IdentifyUserNetworkFailure />
+
+SDK およびデータトラッキングを有効化または無効化するには、[コンプライアンス](/ja/developer-guide/flutter-sdk/compliance/compliance)を参照してください。
+
+**注意**: 複数の識別子を使用して **_identifyUser()_** を実装する前に、MoEngage ダッシュボードで定義した識別子をアクティブ化する必要があります。設定手順については、[こちらのドキュメント](https://www.moengage.com/docs/user-guide/data/user-data/unified-identity-identity-resolution#configure-multiple-identifiers)を参照してください。
+
+**_identifyUser() を複数回呼び出した場合の動作_**
+
+- **_identifyUser()_** を複数回呼び出すと、新しい識別子は既存のリストを置き換えるのではなく、既存のリストに追加されます。動作の例は次のとおりです。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter();
+_moengagePlugin.initialise();
+//First call with email _moengagePlugin.identifyUser({"u_em": "flutter@moengage.com"});
+//Later call identifyUser() with mobile Number
+_moengagePlugin.identifyUser({"u_mb":"999999999"});
+
+//Result now the user has both email and mobile identifiers;
+```
+
+</CodeGroup>
+
+- 既に存在する識別子キーで **_identifyUser()_** を呼び出すと、新しい値で既存の値が更新されます。動作の例は次のとおりです。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter();
+_moengagePlugin.initialise();
+//First call with initial email _moengagePlugin.identifyUser({"u_em":"abc@xyz.com"});
+//Later call identifyUser() when User updates their email
+_moengagePlugin.identifyUser({"u_em":"jfk@xyz.com"});
+//Result now the user email is updated with the later one;
+```
+
+</CodeGroup>
+
+この動作により、次のことが可能になります。
+
+- 利用可能になった時点で新しい識別子を追加する
+- 他の識別子に影響を与えずに特定の識別子を更新する
+- 時間をかけて完全なユーザー ID プロファイルを構築する
+
+ここで、`u_em`、`u_mb` は標準ユーザー属性です。その他の標準ユーザー属性を使用してユーザーを識別するには、[こちらのセクション](/ja/developer-guide/react-native-sdk/data-tracking/tracking-user-attributes-and-user-identity)を参照してください。
+
+## 標準属性とカスタム属性
+
+**標準属性:** メールアドレスや携帯電話番号など、MoEngage ダッシュボード内であらかじめ定義されている一般的なユーザー属性です。以下の表に、これらの標準属性と対応するキー名を示します。
+
+| ユーザー属性名 | identifyUser メソッドで使用するキー名 |
+| --- | --- |
+| ID | uid |
+| Email (Standard) | u\_em |
+| Gender | u\_gd |
+| Birthday | u\_bd |
+| Name | u\_n |
+| First Name | u\_fn |
+| Last Name | u\_ln |
+| Mobile Number (Standard) | u\_mb |
+
+**カスタム属性:** 標準属性に加えて、MoEngage ダッシュボード内で独自に定義する属性です。カスタム属性の使用例は次のとおりです。
+
+<CodeGroup>
+
+```Dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';final MoEngageFlutter _moengagePlugin = MoEngageFlutter(<YOUR_WORKSPACE_ID>);_moengagePlugin.initialise();
+
+//replace custom_attribute_name with the actual name of your custom user attribute and attributeValue with the actual value you want to assign to the attribute
+_moengagePlugin.identifyUser({ custom_attribute_name: 'attributeValue' });
+      
+//you can set two or more identities at the same time
+_moengagePlugin.identifyUser({ cust_attr_1: 'value1', cust_attr_2: 'value2' });
+      
+//you can set custom user identity and standard user identity at the same time
+_moengagePlugin.identifyUser({ cust_attr_1: 'value1', cust_attr_2: 'value2', u_em: 'emailValue@emailDomain.com' });
+```
+
+</CodeGroup>
+
+複数の識別子を設定する際にカスタム属性と標準属性の両方を選択する詳細な手順については、[こちらのドキュメント](https://www.moengage.com/docs/user-guide/data/user-data/unified-identity-identity-resolution#step-1-select-identifiers)を参照してください。
+
+## ユーザーのログアウト
+
+ユーザーがアプリケーションからログアウトするたびに、アプリケーションは MoEngage SDK に通知する必要があります。SDK に通知するには、ユーザーがアプリケーションからログアウトするたびに API を呼び出します。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.logout();
+```
+
+</CodeGroup>
+
+<Warning>
+  **重要 - 非常に重要な統合ガイドライン**
+
+  プロジェクト内で `identifyUser` と `setUserUniqueID()`（バージョン 9.2.0 未満に存在する識別子を割り当てるメソッド）の両方のログインメソッドを使用しないでください。どちらか一方のメソッドのみを使用してください。両方のメソッドを使用すると、MoEngage アカウントでユーザープロファイルの作成やマージに不整合が生じる可能性があります。
+</Warning>
+
+### ログアウトコールバックリスナー
+
+ログアウトの完了時にコールバックを受け取るには、`onLogoutComplete` イベントのリスナーを登録します。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+
+void _onLogoutComplete(LogoutCompleteData data) {
+// process your logout complete here
+print("Logout completed: $data");
+}
+
+// Set this before initialise() so no callback is missed
+_moengagePlugin.setLogoutCompleteCallbackHandler(_onLogoutComplete);
+```
+
+</CodeGroup>
+
+<Info>
+  ログアウトコールバックリスナーには、Flutter SDK バージョン 10.8.0 以降が必要です。
+</Info>
+
+### ログアウトコールバックデータ
+
+<CodeGroup>
+
+```dart Dart wrap
+class LogoutCompleteData {
+Platforms platform;      // Platforms.android | Platforms.iOS
+AccountMeta accountMeta;
+}
+
+class AccountMeta {
+String appId;            // MoEngage Workspace ID for the instance
+}
+/// platform — platform the logout occurred on.
+/// accountMeta — account info for the logged-out user; accountMeta.appId is the Workspace ID.
+/// All types resolve from the single package:moengage_flutter/moengage_flutter.dart import.
+```
+
+</CodeGroup>
+
+# ユーザー属性のトラッキング
+
+名前、メール、携帯電話番号、性別などのユーザー属性を設定するには、次のヘルパーメソッドを使用します。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+
+_moengagePlugin.setUserName("User Name");
+_moengagePlugin.setFirstName("FirstName");
+_moengagePlugin.setLastName("LastName");
+_moengagePlugin.setEmail("EmailID");
+_moengagePlugin.setPhoneNumber("PhoneNumber");
+_moengagePlugin.setGender(MoEGender.male); // Supported values also include MoEGender.female OR MoEGender.other
+_moengagePlugin.setLocation(new MoEGeoLocation(23.1, 21.2)); // Pass coordinates with MoEGeoLocation instance
+_moengagePlugin.setBirthDate("2000-12-02T08:26:21.170Z"); // date format - ` yyyy-MM-dd'T'HH:mm:ss.fff'Z'`
+```
+
+</CodeGroup>
+
+その他のユーザー属性を設定するには、汎用メソッド **_setUserAttribute(key,value)_** を使用できます。
+
+カスタムユーザー属性を設定するには、以下のように属性名を指定する必要があります。
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+
+_moengagePlugin.setUserAttribute("int-attr", 0);
+_moengagePlugin.setUserAttribute("bool-attr", true);
+_moengagePlugin.setUserAttribute("string-attr", "Some Value");
+_moengagePlugin.setUserAttribute("double-attr", 10.0);
+_moengagePlugin.setUserAttribute("int-arr-attr", [100,200,300]);
+_moengagePlugin.setUserAttribute("string-arr-attr", ["a","b","c"]);
+_moengagePlugin.setUserAttribute("double-arr-attr", [1.0,2.0,3.0]);
+_moengagePlugin.setUserAttribute('product', {'item-id' : 123,'item-type' : 'books','item-cost' : {'amount' : 100,'currency' : 'USD'}});
+_moengagePlugin.setUserAttribute('products', [{'item-id' : 123,'item-cost' : {'amount' : 100,'currency' : 'USD'}},{'item-id' : 323,'item-cost' : {'amount' : 90,'currency' : 'USD'}}]);
+```
+
+</CodeGroup>
+
+<Info>
+  イベント、イベント属性、ユーザー属性の名前に "moe\_" をプレフィックスとして使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なしに定期的にブラックリストに登録される可能性があります。
+</Info>
+
+## 日付をユーザー属性としてトラッキングする:
+
+任意の日付をユーザー属性としてトラッキングするには、**_setUserAttributeIsoDate(name, date)_** を使用します。この API は属性名と ISO 日付を入力として受け取ります。\
+日付形式 -**_yyyy-MM-dd'T'HH:mm:ss.fff'Z_**'\
+例:
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.setUserAttributeIsoDate("timeStamp", "2019-12-02T08:26:21.170Z")
+```
+
+</CodeGroup>
+
+## 位置情報をユーザー属性としてトラッキングする:（Web では利用不可）
+
+任意の位置情報をユーザー属性としてトラッキングするには、_setUserAttributeLocation()_ を使用します。この API は属性名と、座標を表す MoEGeoLocation のインスタンスを入力として受け取ります。\
+例:
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID);
+_moengagePlugin.initialise();
+_moengagePlugin.setUserAttributeLocation("locationAttr", new MoEGeoLocation(72.8, 53.2));
+```
+
+</CodeGroup>
+
+## カスタムブール型ユーザー属性
+
+### iOS（オプション）
+
+**moengage\_flutter** のバージョン 8.x.x 以降、カスタムブール型属性のデフォルトのトラッキングは **_double(0/1)_** から **_boolean(true/false)_** に変更されます。これを設定するには、**_AnalyticsConfig_** で **_shouldTrackUserAttributeBooleanAsNumber_** を使用し、ブール値を double としてトラッキングする場合は true を渡します。デフォルトでは、ブール値を true/false としてトラッキングするために **_false_** に設定されています。
+
+以下の例を参照してください。
+
+<CodeGroup>
+
+```dart Dart wrap
+ import 'package:moengage_flutter/moengage_flutter.dart';
+
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID, moEInitConfig: MoEInitConfig(analyticsConfig: AnalyticsConfig(shouldTrackUserAttributeBooleanAsNumber:true)));
+
+@override
+void initState() {
+super.initState();
+initPlatformState();
+_moengagePlugin.initialise();
+}
+```
+
+</CodeGroup>
+
+ブール型ユーザー属性をトラッキングするには、以下のサンプルコードを参照してください。
+
+<CodeGroup>
+
+```dart Dart wrap
+ import 'package:moengage_flutter/moengage_flutter.dart';
+
+final MoEngageFlutter _moengagePlugin = MoEngageFlutter(YOUR_WORKSPACE_ID, moEInitConfig: MoEInitConfig(analyticsConfig: AnalyticsConfig(shouldTrackUserAttributeBooleanAsNumber: false)));
+_moengagePlugin.initialise();
+
+// If shouldTrackUserAttributeBooleanAsNumber is passed as true then `bool-attr-false` will tracked with value 0 else false
+_moengagePlugin.setUserAttribute("bool-attr-false", false);
+
+// If shouldTrackUserAttributeBooleanAsNumber is passed as true then `bool-attr-true` will tracked with value 1 else true
+_moengagePlugin.setUserAttribute("bool-attr-true", true);
+```
+
+</CodeGroup>
+
+## ユーザー属性の予約キーワード
+
+以下は、ユーザー属性のトラッキング時に使用してはならないキーの一覧です。
+
+- USER\_ATTRIBUTE\_UNIQUE\_ID
+- USER\_ATTRIBUTE\_USER\_EMAIL
+- USER\_ATTRIBUTE\_USER\_MOBILE
+- USER\_ATTRIBUTE\_USER\_NAME
+- USER\_ATTRIBUTE\_USER\_GENDER
+- USER\_ATTRIBUTE\_USER\_FIRST\_NAME
+- USER\_ATTRIBUTE\_USER\_LAST\_NAME
+- USER\_ATTRIBUTE\_USER\_BDAY
+- USER\_ATTRIBUTE\_NOTIFICATION\_PREF
+- USER\_ATTRIBUTE\_OLD\_ID
+- MOE\_TIME\_FORMAT
+- MOE\_TIME\_TIMEZONE
+- USER\_ATTRIBUTE\_DND\_START\_TIME
+- USER\_ATTRIBUTE\_DND\_END\_TIME
+- MOE\_GAID
+- MOE\_ISLAT
+- INSTALL
+- UPDATE
+- status
+- user\_id
+- source
+
+<Info>
+  イベント、イベント属性、ユーザー属性の名前に "moe\_" をプレフィックスとして使用することはできません。これはシステムプレフィックスであり、使用すると事前の通知なしに定期的にブラックリストに登録される可能性があります。
+</Info>

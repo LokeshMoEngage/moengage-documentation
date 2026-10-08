@@ -1,0 +1,175 @@
+---
+title: "Pipedream"
+---
+
+# はじめに
+
+[Pipedream](https://pipedream.com/) は、開発者向けに構築されたローコード統合プラットフォームです。Pipedream では、トリガー（HTTP リクエスト、スケジュール、アプリイベントなど）を選択し、1 つ以上のステップを追加することでワークフローを構築できます。
+
+# MoEngage × Pipedream
+
+MoEngage と Pipedream の連携により、カスタムロジックやコード関数を使用して、MoEngage と他のアプリの間で簡単にデータを送信できます。この連携では、次のことができます。
+
+1. Connector campaigns を介して、MoEngage を Pipedream のトリガーとして使用する
+2. Data APIs を使用して、Pipedream から MoEngage にデータを送信する
+
+## ユースケース
+
+1. MoEngage でイベントが発生したときに、Google Sheets に新しい行を追加する。
+2. Google Form のリードから MoEngage にユーザーをインポートする。
+3. ユーザーがイベントを実行したときに Slack メッセージを送信する。
+4. Pipedream で設定した WebHook から MoEngage にイベントをインポートする。
+
+# 連携の前提条件
+
+- Pipedream アカウントにアクセスできることを確認してください。
+- MoEngage Dashboard で Data API キーにアクセスできることを確認してください。
+- Data API ID と Data API Key は、**Settings** -\> **Account** -\> **APIs** で確認できます。Data API ID は Workspace **ID** と同じです。Data API Key は、同じ画面の **API Keys** -\> **Data** セクションで確認できます。
+
+## MoEngage をトリガーとして使用する
+
+MoEngage の Connector Campaigns を利用して、MoEngage をトリガーとして使用できます。
+
+### ステップ 1: HTTP Webhook Requests をトリガーとして追加する
+
+![Trigger-Step1.png](/images/partner_9580617384084.png)
+
+1. 「Add a Trigger」をクリックします。
+2. 「HTTP / Webhook」を検索します。
+
+![Trigger-Step2.png](/images/partner_9580666060692.png)
+
+3. Event Data =\> `Full HTTP Request` HTTP Response =\> `Return HTTP 200 OK`
+4. 「Save and continue」をクリックします。
+5. ワークフローをトリガーするための新しい一意の URL が表示されます。Connector Campaign の設定に必要になるため、この URL を保存しておきます。
+
+![Trigger-Step3.png](/images/partner_9580736483732.png)
+
+### ステップ 2: MoEngage Dashboard で Connector Campaign を設定する
+
+1. MoEngage Dashboard に移動します。
+2. 次のいずれかの方法を使用します。
+   1. **All Campaigns** ページで、**Create Campaign** をクリックします。Create Campaign ページが表示されます。 <img src="/images/partner_22017108045972.png" alt="CreateCampaign_RightNav.png" />
+   2. **Create New** \> **Campaign** をクリックします。Create Campaign ページが表示されます。 <img src="/images/partner_22017108047124.png" alt="CreateCampaignLeftNav.png" />
+3. Connectors の下にある **Custom** をクリックします。
+4. キャンペーンの配信タイプとして「Event-Triggered」を選択します。
+   - 配信タイプの詳細については、[Delivery Types](https://www.moengage.com/docs/user-guide/campaigns-and-channels/getting-started/introduction/delivery-types-moengage-channels) を参照してください。
+5. 次の画面でキャンペーンに名前を付け、Criteria として「Device Uninstall」を選択します。
+6. トリガーには「immediately」を選択します。
+
+![UseCase2-Step3.png](/images/partner_22017108048404.png)
+
+7. このユースケースでは、オーディエンスとして「All users」を選択します。問題がなければ「Next」をクリックします。
+8. コンテンツ画面で、ペイロードと前のステップで取得した Webhook URL を定義します。
+9. メソッドとして「POST」を選択します（Pipedream の [HTTP Requests](https://pipedream.com/apps/http) の詳細をご覧ください）。
+10. 先ほどコピーした Webhook URL を入力します。
+11. 要件に応じてヘッダーとパラメーターを定義します。このユースケースでは、ペイロードの Body のみを定義します（@ を入力してパーソナライズされた値を挿入することもできます）。
+
+![Trigger-Step4.png](/images/partner_9580771591700.png)
+
+12. 次に、この Webhook をテストする必要があります。下にスクロールしてテストユーザーのデータを入力し、「test」をクリックします。
+13. テストが成功したことを示す新しいモーダルが表示されます。
+
+![UseCase2-Step5.png](/images/partner_22017108049940.png)
+
+14. Pipedream エディターに戻ります。Select Event ドロップダウンに「1 New Event」と表示されます。
+
+![Trigger-Step5.png](/images/partner_9581462512020.png)
+
+### ステップ 4: Pipedream でトリガーをテストする
+
+1. 「Select Event」ドロップダウンから最新のイベントを選択します。Exports タブに API リクエストが表示されます。continue をクリックします。
+
+![Trigger-Step6.png](/images/partner_9580842129556.png)
+
+2. これで、MoEngage で Connector Campaign を公開できます。
+3. Pipedream で、ワークフローに新しいステップを追加します。例として Google Sheets を選択し、「Add Single Row」Action を選択します。
+4. Google Sheets アカウントを選択するか、新しく接続します。
+5. スプレッドシートを選択します。
+6. シートを選択します。
+7. シートの 1 行目がヘッダーの場合は「Yes」を選択します。
+8. トリガーのレスポンスから、シートの各列をマッピングします。カスタム値を入力することもできます。
+
+![Action-Step2.png](/images/partner_9581319258644.png)
+
+9. 設定に問題がなければ、このステップまたはワークフロー全体をテストできます。
+
+![Action-Step3.png](/images/partner_9581344713876.png)
+
+10. 挿入が成功したら、このワークフローをデプロイできます。MoEngage でユーザーが選択したイベントを実行するたびに、Google Sheets に新しい行が挿入されます。
+
+![Action-Step4.png](/images/partner_9581365800084.png)
+
+## Pipedream で Data APIs を使用する
+
+MoEngage の [Data APIs](https://www.moengage.com/docs/api/data/data-overview) を使用すると、次のことができます。
+
+1. ユーザーを作成または更新する
+2. イベントをインポートする
+3. コホート（セグメント）にユーザーを追加または削除する
+
+Pipedream で Data APIs を利用するには、「HTTP / Webhook」ステップを追加する必要があります。MoEngage でサポートされている呼び出しのタイプに応じて、GET または POST リクエストを送信できます。Data API は、次の API のコレクションです。
+
+- [User API](https://www.moengage.com/docs/api/user/track-user)
+- [Event API](https://www.moengage.com/docs/api/event/track-event)
+
+このヘルプドキュメントでは User API を Action として設定する方法を説明しますが、上記のいずれの API にも適用できます。
+
+### ステップ 1: Pipedream に Webhook ステップを追加する
+
+1. アプリのリストから「HTTP / Webhook」を選択します。
+2. アクションのリストから「Send POST Request」を選択します。
+3. リクエスト URL として `https://api-0X.moengage.com/v1/customer/&lt;Workspcae_ID&gt;` を入力します。`0X` はアプリが存在するデータセンターのリージョンに、`Workspace_ID` はワークスペース ID に置き換えます。
+
+| **フィールド** | **説明** |  |  |  |
+| --- | --- | --- | --- | --- |
+| Workspace ID | MoEngage アカウントの Workspace ID は、**Settings -\> Account -\> APIs -\>Workspace ID** で確認できます。 |  |  |  |
+| Data API ID | MoEngage アカウントの Data API ID と Workspace ID は同じです。 |  |  |  |
+| Data API Key | MoEngage アカウントの Data API キーは、**Settings -\> Account -\> APIs -\> API keys** \> **Data** API settings で確認できます。 |  |  |  |
+| Data Center Name | MoEngage の URL を確認します: `https://dashboard-OX.moengage.com` ダッシュボードの値（‘DC-01’ | ‘DC-02’ | ‘DC-03’ | ‘DC-04’）に基づいて、Pipedream ダッシュボードのデータセンター名に正しい値を入力します。[詳細はこちら](https://www.moengage.com/docs/user-guide/data/key-concepts/data-centers-in-moengage)。 |
+
+4. Auth タブで、「Basic Auth」を選択します。
+   1. Username には、ワークスペース ID を入力します。
+   2. Password には、Data API Key を入力します。
+
+![Action-Webhook-Step-2.png](/images/partner_9582156220948.png)
+
+5. Headers タブで、新しいヘッダーを入力します。
+   1. Header Name: `MOE-APPKEY`
+   2. Header Value: ワークスペース ID を入力します。
+
+![Action-Webhook-Step-3.png](/images/partner_9582166157844.png)
+
+6. Body タブで、Content-Type として「application/json」を選択します。
+7. 「Edit Raw JSON」をクリックします。
+8. [User API](https://www.moengage.com/docs/api/user/track-user) のドキュメントから次のペイロードをコピーして貼り付けます。
+   <CodeGroup>
+   ```json JSON
+   {
+   	"type" : "customer",
+     "customer_id": "john@example.com",
+     "attributes": {
+       "first_name":"John",
+       "last_name":"Doe",
+       "email": "john.doe@example.com",
+       "platforms" : [{"platform":"ANDROID", "active":"true"}]
+     }
+   }
+   ```
+   </CodeGroup>
+9. これで、前のステップの値をこの JSON Body にマッピングできます。Pipedream エディターの Variable selector ドロップダウンから適切な変数を選択するだけです。
+
+![Action-Webhook-Step-4.png](/images/partner_9582324697876.png)
+
+10. Body のフィールドは自由に追加または削除できます。最終的なペイロードは次のようになります。
+
+![Action-Webhook-Step-5.png](/images/partner_9582328093076.png)
+
+11. 準備ができたら、ステップを「Test」できます。これにより、MoEngage のデータセンターに API リクエストが送信されます。
+12. 呼び出しが成功すると、Results パネルに次の内容が表示されます。
+
+![Action-Webhook-Step-6.png](/images/partner_9582395854868.png)
+
+13. 結果に問題がなければ、ワークフローをデプロイできます。
+
+残りの Data APIs も同様の方法でデプロイできます。

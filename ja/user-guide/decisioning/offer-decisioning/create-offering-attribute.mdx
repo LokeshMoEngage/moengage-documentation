@@ -1,0 +1,125 @@
+---
+title: "Offering Attributeの作成"
+---
+
+Offering Attributesは、MoEngageアカウント設定でグローバルに定義する設定可能なパラメーターです。これらの属性は、Decision PolicyのCustom Formulaランキングストラテジーで使用され、各Offeringの加重スコアを計算します。属性を一元的に定義することで、すべてのOfferingとDecision Policyで一貫したスコアリングパラメーターを確保できます。詳細については、[Offering Attributesの管理](/ja/user-guide/decisioning/offer-decisioning/managing-offering-attribute)を参照してください。
+
+# Offering Attributesの作成
+
+Offering Attributesを作成するには、次の手順を実行します。
+
+1. **Settings** \> **Offer Decisioning** \> **Offering Attributes** に移動し、**\+ Create offering attribute** をクリックします。\
+   <Frame>
+     ![Offering Attributeの追加](/images/add-offering-attribute.png)
+   </Frame>
+2. **属性に名前を付ける**: 5～100文字の属性名を入力します。使用できる文字: 英字、数字、スペース、ハイフン、アンダースコア。\
+   <Frame>
+     ![名前](/images/name.png)
+   </Frame>
+3. **属性タイプを選択する**:
+   - **Fixed Value**: 選択肢のセットを定義します。マーケターは、Offeringの作成時または編集時に該当する選択肢を選択します。
+     - 1～200個の選択肢を追加します。
+     - 各選択肢名は5～150文字で、属性内で一意である必要があります。
+     - この属性タイプでは、「Max input allowed」の設定を編集できます。\
+       <Frame>
+         ![Fixed Value](/images/fixed-value.png)
+       </Frame>
+   - **Dynamic Value**: 接続されたCDPの特定のユーザープロファイル属性に属性をマッピングします。スコアは、個々の顧客のプロファイルに基づいて、意思決定時に決定されます。
+     - 顧客プロファイルから1～20個のユーザー属性を追加します。
+     - 各ユーザー属性のマッピングにスコアを割り当てます。システムは、顧客のプロファイルが一致した場合にこれらのスコアを使用します。
+     - 同じユーザー属性をマッピングリストに複数回含めることはできません。
+     - Fixed Value属性とは異なり、「Max input allowed」の設定は固定されており、編集できません。\
+       <Frame>
+         ![Dynamic Value](/images/dynamic-value.png)
+       </Frame>
+4. **Dropdown options**: このセクションを使用して、事前定義された選択肢のマスターリストを作成します。**Enter an option** フィールドに値を入力して、リストに追加します。最大200個の選択肢を追加できます。\
+   <Frame>
+     ![ドロップダウンの選択肢](/images/dropdown-option.png)
+   </Frame>
+5. **Maximum inputs allowed**: Offeringの設定時に、属性に対して許可される選択の最大数を決定します。
+   - **Fixed Value**: この属性タイプでは、「Maximum inputs allowed」の設定を編集できます。
+   - **Dynamic Value**: Fixed Value属性とは異なり、「Maximum inputs allowed」の設定は固定されており、編集できません。\
+     <Frame>
+       ![最大入力数](/images/max-input.png)
+     </Frame>
+
+### 知っておくべき制限
+
+| パラメーター | 制限 |
+| :-: | :-: |
+| ワークスペースあたりのOffering Attributesの合計数 | 50 |
+| ドロップダウンの選択肢(Fixed Value) | 最小: 1 <br />最大: 200 |
+| ドロップダウンの選択肢(Dynamic Value) | 最小: 1<br />最大: 200 |
+| ユーザー属性(Dynamic Value) | 最小: 1<br />最大: 20 |
+| 許可される最大入力数(Fixed Value) | 最小: 1<br />最大: 5 |
+| 許可される最大入力数(Dynamic Value) | 1 |
+
+# Offering attributesはどこで使用されますか？
+
+### 1. Offeringへの属性の割り当て
+
+Offeringを作成または編集する際、ステップ3に「Offering Attribute configuration」セクションがあります。ここでは、Offeringに最大5個の属性を関連付けて値を設定できます。
+
+- Fixed Value属性の場合: 属性と、このOfferingを最もよく表す選択肢を選択します(例: Business Objectiveドロップダウンから「Increase Revenue」を選択)。
+- Dynamic Value属性の場合: スコアリングは、顧客のプロファイルに基づいて実行時に自動的に行われます。属性内の選択肢をOfferingに関連付けるだけで、手動でスコアを選択する必要はありません。
+
+Offeringから属性を削除すると、ランキング式におけるその属性のCustom Scoreへの寄与は0として扱われます。
+
+<Frame>
+  ![Offer Attributeの設定](/images/offer-attribute-config.png)
+</Frame>
+
+### 2. Decision PolicyでのCustom Formulaの作成
+
+Decision Policyビルダーで、Custom Formulaランキングストラテジーを選択すると、式の設定パネルが表示されます。ここでは次の操作を行います。
+
+1. 最大5個のパラメーターを選択します。設定したOffering Attributes(FixedまたはDynamic)に加えて、静的パラメーターであるOffering Performance(CTR/CVR)とOffering Priorityを選択できます。
+2. 選択した各パラメーターに重み(%)を割り当てます。すべての重みの合計は、ちょうど100%である必要があります。
+3. ポリシーを保存します。エンジンはこの式を使用して、各顧客に対して対象となるすべてのOfferingをリアルタイムでスコアリングし、ランク付けします。\
+   <Frame>
+     ![Custom Formula](/images/custom-formula.png)
+   </Frame>
+
+**スコアの計算方法**
+
+> Custom Score = (Attribute 1 Score × Weight %) \+ (Attribute 2 Score × Weight %) \+ ... \+ (Performance Score × Weight %) \+ (Priority Score × Weight %). 
+
+2つのOfferingが同じスコアになった場合は、終了日が最も早いOfferingが優先されます。終了日も同じ場合は、開始日が最も早いOfferingが優先されます。両方の日付が同じ場合は、ランダムに1つが選択されます。
+
+# Offering attributesの一覧
+
+Offering attributesページでは、既存の属性を管理および検索できます。
+
+### 検索とフィルター
+
+上部のバーを使用して、特定の属性を検索します。
+
+- **Search by offering attribute name**: 名前を入力して、特定の属性を検索します。
+- **Select created date**: 特定の日付または期間でリストをフィルタリングします。
+- **Select type**: Dynamic valueまたはFixed valueの属性のみを表示するようにリストをフィルタリングします。
+- **Select created by**: 属性を作成したユーザーのメールアドレスでリストをフィルタリングします。
+
+### 属性リスト
+
+メインの表には、各属性について次の詳細が表示されます。
+
+- **Name**: Offering attributeの名前です。
+- **Type**: 属性がDynamic valueかFixed valueかを示します。
+- **Created on**: 属性が作成された正確な日時です。
+- **Created by**: 属性を作成したユーザーのメールアドレスです。
+- **Actions**: 3点メニュー(⋮)をクリックすると、特定の属性で利用可能なアクション(編集、削除など)が表示されます。\
+  <Frame>
+    ![Offeringの一覧](/images/offering-listing.png)
+  </Frame>
+
+# 属性の編集
+
+サポートされている操作と注意すべき制約については、次の表をクイックリファレンスとして使用してください。
+
+| 変更 | 可否 | 条件 |
+| :-: | :-: | :-: |
+| 属性名の変更 | 可 | 新しい名前は、関連付けられたすべてのOfferingとDecision Policyに反映されます。 |
+| ドロップダウンの選択肢名の編集 | 可 | 更新された名前は、関連付けられたすべてのOfferingとDecision Policyに反映されます。 |
+| 属性タイプの変更(FixedからDynamic、またはその逆) | 条件付き | 属性がいずれかのOfferingまたはDecision Policyに関連付けられている場合はブロックされます。 |
+| ドロップダウンの選択肢の削除 | 条件付き | 属性がいずれかのOfferingまたはDecision Policyに関連付けられている場合はブロックされます。 |
+| 許可される最大入力数の削減(Fixedのみ) | 条件付き | 既存のOfferingで、新しい制限を超える数の選択肢を持つ属性が使用されている場合はブロックされます。<br />たとえば、制限を2に下げるには、現在のすべてのOfferingの選択肢がすでに2個以下である必要があります。 |

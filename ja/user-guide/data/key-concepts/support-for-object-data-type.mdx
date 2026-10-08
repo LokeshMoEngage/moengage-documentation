@@ -1,0 +1,565 @@
+---
+title: "Object データ型のサポート"
+description: "MoEngage の Object データ型を使用して、カートアイテムなどの複雑な属性をキーと値のペアとして保存し、より高度なユーザーセグメンテーションを実現します。"
+---
+
+<Info>
+  アカウントでこの機能を有効にするには、MoEngage の CSM (カスタマーサクセスマネージャー) または[サポート](/ja/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard)チームにお問い合わせください。
+</Info>
+
+# はじめに
+
+_Object_ は、データをキーと値のペアで保持する汎用的なデータ型です。Object は、1 つまたは複数のキーと値のペアを保持できます。マーケターとして、ユーザーがカートに追加した特定のアイテムに応じてユーザーをセグメント化したい場合があります。指定したアイテムを定義する列挙可能な属性が複数ある場合、それらを 1 つの Object にまとめてアイテムの識別に使用できます。たとえば、書籍 _Atonement_ をカートに追加したユーザーのリストを記録したいとします。この書籍は次の Object を使用して定義できます。
+
+Code
+
+```json
+ "book":{
+ "product_name": "Atonement"
+ "price" : 100,
+ "sku": "abc123"
+}
+```
+
+文字列、数値、ブール値などの既存のデータ型の属性に加えて、Object データ型を使用すると、より詳細なクエリを実行し、よりパーソナライズされたマーケティングキャンペーンのためのカスタムユーザーセグメントを作成できます。
+
+# Object の種類
+
+MoEngage は次の種類の Object をサポートしています。
+
+## シンプルな Object
+
+シンプルな Object は、次に示すように、複数のキーと値のペアを保持する要素で構成されます。
+
+Code
+
+```json
+ "book":{
+ "item-id": 123,
+ "item-name": "Atonement",
+ "item-cost": 100,
+ "item-currency": "USD"
+}
+```
+
+## ネストされた Object
+
+次に示すように、別の Object の内部にある Object をネストされた Object と呼びます。
+
+Code
+
+```json
+ "Stationary":{
+   "item-id": 123,
+   "item-type": "books",
+"item-cost": {
+     "amount": 100,
+    "currency": "USD"
+}
+}
+```
+
+## Object の配列
+
+Object の配列は、次に示すように、それぞれが複数のキーと値のペアを保持する要素の集合です。
+
+Code
+
+```json
+"product":[
+   {
+    "item-id": 123,
+    "item-type": "books",
+    "item-cost": 100,
+    "item-currency": "USD"
+ },
+ {
+    "item-id": 323,
+    "item-type": "apparel",
+    "item-cost": 90,
+    "item-currency": "USD"
+ },
+ {
+    "item-id": 523,
+    "item-type": "food",
+    "item-cost": 200,
+    "item-currency": "USD"
+}
+]
+```
+
+# Object データ型で使用される用語
+
+次の Object _Stationary_ を考えてみましょう。
+
+Code
+
+```json
+"Stationary":{
+Level 1 "item-id": 123,
+Level 1 "item-type": "books",
+Level 1 "item-cost": {
+Level 2    "amount": {
+Level 3       "cost-price": 100,
+Level 3       "discount": 0,
+}
+Level 2    "currency": "USD"
+}
+}
+```
+
+Object データ型の用語を以下に説明します。
+
+| 用語 | 説明 |
+| --- | --- |
+| Object 属性 | 上の例では、_Stationary_ がキーと値のペアまたはサブ属性で構成される Object 属性です。 _Stationary_ Object はルート Object とも見なされ、その中に Object をネストできます。 |
+| サブ属性 | サブ属性は、Object 属性内のキーと値のペアです。上の例では、 _item-id_、_item-type_、_cost-price_、_discount_、_currency_ がサブ属性 (キーと値のペア) です。 _item-cost_ と _amount_ は、独自のサブ属性 (キーと値のペア) を持つネストされた Object です。 |
+| レベル 1 サブ属性 | レベル 1 は、サブ属性のネストの第 1 階層です。 |
+| レベル 2 サブ属性 | レベル 2 は、サブ属性の第 2 階層です。 |
+| レベル 3 サブ属性 | レベル 3 は、ネストの第 3 階層です。 |
+
+# Object データ型の取り込みに関する主な要素
+
+| 主な要素 | 説明 |
+| :-- | :-- |
+| **Object の最大サイズ (バイト)** | デフォルトのサイズは 25 KB です。 <br /> キーと値のペアを含む各 Object 属性は 25 KB を超えないようにしてください。 <br /> たとえば、次に示す Object `book` は、複数のサブ属性 (キーと値のペア) を持つ Object 属性として MoEngage で扱われます。 <br />`{`<br />`"book":{`<br />`"product_name": "Atonement"`<br />`"price": 100,`<br />`"sku": "abc123"`<br />`}`<br />`}`<br /> Object `book` 全体のサイズは 25 KB を超えないようにしてください。 |
+| **キーと値のペア (サブ属性) の最大数** | 1 つの Object 属性内で 100 個のサブ属性がサポートされます。Data management ダッシュボードから、Object 内の未使用のサブ属性をアーカイブし、新しいサブ属性を取り込むことができます。 <br />`"book":{` <br /> `"product_name": "Atonement"` <br /> `"price": 100,` <br /> `"sku": "abc123"` <br /> `}`<br /> 上の例には 3 つのキーと値のペア (サブ属性) があります。 |
+| **配列要素の最大数** | Object の配列における配列要素数の上限は 100 です。 以下の例には 3 つの配列要素があります。<br /> `"product":[` <br /> `{` <br /> `"item-id": 123,` <br /> `"item-type": "books",` <br /> `"item-cost": 100,` <br /> `"item-currency": "USD"` <br /> `},` <br /> `{` <br /> `"item-id": 323,` <br /> `"item-type": "apparel",` <br /> `"item-cost": 90,` <br /> `"item-currency": "USD"` <br /> `},` <br /> `{` <br /> `"item-id": 523,` <br /> `"item-type": "food",` <br /> `"item-cost": 200,` <br /> `"item-currency": "USD"` <br /> `}` <br /> `]`  |
+| **ネストの最大レベル** | MoEngage は最大 2 レベルのネストをサポートしており、それを超えるものは文字列化されます。 <br /> ただし、MoEngage はどのレベルのネストされた JSON でも取り込みます。 <br />`"Stationary":{` <br /> `Level 1 "item-id": 123,` <br /> `Level 1 "item-type": "books",` <br /> `Level 1 "item-cost": {` <br /> `Level 2 "amount": {` <br /> `Level 3 "cost-price": 100,` <br /> `Level 3 "discount" : 0,` <br /> `}` <br /> `Level 2 "Currency": "USD"` <br /> <br /> `}` <br /> `}`<br /> 上の例では、`cost-price` や `discount` などのサブ属性はレベル 3 のネストされたサブ属性です。これらは MoEngage に取り込まれますが、文字列データ型になります。 |
+| **キー名** | 最大長は 200 文字です。 <br /> キー名には次の特殊文字を含めないでください: `$`、`.`、`%`、`#`。 <br />`"book":{` <br /> `"item-id": 123,` <br /> `"item-name": "Atonement",` <br /> `"item-cost": 100,` <br /> `"item-currency": "USD"` <br /> `}`<br />`Item-id`、`item-name` は 200 文字の上限を超えないキー名です。 |
+| **キーの値** | 最大長 (デフォルト = 512 文字) は、プリミティブデータ型の推奨上限に従います。 <br />`"book":{` <br /> `"item-id": 123,` <br /> `"item-name": "Atonement",` <br /> `"item-cost": 100,` <br /> `"item-currency": "USD"` <br /> `}`<br /> `Item-id` や `item-name` などのキー名に対応する値をキーの値と呼びます。ここでのキーの値は `123` と `Atonement` であり、512 文字の上限を超えていません。 |
+| **識別子にはできない** | Object 属性を MoEngage のプライマリ ID またはセカンダリ ID として設定しないでください。 <br /> サブ属性で構成される Object 属性は、MoEngage で新規ユーザーを作成または更新するためのユーザー識別子として使用できません。プリミティブデータ型の属性 (例: 文字列データ型の CustomerID) を使用する必要があります。 |
+| **論理演算は不可** | Object データ型は論理演算をサポートしていません。 <br /> このような演算は `Object.child` (プリミティブ型の場合) に対して実行してください。 ` "book":{ ` <br /> ` "item-id": 123, ` <br /> ` "item-name": "Atonement", ` <br /> ` "item-cost": 100, ` <br /> ` "item-currency": "USD" ` <br /> ` } `前述の Object 属性 `book` の例では、`book` Object 内のサブ属性に対しては論理演算を実行できますが、Object 全体としての `book` に対しては実行できません。 <br /> たとえば、有効な論理演算は `book.item-cost < 150` であり、無効な論理演算は `book < 150` です。 |
+| **PII / マスク / ブロック / 非表示** | Object 属性全体を PII としてマークするか、暗号化することができます。 <br /> Object 内のサブ属性や個々のキーと値のペアを、個別に PII としてマーク、暗号化、ブロック、または非表示にすることはできません。 |
+| **Object 型属性の最大数** | デフォルトでは、MoEngage では Object データ型として最大 10 個のユーザー属性と 5 個のイベント属性を使用できます。 <br /> つまり、1 つのワークスペースで 10 個のユーザー属性 Object と 5 個のイベント属性 Object、合計 15 個の Object 属性を使用できます。 |
+| **カスタム属性のみ (ユーザーとイベントの両方)** | Object データ型にできるのはカスタム属性のみです。 <br /> 標準属性で Object データ型を送信しようとしても受け付けられません。 <br /> **Settings** \> **Analytics and Data** \> **Data management** にある標準属性または派生属性 (SDK で追跡) は Object データ型ではありません。 |
+| **Null の処理** | 受信した Object 型属性が Null または空の場合、MoEngage には取り込まれません。 <br /> 値を持つ他の属性の中に値のない属性が含まれている Object は、部分的に取り込まれます。 <br />`"product":[` <br /> `{` <br /> `"item-id": 123,` <br /> `"item-type": "books",` <br /> `"item-cost": 100,` <br /> `"item-currency": "USD"` <br /> `},` <br /> `{` <br /> `"item-id": null,` <br /> `"": 100` <br /> `},` <br /> `{` <br /> `"item-id": 523,` <br /> `"item-type": "food",` <br /> `"item-cost": 200,` <br /> `"item-currency": "USD"` <br /> `}` <br /> `]`<br /> MoEngage に取り込まれるデータは次のとおりです。<br />`"product":[` <br /> `{` <br /> `"item-id": 123,` <br /> `"item-type": "books",` <br /> `"item-cost": 100,` <br /> `"item-currency": "USD"` <br /> `},` <br /> `{` <br /> `"item-id": 523,` <br /> `"item-type": "food",` <br /> `"item-cost": 200,` <br /> `"item-currency": "USD"` <br /> `}` <br /> `]` |
+
+# Object データ型の取り込み
+
+このセクションでは、Object データ型を MoEngage に取り込む方法について説明します。
+
+## S2S API
+
+cURL リクエストのサンプル
+
+```json
+curl --location 'https://api-xx.moengage.com/v1/transition?app_id=O7NIHY0AT1K1FL8DR1J1G' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Basic {{Authorization_Key}}' \
+--data-raw '{
+"type": "transition",
+"elements": [
+   {
+    "type": "customer",
+   "customer_id": "tONX83z_new",
+   "attributes": {
+     "name": "xQEC",
+     "first_name": "",
+     "last_name": "",
+     "age": "70",
+     "email": "Ra4X@xyz. Com",
+     "gender": "female",
+     "mobile": "238706106351",
+     "geo": "88.90 89.00",
+     "birthday": "02-12-2001",
+     "created_time": "1716372929998",
+     "last_seen": "1716372929998",
+     "source": "FBsuS",
+     "object_with_nesting_user_attribute_01": {
+        "item-id": 123,
+        "item-type": "books",
+        "item-cost": {
+            "amount": 100,
+            "currency": "USD"
+         }
+     },
+"array_of_object_sample_user_attribute_01": [
+{
+  "item-id": 123,
+  "item-type": "books",
+  "item-cost": 100,
+  "item-currency": "USD"
+},
+{
+  "item-id": 323,
+  "item-type": "apparel",
+  "item-cost": 90,
+  "item-currency": "USD"
+},
+{
+  "item-id": 523,
+  "item-type": "food",
+  "item-cost": 200,
+  "item-currency": "USD"
+}
+],
+"platforms": [
+  {
+  "platform": "ANDROID",
+  "active": "true"
+  }
+ ]
+}
+},
+{
+  "type": "event",
+  "customer_id": "tONX83z",
+  "actions": [
+{
+  "action": "object_event_s2s_ios_level1",
+  "attributes": {
+  "object_with_nesting_event_attribute_01": {
+    "item-id": 123,
+    "item-type": "books",
+    "item-cost_event_attribute": {
+    "amount": 100,
+    "currency": "USD"
+  }
+},
+"array_of_object_sample_event_attribute_01": [
+{
+   "item-id": 123,
+   "item-type": "books",
+   "item-cost": 100,
+   "item-currency": "USD"
+},
+{
+  "item-id": 323,
+  "item-type": "apparel",
+  "item-cost": 90,
+  "item-currency": "USD"
+},
+{
+  "item-id": 523,
+  "item-type": "food",
+  "item-cost": 200,
+  "item-currency": "USD"
+}
+]
+},
+"platform": "",
+"app_version": "3019",
+"user_time": "1716372929998",
+"current_time": "1716372929998"
+    }
+  ]
+ }
+]
+}'
+```
+
+## SDK
+
+cURL リクエストのサンプル
+
+```json
+curl --location 'endpoint' \
+--header 'Content-Type: application/json' \
+--header 'MOE-APPKEY: {{Workspace_ID or APP_ID}}' \
+--data-raw '{
+"viewsInfo": [
+   {
+    "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+    "EVENT_ATTRS": {
+      "USER_ATTRIBUTE_UNIQUE_ID": "123"
+  },
+    "EVENT_L_TIME": "22:05:2024:14:02:01",
+    "EVENT_G_TIME": "1716372930"
+},
+{
+    "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+    "EVENT_ATTRS": {
+     "USER_ATTRIBUTE_USER_NAME": "xQEC"
+},
+    "EVENT_L_TIME": "22:05:2024:14:02:01",
+    "EVENT_G_TIME": "1716372930"
+},
+{
+    "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+    "EVENT_ATTRS": {
+     "USER_ATTRIBUTE_USER_FIRST_NAME": "JgfOr"
+},
+    "EVENT_L_TIME": "22:05:2024:14:02:01",
+    "EVENT_G_TIME": "1716372930"
+},
+{
+    "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+    "EVENT_ATTRS": {
+     "USER_ATTRIBUTE_USER_EMAIL": "Ra4X@xyz. Com"
+},
+    "EVENT_L_TIME": "22:05:2024:14:02:01",
+    "EVENT_G_TIME": "1716372930"
+ },
+{
+   "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+   "EVENT_ATTRS": {
+     "USER_ATTRIBUTE_USER_LOCATION": "104.248,122.203"
+},
+   "EVENT_L_TIME": "22:05:2024:14:02:01",
+   "EVENT_G_TIME": "1716372930"
+},
+{
+   "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+   "EVENT_ATTRS": {
+     "object_with_nesting_user_attribute_001": {
+          "item-id": 123,
+          "item-type": "books",
+          "item-cost_0001": {
+          "amount": 100,
+          "currency": "USD"
+       }
+    },
+  "array_of_object_sample_user_attribute_002": [
+   {
+     "item-id": 123,
+     "item-type": "books",
+     "item-cost": 100,
+     "item-currency": "USD"
+   },
+   {
+    "item-id": 323,
+    "item-type": "apparel",
+    "item-cost": 90,
+    "item-currency": "USD"
+   },
+   {
+   "item-id": 523,
+   "item-type": "food",
+   "item-cost": 200,
+   "item-currency": "USD"
+   }
+  ]
+},
+  "EVENT_L_TIME": "22:05:2024:14:02:01",
+  "EVENT_G_TIME": "1716372930"
+},
+{
+ "EVENT_ACTION": "object_event_reports_ios_level1",
+ "EVENT_ATTRS": {
+ "object_with_nesting_user_attribute_003": {
+   "item-id": 123,
+   "item-type": "books",
+   "item-cost": {
+   "amount": 100,
+   "currency": "USD"
+}
+},
+ "array_of_object_sample_user_attribute_004": [
+ {
+  "item-id": 123,
+  "item-type": "books",
+  "item-cost": 100,
+  "item-currency": "USD"
+},
+{
+  "item-id": 323,
+  "item-type": "apparel",
+  "item-cost": 90,
+  "item-currency": "USD"
+},
+{
+  "item-id": 523,
+  "item-type": "food",
+  "item-cost": 200,
+  "item-currency": "USD"
+}
+]
+},
+ "EVENT_L_TIME": "22:05:2024:14:02:01",
+ "EVENT_G_TIME": "1716372930"
+}
+],
+ "viewsCount": 3,
+ "identifiers": {}
+}'
+```
+
+## Snowflake
+
+Object データ型は Snowflake でもサポートされています。
+
+### 互換性のある JSON データを Snowflake に保存する
+
+Snowflake 内に有効な JSON を保存するには、列のデータ型を _VARIANT_ 型に変更する必要があります。詳細については、[こちら](https://docs.snowflake.com/en/user-guide/tutorials/json-basics-tutorial)を参照してください。
+
+Snowflake 内に保存する JSON は有効な JSON である必要があります。そうでない場合、値は JSON として書き込まれません。JSON 列の例を次に示します。
+
+JavaScript
+
+```json wrap
+{ "Designation": "SSE", "Palace": "Banglore", "age": 30, "name": "Shasha" }
+```
+
+### Snowflake 経由で JSON データをインポートする
+
+MoEngage で _Object_ 型としてマークされ、Snowflake の列にマッピング可能な既存の属性:
+
+![](/images/moengage_c80a2c.png)
+
+次に示すように、マッピングの手順で新しい Object 属性を作成することもできます。
+
+<img
+  src="/images/moengage_7a8af3.png"
+  style={{ width:"58%" }}
+/>
+
+<Info>
+  MoEngage は、ネストされた属性とのマッピングをサポートしていません。マッピングできるのはトップレベルの属性のみです。
+</Info>
+
+## Zapier
+
+Zapier で、Object 型の属性を持つユーザーとイベントを作成できるようになりました。属性を _Object_ 型としてマークするには、それらの属性を _Object-type Attributes_ リスト内で定義する必要があります。
+
+<img
+  src="/images/moengage_671c7d.png"
+  style={{ width:"83%" }}
+/>
+
+無効な JSON 値を持つ属性は破棄されます。同じフローが _Import User Event Action_ にも適用されます。
+
+<Info>
+  Object 型を意図しているにもかかわらず _Custom Attributes_ リストで定義されている属性は、文字列として MoEngage に送信されます。この場合、属性の固定されたデータ型に基づいて、MoEngage のデフォルトの型変換ルールが適用されます。
+</Info>
+
+### 例外
+
+- デフォルトでは、各ワークスペースで取り込める Object は 5 個のみです。
+- Object 内または array\_objects 内の要素は、null または空白が存在する場合は破棄されます。
+
+| No. | サンプルペイロード | MoEngage の動作 |
+| --- | --- | --- |
+| 1 | `attribute0 : {}` | 破棄 |
+| 2 | `attribute01 : { }` | 破棄 |
+| 3 | `Attribute61 : [{ "a" : {} }, {"valid" : false}]` | `[{"valid": false}]` が取り込まれ、残りの要素は破棄 |
+| 4 | `{"": "value" }` | 破棄 |
+
+- 異種混在の Object の配列はサポートされていません。Object の配列は、配列要素として Object のみで構成する必要があります。
+  - ケース 1: Object とプリミティブ要素が混在している場合、プリミティブ要素は破棄されます。
+  - ケース 2: 配列に Object が含まれず、他のプリミティブ要素で構成されている場合、MoEngage は最初の要素のデータ型を基準データ型として、残りの要素をそのデータ型に型変換しようとします。変換に失敗した場合、その要素は破棄されます。
+
+# Object データ型の使用
+
+このセクションでは、Object データ型の使用方法について説明します。
+
+## Data Management
+
+Object データ型の属性を MoEngage に取り込んだ後は、MoEngage ダッシュボードの **Data management** セクションで管理できます。Object データ型を編集するには、次の手順に従います。
+
+1. MoEngage ダッシュボードに移動し、**Settings** \> **Analytics and Data** \> **Data management** \> **User attributes** または **Events** をクリックします。
+2. Object データ型のユーザー属性を選択するか、検索バーを使用して検索します。 <img src="/images/moengage_f02bfe.png" />
+3. 属性の行にある縦の三点リーダーをクリックし、**Edit** をクリックします。
+   <img
+     src="/images/moengage_f08a1a.png"
+     style={{ width:"50%" }}
+   />
+4. Object の構造を変更します。たとえば、文字列属性をブール値に、数値を文字列に変更するなどです。
+   <img
+     src="/images/moengage_9d00d4.png"
+     style={{ width:"86%" }}
+   />
+5. **Save** をクリックします。変更を保存すると警告が表示されます。 <img src="/images/moengage_9552d1.png" />
+6. **Continue** をクリックして確定します。
+   <Info>
+     Object 属性は 24 時間に 1 回編集できます。そのため、編集オプションは今回の編集から 24 時間後にのみ有効になります。
+   </Info>
+
+## Data Management で Object 属性に対して実行できる操作
+
+- 任意のカスタムユーザー属性またはイベント属性について、データ型を Object または Array of Object に固定できます。
+- Object または Array of Object データ型については、システムが Object の構造を自動検出し、セグメンテーション用のメタデータとして保存します。
+- 検出される構造には、Object のすべての子要素とそのデータ型が 2 レベルまで含まれている必要があります。
+- Object または Array of Object 型の属性について、各子ノードを手動で定義できます。
+- Object 属性のスキーマを手動で定義した場合、(実行中のキャンペーンやトリガーでの予期しない問題を避けるため) 24 時間は変更できません。スキーマを手動で定義した後、受信データはすべてそのスキーマに照らして検証され、定義に準拠していない場合は拒否されます。
+- Object または Array of Object 型の属性については、サンプル JSON を貼り付けて、定義済みの Object 構造を生成できます。
+- 各子ノードのデータ型を 2 レベルまで指定できます。サポートされるデータ型は次のとおりです。
+  - Numeric
+  - Boolean
+  - String
+  - Date type
+  - Primitive Array
+  - JSON (任意のレベルのネストされた Object を取り込む場合)
+- 任意の Object 定義に対して 100 個を超える子ノードを作成できます。Object に 100 個を超える子ノードがある場合、MoEngage は先に定義された最初の 100 個の子ノードのみを受け付けます。
+- 既存の属性を Object として固定した場合、以前の値は型変換されず、そのまま残ります。
+- その属性に対して新たに受信する値は、シナリオに応じて次のように扱われます。
+  - 受信した値が定義された上限内の Object である場合、受け付けられます。
+  - 受信した値がプリミティブデータ型 (数値、文字列、ブール値) の場合、カプセル化されて Object として型変換されます。
+- Object として固定された属性のデータ型を「Any」または任意のプリミティブデータ型に変更できます。
+- Object データ型のサブ属性の Block/Unblock および Show/Hide は、ルートレベルの属性に対してのみ変更できます。
+- Object データ型属性のスキーマは、次の方法で編集できます。
+  - 最大 2 レベルのネストまで、Object に新しいサブ属性を追加する。
+  - 既存のサブ属性を削除する。
+
+## 例外
+
+- 属性は、Object として、または任意のプリミティブデータ型としてデータを取り込むことができます。
+- Object データ型のデータポイントを 1 つでも取り込んだ属性は暗号化できません。
+- プリミティブデータ型でデータを取り込んでおり、PII 暗号化属性としてマークされている属性は、今後 Object データポイントを取り込むことができません。
+
+# ユーザープロファイル
+
+このセクションでは、ユーザープロファイルについて説明します。
+
+## User Info
+
+Object データ型の属性を MoEngage に取り込んだ後は、MoEngage ダッシュボードの **User Profile** セクションで確認できます。Object 属性を表示するには、次の手順に従います。
+
+1. MoEngage ダッシュボードに移動し、Object 属性を使用してセグメントを作成します。
+2. Create segment ページで **Query Results** セクションまでスクロールし、クエリを選択します。
+3. サンプルユーザーを選択して User Profile ページに移動します。または、右上の検索バーを使用して ID でユーザーを検索します。
+4. User Profile ページの **Tracked Custom Attributes** セクションで、すべての Object 型属性を確認できます。 <img src="/images/moengage_57da19.png" />
+
+## Activity Info
+
+Activity Info でイベントに関連付けられた Object 属性を表示するには、次の手順に従います。
+
+1. MoEngage ダッシュボードに移動し、Object 属性を使用してセグメントを作成します。
+2. Create segment ページで **Query Results** セクションまでスクロールし、クエリをクリックして展開します。
+3. サンプルユーザーを選択して User Profile ページに移動します。または、Create segment ページの右上にあるユーザー検索ボックスで (ユーザー ID を使用して) ユーザーを検索します。
+4. User Profile ページから **Activity Info** タブに移動すると、Object 型セクションですべてのイベントとイベント属性を確認できます。
+
+# キャンペーンとチャネルにおける Object データ型のサポート
+
+次の表は、配信タイプと、各キャンペーンで Object データ型がサポートされているかどうかを示しています。
+
+| キャンペーンタイプ | Push | Email | SMS | WhatsApp | Connector |
+| --- | --- | --- | --- | --- | --- |
+| One Time | はい | はい | はい | はい | はい |
+| Periodic | はい | はい | はい | はい | はい |
+| Event Triggered | はい | はい | はい | はい | はい |
+| Business Event Triggered | いいえ | いいえ | いいえ | NA\* | NA\* |
+| Device Triggered | いいえ | NA\* | NA\* | NA\* | NA\* |
+| Location Triggered | はい | NA\* | NA\* | NA\* | NA\* |
+
+NA\* は、そのキャンペーンでは該当する配信タイプがサポートされていないことを示します。
+
+次の表は、各チャネルと、Object データ型がサポートされているかどうかを示しています。
+
+| チャネル | In-app | Onsite | Cards | Facebook | Google Ads | Web Personalization |
+| --- | --- | --- | --- | --- | --- | --- |
+| Object データ型のサポート有無 | はい | はい | いいえ | いいえ | いいえ | はい |
+
+次の表は、キャンペーン作成の手順と、各キャンペーンで Object データ型がサポートされているかどうかを示しています。
+
+| キャンペーン作成の手順 | Object データ型のサポート |
+| --- | --- |
+| Target Users \> Select audience \> All users, Filter users by \> User property, User behavior | はい |
+| Content \> Link personalization, Image personalization, preview | はい |
+| Content \> Add new locale \> User Property | いいえ |
+| Schedule and goals \> Conversion goals \> New goal \> Select an event | いいえ |
+
+次の表は、Flow 作成の手順と、各キャンペーンで Object データ型がサポートされているかどうかを示しています。
+
+| Flow 作成の手順 | Object データ型のサポート |
+| --- | --- |
+| When will users enter the flow \> On event trigger \> IF user has executed \> Select an event | はい |
+| When will users enter the flow \> On flow exit \> When user has exited \> Select by name | はい |
+| Who will enter the flow \> Audience \> All users, Filter users by\> User property, User behavior | はい |
+
+# ユーザーデータのエクスポート
+
+ユーザーデータのエクスポート (セグメントに対する **Export Users** アクション) は、Object データ型の属性をサポートしていません。Object または Object の配列の属性を選択した状態でセグメントをエクスポートすると、エクスポートパイプラインが Object データ型をサポートしていないため、その属性は無効または不完全な JSON としてエクスポートされ、確実に解析できません。セグメントからユーザーをエクスポートする方法の詳細については、[セグメントの管理](/ja/user-guide/segment/create-segments/manage-segments#actions-on-custom-segments)を参照してください。
+
+# 次のステップ
+

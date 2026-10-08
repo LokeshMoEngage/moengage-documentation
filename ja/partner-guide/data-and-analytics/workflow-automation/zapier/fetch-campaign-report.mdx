@@ -1,0 +1,126 @@
+---
+title: "Fetch Campaign Report"
+description: "Zapier の Fetch Campaign Report アクションを設定して、設定済みの MoEngage キャンペーンレポートをスケジュールに従って取得し、Google Drive や Amazon S3 にアップロードします。"
+keywords: ["zapier", "fetch campaign report", "moengage campaign report api", "google drive", "schedule by zapier"]
+---
+
+## はじめに
+
+[Zapier](https://zapier.com/) は、使用しているアプリやサービスを接続してワークフローを自動化できるオンラインプラットフォームです。MoEngage と Zapier の連携を使用すると、Zapier 上の 5,000 以上のアプリを対象としたカスタムワークフローの自動化を作成できます。
+
+「Fetch Campaign Report」アクションは、MoEngage で設定したレポートを取得するのに役立ちます。取得したレポートは、後で任意のクラウドストレージサービスにアップロードできます。
+
+## ユースケース
+
+このアクションを使用すると、設定済みの Campaign Reports を Zapier から取得できます。以下はその一例です。
+
+1. 毎日キャンペーンレポートを取得し、Google Drive にアップロードする。
+2. Campaign Report を取得し、Convert API を使用して解凍してから Amazon S3 にアップロードする。
+
+<Info>
+  **前提条件**
+
+  - Zapier アカウントにアクセスでき、そのアカウントが MoEngage アカウントに接続されていることを確認してください。[こちらの手順に従って Zapier を MoEngage に接続](/ja/partner-guide/data-and-analytics/workflow-automation/zapier/overview#connecting-zapier-to-moengage)できます。
+  - MoEngage Dashboard で、すでに[レポートを設定](https://www.moengage.com/docs/api/stats-report/stats-report-overview)していることを確認してください。
+</Info>
+
+## 連携
+
+このアクションは、MoEngage の [Campaign Report API](https://www.moengage.com/docs/api/stats-report/stats-report-overview) を使用します。このチュートリアルでは、ユースケース #1「毎日キャンペーンレポートを取得し、Google Drive にアップロードする」を取り上げます。[Zapier Dashboard](https://zapier.com/app/dashboard) で、左上の「+ Create Zap」をクリックします。
+
+### 前提条件
+
+MoEngage 内で、毎日トリガーされるように設定されたキャンペーンレポートがあることを確認してください。
+
+![毎日トリガーされるように MoEngage Dashboard で設定されたキャンペーンレポート](/images/partner_7900954392340.png)
+
+### ステップ 1: トリガーアプリとして Schedule by Zapier を選択する
+
+トリガーとして「Schedule by Zapier」と入力して選択します。これが Zap を開始するトリガーになります。
+
+![トリガーアプリとして Schedule by Zapier を選択する](/images/partner_7900691080852.png)
+
+### ステップ 2: トリガーアプリを設定する
+
+1. ドロップダウンからイベント「Every Day」を選択します。continue をクリックします。
+2. 「Set up trigger」ステップで、ドロップダウンから時刻を選択します。continue をクリックします。
+3. 「Test Trigger」をクリックして、最近の日時をサンプルデータとして取得します。
+4. このデータに問題がなければ、continue をクリックします。
+
+![Every Day イベントを使用した Schedule by Zapier トリガーの設定](/images/partner_7901055453972.png)
+
+![サンプルの日時データを返す Schedule by Zapier のテストトリガー](/images/partner_7901056844436.png)
+
+### ステップ 3: 日時を必要な形式に変換する
+
+API には、Campaign Report API で指定されている形式 `YYYYMMDD` で日時を渡す必要があります。そのために、新しいアクションアプリ「Formatter by Zapier」を追加します。
+
+![次のアクションステップとして Formatter by Zapier を追加する](/images/partner_7901369335828.png)
+
+1. 「Formatter by Zapier」を選択します。
+2. イベントのドロップダウンから「Date / Time」を選択します。continue をクリックします。
+3. アクションの設定ステップで、Transform の下にある「Format」を選択します。
+4. Values > Input で、前のステップの ID を選択します。
+5. 「To Format」で「Custom」を選択し、`YYYYMMDD` と入力します。
+6. 必要に応じて、タイムゾーンを選択することもできます。問題がなければ continue をクリックします。
+
+![日付を YYYYMMDD 形式にするよう設定した Formatter by Zapier](/images/partner_7901548387092.png)
+
+![Schedule トリガーからの入力をマッピングした Formatter by Zapier のアクション設定](/images/partner_7901583637908.png)
+
+7. 次のステップで、「Test & continue」をクリックします。出力データが表示されます。
+
+### ステップ 4: アクションアプリとして MoEngage を追加する
+
+「+」をクリックして新しいステップを追加します。次に、アプリから「MoEngage」を検索して選択します。
+
+![アクションアプリとして MoEngage を検索して選択する](/images/partner_7568867646612.png)
+
+### ステップ 5: MoEngage アクションを設定する
+
+1. イベントのドロップダウンから「Fetch Campaign Report」を選択します。continue をクリックします。
+2. 前提条件に従っていれば、MoEngage アカウントがすでに一覧に表示されています。そのアカウントを選択するか、新しいアカウントを接続できます。完了したら continue をクリックします。
+3. 次のステップ「Set up action」では、入力するか前のステップからマッピングするためのフォームが表示されます。[詳細はこちら](https://www.moengage.com/docs/api/stats-report/stats-report-overview)をご覧ください。
+4. File Name にレポート名を入力し、タイムスタンプには「Date / Time in Formatter by Zapier」ステップの「Output」を選択します。
+5. API secret に API シークレットを入力します。（MoEngage ダッシュボード > Settings > APIs に移動します。**General** タブの **Transaction Push/Report Settings** で、**API Secret** の **Click here to show APP secret!** をクリックします。）
+
+![File Name と API Secret フィールドを含む Fetch Campaign Report アクションの設定](/images/partner_7901829271316.png)
+
+6. この設定では、次のようにリンクしています。
+   1. `File Name` → `Zapier-Final-Testing_{Output: 20220719}.zip`
+   2. `API Secret` → `********`
+   3. マッピングに問題がなければ、「Continue」をクリックします。
+7. この設定をテストするオプションが表示されます。
+8. 「Test & continue」をクリックして、この設定をテストします。
+9. API 呼び出しが成功すると、「success」が返されます。
+
+![File Name と API Secret をマッピングした Fetch Campaign Report アクション](/images/partner_7902503281428.png)
+
+![Fetch Campaign Report の API 呼び出し成功レスポンス](/images/partner_7902012125716.png)
+
+### ステップ 6: Drive アクションを設定する
+
+次に、別のアクションステップを追加する必要があります。「+」をクリックし、アクションリストから「Google Drive」を選択します。
+
+1. 「Google Drive」と入力し、アプリのリストから選択します。
+2. Event で「Upload File」を選択します。continue をクリックします。
+3. まだ接続していない場合は、Google Drive アカウントを接続します。選択したら continue をクリックして次のステップに進みます。
+4. 「Set up action」で、Google Drive を選択します。
+5. Google Drive がレポートをアップロードするフォルダーを選択します。
+6. File で、前の MoEngage ステップの File を選択します。
+
+![アップロード先フォルダーを選択した Google Drive の Upload File アクションの設定](/images/partner_7902141017492.png)
+
+7. File Name と File Extension は空白のままにするか、必要に応じて入力します。フォームに問題がなければ、Continue をクリックします。
+8. トリガーをテストするよう求められます。「Test & continue」をクリックします。
+9. API 呼び出しが成功すると、次の情報が表示されます。
+
+![Google Drive へのアップロードテストの成功結果](/images/partner_7902573281172.png)
+
+![ファイルの詳細を含む Google Drive へのアップロード確認](/images/partner_7902264906516.png)
+
+Google Drive のフォルダーで確認することもできます。新しくアップロードされた zip ファイルが表示されます。これにより、Zap が成功したことを確認できます。
+
+![Google Drive フォルダーに新しくアップロードされたキャンペーンレポートの zip ファイル](/images/partner_7902414661908.png)
+
+10. すべてが正常に動作することを確認したら、「Publish Zap」をクリックします。ウェビナーに新しい登録者が追加されるたびに Zap が実行されます。
