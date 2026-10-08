@@ -1,7 +1,7 @@
 ---
 title: "Rate Limits"
 description: "Understand API rate limits and payload size caps for the MoEngage REST APIs, how to monitor usage, and what happens when a limit is exceeded."
-keywords: ["rate limit", "API limits", "429", "RPM", "payload size", "throttling"]
+keywords: ["rate limit", "API limits", "429", "RPM", "payload size", "throttling", "OAuth rate limit", "Retry-After"]
 ---
 
 MoEngage enforces rate limits on its REST APIs to keep the shared platform fast and reliable for every customer. Limits apply **per workspace** unless a specific endpoint states otherwise (some are per client or per consumer), and a request that exceeds its limit is rejected with an `HTTP 429 Too Many Requests` response.
@@ -15,6 +15,19 @@ Most limits below are the defaults. Several limits can be raised for your worksp
 ## Rate limits by endpoint
 
 Endpoints are grouped by product area to match the API reference navigation. When several endpoints share a single pool, the limit is applied across all of them.
+
+### Authentication
+
+| Endpoint | Rate limit |
+| --- | --- |
+| `POST /v1/oauth/token` (Generate Access Token) | 30 requests per 10 minutes, and 5 requests per minute |
+| `POST /v1/oauth/refresh` (Refresh Access Token) | 30 requests per 10 minutes, and 5 requests per minute |
+
+<Note>
+  The OAuth limits apply per `client_id` and `client_secret` pair rather than per workspace, and both endpoints run on the OAuth host (`https://oauth2-{dc}.moengage.com`) rather than your REST API host. A `429` response from either endpoint carries a `Retry-After` header that gives the number of seconds to wait.
+
+  Access tokens are reusable for their full lifetime, so generate one token and reuse it until the token approaches expiry. For the full flow, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+</Note>
 
 ### Data
 

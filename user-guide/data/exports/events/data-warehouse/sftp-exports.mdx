@@ -3,6 +3,12 @@ title: "SFTP Exports"
 description: "Export campaign events from MoEngage to your SFTP server securely. Set up periodic file transfers for campaign interaction data and user event imports."
 ---
 
+import StreamsAddOn from '/snippets/streams-add-on.mdx';
+import ExportFailureFaqs from '/snippets/exports-faq-failure.mdx';
+import ExportGeneralFaqs from '/snippets/exports-faq-general.mdx';
+
+<StreamsAddOn />
+
 ## Overview
 
 Secure File Transfer Protocol (SFTP) is a network protocol for securely accessing, transferring, and managing large files and sensitive data over any reliable data stream. Designed by the Internet Engineering Task Force as an extension of Secure Shell (SSH) version 2.0, SFTP provides secure file transfer capabilities.
@@ -23,12 +29,168 @@ You can export all user events and campaign events that are received or generate
 MoEngage utilizes the Paramiko (4.0.0) library to establish a native connection to your SFTP servers. This routine upgrade ensures that all integrations remain robust and comply with modern encryption standards.
 </Info>
 
-# Integration
+## Integration
 
-<Tip>
-- Ensure you have connection access to your SFTP server.
+### Prerequisites
+
+- Ensure you have connection access to your SFTP server. To create one, refer to [Configure a New SFTP Connection](/partner-guide/data-and-analytics/cloud-storage/sftp#configure-a-new-sftp-connection).
+- The export option is enabled only when you set up at least one connection.
+- MoEngage requires permissions to create folders and write files on your SFTP server. Give full write access to a dedicated MoEngage directory on your SFTP server.
 - If your system requires IP whitelisting, refer [here](/user-guide/settings/account/security/ip-whitelisting-in-moengage).
-- Exports to SFTP are part of the Streams add-on. Reach out to your dedicated MoEngage CSM (customer success manager) to get it enabled for your account.
-</Tip>
 
-Read our [SFTP Integration](/partner-guide/data-and-analytics/cloud-storage/sftp) help doc to set up MoEngage `<>` SFTP integration for your account.
+### Set Up Your Export
+
+<Info>
+  - The export option is enabled only when you set up at least one connection.
+  - MoEngage requires permissions to create folders and write files on your SFTP server. It is recommended to give full write access to a dedicated MoEngage directory on your SFTP server.
+  - Exports to SFTP are part of the Streams add-on. Please reach out to your dedicated MoEngage CSM (customer success manager) to get it enabled for your account.
+</Info>
+
+To enable SFTP Exports on the MoEngage App Marketplace:
+
+1. On your MoEngage UI, go to the App Marketplace.
+2. Search for "SFTP".
+3. Go to the **Integrate** tab and click **\+ Add export**.
+4. Enter the export details:
+
+   ![Export details panel for an SFTP export, with the export name, connection, folder path, user properties, events and frequency](/images/partner_41519108724628.png)
+
+   | Field | Description | Example |
+   | --- | --- | --- |
+   | Export name | Give the export a name. | SFTP Export |
+   | SFTP connection | Select an existing SFTP connection from the list of connections you created in [Configure a New SFTP Connection](/partner-guide/data-and-analytics/cloud-storage/sftp#configure-a-new-sftp-connection). | SFTP Connection |
+   | Folder path | The folder path to which MoEngage will dump the files. You can see the preview of the final file path below. | `/exports/` |
+   | Export all files in one folder | Select this option if you want MoEngage to dump all the files in a single folder. If this is disabled, MoEngage will create a new folder for each day inside the folder path provided by you. You can see the preview of the final file path below. | Toggle on/off |
+   | User properties | Select user properties (user properties and device properties) you want to export with your events. User attributes (such as user attributes, device attributes, and custom attributes) are available in Data Management for that Database/App. | (drop-down) |
+   | Select events | Select the events you want to export to your SFTP server. The available options are: <ul><li>**All events**</li><li>**Select events manually**</li></ul> You can choose to export "All events" (existing and new events coming into MoEngage in the future) or cherry-pick events manually and export only those events. | All events / Select events manually |
+   | Select events (drop-down) | This drop-down list is visible only if you select **Select events manually** under **Select events**. The events on this drop-down list are auto-populated with all the events in Data Management for that Workspace. | (drop-down) |
+   | Frequency | Select how often you want to export these events. MoEngage offers three frequencies: <ul><li>**Every 15 mins**: MoEngage will dump files at 15-minute intervals.</li><li>**Daily**: MoEngage will dump files at the end of each day, 02:00 UTC.</li><li>**Weekly**: MoEngage will dump files on every Monday, 02:00 UTC.</li></ul> A preview of next dump is displayed in case of Daily and Weekly. | Every 15 mins / Daily / Weekly |
+   <Warning>
+     MoEngage does not recommend frequently changing your export frequency, as this might result in data loss or duplication.
+   </Warning>
+5. Click **Save export**. Your export will be saved and when the **Export status** toggle is turned on, MoEngage will start exporting files to the specified folder path on your SFTP server based on the selected export frequency.
+
+<Info>
+  MoEngage utilizes the Paramiko (4.0.0) library to establish a native connection to your SFTP servers. This routine upgrade ensures that all integrations remain robust and comply with modern encryption standards.
+</Info>
+
+### Events and Attributes
+
+With the MoEngage and SFTP integration, you can export all events coming into MoEngage to your SFTP servers. By default, MoEngage tracks some standard events and user properties through its SDKs. You can read about our [standard events and attributes here](/user-guide/data/event-data/derived-events-and-attributes). You can also export any custom user-defined event you tracked in MoEngage.
+
+### Data Export Format
+
+| Information | Description |
+| --- | --- |
+| File Format | JSON |
+| Compression Type | GZip |
+| Export Frequency | Every 15 mins, Daily, or Weekly |
+| Sample Folder Path | `sftp://<host_name>/[<folder_path>/]<connection_name>/export_date={DD-MM-YYYY}/{filename=event_export}_<unique_string>[_<file_number>].json.gz` |
+
+In the sample folder path:
+
+- `<folder_path>` is the prefix folder path given by you.
+- `<connection_name>` is the connection name sluggified as entered by you.
+- File number is optional in case we split the files.
+
+**Note**: The file naming convention change will be effective December 25, 2025. The file naming format for exports is being updated from an epoch timestamp to a unique string. Ensure any data pipelines are configured to handle the new format.
+
+- **Current name (epoch timestamps)**: export\_day=2025-10-28/event\_exports\_1761689701.json.gz
+- **New name (unique str)** : export\_day=2025-10-28/event\_exports\_50492790da7cc2a0674fb51fa5046e3c.json.gz
+
+You can download a sample file from [here](https://app-cdn.moengage.com/partners-integration-ui/app-marketplace-public/helpdoc/event_exports_sample_files.json.gz). This is a GZIPPED file and you must extract it before you can view the files.
+
+For the full list of events and attributes exported, refer to the [Data Exports Glossary](/user-guide/data/exports/events/data-export-glossary).
+
+## Export Failure Policy
+
+MoEngage pauses an export that keeps failing. While it is paused, MoEngage collects the events the export would have delivered, and you replay them after you fix the problem.
+
+### When MoEngage Pauses an Export
+
+MoEngage will retry an export multiple times before marking it as failed. The export will be paused if multiple scheduled exports fail, depending on your chosen export frequency: 
+
+| Export frequency | Condition |
+| --- | --- |
+| 15 minutes | 3 consecutive scheduled export failures |
+| Daily | 1 scheduled export failure |
+| Weekly | 1 scheduled export failure |
+
+When MoEngage pauses an export, it alerts you and shows the export as **Paused** on the App Marketplace.
+
+### What Happens While an Export Is Paused
+
+![A paused SFTP export on the Integrate tab, with Export status turned off and the Paused label beside it](/images/export-paused-card.png)
+
+MoEngage collects the events the export would have delivered and keeps only the most recent 7 days. If the export stays paused for longer than a week, MoEngage drops the oldest days as newer ones come in.
+
+If an export pauses more than once before you replay, MoEngage combines the data from all those pauses, provided it falls within the 7-day window.
+
+### Resume an Export
+
+#### Find the Failure Reason
+
+On the App Marketplace, click the **Integrate** tab, and then hover over the **Paused** label on the export. MoEngage names the reason for the failure, such as a login user that does not have write permission on the destination folder, and tells you how to fix it.
+
+![The Paused label hover on the Integrate tab, showing the failure reason and what you need to do](/images/sftp-export-paused-failure-reason.png)
+
+#### Enable the Export
+
+Fix the cause at your end, and then turn on **Export status** for the export. Do this as soon as you can, because the 7-day window keeps moving while the export stays paused.
+
+When you enable the export, MoEngage stops collecting and sets aside what it has: the last 7 days of paused data, or all of it if the pause was shorter. This is the data you can replay. It stays fixed from then on, and does not reduce further even if you wait to replay it.
+
+### Replay Paused Data
+
+#### Request a Replay
+
+MoEngage saves the data it collected while the export was paused. An export with data waiting shows a **Replay available** label on the **Integrate** tab.
+
+To replay, perform the following steps:
+
+1. Hover over the **Replay available** label, or open the kebab menu on the export.
+2. Click **Replay paused data**.
+
+   ![SFTP export with a Replay available label on the Integrate tab and the Replay paused data option](/images/sftp-export-replay-paused-data.png)
+3. In the **Replay paused data** dialog box, click **Confirm**.
+
+   ![Replay paused data dialog box asking you to confirm, with the Confirm button](/images/export-replay-confirm.png)
+
+A replay sends everything MoEngage collected while the export was paused. MoEngage backfills the data into the date folders it would have written to at the time, rather than writing it to a new location.
+
+You can replay at any time until 30 days from the date the oldest paused data was collected. After that, the data is no longer available.
+
+<Note>
+  Replay before the export pauses again. If it pauses a second time before you replay, MoEngage adds the new paused data to the data still waiting from the first pause. The combined data is then trimmed back to the most recent 7 days, so if the two pauses are more than 7 days apart, the older data is lost.
+
+  For example, your export pauses on day 1. You enable it but do not replay. It pauses again on day 20. Since that is 19 days later, the day 1 data falls outside the 7 day window and is gone, even though its 30 day replay window had not expired. If the second pause had happened within 7 days of the first, the day 1 data would still be included.
+</Note>
+
+#### Replay Results
+
+When the replay finishes, MoEngage emails the user who requested it with one of the following results:
+
+| Result | What it means |
+| --- | --- |
+| Successful | MoEngage delivered all the collected data. The replay option is no longer available. |
+| Partially Successful | MoEngage delivered some of the collected data, and then hit an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+| Failed | MoEngage delivered none of the collected data, because of an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+
+You can run only one replay per export at a time.
+
+#### Avoid Duplicate Data
+
+Every replay sends the whole collection again, because MoEngage does not deduplicate. If you replay more than once, deduplicate at your end on the `event_uuid` field, which is unique for each event. For the fields in the export, refer to the [Data Export Glossary](/user-guide/data/exports/events/data-export-glossary).
+
+### Export Paused Alerts
+
+MoEngage alerts you when it pauses an export, so you can fix the issue and replay the data collected while the export was paused.
+
+MoEngage subscribes workspace admins to the Data Exports system alert by default, and adds the user who creates or updates an export. To subscribe or unsubscribe anyone else, go to the Alert Management page. Subscribing or unsubscribing changes notifications only for that person, and does not affect anyone else's subscription.
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <ExportFailureFaqs />
+  <ExportGeneralFaqs />
+</AccordionGroup>

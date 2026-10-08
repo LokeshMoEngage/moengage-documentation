@@ -77,7 +77,7 @@ The Data Imports dashboard lists all your imports and their key details:
 | **Type** | The source of the import (S3, SFTP, CSV, Snowflake, BigQuery, or Databricks). The import type, One-Time or Periodic, is shown in brackets. |
 | **Custom Segment** | If the user import saves to a segment, the segment name is displayed here. |
 | **Created at** | The date and time the import was created. |
-| **Last Sync Status** | The latest status of the import (see statuses below). |
+| **Last Sync Status** | The status of the most recent import run as a whole, not the status of the last file within that run (see statuses below). |
 | **Files Processed** | The number of files processed to date. |
 | **Rows Processed** | The total number of rows processed to date. |
 | **Actions** | View Details, Edit, Duplicate, or Delete an import. |
@@ -88,13 +88,120 @@ The Data Imports dashboard lists all your imports and their key details:
 
 Every import on the dashboard carries one of the following statuses:
 
-- **Scheduled**: The import is scheduled to run in the future.
-- **Processing**: The import is currently running.
-- **Successful**: The import completed successfully.
-- **Partial Success**: At least one file (or row) was imported with partial success.
-- **Failed**: The import failed. Hover over the status to see the reason.
+- **Scheduled**: The run is scheduled to execute in the future.
+- **Pending**: One or more files in the run are held back because an hourly or daily import limit is reached. The run resumes on its own when the limit frees up, so no action is needed.
+- **Processing**: The run is in progress.
+- **Successful**: Every file in the run succeeded.
+- **Partial Success**: The run finished with a mix of succeeded and failed files.
+- **Failed**: Every file in the run failed. Hover over the status to see the reason.
+- **Archived**: Someone archived the import. Archiving is a manual action rather than something MoEngage does on its own, and it cannot be undone, so an archived import cannot be restored. The run and file history of an archived import stays available.
+- **Expired**: The import passed its end date. MoEngage sets this status itself, which is what separates it from **Archived**.
 
-To see per-file details, rows in file, users created/updated/failed, events added/failed, aux data added/failed, and rows skipped, open the three-dot Actions menu and select **View Details**. You can export a copy of an imported file for up to 60 days.
+MoEngage derives the run status from the files in that run, in the following order:
+
+| Condition | Run status |
+| --- | --- |
+| Any file is processing, or scheduled files are still queued | Processing |
+| Any file is pending because a limit is reached or an internal retry is in progress | Pending |
+| Every file reached a final state and all succeeded | Successful |
+| Every file reached a final state and all failed | Failed |
+| Every file reached a final state, with a mix of succeeded and failed | Partial Success |
+
+A run that still contains a pending file stays **Pending**, even when other files in the same run have already failed. The run resolves to Partial Success only after every file reaches a final state.
+
+To see how each scheduled run performed, click the kebab menu under **Actions**, and then click **View**. For more information, refer to [Run History](/user-guide/data/imports/setting-up-a-file-import#run-history). You can export a copy of an imported file for up to 60 days.
+
+## Check Import Limits
+
+MoEngage applies separate hourly and daily import limits to three categories: **User imports**, **Event imports**, and **Aux data**. The Import limit overview tells you how much of each limit you have consumed, when the limits reset, which of your imports are held back, and which of them consumed the most.
+
+These limits apply to file imports from Amazon S3, SFTP, and CSV upload. Data warehouse imports use a separate limit pool that this drawer does not cover.
+
+### Open the Import Limit Overview
+
+You can open the Import limit overview from the Data imports page, or while you are setting up an import.
+
+To open it from the Data imports page, perform the following step:
+
+1. Click **Check import limit**, beside **Import**.
+
+   ![Data imports page with the Check import limit link highlighted beside the Import button](/images/import-limits-check-link.png)
+
+To open it while you set up an import, perform the following steps:
+
+1. Click **\+ Import**, and then click **Users**, **Events**, or **Auxiliary data**.
+
+   ![Data imports page with the Import list open, showing Users, Events and Auxiliary data](/images/import-limits-import-menu.png)
+2. In the dialog box, click **Check import limit**.
+
+   ![Import events dialog box with the Event Imports limit and the Check import limit link below the sources](/images/import-limits-source-dialog.png)
+
+The dialog box also shows how much of your hourly and daily limit is left before you start, so you can tell whether an import is likely to be delayed before you set it up.
+
+### Know Before You Reach a Limit
+
+MoEngage notifies you as you approach a limit, so you can reschedule an import before it is held back. A banner appears at the top of the Data imports page when you reach 80% of a limit, warning that new imports might be delayed, and again when you reach a limit, naming the category and when imports resume. When more than one limit is reached, the banner names no resume time, because the affected limits can reset at different times; open the Import limit overview to see each one.
+
+The banner appears on every tab, so a limit reached in one category is visible while you are viewing another. When you are below 80% on every limit, MoEngage shows no banner.
+
+![Limit breached banner at the top of the Data imports page, naming the daily limit for Users imports and when imports resume](/images/import-limits-breached-banner.png)
+
+### Check How Much You Have Consumed
+
+The Import limit overview shows one card for each category, with your hourly usage above and your daily usage below. The progress bar on each card shows how much of that limit you have consumed, as an amount against the limit and as a percentage.
+
+To read the usage, perform any of the following actions:
+
+1. Hover over the information icon beside **Usage** to view when each limit resets.
+2. Click **Refresh** to update the figures.
+3. Click the **User imports**, **Event imports**, or **Aux data** card to see the detail for that category.
+
+Hourly limits reset on a rolling lookback window rather than at a fixed time, so usage ages out gradually. Daily limits reset every day at 12:00 AM UTC. The drawer does not refresh on its own, so the **Last updated at** timestamp shows when the figures were last read. After you select a card, the **Affected imports** and **Top contributing imports** sections below apply to that category.
+
+![Import limit overview for User imports, showing the Usage cards with the reset schedule, Affected imports and Top contributing imports](/images/import-limit-overview-usage-cards.png)
+
+### Check Which Imports Are Affected
+
+**Affected imports** lists the imports held back by a limit, with a banner naming the limit that was reached and when the held-back files resume.
+
+![Affected Imports banner naming the limit that was reached and when the remaining files resume](/images/import-limits-affected-imports-banner.png)
+
+The table lists the following:
+
+| Column | Description |
+| --- | --- |
+| Import name | The name of the affected import, linked to its details page. |
+| Type | The source and schedule of the import, for example SFTP (Periodic). |
+| Started at | When the import started, or is scheduled to start. |
+| Status | **Pending** for an import with files held back, or **Scheduled** for an import that has not started. |
+| Files processed | The number of files either currently being processed or finished processing so far. Shows `--` for an import that has not started. |
+| Files left | The number of files still pending. Shows `--` for an import that has not started. |
+
+The table lists every import held back because a limit was reached. If the hourly limit is reached, those imports resume as soon as the limit frees up. If the daily limit is reached, the pending and scheduled imports for that day resume the next day.
+
+### Check Which Imports Consumed the Most
+
+**Top contributing imports** shows which of your imports used the most of the limit, so you can find the cause before you add or reschedule an import. **Top contributing imports** appears after at least one import in the category completes a run.
+
+The **Hourly** and **Daily** tabs change the period the table covers:
+
+- Click **Hourly** for the imports that ran within the current rolling one-hour window.
+- Click **Daily** for the imports that ran since the last reset at 12:00 AM UTC.
+
+The table lists the following:
+
+| Column | Description |
+| --- | --- |
+| Import name | The name of the import, linked to its details page. |
+| Type | The source and schedule of the import. |
+| Started at | When the import started. |
+| Status | The status of the import. |
+| Consumption | The volume the import consumed, as an absolute number and as a percentage of the total limit for that category and window. |
+
+![Top contributing imports with the Hourly and Daily tabs, and the highest consuming import at the top](/images/import-limit-top-contributing-imports.png)
+
+MoEngage sorts the table by the volume each import consumed and shows the top 5. Each percentage is that import's share of the limit for the category and window.
+
 
 ## Trigger Imports
 

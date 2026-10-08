@@ -7,7 +7,9 @@ Events tracking and user data tracking allow you to send behavioral data from yo
 
 ## Tracked Events
 
-MoEngage tracks the following events when you enable them on your Shopify app during integration.
+MoEngage tracks the following events for every store after you complete the integration. You do not need to select them. To review the events and their attributes, expand **User events** in the **Configuration** tab of the MoEngage app.
+
+![User events section listing each event type, event, and its attributes](/images/shopify-user-events.png)
 
 | Event Type       | Event Name                                    | Description                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ---------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -59,9 +61,9 @@ Webhook events do not include the product URL or image URL in their payloads. Th
 
 ### Shopify Customer Metafields
 
-MoEngage does not sync Shopify customer metafields, custom data fields attached to the Shopify customer object, to MoEngage user profiles by default. MoEngage also does not include them in event attributes.
+Shopify customer metafields are custom data fields attached to the Shopify customer object. You can sync them to MoEngage user profiles as user attributes. For more information, refer to [Customer Metafields](#customer-metafields).
 
-To pass this data in a custom manner, refer to the [**Track Custom User Attributes**](#track-custom-user-attributes) section below.
+MoEngage does not include customer metafields in event attributes.
 
 ## Track Custom Events via Shopify Liquid
 
@@ -130,11 +132,13 @@ To validate that the event fires correctly, refer to the [Validate Integration](
 
 ## Track Custom User Attributes
 
-You can pass custom attributes (such as metafields) to MoEngage profiles by using the following workarounds.
+To sync Shopify customer metafields, select them in the **Configuration** tab of the MoEngage app. For more information, refer to [Customer Metafields](#customer-metafields).
 
-### Liquid-Based Method for Public Metafields
+To pass data that is not stored in a customer metafield, such as values available only in your theme, use the following methods.
 
-If you enable storefront access for the metafield, it can be read directly in Shopify Liquid. To find the correct file and add the code, perform the following steps:
+### Liquid-Based Method
+
+If the data is available in Shopify Liquid, for example, a metafield with storefront access enabled, you can read it in your theme. To find the correct file and add the code, perform the following steps:
 
 1. Log in to your Shopify Admin.
 2. Go to **Online Store** > **Themes**.
@@ -154,13 +158,12 @@ If you enable storefront access for the metafield, it can be read directly in Sh
 
 Replace _loyalty_ and _tier_ with the actual namespace and key of your metafield. The `{% if customer %}` guard ensures the code only runs when a customer is logged in.
 
-### Server-Side Sync for App-Owned Metafields
+### Server-Side Method
 
-If a third-party app created the metafield, storefront access is typically set to **None**. In this case, you must perform a server-side integration:
+If the data is stored outside Shopify customer metafields, for example, in a third-party app, perform a server-side integration:
 
-1. Subscribe to the `customers/update` Shopify webhook.
-2. In your webhook handler, use the Shopify Admin API to read the customer's metafield values.
-3. Call the MoEngage Data API to update the corresponding user attributes on the customer's profile.
+1. In your backend, read the values you want to sync.
+2. Call the MoEngage Data API to update the corresponding user attributes on the customer's profile.
 
 ## Sample Event Payloads
 
@@ -548,28 +551,107 @@ The payload samples below show the attributes available for reference when build
 
 </CodeGroup>
 
-## Tracked User Properties
+## Profile Sync
 
-MoEngage tracks the following user attributes when you enable them during integration.
+MoEngage syncs user profiles from Shopify in near real time. When a customer is created or updated in Shopify, or when their tags, marketing consent, or purchase totals change, Shopify sends a webhook to MoEngage, and MoEngage updates the matching user profile.
 
-| Attribute Name | Description                    |
-| -------------- | ------------------------------ |
-| First Name     | The first name of the user.    |
-| Last Name      | The last name of the user.     |
-| Mobile         | The mobile number of the user. |
-| Email          | The email address of the user. |
-| Shopify ID     | The user's ID within Shopify.  |
-| Shopify LTV    | The lifetime value of the user |
+MoEngage matches each update to a user profile by using the user identifiers you selected during integration. If no profile matches, MoEngage creates a new user profile. For example, a customer who signs up for an account or a newsletter in your store gets a MoEngage user profile even before they place an order.
 
-## Configuration for Event and User Tracking
+<Note>
+  The **Mobile number** attribute is populated from the phone number on the customer's Shopify account. The phone number in the customer's address is synced to the **Shipping Mobile Number** attribute and is never used to identify a user.
+</Note>
 
-To select the events and user properties that MoEngage tracks, perform the following steps:
+## Tracked User Attributes
+
+### Default User Properties
+
+The **User properties** section of the **Configuration** tab lists the following user attributes by default. MoEngage syncs these attributes unless you remove them. You cannot remove **Shopify ID**, **Email**, or **Mobile number**.
+
+| Property Name | Data Type | Description |
+| --- | --- | --- |
+| Shopify ID | Number | The user's customer ID in Shopify. |
+| Email | String | The email address of the user. |
+| Mobile number | String | The mobile number on the user's Shopify account. |
+| First name | String | The first name of the user. |
+| Last name | String | The last name of the user. |
+| Shopify tags | Array | All tags on the Shopify customer. MoEngage adds and removes tags as they change in Shopify. |
+| Shopify order count | Number | The total number of orders the user has placed. This value does not decrease when an order is cancelled or refunded. |
+| Shopify last order ID | String | The ID of the user's most recent order. |
+| Shopify last order name | String | The name of the user's most recent order, for example, `#1008`. |
+| Shopify LTV | Number | The user's net lifetime spend in your store. For more information, refer to [Shopify LTV](#shopify-ltv). |
+| Shopify zip code | String | The zip code of the user's default address. |
+| Address line 1 (street) | String | The first line of the user's default address. |
+| Address line 2 (apartment, suite) | String | The second line of the user's default address. |
+| City | String | The city of the user's default address. |
+| Province / state | String | The province or state of the user's default address. |
+| Province code | String | The province or state code of the user's default address. |
+| Country | String | The country of the user's default address. |
+| Country code | String | The country code of the user's default address. |
+| Shipping Mobile Number | String | The phone number in the user's default address. |
+
+### Custom User Properties
+
+To sync additional customer data, click **+ Custom property** in the **User properties** section, enter a property name, select a data type, and then select one of the following Shopify sources:
+
+| Shopify Source | Description |
+| --- | --- |
+| Shopify verified email | Whether the user has verified their email address in Shopify. |
+| Shopify customer since | The date and time the user's Shopify customer account was created. |
+| Tax exempt | Whether the user is exempt from taxes in Shopify. |
+| Tax exemptions | The tax exemption codes that apply to the user. |
+| Shopify note | The note your team added to the customer in Shopify. |
+
+![User properties section with the Shopify source list expanded for a new custom property](/images/shopify-custom-property.png)
+
+### Customer Metafields
+
+You can sync Shopify customer metafields as custom user properties. The Shopify source list includes the customer metafield definitions in your store, up to 250 definitions. The property name you enter is the name of the user attribute in the MoEngage dashboard.
+
+MoEngage updates metafield values when a customer is created or updated in Shopify.
+
+### Attributes That Are Not Synced
+
+MoEngage does not sync the following Shopify customer data:
+
+- Customer account state (enabled or disabled)
+- The full address history of the customer. MoEngage syncs the default address only.
+- The legacy **Accepts marketing** flag. Use the marketing consent attributes instead.
+- The Multipass identifier
+
+## Marketing Consent Mapping
+
+MoEngage maps the Shopify marketing consent state of each channel to the MoEngage subscription attributes as follows:
+
+| Shopify Consent State | Email (`moe_unsubscribe`) | Email (`moe_email_optin_status`) | SMS (`moe_sms_subscription`) | WhatsApp (`moe_wa_subscription`) |
+| --- | --- | --- | --- | --- |
+| Subscribed | `false` | `DOUBLE_OPTED_IN` | `OPTIN` | `true` |
+| Pending | `false` | `OPT_IN_PENDING` | `OPT-IN PENDING` | Not updated |
+| Unsubscribed | `true` | `OPTED_OUT` | `OPTOUT` | `false` |
+| Not subscribed | `true` | Not updated | `EMPTY` | Not updated |
+| Invalid | `true` | Not updated | Not applicable | Not applicable |
+| Redacted | Not updated | Not updated | Not updated | Not updated |
+
+MoEngage syncs the marketing consent of a channel only when its toggle is turned on in the **Sync user OPTIN** section of the **Configuration** tab: **Email subscription sync**, **SMS subscription sync**, or **WhatsApp subscription sync**.
+
+## Shopify LTV
+
+The **Shopify LTV** attribute holds the amount Shopify reports as the customer's total spend. It is calculated as the sum of order totals, including shipping, minus the value of returned items, across all orders that are not cancelled.
+
+Keep the following in mind when you use this attribute:
+
+- Shopify updates the value when an order is fully refunded. Partial refunds do not update it until Shopify recalculates the total, so the value can be higher than the actual net spend for some time.
+- Test orders do not update this value.
+
+## Configure User Properties
+
+To add or remove the user properties that MoEngage syncs, perform the following steps:
 
 1. Navigate to the **Configuration** tab in your Shopify app.
-2. Select the user events and properties you want to track.
-3. Click **Save configuration**.
+2. Expand **User properties**.
+3. Remove the properties you do not need, or click **+ Custom property** to add one.
+4. Click **Save configuration**.
 
-![Configuration screen in the MoEngage Shopify app](/images/EventsandUserDataTracking1.png)
+![User properties section in the MoEngage Shopify app](/images/shopify-user-properties.png)
 
 <Info>
   If you have questions about your Shopify integration, refer to the [MoEngage Shopify FAQs](/developer-guide/ecommerce-platforms/shopify/faqs).

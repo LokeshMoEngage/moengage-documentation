@@ -1,0 +1,333 @@
+openapi: 3.0.3
+info:
+  title: MoEngage OAuth 2.0 API
+  version: '1.0'
+  description: |-
+    API for generating and refreshing OAuth 2.0 access tokens used to authenticate requests to the MoEngage Public APIs.
+
+    You exchange the credentials of an OAuth 2.0 API key for a short-lived access token, send that access token as a Bearer token on your API requests, and refresh the access token before the token expires.
+
+    For the end-to-end setup, including creating the API key and calling the Public APIs, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+tags:
+  - name: OAuth
+    description: Generate and refresh the OAuth 2.0 access tokens that authenticate your MoEngage Public API requests. For the end-to-end integration, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+servers:
+  - url: 'https://oauth2-{dc}.moengage.com'
+    description: OAuth Endpoint
+    variables:
+      dc:
+        default: '01'
+        enum:
+          - '01'
+          - '02'
+          - '03'
+          - '04'
+          - '05'
+          - '06'
+          - '101'
+        description: "The 'dc' in the API Endpoint URL refers to the MoEngage Data Center (DC). MoEngage hosts each customer in a different DC. You can find your DC number and replace the value of 'dc' in the URL by referring to the DC and API endpoint mapping [here](/api/introduction#data-centers). Your MoEngage Data Center (DC) can be 01, 02, 03, 04, 05, 06, or 101."
+paths:
+  /v1/oauth/token:
+    post:
+      tags:
+        - OAuth
+      summary: Generate Access Token
+      description: |-
+        Exchange the `client_id` and `client_secret` of an OAuth 2.0 API key for an access token and a refresh token.
+
+        The `client_id` is your Workspace ID, and the `client_secret` is the API key value that the dashboard displays once, when you create the key. The key must have **Authentication Type** set to **OAuth 2.0** on the API key dashboard, or the request fails with `ER012`.
+
+        To create the key, refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard). For the end-to-end integration, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview). To renew an access token without resending your API key, refer to [Refresh Access Token](/api/oauth/refresh-access-token).
+      x-mint:
+        content: |
+          #### Rate Limit
+
+          This endpoint allows 30 requests per 10 minutes and 5 requests per minute. Both limits apply per `client_id` and `client_secret` pair. A `429` response includes a `Retry-After` header that gives the number of seconds to wait.
+
+          Access tokens are reusable for their full lifetime. Generate one access token and reuse the token until the token approaches expiry, instead of calling this endpoint for every API request.
+
+          #### Determine the Token Expiry
+
+          The `expires_in` field gives the access token's lifetime in seconds, counted from the moment MoEngage issues the token. Schedule your refresh from that value. The lifetime reflects the **Access token expiration (in minutes)** set on the API key, which defaults to 15 minutes.
+
+          Send the access token on API requests as `Authorization: Bearer <access_token>`. For the request format and the authentication error codes, refer to [Call the MoEngage Public APIs](/api/oauth/oauth-overview#step-3-call-the-moengage-public-apis).
+      security: []
+      requestBody:
+        required: true
+        description: The form-encoded credentials for the client credentials grant.
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenRequest'
+            example:
+              grant_type: client_credentials
+              client_id: YOUR_WORKSPACE_ID
+              client_secret: YOUR_API_KEY
+      responses:
+        '200':
+          description: MoEngage issued an access token and a refresh token. Store both tokens. The refresh token stays valid for 30 days.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenSuccessResponse'
+              example:
+                status: SUCCESS
+                data:
+                  access_token: "eyJhbGciOiJSUzI1NiJ9.eyJkYXRhIjoiUlN3Q2t6..."
+                  refresh_token: "550e8400-e29b-41d4-a716-446655440000"
+                  token_type: Bearer
+                  expires_in: 900
+        '400':
+          description: |-
+            A required form parameter is missing or holds an invalid value.
+
+            | `error_type` | Cause | Resolution |
+            | --- | --- | --- |
+            | `ER018` | `grant_type` is missing or is not `client_credentials`. | Correct the parameter. |
+            | `ER019` | `client_id` is missing. | Correct the parameter. |
+            | `ER020` | `client_secret` is missing. | Correct the parameter. |
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+              example:
+                status: FAILURE
+                error_type: ER019
+                reason: "client_id is required."
+        '401':
+          description: |-
+            MoEngage could not validate the credentials.
+
+            | `error_type` | Cause | Resolution |
+            | --- | --- | --- |
+            | `ER011` | The `client_id` or `client_secret` is not valid. | Check both values. Regenerate the key if needed. |
+            | `ER012` | The key exists but is not an OAuth 2.0 key. | Create a key with **Authentication Type** set to **OAuth 2.0**. |
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+              example:
+                status: FAILURE
+                error_type: ER011
+                reason: "Auth validation failed."
+        '415':
+          description: The request body used an unsupported media type. Send the request body in form-encoded format as `application/x-www-form-urlencoded`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+        '429':
+          description: The request exceeded the rate limit. Wait for the number of seconds given in the `Retry-After` response header, and then retry the request.
+          headers:
+            Retry-After:
+              description: The number of seconds to wait before you retry the request.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+              example:
+                status: FAILURE
+                error_type: RATE_LIMIT_EXCEEDED
+                reason: "Too many requests."
+
+  /v1/oauth/refresh:
+    post:
+      tags:
+        - OAuth
+      summary: Refresh Access Token
+      description: |-
+        Exchange a refresh token for a new access token. The refresh request does not use your API key.
+
+        A refresh returns a new access token and preserves your existing refresh token. Continue using that refresh token until the token reaches its 30-day expiry, and then call [Generate Access Token](/api/oauth/generate-access-token) again with your `client_id` and `client_secret`.
+
+        For the end-to-end integration, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview). For the recommended refresh timing, refer to [Recommended Practices](/api/oauth/oauth-overview#recommended-practices).
+      x-mint:
+        content: |
+          #### Rate Limit
+
+          This endpoint allows 30 requests per 10 minutes and 5 requests per minute. Both limits apply per `client_id` and `client_secret` pair. A `429` response includes a `Retry-After` header that gives the number of seconds to wait.
+
+          Refresh proactively, a few minutes before the access token expires, instead of waiting for an `ER008` on an API call. Use the `expires_in` value returned with the access token to schedule the refresh.
+      security: []
+      requestBody:
+        required: true
+        description: The form-encoded parameters for the refresh token grant.
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RefreshRequest'
+            example:
+              grant_type: refresh_token
+              client_id: YOUR_WORKSPACE_ID
+              refresh_token: "550e8400-e29b-41d4-a716-446655440000"
+      responses:
+        '200':
+          description: MoEngage issued a new access token. The refresh token sent in the request remains valid until the token reaches its 30-day expiry.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshSuccessResponse'
+              example:
+                status: SUCCESS
+                data:
+                  access_token: "eyJhbGciOiJSUzI1NiJ9.<new-payload>.<new-signature>"
+                  token_type: Bearer
+                  expires_in: 900
+        '400':
+          description: |-
+            A required form parameter is missing or holds an invalid value.
+
+            | `error_type` | Cause | Resolution |
+            | --- | --- | --- |
+            | `ER018` | `grant_type` is missing or is not `refresh_token`. | Correct the parameter. |
+            | `ER019` | `client_id` is missing. | Correct the parameter. |
+            | `ER021` | `refresh_token` is missing. | Correct the parameter. |
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+              example:
+                status: FAILURE
+                error_type: ER021
+                reason: "refresh_token is required."
+        '401':
+          description: |-
+            MoEngage could not use the refresh token.
+
+            | `error_type` | Cause | Resolution |
+            | --- | --- | --- |
+            | `ER010` | The refresh token is invalid, expired, or revoked. | Generate a new access token with `client_id` and `client_secret`. |
+            | `ER013` | The `client_id` does not match the Workspace ID the token was issued to. | Use the Workspace ID the token was issued to. |
+            | `ER014` | The token is no longer in a valid state. | Generate a new access token with `client_id` and `client_secret`. |
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+              example:
+                status: FAILURE
+                error_type: ER010
+                reason: "Refresh token is not valid."
+        '415':
+          description: The request body used an unsupported media type. Send the request body in form-encoded format as `application/x-www-form-urlencoded`.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+        '429':
+          description: The request exceeded the rate limit. Wait for the number of seconds given in the `Retry-After` response header, and then retry the request.
+          headers:
+            Retry-After:
+              description: The number of seconds to wait before you retry the request.
+              schema:
+                type: integer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OAuthErrorResponse'
+              example:
+                status: FAILURE
+                error_type: RATE_LIMIT_EXCEEDED
+                reason: "Too many requests."
+
+components:
+  schemas:
+    TokenRequest:
+      type: object
+      required:
+        - grant_type
+        - client_id
+        - client_secret
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - client_credentials
+          description: The OAuth 2.0 grant type. The supported value is `client_credentials`.
+        client_id:
+          type: string
+          description: Your Workspace ID. The API key dashboard displays the Workspace ID at **Settings** > **Account** > **API keys**.
+        client_secret:
+          type: string
+          description: The API key value. The dashboard displays the API key only once, when you create the key.
+
+    RefreshRequest:
+      type: object
+      required:
+        - grant_type
+        - client_id
+        - refresh_token
+      properties:
+        grant_type:
+          type: string
+          enum:
+            - refresh_token
+          description: The OAuth 2.0 grant type. The supported value is `refresh_token`.
+        client_id:
+          type: string
+          description: Your Workspace ID. The value must match the Workspace ID that the refresh token was issued to, or the request fails with `ER013`.
+        refresh_token:
+          type: string
+          description: The refresh token returned by [Generate Access Token](/api/oauth/generate-access-token). The refresh token is valid for 30 days.
+
+    TokenSuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The status of the request. The value is `SUCCESS` for a successful request.
+          example: SUCCESS
+        data:
+          type: object
+          properties:
+            access_token:
+              type: string
+              description: The access token that you send as a Bearer token on your API requests.
+            refresh_token:
+              type: string
+              description: The token that you exchange for new access tokens at [Refresh Access Token](/api/oauth/refresh-access-token). The refresh token is valid for 30 days.
+            token_type:
+              type: string
+              description: The token type. The value is always `Bearer`.
+              example: Bearer
+            expires_in:
+              type: integer
+              description: The lifetime of the access token, in seconds. The value reflects the **Access token expiration (in minutes)** set on the API key.
+              example: 900
+
+    RefreshSuccessResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The status of the request. The value is `SUCCESS` for a successful request.
+          example: SUCCESS
+        data:
+          type: object
+          properties:
+            access_token:
+              type: string
+              description: The new access token that you send as a Bearer token on your API requests.
+            token_type:
+              type: string
+              description: The token type. The value is always `Bearer`.
+              example: Bearer
+            expires_in:
+              type: integer
+              description: The lifetime of the new access token, in seconds. The value reflects the **Access token expiration (in minutes)** set on the API key.
+              example: 900
+
+    OAuthErrorResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          description: The status of the request. The value is `FAILURE` for a failed request.
+          example: FAILURE
+        error_type:
+          type: string
+          description: The MoEngage error code that identifies the cause of the failure.
+        reason:
+          type: string
+          description: A human-readable description of the failure.

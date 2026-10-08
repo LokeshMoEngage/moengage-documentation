@@ -1,0 +1,217 @@
+---
+title: "Recommendations"
+description: "Fetch items from a MoEngage recommendation in your Android app with MoERecommendationsHelper.fetchRecommendations(), configure the cache duration, and handle failures."
+keywords: "android recommendations sdk, MoERecommendationsHelper, fetchRecommendations android, recommended items, product recommendations android, recommendation id, item id, included fields, recommendations cache duration, moengage android catalog"
+---
+
+## Overview
+
+The MoEngage Android SDK fetches the recommended items for a recommendation you created on the MoEngage dashboard and returns them to your app as key-value data, handling user identity, networking, and caching internally.
+
+<Tip>
+  **Prerequisites**
+
+  - Integrate BOM 4.5.0 or above, which includes the Recommendations module. For more information, refer to [Install using BOM](/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM).
+  - Initialize the SDK in `Application.onCreate()`. For more information, refer to [SDK Initialization](/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization).
+  - Enable Recommendations for your workspace and create a recommendation on the MoEngage dashboard. For more information, refer to [Recommendations Overview](/user-guide/content/recommendations/getting-started/overview).
+</Tip>
+
+## Install the Module
+
+After you configure the BOM, add the Recommendations artifact in your `app/build.gradle` or `app/build.gradle.kts`. The BOM manages version numbers, so you do not specify a version.
+
+<CodeGroup>
+
+```groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:recommendations")
+}
+```
+
+```kotlin build.gradle.kts wrap
+dependencies {
+    implementation("com.moengage:recommendations")
+}
+```
+
+</CodeGroup>
+
+## Fetch Recommended Items
+
+Call `MoERecommendationsHelper.fetchRecommendations()` and attach `onSuccess` and `onFailure` callbacks to the returned task. Pass the Recommendation ID of the recommendation you want to fetch items from, as defined on the MoEngage dashboard. For the full parameter list, refer to the [API reference](https://moengage.github.io/android-api-reference/recommendations-core/com.moengage.campaigns.recommendations/-mo-e-recommendations-helper/index.html).
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.model.MoERequestFailureReason
+import com.moengage.recommendations.MoERecommendationsHelper
+import com.moengage.recommendations.model.RecommendationsFailureReason
+
+MoERecommendationsHelper.fetchRecommendations(
+    context = context,
+    recommendationId = "YOUR_RECOMMENDATION_ID",
+    itemId = "YOUR_ITEM_ID",
+    includedFields = setOf("title", "price")
+)
+    .onSuccess { recommendedItems ->
+        val items = recommendedItems.items
+        if (items.isEmpty()) {
+            // No recommended items are available for this user. Show your empty state.
+        } else {
+            // Render the items.
+        }
+    }
+    .onFailure { failure ->
+        when (failure.reason) {
+            RecommendationsFailureReason.RATE_LIMIT_EXCEEDED -> {
+                // Retry later.
+            }
+            MoERequestFailureReason.NetworkError -> {
+                // The device is offline. Retry when connectivity returns.
+            }
+            else -> {
+                // Show a fallback.
+            }
+        }
+    }
+```
+
+```java Java wrap
+import com.moengage.core.exceptions.SdkNotInitializedException;
+import com.moengage.core.model.MoERequestFailureReason;
+import com.moengage.recommendations.MoERecommendationsHelper;
+import com.moengage.recommendations.model.RecommendationsFailureReason;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import kotlin.Unit;
+
+Set<String> includedFields = new HashSet<>();
+includedFields.add("title");
+includedFields.add("price");
+
+try {
+    MoERecommendationsHelper.INSTANCE
+        .fetchRecommendations(context, "YOUR_RECOMMENDATION_ID", "YOUR_ITEM_ID", includedFields)
+        .onSuccess(recommendedItems -> {
+            List<Map<String, Object>> items = recommendedItems.getItems();
+            if (items.isEmpty()) {
+                // No recommended items are available for this user. Show your empty state.
+            } else {
+                // Render the items.
+            }
+            return Unit.INSTANCE;
+        })
+        .onFailure(failure -> {
+            MoERequestFailureReason reason = failure.getReason();
+            if (reason == RecommendationsFailureReason.RATE_LIMIT_EXCEEDED) {
+                // Retry later.
+            } else if (reason == MoERequestFailureReason.NetworkError.INSTANCE) {
+                // The device is offline. Retry when connectivity returns.
+            } else {
+                // Show a fallback.
+            }
+            return Unit.INSTANCE;
+        });
+} catch (SdkNotInitializedException e) {
+    // The SDK was not initialized before this call.
+}
+```
+
+</CodeGroup>
+
+<Warning>
+  `fetchRecommendations()` throws `SdkNotInitializedException` if it is called before the SDK is initialized. 
+</Warning>
+
+### Handle the Result
+
+The `onSuccess` callback receives a `RecommendedItems` object on the main thread. Its `items` property is a `List<Map<String, Any>>`, where each map is one recommended item keyed by its attribute names. An empty list is a successful result and means no recommended items are available for the user.
+
+Attribute values are converted from the JSON response to Kotlin and Java types, and values nested inside objects and arrays follow the same rules. For the conversion rules, refer to the [API reference](https://moengage.github.io/android-api-reference/recommendations-core/com.moengage.campaigns.recommendations.model/-recommended-items/index.html).
+
+### Handle Failures
+
+On failure, `onFailure` receives a `MoERequestFailure` object on the main thread. Use its `reason` property to identify the failure. Its `message` property carries details for logging only and can be empty. The SDK writes nothing to the cache on failure and leaves any cached items untouched.
+
+The `reason` property is either a [`RecommendationsFailureReason`](https://moengage.github.io/android-api-reference/recommendations-core/com.moengage.campaigns.recommendations.model/-recommendations-failure-reason/index.html), which covers the failures specific to Recommendations, or a [`MoERequestFailureReason`](https://moengage.github.io/android-api-reference/core/com.moengage.core.model/-mo-e-request-failure-reason/index.html), which covers the failures common to all MoEngage SDK requests. For the full list of reasons, refer to the API reference.
+
+The SDK does not retry a failed request. To try again, call `fetchRecommendations()` again. Because the SDK caches nothing on failure, the next call makes a fresh network request. Retry only for these reasons:
+
+- `MoERequestFailureReason.NetworkError`
+- `RecommendationsFailureReason.RATE_LIMIT_EXCEEDED`, after a delay
+- `RecommendationsFailureReason.INTERNAL_SERVER_ERROR`
+- `RecommendationsFailureReason.UNKNOWN_ERROR`
+
+## Caching
+
+The SDK caches the items it fetches, so repeated calls for the same recommendation do not trigger a network request.
+
+- The SDK scopes each cache entry to the combination of Recommendation ID, item ID, and included fields. Changing any of the three fetches a fresh list.
+- Within the cache duration, `fetchRecommendations()` returns the cached items without a network call.
+- After the cache duration elapses, the next call fetches the items from the server and refreshes the entry.
+- The SDK caches an empty result in the same way, so an empty recommendation does not trigger a network call on every screen render.
+- The SDK clears the cache when the user logs out, when the user identity changes, and when the SDK is disabled.
+
+### Configure the Cache Duration
+
+The SDK caches recommended items for 24 hours (86400 seconds). To cache items for longer, pass a `RecommendationConfig` to `MoEngage.Builder` before you initialize the SDK. For more information, refer to [SDK Initialization](/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization).
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.RecommendationConfig
+
+// Replace X with your data center number
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureRecommendations(RecommendationConfig(recommendedItemsCacheDuration = 172800L))
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+```java Java wrap
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+import com.moengage.core.config.RecommendationConfig;
+
+// Replace X with your data center number
+MoEngage moEngage = MoEngage.builder(this, "YOUR_WORKSPACE_ID", DataCenter.getDataCenterX())
+    .configureRecommendations(new RecommendationConfig(172800L))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+<Note>
+  The duration is in seconds. The minimum cache duration is 86400 seconds (24 hours). The SDK ignores a smaller value and uses 86400 seconds instead.
+</Note>
+
+
+## FAQs
+
+<AccordionGroup>
+  <Accordion title="Does the SDK render the recommended items?">
+    No, the SDK returns the item data only. Your application parses the response and builds the user interface.
+  </Accordion>
+
+  <Accordion title="Does the SDK download the images referenced in the items?">
+    No, the SDK does not download or cache media. Use a standard image loading library for the image URLs in the response.
+  </Accordion>
+
+  <Accordion title="What happens if I call fetchRecommendations() before I initialize the SDK?">
+    The call throws `SdkNotInitializedException`. Initialize the SDK in `Application.onCreate()` before you fetch recommendations. For more information, refer to [SDK Initialization](/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization).
+  </Accordion>
+
+  <Accordion title="Can I force a fresh fetch before the cache expires?">
+    No, the SDK serves the cached items until the cache duration elapses. Configure a duration that matches how frequently your catalog changes.
+  </Accordion>
+
+  <Accordion title="On which thread does the SDK deliver the result?">
+    The SDK invokes both `onSuccess` and `onFailure` on the main thread, so you update your views directly from either callback.
+  </Accordion>
+</AccordionGroup>

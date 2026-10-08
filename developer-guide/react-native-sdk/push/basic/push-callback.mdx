@@ -3,9 +3,43 @@ title: "Push Callback"
 description: "Set up push token and push click callback listeners in the MoEngage React Native SDK."
 ---
 
+# Firebase Installation ID Callback
+
+MoEngage plugin triggers the `firebaseInstallationIdAvailable` event whenever the Firebase Installation ID is generated or refreshed. This event is available from Core plugin version `13.0.0` and is triggered on Android only. Refer to the below code to set the listener to the same:
+
+<CodeGroup>
+
+```typescript TypeScript
+import ReactMoE from 'react-native-moengage'
+ReactMoE.setEventListener("firebaseInstallationIdAvailable", (result) => {
+  console.log("firebaseInstallationIdAvailable", result);
+});
+```
+
+</CodeGroup>
+
+Result received in the callback is a `MoEFirebaseInstallationIdResult` instance with the following definition:
+
+<CodeGroup>
+
+```typescript TypeScript
+class MoEFirebaseInstallationIdResult {
+ /// Account information which contains the Workspace ID.
+ accountMeta: MoEAccountMeta;
+ /// Native platform from which the callback was triggered. Always Android, since iOS doesn't support this.
+ platform: MoEPlatform;
+ /// push type associated with platform
+ pushService: MoEPushService;
+ /// Firebase Installation ID value
+ installationId: String;
+}
+```
+
+</CodeGroup>
+
 # Push Token Callback
 
-MoEngage plugin triggers the`pushTokenGenerated` event whenever device token is generated. This event is a common trigger for both iOS and Android platforms and is available from plugin version `6.0.0`. Refer to the below code to set listener to the same:
+MoEngage plugin triggers the`pushTokenGenerated` event whenever device token is generated. This event is available from plugin version `6.0.0`. Refer to the below code to set listener to the same:
 
 <CodeGroup>
 
@@ -34,6 +68,10 @@ class MoEPushToken {
 ```
 
 </CodeGroup>
+
+<Warning>
+  Starting from Core plugin version `13.0.0`, `pushTokenGenerated` is deprecated on Android. It continues to work, and MoEngage recommends moving to the [Firebase Installation ID Callback](/developer-guide/react-native-sdk/push/basic/push-callback#firebase-installation-id-callback).
+</Warning>
 
 # Push Click Callback
 

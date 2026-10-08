@@ -57,7 +57,8 @@ Users and events have different entry points and workflows. Select the entity yo
 
     ### Import Behaviour
 
-    Select **Update existing users only** to bulk-update attributes on users MoEngage already has. MoEngage creates no new users from that upload, and a row whose identifier is not already in MoEngage is ignored. Leave it off to let the upload create users as well as update them.
+    Select **Skip new users during this import** to bulk-update attributes on users MoEngage already has. MoEngage creates no new users from that upload, and a row whose identifier is not already in MoEngage is ignored. Leave it off to let the upload create users as well as update them.
+    
 
     ### Send Import Notifications
 
@@ -111,6 +112,10 @@ Users and events have different entry points and workflows. Select the entity yo
     1. Select an attribute from the list, or click **Create new attribute**, enter an **Attribute name** and **Data type**, and click **Create**.
     2. Select the **Data type** for each attribute.
     3. Select **Skip column** to exclude a column. Already-mapped mandatory fields are disabled.
+
+    ### Import Behaviour
+
+    Select **Skip duplicate rows** to perform de-duplication on the selected column. MoEngage will skip any row with a duplicate value in that column, and only the first occurrence is ingested. If you do not select this option, MoEngage ingests all rows, including duplicates.
 
     **Send Import Status**: Select up to **10 email recipients** to receive the import status, then click **Next**.
 
@@ -169,9 +174,22 @@ Manual uploads have the following limits:
 
 <DataArchival />
 
-- **File size**: Less than 150 MB per CSV.
-- **Rows**: A single CSV file supports up to your hourly row limit. Files exceeding your hourly row limit are rejected. A file with fewer than 5 rows may cause errors, add dummy rows if needed.
-- **Columns/Attributes**: 100 columns for users; 100 columns per event.
+| Limit | Value |
+| --- | --- |
+| File size | Less than 150 MB per CSV. Split larger files. |
+| Rows | A single CSV or JSON file supports up to your hourly row limit. Files exceeding your hourly row limit are rejected. A file with fewer than 5 rows may cause errors, add dummy rows if needed. |
+| Columns/Attributes | 100 columns for users; 100 columns per event. |
+
+**Rate limits** (defaults, contact MoEngage to increase):
+
+| Import Type | Hourly | Daily |
+| --- | --- | --- |
+| Users | 600K/hr | 14M/day |
+| Events | 5M/hr | 40M/day |
+
+The hourly rate is the maximum ingested per hour; the daily rate is the total cap per day. When a rate limit is breached, you receive a _Rate limit breached_ alert on the Data Imports dashboard.
+
+To see how much of your hourly and daily import limit you have used, which imports are held back when a limit is reached, and which imports are consuming the most, refer to [Check Import Limits](/user-guide/data/imports/overview-imports#check-import-limits).
 
 ## What Is Not Supported
 
@@ -180,6 +198,25 @@ Manual uploads do not support the following:
 - Attribute type _list_ and other complex types (JSON, dictionaries, and so on).
 - Multi-line support in CSV files is disabled by default. Please get in touch with support if you need this feature. Newline formats other than `\n`, such as `Ctrl+M` and `\r`, are not supported. Enabling multi-line support can negatively impact the processing speed of your import.
 - JSON files.
+
+# Run History
+
+**Run history** on the import details page shows the run for your upload, so you can see when it was scheduled, when it finished, how long it took, and how the file performed. A manual upload is a one-time import, so it has a single run.
+
+To open **Run history**, perform the following steps:
+
+1. On the Data imports page, click the kebab menu under **Actions** for the import.
+2. Click **View**.
+
+![Actions column on the Data imports page with the menu open and the View option highlighted](/images/import-actions-view.png)
+
+![Run history on the import details page, with one row per run and the View files action](/images/import-run-history.png)
+
+The row shows when the run was scheduled, when it completed, its status, the number of files processed, and the total rows found, along with the counts for what you imported. MoEngage populates these statistics only after the run finishes. To see the file itself, click **View Files**, where you can download the file, and for a failed or partially successful file the error report as well.
+
+![View files slideout with the run summary above the table of files, showing each file's rows, events added, events failed and rows skipped](/images/import-run-file-breakdown.png)
+
+For the full column reference and the run status logic, refer to [Run History](/user-guide/data/imports/setting-up-a-file-import#run-history) and [Import Statuses](/user-guide/data/imports/overview-imports#import-statuses).
 
 # Manage Your Imports
 

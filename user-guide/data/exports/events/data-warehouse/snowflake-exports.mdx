@@ -3,21 +3,225 @@ title: "Snowflake Exports"
 description: "Export campaign interaction events from MoEngage directly to Snowflake tables. Configure the integration for scalable data warehousing and analytics."
 ---
 
-# Introduction
+import StreamsAddOn from '/snippets/streams-add-on.mdx';
+import ExportFailureFaqs from '/snippets/exports-faq-failure.mdx';
+import ExportGeneralFaqs from '/snippets/exports-faq-general.mdx';
+
+<StreamsAddOn />
+
+## Overview
 
 [Snowflake](https://docs.snowflake.com/en/user-guide-getting-started) is a data platform that allows organizations to store, analyze, and process large volumes of structured and semi-structured data in a highly scalable and efficient manner. With its unique architecture, Snowflake allows organizations to consolidate their data, perform quick analytics, and gain valuable data-driven insights accessible to all users.
 
-# MoEngage `<>` Snowflake
+## How Does MoEngage Work with Snowflake?
 
 The MoEngage and Snowflake integration exports Campaign Interaction Events data directly to your Snowflake tables.
 
-# Integration
+## Integration
 
-<Tip>
-  - Ensure you have a Snowflake account with permission to create/edit Snowflake instances, roles, and policies. 
-  - Optional: To create a new user, you need to have access to create a new user in your Snowflake database. 
-  - If your system requires IP whitelisting, refer to this [doc](https://moengage.com/docs/user-guide/settings/account/security/ip-whitelisting-in-moengage). 
-  - Exports to Snowflake are part of the Streams add-on. Contact your dedicated MoEngage CSM (customer success manager) to enable them for your account.
-</Tip>
+### Prerequisites
 
-Read our [Snowflake](/partner-guide/data-and-analytics/data-warehouses/snowflake) guide to set up MoEngage `<>` Snowflake integration for your account.
+- Ensure you have a Snowflake account with relevant permissions to create/edit Snowflake instances, roles, and policies. It is optional to create a new user; you must have access to create a new user in your Snowflake database.
+- If your system requires IP whitelisting, you must whitelist MoEngage IPs. For more information, refer [here](/user-guide/settings/account/security/ip-whitelisting-in-moengage).
+- Ensure you have a [Snowflake Connection](/partner-guide/data-and-analytics/data-warehouses/snowflake) on the App marketplace.
+
+### Set Up Your Export
+
+<Info>
+  - For the full list of events and attributes, refer to the [Data Export Glossary](/user-guide/data/exports/events/data-export-glossary).
+  - The event\_time of the exported events is always in UTC.
+</Info>
+
+#### Step 1: Grant the Required Permissions
+
+MoEngage will require `WRITE` access to your database so that we can write data into your Snowflake database. You can either grant these permissions to an existing database user or choose to create a new dedicated database user for MoEngage:
+
+```sql wrap
+-- Create a role for the MoEngage user
+CREATE ROLE MOENGAGE_ROLE;
+-- Allow the user to run queries in the warehouse
+GRANT USAGE ON WAREHOUSE <YOUR_WAREHOUSE_NAME> TO ROLE MOENGAGE_ROLE;
+-- Let the user see this database
+GRANT USAGE ON DATABASE <YOUR_DATABASE_NAME> TO ROLE MOENGAGE_ROLE;
+-- Let the user see all schemas in this database
+GRANT USAGE ON SCHEMA <YOUR_DATABASE_NAME>.<YOUR_SCHEMA_NAME> TO ROLE MOENGAGE_ROLE;
+-- Let the user create a table in your schema
+GRANT CREATE TABLE ON SCHEMA <YOUR_DATABASE_NAME>.<YOUR_SCHEMA_NAME> TO ROLE MOENGAGE_ROLE;
+-- Let the user insert data in your tables
+GRANT INSERT, SELECT ON ALL TABLES IN SCHEMA <YOUR_DATABASE_NAME>.<YOUR_SCHEMA_NAME> TO ROLE MOENGAGE_ROLE;
+
+-- Create the MoEngage user (MOENGAGE_USER is username here)
+CREATE USER MOENGAGE_USER WITH DEFAULT_ROLE = MOENGAGE_ROLE DEFAULT_WAREHOUSE = <YOUR_WAREHOUSE_NAME> PASSWORD = '<YOUR_PASSWORD>';
+-- Grant the role to the user
+GRANT ROLE MOENGAGE_ROLE TO USER MOENGAGE_USER;
+```
+
+Remember to change the following values:
+
+1. `<YOUR_WAREHOUSE_NAME>` - The name of the warehouse you want MoEngage to use while executing queries.
+2. `<YOUR_DATABASE_NAME>` - The name of the database you want to import data from.
+3. `<YOUR_PASSWORD>` - Give a strong password to the newly created database user.
+
+#### Step 2: Create a New Export in the App Marketplace
+
+<Info>
+  - For the full list of events and attributes exported, refer to the [Data Exports Glossary](/user-guide/data/exports/events/data-export-glossary).
+  - Please note that the `event_time` of the exported events will always be in UTC.
+</Info>
+
+![Snowflake export setup](/images/partner_23588156333588.png)
+
+On your MoEngage dashboard, navigate to **App Marketplace** \> **Snowflake**.
+
+1. Click **Integrate** \> **Add Integration**.
+2. Select your Snowflake connection.
+3. Select which schema MoEngage will use to create new tables and export your events into.
+4. Select the events and additional user properties you want to export to Snowflake.
+5. Click **Save Export**.
+
+MoEngage will start dumping events to the newly created table every hour.
+
+### Export Process and Frequency
+
+After you save the export, MoEngage creates a destination table in your schema. New event data is then appended to this same table at hourly intervals:
+
+- **Initial action**: MoEngage creates the table when the first export is triggered.
+- **Recurring action**: MoEngage adds (appends) data to the same table every hour.
+
+MoEngage exports the data at hourly intervals.
+
+### Sample Table Structure
+
+MoEngage creates a single table in your schema using the following format:
+
+`moe_events_<table_creation_timestamp>`
+
+<Note>
+  This table is created once per connection. All hourly exports and different event types configured under a single connection are consolidated and appended to this same table.
+</Note>
+
+The overall structure of the table remains fixed for all types of events. Any new user property or event attribute that is exported will be included in the `user_attributes` or `event_attributes` column, respectively. All events are consolidated in a single table containing necessary information, such as event names and event times, for easy analysis:
+
+| Field | Type | NL |
+| --- | --- | --- |
+| `app_name` | VARCHAR | NN |
+| `event_name` | VARCHAR | NN |
+| `event_code` | VARCHAR | NN |
+| `event_uuid` | VARCHAR | NN |
+| `event_time` | TIMESTAMP\_NTZ | NN |
+| `event_type` | VARCHAR | NN |
+| `event_source` | VARCHAR | NN |
+| `uid` | VARCHAR | NULL |
+| `user_attributes_moengage_user_id` | VARCHAR | NULL |
+| `device_attributes_moengage_device_id` | VARCHAR | NULL |
+| `push_id` | VARCHAR | NULL |
+| `email_address` | VARCHAR | NULL |
+| `mobile_number` | VARCHAR | NULL |
+| `event_attributes_app_version` | VARCHAR | NULL |
+| `event_attributes_sdk_version` | VARCHAR | NULL |
+| `event_attributes_platform` | VARCHAR | NULL |
+| `event_attributes_campaign_id` | VARCHAR | NULL |
+| `event_attributes_campaign_name` | VARCHAR | NULL |
+| `event_attributes_campaign_type` | VARCHAR | NULL |
+| `event_attributes_campaign_channel` | VARCHAR | NULL |
+| `event_attributes_readable_campaign_id` | VARCHAR | NULL |
+| `event_attributes_parent_campaign_id` | VARCHAR | NULL |
+| `event_attributes_parent_flow_id` | VARCHAR | NULL |
+| `event_attributes_parent_flow_name` | VARCHAR | NULL |
+| `event_attributes_variation_id` | VARCHAR | NULL |
+| `event_attributes_locale_id` | VARCHAR | NULL |
+| `event_attributes_locale_name` | VARCHAR | NULL |
+| `event_attributes_url` | VARCHAR | NULL |
+| `event_attributes_timestamp` | TIMESTAMP\_NTZ | NULL |
+| `event_attributes_first_session` | BOOLEAN | NULL |
+| `event_attributes_logged_in_status` | VARCHAR | NULL |
+| `event_attributes` | VARIANT | NULL |
+| `user_attributes` | VARIANT | NULL |
+| `device_attributes` | VARIANT | NULL |
+
+## Export Failure Policy
+
+MoEngage pauses an export that keeps failing. While it is paused, MoEngage collects the events the export would have delivered, and you replay them after you fix the problem.
+
+### When MoEngage Pauses an Export
+
+Exports to Snowflake run hourly. MoEngage will retry an export multiple times before marking it as failed. The export will be paused after 3 consecutive scheduled export failures.
+
+When MoEngage pauses an export, it alerts you and shows the export as **Paused** on the App Marketplace.
+
+### What Happens While an Export Is Paused
+
+![A paused Snowflake export on the Integrate tab, with Export status turned off and the Paused label beside it](/images/export-paused-card.png)
+
+MoEngage collects the events the export would have delivered and keeps only the most recent 7 days. If the export stays paused for longer than a week, MoEngage drops the oldest days as newer ones come in.
+
+If an export pauses more than once before you replay, MoEngage combines the data from all those pauses, provided it falls within the 7-day window.
+
+### Resume an Export
+
+#### Find the Failure Reason
+
+On the App Marketplace, click the **Integrate** tab, and then hover over the **Paused** label on the export. MoEngage names the reason for the failure, such as a missing write permission on the destination table, and tells you how to fix it.
+
+![The Paused label hover on the Integrate tab, showing the failure reason and what you need to do](/images/snowflake-export-paused-failure-reason.png)
+
+#### Enable the Export
+
+Fix the cause at your end, and then turn on **Export status** for the export. Do this as soon as you can, because the 7-day window keeps moving while the export stays paused.
+
+When you enable the export, MoEngage stops collecting and sets aside what it has: the last 7 days of paused data, or all of it if the pause was shorter. This is the data you can replay. It stays fixed from then on, and does not reduce further even if you wait to replay it.
+
+### Replay Paused Data
+
+#### Request a Replay
+
+MoEngage saves the data it collected while the export was paused. An export with data waiting shows a **Replay available** label on the **Integrate** tab.
+
+To replay, perform the following steps:
+
+1. Hover over the **Replay available** label, or open the kebab menu on the export.
+2. Click **Replay paused data**.
+
+   ![Snowflake export with a Replay available label on the Integrate tab and the Replay paused data option](/images/snowflake-export-replay-paused-data.png)
+3. In the **Replay paused data** dialog box, click **Confirm**.
+
+   ![Replay paused data dialog box asking you to confirm, with the Confirm button](/images/export-replay-confirm.png)
+
+A replay sends everything MoEngage collected while the export was paused. MoEngage appends the data to the destination table.
+
+You can replay at any time until 30 days from the date the oldest paused data was collected. After that, the data is no longer available.
+
+<Note>
+  Replay before the export pauses again. If it pauses a second time before you replay, MoEngage adds the new paused data to the data still waiting from the first pause. The combined data is then trimmed back to the most recent 7 days, so if the two pauses are more than 7 days apart, the older data is lost.
+
+  For example, your export pauses on day 1. You enable it but do not replay. It pauses again on day 20. Since that is 19 days later, the day 1 data falls outside the 7 day window and is gone, even though its 30 day replay window had not expired. If the second pause had happened within 7 days of the first, the day 1 data would still be included.
+</Note>
+
+#### Replay Results
+
+When the replay finishes, MoEngage emails the user who requested it with one of the following results:
+
+| Result | What it means |
+| --- | --- |
+| Successful | MoEngage delivered all the collected data. The replay option is no longer available. |
+| Partially Successful | MoEngage delivered some of the collected data, and then hit an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+| Failed | MoEngage delivered none of the collected data, because of an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+
+You can run only one replay per export at a time.
+
+#### Avoid Duplicate Data
+
+Every replay sends the whole collection again, because MoEngage does not deduplicate. If you replay more than once, deduplicate at your end on the `event_uuid` field, which is unique for each event. For the fields in the export, refer to the [Data Export Glossary](/user-guide/data/exports/events/data-export-glossary).
+
+### Export Paused Alerts
+
+MoEngage alerts you when it pauses an export, so you can fix the issue and replay the data collected while the export was paused.
+
+MoEngage subscribes workspace admins to the Data Exports system alert by default, and adds the user who creates or updates an export. To subscribe or unsubscribe anyone else, go to the Alert Management page. Subscribing or unsubscribing changes notifications only for that person, and does not affect anyone else's subscription.
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <ExportFailureFaqs />
+  <ExportGeneralFaqs />
+</AccordionGroup>

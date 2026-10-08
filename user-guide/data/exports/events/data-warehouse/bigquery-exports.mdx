@@ -3,37 +3,45 @@ title: "BigQuery Exports"
 description: "Export campaign interaction events from MoEngage to Google BigQuery. Follow the step-by-step guide to set up permissions and configuration."
 ---
 
-# Introduction
+import StreamsAddOn from '/snippets/streams-add-on.mdx';
+import ExportFailureFaqs from '/snippets/exports-faq-failure.mdx';
+import ExportGeneralFaqs from '/snippets/exports-faq-general.mdx';
 
-[BigQuery](https://cloud.google.com/bigquery) is a fully managed, serverless data warehouse available on the Google Cloud Platform (GCP). It allows you to perform complex analytics on terabytes of data in real time without managing infrastructure
+<StreamsAddOn />
 
-# MoEngage `<>` BigQuery
+## Overview
 
-The MoEngage and BigQuery integration directly transfers user and event data to Google BigQuery for advanced analytics. 
+[BigQuery](https://cloud.google.com/bigquery) is a fully managed, serverless data warehouse available on the Google Cloud Platform (GCP). It allows you to perform complex analytics on terabytes of data in real time without managing infrastructure.
 
-**Note**: This is a direct integration and does not require Google Cloud Storage (GCS) to export your data.
+## How Does MoEngage Work with BigQuery?
 
-# Integration
+The MoEngage and BigQuery integration directly transfers user and event data to Google BigQuery for advanced analytics.
+
+<Note>
+  This is a direct integration and does not require Google Cloud Storage (GCS) to export your data.
+</Note>
+
+## Integration
 
 <Tip>
   - Ensure you have a BigQuery account with the required permissions to create/edit BigQuery instances, roles, and policies.
   - It is optional to create a new user. However, you must have access to create a new user in your BigQuery database.
   - If your system requires IP whitelisting, you must allowlist MoEngage IPs. For more information, refer [here](/user-guide/settings/account/security/ip-whitelisting-in-moengage).
-  - Ensure you have a [BigQuery Connection](/user-guide/data/exports/events/data-warehouse/bigquery-exports#introduction) in the App marketplace.\
-    Exports to BigQuery are part of the Streams add-on. Contact your MoEngage customer success manager (CSM) to enable this feature for your account.
-  - If not done already, you must set up a MoEngage \<\> BigQuery integration for your account. For more information, refer to the [BigQuery Integration](/user-guide/data/exports/events/data-warehouse/bigquery-exports#introduction) help doc.
+  - Ensure you have a BigQuery connection in the App Marketplace.
 </Tip>
 
-## Export Events from MoEngage to BigQuery
+To create a BigQuery connection, refer to [Google BigQuery](/partner-guide/data-and-analytics/data-warehouses/google-bigquery).
 
-### Step 1: Ensure Your User's Assigned Role Has Required Permissions
+### Export Events from MoEngage to BigQuery
+
+#### Step 1: Ensure Your User's Assigned Role Has Required Permissions
 
 To successfully set up and execute a BigQuery export, your service account or user must have the following permissions based on the action being performed:
 
-- **To Create a Connection**: To establish a new BigQuery connection within the MoEngage App Marketplace, the user must have the _BigQuery Data Viewer_ and _BigQuery Job User_ roles. This allows MoEngage to validate the project and dataset details. For more information, refer [here](/user-guide/data/imports/data-warehouses-imports/bigquery-imports).
+- **To Create a Connection**: To establish a new BigQuery connection within the MoEngage App Marketplace, the user must have the _BigQuery Data Viewer_ and _BigQuery Job User_ roles. This allows MoEngage to validate the project and dataset details. For more information, refer [here](/user-guide/data/imports/setting-up-a-data-warehouse-import).
 - **To Perform Exports**: To execute the actual data transfer, your service account must be assigned the _BigQuery Data Editor_ role. This grants MoEngage the necessary permissions to read and write data to your specific BigQuery tables.
 
-### Step 2: Add a New BigQuery Export in the MoEngage App Marketplace
+#### Step 2: Add a New BigQuery Export in the MoEngage App Marketplace
 
 <Info>
   - For a full list of events and attributes, refer to the [Data Exports Glossary](/user-guide/data/exports/events/data-export-glossary).
@@ -61,7 +69,7 @@ To add a new BigQuery export, perform the following steps:
 
 Now, MoEngage populates the newly created table with events every hour.
 
-### Export Process and Frequency
+#### Export Process and Frequency
 
 After you save the export, MoEngage creates a destination table in your dataset. New event data is then appended to this same table at hourly intervals:
 
@@ -69,12 +77,14 @@ After you save the export, MoEngage creates a destination table in your dataset.
 
 **Recurring action**: MoEngage adds (appends) data to the same table every hour.
 
-### Sample Table Structure
+#### Sample Table Structure
 
 If you do not specify a table name in the export configuration, MoEngage creates a single table in your dataset using the following format:\
 `moe_events_<table_creation_timestamp>`
 
-**Note**: This table is created once per connection. All hourly exports and different event types configured under this connection are consolidated and appended to this specific table.
+<Note>
+  This table is created once per connection. All hourly exports and different event types configured under this connection are consolidated and appended to this specific table.
+</Note>
 
 The overall structure of the table remains fixed for all event types. Any new user property or event attribute that is exported will be included in the user\_attributes or event\_attributes column, respectively. All events are consolidated in a single table containing necessary information, such as event names and event times, for easy analysis:
 
@@ -115,24 +125,90 @@ The overall structure of the table remains fixed for all event types. Any new us
 | user\_attributes | JSON | NULL |
 | device\_attributes | JSON | NULL |
 
-# Frequently Asked Questions
+## Export Failure Policy
 
-<Accordion title="How soon will I start getting the data?">
-  It typically takes up to 30 minutes for the automated data exports to be set up for your account and for you to start seeing data there.
-</Accordion>
+MoEngage pauses an export that keeps failing. While it is paused, MoEngage collects the events the export would have delivered, and you replay them after you fix the problem.
 
-<Accordion title="Can I export additional events at a later time?">
-  Yes, if you need to export new events at a later time, you can always edit your configuration on the App Marketplace and get the new events added to your exports.
-</Accordion>
+### When MoEngage Pauses an Export
 
-<Accordion title="Can I export historical data using Automated Data Exports?">
-  As of now, you cannot export historical data using Automated Data Exports. Once configured, you will start seeing data for each event from the time you enabled your exports.
-</Accordion>
+Exports to BigQuery run hourly. MoEngage will retry an export multiple times before marking it as failed. The export will be paused after 3 consecutive scheduled export failures.
 
-<Accordion title="Is there any pricing involved for Automated Data Exports?">
-  If your billing plan does not cover this already and you need to get this enabled at a later time, you would need to work with your Customer Success Manager to get this included in your billing plan. Based on the amount of data that MoEngage will place in your Data warehouse/Partner/API on a monthly basis, this could lead to additional charges.
-</Accordion>
+When MoEngage pauses an export, it alerts you and shows the export as **Paused** on the App Marketplace.
 
-<Accordion title="Does Data Exports guarantee the latest user attributes?">
-  No, Data Exports is primarily built to export your Events in near real-time, and user attributes in MoEngage are updated asynchronously, so it is currently not possible to guarantee the latest values of user attributes in the exports.
-</Accordion>
+### What Happens While an Export Is Paused
+
+![A paused BigQuery export on the Integrate tab, with Export status turned off and the Paused label beside it](/images/export-paused-card.png)
+
+MoEngage collects the events the export would have delivered and keeps only the most recent 7 days. If the export stays paused for longer than a week, MoEngage drops the oldest days as newer ones come in.
+
+If an export pauses more than once before you replay, MoEngage combines the data from all those pauses, provided it falls within the 7-day window.
+
+### Resume an Export
+
+#### Find the Failure Reason
+
+On the App Marketplace, click the **Integrate** tab, and then hover over the **Paused** label on the export. MoEngage names the reason for the failure, such as a missing write permission on the destination table, and tells you how to fix it.
+
+![The Paused label hover on the Integrate tab, showing the failure reason and what you need to do](/images/bigquery-export-paused-failure-reason.png)
+
+#### Enable the Export
+
+Fix the cause at your end, and then turn on **Export status** for the export. Do this as soon as you can, because the 7-day window keeps moving while the export stays paused.
+
+When you enable the export, MoEngage stops collecting and sets aside what it has: the last 7 days of paused data, or all of it if the pause was shorter. This is the data you can replay. It stays fixed from then on, and does not reduce further even if you wait to replay it.
+
+### Replay Paused Data
+
+#### Request a Replay
+
+MoEngage saves the data it collected while the export was paused. An export with data waiting shows a **Replay available** label on the **Integrate** tab.
+
+To replay, perform the following steps:
+
+1. Hover over the **Replay available** label, or open the kebab menu on the export.
+2. Click **Replay paused data**.
+
+   ![BigQuery export with a Replay available label on the Integrate tab and the Replay paused data option](/images/bigquery-export-replay-paused-data.png)
+3. In the **Replay paused data** dialog box, click **Confirm**.
+
+   ![Replay paused data dialog box asking you to confirm, with the Confirm button](/images/export-replay-confirm.png)
+
+A replay sends everything MoEngage collected while the export was paused. MoEngage appends the data to the destination table.
+
+You can replay at any time until 30 days from the date the oldest paused data was collected. After that, the data is no longer available.
+
+<Note>
+  Replay before the export pauses again. If it pauses a second time before you replay, MoEngage adds the new paused data to the data still waiting from the first pause. The combined data is then trimmed back to the most recent 7 days, so if the two pauses are more than 7 days apart, the older data is lost.
+
+  For example, your export pauses on day 1. You enable it but do not replay. It pauses again on day 20. Since that is 19 days later, the day 1 data falls outside the 7 day window and is gone, even though its 30 day replay window had not expired. If the second pause had happened within 7 days of the first, the day 1 data would still be included.
+</Note>
+
+#### Replay Results
+
+When the replay finishes, MoEngage emails the user who requested it with one of the following results:
+
+| Result | What it means |
+| --- | --- |
+| Successful | MoEngage delivered all the collected data. The replay option is no longer available. |
+| Partially Successful | MoEngage delivered some of the collected data, and then hit an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+| Failed | MoEngage delivered none of the collected data, because of an error. The replay stops and MoEngage pauses the export again. The email states why the replay did not finish. Fix the cause, enable the export, and then replay again. For the data you can replay, refer to [What Happens While an Export Is Paused](#what-happens-while-an-export-is-paused). |
+
+You can run only one replay per export at a time.
+
+#### Avoid Duplicate Data
+
+Every replay sends the whole collection again, because MoEngage does not deduplicate. If you replay more than once, deduplicate at your end on the `event_uuid` field, which is unique for each event. For the fields in the export, refer to the [Data Export Glossary](/user-guide/data/exports/events/data-export-glossary).
+
+### Export Paused Alerts
+
+MoEngage alerts you when it pauses an export, so you can fix the issue and replay the data collected while the export was paused.
+
+MoEngage subscribes workspace admins to the Data Exports system alert by default, and adds the user who creates or updates an export. To subscribe or unsubscribe anyone else, go to the Alert Management page. Subscribing or unsubscribing changes notifications only for that person, and does not affect anyone else's subscription.
+
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <ExportFailureFaqs />
+  <ExportGeneralFaqs />
+</AccordionGroup>
