@@ -1,0 +1,102 @@
+---
+title: "Using Recommendations in Connectors"
+description: "Add personalized product recommendations to MoEngage Connector campaigns using Jinja to send each user's recommended items to a third-party API."
+keywords: "connector recommendations, custom connector personalization, product sets connector, connector jinja"
+---
+
+By adding recommendations to your Connector campaigns, you can send each user's recommended items to a third-party system instead of the same payload for everyone. In the Connector channel, recommendations are inserted into the request payload using the [Jinja templating language](/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language).
+
+At MoEngage, creating a Connector campaign is a three-step process.
+
+1. Target users
+2. Content
+3. Schedule and Goals
+
+You can personalize the campaign with recommendations in the second step 'Content'. Let us create a recommendation personalized Connector campaign.
+
+<Warning>
+  Ensure that you have created the desired recommendations. You can use only active recommendations for campaign personalization. Learn how to [create and manage recommendations](/user-guide/content/recommendations).
+</Warning>
+
+<Note>
+  A Connector campaign calls an API rather than delivering a message, so it has no **Personalized preview**. To confirm your personalization resolves correctly, deliver a test campaign and check the payload the endpoint receives.
+</Note>
+
+# Create Connector Campaigns with Recommendations
+
+To create a Connector campaign with recommendations, perform the following steps:
+
+1. On the sidebar menu in MoEngage, hover over the Engage menu item <img src="/images/moengage_2f187f.png" alt="Engage icon" className="inline-block" style={{ display: 'inline' }} />. The **Engage** menu appears.
+2. Click **+ New Campaign**.
+3. On the **New Campaign** dialog box, under **CONNECTOR**, click **Custom**.
+4. Click **Periodic** campaign. You can also select **One Time**. For more information about delivery types, refer to [Delivery Types](/user-guide/campaigns-and-channels/getting-started/introduction/delivery-types-moengage-channels).
+
+   ![The New Campaign dialog box with One Time and Periodic listed under the Custom connector](/images/recommendations-connector-new-campaign.png)
+5. Enter the basic campaign details, define the audience in step 1 'Target users', and click **Next**.
+6. In step 2, on the **Content** tab, configure the request:
+   1. Select the **Method**, such as **POST**.
+   2. In the **Webhook URL** box, enter the endpoint to call.
+   3. Add any **URL Parameters** and **Headers** as key-value pairs.
+   4. Turn on **Enable authorization settings** if your endpoint requires credentials.
+   5. Select the **Body type** — **Form**, **JSON**, or **Raw**.
+
+   ![The Configure the API request section showing the method, webhook URL, URL parameters, and headers, each prompting you to type @ to personalize](/images/recommendations-connector-configuration.png)
+7. Type **@** where you want the recommendation to appear. The **Connector Personalization** window opens. You can personalize the **Webhook URL**, the values under **URL Parameters** and **Headers**, and the request body.
+8. On the **Data personalization** tab, search for your recommendation and click it under **Product sets**.
+9. Under **Choose Fallback**, select what happens when personalization fails for a user:
+
+   | Option | Behavior |
+   | --- | --- |
+   | **No fallback** | Sends the request without the recommendation. |
+   | **Do not send Connector** | Suppresses the request for that user. |
+   | **Replace text** | Sends the request with the replacement text you enter. |
+
+   ![The Connector Personalization window showing the product set list and the fallback options](/images/recommendations-connector-personalization.png)
+10. Click **Done**.
+11. Modify the inserted Jinja code to fetch the items you need, as described in the following section.
+12. Deliver a test campaign and check the payload received at your endpoint.
+13. Click **Next** at the bottom to move to 'Schedule and Goals', which is step 3 of campaign setup.
+14. Set up the appropriate settings in **Schedule and Goals** and publish the campaign.
+
+# Fetch a Single Recommended Item
+
+Adding a product set on its own inserts every item in the set. To send one product instead, loop through the product set. The following example uses a product set named `ProductSet` with a recommendation named `Recommendations`.
+
+To fetch the title of the first recommended item:
+
+<CodeGroup>
+```text JINJA
+{% if ProductSet.Recommendations %}
+{% for product in ProductSet.Recommendations[0:1] %}
+{{product.title}}
+{% endfor %}
+{% else %}
+MOE_NOT_SEND
+{% endif %}
+```
+</CodeGroup>
+
+To send the product's link in the same payload:
+
+<CodeGroup>
+```text JINJA
+{% if ProductSet.Recommendations %}
+{% for product in ProductSet.Recommendations[0:1] %}
+{{product.link}}
+{% endfor %}
+{% else %}
+MOE_NOT_SEND
+{% endif %}
+```
+</CodeGroup>
+
+`MOE_NOT_SEND` stops the request from going out when the product set is empty for a user, so your endpoint does not receive a payload with a missing product.
+
+A product set contains a list of items, each with attributes such as `name`, `title`, `id`, and `image link`. To fetch an attribute inside the loop, type **@** and select the property from the personalization window.
+
+# Related Articles
+
+- [Create a Connector Campaign](/user-guide/campaigns-and-channels/connectors/create/create-a-connector-campaign)
+- [Personalize Content Using Recommendations](/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-recommendations)
+- [Using Recommendations in SMS](/user-guide/content/recommendations/personalize-campaign-with-recommendations/using-recommendations-in-sms)
+- [Using Recommendations in WhatsApp](/user-guide/content/recommendations/personalize-campaign-with-recommendations/using-recommendations-in-whatsapp)

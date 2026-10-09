@@ -1,0 +1,112 @@
+---
+title: "Using Recommendations in MMS"
+description: "Add personalized product recommendations to MoEngage MMS campaigns using Jinja to send each user a relevant product name and link."
+keywords: "mms recommendations, product sets mms, mms personalization, mms jinja, sms fallback"
+---
+
+By adding recommendations to your MMS campaigns, you can send each user a product that matches their interests instead of the same message to everyone. In the MMS channel, recommendations are inserted into the message text using the [Jinja templating language](/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language).
+
+At MoEngage, creating an MMS campaign is a three-step process.
+
+1. Target users
+2. Content
+3. Schedule and Goals
+
+You can personalize the campaign with recommendations in the second step 'Content'. Let us create a recommendation personalized MMS campaign.
+
+<Info>
+  The MMS channel is available only in the US and Canada region. Contact your MoEngage Customer Success Manager (CSM) or the [Support team](/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard) to enable it for your account.
+</Info>
+
+<Warning>
+  Ensure that you have created the desired recommendations. You can use only active recommendations for campaign personalization. Learn how to [create and manage recommendations](/user-guide/content/recommendations).
+</Warning>
+
+<Note>
+  The MMS message supports up to 1600 characters. A product set on its own inserts every item in the set, which can take the message past that limit. Modify the Jinja code to fetch a single item, as described in step 10. The character count and the number of MMS appear below the preview.
+</Note>
+
+# Create MMS Campaigns with Recommendations
+
+To create an MMS campaign with recommendations, perform the following steps:
+
+1. On the sidebar menu in MoEngage, hover over the Engage menu item <img alt="The Engage menu icon" src="/images/moengage_3a6ded.png" style={{ display: "inline-block", height: "20px", width: "auto" }} /> . The **Engage** menu appears.
+2. Click **+ New Campaign**. <img src="/images/moengage_f884be.png" alt="The Engage menu with the New Campaign option" /> You can also click **All Campaigns** on the **Engage** menu and then click **\+ Create campaign** on the All campaigns page.
+3. On the **New Campaign** dialog box, under **Outbound**, click **MMS**.
+4. Click **Periodic** campaign, and you can follow the same steps for any other MMS campaign type. For more information about delivery types, refer to [Delivery Types](/user-guide/campaigns-and-channels/getting-started/introduction/delivery-types-moengage-channels).
+
+   <img src="/images/mms-new-campaign-periodic.png" alt="The New Campaign dialog box with MMS selected under Outbound and the Periodic delivery type" />
+5. Enter the basic campaign details and define the audience in step 1 'Target users' and click **Next**.
+6. In step 2, on the **Content** tab, in the **MMS/SMS sender** list, select the connector you want to send the campaign through.
+
+   <img src="/images/mms-configure-content.png" alt="The Configure MMS screen showing the MMS/SMS sender list, the Message field and the preview panel" />
+7. In the **Message** field, type '@' where you want the recommendation to appear. The **MMS Personalization** window opens.
+8. On the **Data personalization** tab, in the **Select attribute** list, search for your recommendation and select it under **Product sets**. <img src="/images/mms-personalization-window.png" alt="The MMS Personalization window showing the Data personalization tab, a product set search in the Select attribute list, and the Choose Fallback options" />
+9. Under **Choose Fallback**, select a fallback and click **Done**.
+   The **Choose Fallback** option controls what a user receives when personalization fails for them:
+
+   | Fallback | What happens |
+   | --- | --- |
+   | **No fallback** | The recommendation is replaced with an empty value. |
+   | **Do not send MMS** | The MMS is not sent to that user. |
+   | **Replace text** | The recommendation is replaced with the text you enter. |
+10. It auto-populates some Jinja code retrieving all available items list from recommendations. You can modify the code for your use case. For example, the following is the modified code to display one item:
+    <CodeGroup>
+    ```jinja Item Title
+    {% if ProductSet.Recommendations %}
+    {% for product in ProductSet.Recommendations[0:1] %}
+    {{product.title}}
+    {% endfor %}
+    {% else %}
+    MOE_NOT_SEND
+    {% endif %}
+    ```
+
+    ```jinja Item Link
+    {% if ProductSet.Recommendations %}
+    {% for product in ProductSet.Recommendations[0:1] %}
+    {{product.link}}
+    {% endfor %}
+    {% else %}
+    MOE_NOT_SEND
+    {% endif %}
+    ```
+    </CodeGroup>
+    <img src="/images/mms-message-jinja.png" alt="The Message field showing the auto-populated Jinja code for the product set" />
+    <Note>
+      `MOE_NOT_SEND` stops the message from going out when the product set is empty for a user, so no one receives an MMS with a missing product.
+    </Note>
+11. To display an item attribute, place the cursor inside the `for` loop, type '@', and select the attribute in the **Select attribute** list. The attribute is inserted inside the loop, for example `{{product['price']}}`.
+12. Repeat steps 7 to 11 for each remaining recommendation. You can choose recommendations personalization or static textual content for different parts of the message.
+13. Select **Add media(MMS)**, and then either upload a file or select **Media URL** and enter the address. Recommendations personalize the message text rather than the media, so the media you add here is the same for every user.
+
+    <img src="/images/mms-add-media.png" alt="The Add media(MMS) section with the Upload file and Media URL options" />
+14. After you complete the setup, under **Preview type**, click **Personalized**. MoEngage selects a user and renders the message with real values.
+15. Click the **MMS** and **SMS (fallback)** tabs to check the message on both.
+
+    <img src="/images/mms-preview-tabs.png" alt="The preview panel with the MMS and SMS (fallback) tabs and the Preview type options" />
+16. To preview the message for a specific user, click the edit icon <img alt="The edit icon" src="/images/personalized-preview-edit-icon.png" style={{ display: "inline-block", height: "16px", width: "auto" }} /> . The **Personalized preview** slide-out opens.
+17. In the **Select user by** list, select the identifier you want to use.
+18. In the **User identifier value** field, type the identifier of the user.
+19. Click **Fetch user data**. Under **Personalization inputs**, your product set appears as JSON with the items available for that user.
+20. Change the JSON to match what you want to preview. (Optional)
+21. Click **Update preview**.
+
+    <img src="/images/mms-personalized-preview.png" alt="The Personalized preview slide-out showing the user selection, the product set JSON under Personalization inputs, and the Update preview button" />
+    <Note>
+      To enable **Update preview** for your account, contact your MoEngage CSM or the Support team. For more information, refer to [Personalized Preview](/user-guide/campaigns-and-channels/getting-started/message-personalization/personalized-preview).
+    </Note>
+22. You can also deliver a test campaign to ensure end-to-end delivery before scheduling it for all users. <img src="/images/moengage_64d866.png" alt="The Test Campaign panel" />
+23. After you complete the content setup with recommendations, click **Next** at the bottom and move to 'Schedule and Goals', which is the step 3 of campaign setup.
+24. Set up the appropriate settings in **Schedule and Goals** and publish the campaign.
+
+<Note>
+  MoEngage delivers an MMS campaign as an SMS with a link to the media when the recipient's country or device does not support MMS. The recommendation text reaches those users in the SMS instead, so check it on the **SMS (fallback)** tab as well as the **MMS** tab.
+</Note>
+
+# Related Articles
+
+- [Personalize MMS Campaign](/user-guide/campaigns-and-channels/sms-mms-and-rcs/mms/personalize-mms-campaign)
+- [Personalize Content Using Recommendations](/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-recommendations)
+- [Using Recommendations in SMS](/user-guide/content/recommendations/personalize-campaign-with-recommendations/using-recommendations-in-sms)
+- [Using Recommendations in RCS](/user-guide/content/recommendations/personalize-campaign-with-recommendations/using-recommendations-in-rcs)
