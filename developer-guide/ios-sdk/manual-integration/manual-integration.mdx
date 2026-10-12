@@ -9,43 +9,76 @@ Download the latest SDKs from our GitHub repository. You can find the download U
 
 ![Manualintegration1 1](/images/manualintegration1-1.png)
 
- 
+## Embed Frameworks in the App Target
 
-# Embedded Frameworks in App Target
+<Note>
+  The **Linking** column in the tables below applies to SDK 11.2.0 and later. In earlier versions, every framework is dynamic and requires **Embed & Sign**. For the effect of static linking on cold launch time, see [Framework Impact](/developer-guide/ios-sdk/framework-size-impact/framework-size-impact).
+</Note>
 
-Make sure to embed the required frameworks to App Target as described in the following image, set the Embed option to **Embed & Sign** for MoEngage framework files:
+Add the frameworks you need to your app target as shown below. The **Embed** option depends on how the framework is linked:
+
+*   **Dynamic frameworks:** set **Embed** to **Embed & Sign**.
+*   **Static frameworks:** follow [Additional Steps for Static Frameworks](#additional-steps-for-static-frameworks).
 
 ![Manualintegration2 1](/images/manualintegration2-1.png)
 
 Required Frameworks:
 
-| Frameworks            | Status   | Purpose                                                                                       |
-| --------------------- | -------- | --------------------------------------------------------------------------------------------- |
-| MoEngageCore          | Required | Provides the foundational services, initialization, and lifecycle management for the SDK.     |
-| MoEngageSDK           | Required | Serves as the primary public interface and orchestrator for all MoEngage SDK functionalities. |
-| MoEngageSecurity      | Required | Enables data protection during access and transmission.                                       |
-| MoEngageMessaging     | Required | Manages push notification registration, payload handling, and core messaging features.        |
-| MoEngageCampaignsCore | Required | Manages campaign payload handling and display.                                                |
+| Frameworks            | Status   | Linking | Purpose                                                                                       |
+| --------------------- | -------- | ------- | --------------------------------------------------------------------------------------------- |
+| MoEngageCore          | Required | Dynamic | Provides the foundational services, initialization, and lifecycle management for the SDK.     |
+| MoEngageSDK           | Required | Static  | Serves as the primary public interface and orchestrator for all MoEngage SDK functionalities. |
+| MoEngageSecurity      | Required | Dynamic | Enables data protection during access and transmission.                                       |
+| MoEngageMessaging     | Required | Dynamic | Manages push notification registration, payload handling, and core messaging features.        |
+| MoEngageCampaignsCore | Required | Dynamic | Manages campaign payload handling and display.                                                |
 
 Add-on Frameworks:
 
-| Frameworks               | Status   | Purpose                                                                                                          |
-| ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------- |
-| MoEngageTriggerEvaluator | Optional | Enables the display of in-app messages and device triggered push notifications, based on AND trigger conditions. |
-| MoEngageInApps           | Optional | Enables the display of in-app messages, such as pop-ups and modals.                                              |
-| MoEngageGeofence         | Optional | Enables geofence monitoring for location-based campaign triggers.                                                |
-| MoEngageInbox            | Optional | Enables a persistent notification center (inbox) within the application.                                         |
-| MoEngageCards            | Optional | Enables the display and management of Content Cards.                                                             |
-| MoEngageRichNotification | Optional | Enables rich media content (images, video, audio) and templates in push notifications.                           |
-| MoEngageRealTimeTrigger  | Optional | Facilitates high-frequency, real-time campaign triggers based on user events.                                    |
-| MoEngageLiveActivity     | Optional | Manages live activities registration, payload handling, and tracking.                                            |
+| Frameworks               | Status   | Linking | Purpose                                                                                                          |
+| ------------------------ | -------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| MoEngageInApps           | Optional | Static  | Enables the display of in-app messages, such as pop-ups and modals.                                              |
+| MoEngageGeofence         | Optional | Static  | Enables geofence monitoring for location-based campaign triggers.                                                |
+| MoEngageInbox            | Optional | Static  | Enables a persistent notification center (inbox) within the application.                                         |
+| MoEngageCards            | Optional | Static  | Enables the display and management of Content Cards.                                                             |
+| MoEngagePersonalization  | Optional | Static  | Enables fetching and tracking of personalized experience campaigns.                                              |
+| MoEngageRecommendations  | Optional | Static  | Enables fetching recommended catalog items. Ships from SDK 11.3.0.                                               |
+| MoEngageRichNotification | Optional | Dynamic | Enables rich media content (images, video, audio) and templates in push notifications.                           |
+| MoEngageRealTimeTrigger  | Optional | Static  | Facilitates high-frequency, real-time campaign triggers based on user events.                                    |
+| MoEngageLiveActivity     | Optional | Dynamic | Manages live activities registration, payload handling, and tracking.                                            |
 
-# Link MoEngageRichNotification framework in App Extensions
+## Additional Steps for Static Frameworks
 
-This is only required if you are using the `MoEnagageRichNotification` framework in the project. Make sure to link the framework in the Extension targets as shown below and set the **Embed** option to **Do Not Embed** in this case, as it is already embedded in your App Target:
+<Steps>
+  <Step title="Set Embed to Do Not Embed">
+    For each static framework you integrate, set the **Embed** option to **Do Not Embed** in your app target.
+  </Step>
+  <Step title="Copy the Resource Bundle">
+    **Do Not Embed** copies nothing out of the framework, so the module's resource bundle does not reach your app. Each static framework that ships resources includes its `.bundle` alongside the `.xcframework` in the release zip. For every one you integrate, add that `.bundle` to your app target's **Copy Bundle Resources** build phase:
+
+    | Framework               | Resource bundle                  |
+    | ----------------------- | -------------------------------- |
+    | MoEngageSDK             | `MoEngageSDK.bundle`             |
+    | MoEngageInApps          | `MoEngageInApps.bundle`          |
+    | MoEngageGeofence        | `MoEngageGeofence.bundle`        |
+    | MoEngageInbox           | `MoEngageInbox.bundle`           |
+    | MoEngageCards           | `MoEngageCards.bundle`           |
+    | MoEngagePersonalization | `MoEngagePersonalization.bundle` |
+    | MoEngageRecommendations | `MoEngageRecommendations.bundle` |
+    | MoEngageRealTimeTrigger | `MoEngageRealTimeTrigger.bundle` |
+
+    Without the bundle, In-App, Cards, and Inbox screens render blank, with no crash and no build error. Your app also ships without the module's privacy manifest.
+  </Step>
+  <Step title="Add the -ObjC Linker Flag">
+    In your app target's build settings, add `-ObjC` to **Other Linker Flags**. The flag makes the linker include every Objective-C class and category from the static frameworks, including the ones your app does not reference directly. Add it once for the app target, regardless of how many static frameworks you integrate.
+  </Step>
+</Steps>
+
+## Link MoEngageRichNotification in App Extensions
+
+Complete this step if you use the `MoEngageRichNotification` framework. Link the framework in your extension targets as shown below and set the **Embed** option to **Do Not Embed**, because the framework is already embedded in your app target:
 
 <Frame>
   ![Manualintegration3](/images/manualintegration3.png)
 </Frame>
 
-In extension target build settings, add `@executable_path/../../Frameworks` as additional `LD_RUNPATH_SEARCH_PATHS`.
+In the extension target build settings, add `@executable_path/../../Frameworks` to `LD_RUNPATH_SEARCH_PATHS`.

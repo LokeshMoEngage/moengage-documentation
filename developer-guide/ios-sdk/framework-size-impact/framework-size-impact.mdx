@@ -1,10 +1,16 @@
 ---
-title: 'Framework Size Impact'
-description: "Review the compressed and uncompressed size impact of each MoEngage iOS SDK framework."
+title: 'Framework Impact'
+description: "Review the app size and cold launch time impact of the MoEngage iOS SDK frameworks."
+keywords: "app size, download size, install size, cold launch, app launch time, startup time, static linking, dynamic framework"
 ---
-We developed a sample application to evaluate the impact of our SDK size. We then uploaded the application build with various configurations to App Store Connect. This allowed us to estimate both the compressed (the download size of our app) and uncompressed size (the disk space the app occupies on the user's device).
 
-**SDK versions for analysis**
+This page covers the two ways the MoEngage iOS SDK affects your app: the size it adds to your download and install, and the time it adds to app launch.
+
+## App Size Impact
+
+MoEngage measured the size impact by integrating the SDK into a sample app and uploading each module configuration to App Store Connect. The results report compressed size, which is your app's download size, and uncompressed size, which is the space the installed app occupies on the device.
+
+Measured versions:
 
 *   [MoEngage-iOS-SDK](https://cocoapods.org/pods/MoEngage-iOS-SDK) - 9.14.0
 *   [MoEngageRichNotification](https://cocoapods.org/pods/MoEngageRichNotification) - 7.13.0
@@ -17,12 +23,12 @@ We developed a sample application to evaluate the impact of our SDK size. We the
 <Info>
   **iPhone 12 Pro as Reference**
 
-  Our analysis excludes the Universal build because Apple doesn't install it on user devices. They optimize each app based on the user's device by installing only the necessary architecture. Therefore, our analysis assumes the iPhone 12 Pro with an operating system version 15.0 as the reference.
+  The analysis excludes the Universal build, because the App Store installs only the architecture a given device needs. The figures below assume an iPhone 12 Pro running iOS 15.0.
 </Info>
 
-# MoEngage SDK Size Impact
+## MoEngage SDK Size Impact
 
-The size analysis was done when MoEngage-iOS-SDK was integrated into a dummy sample app.
+The size analysis was done when MoEngage-iOS-SDK was integrated into a dummy sample app. These figures were measured on the SDK versions listed above and predate the framework linkage change in SDK 11.2.0.
 
 | Framework | Version | Compressed Size | Uncompressed Size |
 | :--- | :--- | :--- | :--- |
@@ -42,3 +48,38 @@ The size analysis was done when MoEngage-iOS-SDK was integrated into a dummy sam
   *   The compressed size is the download size of your app. The uncompressed size is equivalent to the size of the installed app on the device.
   *   The overall size impact of the [MoEngage-iOS-SDK](https://cocoapods.org/pods/MoEngage-iOS-SDK) (Core SDK) along with [MoEngageInApp](https://cocoapods.org/pods/MoEngageInApp), [MoEngageCards](https://cocoapods.org/pods/MoEngageCards), [MoEngageRichNotification](https://cocoapods.org/pods/MoEngageRichNotification), [MoEngageGeofence](https://cocoapods.org/pods/MoEngageGeofence), [MoEngageInbox](https://cocoapods.org/pods/MoEngageInbox), and [MoEngageRealTimeTrigger](https://cocoapods.org/pods/MoEngageRealTimeTrigger) modules is 1.8 MB on compressed size and 5.2 MB on the install size of the app (uncompressed size).
 </Info>
+
+## App Launch Time Impact
+
+Each dynamically linked framework your app embeds is loaded and bound by the system before your app's `main()` runs. That work happens on every cold launch, whether or not your app calls into the framework in that session. The more frameworks the app embeds, the longer this pre-launch phase takes.
+
+From SDK 11.2.0, the following modules are linked statically into your app binary instead of being embedded as separate dynamic frameworks, which removes them from that pre-launch work:
+
+*   `MoEngageSDK`
+*   `MoEngageInApps`
+*   `MoEngageCards`
+*   `MoEngageInbox`
+*   `MoEngageGeofence`
+*   `MoEngageRealTimeTrigger`
+*   `MoEngagePersonalization`
+*   `MoEngageRecommendations`, which ships from SDK 11.3.0
+
+`MoEngageCore`, `MoEngageSecurity`, `MoEngageMessaging`, `MoEngageCampaignsCore`, `MoEngageRichNotification`, and `MoEngageLiveActivity` remain dynamic frameworks. Your Notification Service, Notification Content, and Live Activity extensions link these modules as well, and an extension runs in its own process, so it cannot use code linked into the app binary.
+
+<Note>
+  Static linking requires SDK 11.2.0 or later. For more information, see the [iOS SDK release notes](/release-notes/sdks/ios).
+</Note>
+
+### Measured Improvement
+
+MoEngage measured a 44.6% drop in cold launch time on a sample app that integrates every module the iOS SDK provides, after these modules moved to static linking.
+
+The drop varies with the set of modules you integrate. Compare your app's **Launch Time** metric in Xcode Organizer before and after the upgrade to measure the change for your integration.
+
+### Integration Changes
+
+| Integration Method | Required Change |
+| :--- | :--- |
+| CocoaPods | None. The podspecs set the link type. |
+| Swift Package Manager | None. The package manifest sets the link type. |
+| Manual (xcframework) | Add the frameworks to your app target, then three steps for the static ones: set **Do Not Embed** and copy the resource bundle for each static framework, then add `-ObjC` once for the app target. See [Manual Integration](/developer-guide/ios-sdk/manual-integration/manual-integration). |
