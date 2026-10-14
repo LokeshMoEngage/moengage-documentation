@@ -1,0 +1,254 @@
+---
+title: "Import Figma Designs into MoEngage with Custom Agents"
+description: "Connect Figma to MoEngage and use a Custom Agent to convert Figma frames into email templates and reusable design sections into content blocks."
+keywords: "Figma, Figma connector, Figma to email template, import Figma designs, design handoff, Figma frame, Auto Layout, email template, content block, reusable email sections, responsive email HTML, connectors, custom agents, agent builder, Merlin AI"
+---
+
+Import Figma designs into MoEngage to convert the email layouts your design team builds in Figma into MoEngage email templates and content blocks. After you connect Figma to MoEngage, a Custom Agent reads your Figma file and creates the matching MoEngage assets: a full frame becomes an email template, and a reusable section becomes a content block. Your marketing team then starts from working assets instead of rebuilding each layout by hand.
+
+This guide covers the following actions:
+
+* [Connect Figma to MoEngage](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/import-figma-designs#connect-figma-to-moengage)
+* [Prepare Your Figma File](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/import-figma-designs#prepare-your-figma-file)
+* [Create the Import Agent](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/import-figma-designs#create-the-import-agent)
+* [Test and Run the Agent](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/import-figma-designs#test-and-run-the-agent)
+* [Review the Results](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/import-figma-designs#review-the-results)
+
+If you are new to Custom Agents, start with [Custom Agents: Overview](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/custom-agents-overview) and [Connect External Apps to Custom Agents](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/connect-external-apps).
+
+<Note>
+ Custom Agents and Connectors are currently Early Access features. If you do not see **AI Agents** > **Connectors** in your dashboard, contact your Customer Success Manager (CSM) to request access.
+</Note>
+
+## What the Agent Can Import
+
+A Custom Agent with access to Figma creates the following MoEngage assets from your designs:
+
+| Figma input | MoEngage output |
+| --- | --- |
+| A frame that represents a full email | An [email template](/user-guide/content/template/templates). The agent reconstructs the frame as responsive, email-safe HTML. |
+| A section of a design that you reuse across campaigns, such as a header, a product card, a promotional banner, or a footer | A [content block](/user-guide/content/content-blocks/content-blocks). The section can hold text, images, or both. |
+| A standalone image that sits outside every frame | A content block that holds the image. |
+
+A content block is not limited to a single image. MoEngage content blocks come in two types, **Plain text** and **HTML**, and an HTML content block holds any combination of text, images, buttons, and inline styling. When you assemble emails from reusable modules, import each module as its own content block, and then build the email from those blocks. Refer to [Content Blocks](/user-guide/content/content-blocks/content-blocks).
+
+You name the frames, sections, or images to import, and the agent returns a summary table that lists every asset the agent created or updated during the run.
+
+## Prerequisites
+
+Before you begin, make sure that:
+
+* Your workspace has Custom Agents and Connectors enabled.
+* You have a Figma account with access to the Figma file you want to import.
+* Your MoEngage role includes permission to create email templates and content blocks. A Custom Agent acts within the MoEngage permissions of the user who runs the agent. Refer to [Custom Agent Essentials: Permissions and Security](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/custom-agents-essentials-permission-and-security).
+
+## Connect Figma to MoEngage
+
+Connect Figma once, and every agent you run reaches your Figma account from that point onward. Each user connects a Figma account individually.
+
+1. In the left navigation menu in the MoEngage dashboard, go to **AI Agents** > **Connectors**.
+2. Select **Figma**.
+
+   <Frame>
+   <img alt="Connectors page with the Figma connector card selected under Not connected" src="/images/figma-connector-card.webp" />
+   </Frame>
+
+3. In the **Connection details** dialog, review the Figma tools and the terms of usage, and then click **Connect**.
+
+   <Frame>
+   <img alt="Connection details dialog listing the Figma tools with the Connect button highlighted" src="/images/figma-connection-details.png" />
+   </Frame>
+
+4. Click **Connect** on the confirmation screen to start the Figma OAuth 2.0 flow.
+
+   <Frame>
+   <img alt="Confirmation screen stating that Merlin AI wants to connect to your Figma account over OAuth 2.0" src="/images/figma-connector-connect-prompt.png" />
+   </Frame>
+
+5. On the Figma consent screen, review the account access that Figma grants to MoEngage, and then click **Allow access**. To authorize a different Figma account, click **Switch accounts** before you grant access.
+
+   <Frame>
+   <img alt="Figma consent screen listing the account access that Merlin AI requests, with the Allow access button" src="/images/figma-connector-consent.png" />
+   </Frame>
+
+6. Figma returns you to the **Connectors** page, where the Figma card moves to the **Connected** section and displays a green check mark.
+
+   <Frame>
+   <img alt="Connectors page showing the Figma connector under Connected with a green check mark" src="/images/figma-connector-connected.png" />
+   </Frame>
+
+7. Select the connected Figma card to reopen the **Connection details** dialog, and then enable or disable individual Figma tools. A disabled tool stays unavailable to every agent you run.
+
+For the complete connector behavior, per-tool controls, and terms of usage, refer to [Connect External Apps to Custom Agents](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/connect-external-apps).
+
+<Note>
+ A Custom Agent reads Figma on behalf of the user who starts the run. A teammate who runs your import agent connects a Figma account individually and needs access to the same Figma file.
+</Note>
+
+## Prepare Your Figma File
+
+The agent builds HTML from the structure of your design, so an organized Figma file produces a more accurate template. Prepare your file as follows:
+
+* **Use Auto Layout.** The agent reads the Auto Layout structure of each frame to determine how to arrange sections in the HTML. A frame that uses Auto Layout with fixed or fill widths converts more reliably than a frame built from manually positioned layers.
+* **Set a fixed email width.** Email designs typically use a width of 600 px. Set the frame width explicitly so that the agent builds an HTML container of the same width.
+* **Name frames clearly.** You refer to each frame by name when you run the agent, and MoEngage uses the frame name as the email template name. Follow a consistent convention, for example `times-daily-briefing`.
+* **Name sections and image layers.** Descriptive layer names, such as `Masthead and introduction` or `Top stories`, help the agent organize the HTML. MoEngage uses the layer name as the content block name, so name every section you plan to import on its own.
+* **Group each reusable module into its own layer.** When you reuse a module across campaigns, such as a header, a product card, or a promotional banner, keep the module in a single named group or frame. The agent then imports the whole module, text and images together, as one content block.
+* **Keep text as live text layers.** Text that you convert to outlines or flatten into an image arrives in MoEngage as part of an image, so you cannot edit that text in the email template.
+
+## Create the Import Agent
+
+Build the import agent in the Agent Builder. You can start from scratch and let the Merlin AI Assistant draft the configuration, or write the instructions yourself. For the complete agent lifecycle, refer to [Create and Manage Custom Agents](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/create-and-manage-custom-agents).
+
+1. In the left navigation menu, go to **AI Agents** > **Custom Agents**.
+2. Click **+ New custom agent**, and then click **Create from scratch**. MoEngage opens the Agent Builder.
+3. In the Merlin AI Assistant, describe your goal in plain language, for example, `Import email templates from Figma`.
+4. Answer the four questions that the Merlin AI Assistant asks. Each question shapes one part of the agent's behavior:
+
+| Question | Options |
+| --- | --- |
+| How should the agent know which Figma designs to import? | <ul><li>You paste a Figma file or frame URL when you run the agent.</li><li>The agent watches a specific Figma project or file and imports new frames.</li><li>You name specific frames, for example `Welcome Email v2`.</li></ul> |
+| What should the agent do with the imported design? | <ul><li>Create a new MoEngage email template as a draft.</li><li>Update an existing template when the template name matches the frame name.</li><li>Create a new template or update an existing template based on a name match.</li></ul> |
+| How should the HTML be built from the Figma design? | <ul><li>Export the frame as an image and embed the image in a simple HTML wrapper.</li><li>Reconstruct the frame as structured HTML with headings, text blocks, buttons, and images.</li><li>Use structured HTML where possible and fall back to image export for complex sections.</li></ul> |
+| How should the agent report back after each run? | <ul><li>Show a summary in the chat with a link to each template.</li><li>Save a run report as a .docx file.</li><li>Save a run report as a .md file.</li></ul> |
+
+5. Review the drafted agent. The Merlin AI Assistant populates the **Instructions** editor and recommends a set of tools. Edit both the instructions and the recommended tools to match your workflow.
+6. In the **Files** section, attach the reference files that the agent consults on every run, such as your brand guidelines or a sample of your preferred HTML structure. Each agent supports up to 5 files.
+
+<Warning>
+ An agent that creates or updates templates and content blocks makes real changes in your workspace, including during a test run. Review your tool selections and your instructions before you run a test. MoEngage does not gate a connector write, so write your Figma instructions to read from Figma only, unless the agent needs to change the Figma file.
+</Warning>
+
+### Example Instructions
+
+The following example follows the recommended Role, Objective, Rules, Steps, and Output format structure. Adapt the example to your design system and naming conventions.
+
+```plaintext wrap
+## Role
+You are an email template importer. You convert Figma frames into MoEngage email templates that are responsive, accessible, and email-client-safe.
+
+## Objective
+In each run, import the Figma frames or images that the user names, and create or update the matching MoEngage assets.
+
+## Rules
+- Always read the Auto Layout structure of the frame before you build the HTML.
+- Always build the HTML with table-based, fluid-hybrid layout and inline styles.
+- Always keep text as live, editable HTML text. Never convert text to images.
+- Always add alt text to images and use bulletproof buttons for calls to action.
+- Always use the Figma layer name as the template or content block name.
+- Never modify the Figma file.
+- Never import frames or images that the user did not name.
+
+## Steps
+1. Parse the request. Identify the Figma file, the names of the frames, sections, and images to import, and whether each one becomes an email template or a content block.
+2. Locate each frame, section, or image in the Figma file.
+3. For each frame, extract headings, text, buttons, and images. Export the images as URLs.
+4. Build the email HTML.
+5. If an email template with the same name exists, update that template. Otherwise, create a new template as a draft.
+6. For each section or image that becomes a content block, create an HTML content block named after the layer. Keep the text of the section as live HTML text, and give every image alt text, width, and height.
+7. Send a test email of each template to <test-email-address>.
+
+## Output format
+Return a table with the columns: Frame name, Mode, Action, Template or content block ID, Test sent. Below the table, list every frame or image you skipped and the reason you skipped it.
+```
+
+<Note>
+ Precise instructions produce reliable runs. State exactly which frames the agent imports, what the agent names each output, and what the agent leaves untouched.
+</Note>
+
+## Test and Run the Agent
+
+1. Click **Test agent** in the action bar at the bottom right of the Agent Builder.
+2. Enter a prompt that names the Figma file and the assets to import. For example:
+   * `Import the frame times-daily-briefing from the Times Figma file as an email template.`
+   * `Import the section Top stories from times-daily-briefing as a content block.`
+   * `Import the standalone images only.`
+3. Review the tool calls, the agent's reasoning, and the final output in the test panel. When the agent imports the wrong asset or builds the wrong HTML structure, return to the **Instructions** editor and make the affected step more specific.
+4. Click **Make live** once the test run produces the output you expect. Your teammates then run the agent from the Custom Agents dashboard. Refer to [Run and Manage Agent Sessions](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/run-and-manage-agent-sessions).
+
+<Warning>
+ Test sessions run against your live workspace. A test run that imports a frame creates a real email template.
+</Warning>
+
+### Choose What Each Import Becomes
+
+Your prompt decides whether a piece of your design becomes an email template or a content block:
+
+* **A whole frame** becomes an email template by default, because a frame usually represents a complete email.
+* **A named section inside a frame** becomes a content block when you name that section in your prompt. Use this approach for the modules you reuse across campaigns, such as a header, a product card, or a promotional banner. The content block holds the text and the images of the section together.
+* **A standalone image** becomes a content block that holds the image.
+* **An image inside a frame** stays part of the email template that the agent builds from that frame, unless you name the image, or the section containing it, as a separate import.
+
+The following prompts show each outcome:
+
+| Prompt | Result |
+| --- | --- |
+| `Import the frame times-daily-briefing as an email template.` | One email template built from the whole frame. |
+| `Import the sections Masthead and introduction and Top stories from times-daily-briefing as content blocks.` | Two content blocks, each holding the text and images of its section. |
+| `Import the standalone images only.` | One content block for each image that sits outside every frame. The agent leaves every frame and every existing email template untouched. |
+
+To assemble an email from reusable modules, import each module as its own content block, and then insert the blocks into your email template. Refer to [Personalize Content Using Content Blocks](/user-guide/campaigns-and-channels/getting-started/message-personalization/personalize-content-using-content-blocks).
+
+## Review the Results
+
+When the run completes, the agent returns a summary table in the chat. The table contains the following columns:
+
+| Column | Description |
+| --- | --- |
+| **Frame name** | The name of the Figma frame, section, or image layer that the agent imported. |
+| **Mode** | The type of output that the agent produced, such as an email template or a content block. |
+| **Action** | Whether the agent created a new asset or updated an existing asset. |
+| **Content block** | The ID of the MoEngage asset that the agent created or updated. |
+| **Test sent** | Whether the agent sent a test email for the asset. MoEngage sends email templates and campaigns rather than individual content blocks, so this column applies to email templates only. |
+
+After the run completes:
+
+1. Open each email template in MoEngage and check the layout, fonts, and links. To adjust the generated HTML, refer to [Create Content with Custom HTML Editor](/user-guide/campaigns-and-channels/email/create/create-content-with-custom-html-editor).
+2. Open the test email in the inbox you specified, and check how the template renders in the email clients your audience uses most. Refer to [Test Email Campaign](/user-guide/campaigns-and-channels/email/create/test-email-campaign).
+3. Replace the placeholder links in the template with your campaign URLs, and add the personalization and Jinja your campaign requires. Refer to [Personalize Email Content](/user-guide/campaigns-and-channels/email/create/personalize-email-content).
+
+<Note>
+ The agent reconstructs your design as HTML, so the generated template is an editable starting point rather than a pixel-for-pixel copy of the Figma frame. Review each generated template before you use the template in a campaign. Custom Agents create and update drafts but never publish a campaign, so final approval stays with you in the campaign builder.
+</Note>
+
+## Related Pages
+
+* [Custom Agents: Overview](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/custom-agents-overview)
+* [Connect External Apps to Custom Agents](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/connect-external-apps)
+* [Create and Manage Custom Agents](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/create-and-manage-custom-agents)
+* [Run and Manage Agent Sessions](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/run-and-manage-agent-sessions)
+* [Build Multi-Agent Workflows](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/build-multi-agent-workflows)
+* [Content Blocks](/user-guide/content/content-blocks/content-blocks)
+* [Templates](/user-guide/content/template/templates)
+
+## FAQs
+
+<AccordionGroup>
+  <Accordion title="Do I need to connect Figma for each agent?">
+    No. You connect Figma once on the **Connectors** page, and every agent you run reaches your Figma account. The instructions you write for each agent determine when that agent calls Figma.
+  </Accordion>
+
+  <Accordion title="Can a teammate run my Figma import agent?">
+    Yes, when the agent is public. A Custom Agent uses the Figma account of the person who starts the run, so your teammate connects a Figma account individually and needs access to the same Figma file.
+  </Accordion>
+
+  <Accordion title="What happens if a frame has the same name as an existing template?">
+    The outcome depends on the option you selected for the second builder question. The agent either creates a new template every time, updates the matching template every time, or updates the matching template when one exists and creates a new template when none exists. To change the behavior later, edit the agent's instructions in the **Instructions** editor.
+  </Accordion>
+
+  <Accordion title="Does the agent modify my Figma file?">
+    The agent modifies your Figma file only when your instructions direct the agent to do so. An import requires read access alone. To keep the Figma file unchanged, disable the Figma write tools in the **Connection details** dialog and state in the agent's instructions that the agent never modifies the Figma file.
+  </Accordion>
+
+  <Accordion title="Can the agent create a content block that contains both text and images?">
+    Yes. A content block holds text, images, or both, so a module that combines a headline, body copy, and an image imports as a single content block. Name the module in your prompt, and keep the module in one named group or frame in Figma. MoEngage content blocks come in two types, **Plain text** and **HTML**; a module that combines text and images imports as an HTML content block. Refer to [Content Blocks](/user-guide/content/content-blocks/content-blocks).
+  </Accordion>
+
+  <Accordion title="Can an agent send my campaign?">
+    No. Custom Agents never publish campaigns. An agent creates an email template and sends a test email, and you approve and launch the campaign in the campaign builder.
+  </Accordion>
+
+  <Accordion title="What if the connection to Figma drops during a run?">
+    Reconnect Figma on the **Connectors** page in a separate browser tab, and then send your next message in the same session. Restate any step that the agent skipped so that the agent retries the step. Refer to [Reconnect During a Run](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/connect-external-apps#reconnect-during-a-run).
+  </Accordion>
+</AccordionGroup>
