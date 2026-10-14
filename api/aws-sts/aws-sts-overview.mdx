@@ -1,0 +1,311 @@
+---
+title: "AWS STS Auth"
+description: "Authenticate to the MoEngage Public APIs with your AWS IAM role: create an AWS STS Auth key, sign a GetCallerIdentity request, and send the signed headers on your API calls."
+keywords: ["AWS STS Auth", "AWS IAM role", "GetCallerIdentity", "Signature Version 4", "SigV4", "assumed-role ARN", "MOE-APPKEY", "MOE-APPSECRET", "X-Amz-Date", "X-Amz-Security-Token", "regional STS host", "API authentication", "role session name", "botocore SigV4Auth"]
+---
+
+AWS STS Auth is an authentication method for the MoEngage Public APIs. Your application signs each request with the temporary credentials of the AWS IAM role it already runs under, and MoEngage checks the signature with AWS to confirm which role sent it. You don't need to store long-lived AWS credentials in your code.
+
+AWS STS Auth is one of three authentication methods, alongside Basic Auth and OAuth 2.0. You can use it alongside your existing keys.
+
+## Authentication Flow
+
+| Stage | Action | Reference |
+| --- | --- | --- |
+| 1. Create a key | Create an API key with **Authentication type** set to **AWS STS Auth**, and allowlist the assumed-role ARNs that can use the key. | [Step 1: Create an AWS STS Auth API Key](#step-1-create-an-aws-sts-auth-api-key) |
+| 2. Sign a request | Add `MOE-APPKEY` and `MOE-APPSECRET` to an AWS STS `GetCallerIdentity` request, then sign the request with your role's temporary credentials. | [Step 2: Sign a GetCallerIdentity Request](#step-2-sign-a-getcalleridentity-request) |
+| 3. Call the APIs | Send the five resulting headers on your MoEngage Public API request. | [Step 3: Call the MoEngage Public APIs](#step-3-call-the-moengage-public-apis) |
+| 4. MoEngage verifies | MoEngage replays the signed request against AWS STS, matches the resolved ARN against the ARNs on the key, and verifies `MOE-APPSECRET`. | [Troubleshooting](#troubleshooting) |
+
+Your application never sends the `GetCallerIdentity` request to AWS. MoEngage is the only party that calls AWS STS to verify the signature.
+
+Each MoEngage API request carries five headers:
+
+| Header | Source |
+| --- | --- |
+| `MOE-APPKEY` | Your Workspace ID, displayed on the API key dashboard. |
+| `MOE-APPSECRET` | The secret that MoEngage generates for the AWS STS Auth key. |
+| `Authorization` | The Signature Version 4 header produced by your AWS SDK signer. |
+| `X-Amz-Date` | The signing timestamp produced by your AWS SDK signer. |
+| `X-Amz-Security-Token` | The session token of your role's temporary credentials. |
+
+## Prerequisites
+
+- Your application runs under an AWS IAM **role**, such as an Amazon EC2 instance profile, an Amazon ECS task role, an AWS Lambda execution role, or a role assumed through AWS STS. Permanent IAM user credentials are not supported.
+- Your application uses an AWS SDK that exposes Signature Version 4 signing. The example in this article uses the Python `botocore` library.
+- You have access to **Settings** \> **Account** \> **API keys** with permission to create API keys.
+- You have identified the data center that hosts your workspace. Refer to [Data Centers](/api/introduction#data-centers).
+
+## Regional AWS STS Hosts
+
+Sign against the AWS STS host for your MoEngage data center. The region in which your own infrastructure runs is not relevant. MoEngage verifies against the same host, so a signature produced against any other host fails, including one produced against the global `sts.amazonaws.com` endpoint.
+
+| MoEngage Data Center | AWS Region | STS Host to Sign Against |
+| --- | --- | --- |
+| DC-01 | us-east-1 (N. Virginia) | `sts.us-east-1.amazonaws.com` |
+| DC-02 | eu-central-1 (Frankfurt) | `sts.eu-central-1.amazonaws.com` |
+| DC-03 | ap-south-1 (Mumbai) | `sts.ap-south-1.amazonaws.com` |
+| DC-04 | us-east-2 (Ohio) | `sts.us-east-2.amazonaws.com` |
+| DC-05 | ap-southeast-1 (Singapore) | `sts.ap-southeast-1.amazonaws.com` |
+| DC-06 | ap-southeast-3 (Jakarta) | `sts.ap-southeast-3.amazonaws.com` |
+| DC-101 | us-west-2 (Oregon) | `sts.us-west-2.amazonaws.com` |
+
+<Note>
+  `ap-southeast-3`, which serves DC-06, is an AWS opt-in region. Enable it in your AWS account under **Account** \> **AWS Regions** before signing against that host. This is an AWS account setting that MoEngage does not control.
+</Note>
+
+## Step 1: Create an AWS STS Auth API Key
+
+<Steps>
+  <Step title="Open the API Keys Page">
+    Go to **Settings** \> **Account** \> **API keys**.
+  </Step>
+
+  <Step title="Open the Create New Key Dialog">
+    Click **+ Create new key**.
+  </Step>
+
+  <Step title="Enter a Key Name">
+    Enter a descriptive name in the **Key name** box, for example `orders-integration`.
+  </Step>
+
+  <Step title="Select the Authentication Type">
+    Under **Authentication type**, select **AWS STS Auth**.
+  </Step>
+
+  <Step title="Set the Expiry Time">
+    In the **Expiry time (in minutes)** box, enter how long MoEngage trusts a signature it has already verified. The range is 5 to 15 minutes, and the default is 15. This setting does not change how old a signature can be when MoEngage first verifies it, which the AWS freshness window governs.
+  </Step>
+
+  <Step title="Add the Role ARNs">
+    In the **ARN** box, enter the assumed-role ARN that your application signs with. Click **+ Add value** for additional ARNs, up to 10 entries. Every ARN on a key receives that key's API access. For the format, wildcard rules, and validations, refer to [Add Role ARNs](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#add-role-arns).
+  </Step>
+
+  <Step title="Select the API Access">
+    Under **Select APIs for access**, select the API groups that the key calls.
+  </Step>
+
+  <Step title="Save the Key">
+    Click **Create key**. MoEngage generates the `MOE-APPSECRET` value for the key.
+  </Step>
+
+  <Step title="Retrieve the MOE-APPSECRET Value">
+    On the **API Keys** page, click <Icon icon="ellipsis-stroke-vertical" /> for the key and select **View key details**. The details panel displays the `MOE-APPSECRET` value, which remains available after creation.
+  </Step>
+</Steps>
+
+<Note>
+  An AWS STS Auth key reaches every **Data APIs** scope, **Channel Configuration** \> **Setup & Manage**, and **Personalize** \> **View**. Every other scope, including all Campaigns scopes, requires a Basic Auth or OAuth 2.0 key. Refer to [Scopes Available to AWS STS Auth](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#scopes-available-to-aws-sts-auth).
+</Note>
+
+### Credential Handling
+
+- `MOE-APPKEY` holds your Workspace ID. The value is not secret, and every request must carry it.
+- `MOE-APPSECRET` is specific to one key. Treat it as a password, store it in a secrets manager, and keep it out of source control.
+- `MOE-APPSECRET` binds a request to one MoEngage key and its API access. An AWS role is often shared across teams and environments, so the AWS signature alone does not identify the intended key.
+- `MOE-APPSECRET` does not expire and does not rotate on its own, unlike the AWS credentials that sign the request.
+- `MOE-APPSECRET` stays retrievable after creation. Select **View key details** from the key's <Icon icon="ellipsis-stroke-vertical" /> menu to display the value again.
+- To rotate the secret, use **Regenerate key** on the API key dashboard. Regeneration does not affect the key's role ARNs or API access, and the previous secret stops working immediately.
+
+## Step 2: Sign a GetCallerIdentity Request
+
+Build the following AWS STS request and sign it. Do not send it. MoEngage replays the same request to AWS STS to verify your signature, so every part must match exactly.
+
+| Part | Value | Notes |
+| --- | --- | --- |
+| Method | `POST` | |
+| URL | `https://sts.{region}.amazonaws.com/` | Use the region for your data center. Refer to [Regional AWS STS Hosts](#regional-aws-sts-hosts). |
+| Body | `Action=GetCallerIdentity&Version=2011-06-15` | A fixed value. These are AWS STS parameters, so send them exactly as shown. |
+| `MOE-APPKEY` header | Your Workspace ID | Add it before signing. A header added after signing is not covered by the signature, and the request fails. |
+| `MOE-APPSECRET` header | The secret for your AWS STS Auth key | Add it before signing. |
+| `Content-Type` header | Omit it | Any value enters the signature and causes a mismatch. |
+
+For the AWS definition of this request, refer to [GetCallerIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetCallerIdentity.html) in the AWS STS API Reference.
+
+Use an AWS SDK to sign the request. A command-line client such as cURL signs and transmits in a single operation, so it cannot produce signed headers for reuse. The following example uses Python `botocore`. Substitute the AWS SDK for your own language.
+
+```python Sign a GetCallerIdentity Request
+import boto3
+from botocore.awsrequest import AWSRequest
+from botocore.auth import SigV4Auth
+
+# boto3 reads your role's temporary credentials from the Amazon EC2 instance
+# profile, Amazon ECS task role, or AWS Lambda execution role automatically.
+session = boto3.Session()
+credentials = session.get_credentials().get_frozen_credentials()
+
+region = "ap-south-1"  # AWS region for your MoEngage data center
+moe_app_key = "YOUR_WORKSPACE_ID"
+moe_app_secret = "YOUR_MOE_APPSECRET"
+
+request = AWSRequest(
+    method="POST",
+    url=f"https://sts.{region}.amazonaws.com/",
+    data="Action=GetCallerIdentity&Version=2011-06-15",
+    headers={
+        "MOE-APPKEY": moe_app_key,        # Added before signing
+        "MOE-APPSECRET": moe_app_secret,  # Added before signing
+        # Content-Type intentionally omitted
+    },
+)
+
+SigV4Auth(credentials, "sts", region).add_auth(request)
+prepared = request.prepare()
+```
+
+Signing adds `Authorization`, `X-Amz-Date`, and `X-Amz-Security-Token` to `prepared.headers`.
+
+## Step 3: Call the MoEngage Public APIs
+
+Send the signed headers on your MoEngage Public API request. AWS STS Auth has no separate MoEngage authentication endpoint.
+
+```bash Call an API With the Signed Headers
+curl --request POST \
+  --url https://api-{dc}.moengage.com/v1/customer/YOUR_WORKSPACE_ID \
+  --header 'Authorization: AWS4-HMAC-SHA256 Credential=YOUR_SIGNED_CREDENTIAL, SignedHeaders=host;moe-appkey;moe-appsecret;x-amz-date;x-amz-security-token, Signature=YOUR_CALCULATED_SIGNATURE' \
+  --header 'MOE-APPKEY: YOUR_WORKSPACE_ID' \
+  --header 'MOE-APPSECRET: YOUR_MOE_APPSECRET' \
+  --header 'X-Amz-Date: YOUR_SIGNING_TIMESTAMP' \
+  --header 'X-Amz-Security-Token: YOUR_SESSION_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{ "type": "customer", "customer_id": "user_12345" }'
+```
+
+- Replace `{dc}` with your data center number, and replace each placeholder with the value produced in [Step 2](#step-2-sign-a-getcalleridentity-request).
+- `Content-Type` is required on the MoEngage call and prohibited on the signed `GetCallerIdentity` request.
+- For callable endpoints, refer to [API Documentation](/api/introduction). For request limits and payload caps, refer to [Rate Limits](/api/rate-limits#authentication).
+
+### Authentication Errors
+
+An authenticated request returns the response that the endpoint normally returns. A request that MoEngage cannot authenticate returns `401 Unauthorized`, with a generic message rather than the specific cause, so that a failed request does not reveal which part of your configuration is incorrect. Refer to [Troubleshooting](#troubleshooting).
+
+## Troubleshooting
+
+Check the following in order when a request returns `401 Unauthorized`:
+
+| # | Check | Expected State |
+| --- | --- | --- |
+| 1 | Credential type | Temporary credentials from an assumed role. Permanent IAM user credentials fail. |
+| 2 | STS host | The regional host for your data center. The global `sts.amazonaws.com` endpoint fails. |
+| 3 | Signed headers | `MOE-APPKEY` and `MOE-APPSECRET` added before signing. |
+| 4 | `Content-Type` | Absent from the signed request. Any value causes a signature mismatch. |
+| 5 | Resolved ARN | Allowlisted on the key, with the session name present or covered by a wildcard. Refer to [Find the ARN That MoEngage Resolves](#find-the-arn-that-moengage-resolves). |
+| 6 | Signature age | Within the AWS freshness window. Sign and send in the same operation. |
+| 7 | Authentication headers | Exactly one method per request. A leftover `Authorization: Basic` header causes failure. |
+| 8 | AWS region (DC-06 only) | `ap-southeast-3` enabled on your AWS account. Refer to [Regional AWS STS Hosts](#regional-aws-sts-hosts). |
+
+If the request still fails, contact MoEngage Support with the approximate timestamp of the failing request.
+
+### Find the ARN That MoEngage Resolves
+
+When MoEngage verifies a request, AWS STS returns the ARN of the role that signed it, including the role session name. MoEngage compares that ARN with the ARNs on your key. Your application does not receive this AWS response.
+
+To see the same ARN, run the following AWS CLI command in the environment where your application runs, such as the Amazon EC2 instance or Amazon ECS task. In AWS Lambda, call `get_caller_identity()` on a `boto3` STS client instead.
+
+```bash Show the Resolved ARN
+aws sts get-caller-identity
+```
+
+```json Example Output
+{
+    "UserId": "AROAEXAMPLEUSERID:data-pipeline-prod",
+    "Account": "123456789012",
+    "Arn": "arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole/data-pipeline-prod"
+}
+```
+
+Add the `Arn` value to your key. If the session name changes per instance or invocation, replace it with `*`, as described in [Wildcards in Role ARNs](#wildcards-in-role-arns).
+
+### Wildcards in Role ARNs
+
+The ARN that AWS resolves includes a role session name, such as an Amazon EC2 instance ID, an Amazon ECS task ID, or an AWS Lambda request ID. That value changes per instance or invocation, and MoEngage matches ARNs exactly. The session name is also mandatory, so an entry that stops at the role name is rejected as **Invalid format**.
+
+Place `*` at the end of the segment you want to broaden:
+
+| Goal | Entry |
+| --- | --- |
+| Match every session of one role | `arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole/*` |
+| Match every role that shares a name prefix | `arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole-*` |
+
+Two rules apply to every wildcard entry:
+
+- An entry accepts one `*`, and only as the final character. `assumed-role/My*Role` and any entry with two wildcards are invalid.
+- The role name must contain at least one character before the wildcard, so `assumed-role/*` is invalid.
+
+For the full validation list, refer to [Add Role ARNs](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#add-role-arns).
+
+<Warning>
+  A wildcard grants the key's full API access to every ARN it matches. Use one only when every matched role or session requires the same access.
+</Warning>
+
+## Recommended Practices
+
+- Validate against a staging-only key with a staging role ARN before routing production traffic.
+- Keep Basic Auth or OAuth 2.0 credentials active during the transition. No cutover is required.
+- Sign and send in the same operation. Do not cache signatures.
+- Store `MOE-APPSECRET` in a secrets manager, and keep it out of client-side code.
+- Create separate keys when roles require different levels of API access.
+
+## Integration Checklist
+
+- Your application signs with temporary assumed-role credentials.
+- The STS host matches your MoEngage data center.
+- `MOE-APPKEY` and `MOE-APPSECRET` are added before signing.
+- The signed request carries no `Content-Type` header.
+- The runtime-resolved ARN appears on the key, with an exact session name or a `*` wildcard.
+- The key carries the API access your integration requires.
+- `MOE-APPSECRET` is stored in a secrets manager.
+- A MoEngage Public API call succeeds with the signed headers.
+- No additional authentication header is present.
+
+## Frequently Asked Questions
+
+<AccordionGroup>
+  <Accordion title="Can one MoEngage key authorize more than one AWS role?">
+    Yes. Add up to 10 role ARNs to one key, including roles in different AWS accounts. All ARNs on a key share that key's API access. Create separate keys when roles require different access.
+  </Accordion>
+
+  <Accordion title="Why is my request rejected when the correct role is allowlisted?">
+    The resolved ARN includes a role session name that changes per instance or invocation, and matching is exact. Refer to [Wildcards in Role ARNs](#wildcards-in-role-arns).
+  </Accordion>
+
+  <Accordion title="Where do I find MOE-APPSECRET after creating the key?">
+    On the **API Keys** page, click <Icon icon="ellipsis-stroke-vertical" /> for the key and select **View key details**. The value remains available after creation.
+  </Accordion>
+
+  <Accordion title="Can MOE-APPSECRET be rotated without downtime?">
+    Regeneration takes effect immediately, so the previous secret stops working as soon as the new one is issued. Plan the rollout as a standard credential rotation.
+  </Accordion>
+
+  <Accordion title="Does AWS STS Auth replace Basic Auth or OAuth 2.0?">
+    No. The three methods operate independently and can run side by side.
+  </Accordion>
+
+  <Accordion title="When do key changes take effect?">
+    Immediately. Adding or removing a role ARN, changing API access, regenerating the secret, and archiving the key apply without a waiting period.
+  </Accordion>
+</AccordionGroup>
+
+## Related Articles
+
+<CardGroup cols={2}>
+  <Card title="API Key Dashboard" icon="table-list" href="/user-guide/settings/account/api-and-api-keys/api-key-dashboard#aws-sts-auth">
+    Create an AWS STS Auth key, allowlist role ARNs, and regenerate or archive keys.
+  </Card>
+
+  <Card title="OAuth 2.0 Overview" icon="key" href="/api/oauth/oauth-overview">
+    Authenticate with short-lived OAuth 2.0 access tokens.
+  </Card>
+
+  <Card title="Rate Limits" icon="gauge" href="/api/rate-limits#authentication">
+    Review the request limits and payload caps that apply to the endpoints you call.
+  </Card>
+</CardGroup>
+
+## Contact Support
+
+Contact MoEngage Support with your Workspace ID, the endpoint called, the HTTP status, and the approximate timestamp of the failing request. To raise a ticket, refer to [Raise a Support Ticket](/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard).
+
+<Warning>
+  Do not include `MOE-APPSECRET`, your AWS credentials, or your signed `Authorization` header in a support request.
+</Warning>

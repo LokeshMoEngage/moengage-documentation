@@ -19,17 +19,17 @@ The multi-API key feature is currently supported for the following API groups:
 | [Data APIs](/api/data/data-overview) | Basic Auth, OAuth 2.0, AWS STS Auth |
 | [Segmentation APIs](/api/custom-segments/custom-segments-overview) | Basic Auth |
 | [Push APIs](/api/push/push-overview) | Basic Auth (Legacy) |
-| [Campaigns](/api/campaigns/campaigns-overview) | Basic Auth, OAuth 2.0, AWS STS Auth |
+| [Campaigns](/api/campaigns/campaigns-overview) | Basic Auth, OAuth 2.0 |
 | [Inform](/api/inform/inform-overview) | Basic Auth |
 | [Offerings](/api/offerings/offerings-overview) | Basic Auth, OAuth 2.0 |
 | Decision Policy | Basic Auth, OAuth 2.0 |
 | [Dashboard & Analyze](/api/analytics/analytics-overview) | Basic Auth, OAuth 2.0 |
-| Channel Configuration | AWS STS Auth |
-| [Personalize](/api/personalize-experience/personalize-overview) | AWS STS Auth |
+| Channel Configuration | Basic Auth, OAuth 2.0, AWS STS Auth |
+| [Personalize](/api/personalize-experience/personalize-overview) | Basic Auth, OAuth 2.0, AWS STS Auth |
 
 <Note>
  - Segmentation APIs and Inform are available only with Basic Auth.
- - Channel Configuration and Personalize are available only with AWS STS Auth.
+ - AWS STS Auth covers a subset of the groups above. See [Scopes Available to AWS STS Auth](#scopes-available-to-aws-sts-auth).
  - Creation of new API keys for Push APIs is not currently supported. Push APIs work only with **Basic Auth (Legacy)** keys migrated to this dashboard.
 </Note>
 
@@ -46,7 +46,7 @@ MoEngage supports the following authentication types for API keys:
 
 - **Basic Auth**: The standard authentication method, which uses an API key and secret. Choose this method for server-to-server integrations that do not need token expiration.
 - **OAuth 2.0**: A token-based method that issues short-lived access tokens. You set the token expiry time, and MoEngage validates each access token automatically. For the full flow, including generating, using, and refreshing tokens, refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
-- **AWS STS Auth**: A token-based method for workloads that run on AWS. Instead of a shared secret, you allowlist the AWS Security Token Service (STS) assumed-role ARNs that can use the key. Choose this method when your services already assume an IAM role and you want MoEngage to authorize those roles directly. See [Add Role ARNs](#add-role-arns).
+- **AWS STS Auth**: A token-based method for workloads that run on AWS. You allowlist the AWS Security Token Service (STS) assumed-role ARNs that can use the key, and each request proves its AWS identity with a signature from the role's temporary credentials. MoEngage also issues a `MOE-APPSECRET` value for the key, which every request sends alongside that signature. Choose this method when your services already assume an IAM role and you want MoEngage to authorize those roles directly. See [Add Role ARNs](#add-role-arns) and [AWS STS Auth](/api/aws-sts/aws-sts-overview).
 
 You select the authentication type from the **Authentication type** list in the **Create new key** dialog. You cannot change the authentication type after you create the key. To move an integration to a different authentication type, create a new key and archive the old one.
 
@@ -112,19 +112,22 @@ You select the authentication type from the **Authentication type** list in the 
         **Segmentation APIs** and **Inform** are not listed for OAuth 2.0 keys. To access these groups, create a Basic Auth key.
       </Tab>
       <Tab title="AWS STS Auth">
-        1. In the **Expiry time (in minutes)** box, enter the token lifetime. The value must be between 5 and 15 minutes, and the default is 15 minutes.
+        1. In the **Expiry time (in minutes)** box, enter how long MoEngage trusts a signature it has already verified. The value must be between 5 and 15 minutes, and the default is 15 minutes. This setting does not change how old a signature can be when MoEngage first verifies it, which the AWS freshness window governs.
 
         2. In the **ARN** box, enter the AWS STS assumed-role ARN that can use this key. Click **+ Add value** to add another ARN, up to 10 entries. For the accepted format and the validations the dashboard applies to each entry, see [Add Role ARNs](#add-role-arns).
 
         3. Under **Select APIs for access**, select the API groups you want to access using this key:
            - Data APIs
-           - Campaigns
            - Channel Configuration
            - Personalize
 
          <Frame><img src="/images/createnewawskey.png" alt="Create new key dialog with Authentication type set to AWS STS Auth, showing the Expiry time in minutes box, the ARN box with its format placeholder, the Add value link, and the Data APIs, Campaigns, Channel Configuration, and Personalize groups under Select APIs for access" /></Frame>
 
-        **Segmentation APIs**, **Inform**, **Offerings**, **Decision Policy**, and **Dashboard & Analyze** are not listed for AWS STS Auth keys. To access those groups, create a Basic Auth or OAuth 2.0 key.
+        **Campaigns**, **Segmentation APIs**, **Inform**, **Offerings**, **Decision Policy**, and **Dashboard & Analyze** are not available to AWS STS Auth keys. To access those groups, create a Basic Auth or OAuth 2.0 key.
+
+        Not every scope inside a listed group is available to an AWS STS Auth key. See [Scopes Available to AWS STS Auth](#scopes-available-to-aws-sts-auth) for the scopes such a key can use.
+
+        When you save the key, MoEngage generates a `MOE-APPSECRET` value for it. Your application sends that value as a header on every request, in addition to the AWS signature. See [View Key Details](#view-key-details) to retrieve it.
       </Tab>
     </Tabs>
   </Step>
@@ -141,6 +144,22 @@ To use the key in requests, see [Authentication](/api/introduction#authenticatio
 ## AWS STS Auth
 
 This section applies only to keys that use the **AWS STS Auth** authentication type. MoEngage authorizes such a key against a list of assumed-role ARNs, and only a caller whose assumed-role ARN appears on the key can use it.
+
+<Note>
+  This section covers the dashboard configuration for an AWS STS Auth key. For the signing sequence that your application performs, the regional AWS STS hosts, and the headers that each API request carries, refer to [AWS STS Auth](/api/aws-sts/aws-sts-overview).
+</Note>
+
+### Scopes Available to AWS STS Auth
+
+An AWS STS Auth key reaches a subset of the scopes available to Basic Auth and OAuth 2.0 keys.
+
+| API Group | Scopes an AWS STS Auth Key Can Select |
+| --- | --- |
+| [Data APIs](/api/data/data-overview) | Every scope: Get User, Track User, Merge User, Bulk Import, GDPR Delete, Delete User, Create Events, File Imports, Track Device, and Email Double Opt-in. |
+| Channel Configuration | **Setup & Manage** only. **View** and **Manage Message Template** require a Basic Auth or OAuth 2.0 key. |
+| [Personalize](/api/personalize-experience/personalize-overview) | **View** only. |
+
+No other scope accepts an AWS STS Auth key. To call Campaigns, Segmentation APIs, Inform, Offerings, Decision Policy, or Dashboard & Analyze, create a Basic Auth or OAuth 2.0 key.
 
 ### Add Role ARNs
 
@@ -168,18 +187,24 @@ For example:
 arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole/data-pipeline-prod
 ```
 
-#### Match All Sessions of a Role
+The session name is mandatory. An entry that stops at the role name, such as `arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole`, is rejected as **Invalid format**.
 
-Each session of a role produces a different ARN, so a role that many workloads or team members share can exceed the limit of 10 entries. To cover every session of a role with a single entry, enter `*` as the session name:
+#### Match Several ARNs With a Wildcard
 
-```text
-arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole/*
-```
+Each session of a role produces a different ARN, so a role that many workloads or team members share can exceed the limit of 10 entries. Place `*` at the end of the segment you want to broaden.
 
-Every session of `MoEngageIngestionRole` then receives the API access you select for this key.
+| Goal | Entry | Matches |
+| --- | --- | --- |
+| Every session of one role | `arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole/*` | Every session of `MoEngageIngestionRole`. |
+| Every role that shares a name prefix | `arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole-*` | `MoEngageIngestionRole-Dev`, `MoEngageIngestionRole-Prod`, and every other role with that prefix. |
+
+Two rules apply to every wildcard entry:
+
+- An entry accepts one `*`, and only as the final character. `arn:aws:sts::123456789012:assumed-role/My*Role` and any entry with two wildcards are invalid.
+- The role name must contain at least one character before the wildcard, so `arn:aws:sts::123456789012:assumed-role/*` is invalid.
 
 <Warning>
-  A wildcard grants the key's full API access to every session of the role, so use one only when every session of that role needs the same access. When you add a wildcard entry, the dashboard displays the banner **Using \* matches multiple ARNs. Ensure that this broader scope is intentional for security.**
+  A wildcard grants the key's full API access to every ARN it matches, so use one only when every matched role or session needs the same access. When you add a wildcard entry, the dashboard displays the banner **Using \* matches multiple ARNs. Ensure that this broader scope is intentional for security.**
 </Warning>
 
 When a wildcard entry already covers a role, you cannot add a named session for the same role. The dashboard treats the named session as a duplicate. Remove one of the two entries to save the key.
@@ -189,6 +214,7 @@ When a wildcard entry already covers a role, you cannot add a named session for 
 | Condition | Message |
 | --- | --- |
 | The ARN does not match the expected format. For example, the account ID has fewer than 12 digits, the resource type is `role` instead of `assumed-role`, or the session name is missing. | **Invalid format** |
+| The entry contains more than one `*`, places `*` anywhere other than the final character, or uses `*` as the entire role name. | **Invalid format** |
 | You enter the same ARN twice, or you add a named session for a role that a wildcard entry already covers. | **Duplicate ARN detected** |
 | The list already contains 10 ARNs. | The dashboard disables **+ Add value** and states that you can add up to 10 values. |
 
@@ -217,7 +243,7 @@ On the **API Keys** page, click <Icon icon="ellipsis-stroke-vertical" /> for a k
 | Option | Description |
 | --- | --- |
 | [View key details](#view-key-details) | View the full details of the key. From the details panel, you can also access **Edit key details** and **Regenerate key**. |
-| Regenerate key | Generate a new key. You can regenerate a key as often as you need. |
+| Regenerate key | Generate a new key. You can regenerate a key as often as you need. On an AWS STS Auth key, this issues a new `MOE-APPSECRET` value and leaves the key's role ARNs and API access unchanged. |
 | [Edit key details](#edit-key-details) | Edit the key's name or API access settings. |
 | Archive key | Archive the key. Archived keys cannot be unarchived. A maximum of 10 archived keys is maintained in the archived key list. |
 
@@ -266,7 +292,8 @@ On the **API Keys** page, click <Icon icon="ellipsis-stroke-vertical" /> for a k
         | Key name | The name assigned to the key. |
         | API key | The masked key value with a view button and a copy button. |
         | Authentication type | **AWS STS Auth**. |
-        | Expiry time | The token lifetime in minutes. |
+        | MOE-APPSECRET | The secret that MoEngage generated for this key, with a view button and a copy button. The value stays available after creation, so you can retrieve it here at any time. |
+        | Expiry time | How long, in minutes, MoEngage trusts a signature it has already verified. |
         | ARNs | The assumed-role ARNs that can use this key. Click **Show more** to expand the full list, and hover over an entry to see the complete ARN. |
         | Last updated on | The date and time the key was last modified. |
         | Last updated by | The email address of the user who last modified the key. |
@@ -371,7 +398,7 @@ From the details panel, you can click **Edit key details** or **Regenerate key**
   </Accordion>
 
   <Accordion title="How does MoEngage handle expired tokens?">
-    MoEngage issues a companion refresh token alongside the access token. Your app uses this longer-lived refresh token in the background to request a fresh access token, without forcing the user to log in again. For the refresh request and its error codes, refer to [Refresh Access Token](/api/oauth/refresh-access-token).
+    MoEngage issues a companion refresh token alongside the access token. Your integration exchanges that refresh token for a fresh access token in the background, without sending the API key again. The refresh token expires after 24 hours without a refresh, and after 30 days at most, so refresh at least once a day to keep the token alive. For the refresh request and its error codes, refer to [Refresh Access Token](/api/oauth/refresh-access-token).
   </Accordion>
 
   <Accordion title="Where do I find my assumed-role ARN?">

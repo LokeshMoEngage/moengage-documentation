@@ -1,7 +1,7 @@
 ---
 title: "OAuth 2.0 Overview"
 description: "Authenticate to the MoEngage Public APIs with short-lived OAuth 2.0 access tokens: create a key, generate a token, call the APIs, and refresh before expiry."
-keywords: ["OAuth 2.0", "MoEngage OAuth", "access token", "refresh token", "client credentials", "Bearer token", "API authentication", "oauth2 base URL", "token expiry", "expires_in", "ER011", "ER008", "ER010", "MOENGAGE-AUTH-ERROR-CODE"]
+keywords: ["OAuth 2.0", "MoEngage OAuth", "access token", "refresh token", "client credentials", "Bearer token", "API authentication", "oauth2 base URL", "token expiry", "expires_in", "refresh_token_expires_in", "ER011", "ER008", "ER010", "ER005", "MOENGAGE-AUTH-ERROR-CODE"]
 icon: "file-magnifying-glass"
 ---
 
@@ -24,8 +24,8 @@ The OAuth parameters map to dashboard values as follows:
 | --- | --- |
 | `client_id` | The parameter holds your Workspace ID, which the API key dashboard always displays. |
 | `client_secret` | The parameter holds your API key value, which the dashboard displays only once, when you create the key. |
-| `access_token` | The parameter holds a short-lived JWT that you send on every API call. |
-| `refresh_token` | The parameter holds a long-lived token that you exchange for new access tokens. The refresh token is valid for 30 days. |
+| `access_token` | The parameter holds a short-lived JWT that you send on every API call. The token stays valid for 5 to 60 minutes, and the default is 15 minutes. |
+| `refresh_token` | The parameter holds a token that you exchange for new access tokens. The token expires after 24 hours without a refresh, and after 30 days at most. |
 
 ## Prerequisites
 
@@ -75,7 +75,7 @@ OAuth requests go to the OAuth host for your data center, and requests to the Pu
 </Steps>
 
 <Warning>
-  Copy the API key immediately. MoEngage displays the API key only once and cannot retrieve the API key afterwards. If you lose the API key, regenerate the key. Regenerating a key invalidates the previous key.
+  Copy the API key immediately. MoEngage displays the API key only once and cannot retrieve the API key afterwards. If you lose the API key, regenerate the key. Regenerating a key invalidates the previous key and every refresh token issued from that key.
 </Warning>
 
 The **Create new key** dialog maps to the OAuth parameters as follows:
@@ -87,6 +87,8 @@ The **Create new key** dialog maps to the OAuth parameters as follows:
 | Authentication Type | Not applicable | The value must be **OAuth 2.0**, or token generation fails with `ER012`. |
 | Select APIs for access | Not applicable | The selection determines which APIs the key calls. |
 | Access token expiration (in minutes) | Not applicable | The value must be between 5 and 60 minutes. The default is 15 minutes. |
+
+Editing a key's name, API access, or access token expiration revokes the refresh tokens issued from that key, as regenerating the key does. Your next refresh then returns `ER010`. Generate a new access token as described in [Step 2: Generate an Access Token](#step-2-generate-an-access-token).
 
 <Note>
   To call the Segmentation APIs or Inform, create a Basic Auth key instead. For the API groups that OAuth 2.0 keys support, and for the steps to edit, regenerate, and archive keys, refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard).
@@ -105,13 +107,18 @@ curl --request POST \
   --data client_secret=YOUR_API_KEY
 ```
 
-Store both the access token and the refresh token. The refresh token removes the need to send your API key again for the next 30 days.
+Store both the access token and the refresh token. The refresh token removes the need to send your API key again for as long as you keep refreshing.
 
 To run the request and to review every parameter, response field, and error code, refer to [Generate Access Token](/api/oauth/generate-access-token).
 
 ### Determine the Token Expiry
 
-The `expires_in` field in the response gives the access token's lifetime in seconds, counted from the moment MoEngage issues the token. Schedule your refresh from that value. The lifetime reflects the **Access token expiration (in minutes)** set on the API key.
+The response carries two expiry fields.
+
+| Field | Meaning |
+| --- | --- |
+| `expires_in` | The access token's lifetime in seconds, counted from the moment MoEngage issues the token. Schedule your refresh from this value. The lifetime reflects the **Access token expiration (in minutes)** set on the API key. |
+| `refresh_token_expires_in` | The number of seconds until the refresh token expires if you do not use the token. The value is 24 hours, or less when the refresh token approaches its 30-day limit. |
 
 ## Step 3: Call the MoEngage Public APIs
 
@@ -134,9 +141,15 @@ When authentication fails, the response carries a `MOENGAGE-AUTH-ERROR-CODE` hea
 | HTTP | `MOENGAGE-AUTH-ERROR-CODE` | Cause | Resolution |
 | --- | --- | --- | --- |
 | `401` | `ER008` | The access token has expired. | Refresh the access token. Refer to [Step 4: Refresh the Access Token](#step-4-refresh-the-access-token). |
+| `401` | `ER010` | The refresh token that issued this access token has expired or been revoked. | Request a new access token. Refer to [Generate Access Token](/api/oauth/generate-access-token). |
 | `403` | `ER007` | The access token is valid, but the endpoint falls outside the key's scope. | Add the endpoint to the key's API access on the dashboard. |
 | `401` | `ER003` or `ER004` | The access token is malformed or altered. | Request a new access token. Refer to [Generate Access Token](/api/oauth/generate-access-token). |
+| `403` | `ER005` | MoEngage could not read the access token's contents. | Request a new access token. Refer to [Generate Access Token](/api/oauth/generate-access-token). |
 | `401` | `ER022` | The request sent credentials in more than one place. | Send the access token only in the `Authorization` header. |
+
+<Warning>
+  An access token stops working when its refresh token expires, even when `expires_in` has not run out. Refresh at least once every 24 hours to keep the refresh token alive.
+</Warning>
 
 ## Step 4: Refresh the Access Token
 
@@ -152,21 +165,19 @@ curl --request POST \
 ```
 
 <Note>
-  A refresh returns a new access token and preserves your existing refresh token. Continue using that refresh token until the token reaches its 30-day expiry, and then generate a new access token with your `client_id` and `client_secret`.
+  A refresh does not issue a new refresh token. Continue using the same refresh token. Each successful refresh keeps that token alive for another 24 hours, up to 30 days from the moment MoEngage issued the token. The `refresh_token_expires_in` field reports how long the refresh token has left. When the value approaches 0, or when a refresh returns `ER010`, generate a new access token with your `client_id` and `client_secret`.
 </Note>
 
 To run the request and to review every parameter, response field, and error code, refer to [Refresh Access Token](/api/oauth/refresh-access-token).
 
 ## Token Lifecycle
 
-<Frame>
-  <img src="/images/tokenlifecycle.png" alt="Token lifecycle flowchart: the token endpoint issues an access token, which is used on API calls until it approaches expiry; the refresh endpoint then issues a new access token while the refresh token stays valid for 30 days, after which the token endpoint is called again." />
-</Frame>
+The token endpoint issues both tokens. The refresh endpoint then renews the access token and restarts the refresh token's 24-hour window, until the refresh token reaches its 30-day limit and you call the token endpoint again.
 
 | Token | Lifetime | Renewed By |
 | --- | --- | --- |
 | Access token | The lifetime is between 5 and 60 minutes, and you set the lifetime on the API key. The default is 15 minutes. | [Refresh Access Token](/api/oauth/refresh-access-token) |
-| Refresh token | The lifetime is fixed at 30 days. | [Generate Access Token](/api/oauth/generate-access-token) |
+| Refresh token | The lifetime is 24 hours from the moment MoEngage issues the token or from your last refresh, and 30 days at most. | [Generate Access Token](/api/oauth/generate-access-token) |
 
 ## Rate Limits
 
@@ -177,7 +188,7 @@ The [token endpoint](/api/oauth/generate-access-token) and the [refresh endpoint
 | 30 requests | Per 10 minutes |
 | 5 requests | Per minute |
 
-Both limits apply per `client_id` and `client_secret` pair. A `429` response includes a `Retry-After` header that gives the number of seconds to wait.
+On the token endpoint, both limits apply per `client_id` and `client_secret` pair. On the refresh endpoint, both limits apply per `client_id` and `refresh_token` pair. A `429` response includes a `Retry-After` header that gives the number of seconds to wait. The same value also appears in the deprecated `X-RETRY-AFTER` header. Read `Retry-After`.
 
 <Warning>
   Access tokens are reusable for their full lifetime. Generate one access token and reuse the token until the token approaches expiry. Generating an access token for every API request exceeds the rate limit.
@@ -189,7 +200,8 @@ These limits cover the OAuth endpoints only. For the limits and payload size cap
 
 - **Reuse the access token** for its full lifetime. Do not request a new access token for every API call.
 - **Refresh proactively**, a few minutes before the access token expires, instead of waiting for an `ER008`. Use `expires_in` to schedule the refresh.
-- **Handle `ER010` as a fallback.** When a refresh returns `ER010`, generate a new access token with your `client_id` and `client_secret`.
+- **Refresh at least once every 24 hours.** A refresh token that goes unused for 24 hours expires, and the access tokens issued from that refresh token stop working. If your integration stays idle for longer, expect `ER010` and generate a new access token.
+- **Handle `ER010` as a fallback** on both refresh requests and API calls. When either returns `ER010`, generate a new access token with your `client_id` and `client_secret`.
 - **Store the API key securely.** Treat the API key as a credential. Do not commit the key to source control or expose the key in client-side code.
 - **Honor `Retry-After`** on a `429` response instead of retrying immediately.
 
@@ -205,7 +217,8 @@ Confirm the following points before you move your integration to production:
 - Your application reads the token expiry from the `expires_in` field.
 - The refresh endpoint returns a new access token.
 - Your application refreshes the access token before the token expires.
-- The `ER010` fallback path re-authenticates with `client_id` and `client_secret`.
+- Your application tracks `refresh_token_expires_in` and refreshes at least once every 24 hours.
+- The `ER010` fallback path, on both refresh requests and API calls, re-authenticates with `client_id` and `client_secret`.
 - Your application honors `Retry-After` on a `429` response.
 
 ## Related Articles
@@ -230,7 +243,7 @@ Confirm the following points before you move your integration to production:
 
 ## Contact Support
 
-Contact MoEngage Support with your Workspace ID, the endpoint you called, the HTTP status, and the `error_type` or `MOENGAGE-AUTH-ERROR-CODE` from the response. To raise a ticket, refer to [Raise a Support Ticket](/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard).
+Contact MoEngage Support with your Workspace ID, the endpoint you called, the time of the request in UTC, the HTTP status, and the `error_type` or `MOENGAGE-AUTH-ERROR-CODE` from the response. To raise a ticket, refer to [Raise a Support Ticket](/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard).
 
 <Warning>
   Do not include your API key, access token, or refresh token in a support request.
