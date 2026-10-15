@@ -124,11 +124,8 @@ paths:
                   type: "customer"
                   customer_id: "user123"
                   unset_attributes:
-                    - type: "equals"
-                      attr: "first_name"
-                      case_sensitive: false
-                    - type: "prefix"
-                      attr: "temp_"
+                    - "first_name"
+                    - "loyalty_tier"
       responses:
         '200':
           description: This response is returned when the request is processed successfully.
@@ -3752,37 +3749,17 @@ components:
         unset_attributes:
           type: array
           description: |
-            Use this field to clear one or more existing user attributes, matched either by exact name or by pattern. Attributes matched by any rule in the array are removed from the user profile.
+            Use this field to clear one or more existing user attributes. Add the name of each attribute you want to unset as a string in the array. Each name must exactly match the attribute name in your workspace. Attribute names that are not found are skipped without an error.
 
             ```json
              {
                "customer_id": "user123",
-               "unset_attributes": [
-                 { "type": "equals", "attr": "first_name", "case_sensitive": false },
-                 { "type": "prefix", "attr": "temp_" }
-               ]
+               "unset_attributes": ["first_name", "loyalty_tier"]
              }
             ```
             * System/reserved attributes are protected and can't be unset this way.
           items:
-            $ref: '#/components/schemas/UnsetAttributeRule'
-    UnsetAttributeRule:
-      type: object
-      required:
-        - type
-        - attr
-      properties:
-        type:
-          type: string
-          enum: [equals, prefix, suffix, contains]
-          description: 'This field specifies how `attr` is matched against existing user attribute names.'
-        attr:
-          type: string
-          description: 'This field specifies the attribute name (for `equals`) or the pattern (for `prefix`, `suffix`, `contains`) to match against.'
-        case_sensitive:
-          type: boolean
-          default: true
-          description: 'This field specifies whether the match is case-sensitive. Optional, defaults to true.'
+            type: string
 
     IdentifierObject:
       type: object

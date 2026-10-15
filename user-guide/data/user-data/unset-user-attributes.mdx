@@ -44,15 +44,7 @@ You can unset attributes of the following data types:
 
 ## Unsetting the User Attributes
 
-To unset an attribute, pass an `unset_attributes` object within your JSON payload of the supported Data APIs. MoEngage uses a condition-based approach to identify which attributes to remove.
-
-The `unset_attributes` object must contain the following unset attribute details:
-
-| Key | Data Type | Required | Description |
-|-----|-----------|----------|--------------|
-| type | String | Yes | Denotes the matching logic used to identify attributes for removal. Supported values are:<br />`equals`: Unsets the attribute that matches the exact name provided in `attr`.<br />`prefix`: Unsets all attributes that start with the string provided in `attr`.<br />`suffix`: Unsets all attributes that end with the string provided in `attr`.<br />`contains`: Unsets all attributes that contain the string provided in `attr`. |
-| attr | String | Yes | The target string used for matching. This acts as the specific attribute name (for `equals`) or the search pattern (for `prefix`/`suffix`/`contains`) |
-| case_sensitive | Boolean | No | Determines if capitalization matters during the matching process. Defaults to `true` if not specified. Supported values are:<br />`true`<br />`false` |
+To unset attributes, pass them in the `unset_attributes` key of your JSON payload for the supported Data APIs. Add the name of each attribute you want to unset as a string in the array. Each name must exactly match the attribute name in your workspace.
 
 ### Sample cURL
 
@@ -61,19 +53,13 @@ Below is a sample JSON payload for the [Track User API](/api/user/track-user). F
 ```bash
 curl --location --request POST 'https://api-0X.moengage.com/v1/customer/{{appId}}?app_id={{appId}}' \
 --header 'Content-Type: application/json' \
---header {"Authorization": "Basic Base64_ENCODED_APPKEY_APIKEY"} \
+--header 'Authorization: Basic Base64_ENCODED_APPKEY_APIKEY' \
 --data '{
     "type": "customer",
     "customer_id": "Customer01",
     "attributes": {
     },
-    "unset_attributes": [
-        {
-            "type": "equals",
-            "attr": "custom_userattribute_1",
-            "case_sensitive": true
-        }
-    ]
+    "unset_attributes": ["custom_userattribute_1"]
 }'
 ```
 
@@ -83,5 +69,5 @@ curl --location --request POST 'https://api-0X.moengage.com/v1/customer/{{appId}
 - Requests to unset attributes that are Blocked in the Data Management dashboard are ignored.
 - Requests to unset Hidden attributes in the Data Management dashboard are processed successfully.
 - If an attribute is defined in both the `attributes` and `unset_attributes` object within the same API payload, the Unset operation takes precedence. The attribute value is removed.
-- The unset operation can only be performed on attributes that are already registered or present within the workspace.
+- The unset operation can only be performed on attributes that are already registered or present within the workspace. If an attribute name in `unset_attributes` is not found, MoEngage skips it without returning an error.
 </Info>
