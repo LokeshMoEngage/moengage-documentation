@@ -1,0 +1,202 @@
+---
+title: "Recommendations"
+description: "Fetch recommended items from a MoEngage recommendation in your React Native app and build your own UI."
+keywords: "react native recommendations, fetchRecommendations, ReactMoEngageRecommendations, react-native-moengage-recommendations, recommended items, recommendation id, item id, included fields, catalog"
+---
+
+import ReactNativeIosInstall from '/snippets/react-native-ios-install.mdx';
+
+## Overview
+
+The MoEngage React Native SDK fetches the recommended items for a recommendation you created on the MoEngage dashboard and returns them to your app as key-value data, handling user identity, networking, and caching internally.
+
+<Tip>
+  **Prerequisites**
+
+  - Recommendations must be enabled for your workspace. Contact your MoEngage account manager to enable it.
+  - Integrate `react-native-moengage` 13.1.0 or above, which the Recommendations plugin requires. For more information, refer to [Framework Dependency](/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-installation/framework-dependency).
+  - You have created a recommendation on the MoEngage dashboard and know its Recommendation ID. For more information, refer to [Recommendations](/user-guide/content/recommendations/getting-started/overview).
+  - You have initialized the core MoEngage SDK in your application. For more information, refer to [React Native SDK Initialization](/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization).
+</Tip>
+
+## Install the Module
+
+Add the MoEngage Recommendations plugin to your project:
+
+```shellscript Shell
+npm install react-native-moengage-recommendations
+```
+
+### iOS Installation
+
+Install the iOS dependencies for the `react-native-moengage-recommendations` plugin with either CocoaPods or Swift Package Manager (SPM). For the supported packages and setup details, refer to [iOS Installation](/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-installation/ios).
+
+<ReactNativeIosInstall />
+
+## Fetch Recommended Items
+
+<Warning>
+  Initialize the core MoEngage SDK before you call `fetchRecommendations()`. If the SDK is not initialized, the promise rejects with the `SDK_STATE` reason and the SDK makes no request. For more information, refer to [React Native SDK Initialization](/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization).
+</Warning>
+
+Call `fetchRecommendations()` on a `ReactMoEngageRecommendations` instance to retrieve the items of a recommendation. Pass the Recommendation ID of the recommendation you want to fetch items from, as defined on the MoEngage dashboard. You can also pass an anchor item ID and the catalog fields you want returned for each item. The method returns a promise.
+
+<CodeGroup>
+
+```javascript React Native wrap
+import ReactMoEngageRecommendations, {
+  RecommendationsFailureReason,
+} from "react-native-moengage-recommendations";
+
+const recommendations = new ReactMoEngageRecommendations("YOUR_WORKSPACE_ID");
+
+recommendations
+  .fetchRecommendations("YOUR_RECOMMENDATION_ID", "YOUR_ITEM_ID", ["title", "price"])
+  .then((recommendedItems) => {
+    if (recommendedItems.items.length === 0) {
+      // No recommended items are available for this user. Show your empty state.
+    } else {
+      // Render the items.
+    }
+  })
+  .catch((failure) => {
+    switch (failure.failureReason) {
+      case RecommendationsFailureReason.NETWORK_ERROR:
+        // The device is offline. Retry when connectivity returns.
+        break;
+      default:
+        // Show your error state.
+        break;
+    }
+  });
+```
+
+</CodeGroup>
+
+<Info>
+  Each `ReactMoEngageRecommendations` instance is scoped to the workspace you pass to its constructor. If your application runs multiple MoEngage workspaces, create one instance per workspace.
+</Info>
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `recommendationId` | string | Yes | ID of the recommendation created on the MoEngage dashboard. Must not be blank. |
+| `itemId` | string | No | ID of the item you want recommendations for, such as `shirts`. Ignored when blank. Defaults to an empty string. |
+| `includedFields` | Array\<string\> | No | Catalog attributes to return for each item in addition to the core fields, such as `size` and `color`. Ignored when empty, and duplicate values are dropped. Defaults to an empty array. |
+
+### Handle the Result
+
+The promise resolves with a `RecommendedItems` object. Its `items` property is a list of objects ranked best-first, where each object is one recommended item keyed by its catalog attribute names. An empty list is a successful result and means no recommended items are available for the user.
+
+The SDK passes the keys and value types through from your [catalog](/user-guide/content/recommendations/getting-started/catalogs) unchanged, so keys are `snake_case`, such as `product_id` and `image_link`, and values differ between catalogs. Each value is typed `unknown`, so narrow its type before you use it:
+
+<CodeGroup>
+
+```javascript React Native wrap
+const products = recommendedItems.items.map((item) => ({
+  id: typeof item.product_id === "string" ? item.product_id : "",
+  price: typeof item.price === "number" ? item.price : 0,
+}));
+```
+
+</CodeGroup>
+
+To serve a default set of items when a recommendation returns nothing, configure [Fallback Items](/user-guide/content/recommendations/getting-started/fallback-items) on the recommendation. The SDK returns those items in the resolved result, in the same `items` list. Fallback Items apply to a successful fetch that has no recommended items. They do not apply when the fetch fails.
+
+### Handle Failures
+
+The promise rejects with a `RecommendationsFailure` object. Use its `failureReason` property to identify the failure. Its `message` property carries details for logging only and can be empty. The SDK writes nothing to the cache on failure and leaves any cached items untouched.
+
+`failureReason` is a `RecommendationsFailureReason`, which combines the reasons specific to Recommendations with the reasons common to every MoEngage SDK request. A reason the SDK cannot classify maps to `UNKNOWN_ERROR`.
+
+The following reasons are specific to Recommendations:
+
+| Reason | Cause |
+| --- | --- |
+| `INVALID_REQUEST` | The Recommendation ID was blank, or the server rejected the request. |
+| `PAYLOAD_TOO_LARGE` | The request exceeded the size limit the server accepts. |
+| `RATE_LIMIT_EXCEEDED` | The request exceeded the fair use policy rate limit. |
+| `INTERNAL_SERVER_ERROR` | The server failed to process the request. |
+
+The following reasons are common to every MoEngage SDK request:
+
+| Reason | Cause |
+| --- | --- |
+| `SDK_STATE` | The SDK is not initialized, or it is not in a state that allows the operation. |
+| `FEATURE_DISABLED` | Recommendations is blocked from the dashboard, or disabled in the SDK configuration. |
+| `NETWORK_ERROR` | A network error occurred while making the request. |
+| `PARSE_ERROR` | The response could not be parsed. |
+| `INVALID_PARAMETERS` | One or more parameters passed to the API are invalid. |
+| `SERVER_ERROR` | The server failed to process the request. |
+| `AUTHENTICATION_FAILED` | The request could not be authenticated. |
+| `UNKNOWN_ERROR` | The failure could not be classified. |
+
+The SDK does not retry a failed request. To try again, call `fetchRecommendations()` again. Because the SDK caches nothing on failure, the next call makes a fresh network request. Retry only for these reasons:
+
+- `NETWORK_ERROR`
+- `RATE_LIMIT_EXCEEDED`, after a delay
+- `INTERNAL_SERVER_ERROR`
+- `SERVER_ERROR`
+- `UNKNOWN_ERROR`
+
+## Caching
+
+The SDK caches the items it fetches, so repeated calls for the same recommendation do not trigger a network request.
+
+- The SDK scopes each cache entry to the combination of Recommendation ID, item ID, and included fields. Changing any of the three fetches a fresh list.
+- Within the cache duration, `fetchRecommendations()` returns the cached items without a network call.
+- After the cache duration elapses, the next call fetches the items from the server and refreshes the entry.
+- The SDK caches an empty result in the same way, so an empty recommendation does not trigger a network call on every screen render.
+- The SDK clears the cache when the user logs out, when the user identity changes, and when the SDK is disabled.
+
+### Configure the Cache Duration
+
+The SDK caches recommended items for 24 hours (86400 seconds). To cache items for longer, set the cache duration in the native initialization on each platform. The plugin does not expose this setting in JavaScript. Make the following changes in the native classes where you initialize the MoEngage framework.
+
+<CodeGroup>
+
+```kotlin Android wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.RecommendationConfig
+import com.moengage.react.MoEInitializer
+
+// Replace X with your data center number
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureRecommendations(RecommendationConfig(recommendedItemsCacheDuration = 172800L))
+MoEInitializer.initializeDefaultInstance(applicationContext, moEngage)
+```
+
+```swift iOS wrap
+// Replace 0x with your data center number
+let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: MoEngageDataCenter.data_center_0x)
+sdkConfig.recommendationConfig = MoEngageRecommendationConfig(recommendedItemsCacheDuration: 172800)
+MoEngageInitializer.sharedInstance().initializeDefaultSDKConfig(sdkConfig, andLaunchOptions: launchOptions)
+```
+
+</CodeGroup>
+
+<Note>
+  The duration is in seconds. The minimum cache duration is 86400 seconds (24 hours). The SDK ignores a smaller value and uses 86400 seconds instead.
+</Note>
+
+## FAQs
+
+<AccordionGroup>
+  <Accordion title="Does the SDK render the recommended items?">
+    No, the SDK returns the item data only. Your application parses the response and builds the user interface.
+  </Accordion>
+
+  <Accordion title="Does the SDK download the images referenced in the items?">
+    No, the SDK does not download or cache media. Use a standard image loading library for the image URLs in the response.
+  </Accordion>
+
+  <Accordion title="What happens if I call fetchRecommendations() before I initialize the SDK?">
+    The promise rejects with the `SDK_STATE` reason. Initialize the core SDK before you fetch recommendations. For more information, refer to [React Native SDK Initialization](/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization).
+  </Accordion>
+
+  <Accordion title="Can I force a fresh fetch before the cache expires?">
+    No, the SDK serves the cached items until the cache duration elapses. Configure a duration that matches how frequently your catalog changes.
+  </Accordion>
+</AccordionGroup>
