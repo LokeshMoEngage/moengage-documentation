@@ -1,7 +1,4 @@
 export const HomeHero = () => {
-  // Root-relative links are not rewritten inside a JSX snippet, so production
-  // (served under /docs) needs the base path added at runtime.
-  const [base, setBase] = useState("");
   const ribbonRef = useRef(null);
   const boxRef = useRef(null);
 
@@ -62,11 +59,6 @@ export const HomeHero = () => {
     { key: "a", dy: -21, size: 8.5, reps: 6, speed: 13 },
     { key: "b", dy: 21, size: 8.5, reps: 6, speed: 16 },
   ];
-
-  useEffect(() => {
-    const p = window.location.pathname;
-    if (p === "/docs" || p.startsWith("/docs/")) setBase("/docs");
-  }, []);
 
   // Glyphs drift along the ribbon without end: each lane repeats its pattern,
   // so shifting by one pattern width is seamless and nothing ever restarts.
@@ -177,7 +169,7 @@ export const HomeHero = () => {
 
         <nav className="hp-hero-links" aria-label="Documentation sections">
           {links.map((l) => (
-            <a key={l.href} href={base + l.href} className="hp-chip">
+            <a key={l.href} href={l.href} className="hp-chip">
               {l.label}
             </a>
           ))}
@@ -242,13 +234,7 @@ export const HomeHero = () => {
 };
 
 export const HomeSections = () => {
-  const [base, setBase] = useState("");
   const [copied, setCopied] = useState(null);
-
-  useEffect(() => {
-    const p = window.location.pathname;
-    if (p === "/docs" || p.startsWith("/docs/")) setBase("/docs");
-  }, []);
 
 
   const ICON = {
@@ -325,7 +311,7 @@ export const HomeSections = () => {
           <div className="hp-head-aside">
             {aside && <p>{aside}</p>}
             {link && (
-              <a className="hp-inline" href={base + link.href}>
+              <a className="hp-inline" href={link.href}>
                 {link.label} <span aria-hidden="true">→</span>
               </a>
             )}
@@ -425,7 +411,7 @@ export const HomeSections = () => {
   ];
 
   const Card = ({ c }) => (
-    <a href={base + c.href} className="hp-card">
+    <a href={c.href} className="hp-card">
       <span className="hp-card-dot">
         <Icon name={c.icon} />
       </span>
@@ -470,7 +456,7 @@ export const HomeSections = () => {
         />
         <div className="hp-pills">
           {sdks.map((s) => (
-            <a key={s.href} href={base + s.href} className="hp-pill">
+            <a key={s.href} href={s.href} className="hp-pill">
               <Icon name={s.icon} />
               {s.label}
             </a>
@@ -486,7 +472,7 @@ export const HomeSections = () => {
               <a className="hp-ai-logo" href="https://claude.ai/directory/moengage-mcp" target="_blank" rel="noopener noreferrer" aria-label="MoEngage in the Claude connector directory" title="Claude">
                 <Logo name="claude" />
               </a>
-              <a className="hp-ai-logo" href={base + "/user-guide/ai-and-intelligence/merlin-ai/moengage-mcp-server#personal-setup-per-user"} aria-label="Connect ChatGPT to MoEngage" title="ChatGPT">
+              <a className="hp-ai-logo" href="/user-guide/ai-and-intelligence/merlin-ai/moengage-mcp-server#personal-setup-per-user" aria-label="Connect ChatGPT to MoEngage" title="ChatGPT">
                 <Logo name="openai" />
               </a>
             </div>
@@ -519,7 +505,7 @@ export const HomeSections = () => {
                   ))}
                 </ul>
                 <div className="hp-term-foot">
-                  <a className="hp-inline hp-inline--light" href={base + m.link.href}>
+                  <a className="hp-inline hp-inline--light" href={m.link.href}>
                     {m.link.label} <span aria-hidden="true">→</span>
                   </a>
                   {m.external && (
@@ -566,7 +552,7 @@ export const HomeSections = () => {
           <button type="button" className="hp-btn hp-btn--dark" onClick={openSearch}>
             Search the docs
           </button>
-          <a className="hp-btn hp-btn--outline" href={base + "/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard"}>
+          <a className="hp-btn hp-btn--outline" href="/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard">
             Contact Support
           </a>
         </div>

@@ -1,8 +1,9 @@
 export const MerlinShowcase = () => {
-  // Root-relative links are not rewritten inside a JSX snippet, so production
-  // (served under /docs) needs the base path added at runtime. Local dev and
-  // preview deployments serve from the root and keep an empty base.
-  const [base, setBase] = useState("");
+  // Production serves the docs under /docs. Mintlify prefixes links itself, so
+  // hrefs stay root-relative, but image sources are not rewritten and need the
+  // base added at runtime. Local dev and previews serve from the root.
+  // null until mounted, so the image never requests the wrong path first.
+  const [base, setBase] = useState(null);
   const [active, setActive] = useState(0);
   const [hold, setHold] = useState(false);
   const [offscreen, setOffscreen] = useState(false);
@@ -47,7 +48,9 @@ export const MerlinShowcase = () => {
           <Prompt>A dynamic, high-energy shot of a person in sleek, colourful activewear, captured mid-run…</Prompt>
           {/* A real Designer output for this prompt, from the Merlin AI Designer docs. */}
           <div className="mv-banner">
-            <img className="mv-banner-img" src={base + "/images/merlin-designer-activewear-banner.jpg"} alt="" loading="lazy" draggable={false} />
+            {base !== null && (
+              <img className="mv-banner-img" src={base + "/images/merlin-designer-activewear-banner.jpg"} alt="" loading="lazy" draggable={false} />
+            )}
           </div>
         </>
       ),
@@ -290,7 +293,7 @@ export const MerlinShowcase = () => {
 
   useEffect(() => {
     const p = window.location.pathname;
-    if (p === "/docs" || p.startsWith("/docs/")) setBase("/docs");
+    setBase(p === "/docs" || p.startsWith("/docs/") ? "/docs" : "");
   }, []);
 
   const cards = () => (trackRef.current ? Array.from(trackRef.current.querySelectorAll("[data-merlin-slide]")) : []);
@@ -470,7 +473,7 @@ export const MerlinShowcase = () => {
         {slides.map((s, i) => (
           <a
             key={s.key}
-            href={base + s.href}
+            href={s.href}
             className="merlin-card"
             data-merlin-slide=""
             draggable={false}
@@ -490,7 +493,7 @@ export const MerlinShowcase = () => {
         ))}
 
         <a
-          href={base + "/user-guide/ai-and-intelligence/overview"}
+          href="/user-guide/ai-and-intelligence/overview"
           className="merlin-card merlin-card--end"
           data-merlin-slide=""
           draggable={false}
