@@ -92,32 +92,28 @@ For more information, refer to [Handle Unsubscribes in Emails](/user-guide/campa
 - **Bounce & Complaints Tracking:** This URL needs to be configured on the ESP's dashboard. They will post events like delivered, bounced, and spam complaints on this URL for MoEngage to consume and update stats against the corresponding campaign. MoEngage receives this information in a POST call in the format below to the URL mentioned in your **Bounces & Complaint Tracking (Callback URL)** field. <img src="/images/moengage_baa47f.png" alt="bounces.png" />
 - Add the callback URL as shown below: [https://api-0X.moengage.com/v1/](https://api-01.moengage.com/v1/emailresubscribe)[emailbounceendpoint/`<>`](https://api-0X.moengage.com/v1/emailbounceendpoint/`<>`) MoEngage hosts each customer in a different data center; you can find your data center number (value of X) by checking the data center and API endpoint mapping [here](/user-guide/data/key-concepts/data-centers-in-moengage).
 
-<Info>
-  Since there is no Campaign ID in this callback, MoEngage does not display bounce and complaint details in campaign analytics for Custom SMTP Connectors.
-</Info>
-
 The API supports only POST requests.
 
 ```json JSON
 [
-{
-"event": "hard_bounce",
-"data": [
   {
-   "email":"abc@moengage.com"
-  },
-  {
-   "email":"bcd@moengage.com"
+    "event": "hard_bounce",
+    "cid": "MOE_CampaignID",
+    "data": [
+      {
+        "email": "abc@example.com",
+        "user_id": "MOE_USER_ID"
+      }
+    ]
   }
- ]
-}
 ]
 ```
 
 | JSON Parameter | Data Type | Required | Description |
 | --- | --- | --- | --- |
-| event | String | Yes | This field denotes the delivery callback event. Supported values are: <ul><li>hard\_bounce</li><li>soft\_bounce</li><li>spam</li></ul> <br />**Note**: This field is case-sensitive. When passing the value in the request, follow the case as in the example. |
-| data | Array | Yes | This field contains the data of the user. Here, the data is the email ID of the user. |
+| event | String | Yes | This field denotes the delivery callback event. Supported values are: <ul><li>delivered</li><li>hard\_bounce</li><li>soft\_bounce</li><li>spam</li></ul> **Note**: This field is case-sensitive. When passing the value in the request, follow the case as in the example. |
+| `cid` | String | Yes | This field denotes the unique identifier used to identify a campaign in MoEngage. |
+| data | Array | Yes | This field contains the user data. For more information, refer to [Data Array](/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel#data-array). |
 
 You are all set up with connector configurations. You can now click **Save** button to test these settings (including credentials etc.) and save them. You can then select **Custom SMTP** as the default connector in **General Settings**.
 
@@ -287,46 +283,42 @@ To limit the number of emails sent to users in a certain period, configure frequ
 
 To view delivery statistics on the campaign analytics page, you must send the callback as defined below:
 
-This is not applicable to custom SMTP connectors
+This applies to all custom connectors, including Custom SMTP connectors.
 
 - The MoE-API is displayed on the Settings dashboard. The API supports only POST requests.
 - There is no authentication mechanism on the endpoint.
 - The preferred timeout for the API request must be 5 seconds.
-- _user\_id_ should be taken from the _custom\_args_ parameter of the Email Sending API payload.
+- _user\_id_ should be taken from the _custom\_args_ parameter of the Email Sending API payload. For Custom SMTP connectors, pass the MoEngage user ID that was sent with the email.
 - In the event, you can pass each case. Note that the values are case-sensitive.
 
 Following is the sample payload for the same:
 
 ```json JSON
 [
- {
-  "event": "hard_bounce",
-  "cid": "MOE_CampaignID",
-  "data":[
+  {
+    "event": "delivered",
+    "cid": "MOE_CampaignID",
+    "data": [
       {
-       "email":"encrypted_email_id1",
-       "user_id":"MOE_USER_ID"
-     },
-     {
-       "email":"encrypted_email_id2",
-       "user_id":"MOE_USER_ID"
-     }
-   ]
+        "email": "abc@example.com",
+        "user_id": "MOE_USER_ID"
+      }
+    ]
   }
 ]
 ```
 
 | JSON Parameter | Data Type | Required | Description |
 | --- | --- | --- | --- |
-| event | String | Yes | This field denotes the delivery callback event. Supported values are: <ul><li>delivered</li><li>hard\_bounce</li><li>soft\_bounce</li><li>spam   <br />**Note**: This field is case-sensitive. When passing the value in the request, follow the case as in the example.</li></ul> |
-| cid | String | Yes | This field denotes the unique identifier used to identify a campaign in MoEngage. |
-| data | JSON Object | Yes | This field contains the data of the user. For more information, refer to [Data JSON Object](/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel#data-json-object). |
+| event | String | Yes | This field denotes the delivery callback event. Supported values are: <ul><li>delivered</li><li>hard\_bounce</li><li>soft\_bounce</li><li>spam</li></ul> **Note**: This field is case-sensitive. When passing the value in the request, follow the case as in the example. |
+| cid | String | Yes | This field denotes the unique identifier used to identify a campaign in MoEngage. This should be formatted. For example: `"cid": "6ab4dc42387c99ae83419bf8_F_T_EM_AB_0_P_0_TIME_20261019103000_L_1"`. |
+| data | Array | Yes | This field contains the data of the user. For more information, refer to [Data Array](/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel#data-array). |
 
-#### Data JSON Object
+#### Data Array
 
-The data JSON object contains the following:
+The data array contains the following:
 
-| JSON Parameter | Data Type | Required | Description |
+| Parameter | Data Type | Required | Description |
 | --- | --- | --- | --- |
-| email | String | Yes | This field denotes the email ID of the user. |
-| user\_id | String | Yes | This field denotes the unique identifier used to identify a user in MoEngage. |
+| email | String | Yes | This field denotes the email ID of the user. Send the email exactly as it was passed in the send request. |
+| user\_id | String | Yes | This field denotes the unique identifier used to identify a user in MoEngage. Mandatory for PII Tokenization and PII encryption accounts. |
