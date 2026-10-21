@@ -1,0 +1,49 @@
+---
+title: "Query Settings"
+description: "Turn on Analytics user merging, real-time event deduplication, and real-time delete and merge propagation to control how MoEngage counts users and events in analytics and segmentation queries."
+keywords: ["user merging", "analytics user merging", "event deduplication", "duplicate events", "real-time delete", "merge propagation", "segment count accuracy"]
+---
+
+Use Query settings to control how MoEngage handles merged users, duplicate events, and deleted users when it runs Analytics and Segmentation queries. Each setting improves count accuracy, and each can make queries take longer, so you choose which ones your workspace needs.
+
+To open Query settings, on the left navigation menu in the MoEngage dashboard, go to **Settings** \> **Analytics & Segmentation** \> **Query settings**.
+
+<img alt="Query settings page with the Analytics user merging, Real-time event dedup, and Real-time delete and merge propagation toggles" src="/images/query-settings-toggles.png" />
+
+The page has three toggles:
+
+| Setting | What it changes | Applies to |
+| --- | --- | --- |
+| [Analytics user merging](#analytics-user-merging) | Counts an anonymous profile and the registered profile it merges into as one user. | Analytics |
+| [Real-time event dedup](#real-time-event-deduplication) | Removes duplicate copies of events that MoEngage saved twice. | Segmentation |
+| [Real-time delete and merge propagation](#real-time-delete-and-merge-propagation) | Applies user deletes and identity merges to segments within seconds. | Segmentation |
+
+After you turn on a toggle, the change can take up to 15 minutes to take effect.
+
+## Analytics User Merging
+
+MoEngage merges an anonymous user profile with the registered user profile after the user logs in, so each user has a single user ID across devices and sessions. For more information, refer to [User Merging](/user-guide/data/user-data/anonymous-to-registered-user-merge).
+
+When you turn on **Analytics user merging**, MoEngage Analytics applies the same merging logic, so the anonymous and logged-in activity of a user counts as one user in reports such as [Behavior Analysis](/user-guide/analyze/analytics/behavior/behavior-overview). It can slightly increase query load time.
+
+<Info>
+Segmentation has its own user merging logic. If Analytics user merging is turned off, Analytics treats anonymous and logged-in sessions as separate users, so user counts for the same criteria can differ between Segmentation queries and Analytics reports. Turn on Analytics user merging to align these counts.
+</Info>
+
+## Real-Time Event Deduplication
+
+In rare cases, MoEngage can record the same event more than once. MoEngage prioritizes never losing your data, so occasionally an event is saved twice. When this happens, a user who performed an event once appears to have done it twice. Filters that count occurrences, such as **has executed** an event **exactly** a number of times, can then include or exclude users who don't meet the condition.
+
+When you turn on **Real-time event dedup**, MoEngage finds and removes these duplicate copies. It identifies duplicates using an internal ID that MoEngage assigns to each event, which is separate from `event_id` and your event attributes, so genuine repeat events from your users are never removed. Duplicates are cleaned up during MoEngage's regular data optimization process, and Segmentation counts each event only once.
+
+<Warning>
+Segmentation queries take longer to run when this setting is on.
+</Warning>
+
+## Real-Time Delete and Merge Propagation
+
+When MoEngage deletes a user or merges an anonymous profile into a registered one, segments reflect the change at the next scheduled rebuild. Until then, a deleted user can stay in a segment, and a merged user can count as two users.
+
+When you turn on **Real-time delete and merge propagation**, deleted users leave every segment immediately, and merged identities count as one user everywhere.
+
+Because queries do additional work to apply these changes, query time can increase. The increase depends on the monthly active users (MAU) in your workspace. Workspaces with a small MAU typically see little to no change, while workspaces with a large MAU can see a noticeable increase in query time. Turn on this setting if having the latest deletes and merges reflected immediately matters more to you than query speed.
