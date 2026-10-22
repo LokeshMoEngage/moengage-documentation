@@ -13,6 +13,8 @@ import ArraySupport from '/snippets/imports-array-support.mdx';
 import ReachabilityNote from '/snippets/imports-reachability-note.mdx';
 import PgpEncryption from '/snippets/imports-pgp-encryption.mdx';
 import DataArchival from '/snippets/imports-data-archival.mdx';
+import FileRowOrder from '/snippets/imports-file-row-order-callout.mdx';
+import FileImportLimits from '/snippets/imports-limits.mdx';
 
 MoEngage automates imports of users, events, and auxiliary data from files you drop in an Amazon S3 bucket or an SFTP server. You prepare your files, configure the connection and column mapping once, and MoEngage picks up new files on a one-time or periodic schedule.
 
@@ -150,9 +152,34 @@ Structure your files according to the file type you import:
 
 Place all files into a single folder and configure the folder path during setup. MoEngage does not look inside subfolders or the root folder.
 
-## Array Support (CSV)
+<FileRowOrder />
 
-<ArraySupport />
+## Array Support
+
+<Tabs>
+  <Tab title="CSV Files">
+    <ArraySupport />
+  </Tab>
+  <Tab title="JSON Files">
+    * Simple arrays and array of objects are supported.
+    * Pass a valid JSON array. For example: `[1, 2, 3]`.
+    * The supported data types are Array String, Array Double (numeric), and Array Object. Select the type in the **Map column to attribute** list during column mapping.
+    * All elements in an array must be homogeneous, either all integer/double or all string. If they are not, MoEngage attempts to typecast each element to the declared type and stores the result.
+    * **Array typecasting**: If an array `["1", 2, "abc"]` is mapped as Array Double, MoEngage ingests `[1, 2]`, because `"abc"` cannot be cast to a number and is dropped.
+
+    **Example**
+
+    A JSON row with a String column, an Array String column, and an Array Double column:
+
+    ```json
+    {"user_id": "u123","tags": ["premium", "beta_user", "newsletter"],"scores": [4.5, 3.8, 5.0],"subscriptions":[{"type":"email","status":"active"},{"type":"sms","status":"inactive"}]}
+    ```
+
+    * `tags` is mapped as **Array String**, MoEngage ingests `["premium", "beta_user", "newsletter"]`.
+    * `scores` is mapped as **Array Double**, MoEngage ingests `[4.5, 3.8, 5.0]`.
+    * `subscriptions` is mapped as **Array Object**, MoEngage ingests `[{"type":"email","status":"active"},{"type":"sms","status":"inactive"}]`.
+  </Tab>
+</Tabs>
 
 # Limits
 
@@ -168,16 +195,7 @@ File imports have the following limits:
 | File name prefix | Maximum 100 characters. |
 | Number of files | Up to 250 files per import run. |
 
-**Rate limits** (defaults, contact MoEngage to increase):
-
-| Import Type | Hourly | Daily |
-| --- | --- | --- |
-| Users | <ul><li>Growth: 1.5M/hr</li><li>Enterprise: 2.5M/hr</li></ul> | <ul><li>Growth: 15M/day</li><li>Enterprise: 25M/day</li></ul> |
-| Events | 5M/hr | 40M/day |
-
-The hourly rate is the maximum ingested per hour; the daily rate is the total cap per day. When a rate limit is breached, you receive a _Rate limit breached_ alert on the Data Imports dashboard.
-
-To see how much of your hourly and daily import limit you have used, which imports are held back when a limit is reached, and which imports are consuming the most, refer to [Check Import Limits](/user-guide/data/imports/overview-imports#check-import-limits).
+<FileImportLimits />
 
 <Tip>
   Avoid scheduling a very large number of files at the same time. Doing so can create a processing backlog and delay ingestion, even when each file is small. Stagger or batch your scheduled imports over time instead of queuing a large number of files together.
