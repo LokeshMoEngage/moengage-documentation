@@ -134,12 +134,9 @@ To authenticate using Basic Authentication, include a Base64-encoded string of y
 
 ```http
 Authorization: Basic {base64_encoded_credentials}
-MOE-APPKEY: {your_workspace_id} # This header is mandatory for the File Import and Test Connection APIs. It is not required for API Endpoints under Data.
+MOE-APPKEY: {your_workspace_id} 
 Content-Type: application/json
 ```
-<Note>
-The `MOE-APPKEY` header (set to your Workspace ID) is required only for File Import APIs and the Test Connection API. It is not required for core Data APIs such as Track User, Get User, Track Event, Merge User, Delete User, and Track Device.
-</Note>
 
 ### Generating Credentials
 
@@ -228,182 +225,259 @@ Most MoEngage APIs return errors in the standard format below.
 
 ### Data
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/customer/{Workspace_ID}` | Create or update user |
-| `POST` | `/customers/export` | Get user details |
-| `POST` | `/customer/merge` | Merge two users |
-| `POST` | `/customer/delete` | Delete users in bulk |
-| `POST` | `/event/{Workspace_ID}` | Track user events |
-| `POST` | `/transition/{Workspace_ID}` | Bulk import |
-| `POST` | `/device/{app_id}` | Create or update device |
-| `POST` | `/devices/manage` | Manage devices |
-| `POST` | `/fileimports/trigger/{schedule_id}` | Trigger file import |
-| `POST` | `/fileimports/import/status` | Get import status |
-| `GET` | `/installInfo` | Get install info |
-| `POST` | `/integrations/authentication` | Validate authentication |
-| `POST` | `/opengdpr_requests/{appId}` | Create GDPR/CCPA request |
+`app_id` (or `appId`/`Workspace_ID`) is your Workspace ID, found at **Settings > Account > APIs**.
+
+| Method | Endpoint                             | Description              | Workspace ID passed as |
+| ------ | ------------------------------------ | ------------------------ | ---------------------- |
+| `POST` | `/customer/{app_id}`                 | Create or update user    | Path (`app_id`)        |
+| `POST` | `/customers/export`                  | Get user details         | Query (`app_id`)       |
+| `POST` | `/customer/merge`                    | Merge two users          | Query (`app_id`)       |
+| `POST` | `/customer/delete`                   | Delete users in bulk     | Query (`app_id`)       |
+| `POST` | `/event/{Workspace_ID}`              | Track user events        | Path (`Workspace_ID`)  |
+| `POST` | `/transition/{Workspace_ID}`         | Bulk import              | Path (`Workspace_ID`)  |
+| `POST` | `/device/{app_id}`                   | Create or update device  | Path (`app_id`)        |
+| `POST` | `/devices/manage`                    | Manage devices           | Query (`app_id`)       |
+| `POST` | `/fileimports/trigger/{schedule_id}` | Trigger file import      | Header (`MOE-APPKEY`)  |
+| `POST` | `/fileimports/import/status`         | Get import status        | Header (`MOE-APPKEY`)  |
+| `POST` | `/fileimports/import/run/history`    | Get import run history   | Header (`MOE-APPKEY`)  |
+| `GET`  | `/installInfo`                       | Get install info         | Query (`appId`)        |
+| `POST` | `/integrations/authentication`       | Validate authentication  | Header (`MOE-APPKEY`)  |
+| `POST` | `/opengdpr_requests/{appId}`         | Create GDPR/CCPA request | Path (`appId`)         |
+
+<Note>
+Query parameter keys are literal and differ by endpoint (`app_id` vs `appId`). Send them exactly as shown.
+</Note>
+
+### OAuth
+
+| Method | Endpoint            | Description           |
+| ------ | ------------------- | --------------------- |
+| `POST` | `/v1/oauth/token`   | Generate access token |
+| `POST` | `/v1/oauth/refresh` | Refresh access token  |
 
 ### Business Events
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/business_event` | Create business event |
-| `POST` | `/business_event/trigger` | Trigger business event |
-| `POST` | `/business_event/search` | Search business events |
+| Method | Endpoint                       | Description                 |
+| ------ | ------------------------------ | --------------------------- |
+| `POST` | `/business_event`              | Create business event       |
+| `POST` | `/business_event/trigger`      | Trigger business event      |
+| `POST` | `/business_event/search`       | Search business events      |
+| `POST` | `/v5/business-events/triggers` | Trigger business event (V5) |
+| `GET`  | `/v5/business-events`          | List business events (V5)   |
+| `POST` | `/v5/business-events/search`   | Search business events (V5) |
 
 ### Content
 
 #### Templates
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/custom-templates/inapp` | Create In-App template |
-| `PUT` | `/custom-templates/inapp` | Update In-App template |
-| `POST` | `/custom-templates/inapp/search` | Search In-App templates |
-| `POST` | `/custom-templates/osm` | Create OSM template |
-| `PUT` | `/custom-templates/osm` | Update OSM template |
-| `POST` | `/custom-templates/osm/search` | Search OSM templates |
-| `POST` | `/custom-templates/sms` | Create SMS template |
-| `PUT` | `/custom-templates/sms` | Update SMS template |
-| `POST` | `/custom-templates/sms/search` | Search SMS templates |
-| `POST` | `/email-templates` | Create Email template |
-| `GET` | `/email-templates` | Get all Email templates |
-| `GET` | `/email-templates/{id}` | Get Email template by ID |
-| `PUT` | `/email-templates/{id}` | Update Email template |
-| `POST` | `/custom-templates/email` | Create Email template V2 |
-| `PUT` | `/custom-templates/email` | Update Email template V2 |
-| `POST` | `/custom-templates/push` | Create Push template |
-| `PUT` | `/custom-templates/push` | Update Push template |
-| `POST` | `/custom-templates/push/search` | Search Push templates |
+| Method | Endpoint                         | Description                           |
+| ------ | -------------------------------- | ------------------------------------- |
+| `POST` | `/custom-templates/inapp`        | Create In-App template                |
+| `PUT`  | `/custom-templates/inapp`        | Update In-App template                |
+| `POST` | `/custom-templates/inapp/search` | Search In-App templates               |
+| `POST` | `/custom-templates/osm`          | Create OSM template                   |
+| `PUT`  | `/custom-templates/osm`          | Update OSM template                   |
+| `POST` | `/custom-templates/osm/search`   | Search OSM templates                  |
+| `POST` | `/custom-templates/sms`          | Create SMS template                   |
+| `PUT`  | `/custom-templates/sms`          | Update SMS template                   |
+| `POST` | `/custom-templates/sms/search`   | Search SMS templates                  |
+| `POST` | `/email-templates`               | Create Email template                 |
+| `GET`  | `/email-templates`               | Get all Email templates               |
+| `GET`  | `/email-templates/{id}`          | Get Email template by ID              |
+| `PUT`  | `/email-templates/{id}`          | Update Email template                 |
+| `PUT`  | `/bulk/email-templates`          | Bulk create or update Email templates |
+| `POST` | `/custom-templates/email`        | Create Email template V2              |
+| `PUT`  | `/custom-templates/email`        | Update Email template V2              |
+| `POST` | `/custom-templates/email/search` | Search Email templates V2             |
+| `POST` | `/custom-templates/push`         | Create Push template                  |
+| `PUT`  | `/custom-templates/push`         | Update Push template                  |
+| `POST` | `/custom-templates/push/search`  | Search Push templates                 |
 
 #### Content Blocks
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/content-blocks` | Create content block |
-| `PUT` | `/content-blocks` | Update content block |
+| Method | Endpoint                     | Description               |
+| ------ | ---------------------------- | ------------------------- |
+| `POST` | `/content-blocks`            | Create content block      |
+| `PUT`  | `/content-blocks`            | Update content block      |
 | `POST` | `/content-blocks/get-by-ids` | Get content blocks by IDs |
-| `POST` | `/content-blocks/search` | Search content blocks |
+| `POST` | `/content-blocks/search`     | Search content blocks     |
+
+#### Content APIs
+
+| Method | Endpoint                     | Description       |
+| ------ | ---------------------------- | ----------------- |
+| `GET`  | `/v5/content-apis`           | List Content APIs |
+| `POST` | `/v5/content-apis/{id}/test` | Test Content API  |
+
+#### Locales
+
+| Method | Endpoint      | Description  |
+| ------ | ------------- | ------------ |
+| `GET`  | `/v5/locales` | List locales |
 
 #### Recommendations
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `GET` | `/recommendations` | List all recommendations |
-| `GET` | `/recommendations/{recommendation_id}` | Get the details of a recommendation |
-| `POST` | `/recommendations/{recommendation_id}/items` | Get recommended items for a user |
+| Method | Endpoint                                     | Description                         |
+| ------ | -------------------------------------------- | ----------------------------------- |
+| `GET`  | `/recommendations`                           | List all recommendations            |
+| `GET`  | `/recommendations/{recommendation_id}`       | Get the details of a recommendation |
+| `POST` | `/recommendations/{recommendation_id}/items` | Get recommended items for a user    |
 
 #### Coupons
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/coupon-list` | Create coupon list |
-| `GET` | `/coupon-list` | List coupon lists |
-| `GET` | `/coupon-list/{coupon_list_id}` | Get coupon list |
-| `PATCH` | `/coupon-list/{coupon_list_id}` | Update coupon list |
-| `PUT` | `/coupon-list/{coupon_list_id}/activate` | Activate coupon list |
-| `PUT` | `/coupon-list/{coupon_list_id}/archive` | Archive coupon list |
-| `POST` | `/coupon-list/{coupon_list_id}/files` | Upload coupon file |
-| `GET` | `/coupon-list/{coupon_list_id}/files` | List coupon files |
-| `GET` | `/coupon-list/{coupon_list_id}/files/{coupon_file_id}` | Get coupon file |
-| `DELETE` | `/coupon-list/{coupon_list_id}/files/{coupon_file_id}` | Delete coupon file |
-| `POST` | `/coupon-list/{coupon_list_id}/usage-report` | Get usage report |
+| Method   | Endpoint                                               | Description          |
+| -------- | ------------------------------------------------------ | -------------------- |
+| `POST`   | `/coupon-list`                                         | Create coupon list   |
+| `GET`    | `/coupon-list`                                         | List coupon lists    |
+| `GET`    | `/coupon-list/{coupon_list_id}`                        | Get coupon list      |
+| `PATCH`  | `/coupon-list/{coupon_list_id}`                        | Update coupon list   |
+| `PUT`    | `/coupon-list/{coupon_list_id}/activate`               | Activate coupon list |
+| `PUT`    | `/coupon-list/{coupon_list_id}/archive`                | Archive coupon list  |
+| `POST`   | `/coupon-list/{coupon_list_id}/files`                  | Upload coupon file   |
+| `GET`    | `/coupon-list/{coupon_list_id}/files`                  | List coupon files    |
+| `GET`    | `/coupon-list/{coupon_list_id}/files/{coupon_file_id}` | Get coupon file      |
+| `DELETE` | `/coupon-list/{coupon_list_id}/files/{coupon_file_id}` | Delete coupon file   |
+| `POST`   | `/coupon-list/{coupon_list_id}/usage-report`           | Get usage report     |
 
 #### Catalog
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/catalog` | Create catalog |
-| `PATCH` | `/catalog/{catalog_id}/attributes` | Add catalog attributes |
-| `POST` | `/catalog/{catalog_id}/items` | Ingest catalog items |
-| `POST` | `/catalog/{catalog_id}/items/search` | Search catalog items |
-| `PATCH` | `/catalog/{catalog_id}/items` | Update catalog items |
-| `POST` | `/catalog/{catalog_id}/items/bulk-delete` | Delete catalog items |
+| Method  | Endpoint                                  | Description            |
+| ------- | ----------------------------------------- | ---------------------- |
+| `POST`  | `/catalog`                                | Create catalog         |
+| `PATCH` | `/catalog/{catalog_id}/attributes`        | Add catalog attributes |
+| `POST`  | `/catalog/{catalog_id}/items`             | Ingest catalog items   |
+| `POST`  | `/catalog/{catalog_id}/items/search`      | Search catalog items   |
+| `PATCH` | `/catalog/{catalog_id}/items`             | Update catalog items   |
+| `POST`  | `/catalog/{catalog_id}/items/bulk-delete` | Delete catalog items   |
+
+#### Offerings
+
+| Method  | Endpoint                             | Description          |
+| ------- | ------------------------------------ | -------------------- |
+| `POST`  | `/v5/offers`                         | Create offering      |
+| `GET`   | `/v5/offers`                         | List offerings       |
+| `GET`   | `/v5/offers/{offer_id}`              | Get offering         |
+| `PATCH` | `/v5/offers/{offer_id}`              | Update offering      |
+| `GET`   | `/v5/offers/templates`               | List offer templates |
+| `GET`   | `/v5/offers/templates/{template_id}` | Get offer template   |
 
 ### Campaigns
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/campaigns` | Create campaign |
-| `PATCH` | `/campaigns/{campaign_id}` | Update campaign |
-| `POST` | `/campaigns/search` | Search campaigns |
-| `POST` | `/campaigns/test` | Test campaign |
-| `POST` | `/personalization/preview` | Preview personalization |
-| `POST` | `/campaigns/meta` | Get campaign metadata |
-| `POST` | `/campaigns/status` | Get campaign status |
-| `POST` | `/campaigns/{parent_campaign_id}/executions` | Get campaign executions |
-| `POST` | `/core-services/v1/campaign-stats` | Get campaign stats |
-| `GET` | `/campaign_reports/rest_api/{APP_ID}/{FILENAME}` | Download campaign report |
+| Method  | Endpoint                                         | Description                       |
+| ------- | ------------------------------------------------ | --------------------------------- |
+| `POST`  | `/campaigns`                                     | Create campaign                   |
+| `PATCH` | `/campaigns/{campaign_id}`                       | Update campaign                   |
+| `POST`  | `/campaigns/search`                              | Search campaigns                  |
+| `POST`  | `/campaigns/test`                                | Test campaign                     |
+| `POST`  | `/personalization/preview`                       | Preview personalization           |
+| `POST`  | `/campaigns/meta`                                | Get campaign metadata             |
+| `POST`  | `/campaigns/status`                              | Get campaign status               |
+| `POST`  | `/campaigns/{parent_campaign_id}/executions`     | Get campaign executions           |
+| `PUT`   | `/global-control-group/users`                    | Update Global Control Group users |
+| `POST`  | `/v5/campaigns`                                  | Create campaign draft (V5)        |
+| `GET`   | `/v5/campaigns/{campaign_id}`                    | Get campaign (V5)                 |
+| `PATCH` | `/v5/campaigns/{campaign_id}`                    | Update campaign (V5)              |
+| `POST`  | `/v5/campaigns/{campaign_id}/validate`           | Validate campaign (V5)            |
+| `PATCH` | `/v5/campaigns/{campaign_id}/status`             | Update campaign status (V5)       |
+| `POST`  | `/v5/campaigns/search`                           | Search campaigns (V5)             |
+| `POST`  | `/v5/campaigns/meta`                             | Get campaign metadata (V5)        |
+| `POST`  | `/v5/campaigns/test`                             | Test campaign (V5)                |
+| `POST`  | `/core-services/v1/campaign-stats`               | Get campaign stats                |
+| `GET`   | `/campaign_reports/rest_api/{APP_ID}/{FILENAME}` | Download campaign report          |
+
+### Flows
+
+| Method  | Endpoint                                    | Description        |
+| ------- | ------------------------------------------- | ------------------ |
+| `POST`  | `/v5/flows/search`                          | Search flows       |
+| `GET`   | `/v5/flows/{flow_id}`                       | Get flow           |
+| `GET`   | `/v5/flows/{flow_id}/versions/{version_id}` | Get flow version   |
+| `PATCH` | `/v5/flows/{flow_id}/status`                | Update flow status |
 
 ### Segments
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/v2/custom-segments/file-segment` | Create file segment |
-| `PUT` | `/v2/custom-segments/file-segment/add-users` | Add users to segment |
-| `PUT` | `/v2/custom-segments/file-segment/remove-users` | Remove users from segment |
-| `PUT` | `/v2/custom-segments/file-segment/replace` | Replace segment users |
-| `GET` | `/v3/custom-segments` | List filter segments |
-| `POST` | `/v3/custom-segments` | Create filter segment |
-| `GET` | `/v3/custom-segments/{id}` | Get segment by ID |
-| `PATCH` | `/v3/custom-segments/{id}` | Update filter segment |
-| `POST` | `/v1/integrations/cohortsync` | Sync cohort audience |
-| `PATCH` | `/v2/custom-segments/archive` | Archive segment |
-| `PATCH` | `/v2/custom-segments/unarchive` | Unarchive segment |
+| Method  | Endpoint                                        | Description               |
+| ------- | ----------------------------------------------- | ------------------------- |
+| `POST`  | `/v2/custom-segments/file-segment`              | Create file segment       |
+| `PUT`   | `/v2/custom-segments/file-segment/add-users`    | Add users to segment      |
+| `PUT`   | `/v2/custom-segments/file-segment/remove-users` | Remove users from segment |
+| `PUT`   | `/v2/custom-segments/file-segment/replace`      | Replace segment users     |
+| `GET`   | `/v3/custom-segments`                           | List filter segments      |
+| `POST`  | `/v3/custom-segments`                           | Create filter segment     |
+| `GET`   | `/v3/custom-segments/{id}`                      | Get segment by ID         |
+| `PATCH` | `/v3/custom-segments/{id}`                      | Update filter segment     |
+| `POST`  | `/v1/integrations/cohortsync`                   | Sync cohort audience      |
+| `PATCH` | `/v2/custom-segments/archive`                   | Archive segment           |
+| `PATCH` | `/v2/custom-segments/unarchive`                 | Unarchive segment         |
+
+### Analytics
+
+| Method | Endpoint                                                    | Description                     |
+| ------ | ----------------------------------------------------------- | ------------------------------- |
+| `GET`  | `/v5/analytics/dashboards`                                  | List dashboards                 |
+| `GET`  | `/v5/analytics/dashboards/{dashboard_id}/charts`            | Get dashboard charts            |
+| `GET`  | `/v5/analytics/dashboards/{dashboard_id}/charts/{chart_id}` | Get chart data                  |
+| `POST` | `/v5/analytics/behavior`                                    | Register a behavior query       |
+| `POST` | `/v5/analytics/funnels`                                     | Register a funnels query        |
+| `POST` | `/v5/analytics/retention`                                   | Register a retention query      |
+| `POST` | `/v5/analytics/session-source`                              | Register a session source query |
+| `POST` | `/v5/analytics/user-analysis`                               | Register a user analysis query  |
+| `GET`  | `/v5/analytics/query/{request_id}/status`                   | Get query status                |
+| `GET`  | `/v5/analytics/query/{request_id}/results`                  | Get query results               |
 
 ### Subscriptions
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/emails/v1.0/bulk-resubscribe` | Bulk resubscribe emails |
-| `PUT` | `/v1.0/opt-in-management/user-preferences` | Update opt-in preferences |
-| `GET` | `/category-subscription/user-preferences` | Get subscription preferences |
-| `PUT` | `/category-subscription/user-preferences` | Update subscription preferences |
-| `POST` | `/category-subscription/user-preferences` | Create subscription preferences |
-| `GET` | `/v5/subscription-categories` | Get subscription categories (V5) |
-| `GET` | `/v5/subscription-preferences` | Get subscription preferences (V5) |
-| `PATCH` | `/v5/subscription-preferences` | Update subscription preferences (V5) |
+| Method  | Endpoint                                   | Description                          |
+| ------- | ------------------------------------------ | ------------------------------------ |
+| `POST`  | `/emails/v1.0/bulk-resubscribe`            | Bulk resubscribe emails              |
+| `PUT`   | `/v1.0/opt-in-management/user-preferences` | Update opt-in preferences            |
+| `GET`   | `/category-subscription/user-preferences`  | Get subscription preferences         |
+| `PUT`   | `/category-subscription/user-preferences`  | Update subscription preferences      |
+| `POST`  | `/category-subscription/user-preferences`  | Create subscription preferences      |
+| `GET`   | `/v5/subscription-categories`              | Get subscription categories (V5)     |
+| `GET`   | `/v5/subscription-preferences`             | Get subscription preferences (V5)    |
+| `PATCH` | `/v5/subscription-preferences`             | Update subscription preferences (V5) |
 
 ### Push
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/transaction/sendpush` | Send push notification |
+| Method | Endpoint                     | Description                   |
+| ------ | ---------------------------- | ----------------------------- |
+| `POST` | `/transaction/sendpush`      | Send push notification        |
+| `POST` | `/v2.1/transaction/sendpush` | Send push notification (v2.1) |
 
 ### Cards
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/cards/fetch` | Fetch cards |
+| Method   | Endpoint        | Description  |
+| -------- | --------------- | ------------ |
+| `POST`   | `/cards/fetch`  | Fetch cards  |
 | `DELETE` | `/cards/delete` | Delete cards |
 
 ### Inform
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
+| Method | Endpoint       | Description                               |
+| ------ | -------------- | ----------------------------------------- |
 | `POST` | `/alerts/send` | Send transactional alert (SMS/Email/Push) |
 
 ### Live Activities
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/live-activity/broadcast/start` | Start Live Activity |
+| Method | Endpoint                          | Description          |
+| ------ | --------------------------------- | -------------------- |
+| `POST` | `/live-activity/broadcast/start`  | Start Live Activity  |
 | `POST` | `/live-activity/broadcast/update` | Update Live Activity |
-| `POST` | `/live-activity/broadcast/end` | End Live Activity |
+| `POST` | `/live-activity/broadcast/end`    | End Live Activity    |
 
 ### Personalize
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
-| `POST` | `/experiences/fetch` | Fetch experiences |
-| `GET` | `/experiences/metadata` | Get experience metadata |
-| `POST` | `/experiences/events` | Track experience events |
+| Method | Endpoint                | Description             |
+| ------ | ----------------------- | ----------------------- |
+| `POST` | `/experiences/fetch`    | Fetch experiences       |
+| `GET`  | `/experiences/metadata` | Get experience metadata |
+| `POST` | `/experiences/events`   | Track experience events |
 
 ### Message Archival
 
-| Method | Endpoint | Description |
-| --- | --- | --- |
+| Method | Endpoint         | Description            |
+| ------ | ---------------- | ---------------------- |
 | `POST` | `/archival/view` | View archived messages |
 
 ---
