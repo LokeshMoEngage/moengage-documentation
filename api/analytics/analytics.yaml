@@ -77,6 +77,8 @@ paths:
                     name: Retention Deep Dive
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/RateLimited'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -145,6 +147,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          $ref: '#/components/responses/RateLimited'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -302,6 +306,8 @@ paths:
           $ref: '#/components/responses/NotFound'
         '428':
           $ref: '#/components/responses/QuotaExceeded'
+        '429':
+          $ref: '#/components/responses/RateLimited'
         '500':
           $ref: '#/components/responses/InternalError'
 
@@ -558,6 +564,31 @@ components:
                     example: https://www.moengage.com/docs/api/dashboards/get-chart-data
               response_id:
                 $ref: '#/components/schemas/ResponseId'
+    RateLimited:
+      description: |
+        This response is returned when the workspace exceeds the endpoint's rate limit. Wait before you retry the request.
+
+        This response is returned before the request reaches the Analytics service, so its body has a different structure from the other error responses and does not include a `response_id`.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              error_msg:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    description: A machine-readable error code.
+                    example: rate_limit_exceeded
+                  message:
+                    type: string
+                    description: A human-readable description of the error.
+                    example: Too many requests. Please try later.
+          example:
+            error_msg:
+              error: rate_limit_exceeded
+              message: Too many requests. Please try later.
     QuotaExceeded:
       description: This response is returned when the workspace has reached its monthly Fair Usage Policy limit for analytics usage.
       content:
