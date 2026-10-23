@@ -98,7 +98,34 @@ MoECoreHelper.INSTANCE.logoutUser(context);
 
 </CodeGroup>
 
+Logout clears the user's attributes and identities, then starts a new anonymous user with a new session. The SDK retains the device identifier and push token, so logout does not unregister the device for push.
+
 If the application is registering for a push token, it should pass the new push token to MoEngage SDK after the user logs out. For more information about passing push tokens, refer to [Push Configuration for Android SDK](/developer-guide/android-sdk/push/basic/push-configuration).
+
+### Logout Callback
+
+To receive a callback when logout completes, implement [`OnLogoutCompleteListener`](https://moengage.github.io/android-api-reference/core/com.moengage.core.listeners/-on-logout-complete-listener/index.html) and register it using [`MoECoreHelper.addLogoutCompleteListener()`](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-e-core-helper/add-logout-complete-listener.html).
+
+The callback is invoked on the main thread and receives a [`LogoutData`](https://moengage.github.io/android-api-reference/core/com.moengage.core.model/-logout-data/index.html) instance. Register the listener in the `onCreate()` of your `Application` class so that no callback is missed. The SDK holds a strong reference to the listener, so do not implement it in an `Activity` or a `Fragment` — doing so leaks that component. To stop receiving callbacks, unregister the same listener instance using [`MoECoreHelper.removeLogoutListener()`](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-e-core-helper/remove-logout-listener.html).
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoECoreHelper.addLogoutCompleteListener { logoutData ->
+    // Process your logout completion here, for example, identify the next user
+    // or navigate to the login screen.
+}
+```
+
+
+```java Java
+MoECoreHelper.INSTANCE.addLogoutCompleteListener(logoutData -> {
+    // Process your logout completion here, for example, identify the next user
+    // or navigate to the login screen.
+});
+```
+
+</CodeGroup>
 
 # Tracking User Attributes
 
