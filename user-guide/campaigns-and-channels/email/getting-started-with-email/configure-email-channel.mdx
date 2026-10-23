@@ -58,9 +58,104 @@ This tab helps you to configure the senders in MoEngage delivery. You can add an
      - [Amazon SES](/partner-guide/messaging-channels/email-providers/configure-amazon-ses)
      - [Sendgrid](/partner-guide/messaging-channels/email-providers/configure-sendgrid)
 4. After adding the sender, it will be displayed under **Sender Configuration** tab. <img src="/images/moengage_a0071b.png" alt="Sender configuration tab.png" />
-5. Click the ellipsis icon ( <Icon icon="ellipsis-vertical" iconType="solid" /> ) to **Mark as default**, **Edit**, **Delete** the added sender. Make sure to follow the below points while deleting a sender.
-   - You cannot delete a sender that is marked as default.
-   - When you delete a sender, a pop-up appears that displays all the active campaigns associated with it. You need to stop each active campaign to delete the sender.
+5. Click the ellipsis icon ( <Icon icon="ellipsis-vertical" iconType="solid" /> ) against the sender to **Mark as default**, **Edit**, or **Delete** it. The **Mark as default** option is not available for the sender that is already marked as default. For more information on deleting a sender, refer to [Delete a Sender](#delete-a-sender).
+
+### Delete a Sender
+
+You can delete an email sender directly from the MoEngage dashboard. When you delete a sender, you can either replace it with another sender in all campaigns that use it, or stop all of those campaigns.
+
+#### Required Permissions
+
+The following roles can delete a sender:
+
+* **Admin** and **Manager** (standard roles)
+* Custom roles that have the **Setup and manage** permission for **Channel configuration**
+
+#### Limitations
+
+<Note>
+You cannot delete a sender from the dashboard in the following cases. Instead, raise a ticket with MoEngage Support to delete the sender:
+
+* Your workspace has more than 100,000 campaigns. If you try to delete the sender, an error message appears asking you to raise a ticket.
+* The sender is used in a [Dynamic Sender Routing](/user-guide/inform/advanced-concepts/dynamic-sender-routing) rule.
+</Note>
+
+#### Steps to Delete a Sender
+
+1. Open the **Delete** option for the sender. Where you do this depends on how the sender was added:
+   - **MoEngage senders**:
+     1. Navigate to **Settings** > **Channels** > **Email** > **Sender configuration**.
+     2. Click the ellipsis icon ( <Icon icon="ellipsis-vertical" iconType="solid" /> ) against the sender you want to delete, and then click **Delete**.
+
+        ![Delete option for a sender on the Sender configuration tab](/images/delete-connector-1.png)
+
+   - **Senders added through App Marketplace** (for example, SendGrid, Amazon SES, Mailgun):
+     1. Navigate to **App Marketplace** and open the integration.
+     2. Click the **Integrate** tab.
+     3. Click the ellipsis icon ( <Icon icon="ellipsis-vertical" iconType="solid" /> ) against the sender you want to delete, and then click **Delete**.
+
+       ![Delete option for a sender on the App market place](/images/delete_connector_app_market_place.png)
+
+2. In the **Delete sender** pop-up, choose how to handle the campaigns that use this sender:
+   - Replace the sender
+
+     To replace a sender, perform the following steps:
+     1. From the **Select replacement sender** drop-down list, select the sender that replaces the deleted sender.
+     2. From the **Select replacement from email address** drop-down list, select the From email address to use with the replacement sender. This field is available only after you select a replacement sender.
+
+       <Note>
+       From email addresses are linked to a specific sender. When you replace a sender, the From email addresses of the deleted sender are no longer valid, so you must select a From email address that belongs to the replacement sender.
+       </Note>
+
+     3. Choose how to handle the reply-to email address in the campaigns that use this sender:
+        - **Enter the replacement reply-to email address**: Enter a new reply-to email address in the text box, or select the **Keep it same as from email address** checkbox to use the replacement From email address as the reply-to email address.
+        - **Do not replace the reply-to email address**: Campaigns keep their current reply-to email address.
+     4. Click **Delete sender**. After deletion, MoEngage updates all published campaigns, Flows, and Inform alerts that use this sender to use the replacement sender, the selected From email address, and the reply-to email address you chose. This includes active and scheduled campaigns. Stopped and draft campaigns are not updated.
+      ![Delete sender pop-up](/images/delete-connector-replace.png)
+
+      <Note>
+        - Draft campaigns are not updated. After the sender is deleted, the sender field in draft campaigns that used it appears empty. Select a sender and From email address before you publish the draft.
+        -  If you delete the default sender, the replacement sender becomes the new default sender.
+      </Note>
+   - Stop active campaigns
+     <Note>
+      - This option is not available for the default sender, which means you cannot delete the default sender by stopping its active campaigns. To delete the default sender with this option, first mark a different sender as the default, and then delete the sender. Alternatively, delete the default sender by selecting a replacement sender.
+      -  Stopped campaigns cannot be restarted. To reuse a stopped campaign, duplicate it and publish it again.
+     </Note>
+
+     To stop active campaigns while deleting a sender, perform the following steps:
+      1. Expand **Other options**.
+      2. Select the **Stop the active campaigns using this sender** checkbox. When you select this option, the **Select replacement sender** and **Select replacement from email address** fields are disabled.
+      3. In the **Type STOP here to confirm** text box, type `STOP` in uppercase. This field is case-sensitive.
+      4. Click **Delete sender**. This button is enabled only after you type `STOP` correctly. After stopping, MoEngage immediately stops all active campaigns, Flows, and Inform alerts that use this sender.
+     ![Stop active campaigns option in the Delete sender pop-up](/images/delete-connector-3.png)
+
+#### What Happens After You Delete a Sender
+- Impacted campaigns:
+    Deletion applies to every published (not stopped) campaign that uses the sender:
+      - One-time, Periodic, Event-triggered, and Business event-triggered campaigns
+      - Email campaigns within Flows
+      - Inform alerts that use the email channel
+      - Stopped, and draft campaigns are not updated.
+
+- Deletion timeline
+    - Soft deletion (immediate): The sender no longer appears in sender drop-down lists when you create or edit a campaign.
+    - Hard deletion (after 3 hours): MoEngage permanently deletes the sender.
+  
+      <Note>
+        - The 3-hour buffer lets campaigns that are already being sent, such as throttled campaigns or campaigns using Best Time to Send, finish sending with the original sender. After hard deletion, no campaign, Flow, or Inform alert uses the deleted sender.
+        - If you delete a SendGrid sender managed through MoEngage, the IP addresses associated with it are deleted within 7 working days of the deletion request.
+      </Note>
+
+#### Audit Logs Recorded When a Sender is Deleted
+
+MoEngage records the following in the audit logs when a sender is deleted:
+
+* The user who initiated the deletion and the sender that was deleted
+* The option selected (replace the sender or stop active campaigns) and, for replacement, the replacement sender and From email address
+* The soft deletion of the sender
+* One entry for each impacted campaign, Flow, and Inform alert, so campaign owners can trace changes to their own campaigns
+* The hard deletion of the sender
 
 ### Configure Custom Connector
 
