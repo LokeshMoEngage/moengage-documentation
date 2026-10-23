@@ -83,7 +83,7 @@ The Campaigns API consists of the following endpoints to manage your campaign li
 * [Search Campaigns](/api/get-campaign-details/search-campaigns): Searches for campaigns using granular filters, with the ability to explicitly include or exclude campaigns in draft state.
 * [Get Campaign Meta](/api/get-campaign-details/get-campaign-meta-v5): Fetches lightweight metadata, including daily cached reachability estimates for scheduled campaigns.
 * [Test Campaign](/api/test-campaigns/test-campaign): Sends a test push or email to up to 10 users. Supports **inline mode** (pass `channel` and `campaign_content` directly) and **draft mode** (pass `draft_id` to load content from a saved draft). Draft mode is new in V5.
-* Personalized Preview: Returns a resolved preview of personalized campaign content for a specific user without sending a message. (Documentation temporarily unavailable while this endpoint is being revised.)
+* [Personalized Preview](/api/personalized-preview/personalized-preview-v5): Returns a resolved preview of personalized campaign content for a specific user without sending a message.
 
 <Note>
 Get Child Campaigns and Update Global Control Group are not yet available in V5. Continue to use the V1 Campaigns API for these operations.
@@ -354,7 +354,7 @@ Get Child Campaigns and Update Global Control Group are not yet available in V5.
 
 <AccordionGroup>
   <Accordion title="What channels does the Personalized Preview endpoint support?">
-    The endpoint supports `PUSH`, `EMAIL`, and `SMS`. Pass the target channel in the `channel` field of the request body.
+    The endpoint supports `PUSH`, `SMS`, `EMAIL`, `INAPP`, `OSM`, `WHATSAPP`, `CARDS`, and `GENERIC`. Pass the target channel in `personalization_details.channel`. This field is required only when you preview a saved custom template, because it determines which template is fetched. For inline content it is optional.
   </Accordion>
   <Accordion title="Does this endpoint send a message to the user?">
     No. The endpoint is read-only. It resolves all personalization expressions against the specified user's profile and returns the fully rendered content, but no message is delivered.
@@ -363,24 +363,36 @@ Get Child Campaigns and Update Global Control Group are not yet available in V5.
     The endpoint resolves all standard MoEngage personalization sources: user attributes, event attributes, custom templates, content blocks, content APIs, and product sets. All Jinja expressions in the content are evaluated against the specified user's profile.
   </Accordion>
   <Accordion title="How do I preview content for an event-triggered campaign?">
-    Pass the triggering event's attribute key-value pairs in the `event_attributes` object. The endpoint injects these values at resolution time to simulate how the content would render for a specific event. For example:
+    Pass the triggering event's name in `personalization_details.event_name` and its attribute key-value pairs in `personalization_details.event_attributes`. The endpoint injects these values at resolution time to simulate how the content renders for a specific event. For example:
 
     ```json
     {
-      "event_attributes": {
-        "product_name": "Running Shoes",
-        "product_price": "4999"
+      "personalization_details": {
+        "event_name": "Product Viewed",
+        "event_attributes": {
+          "product_name": "Running Shoes",
+          "product_price": "4999"
+        }
       }
     }
     ```
 
-    In the content, reference these values using `{{ event.product_name }}`.
+    In the content, reference these values using `{{EventAttribute['product_name']}}`. `event_name` is required whenever the content uses an `EventAttribute` token; without it the request fails validation.
   </Accordion>
   <Accordion title="How do I preview content that uses a custom template?">
-    Pass `custom_template_id` in the `campaign_content` object, the same way you would in a Create Campaign request. The endpoint fetches and resolves the template, then returns the fully rendered output for the specified user.
+    Pass `personalization_content.custom_template_data` with the template's `template_id` and `version`. Also set `personalization_details.channel`, which determines which saved template is fetched. The endpoint resolves the template and returns the fully rendered output for the specified user.
   </Accordion>
   <Accordion title="Can I use a saved draft with the Personalized Preview endpoint?">
-    No. The Personalized Preview endpoint only accepts inline content passed in `campaign_content`. It does not load content from a saved draft. To send a test message from a saved draft, use the Test Campaign endpoint with `draft_id`.
+    No. The endpoint accepts either inline content in `personalization_content.payload` or a saved custom template in `personalization_content.custom_template_data`. It does not load content from a saved campaign draft. To send a test message from a saved draft, use the Test Campaign endpoint with `draft_id`.
+  </Accordion>
+  <Accordion title="Why does my request fail validation when I supply the content?">
+    `personalization_content` accepts exactly one of `payload` or `custom_template_data`. Supplying both, or neither, fails validation. Use `payload` for inline content and `custom_template_data` to resolve a saved custom template.
+  </Accordion>
+  <Accordion title="Why does my request fail when the content uses an event attribute?">
+    An `EventAttribute` token needs the event it resolves against. Set `personalization_details.event_name` to the triggering event's name. Without it, a request whose content contains an `EventAttribute` token fails validation.
+  </Accordion>
+  <Accordion title="Why does my Jinja expression fail to parse?">
+    Check the quoting and the data types used in the expression. Applying a string operator to an integer value is a common cause. For the full syntax, see [Jinja Templating Language](/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) and [Why Does Parsing Jinja Template Format in the Personalization Preview Fail?](/user-guide/campaigns-and-channels/campaign-management-and-reports/faqs-campaign-management/why-does-parsing-jinja-template-format-in-the-personalization-preview-fail).
   </Accordion>
 </AccordionGroup>
 
