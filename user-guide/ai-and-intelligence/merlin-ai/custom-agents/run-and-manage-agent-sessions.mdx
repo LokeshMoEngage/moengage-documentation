@@ -9,10 +9,7 @@ A session represents a single, conversational interaction with an agent to compl
 ## Start a New Session
 
 You can initiate a new session from three distinct locations in the platform:
-- **From the Gallery:** Click the **Run (▶)** icon on the right edge of any Live agent card.
-    <Frame>
-    <img alt="Run icon on a Live agent card in the gallery" src="/images/CA- Run from Agent card.png"  />
-    </Frame>
+- **From the Hub:** In the composer on the **Merlin AI Agents** hub, click **Select agent**, choose the Live agent, and send your first message.
 - **From the Agent Details Page:** Open the specific agent and click **Run** in the top-right corner.
      <Frame>
      <img alt="Run button on an agent's detail page" src="/images/CA- Run on agent details.png"  />
@@ -20,7 +17,7 @@ You can initiate a new session from three distinct locations in the platform:
 - **From the Agent Builder:** While creating a Draft or editing a Live agent, click **Test agent** to start a trial run. This session is tagged **Test** in the agent's history.
 
 <Note>
- Clicking **Make live** in the builder publishes the agent — it does not start a run. Start a Live run afterward from the Gallery or the agent's detail page.
+ Clicking **Make live** in the builder publishes the agent rather than starting a run. Start a Live run afterward from the agent's detail page or from the hub composer.
 </Note>
 
 When a session opens, the side panel slides out. Depending on where you initiated the session, the UI displays distinct terminology:
@@ -66,11 +63,13 @@ The primary distinction between Test, Live, and Scheduled runs is how MoEngage s
 
 ### Scheduled Run Behavior
 
-A Scheduled run always executes using the agent creator's MoEngage credentials and permissions, regardless of who views the dashboard when the scheduled run fires. Scheduled execution follows three specific behaviors:
+A Scheduled run always executes using the agent creator's MoEngage credentials and permissions, regardless of who views the dashboard when the scheduled run fires. Scheduled execution follows these behaviors:
 
+- A scheduled run can start up to five minutes after its set time.
 - If the agent isn't Live at the scheduled time, MoEngage skips the run entirely.
-- MoEngage skips rather than queues the new fire when a previous run from the same schedule is still in progress. A scheduled agent never runs two sessions from the same schedule simultaneously.
-- If the creator's credentials for a required tool are missing, MoEngage still starts the run. The affected tool reports a missing-credential error instead of blocking the entire run.
+- MoEngage skips rather than queues the new fire when the previous run from the same schedule started in the last 60 minutes and is still in progress.
+- If the creator's MoEngage login has been revoked or has expired, the run does not start, so the creator signs in again to restore the schedule.
+- If no MoEngage login is stored for the creator, the run starts without MoEngage tools. The affected tool reports a missing-credential error instead of blocking the entire run.
 
 ## The Execution Lifecycle and Interaction
 
@@ -115,22 +114,24 @@ Every run that produces at least one file also shows a collapsible **Session out
 
 ## Agent Memory
 
-An agent keeps two memory stores. One belongs to the agent alone; the other is shared with every Custom Agent in your workspace.
+An agent keeps two memory stores. One belongs to the agent alone; the other is shared with every Custom Agent in your workspace and with the Global Agent.
 
 | Store | What it holds | Who reads it |
 | :--- | :--- | :--- |
 | **Agent memory** | Facts the agent keeps between its own runs. | The same agent, on its later Live and Test runs. |
-| **Workspace memory** | Facts an agent writes to a store shared across your workspace. | Every Custom Agent in the workspace, on their Live and Test runs. |
+| **Workspace memory** | Facts an agent writes to a store shared across your workspace. | Every Custom Agent in the workspace, on their Live and Test runs, and the Global Agent. |
+
+For how the Global Agent uses workspace memory, refer to [Global Agent Memory](/user-guide/ai-and-intelligence/merlin-ai/global-agent/run-tasks-with-the-global-agent#global-agent-memory).
 
 Within a single session, an agent also carries that session's prompts, tool outputs, and files as ordinary context, which is why you can resume an Idle session and pick up where you left off. That context belongs to the session and is not a memory store.
 
-Workspace memory lets one agent's findings inform another agent's work. An agent that records your brand's tone-of-voice rules or the naming convention for a campaign series makes those facts available to your other agents, so you don't restate them in each agent's instructions.
+Workspace memory lets one agent's findings inform another agent's work. An agent that records your brand's tone-of-voice rules or the naming convention for a campaign series makes those facts available to your other agents and to the Global Agent, so you don't restate them in each agent's instructions.
 
 Agents read and record memory as they run. Every workspace has both stores, and no setup is required to use them. The transcript records a read as a step labeled **Reading memory** or **Searching memory**, alongside the agent's tool calls. Writes appear as ordinary file steps instead, labeled **Writing a file** or **Editing a file**, and no step distinguishes agent memory from workspace memory.
 
 Scheduled runs use no memory. A scheduled run neither reads what an earlier run stored nor stores anything for a later run to read, so a fact an agent picked up on a manual run is unavailable to that agent's next scheduled run.
 
-You cannot inspect, edit, or clear workspace memory: MoEngage provides no viewer for it in the dashboard and no API. Because a stored fact stays until MoEngage removes it, treat anything you give an agent as available to your other agents.
+You cannot inspect, edit, or clear workspace memory: MoEngage provides no viewer for it in the dashboard and no API. Because a stored fact stays until MoEngage removes it, treat anything you give an agent as available to every agent in your workspace, including the Global Agent.
 
 Memory is distinct from session outputs, which stay scoped to the run that produced them.
 
@@ -187,7 +188,7 @@ Keep the following operational boundaries in mind when running agents. For a dee
 
 - **No Auto-Send Capabilities:** Even with write tools enabled, an agent can create drafts and edit, pause, resume, or stop existing campaigns — but it can never launch or publish a campaign. Final publishing of a campaign must always be executed manually through the standard MoEngage campaign builder using the draft ID generated by the agent.
 - **Workspace Privacy:** Sessions are strictly private to your specific workspace and cannot be shared across different organizations.
-- **Immutable History and 30-Day Inactivity Limit:** Sessions cannot be deleted, and their transcripts remain permanently in the agent's history for you to view. However, a session is only active for 30 days. You can resume and continue chatting within a specific session within that 30-day window. Once the 30 days have passed, the history remains visible, but you must initiate a new session to perform further tasks.
+- **Immutable History and 30-Day Inactivity Limit:** Sessions cannot be deleted, and their transcripts remain permanently in the agent's history for you to view. A session stays active for 30 days after its last activity, and you resume and continue chatting within that window. After that, the history remains visible, and you start a new session to continue the work.
 - **Deleting Agents:** To prevent accumulating sessions on an obsolete agent, delete the agent entirely, which removes its history from gallery access. Only the agent's creator can delete an agent.
 
 ## FAQs
@@ -206,6 +207,6 @@ Keep the following operational boundaries in mind when running agents. For a dee
   </Accordion>
 
   <Accordion title="Why doesn't my scheduled agent run at the expected time?">
-    Two situations cause MoEngage to skip a scheduled fire: the agent isn't in a **Live** state at the scheduled time, or a previous run from the same schedule is still in progress. MoEngage skips the fire in both cases rather than queuing the fire — a skipped fire never runs later, and scheduled fires never stack up.
+    A scheduled run can start up to five minutes after its set time, so check again shortly after the set time. MoEngage skips the fire when the agent isn't in a **Live** state, when the previous run from the same schedule started in the last 60 minutes and is still in progress, or when the creator's MoEngage login has been revoked or has expired. A skipped fire never runs later, and scheduled fires never stack up. For more information, refer to [Scheduled Run Behavior](#scheduled-run-behavior).
   </Accordion>
 </AccordionGroup>
