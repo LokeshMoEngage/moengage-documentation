@@ -1,7 +1,7 @@
 ---
 title: "Create and Manage Custom Agents"
 description: "Create, configure, test, publish, and manage the lifecycle of Custom Agents in your MoEngage workspace."
-keywords: "model tier, Fast Balanced Expert, agent model selection, agent schedule, run on schedule, scheduled runs, notifications, duplicate agent, delete agent, pause agent, edit agent, agent visibility, sub-agents, connectors, image generation, generate images, image analysis, agent templates"
+keywords: "model tier, Fast Balanced Expert, agent model selection, agent schedule, run on schedule, scheduled runs, notifications, duplicate agent, delete agent, pause agent, edit agent, agent visibility, sub-agents, connectors, image generation, generate images, image analysis, agent templates, summary email, email a run summary, email attachments, email report, attachment size limit, email subject and sections"
 ---
 
 A Custom Agent is a specialized AI assistant designed to automate specific campaign workflows within your MoEngage workspace. For an introduction to core concepts and use cases, refer to [Custom Agents: Overview](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/custom-agents-overview). This guide details the complete lifecycle of a Custom Agent within your MoEngage workspace. It covers the following actions:
@@ -216,6 +216,98 @@ MoEngage displays generated images in the session transcript and lists them in t
  If the image tools do not appear in the tool picker, contact your Customer Success Manager (CSM) to confirm availability for your workspace.
 </Note>
 
+### Send Summary Emails
+
+An agent emails you a summary of a task, so that you can review the outcome from your inbox instead of returning to the dashboard. Every agent can send a summary email without any setup, on both manual and scheduled tasks, when you ask for one in the agent's instructions or in the prompt that starts the task. MoEngage sends each summary email to the person who ran the task, and to no one else. The email typically arrives within a few minutes of the agent finishing the requested work.
+
+<Note>
+ Summary emails are separate from the **Email** toggle under [Configure Notifications](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/create-and-manage-custom-agents#configure-notifications). The Email toggle confirms that a scheduled task finished. A summary email reports what the agent found or produced during the task, in the sections you specified, and carries the files the agent attached.
+</Note>
+
+#### Request a Summary Email
+
+Every summary email follows a request that you make in one of two places:
+
+* **The agent's instructions**, which cover every task the agent performs. Instructions suit a scheduled agent, because each scheduled task then reports back without further input from you.
+* **The prompt that starts a task**, which covers that single task.
+
+An agent does not email on its own initiative. A task that completes a long piece of work or encounters a blocker records the outcome in the session transcript, and the agent emails you only where your request covers that outcome.
+
+Describe the email you want in plain language. You control the subject line and the section titles the agent fills in, and each section title you request becomes a heading in the email. When you specify neither a subject line nor section titles, the agent applies a default structure covering the work completed, the agent's findings, and any open items. The level of detail follows the scope of the task: a narrowly scoped task produces a detailed summary, and a broad or exploratory task produces a short one.
+
+The section names **Title** and **Ready** are reserved. **Title** becomes the outcome line at the top of the email, and **Ready** sets the status banner.
+
+To make every task of a scheduled agent report back, state the request in the agent's instructions. Refer to [Configure your Agent's Instructions](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/create-and-manage-custom-agents#configure-your-agents-instructions).
+
+```text Instruction Snippet
+After you complete the weekly report, email me a summary with the subject "Weekly Campaign Review".
+Use these sections: What I checked, Key metrics, Issues found, and Recommended actions.
+Attach the report as a spreadsheet.
+If you cannot complete the report, email me what blocked you instead.
+```
+
+The final line of the snippet is what produces an email when the agent cannot finish the work. Without that line, the agent records the blocker in the session transcript and sends no email.
+
+For a single task, state the request in your prompt:
+
+* "Mail it to me."
+* "Email me the results when you are done."
+* "QC yesterday's push campaigns and email me the findings with the subject 'Daily Push QC'."
+* "Export the segment overlap to a spreadsheet and email it to me with a one-paragraph summary."
+
+An agent sends as many emails as your request asks for. A request for a closing summary produces one email, and instructions that ask the agent to report at several points produce an email at each of those points.
+
+<Note>
+ An agent can send a summary email even when the agent's instructions limit the agent to a specific set of tools.
+</Note>
+
+#### What the Summary Email Contains
+
+Each summary email contains the following elements:
+
+* **Status banner:** **Task complete**, **Needs review**, or **Update**, with the agent's name below it. The agent sets the banner at the time of sending, and applies **Update** in the absence of a status.
+* **Subject line:** The subject you specified in your instructions or prompt.
+* **Outcome:** A one-line statement of what the task achieved, under an **Outcome** label at the top of the email body.
+* **Summary sections:** The sections you defined, such as the work completed, the agent's findings, key metrics, and open items. Each section title you requested appears as a heading above its content.
+* **Task details:** A table listing the **Task ID**, the time the task **Finished**, and the address the email was **Sent to**.
+* **Open this run:** A button that opens the session that produced the email.
+* **Attachments:** The files the agent attached, delivered as standard email attachments.
+
+A summary email from a test run opens with the line "Test run for" and the agent's name, and closes with a footer that states you ran a test of the agent. Both separate test output from live output in your inbox. Refer to [Test Agent](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/create-and-manage-custom-agents#test-agent).
+
+<Frame>
+  <img alt="Summary email with a Task complete banner, the agent's name, an outcome line, a Campaign open rates section, and a table of task details" src="/images/custom-agents-summary-email-task-complete.png" width="60%" />
+</Frame>
+
+#### Attachments in a Summary Email
+
+Attachments follow these limits:
+
+* An agent attaches up to 5 files to a single summary email.
+* The 3.5 MB limit applies to all attachments combined, rather than to each file individually.
+* Attachments support document and spreadsheet formats, including PDF, DOCX, XLSX, CSV, Markdown, and TXT.
+* An agent attaches only the files it created during the same session.
+* Request attachments in the same instruction or prompt that requests the email.
+* When the attachments exceed the file count or the combined size limit, the agent sends no email and names the file that caused the problem in the session transcript.
+
+The email body does not list the attached files. Your email client shows them as it shows any other attachment.
+
+<Frame>
+  <img alt="Summary email for a task that attached five text files, with the attachments shown in the email client below the message body" src="/images/custom-agents-summary-email-update.png" />
+</Frame>
+
+MoEngage also lists every file a task produces in the [Session Outputs Panel](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/run-and-manage-agent-sessions#session-outputs-panel), whether or not the agent attaches that file to a summary email.
+
+#### Summary Email Recipients and Limits
+
+Account for the following boundaries when you plan a workflow around summary emails:
+
+* **Fixed recipient:** MoEngage sends each summary email to the person who ran the task, and to no one else. You cannot add recipients, a distribution list, or an external address.
+  * **Public agents:** When a teammate runs your public agent, that teammate receives the summary for their own task, and you receive no copy. Refer to [Set Visibility](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/create-and-manage-custom-agents#set-visibility).
+  * **Scheduled tasks:** The agent's creator receives every summary the schedule produces, because the task executes under the creator's credentials. Refer to [Scheduled Run Behavior](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/run-and-manage-agent-sessions#scheduled-run-behavior).
+* **Fixed button destination:** The **Open this run** button always opens the task that produced the email.
+* **English template text:** Banners, button labels, and footers appear in English, regardless of your dashboard language.
+
 ### Assign Sub-Agents
 
 Use the **Sub Agents** section in the right panel to attach other agents to the agent you are configuring. During a run, the agent delegates parts of the task to those sub-agents and consolidates their output into a single response. You can attach up to 20 sub-agents, and each one must be a **Live** agent that you can see: a public agent or one of your own private agents. Each sub-agent executes with the permissions of the user who starts the run.
@@ -297,6 +389,10 @@ In the **Notifications** section, toggle **Email** on or off to control whether 
 Each notification email includes the run's outcome, Task ID, start time, duration, and the next scheduled run. The notification email excludes the run's transcript and output content. MoEngage delivers notification emails on a best-effort basis, so a missed notification email never blocks or delays the underlying scheduled run.
 
 <Note>
+ The Email toggle controls only the completion notice for a scheduled task. To receive what the agent found or produced during the task, request a summary email in the agent's instructions as well. A single scheduled task delivers both emails. Refer to [Send Summary Emails](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/create-and-manage-custom-agents#send-summary-emails).
+</Note>
+
+<Note>
  Browser notifications are a separate feature from the Email toggle above. If you grant notification permission when prompted in an active session, your browser notifies you when that run finishes while its tab isn't focused. Browser notifications aren't tied to your Email setting, and MoEngage doesn't provide an in-app way to turn them off once granted — manage them through your browser's site settings instead.
 </Note>
 
@@ -305,7 +401,7 @@ Each notification email includes the run's outcome, Task ID, start time, duratio
 Before making an agent live and sharing it with your team, run it in **Test agent** mode. A test run verifies that the agent interprets its instructions correctly, uses the right tools, and produces the expected output.
 
 <Warning>
-Test sessions execute against your real MoEngage workspace data; there is no sandbox environment. Read-only agents query your actual campaigns and segments. An agent with write tools assigned (such as Create campaign drafts or Edit campaigns) makes real changes to your workspace during a test run. Treat a test session with the same caution as a Live session.
+Test sessions execute against your real MoEngage workspace data; there is no sandbox environment. Read-only agents query your actual campaigns and segments. An agent with write tools assigned (such as Create campaign drafts or Edit campaigns) makes real changes to your workspace during a test run. A test run also sends a real summary email, labelled as a test, when the agent's instructions request one. Treat a test session with the same caution as a Live session.
 </Warning>
 
 ### Initiate a Test Run
@@ -473,5 +569,21 @@ If an agent is no longer required, you can retire the agent from your workspace 
 
   <Accordion title="Can an agent automatically publish a campaign?">
     No. Custom Agents do not possess auto-publish capabilities. Even if an agent has write tools assigned, it is strictly restricted to creating, editing, or pausing campaign drafts. Final approval and deployment must always be executed manually through the standard MoEngage campaign builder.
+  </Accordion>
+
+  <Accordion title="Who receives a summary email, and can I add my team?">
+    The person who ran the task receives the summary email, and you cannot add recipients, a distribution list, or an external address. When a teammate runs your public agent, that teammate receives the summary. For a scheduled task, the agent's creator receives the summary, because the task executes under the creator's credentials. Refer to [Summary Email Recipients and Limits](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/create-and-manage-custom-agents#summary-email-recipients-and-limits).
+  </Accordion>
+
+  <Accordion title="Can I change the subject line and the sections in a summary email?">
+    Yes. Specify the subject line and the section titles in the agent's instructions or in the prompt that starts the task, and each section title becomes a heading in the email. For example: "Email me the findings with the subject 'Daily Push QC', using the sections What I checked, Issues found, and Recommended actions." When you specify neither a subject line nor section titles, the agent applies a default structure covering the work completed, the agent's findings, and any open items. The section names **Title** and **Ready** are reserved for the outcome line and the status banner.
+  </Accordion>
+
+  <Accordion title="Which file types can an agent attach to a summary email, and how large can the files be?">
+    An agent attaches up to 5 files that the agent created in the same session, in document and spreadsheet formats, including PDF, DOCX, XLSX, CSV, Markdown, and TXT. The 3.5 MB limit applies to all attachments combined, rather than to each file individually. Refer to [Attachments in a Summary Email](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/create-and-manage-custom-agents#attachments-in-a-summary-email).
+  </Accordion>
+
+  <Accordion title="Why did my agent not send a summary email?">
+    Check whether the agent's instructions or the prompt that started the task requested an email, because an agent sends a summary email only when you ask for one. A task that completes a long piece of work or encounters a blocker sends no email unless the agent's instructions ask for one. Open the session transcript to confirm whether the agent attempted a send. When the transcript shows a completed send and the email has not arrived, check your spam folder, then share the Task ID with MoEngage support. Refer to [Request a Summary Email](/user-guide/ai-and-intelligence/merlin-ai/custom-agents/create-and-manage-custom-agents#request-a-summary-email).
   </Accordion>
 </AccordionGroup>
