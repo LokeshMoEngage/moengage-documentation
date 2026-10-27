@@ -1,0 +1,173 @@
+---
+title: "Security Advisory - Rotate Your API Keys and Secure API Access"
+description: "Rotate the API keys your integrations use and restrict API access to trusted IP addresses with the API Firewall."
+keywords: ["rotate API keys", "regenerate API key", "API Firewall", "security advisory", "API key security"]
+---
+
+In light of increased cyber activity across the industry driven by API key compromises, MoEngage recommends that all customers rotate the API keys they use for server-to-server integrations and restrict API access to trusted IP addresses. Since most customers use long-lived API keys, we highly recommend this, and also recommend rotating API keys regularly.
+
+This guide explains how to rotate each type of key with minimal disruption and how to add an IP-based safeguard using the API Firewall.
+
+<Info>
+  This is precautionary guidance. We are continuing to investigate and will share further updates.
+
+  If you notice unexpected campaigns, messages, or API activity in your workspace, contact MoEngage Support and Security (Security@moengage.com) immediately.
+</Info>
+
+## Which Rotation Path Applies to You
+
+MoEngage supports two ways to rotate a key. Regenerating replaces the key in place and the old key stops working immediately. Creating a new key lets you move over before you retire the old one, so there is no downtime.
+
+| API or integration | Key to rotate | Method | Impact on the old key |
+| --- | --- | --- | --- |
+| Push API | Push key (legacy) | Regenerate the key ([Regenerate Your Push API and Campaigns API V1 Keys](#regenerate-your-push-api-and-campaigns-api-v1-keys)) | Stops working immediately |
+| Campaigns API V1, Business Events, Custom Templates, Catalog API | Campaign report / Business events / Custom templates / Catalog API key (legacy) | Regenerate the key ([Regenerate Your Push API and Campaigns API V1 Keys](#regenerate-your-push-api-and-campaigns-api-v1-keys)) | Stops working immediately |
+| Data APIs, Segmentation APIs, Inform, Offerings, Decision Policy, Dashboard and Analyze, Personalize, Channel Configuration, and newer Campaigns APIs | Any key on the API Keys page | Create a new key, switch over, then archive the old key ([Create New Keys for Supported APIs](#create-new-keys-for-supported-apis)) | Keeps working until you archive it |
+
+If you are not sure which keys your integrations use, check each server, scheduled job, third-party tool, and vendor that calls MoEngage APIs, and match it to the API in the first column.
+
+## Before You Begin
+
+- List every system that uses each key: backend services, scheduled jobs, CI/CD variables, data pipelines, partner and vendor tools, and saved Postman collections.
+- Keep your Workspace ID handy. It does not change when you rotate keys.
+- Store new keys in a secrets manager or encrypted configuration, not in source code, tickets, chat, or email.
+- For keys you will regenerate, schedule a short change window and have the configuration update ready to deploy. Calls using the old key fail as soon as you regenerate it.
+- Make sure you can open **Settings** > **Account** > **API keys**. If you cannot, ask your workspace administrator.
+
+## Regenerate Your Push API and Campaigns API V1 Keys
+
+<Warning>
+  The old key expires immediately after you regenerate it. Requests that still use it return a `401` error until you replace the key in your integrations.
+</Warning>
+
+1. In the MoEngage dashboard, go to **Settings** > **Account** > **API keys**. On workspaces that still show the earlier page, go to **Settings** > **Account** > **APIs**.
+2. Find the key to rotate. Push API uses the **Push** key. Campaigns API V1, Business Events, Custom Templates, and Catalog API use the **Campaign report / Business events / Custom templates / Catalog API** key. Legacy keys appear with the authentication type **Basic Auth (Legacy)**.
+3. Open the actions menu for the key and select **Regenerate key**. On the earlier page, select the **Regenerate** icon next to the key instead.
+4. Confirm the action.
+5. Copy the new key straight away and store it in your secrets manager.
+6. Update the key in every system you listed in [Before You Begin](#before-you-begin) and deploy.
+7. For the Push API, recalculate the `X-MOE-PushAPI-Signature` header with the new key, as described in the Push API reference. The `X-MOE-APPKEY` header still carries your Workspace ID.
+8. Send a test request to each API and confirm a successful response. A `401` response means the request is still using the old key.
+
+You can regenerate a key as often as you need. If you do not see the regenerate option for a legacy key, contact MoEngage Support by raising a ticket through the dashboard.
+
+## Create New Keys for Supported APIs
+
+New keys can be created for the API groups below. This method needs no downtime because the existing key keeps working while you move your integrations to the new one.
+
+| API group | Supported authentication types |
+| --- | --- |
+| Data APIs | Basic Auth, OAuth 2.0, AWS STS Auth |
+| Segmentation APIs | Basic Auth |
+| Campaigns | Basic Auth, OAuth 2.0 |
+| Inform | Basic Auth |
+| Offerings | Basic Auth, OAuth 2.0 |
+| Decision Policy | Basic Auth, OAuth 2.0 |
+| Dashboard and Analyze | Basic Auth, OAuth 2.0 |
+| Channel Configuration | Basic Auth, OAuth 2.0, AWS STS Auth |
+| Personalize | Basic Auth, OAuth 2.0, AWS STS Auth |
+
+<Note>
+  If you do not see **Create new key**, ask MoEngage Support to enable it for your account.
+</Note>
+
+1. Go to **Settings** > **Account** > **API keys** and select **+ Create new key**.
+2. Enter a unique **Key name** of up to 100 characters. Archived keys keep their names, so you cannot reuse a name.
+3. Choose the **Authentication type**. You cannot change it after the key is created.
+   - **Basic Auth:** an API key and secret for server-to-server calls.
+   - **OAuth 2.0:** short-lived access tokens with an expiry of 5 to 60 minutes (default 15). A stolen token stops working quickly.
+   - **AWS STS Auth:** authorizes only the AWS assumed-role ARNs you list, up to 10 per key. Use it when your workloads already run on AWS IAM roles.
+4. Under **Select APIs for access**, select only the API groups and individual APIs that integration needs.
+5. Select **Create key**, then copy the key and store it securely.
+6. Deploy the new key to your integration and confirm requests succeed.
+7. Return to the **API Keys** page, open the actions menu for the old key, and select **Archive key**.
+
+<Note>
+  Archived keys cannot be unarchived, and MoEngage keeps a maximum of 10 archived keys in the archived list. Archive an old key only after every integration has moved off it. Legacy keys cannot be archived, so rotate those with [Regenerate Your Push API and Campaigns API V1 Keys](#regenerate-your-push-api-and-campaigns-api-v1-keys).
+</Note>
+
+Issue a separate key to each internal team and each vendor, scoped to the APIs they use. If one key is exposed, you can regenerate or archive that key without affecting anyone else.
+
+## Add an IP Safeguard With the API Firewall
+
+Rotating keys limits how long an exposed key stays useful. The API Firewall adds a second control: even with a valid key, a request from an IP address that is not on your allowlist receives a `403` response.
+
+### What the Firewall Covers
+
+Rules apply to five API categories: **Data**, **Segmentation**, **Campaigns**, **Partner Integration**, and **Content**. Every rule must cover at least one category. Enforcement is per category, so publishing a rule protects only the categories it covers.
+
+<Warning>
+  The legacy Push API and the Inform API are not supported by the API Firewall, and IP rules are not enforced on them. For the legacy Push API, regenerating your Push key is the primary protection. For the Inform API, create a new key and archive the old one. The firewall also does not affect traffic from your mobile app or website SDKs.
+</Warning>
+
+### Set Up and Publish Rules
+
+<Info>
+  You must be an Admin in your MoEngage workspace to add firewall rules. Get a complete list of the static IP addresses and CIDR blocks your servers use from your DevOps or Security team first.
+</Info>
+
+1. Go to **Settings** > **Account** > **Security** and open the **API firewall** tab.
+2. Select **Enable API Firewall**.
+3. Enter a descriptive **Rule name**, for example "AWS production servers".
+4. Under **Whitelist categories**, select every category the rule covers.
+5. Choose a **Condition** (single IPv4, single IPv6, IPv4 CIDR range, IPv6 CIDR range, or IPv4 range) and enter the **Value**.
+6. Select **Add rule**. New rules are saved as **Unpublished** and are not enforced yet.
+7. Repeat for every server IP, including staging, batch jobs, and vendor systems that call MoEngage.
+8. Select all the rules and choose **Publish**, then confirm. Enforcement starts within about 15 minutes.
+
+<Warning>
+  After you publish the first rule for a category, requests from any IP address that is not in a published rule for that category are rejected. Add all rules as unpublished first and publish them together so that none of your own systems are blocked.
+</Warning>
+
+For the full reference, see [API Firewall](/user-guide/settings/account/security/api-firewall).
+
+### Firewall Tips
+
+- Rules accept IP addresses and CIDR ranges only. Wildcards and domain names are not supported.
+- You can edit rules, unpublish them, or delete them. Edited rules return to **Unpublished** until you publish them again.
+- If the firewall has an internal failure, it fails open so that legitimate traffic keeps flowing.
+- Rule changes are recorded in Audit Logs, with the user, time, and IP address of each change.
+
+## Verify and Monitor
+
+- Confirm that every integration returns successful responses with the new keys, and that nothing still sends the old key.
+- Review [Audit Logs](/user-guide/settings/account/audit-logs/audit-logs) to confirm who created, regenerated, or archived each key and when.
+- Remove stored copies of old keys from wikis, tickets, chat messages, and code repositories.
+- Repeat the rotation on a regular schedule, and whenever someone with access to a key leaves your team or vendor.
+
+| Response | Likely cause | What to do |
+| --- | --- | --- |
+| `401 Unauthorized` | The request still uses an old, regenerated, or archived key, or the credentials are encoded incorrectly. | Replace the key in the integration. For Basic Auth, the `Authorization` header is the Base64 encoding of `workspace_id:api_key`. |
+| `403 Forbidden` | The request came from an IP address that is not in a published API Firewall rule for that category. | Add the server's IP address to a rule for that category and publish it. |
+
+## FAQs
+
+<AccordionGroup>
+
+<Accordion title="Does my Workspace ID change when I rotate keys?">
+  No. Only the key changes.
+</Accordion>
+
+<Accordion title="Can I use the old and new key together after regenerating?">
+  No. Regenerating invalidates the old key immediately. To overlap old and new keys, create a new key as described in [Create New Keys for Supported APIs](#create-new-keys-for-supported-apis).
+</Accordion>
+
+<Accordion title="Can I restore an archived key?">
+  No. Archived keys cannot be unarchived. Create a new key instead.
+</Accordion>
+
+<Accordion title="Should I use the firewall if I already rotated my keys?">
+  Yes. The two controls protect against different risks: rotation replaces credentials that may have been exposed, and the firewall blocks requests from unknown IP addresses even if a valid key is exposed later.
+</Accordion>
+
+<Accordion title="Who do I contact for help?">
+  Contact your Customer Success Manager or raise a ticket with MoEngage Support from the dashboard.
+</Accordion>
+
+</AccordionGroup>
+
+## Related Documentation
+
+- [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard)
+- [API Firewall](/user-guide/settings/account/security/api-firewall)
+- [Security Best Practices](/user-guide/settings/account/security/security-best-practices)
