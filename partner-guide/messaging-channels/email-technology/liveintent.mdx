@@ -1,0 +1,152 @@
+---
+title: "LiveIntent"
+description: "Monetize your MoEngage email newsletters with LiveIntent by adding the LiveConnect parameter to your email links and LiveIntent ad tags to your email templates."
+keywords: ["LiveIntent", "LiveConnect", "lctg", "SafeRTB", "LiveTag", "email monetization", "newsletter ads"]
+---
+
+## Introduction
+
+[LiveIntent](https://www.liveintent.com/) provides email monetization and identity solutions for publishers. With LiveIntent, you can serve ads inside your newsletters and connect newsletter subscribers to visitors on your website, which makes your audience more addressable.
+
+The LiveIntent and MoEngage integration lets you send newsletters from MoEngage that LiveIntent can recognize and monetize. You add a LiveIntent identifier to the links in your emails, and you place LiveIntent ad tags in your email templates.
+
+## Scope
+
+The integration supports the **Email** channel only. It has the following two parts:
+
+| Capability | What it does | MoEngage components used |
+| - | - | - |
+| LiveConnect Email Extension | Adds a unique identifier (the `lctg` parameter) to every link that points to your website, so LiveIntent can connect email clicks to website visits. | UTM parameters or email template HTML, Jinja personalization |
+| LiveIntent ad tags (SafeRTB and LiveTag) | Serve LiveIntent ads in the ad slots of your newsletter. | Email template HTML |
+
+## Benefits and Use Cases
+
+The LiveIntent and MoEngage integration helps you perform the following:
+
+- Monetize newsletters by serving LiveIntent display and native ads in the email templates that you build and send in MoEngage.
+- Connect newsletter clicks to website visits by using one identifier across your links and ad tags.
+- Keep newsletter creation, personalization, and delivery in MoEngage while LiveIntent handles ad serving.
+
+## Integration
+
+<Info>
+  **Prerequisites**
+
+  * A LiveIntent account, and the contact details of your LiveIntent Account Manager.
+  * The LiveConnect tag placed on your website pages. For instructions, refer to LiveIntent's website implementation guidance or contact your LiveIntent Account Manager.
+  * Access to edit the HTML of your MoEngage email templates.
+</Info>
+
+The `lctg` identifier ties your email links to your ad tags. Use the same identifier in every email link and every LiveIntent tag, and do not mix identifier types in the same newsletter.
+
+### Part 1: Add the LiveConnect Email Extension
+
+#### Step 1: Choose the Identifier
+
+The identifier you send in `lctg` depends on how the LiveConnect tag is set up on your website. LiveIntent supports the following identifiers:
+
+| Option | Identifier sent in `lctg` | When to use |
+| - | - | - |
+| Hashed email (most common) | The MD5 hash of `li.` followed by the user's lowercase email address | Use this option when your website identifies visitors by email address. |
+| MoEngage ID | The MoEngage ID of the user | Use this option when your website identifies visitors by their MoEngage ID. |
+
+The following code shows the MoEngage expression for each option:
+
+<CodeGroup>
+  ```jinja Hashed Email (Most Common)
+  {{ ('li.' ~ (UserAttribute['Email (Standard)'] | lower)) | md5 }}
+  ```
+
+  ```jinja MoEngage ID
+  {{UserAttribute['moengage_user_id']}}
+  ```
+</CodeGroup>
+
+For the hashed email, the value must be `md5('li.' + lowercase_email)`. The rest of this guide refers to your choice as the **identifier expression**.
+
+#### Step 2: Add the lctg Parameter to Your Links
+
+Add the `lctg` parameter, with the identifier expression as its value, to every link that points to your website. You can add it in one of the following ways:
+
+* **Automatically, with a custom UTM parameter:** In MoEngage, create a custom UTM parameter named `lctg`, with the identifier expression as its value. MoEngage then appends it to the links in your campaigns. For instructions, refer to [Create a Custom UTM Parameter](/user-guide/settings/advanced-settings/configure-general-utm-parameters-at-account-level#create-a-custom-utm-parameter).
+* **Manually, on each link:** In the HTML of your email template, append `?lctg=` followed by the identifier expression to a link that has no query string, or `&lctg=` to a link that already has one.
+
+The following example shows the manual method on both types of links:
+
+```html
+<a href="https://www.example.com/article-1?lctg={{UserAttribute['moengage_user_id']}}">Read the article</a>
+<a href="https://www.example.com/article-2?utm_source=newsletter&lctg={{UserAttribute['moengage_user_id']}}">Read the article</a>
+```
+
+<Warning>
+  Insert the identifier expression exactly as shown. Do not URL-encode a personalization token or an `href` that contains one. URL-encoding replaces the `{{` delimiter and causes a Jinja parsing error when you save or send the campaign.
+</Warning>
+
+#### Step 3: Validate the Extension
+
+To validate the extension, perform the following steps:
+
+1. Send a test email from MoEngage to the validation address that your LiveIntent Account Manager provides.
+2. Notify your LiveIntent Account Manager that you completed the configuration, or report any issue that you found.
+
+### Part 2: Add LiveIntent Ad Tags
+
+LiveIntent ad tags are small HTML snippets that LiveIntent provides. You place them in your email template once, and you do not need to change them for each send.
+
+#### Step 4: Place the Tags in Your Email Template
+
+To place the tags in your email template, perform the following steps:
+
+1. Open the email campaign or template that you want to monetize, and open its HTML editor.
+2. Paste the **SafeRTB** tag that LiveIntent provides near the top of the template HTML.
+3. Paste a **LiveTag** where you want an ad to appear. Add one LiveTag for each ad slot.
+4. Add the media query that LiveIntent provides to the `head` section of your template HTML, and use your template's mobile width where the media query asks for it.
+
+You need only one SafeRTB tag for each template, however many ad slots you add. Placing it at the top of the HTML helps prevent Gmail from clipping the message. Confirm that the `lctg` parameter is present on every SafeRTB tag, LiveTag image URL, and link. If your editor does not give you access to the `head` section, contact your LiveIntent Account Manager.
+
+<Note>
+  If no ad is available for an impression, a LiveTag collapses to a height of one pixel and is not visible to the reader.
+</Note>
+
+#### Step 5: Activate the Tags
+
+To activate the tags, perform the following steps:
+
+1. Create a campaign that uses the template, and send it to an audience that includes the activation address that your LiveIntent Account Manager provides.
+2. Notify your LiveIntent Account Manager. LiveIntent checks the tags and activates your ad slots.
+
+<Note>
+  Send the activation email as a real campaign from MoEngage. Do not forward the email, and do not use a preview or test send for activation.
+</Note>
+
+### Verify the Integration
+
+Before you go live, confirm the following:
+
+* Every link to your website in the template contains `lctg` with your identifier expression.
+* Every SafeRTB tag and LiveTag contains the same `lctg` parameter.
+* LiveIntent has confirmed the `lctg` configuration and activated your ad slots.
+
+## Troubleshooting and FAQs
+
+<AccordionGroup>
+  <Accordion title="Which identifier should I use?">
+    Use the identifier that matches how the LiveConnect tag identifies visitors on your website. The hashed email is the most common. Use one identifier consistently across your links and tags.
+  </Accordion>
+
+  <Accordion title="MoEngage did not send my email after I added the identifier expression.">
+    When a personalization token resolves to a null value, MoEngage does not send the message. Confirm that the attribute in your expression exists for the users in your audience.
+  </Accordion>
+
+  <Accordion title="I get a Jinja parsing error when I save the template.">
+    The template probably contains a URL-encoded personalization token. Insert the token unencoded in the HTML. Do not URL-encode the token or the link that contains it.
+  </Accordion>
+
+  <Accordion title="My ad slots do not show ads.">
+    A LiveTag collapses to one pixel when no ad is available. If the slot never serves an ad, contact your LiveIntent Account Manager to confirm that the slot is active, and confirm that the SafeRTB tag and LiveTag contain the `lctg` parameter.
+  </Accordion>
+</AccordionGroup>
+
+## Support
+
+For questions about MoEngage templates, personalization, or UTM parameters, contact your MoEngage CSM or the Support team. For questions about your LiveIntent account, tags, or validation, contact your LiveIntent Account Manager.
