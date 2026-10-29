@@ -328,7 +328,7 @@ export const HomeSections = () => {
       blurb: "Get to know the dashboard, integrate the SDKs, and bring in your data.",
       cards: [
         { icon: "layout", title: "Dashboard overview", desc: "Familiarize yourself with the MoEngage dashboard, navigation, and key concepts.", href: "/user-guide/getting-started/initial-setup/dashboard-overview" },
-        { icon: "list", title: "Integration checklist", desc: "Integrate MoEngage SDKs across Web, Android, iOS, and other platforms.", href: "/user-guide/getting-started/integration/integration-checklist" },
+        { icon: "code", title: "SDK integration", desc: "Integrate MoEngage SDKs across Web, Android, iOS, and other platforms.", href: "/developer-guide/introduction" },
         { icon: "database", title: "Data", desc: "User and event data, imports, exports, privacy, and how data is modeled in MoEngage.", href: "/user-guide/data/key-concepts/overview-data" },
       ],
     },
