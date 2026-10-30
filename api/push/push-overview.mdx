@@ -2,8 +2,10 @@
 title: "Push Overview"
 description: "Create campaigns and send personalized push notifications to individual users or segments across Android, iOS, and Web."
 icon: "file-magnifying-glass"
+keywords: ["push api v5", "send push notification", "transactional push", "migrate to v5", "push api legacy"]
 ---
 
+import ApiAuthentication from '/snippets/api-authentication.mdx';
 import ApiIpWhitelisting from '/snippets/api-ip-whitelisting.mdx';
 
 The MoEngage Push API allows you to trigger push notifications. It is designed for high-throughput transactional and marketing use cases, supporting complex targeting logic and deep personalization for every recipient.
@@ -20,49 +22,81 @@ Use this API to:
 - **Target Segments:** Send notifications to all users or specific pre-defined segments.
 - **Target Individuals:** Reach a single user using unique attributes like Email, Mobile Number, or Unique ID.
 - **Personalize at Scale:** Use Jinja templating to dynamically inject user-specific data into the notification payload.
+- **Reach Every Platform:** Send to Android, iOS, and Web from a single request.
+
+Send a notification with [Push API (V5)](/api/push/push-api), which creates the campaign for you — you do not need to create one on the dashboard first.
 
 ## API Versions
 
-MoEngage introduced v2.1 of the Send Push Notification endpoint to strengthen security and provide more granular rate limiting, including support for IP whitelisting. Two versions of the endpoint are available:
+| Version | Endpoint | Status | Summary |
+| :--- | :--- | :--- | :--- |
+| **V5** | [Push API (V5)](/api/push/push-api) | Supported | `POST https://api-{dc}.moengage.com/v5/push/notifications`. Credentials go in the `Authorization` header, and an `X-MOE-Query-Type` header matching `targetAudience` is required. Request fields are camelCase, and responses use the `{response_id, type, data}` envelope with standard HTTP status codes. |
+| **v2.1** | [Push API (v2.1, Legacy)](/api/push/push-api-v2-1-legacy) | Stops working after 30 November 2026 | `POST https://pushapi-{dc}.moengage.com/v2.1/transaction/sendpush`. Sends `appId` and `signature` as the `X-MOE-APPKEY` and `X-MOE-PushAPI-Signature` headers, plus an `X-MOE-Query-Type` header matching `targetAudience`. |
+| **v2** | [Push API (v2, Legacy)](/api/push/push-api-v2-legacy) | Stops working after 30 November 2026 | `POST https://pushapi-{dc}.moengage.com/transaction/sendpush`. The original version, with `appId` and `signature` as request-body fields. Available on request only. |
 
-| Version | Endpoint | Notes |
-| :--- | :--- | :--- |
-| **v2.1** (current) | [Push API](/api/push/push-api) | Sends `appId` and `signature` as request headers (`X-MOE-APPKEY` and `X-MOE-PushAPI-Signature`) instead of request-body fields, and adds an `X-MOE-Query-Type` header corresponding to the `targetAudience` field. All other request body and response structure are unchanged from v2. |
-| **v2** (legacy) | [Push API (Legacy)](/api/push/push-api-legacy) | The original version of this endpoint. `appId` and `signature` are sent as request-body fields. Fully supported for existing integrations. |
+<Warning>
+  **The v2.1 and v2 endpoints are deprecated as of 30 October 2026 and stop working after 30 November 2026.** They are no longer maintained. Move every integration to [Push API (V5)](/api/push/push-api) before then.
+</Warning>
+
+## Authentication
+
+<ApiAuthentication />
+
+For rotating and revoking keys, refer to [Rotate API Keys and Secure API Access](/user-guide/settings/account/security/rotate-api-keys-and-secure-api-access).
+
+## Audience Types
+
+`targetAudience` determines who receives the notification and how `campaignName` is treated. Send the matching value in the `X-MOE-Query-Type` header, case-insensitive.
+
+| `targetAudience` | `X-MOE-Query-Type` | Campaign behavior | `campaignDelivery.type` |
+| :--- | :--- | :--- | :--- |
+| `User` | `user`, or `bulk users` when `bulkUserRequest` is `true` | The campaign is reused across calls that pass the same `campaignName`. | Always sent immediately. |
+| `Custom Segment` | `custom segment` | A new campaign is created on every call, so `campaignName` must be unique. | `soon`, `later`, or `periodic`. Defaults to `soon`. |
+| `All Users` | `all users` | A new campaign is created on every call, so `campaignName` must be unique. | `soon`, `later`, or `periodic`. Defaults to `soon`. |
 
 <Note>
-  To adapt v2.1, move `appId` and `signature` out of the request body and send them as the `X-MOE-APPKEY` and `X-MOE-PushAPI-Signature` headers. Every other request body field, and the response structure, stays the same. See [Push API](/api/push/push-api) for the full header reference, or [Push API (Legacy)](/api/push/push-api-legacy) for the v2 endpoint details.
+  Some workspaces are enabled only for `User` audiences. In those workspaces, a request that targets `Custom Segment` or `All Users` returns a `403`. To send to these audiences, contact your Customer Success Manager (CSM) or MoEngage Support.
 </Note>
 
 ## IP Whitelisting
 
 <ApiIpWhitelisting category="Campaigns" />
 
-The API Firewall covers only the v2.1 endpoint. MoEngage accepts requests to the [Push API (Legacy)](/api/push/push-api-legacy) v2 endpoint from any IP address, even when your workspace has published API Firewall rules.
-
-## FAQs
-
-<AccordionGroup>
-  <Accordion title="Does the Push API support silent notifications?">
-    No, the MoEngage Push API currently does not support silent (data-only) notifications.
-  </Accordion>
-  <Accordion title="Can I use HTML to format notification text?">
-    Yes, the basic template supports standard HTML tags for text formatting on supported platforms.
-  </Accordion>
-  <Accordion title="What happens if personalization fails for a specific user?">
-    You can provide a `fallback` object within the payload. If the personalization logic fails (e.g., a missing user attribute), the system will automatically send the fallback content instead.
-  </Accordion>
-  <Accordion title="How do I target a user using their device token directly?">
-    In the `targetUserAttributes` object, set the `attribute` field to `PUSH_ID` and provide the device token as the `attributeValue`.
-  </Accordion>
-  <Accordion title="What does v2.1 change compared to the legacy v2 endpoint?">
-    v2.1 strengthens security and rate limiting, including support for IP whitelisting. It moves `appId` and `signature` from the request body to the `X-MOE-APPKEY` and `X-MOE-PushAPI-Signature` headers, and adds an `X-MOE-Query-Type` header. Every other request body field and the response structure are unchanged from v2. MoEngage recommends v2.1 for all new integrations. The legacy v2 endpoint remains fully supported for existing integrations.
-  </Accordion>
-</AccordionGroup>
+IP whitelisting is optional, and MoEngage recommends configuring it.
 
 ## Postman Collection
 
 We have made it easy for you to test the APIs:
 
-- [v2.1 Postman collection](https://www.postman.com/moengage-dev/api-docs/collection/5ujszpd/moengage-transaction-push-api-v2-1?action=share&source=copy-link&creator=5883765)
-- [Legacy v2 Postman collection](https://www.postman.com/moengage-dev/api-docs/collection/acmujor/moengage-transaction-push-api-v2?action=share&source=copy-link&creator=5883765)
+- **Push API (V5)** — Send the example payloads directly from [Push API (V5)](/api/push/push-api).
+- [Push API (v2.1, Legacy) collection](https://www.postman.com/moengage-dev/api-docs/collection/5ujszpd/moengage-transaction-push-api-v2-1?action=share&source=copy-link&creator=5883765)
+- [Push API (v2, Legacy) collection](https://www.postman.com/moengage-dev/api-docs/collection/acmujor/moengage-transaction-push-api-v2?action=share&source=copy-link&creator=5883765)
+
+## FAQs
+
+<AccordionGroup>
+  <Accordion title="Does the Push API support silent notifications?">
+    Yes, on iOS. Set `payload.IOS.contentAvailable` to `1` to send a silent background update.
+  </Accordion>
+  <Accordion title="Can I use HTML to format notification text?">
+    Yes, the basic template supports standard HTML tags for text formatting on supported platforms.
+  </Accordion>
+  <Accordion title="What happens if personalization fails for a specific user?">
+    Add a `fallback` object inside the platform payload. If the personalization logic fails, for example because a user attribute is missing, MoEngage sends the fallback content instead.
+  </Accordion>
+  <Accordion title="How do I target a user using their device token directly?">
+    Set `targetUserAttributes.attribute` to `PUSH_ID` and pass the device token in `targetUserAttributes.attributeValue`.
+  </Accordion>
+  <Accordion title="What is the difference between request_id and response_id?">
+    `request_id` is the trace ID you send as `requestId` in the request body. It is echoed back in `data.request_id`. `response_id` identifies the response itself. Quote `response_id` when you contact MoEngage Support.
+  </Accordion>
+  <Accordion title="Which status code means the notification was accepted?">
+    A `201` means the notification was accepted for sending. Any other status code is an error, with the reason in `error.code` and `error.message`.
+  </Accordion>
+  <Accordion title="Can I throttle delivery by both RPM and time?">
+    If you set both `advancedSettings.campaignThrottleRpm` and `advancedSettings.campaignThrottleTime`, `campaignThrottleRpm` takes precedence. A throttle value outside your workspace limits returns a `422`.
+  </Accordion>
+  <Accordion title="Do I need IP whitelisting to use the Push API?">
+    No. It is optional, but MoEngage recommends configuring it so that only your approved servers can reach your workspace. See [IP Whitelisting](#ip-whitelisting).
+  </Accordion>
+</AccordionGroup>

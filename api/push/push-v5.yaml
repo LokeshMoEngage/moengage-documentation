@@ -1,0 +1,1099 @@
+openapi: 3.0.3
+info:
+  title: MoEngage Push Notifications API
+  version: 5.0.0
+  description: |
+    Send transactional push notifications to Android, iOS, and Web devices. Served through the unified MoEngage gateway, behind a versioned `{response_id, type, data}` envelope.
+
+    Send your credentials in the `Authorization` header — either an OAuth 2.0 Bearer token or Basic Auth. A workspace can hold several active API keys at once, and any active key works with this endpoint.
+
+    IP whitelisting through the [API Firewall](/user-guide/settings/account/security/api-firewall) is optional, and MoEngage recommends configuring it.
+
+    The API is on for every workspace by default and can be turned off for a specific workspace. A request to a workspace where it is turned off returns `501`.
+servers:
+  - url: 'https://api-{dc}.moengage.com'
+    description: MoEngage API Server
+    variables:
+      dc:
+        default: '01'
+        enum: ['01', '02', '03', '04', '05', '06']
+        description: "The ‘dc’ in the API Endpoint URL refers to the MoEngage Data Center (DC). MoEngage hosts each customer in a different DC. You can find your DC number and replace the value of ‘dc’ in the URL by referring to the DC and API endpoint mapping [here](/api/introduction#data-centers). Your MoEngage Data Center (DC) can be 01, 02, 03, 04, 05, or 06."
+security:
+  - basicAuth: []
+paths:
+  /v5/push/notifications:
+    post:
+      operationId: sendPushNotification
+      summary: Send a push notification
+      description: |
+        Creates a transactional push campaign and sends it to the selected audience.
+
+        #### Rate Limit
+
+        The rate limit is 10,000 requests per minute.
+      parameters:
+        - $ref: '#/components/parameters/QueryType'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PushRequest'
+            examples:
+              "Base Request":
+                summary: Single User - Android
+                value:
+                  requestId: req_7f3c2a90
+                  campaignName: Order shipped
+                  targetPlatform: [ANDROID]
+                  targetAudience: User
+                  targetUserAttributes:
+                    attribute: USER_ATTRIBUTE_UNIQUE_ID
+                    comparisonParameter: is
+                    attributeValue: user-123
+                  payload:
+                    ANDROID:
+                      title: Order Shipped
+                      message: Your order has shipped
+                      defaultAction:
+                        type: deeplinking
+                        value: myapp://orders/123
+                  campaignDelivery:
+                    type: soon
+              "Android - Rich Content and Action Buttons":
+                summary: Android - Rich Content and Action Buttons
+                value:
+                  campaignName: Order shipped with media
+                  targetPlatform: [ANDROID]
+                  targetAudience: User
+                  targetUserAttributes:
+                    attribute: USER_ATTRIBUTE_UNIQUE_ID
+                    comparisonParameter: is
+                    attributeValue: user-123
+                  payload:
+                    ANDROID:
+                      title: Order Shipped
+                      message: Your order has shipped
+                      summary: Arriving tomorrow
+                      channel_id: transactional_updates
+                      groupKey: order_updates
+                      richContent:
+                        - type: image
+                          value: 'https://cdn.example.com/images/order-shipped.png'
+                        - type: coupon
+                          value: SHIP10
+                        - type: sound
+                          value: notification_tone.wav
+                      defaultAction:
+                        type: richlanding
+                        value: 'https://example.com/orders/123'
+                        kvPairs:
+                          order_id: '123'
+                      additionalActions:
+                        - type: call
+                          name: Call support
+                          iconURL: 'https://cdn.example.com/icons/call.png'
+                          value: '+914412345678'
+                        - type: copy
+                          name: Copy tracking ID
+                          iconURL: 'https://cdn.example.com/icons/copy.png'
+                          value: TRK-99321
+                      fallback:
+                        title: Order Shipped
+                        message: Your order is on its way
+                        defaultAction:
+                          type: deeplinking
+                          value: myapp://orders
+                  campaignDelivery:
+                    type: soon
+              "iOS - Rich Content and Fallback":
+                summary: iOS - Rich Content and Fallback
+                value:
+                  campaignName: Order shipped for iOS
+                  targetPlatform: [IOS]
+                  targetAudience: User
+                  targetUserAttributes:
+                    attribute: USER_ATTRIBUTE_UNIQUE_ID
+                    comparisonParameter: is
+                    attributeValue: user-123
+                  payload:
+                    IOS:
+                      title: Order Shipped
+                      subtitle: Arriving tomorrow
+                      message: Your order has shipped
+                      enableIosBadge: true
+                      richContent:
+                        - type: image
+                          value: 'https://cdn.example.com/images/order-shipped.png'
+                        - type: coupon
+                          value: SHIP10
+                      defaultAction:
+                        type: deeplinking
+                        value: myapp://orders/123
+                        kvPairs:
+                          order_id: '123'
+                      additionalActions:
+                        - category: ORDER_ACTIONS
+                      fallback:
+                        message: Your order is on its way
+                  campaignDelivery:
+                    type: soon
+              "Web - Basic Notification":
+                summary: Web - Basic Notification
+                value:
+                  campaignName: Order shipped for web
+                  targetPlatform: [WEB]
+                  targetAudience: User
+                  targetUserAttributes:
+                    attribute: USER_ATTRIBUTE_UNIQUE_ID
+                    comparisonParameter: is
+                    attributeValue: user-123
+                  payload:
+                    WEB:
+                      title: Order Shipped
+                      message: Your order has shipped
+                      redirectURL: 'https://example.com/orders/123'
+                      iconURL: 'https://cdn.example.com/icons/favicon.ico'
+                      imageURL: 'https://cdn.example.com/images/order-shipped.png'
+                      autoDismiss: true
+                  campaignDelivery:
+                    type: soon
+              "Multiple Users - in Operator":
+                summary: Multiple Users - in Operator
+                value:
+                  campaignName: Delivery delay notice
+                  targetPlatform: [ANDROID, IOS]
+                  targetAudience: User
+                  targetUserAttributes:
+                    attribute: USER_ATTRIBUTE_USER_EMAIL
+                    comparisonParameter: in
+                    attributeValue:
+                      - aditi@example.com
+                      - rahul@example.com
+                      - sana@example.com
+                  payload:
+                    ANDROID:
+                      title: Delivery Delayed
+                      message: Your order will arrive a day late
+                      defaultAction:
+                        type: deeplinking
+                        value: myapp://orders
+                    IOS:
+                      message: Your order will arrive a day late
+                  campaignDelivery:
+                    type: soon
+              "Target by Push Token":
+                summary: Target by Push Token
+                value:
+                  campaignName: Device test push
+                  targetPlatform: [ANDROID]
+                  targetAudience: User
+                  targetUserAttributes:
+                    attribute: PUSH_ID
+                    comparisonParameter: is
+                    attributeValue: 'fZx9KqTnSr2:APA91bHk_device_token_example'
+                  payload:
+                    ANDROID:
+                      title: Test Notification
+                      message: This is a test push to a single device
+                      defaultAction:
+                        type: navigation
+                        value: HomeScreen
+                  campaignDelivery:
+                    type: soon
+              "Android - Custom Attribute Targeting":
+                summary: Android - Custom Attribute Targeting
+                value:
+                  campaignName: Gold tier offer
+                  targetPlatform: [ANDROID]
+                  targetAudience: User
+                  targetUserAttributes:
+                    attribute: loyalty_tier
+                    comparisonParameter: is
+                    attributeValue: gold
+                    isCustom: true
+                  payload:
+                    ANDROID:
+                      title: Exclusive For Gold Members
+                      message: Your early access window is open
+                      defaultAction:
+                        type: richlanding
+                        value: 'https://example.com/gold'
+                  campaignDelivery:
+                    type: soon
+              "Bulk User Request":
+                summary: Bulk User Request
+                value:
+                  requestId: req_bulk_2026_11_07_0001
+                  bulkUserRequest: true
+                  campaignName: Weekly statement ready
+                  targetPlatform: [ANDROID, IOS]
+                  targetAudience: User
+                  targetUserAttributes:
+                    attribute: USER_ATTRIBUTE_UNIQUE_ID
+                    comparisonParameter: in
+                    attributeValue: [user-123, user-124, user-125]
+                  payload:
+                    ANDROID:
+                      title: Statement Ready
+                      message: Your weekly statement is available
+                      defaultAction:
+                        type: deeplinking
+                        value: myapp://statements
+                    IOS:
+                      message: Your weekly statement is available
+                  campaignDelivery:
+                    type: soon
+              "All Users - Scheduled With Conversion Goals":
+                summary: All Users - Scheduled With Conversion Goals
+                value:
+                  campaignName: Flash sale announcement
+                  campaignTags: [Promotional]
+                  targetPlatform: [ANDROID]
+                  targetAudience: All Users
+                  payload:
+                    ANDROID:
+                      title: Flash Sale
+                      message: Up to 50% off until midnight
+                      summary: Flash sale ends tonight
+                      richContent:
+                        - type: image
+                          value: 'https://cdn.example.com/images/flash-sale.png'
+                      defaultAction:
+                        type: richlanding
+                        value: 'https://example.com/sale'
+                  campaignDelivery:
+                    type: later
+                    date: '11/07/2026'
+                    time: '07:00 PM'
+                    timezone: Asia/Kolkata
+                  conversionGoals:
+                    - name: Added to cart
+                      eventName: AddedToCart
+                      attrs:
+                        name: amount
+                        type: numeric
+                        filter: is between
+                        value: '10,100'
+                  advancedSettings:
+                    ttl:
+                      ANDROID: 12
+                    ignoreFC: 'false'
+                    notificationPrioritySettings:
+                      ANDROID: high
+                    inboxExpiry: 360
+                  attributionWindow: 24
+              "Custom Segment - All Platforms":
+                summary: Custom Segment - All Platforms
+                value:
+                  campaignName: Weekend sale reminder
+                  campaignTags: [Promotional]
+                  targetPlatform: [ANDROID, IOS, WEB]
+                  targetAudience: Custom Segment
+                  customSegmentName: Weekend shoppers
+                  payload:
+                    ANDROID:
+                      title: Sale Ends Tonight
+                      message: Up to 50% off
+                      defaultAction:
+                        type: richlanding
+                        value: 'https://example.com/sale'
+                    IOS:
+                      title: Sale Ends Tonight
+                      message: Up to 50% off
+                      additionalActions:
+                        - category: SALE_ACTIONS
+                    WEB:
+                      title: Sale Ends Tonight
+                      message: Up to 50% off
+                      redirectURL: 'https://example.com/sale'
+                      iconURL: 'https://cdn.example.com/icons/favicon.ico'
+                  campaignDelivery:
+                    type: soon
+                  advancedSettings:
+                    ttl:
+                      ANDROID: 12
+                      WEB: 24
+                    ignoreFC: 'true'
+                    countFC: 'false'
+              "Periodic Campaign":
+                summary: Periodic Campaign
+                value:
+                  campaignName: Weekly savings digest
+                  targetPlatform: [ANDROID]
+                  targetAudience: All Users
+                  payload:
+                    ANDROID:
+                      title: Your Weekly Digest
+                      message: See what you saved this week
+                      defaultAction:
+                        type: deeplinking
+                        value: myapp://digest
+                  campaignDelivery:
+                    type: periodic
+                    time: '09:00 AM'
+                    endDate: '12/26/2026'
+                    repeatAfter: '7'
+                    timezone: Asia/Kolkata
+      responses:
+        '201':
+          description: Notification accepted for sending.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PushNotificationResponse'
+              example:
+                response_id: resp_09562729-236b-4773-8207-633215234560
+                type: push_notification
+                data:
+                  campaign_id: camp_66321523456aa0e1c2b3d4e5
+                  request_id: req_7f3c2a90
+        '400':
+          description: '`BAD_REQUEST`: the request body is malformed JSON or is not a JSON object, the `X-MOE-Query-Type` header is missing or does not match `targetAudience`, or the body carries a `requestType` other than `push`.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error:
+                  code: BAD_REQUEST
+                  message: X-MOE-Query-Type header does not match targetAudience in request body
+                  target: X-MOE-Query-Type
+                response_id: resp_8a1d6c1e-3a4f-4d8e-9b0a-2f6c1e7d9b10
+        '401':
+          description: The request did not pass authentication.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '403':
+          description: >-
+            The workspace is unknown, inactive, or blocked from using the Push API, or it is allowed
+            only `User` (one-to-one) audiences and the request targets `All Users` or `Custom Segment`.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '409':
+          description: A campaign with this name already exists, for an `All Users` or `Custom Segment` audience, or one created outside this API.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '415':
+          description: Content-Type is not application/json.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '422':
+          description: >-
+            The request is well-formed but cannot be processed, for example a required field is
+            missing, the custom segment does not exist, the user was not found, or a throttle value
+            is outside the workspace limits.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '429':
+          description: Rate limit exceeded.
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying.
+              schema: { type: integer }
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '500':
+          description: Unexpected server error.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '501':
+          description: '`NOT_IMPLEMENTED`: the Push API is turned off for this workspace, or its setting could not be read.'
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+              example:
+                error:
+                  code: NOT_IMPLEMENTED
+                  message: This API is not available.
+                  target: request
+                response_id: resp_8a1d6c1e-3a4f-4d8e-9b0a-2f6c1e7d9b10
+        '503':
+          description: The workspace status could not be verified. Retry later.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+
+components:
+  securitySchemes:
+    basicAuth:
+      type: http
+      scheme: basic
+      description: |
+        Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format `username:password`.
+
+        - **Username**: Use your MoEngage Workspace ID (also known as the App ID). Find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
+        - **Password**: Use an API key from **Settings** > **Account** > **API keys**.
+
+        The Push API also supports OAuth 2.0 and AWS STS Auth. Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for the supported authentication types and for creating and managing keys.
+
+  parameters:
+    QueryType:
+      name: X-MOE-Query-Type
+      in: header
+      required: true
+      description: |
+        This field denotes the target audience of the request and must match the `targetAudience` field in the request body, case-insensitive. Supported values are:
+        * all users
+        * custom segment
+        * user
+        * bulk users: Use this value instead of `user` when `bulkUserRequest` is `true`.
+
+        A missing value, or a value that does not match `targetAudience`, returns `400`.
+      schema: { type: string, example: user }
+
+  schemas:
+    PushRequest:
+      type: object
+      required: [campaignName, targetPlatform, targetAudience, payload]
+      properties:
+        requestId:
+          type: string
+          description: |
+            This field denotes a client-side trace ID for the request. MoEngage returns it in `data.request_id` in the response.
+            Note:
+            * This field is required when `bulkUserRequest` is `true`.
+        requestType:
+          type: string
+          enum: [push]
+          default: push
+          description: "This field denotes the intention of the API request. The only supported value is `push`, which is also the default."
+        campaignName:
+          type: string
+          minLength: 5
+          description: |
+            This field denotes the campaign name. The campaign name must be at least 5 characters long.
+            Note:
+            * The API creates the campaign with this name. You do not need to create the campaign on the dashboard first.
+            * For `All Users` and `Custom Segment` audiences, the campaign name must be unique. A name that already exists returns `409`.
+            * For `User` audiences, reuse the same campaign name across requests to group them into one campaign.
+        campaignTags:
+          type: array
+          items: { type: string }
+          description: |
+            This field denotes the list of campaign tags to add to the campaign. Tags add context to a campaign, such as its theme or purpose, and you can use them to filter campaigns on the dashboard.
+            Note:
+            * Each tag must already exist in the workspace. Tag names that do not exist are ignored.
+            * A maximum of 5 tags is applied.
+        targetPlatform:
+          type: array
+          minItems: 1
+          items: { type: string, enum: [ANDROID, IOS, WEB] }
+          description: |
+            This field denotes the platforms targeted by the campaign. You can target one or more platforms. Supported values are:
+            * ANDROID
+            * IOS
+            * WEB
+
+            Each platform you list here must have a matching block in `payload`.
+        targetAudience:
+          type: string
+          enum: [All Users, Custom Segment, User]
+          description: |
+            This field denotes the target audience for the campaign. Send the same value, case-insensitive, in the `X-MOE-Query-Type` header. Supported values are:
+            * All Users: Targets all users of your app or website. A new campaign is created on every request.
+            * Custom Segment: Targets an existing custom segment, named in `customSegmentName`. A new campaign is created on every request. You can create custom segments on the MoEngage dashboard or with the [Create Custom Segment API](/api/filter-segments/create-filter-segment).
+            * User: Targets the users that match `targetUserAttributes`. The campaign is reused across requests that pass the same `campaignName`, and the notification is sent immediately.
+        customSegmentName:
+          type: string
+          description: |
+            This field denotes the name of the custom segment to target. The segment must exist and must not be archived.
+            Note:
+            * This field is required when `targetAudience` is `Custom Segment`.
+        targetUserAttributes:
+          $ref: '#/components/schemas/TargetUserAttributes'
+        bulkUserRequest:
+          type: boolean
+          description: |
+            This field specifies whether to process a `User` request asynchronously, in bulk mode.
+            Note:
+            * Bulk mode is honored only when it is enabled for the workspace.
+            * When this field is `true`, send `bulk users` in the `X-MOE-Query-Type` header and include `requestId` in the body.
+        payload:
+          $ref: '#/components/schemas/Payload'
+        campaignDelivery:
+          $ref: '#/components/schemas/CampaignDelivery'
+        conversionGoals:
+          type: array
+          items: { $ref: '#/components/schemas/ConversionGoal' }
+          description: |
+            This field denotes the list of conversion goals for the campaign. A conversion goal is an event that you want users to perform after they receive the notification.
+            Note:
+            * The first valid goal in the list is the primary goal.
+            * A maximum of 5 goals is used.
+            * When you do not send this field, the conversion goal defaults to the `MOE_APP_OPENED` event.
+        advancedSettings:
+          $ref: '#/components/schemas/AdvancedSettings'
+        attributionWindow:
+          type: integer
+          minimum: 0
+          maximum: 36
+          default: 36
+          description: "This field denotes the attribution window, in hours, during which impressions and clicks are attributed to the campaign. Supported values are 0 to 36. The default value is 36."
+
+    TargetUserAttributes:
+      type: object
+      required: [attribute, comparisonParameter, attributeValue]
+      description: |
+        This object contains the attributes used to identify the target users.
+        Note:
+        * This object is required when `targetAudience` is `User`.
+      properties:
+        attribute:
+          type: string
+          description: |
+            This field denotes the user attribute used to identify the target users. Supported values are:
+            * USER_ATTRIBUTE_UNIQUE_ID: The unique ID of the user.
+            * USER_ATTRIBUTE_USER_EMAIL: The email address of the user.
+            * USER_ATTRIBUTE_USER_MOBILE: The mobile number of the user.
+            * MOE_GAID: The Google Advertising ID of the device.
+            * ADVERTISING_IDENTIFIER: The iOS Identifier for Advertisers (IDFA) of the device.
+            * PUSH_ID: The push token of the device. The same attribute is used for Android and iOS push tokens.
+
+            To target a custom user attribute, pass the attribute name in this field and set `isCustom` to `true`.
+        comparisonParameter:
+          type: string
+          description: |
+            This field denotes the operator that compares the user attribute against `attributeValue`. Supported values are:
+            * is: Matches a single value.
+            * in: Matches any value in a list.
+
+            For custom attributes with a string value, `contains`, `startsWith`, and `endsWith` are also supported.
+        attributeValue:
+          description: "This field denotes the value compared against the user attribute. Pass a single value for `is`, `contains`, `startsWith`, and `endsWith`, or an array of values for `in`."
+          oneOf:
+            - { type: string }
+            - { type: number }
+            - { type: boolean }
+            - { type: array, items: { oneOf: [{ type: string }, { type: number }] } }
+        isCustom:
+          type: boolean
+          default: false
+          description: "This field specifies whether `attribute` is a custom user attribute. Set this field to `true` to target users on a custom attribute. The default value is `false`."
+
+    Payload:
+      type: object
+      description: |
+        This object contains the notification content for each platform. Supported values are:
+        * ANDROID
+        * IOS
+        * WEB
+
+        Include one block for each platform listed in `targetPlatform`.
+      properties:
+        ANDROID: { $ref: '#/components/schemas/AndroidPayload' }
+        IOS: { $ref: '#/components/schemas/IosPayload' }
+        WEB: { $ref: '#/components/schemas/WebPayload' }
+
+    KvPairs:
+      type: object
+      additionalProperties: true
+      description: "This object contains additional key-value pairs that are delivered to the app with the click action."
+
+    DefaultAction:
+      type: object
+      required: [type, value]
+      description: "This object contains the action triggered when the user clicks the notification."
+      properties:
+        type:
+          type: string
+          enum: [navigation, deeplinking, richlanding]
+          description: |
+            This field denotes the type of click action. Supported values are:
+            * navigation: Opens a screen in the app.
+            * deeplinking: Opens a deep link.
+            * richlanding: Opens a web URL.
+        value:
+          type: string
+          description: "This field denotes the screen name, deep link, or URL to open, depending on `type`."
+        kvPairs: { $ref: '#/components/schemas/KvPairs' }
+
+    AndroidContent:
+      type: object
+      required: [title, message, defaultAction]
+      properties:
+        title:
+          type: string
+          description: "This field denotes the headline of the notification."
+        message:
+          type: string
+          description: "This field denotes the main text displayed in the notification."
+        summary:
+          type: string
+          description: "This field denotes a short summary of the content, displayed in collapsed notifications."
+        channel_id:
+          type: string
+          description: "This field denotes the ID of the Android notification channel the notification is posted to."
+        groupKey:
+          type: string
+          description: |
+            This field denotes the group key used to identify and group related push notifications.
+            Note:
+            * Use the same group key for all notifications you want to group.
+            * MoEngage normalizes the group key to ASCII characters by removing non-Latin scripts, special characters, and spaces, and limits it to 45 characters.
+        collapseReplaceKey:
+          type: string
+          description: "This field denotes the update key used to identify and update related push notifications. Use the same update key for all notifications that should replace each other."
+        isGifSelected:
+          type: boolean
+        richContent:
+          type: array
+          items:
+            type: object
+            required: [type, value]
+            properties:
+              type:
+                type: string
+                enum: [image, coupon, sound, gif, mi_image_url]
+                description: "This field denotes the type of rich content."
+              value:
+                type: string
+                description: "This field denotes the rich content value, such as an image URL, a coupon code, or a sound file name."
+          description: |
+            This field denotes the rich content added to the notification. Supported types are:
+            * image: The URL of an image.
+            * coupon: A coupon code.
+            * sound: The file name of a custom notification sound.
+            * gif: The URL of a GIF.
+        defaultAction:
+          $ref: '#/components/schemas/DefaultAction'
+        additionalActions:
+          type: array
+          maxItems: 2
+          description: |
+            This field denotes the action buttons displayed on the notification. A maximum of two action buttons can be added. Supported action types are:
+            * navigation: Opens a screen in the app.
+            * deeplinking: Opens a deep link.
+            * richlanding: Opens a web URL.
+            * call: Calls a phone number.
+            * copy: Copies text to the clipboard.
+            * share: Shares content.
+            * snooze
+          items:
+            type: object
+            required: [type, name, iconURL, value]
+            properties:
+              type:
+                type: string
+                enum: [navigation, deeplinking, richlanding, call, copy, share, snooze]
+                description: "This field denotes the type of action the button performs."
+              name:
+                type: string
+                description: "This field denotes the label displayed on the button."
+              iconURL:
+                type: string
+                description: "This field denotes the URL of the icon displayed on the button."
+              value:
+                type: string
+                description: "This field denotes the value used by the action, such as a screen name, deep link, URL, phone number, or text to copy."
+              kvPairs: { $ref: '#/components/schemas/KvPairs' }
+
+    AndroidPayload:
+      allOf:
+        - $ref: '#/components/schemas/AndroidContent'
+        - type: object
+          properties:
+            fallback:
+              $ref: '#/components/schemas/AndroidContent'
+              description: "This object contains the content sent instead of the main content when personalization fails, for example when a user attribute used in the payload is missing. It takes the same fields as the Android payload."
+
+    IosContent:
+      type: object
+      required: [message]
+      properties:
+        title:
+          type: string
+          description: "This field denotes the title of the notification."
+        subtitle:
+          type: string
+          description: "This field denotes the subtitle of the notification, displayed below the title."
+        message:
+          type: string
+          description: "This field denotes the main text of the notification."
+        enableIosBadge:
+          type: boolean
+          description: "This field specifies whether the notification updates the badge count on the iOS app icon."
+        contentAvailable:
+          type: integer
+          enum: [0, 1]
+          description: "This field specifies whether to send a silent background update. Set it to `1` to send a silent background update."
+        groupKey:
+          type: string
+          description: |
+            This field denotes the group key used to identify and group related push notifications.
+            Note:
+            * Use the same group key for all notifications you want to group.
+        collapseReplaceKey:
+          type: string
+          description: "This field denotes the update key used to identify and update related push notifications. Use the same update key for all notifications that should replace each other."
+        richContent:
+          type: array
+          maxItems: 3
+          items:
+            type: object
+            required: [type, value]
+            properties:
+              type:
+                type: string
+                enum: [image, coupon, sound, audio, video]
+                description: "This field denotes the type of rich content."
+              value:
+                type: string
+                description: "This field denotes the rich content value, such as a media URL, a coupon code, or a sound file name."
+          description: |
+            This field denotes the rich content added to the notification. Supported types are:
+            * image
+            * coupon
+            * sound
+            * audio
+            * video
+
+            Note:
+            * A maximum of 3 items can be added, and each type can be used only once.
+            * Image, audio, and video cannot be used together. Add at most one of them.
+        defaultAction:
+          type: object
+          description: |
+            This object contains the action triggered when the user clicks the notification.
+            Note:
+            * `type` is optional on iOS, so you can send `kvPairs` alone.
+            * When you send `type`, `value` is required.
+          properties:
+            type:
+              type: string
+              enum: [navigation, deeplinking, richlanding]
+              description: |
+                This field denotes the type of click action. Supported values are:
+                * navigation: Opens a screen in the app.
+                * deeplinking: Opens a deep link.
+                * richlanding: Opens a web URL.
+            value:
+              type: string
+              description: "This field denotes the screen name, deep link, or URL to open, depending on `type`."
+            kvPairs: { $ref: '#/components/schemas/KvPairs' }
+        additionalActions:
+          type: array
+          maxItems: 1
+          description: "This field denotes the action buttons displayed on the notification. On iOS, action buttons are defined by a notification category registered in your app. You can add only one category."
+          items:
+            type: object
+            required: [category]
+            properties:
+              category:
+                type: string
+                description: "This field denotes the iOS notification category that defines the action buttons."
+
+    IosPayload:
+      allOf:
+        - $ref: '#/components/schemas/IosContent'
+        - type: object
+          properties:
+            fallback:
+              $ref: '#/components/schemas/IosContent'
+              description: "This object contains the content sent instead of the main content when personalization fails, for example when a user attribute used in the payload is missing. It takes the same fields as the iOS payload."
+
+    WebContent:
+      type: object
+      required: [title, message, redirectURL, iconURL]
+      properties:
+        title:
+          type: string
+          description: "This field denotes the heading of the notification."
+        message:
+          type: string
+          description: "This field denotes the main text of the notification."
+        redirectURL:
+          type: string
+          format: uri
+          description: "This field denotes the URL the user is redirected to when they click the notification."
+        iconURL:
+          type: string
+          format: uri
+          description: "This field denotes the URL of the icon displayed alongside the title and message."
+        imageURL:
+          type: string
+          format: uri
+          description: "This field denotes the URL of a large image displayed in the notification."
+        autoDismiss:
+          type: boolean
+          description: "This field specifies whether to dismiss the notification automatically after 8 seconds."
+
+    WebPayload:
+      allOf:
+        - $ref: '#/components/schemas/WebContent'
+        - type: object
+          properties:
+            fallback:
+              $ref: '#/components/schemas/WebContent'
+              description: "This object contains the content sent instead of the main content when personalization fails, for example when a user attribute used in the payload is missing. It takes the same fields as the Web payload."
+
+    CampaignDelivery:
+      type: object
+      required: [type]
+      description: |
+        This object contains the delivery schedule for the campaign.
+        Note:
+        * When you do not send this object, the campaign is sent with the `soon` type.
+        * `User` requests are always sent immediately, whatever the delivery type.
+      properties:
+        type:
+          type: string
+          enum: [soon, later, periodic]
+          description: |
+            This field denotes when the campaign is sent. Supported values are:
+            * soon: Sends the campaign immediately.
+            * later: Sends the campaign once, on the `date` and at the `time` you set.
+            * periodic: Sends the campaign at the set `time`, repeating every `repeatAfter` days until `endDate`.
+        date:
+          type: string
+          example: '11/07/2026'
+          description: "This field denotes the date on which to send the campaign, in MM/DD/YYYY format. This field is required when `type` is `later`."
+        time:
+          type: string
+          example: '07:00 PM'
+          description: "This field denotes the time at which to send the campaign, in hh:mm AM/PM format. This field is required when `type` is `later` or `periodic`."
+        endDate:
+          type: string
+          example: '11/30/2026'
+          description: "This field denotes the date on which a periodic campaign stops, in MM/DD/YYYY format. This field is required when `type` is `periodic`."
+        repeatAfter:
+          type: string
+          description: "This field denotes the number of days between sends of a periodic campaign. For example, `\"7\"` sends the campaign every 7 days. This field is required when `type` is `periodic`."
+        timezone:
+          type: string
+          default: Asia/Calcutta
+          description: "This field denotes the time zone for `date`, `time`, and `endDate`, as an IANA time zone name such as `Asia/Kolkata`. The default value is `Asia/Calcutta`."
+
+    ConversionGoal:
+      type: object
+      required: [name, eventName]
+      properties:
+        name:
+          type: string
+          description: "This field denotes the display name of the conversion goal, shown in the campaign analytics."
+        eventName:
+          type: string
+          description: "This field denotes the name of the event that counts as a conversion. The event must be tracked in the workspace."
+        attrs:
+          type: object
+          required: [name, filter, type]
+          description: "This object contains an event attribute filter. A conversion is counted only when the event attribute matches the filter."
+          properties:
+            name:
+              type: string
+              description: "This field denotes the name of the event attribute to filter on."
+            type:
+              type: string
+              enum: [string, numeric]
+              description: |
+                This field denotes the data type of the event attribute. Supported values are:
+                * string
+                * numeric
+            filter:
+              type: string
+              description: |
+                This field denotes the filter operator applied to the event attribute. Supported values depend on `type`:
+                * string: is, is not, contains, does not contain, starts with, does not start with, ends with, does not end with, in the following, not in the following, exists, does not exist.
+                * numeric: is equal to, is not equal to, is between, is not between, is less than, is greater than, in the following, not in the following, exists, does not exist.
+
+                Note:
+                * A goal with an invalid filter is skipped.
+              enum: [is, is not, contains, does not contain, starts with, does not start with,
+                     ends with, does not end with, in the following, not in the following, exists,
+                     does not exist, is equal to, is not equal to, is between, is not between,
+                     is less than, is greater than]
+            value:
+              description: |
+                This field denotes the value the filter compares against.
+                Note:
+                * Omit this field for `exists` and `does not exist`.
+                * Pass an array for `in the following` and `not in the following`.
+                * Pass two comma-separated values, such as `"10,100"`, for `is between` and `is not between`.
+              oneOf:
+                - { type: string }
+                - { type: number }
+                - { type: array, items: { oneOf: [{ type: string }, { type: number }] } }
+
+    AdvancedSettings:
+      type: object
+      description: |
+        This object contains the advanced delivery settings for the campaign.
+        Note:
+        * Flags of type string take the values `"true"` and `"false"`, in lowercase.
+        * When you send this object, `ignoreMinimumDelay` and `bypassDND` default to `true`.
+      properties:
+        ttl:
+          type: object
+          description: |
+            This object contains the time to live (TTL) of the notification, in hours, for each platform. The push service stops attempting delivery after the TTL expires, and an undelivered notification is discarded. Supported keys are:
+            * ANDROID
+            * WEB
+
+            The minimum value is 1. The default value is 36.
+          properties:
+            ANDROID: { type: integer, minimum: 1, description: "TTL in hours for Android." }
+            WEB: { type: integer, minimum: 1, description: "TTL in hours for Web." }
+        ignoreFC:
+          type: string
+          enum: ["true", "false"]
+          default: "false"
+          description: |
+            This field specifies whether the campaign ignores the [frequency capping](/user-guide/settings/channels/delivery-controls/frequency-capping) set for the workspace. Supported values are:
+            * "true": Bypasses frequency capping and sends the notification to every user in the audience.
+            * "false": Applies frequency capping, so a user who has reached the limit does not receive the notification.
+
+            The default value is "false". While you test the API, set this field to "true"; otherwise, some test notifications might not be delivered.
+        countFC:
+          type: string
+          enum: ["true", "false"]
+          default: "true"
+          description: |
+            This field specifies whether the campaign is counted toward the frequency capping limit. Supported values are:
+            * "true": The campaign is counted.
+            * "false": The campaign is not counted.
+
+            This field applies only when `ignoreFC` is "true". The default value is "true".
+        notificationPrioritySettings:
+          type: object
+          description: "This object contains the delivery priority of the notification for each platform."
+          properties:
+            ANDROID:
+              type: string
+              enum: [high, normal]
+              description: |
+                This field denotes the delivery priority sent to Firebase Cloud Messaging (FCM). Supported values are:
+                * high: FCM attempts to deliver the notification immediately, waking the device if needed. Use it for time-sensitive notifications such as OTPs and payment confirmations.
+                * normal: FCM can delay delivery to save device battery.
+            IOS:
+              type: integer
+              enum: [1, 5, 10]
+              description: |
+                This field denotes the delivery priority sent to the Apple Push Notification service (APNs). Supported values are:
+                * 10: APNs sends the notification immediately.
+                * 5: APNs sends the notification based on power considerations on the device.
+                * 1: APNs prioritizes the device's power over all other factors.
+        sendAtHighPriority:
+          type: string
+          enum: ["true", "false"]
+          description: "This field specifies whether to send the Android notification at high priority. This is a legacy field. Use `notificationPrioritySettings.ANDROID` instead."
+        deliverWhenActive:
+          type: string
+          enum: ["true", "false"]
+          description: "This field specifies whether to deliver the notification only when the device is active. This field applies to Android only."
+        pushAmp+:
+          type: string
+          enum: ["true", "false"]
+          description: "This field specifies whether Push Amplification Plus is enabled for the campaign. Supported values are \"true\" and \"false\". For more information, refer to [Push Amplification Plus](/user-guide/campaigns-and-channels/mobile-push/analyze/push-amplification-plus-and-delivery-impact)."
+        iosTargetDevice:
+          type: string
+          enum: [apns_device_default_push, apns_device_provisional_push, apns_device_non_provisional_push]
+          default: apns_device_default_push
+          description: |
+            This field denotes the iOS devices targeted, based on their push permission type. Supported values are:
+            * apns_device_default_push
+            * apns_device_provisional_push: Devices with provisional push permission.
+            * apns_device_non_provisional_push: Devices with explicit push permission.
+
+            The default value is `apns_device_default_push`. For more information about provisional push, refer to [iOS Push Permission and Reachability](/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/ios-push-permission-and-reachability).
+        preCacheSegment:
+          type: boolean
+          description: "This field specifies whether to pre-cache the segment for a scheduled or periodic campaign. Pre-caching computes the audience in advance and reduces the time taken to send the campaign. To allow time for caching, create the campaign at least 2 hours before its scheduled time."
+        campaignThrottleRpm:
+          type: integer
+          description: |
+            This field denotes the delivery speed of the campaign, in messages per minute.
+            Note:
+            * The value must be within the throttling limits of the workspace. A value outside the limits returns `422`.
+            * If you send both `campaignThrottleRpm` and `campaignThrottleTime`, `campaignThrottleRpm` takes precedence.
+        campaignThrottleTime:
+          type: integer
+          minimum: 1
+          maximum: 360
+          description: |
+            This field denotes a time-based throttle for the campaign, in minutes. Supported values are 1 to 360.
+            Note:
+            * If you send both `campaignThrottleRpm` and `campaignThrottleTime`, `campaignThrottleRpm` takes precedence.
+        useJinjaPersonalization:
+          type: boolean
+          description: "This field specifies whether the payload uses Jinja personalization. MoEngage recommends the Jinja format for personalization."
+        ignoreMinimumDelay:
+          type: boolean
+          default: true
+          description: "This field specifies whether the campaign ignores the [minimum delay between campaigns](/user-guide/settings/channels/delivery-controls/minimum-delay-between-campaigns) set for the workspace. The default value is `true`."
+        bypassDND:
+          type: boolean
+          default: true
+          description: "This field specifies whether the campaign ignores the [Do Not Disturb (DND)](/user-guide/settings/channels/delivery-controls/do-not-disturb) settings of the workspace. The default value is `true`."
+        inboxExpiry:
+          type: number
+          description: "This field denotes the time, in hours, after which the notification expires from the notification inbox."
+        targetLastActiveDevice:
+          type: boolean
+          description: "This field specifies whether to send the notification only to the user's primary device, which is the device of the user's most recent login. Users without a detected primary device do not receive the notification. For more information, refer to [Primary Device Per User](/user-guide/campaigns-and-channels/mobile-push/notification-features-and-behavior/primary-device-per-user)."
+
+    PushNotificationResponse:
+      type: object
+      required: [response_id, type, data]
+      properties:
+        response_id:
+          type: string
+          description: "This field denotes the unique ID of the response. Quote this ID when you contact MoEngage Support."
+        type:
+          type: string
+          enum: [push_notification]
+          description: "This field denotes the type of resource returned. The value is always `push_notification`."
+        data:
+          type: object
+          required: [campaign_id, request_id]
+          description: "This object contains the details of the created campaign."
+          properties:
+            campaign_id:
+              type: string
+              description: "This field denotes the prefixed ID of the campaign, for example `camp_66321523456aa0e1c2b3d4e5`."
+            request_id:
+              type: string
+              nullable: true
+              description: "This field denotes the `requestId` sent in the request body. The value is `null` when no `requestId` was sent."
+
+    ErrorResponse:
+      type: object
+      required: [error, response_id]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          description: "This object contains the details of the error."
+          properties:
+            code:
+              type: string
+              description: "This field denotes the error code, for example `BAD_REQUEST` or `NOT_IMPLEMENTED`."
+            message:
+              type: string
+              description: "This field denotes a readable description of the error."
+            target:
+              type: string
+              description: "This field denotes the header or field that caused the error, for example `X-MOE-Query-Type`."
+            details:
+              type: array
+              description: "This field denotes a list of additional error details."
+              items:
+                type: object
+                properties:
+                  code:
+                    type: string
+                    description: "This field denotes the error code for this error."
+                  target:
+                    type: string
+                    description: "This field denotes the header or field that caused this error."
+                  message:
+                    type: string
+                    description: "This field denotes a readable description of this error."
+        response_id:
+          type: string
+          description: "This field denotes the unique ID of the response. Quote this ID when you contact MoEngage Support."
