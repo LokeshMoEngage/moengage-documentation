@@ -110,6 +110,125 @@ components:
             This field contains the preview text, the text that appears below the subject line in the inbox.
             Example: "preview_text": "Let Your Summer Look Shine"
 
+    EmailConnector:
+      type: object
+      properties:
+        connector_type:
+          type: string
+          description: |
+            This field contains the type of the email connector. Pass the exact enum value, not the connector's display name.
+          enum:
+            - SENDGRID
+            - AMAZON_SES
+            - SPARKPOST
+            - MANDRILL
+            - CUSTOM_SMTP
+            - CUSTOM_API
+            - NETCORE
+          example: "SENDGRID"
+        connector_name:
+          type: string
+          description: This field contains the name of the email connector, exactly as it appears in **Email Settings**.
+          example: "sg_primary"
+
+    FromAddress:
+      type: string
+      description: |
+        This field contains a verified from email address of the connector passed in `connector`. You can use personalization (Jinja) in this field only if from address personalization is enabled for your workspace, and not for Inform templates.
+      example: "offers@brand.com"
+
+    ReplyToAddress:
+      type: string
+      format: email
+      description: This field contains the reply-to email address for the template. It must be a valid email address.
+      example: "support@brand.com"
+
+    CreateBasicDetails:
+      allOf:
+        - $ref: '#/components/schemas/BasicDetails'
+        - type: object
+          properties:
+            connector:
+              allOf:
+                - $ref: '#/components/schemas/EmailConnector'
+              description: |
+                This field contains the email connector to save with the template. Campaigns that use this template reuse the connector, from email address, and reply-to email address saved with it.
+
+                **Note**: Connector details fields are currently released behind a feature flag and may not be available for your workspace. Contact your MoEngage Customer Success Manager (CSM) or the Support team to get them enabled.
+
+                The following rules apply to `connector.connector_type`, `connector.connector_name`, `from_address`, and `reply_to_address`:
+                * Pass all four values together, or pass none of them.
+                * The connector must exist in **Email Settings** and have at least one verified from email address. The `from_address` value must be one of those verified addresses. If you personalize `from_address`, MoEngage skips the mapping and verification checks for it.
+                * Templates in a template group (locale or variation templates) must use the connector of the group's default template. Create the default template with the connector first.
+            from_address:
+              $ref: '#/components/schemas/FromAddress'
+            reply_to_address:
+              $ref: '#/components/schemas/ReplyToAddress'
+
+    UpdateBasicDetails:
+      allOf:
+        - $ref: '#/components/schemas/BasicDetails'
+        - type: object
+          properties:
+            connector:
+              allOf:
+                - $ref: '#/components/schemas/EmailConnector'
+              description: |
+                This field contains the email connector to save with the template. Campaigns that use this template reuse the connector, from email address, and reply-to email address saved with it.
+
+                **Note**: Connector details fields are currently released behind a feature flag and may not be available for your workspace. Contact your MoEngage Customer Success Manager (CSM) or the Support team to get them enabled.
+
+                The following rules apply to `connector.connector_type`, `connector.connector_name`, `from_address`, and `reply_to_address`:
+                * Pass all four values together, or pass none of them.
+                * The connector must exist in **Email Settings** and have at least one verified from email address. The `from_address` value must be one of those verified addresses. If you personalize `from_address`, MoEngage skips the mapping and verification checks for it.
+                * Templates in a template group (locale or variation templates) must use the connector of the group's default template. Create the default template with the connector first.
+
+                The following rules also apply when you update a template:
+                * If you leave out all four values, the template keeps the values of its previous version.
+                * After sender details are set on a template, you can change them, which creates a new version, but you cannot remove them.
+                * If `update_latest_version` is `true`, you cannot change the sender details.
+                * If `update_campaigns` is `true` and every version of the template has the same sender details, the campaigns using the template are updated to the new version. If the sender details differ across versions, the template is still saved as a new version, but the campaigns are not updated, and the response returns `campaigns_updated` as `false`.
+            from_address:
+              $ref: '#/components/schemas/FromAddress'
+            reply_to_address:
+              $ref: '#/components/schemas/ReplyToAddress'
+
+    SearchBasicDetails:
+      allOf:
+        - $ref: '#/components/schemas/BasicDetails'
+        - type: object
+          properties:
+            connector:
+              type: object
+              nullable: true
+              description: |
+                This field contains the email connector saved with the template. It is null for templates without sender details.
+
+                **Note**: Connector details fields are currently released behind a feature flag and may not be available for your workspace. Contact your MoEngage Customer Success Manager (CSM) or the Support team to get them enabled.
+              properties:
+                connector_type:
+                  type: string
+                  description: This field contains the type of the email connector.
+                  enum:
+                    - SENDGRID
+                    - AMAZON_SES
+                    - SPARKPOST
+                    - MANDRILL
+                    - CUSTOM_SMTP
+                    - CUSTOM_API
+                    - NETCORE
+                connector_name:
+                  type: string
+                  description: This field contains the name of the email connector, as it appears in **Email Settings**.
+            from_address:
+              type: string
+              nullable: true
+              description: This field contains the from email address saved with the template. It is null for templates without sender details.
+            reply_to_address:
+              type: string
+              nullable: true
+              description: This field contains the reply-to email address saved with the template. It is null for templates without sender details.
+
     MetaInfo:
       type: object
       description: |
@@ -147,6 +266,54 @@ components:
             * Parent template: A parent template is the "default" template with which you can associate child templates. You need not pass a Group ID for a parent template. The "external_template_id" generated for the parent template acts as its group ID.
             * Child template: Pass the Group ID of the parent (default) template with which you want to associate the child template.
 
+    CreateMetaInfo:
+      allOf:
+        - $ref: '#/components/schemas/MetaInfo'
+        - type: object
+          properties:
+            communication_type:
+              type: string
+              enum:
+                - ENGAGE
+                - INFORM
+                - ALL
+              description: |
+                This field contains the type of campaigns the template is used for:
+                * `ENGAGE`: Engage campaigns.
+                * `INFORM`: Inform alerts.
+                * `ALL`: Both Engage campaigns and Inform alerts.
+
+                The value is case-sensitive. Pass it in uppercase only. Values such as `inform` or `Inform` return a 400 error.
+
+                For `INFORM` templates, a personalized (Jinja) `from_address` is not allowed and returns a 400 error.
+
+                If you do not pass this field, it is set to `ALL`.
+              example: "ENGAGE"
+
+    UpdateMetaInfo:
+      allOf:
+        - $ref: '#/components/schemas/MetaInfo'
+        - type: object
+          properties:
+            communication_type:
+              type: string
+              enum:
+                - ENGAGE
+                - INFORM
+                - ALL
+              description: |
+                This field contains the type of campaigns the template is used for:
+                * `ENGAGE`: Engage campaigns.
+                * `INFORM`: Inform alerts.
+                * `ALL`: Both Engage campaigns and Inform alerts.
+
+                The value is case-sensitive. Pass it in uppercase only. Values such as `inform` or `Inform` return a 400 error.
+
+                For `INFORM` templates, a personalized (Jinja) `from_address` is not allowed and returns a 400 error.
+
+                If you do not pass this field, the template keeps its current value.
+              example: "ENGAGE"
+
 security:
   - basicAuth: []
 
@@ -179,9 +346,9 @@ paths:
                 - meta_info
               properties:
                 basic_details:
-                  $ref: '#/components/schemas/BasicDetails'
+                  $ref: '#/components/schemas/CreateBasicDetails'
                 meta_info:
-                  $ref: '#/components/schemas/MetaInfo'
+                  $ref: '#/components/schemas/CreateMetaInfo'
                 team_name:
                   type: string
                   description: |
@@ -205,6 +372,11 @@ paths:
                     sender_name: "Sender_Name"
                     preview_text: "Preview_text"
                     attachments: []
+                    connector:
+                      connector_type: "SENDGRID"
+                      connector_name: "sg_primary"
+                    from_address: "offers@brand.com"
+                    reply_to_address: "support@brand.com"
                   meta_info:
                     created_by: "john.doe@example.com"
                     template_id: "{{template_id_1}}"
@@ -222,6 +394,11 @@ paths:
                     sender_name: "Sender_Name"
                     preview_text: "Preview_text"
                     attachments: []
+                    connector:
+                      connector_type: "SENDGRID"
+                      connector_name: "sg_primary"
+                    from_address: "offers@brand.com"
+                    reply_to_address: "support@brand.com"
                   meta_info:
                     created_by: "john.doe@example.com"
                     template_id: "{{template_id_2}}"
@@ -294,6 +471,116 @@ paths:
                           target: "team_name"
                           message: "team_name\"team2\" does not exist in this workspace"
                       request_id: "NRwyBXpk"
+                sender_details_not_enabled:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "NotSupported"
+                          target: "sender_details"
+                          message: "Sender details on email templates are not enabled for this workspace. Contact your account team to get this feature enabled."
+                      request_id: "qT4vNb8K"
+                sender_details_incomplete:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "MissingValue"
+                          target: "sender_details"
+                          message: "connector_type, connector_name, from_address, and reply_to_address must be provided together. Send all four fields together, or omit all four if you are not setting sender details."
+                      request_id: "Hs2LpWe9"
+                invalid_connector_type:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "InvalidValue"
+                          target: "connector_type"
+                          message: "connector_type value is invalid. Allowed values are SENDGRID, AMAZON_SES, SPARKPOST, MANDRILL, CUSTOM_SMTP, CUSTOM_API, NETCORE. Use the exact value, not a display name."
+                      request_id: "Zr7XcM3d"
+                invalid_email_address:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "InvalidValue"
+                          target: "from_address"
+                          message: "from_address should be a valid email address."
+                      request_id: "Pk5JyA1u"
+                connector_not_found:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "InvalidValue"
+                          target: "connector"
+                          message: "Connector Sendgrid (sg_primary) is not present in Email Settings. Check the connector name matches Email Settings exactly, or create it there first."
+                      request_id: "Wd9FgT6n"
+                connector_without_verified_from_address:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "InvalidValue"
+                          target: "connector"
+                          message: "Connector Sendgrid (sg_primary) has no verified from address. Verify a from address on this connector in Email Settings first."
+                      request_id: "Bn3QsR8v"
+                from_address_not_verified:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "InvalidValue"
+                          target: "from_address"
+                          message: "from_address x@brand.com is not a verified from address of connector Sendgrid (sg_primary). Verify this address on the connector in Email Settings, or use one that is already verified."
+                      request_id: "Ly6HmK2c"
+                personalized_from_address_not_enabled:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "NotSupported"
+                          target: "from_address"
+                          message: "Personalised from_address is not enabled for this workspace."
+                      request_id: "Ge8VtD4w"
+                personalized_from_address_inform_template:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "NotSupported"
+                          target: "from_address"
+                          message: "Personalised from_address is not supported for Inform templates (communication_type INFORM). Use a fixed from address."
+                      request_id: "Ux1NpZ7r"
+                connector_mismatch_with_default_template:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "InvalidValue"
+                          target: "connector"
+                          message: "Connector must match the group's default template connector, Sendgrid (sg_primary). Use the same connector as the group's default template, or update the default template's connector first if the whole group needs to move."
+                      request_id: "Fa4CwY9j"
+                default_template_connector_missing:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "InvalidValue"
+                          target: "connector"
+                          message: "Set the connector on the group's default template before its locale / variation templates. Add the connector to the default template first, then to this template."
+                      request_id: "Mo2EbS5x"
         '401':
           description: This response is returned when the authorization parameters are missing in the HTTP Auth Header.
           content:
@@ -392,9 +679,9 @@ paths:
                   type: boolean
                   description: If the value is "true," this API does not create a new version of the template but only updates its contents.
                 basic_details:
-                  $ref: '#/components/schemas/BasicDetails'
+                  $ref: '#/components/schemas/UpdateBasicDetails'
                 meta_info:
-                  $ref: '#/components/schemas/MetaInfo'
+                  $ref: '#/components/schemas/UpdateMetaInfo'
                 team_name:
                   type: string
                   description: |
@@ -438,10 +725,30 @@ paths:
                   external_template_id:
                     type: string
                     description: This field contains the unique template id corresponding to a successful template updation request.
+                  version:
+                    type: string
+                    description: This field contains the version of the template after the update. It is returned only when `update_campaigns` or `update_latest_version` is passed in the request.
+                  campaigns_updated:
+                    type: boolean
+                    description: This field indicates whether the campaigns using the template were updated to the new version. It is returned only when `update_campaigns` or `update_latest_version` is passed in the request.
+                  message:
+                    type: string
+                    description: This field contains the reason the campaigns were not updated. It is returned only when `campaigns_updated` is `false`.
               examples:
                 success:
                   value:
                     external_template_id: "d05a44f0-a7cf-471a-bcb6-63054800a367"
+                campaigns_updated:
+                  value:
+                    external_template_id: "d05a44f0-a7cf-471a-bcb6-63054800a367"
+                    version: "3"
+                    campaigns_updated: true
+                campaigns_not_updated:
+                  value:
+                    external_template_id: "d05a44f0-a7cf-471a-bcb6-63054800a367"
+                    version: "3"
+                    campaigns_updated: false
+                    message: "Campaign update is not supported when sender details differ across this template's versions. The template was saved as a new version, but campaigns stay on their current version."
         '400':
           description: This response is returned when the required parameters are missing from the request or when the provided parameters are invalid.
           content:
@@ -479,6 +786,46 @@ paths:
                           target: "team_name"
                           message: "team_name\"team2\" does not exist in this workspace"
                       request_id: "NRwyBXpk"
+                sender_details_removed:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "NotSupported"
+                          target: "sender_details"
+                          message: "Sender details cannot be removed once added; they can only be changed. Send new values instead of empty ones; there is no way to unset them."
+                      request_id: "Rv6KdP2s"
+                sender_details_changed_in_place:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "NotSupported"
+                          target: "update_latest_version"
+                          message: "Sender details cannot be changed in place. Resend with update_latest_version=false to save them as a new version."
+                      request_id: "Jc8WnF3q"
+                in_place_update_moves_campaigns:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "NotSupported"
+                          target: "update_latest_version"
+                          message: "Cannot update in place: campaigns on older versions would move onto a version with different sender details. Resend with update_latest_version=false."
+                      request_id: "Tx4BhL9m"
+                connector_mismatch_with_group_templates:
+                  value:
+                    error:
+                      code: "400 Bad Request"
+                      message: "Validation failed because of invalid request data"
+                      details:
+                        - code: "InvalidValue"
+                          target: "connector"
+                          message: "Connector must match the locale / variation templates of the group: locale fr variation 2 uses Sendgrid (sg_secondary). Update that locale / variation template to the new connector first, or keep the current connector."
+                      request_id: "Yp7GzE1k"
         '401':
           description: This response is returned when the authorization parameters are missing in the HTTP Auth Header.
           content:
@@ -583,6 +930,8 @@ paths:
                 - You can send only `template_ids` if you want specific older versions of the email template. In other cases, you will receive the latest version of the template.
 
                 - By default, the `is_default_template_of_group` flag is set to "true" for the default (parent) template and "false" for child templates.
+
+                - The connector details filters (`connector_name`, `connector_type`, `from_address`, and `include_templates_without_connector`) are currently released behind a feature flag and may not be available for your workspace. Contact your MoEngage Customer Success Manager (CSM) or the Support team to get them enabled.
               required:
                 - page
                 - entries
@@ -671,11 +1020,49 @@ paths:
 
                     When specified, only the templates belonging to the teams listed here are returned. Unlike the `team_name` field on the create and update APIs, this parameter is not gated behind a feature flag — it is available to any workspace that has teams enabled.
                   example: ["team1", "team2"]
+                connector_name:
+                  type: array
+                  items:
+                    type: string
+                  description: This field contains the list of email connector names. When specified, the templates whose connector name matches one of the names in this list will be returned.
+                  example: ["sg_primary"]
+                connector_type:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - SENDGRID
+                      - AMAZON_SES
+                      - SPARKPOST
+                      - MANDRILL
+                      - CUSTOM_SMTP
+                      - CUSTOM_API
+                      - NETCORE
+                  description: This field contains the list of email connector types. When specified, the templates whose connector type matches one of the types in this list will be returned.
+                  example: ["SENDGRID"]
+                from_address:
+                  type: array
+                  items:
+                    type: string
+                  description: This field contains the list of from email addresses. When specified, the templates whose from email address matches one of the addresses in this list will be returned.
+                  example: ["offers@brand.com"]
+                include_templates_without_connector:
+                  type: boolean
+                  default: false
+                  description: |
+                    If the value is "true", this API also returns templates that have no sender details saved. This field works only with the `connector_name`, `connector_type`, or `from_address` filter, and has no effect on its own.
             examples:
               Search by team names:
                 summary: Search by team names
                 value:
                   team_names: ["team1", "team2"]
+                  page: 1
+                  entries: 15
+              Search by connector:
+                summary: Search by connector
+                value:
+                  connector_name: ["sg_primary"]
+                  include_templates_without_connector: true
                   page: 1
                   entries: 15
       responses:
@@ -701,7 +1088,7 @@ paths:
                         meta_info:
                           $ref: '#/components/schemas/MetaInfo'
                         basic_details:
-                          $ref: '#/components/schemas/BasicDetails'
+                          $ref: '#/components/schemas/SearchBasicDetails'
                         created_by:
                           type: string
                         created_at:
@@ -740,6 +1127,11 @@ paths:
                           attachments: []
                           thumbnail_url: "https://img.freepik.com/free-vector/bright-yellow-sunflower-design-decorations_1308-130330.jpg"
                           sender_name: "test sender 1"
+                          connector:
+                            connector_type: "SENDGRID"
+                            connector_name: "sg_primary"
+                          from_address: "offers@brand.com"
+                          reply_to_address: "support@brand.com"
                         meta_info:
                           template_id: "{{template_id}}"
                           template_name: "test_template_1"

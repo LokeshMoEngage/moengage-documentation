@@ -22,15 +22,48 @@ The Email Template API (V2) is a collection of the following endpoints:
 
 ## FAQs
 
-### Create Email Template API
-
 <AccordionGroup>
-  <Accordion title="How do I access templates created using this API on the MoEngage Dashboard??" icon="sparkles">
+  <Accordion title="How do I access templates created using the Create Email Template API on the MoEngage Dashboard?" icon="sparkles">
     You can access templates created using the Create Email Template API in the Imported API Templates tab in the second step of campaign creation in the MoEngage Dashboard, as illustrated in the image below:
 
     ![alt text](/images/AccessSavedTemplates_CUSTOMTEMPLATEAPI.png)
   </Accordion>
-  <Accordion title="Can I create multiple templates with the same name?" icon="sparkles">
+  <Accordion title="Can I create multiple templates with the same name using Create Email Template API?" icon="sparkles">
     Yes, you can create multiple templates with the same name, provided they have different versions.
+  </Accordion>
+  <Accordion title="What connector details can I save with an email template using the API?" icon="sparkles">
+    You can save four connector details with a custom email template: the connector type (`connector.connector_type`, for example, `SENDGRID` or `AMAZON_SES`), the connector name (`connector.connector_name`), the from email address (`from_address`), and the reply-to email address (`reply_to_address`). You pass them in `basic_details`, along with the other template fields such as `subject`, `email_content`, `sender_name`, `preview_text`, and `attachments`. These fields are supported in both the [Create Email Template](/api/email-templates/create-email-template-v2) and [Update Email Template](/api/email-templates/update-email-template) APIs.
+  </Accordion>
+  <Accordion title="Are the connector fields mandatory?" icon="sparkles">
+    No. All four connector fields are optional, and the mandatory `basic_details` fields, such as `subject`, `email_content`, and `sender_name`, stay the same. However, the connector fields work as a set: if you pass any one of them, you must pass all four. A request that includes only some of the connector fields fails.
+  </Accordion>
+  <Accordion title="What validations does MoEngage perform on connector details?" icon="sparkles">
+    When you pass connector details, MoEngage checks that:
+    * The connector type and connector name match a connector that exists in your workspace.
+    * The from email address is mapped to that connector.
+    * The from email address is verified.
+
+    The template is saved only if all three checks pass.
+  </Accordion>
+  <Accordion title="Is the from email address validated if I personalize it?" icon="sparkles">
+    No. If from email address personalization is enabled, MoEngage skips the mapping and verification checks for the from email address.
+  </Accordion>
+  <Accordion title="Can I remove connector details from a template after saving them?" icon="sparkles">
+    No. After connector details are saved with a template, you can update them using the Update Email Template API, but you cannot remove them. To use the same content without connector details, create a new template.
+  </Accordion>
+  <Accordion title="Can I add connector details to a template that was created before this feature?" icon="sparkles">
+    Yes. Templates created earlier don't have connector details. You can add them using the Update Email Template API.
+  </Accordion>
+  <Accordion title="What happens if I update a template's connector details and also ask to update the associated campaigns?" icon="sparkles">
+    If you pass `update_campaigns` as `true` and the connector details differ across the template's versions, the template is saved as a new version, but the associated campaigns are not updated. They stay on their current version and keep their current connector details. The response returns `campaigns_updated` as `false`, with a `message` that explains why.
+  </Accordion>
+  <Accordion title="Do other template updates still apply to the associated campaigns?" icon="sparkles">
+    Yes. If you update any field other than the connector details, such as `email_content`, `subject`, or `sender_name`, and pass `update_campaigns` as `true`, the changes are applied to those campaigns.
+  </Accordion>
+  <Accordion title="Can I search templates by connector?" icon="sparkles">
+    Yes. The [Search Email Template](/api/email-templates/search-email-template) API supports filtering by connector type (`connector_type`), connector name (`connector_name`), and from email address (`from_address`). For example, you can find all templates that use SendGrid, or only the templates that use a specific SendGrid connector. To also return templates without connector details, set `include_templates_without_connector` to `true`. You can combine these filters with the existing ones, such as `template_name` and `team_names`.
+  </Accordion>
+  <Accordion title="Is saving connector details with templates available for all workspaces?" icon="sparkles">
+    Saving connector details with templates is being rolled out in phases. If the connector fields aren't available for your workspace, contact your MoEngage Customer Success Manager (CSM) or the Support team.
   </Accordion>
 </AccordionGroup>
