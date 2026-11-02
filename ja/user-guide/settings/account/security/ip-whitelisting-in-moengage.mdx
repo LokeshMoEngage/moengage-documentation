@@ -378,60 +378,9 @@ MoEngageがSFTPベースの取り込みを介してカタログフィードを�
 | DC-05 | 利用不可 |
 | DC-06 | 利用不可 |
 
-## Data APIのIPホワイトリスト
-IPホワイトリストは、MoEngageのServer-to-Server（S2S）[Data API](https://www.moengage.com/docs/api/data/data-overview)に対する追加のセキュリティレイヤーです。有効にすると、MoEngageはワークスペースに関連付けられた事前承認済みのIPアドレスリストからのAPIリクエストのみを受け付けます。
+## MoEngage APIのIPホワイトリスト
 
-### 仕組み
-
-ワークスペースで有効にすると、すべてのS2S APIリクエストが承認済みIPリストと照合されます。リストにないIPから送信されたリクエストは、`403 Forbidden` エラーで拒否されます。
-
-### 対象API
-
-IPホワイトリストを有効にすると、すべてのMoEngage Data APIに適用されます。
-
-<Note>
-  IPホワイトリストはワークスペースレベルで適用され、個々のAPIに対して選択的に有効にすることはできません。
-</Note>
-
-### IPホワイトリストの有効化
-
-これはオプトイン機能です。有効にするには、次の情報を添えて[MoEngageサポート](https://support.moengage.com)にお問い合わせください。
-
-- ワークスペースID（App ID）
-- サーバーがAPIリクエストを送信するIPアドレスまたはCIDR範囲
-
-<Note>
-  MoEngageでは、IPホワイトリストを設定するセルフサービスのオプションは提供していません。サポートチームを通じてリクエストしてください。
-</Note>
-
-### 有効化後の変更点
-
-* すべてのS2S APIリクエストは、ホワイトリストに登録されたIPから送信する必要があります。
-* プロキシ、ロードバランサー、またはNATゲートウェイを経由してリクエストをルーティングする場合は、内部IPではなく、MoEngageから見えるアウトバウンドIPがホワイトリストに登録されていることを確認してください。
-
-### サポートされているIP形式
-
-完全一致のIPとCIDR範囲の両方がサポートされています。
-
-| 形式 | 例 | 一致対象 |
-| :-- | :-- | :-- |
-| **完全一致のIP** | `203.0.113.5` | `203.0.113.5` のみ |
-| **CIDR範囲** | `203.0.113.0/24` | `203.0.113.0` – `203.0.113.255` |
-
-### エラーレスポンス
-
-IP検証の失敗によりリクエストがブロックされた場合、次のレスポンスとともに `HTTP 403 Forbidden` ステータスが返されます。
-
-```json
-{
-  "error": "IP Validation Required",
-  "message": "IP Validation Failed. Please check your IP!!"
-}
-```
-
-### IPホワイトリストの更新
-
-IPを追加または削除するには、MoEngageサポートにお問い合わせください。変更は通常、数分以内に反映されます。
+[API Firewall](/ja/user-guide/settings/account/security/api-firewall)を使用して、MoEngage APIを呼び出すことができるIPアドレスを制限します。**Settings** > **Account** > **Security** > **API firewall** で、APIカテゴリごとにホワイトリストルールを作成して公開します。
 
 ## お客様のIPをホワイトリストに登録する
 
@@ -441,7 +390,7 @@ MoEngageサービスにアクセスできる、お客様またはパートナー
 | --- | --- | --- |
 | ダッシュボードアクセス | MoEngageダッシュボードにアクセスできる、お客様またはパートナーのネットワークのIPをホワイトリストに登録できます | MoEngageダッシュボードでFirewallを有効にできます。詳細については、[Firewall](/ja/user-guide/settings/account/security/firewall)を参照してください。 |
 | Open Analytics | MoEngage Open Analyticsにアクセスできる、お客様またはパートナーのネットワークのIPをホワイトリストに登録できます。 | 件名を _Whitelist IPs for Open Analytics Access_ としてMoEngageのカスタマーサクセスマネージャー（CSM）またはサポートチームに連絡し、ホワイトリストに登録するIPのリストをチケットで共有してください。 |
-| MoEngage API | Track user、create event、Bulk import、Get UserなどのData APIでIPホワイトリストを使用できます | 対象のData API用にホワイトリストへの登録が必要なIPを記載して、サポートチケットを作成してください。 |
+| MoEngage API | Data、Segmentation、Campaigns、Partner Integration、Contentの各カテゴリにわたって、MoEngage APIを呼び出すことができるIPをホワイトリストに登録できます。 | MoEngageダッシュボードでルールを自分で設定します。詳細については、[API Firewall](/ja/user-guide/settings/account/security/api-firewall)を参照してください。 |
 
 ## まとめ
 
@@ -449,9 +398,13 @@ IPホワイトリストは、MoEngageサービスを利用する際のデータ�
 
 ## よくある質問
 
-**MoEngageはMoEngage APIに対するIPホワイトリストを提供していますか？ブランドはAPIキーのレベルでMoEngage APIにアクセスできるIPを制限できますか？**
+**MoEngageはMoEngage APIに対するIPホワイトリストを提供していますか？**
 
-MoEngageでは現在、この機能を提供していません。リクエストを送信するには、次の手順を実行します。
+はい。[API Firewall](/ja/user-guide/settings/account/security/api-firewall)を使用して、**Settings** \> **Account** \> **Security** \> **API firewall** からIPルールを自分で設定できます。各ルールでは、Data、Segmentation、Campaigns、Partner Integration、Contentのうち1つ以上のAPIカテゴリをホワイトリストに登録します。ルールを公開すると、MoEngageはホワイトリスト外のIPアドレスからそれらのカテゴリへのリクエストを `403` レスポンスで拒否します。
+
+**ブランドはAPIキーのレベルでMoEngage APIにアクセスできるIPを制限できますか？**
+
+いいえ。API Firewallのルールはワークスペースレベルで適用され、個々のAPIキーではなくAPIカテゴリ単位でスコープが設定されます。キーごとのIP制限をリクエストするには、次の手順を実行します。
 
 1. MoEngageダッシュボードにログインします。
 2. 右上隅で **Need help** をクリックし、**Submit product idea** をクリックします。

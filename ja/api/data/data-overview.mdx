@@ -4,6 +4,8 @@ description: "ユーザーの管理、イベントのトラッキング、デバ
 icon: "file-magnifying-glass"
 ---
 
+import ApiIpWhitelisting from '/ja/snippets/api-ip-whitelisting.mdx';
+
 MoEngage Data API は、MoEngage 内のデータ管理を支援するように設計された包括的なエンドポイント群を提供します。この API を使用すると、ユーザープロファイルの作成と更新、ユーザーのアクション (イベント) のトラッキング、デバイス情報の管理、一括インポートおよびファイルインポート操作による大規模なデータ取り込みを行うことができます。
 
 ## エンドポイント
@@ -59,150 +61,50 @@ MoEngage Data API は、Basic 認証と OAuth 2.0 の 2 つの認証方法をサ
   </Tab>
 
   <Tab title="OAuth 2.0" id="oauth-2">
-    OAuth 2.0 では、リクエストのたびに Data API キーを送信する代わりに、有効期間の短いアクセストークンを使用します。アクセストークンを生成し、Data API リクエストの `Authorization` ヘッダーで渡します。
-
-    <Note>
-    エンドポイント URL の `{dc}` は、MoEngage のデータセンター (DC) を指します。DC は 01、02、03、04、05、06、または 101 のいずれかです。DC と API エンドポイントの対応については、[データセンター](/ja/api/introduction#data-centers)を参照してください。
-    </Note>
-
-    {/* TODO (DOC-2541): Ticket uses {OX} as the placeholder. Confirm with PM that it maps to the standard DC values above. */}
+    OAuth 2.0 では、呼び出しのたびに API キーを送信する代わりに、有効期間の短いアクセストークンを使用して Data API リクエストを認証します。OAuth 2.0 API キーの認証情報をアクセストークンと交換し、そのトークンを Bearer トークンとして `Authorization` ヘッダーで送信します。その後、トークンの有効期限が切れる前にアクセストークンを更新します。
 
     <Steps>
-      <Step title="Data API で OAuth 2.0 を有効にする">
-        API Keys ダッシュボードで OAuth 2.0 を有効にします。詳細については、[API Key Dashboard](/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard) を参照してください。
-
-        OAuth 2.0 を有効にした後、ダッシュボードで生成された API キーを次のステップで使用します。
+      <Step title="OAuth 2.0 API キーを作成する">
+        API キーダッシュボードで、**Authentication Type** を **OAuth 2.0** に設定し、**Select APIs for access** で **Data APIs** を選択してキーを作成します。手順の詳細については、[API Key Dashboard](/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard) を参照してください。
       </Step>
-
       <Step title="アクセストークンを生成する">
-        MoEngage OAuth サービスにアクセストークンをリクエストします。
-
-        **エンドポイント:**
-
-        ```http
-        POST https://oauth2-{dc}.moengage.com/v1/oauth/token
-        ```
-
-        **リクエストヘッダー:**
-
-        ```http
-        Content-Type: application/x-www-form-urlencoded
-        Authorization: Basic <base64(Workspace_ID:API_Key)>
-        ```
-
-        **リクエスト本文:**
-
-        | パラメーター | 必須 | 説明 |
-        |---|---|---|
-        | `grant_type` | はい | OAuth 2.0 のグラントタイプ。サポートされている値は `client_credentials` です。 |
-        | `client_id` | はい | ワークスペースのクライアント ID。 |
-        | `client_secret` | はい | ワークスペースのクライアントシークレット。 |
-
-        {/* TODO (DOC-2541): Confirm with PM: (1) Are both the Basic header and client_id/client_secret in the body required? (2) Where does the user find client_id and client_secret — do they map to Workspace ID and API Key? */}
-
-        **cURL の例:**
-
-        ```bash
-        curl -L -X POST 'https://oauth2-{dc}.moengage.com/v1/oauth/token' \
-          -H 'Content-Type: application/x-www-form-urlencoded' \
-          -H 'Authorization: Basic <base64(Workspace_ID:API_Key)>' \
-          -d 'grant_type=client_credentials' \
-          -d 'client_id=<client_id>' \
-          -d 'client_secret=<client_secret>'
-        ```
-
-        **レスポンス:**
-
-        ```json
-        {
-          "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-          "token_type": "Bearer",
-          "expires_in": 3600
-        }
-        ```
-
-        | フィールド | 説明 |
-        |---|---|
-        | `access_token` | Data API リクエストで使用するアクセストークン。 |
-        | `token_type` | トークンタイプ。値は常に `Bearer` です。 |
-        | `expires_in` | アクセストークンの有効期間 (秒)。 |
+        そのキーのワークスペース ID と API キーを、アクセストークンおよびリフレッシュトークンと交換します。リクエストパラメーター、レスポンスフィールド、エラーコードについては、[Generate Access Token](/ja/api/oauth/generate-access-token) を参照してください。
       </Step>
+      <Step title="Data API を呼び出す">
+        アクセストークンを Bearer トークンとして `Authorization` ヘッダーで送信します。
 
-      <Step title="アクセストークンを検証する (任意)">
-        Data API リクエストで使用する前に、アクセストークンを検証することをお勧めします。
-
-        {/* TODO (DOC-2541): Ticket cURL uses internal host iam-auth-service.moeinternal.com. Confirm the public endpoint below with PM, and confirm this step is customer-facing. Also get the success and failure responses. */}
-
-        **エンドポイント:**
-
-        ```http
-        POST https://oauth2-{dc}.moengage.com/v1/iam/auth/validate
-        ```
-
-        **リクエストヘッダー:**
-
-        ```http
-        Content-Type: application/json
-        ```
-
-        **リクエスト本文:**
-
-        | パラメーター | 必須 | 説明 |
-        |---|---|---|
-        | `uri` | はい | トークンを使用して呼び出す Data API のパス。例: `/v1/customer/{Workspace_ID}`。 |
-        | `method` | はい | 呼び出す Data API の HTTP メソッド。例: `POST`。 |
-        | `auth` | はい | `Bearer <access_token>` 形式のアクセストークン。 |
-
-        **cURL の例:**
-
-        ```bash
-        curl -L -X POST 'https://oauth2-{dc}.moengage.com/v1/iam/auth/validate' \
-          -H 'Content-Type: application/json' \
-          -d '{
-            "uri": "/v1/customer/{Workspace_ID}",
-            "method": "POST",
-            "auth": "Bearer <access_token>"
-          }'
+        ```bash Call a Data API with an Access Token
+        curl --request POST \
+          --url https://api-{dc}.moengage.com/v1/customer/YOUR_WORKSPACE_ID \
+          --header 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
+          --header 'Content-Type: application/json' \
+          --data '{ "type": "customer", "customer_id": "user_12345" }'
         ```
       </Step>
-
-      <Step title="Data API リクエストでアクセストークンを使用する">
-        Data API リクエストの `Authorization` ヘッダーでアクセストークンを渡します。
-
-        **リクエストヘッダー:**
-
-        ```http
-        Authorization: Bearer <access_token>
-        Content-Type: application/json
-        ```
-
-        **cURL の例:**
-
-        ```bash
-        curl -X POST 'https://api-{dc}.moengage.com/v1/customer/{Workspace_ID}' \
-          -H 'Authorization: Bearer <access_token>' \
-          -H 'Content-Type: application/json' \
-          -d '{
-            "type": "customer",
-            "customer_id": "john@example.com",
-            "attributes": {
-              "name": "John Doe",
-              "first_name": "John"
-            }
-          }'
-        ```
+      <Step title="アクセストークンを更新する">
+        アクセストークンの有効期限が切れる前に、リフレッシュトークンを新しいアクセストークンと交換します。リクエストパラメーター、レスポンスフィールド、エラーコードについては、[Refresh Access Token](/ja/api/oauth/refresh-access-token) を参照してください。
       </Step>
     </Steps>
 
-    ### トークンの有効期限
+    <Note>
+      エンドポイント URL の `{dc}` は、MoEngage のデータセンターを指します。データセンターとエンドポイントの対応については、[データセンター](/ja/api/introduction#data-centers)を参照してください。
+    </Note>
 
-    - アクセストークンは、`expires_in` フィールドで指定された期間が経過すると期限切れになります。
-    - アクセストークンの有効期限が切れたら、新しいトークンを生成してください。
-    - 最適なパフォーマンスを得るには、リクエストごとに新しいトークンを生成するのではなく、連携にトークンのキャッシュと更新のロジックを実装してください。
-
-    {/* TODO (DOC-2541): Ticket says expiry is set "while setting up the API keys". Confirm whether token validity is configurable on the dashboard or fixed at 3600 seconds. */}
+    OAuth のベース URL、トークンのライフサイクル、レート制限、認証エラーコードを含むエンドツーエンドの連携については、[OAuth 2.0 の概要](/ja/api/oauth/oauth-overview)を参照してください。
   </Tab>
 </Tabs>
+
+## 必須ヘッダー
+
+```http
+Authorization: Basic {base64_encoded_credentials}
+MOE-APPKEY: {your_workspace_id} # In Data APIs, this header is mandatory for the File Import and Test Connection APIs. It is not required for other API Endpoints under Data.
+Content-Type: application/json
+```
+<Note>
+Data API では、`MOE-APPKEY` ヘッダー (ワークスペース ID を設定) は File Import API と Test Connection API でのみ必須です。Track User、Get User、Track Event、Merge User、Delete User、Track Device などのコア Data API では必須ではありません。
+</Note>
+
 
 ## リクエスト本文
 
@@ -269,8 +171,8 @@ MoEngage で Data API リクエストを受信すると、`customer_id` を使�
 <Warning>
   `user_time` および `current_time` フィールド (Track Event および Bulk Import) では、MoEngage は次の形式のみを受け付けます。
 
-  - **秒単位のエポック時間** (10 桁) — 例: `1710740192`
-  - **ISO-8601 文字列** — 例: `2020-05-31T16:33:35Z`
+  - **秒単位のエポック時間** (10 桁)。例: `1710740192`。
+  - **ISO-8601 文字列**。例: `2020-05-31T16:33:35Z`。
 
   **ミリ秒単位のエポック時間 (13 桁) は受け付けられません。** `user_time` または `current_time` がサポートされていない形式や解析できない形式で送信された場合、MoEngage はリクエストを拒否しません。代わりに、サーバーが受信した (Kafka) 時刻を使用してイベントが取り込まれるため、イベントの記録時刻が送信しようとした時刻と異なる場合があります。
 </Warning>
@@ -336,17 +238,17 @@ Data API リクエストが失敗すると、次のレスポンスが返され�
 レート制限のあるエンドポイントは、すべてのレスポンスで次のヘッダーを返します。これにより、連携では `429` を待つのではなく、残りの容量をリアルタイムで追跡できます。
 
 ```http
-x-ratelimit-limit: 100
+x-ratelimit-limit: 100, 100;w=60
 x-ratelimit-remaining: 95
 x-ratelimit-reset: 30
 ```
 <img alt="monitor_your_usage.png"  src="/images/monitor_your_usage.png" width="50%" />
 
 | ヘッダー | 説明 |
-| --- | --- |
-| `x-ratelimit-limit` | 現在の 60 秒間のウィンドウ (w=60) 内で許可されるリクエストの最大数。 |
+| - | - |
+| `x-ratelimit-limit` | 現在のウィンドウのリクエストクォータと、それに続くクォータポリシー。たとえば、`100, 100;w=60` は、60 秒間のウィンドウ (`w=60`) ごとに 100 件のリクエストが許可されることを意味します。 |
 | `x-ratelimit-remaining` | 現在の 60 秒間のウィンドウで、上限に達するまでにまだ使用できるリクエスト数。 |
-| `x-ratelimit-reset` | 現在のウィンドウがリセットされる UTC エポックタイムスタンプ。ウィンドウは 60 秒 (w=60) であるため、この値は常に現在時刻から 60 秒以内になります。|
+| `x-ratelimit-reset` | 現在のウィンドウがリセットされるまでの残り秒数。ウィンドウは 60 秒であるため、値は常に 1 から 60 の間になります。 |
 
 <Note>
   一部の高スループットのエンドポイント (Push API など) では、代わりに `x-envoy-ratelimited: true` ヘッダーでスロットリングを通知します。エンドポイントが返すヘッダーについては、各エンドポイントのリファレンスページを確認してください。
@@ -459,6 +361,10 @@ Data API は、お客様全体で大量のデータを処理できるように�
   - 高頻度のユーザーデータ取り込みについては、フェアユースポリシー (FUP) を必ず遵守してください。これは、ワークスペースでのデータ処理の中断を防ぐために必須です。詳細については、[フェアユースポリシー (FUP)](/ja/user-guide/data/key-concepts/fair-usage-policy-fup) を参照してください。
 </Note>
 
+## IP ホワイトリスト
+
+<ApiIpWhitelisting category="Data" />
+
 ## よくある質問
 
 ### Track User
@@ -531,7 +437,7 @@ Data API は、お客様全体で大量のデータを処理できるように�
     最大 SLA は 30 分です。
   </Accordion>
   <Accordion icon="sparkles" title="統合されたユーザーから保持されるユーザーにイベントはどのようにコピーされますか?">
-    ユーザープロファイルでは、過去 30 日間のすべてのイベントが、統合されたユーザーから保持されるユーザーに移動されます。
+    ユーザープロファイルでは、すべてのイベントが、統合されたユーザーから保持されるユーザーに移動されます。
   </Accordion>
 </AccordionGroup>
 

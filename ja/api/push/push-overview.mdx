@@ -2,7 +2,11 @@
 title: "Push の概要"
 description: "キャンペーンを作成し、Android、iOS、Web で個々のユーザーまたはセグメントにパーソナライズされたプッシュ通知を送信します。"
 icon: "file-magnifying-glass"
+keywords: ["push api v5", "send push notification", "transactional push", "migrate to v5", "push api legacy"]
 ---
+
+import ApiAuthentication from '/ja/snippets/api-authentication.mdx';
+import ApiIpWhitelisting from '/ja/snippets/api-ip-whitelisting.mdx';
 
 MoEngage Push API を使用すると、プッシュ通知をトリガーできます。高スループットのトランザクションおよびマーケティングのユースケース向けに設計されており、複雑なターゲティングロジックと、受信者ごとの高度なパーソナライズをサポートしています。
 
@@ -18,43 +22,81 @@ MoEngage Push API を使用すると、プッシュ通知をトリガーでき�
 - **セグメントをターゲティング:** すべてのユーザーまたは事前定義された特定のセグメントに通知を送信します。
 - **個人をターゲティング:** Email、Mobile Number、Unique ID などの一意の属性を使用して、単一のユーザーにリーチします。
 - **大規模なパーソナライズ:** Jinja テンプレートを使用して、ユーザー固有のデータを通知ペイロードに動的に挿入します。
+- **すべてのプラットフォームにリーチ:** 1 回のリクエストで Android、iOS、Web に送信します。
+
+[Push API (V5)](/ja/api/push/push-api) で通知を送信すると、キャンペーンが自動的に作成されます。事前にダッシュボードでキャンペーンを作成する必要はありません。
 
 ## API バージョン
 
-MoEngage は、セキュリティを強化し、IP ホワイトリストのサポートを含むより詳細なレート制限を提供するために、Send Push Notification エンドポイントの v2.1 を導入しました。エンドポイントには 2 つのバージョンがあります。
+| バージョン | エンドポイント | ステータス | 概要 |
+| :--- | :--- | :--- | :--- |
+| **V5** | [Push API (V5)](/ja/api/push/push-api) | サポート対象 | `POST https://api-{dc}.moengage.com/v5/push/notifications`。認証情報は `Authorization` ヘッダーで送信し、`targetAudience` に対応する `X-MOE-Query-Type` ヘッダーが必須です。リクエストフィールドは camelCase で、レスポンスは標準の HTTP ステータスコードとともに `{response_id, type, data}` エンベロープを使用します。 |
+| **v2.1** | [Push API（v2.1、レガシー）](/ja/api/push/push-api-v2-1-legacy) | 2026 年 11 月 30 日以降は動作停止 | `POST https://pushapi-{dc}.moengage.com/v2.1/transaction/sendpush`。`appId` と `signature` を `X-MOE-APPKEY` ヘッダーと `X-MOE-PushAPI-Signature` ヘッダーとして送信し、さらに `targetAudience` に対応する `X-MOE-Query-Type` ヘッダーを送信します。 |
+| **v2** | [Push API（v2、レガシー）](/ja/api/push/push-api-v2-legacy) | 2026 年 11 月 30 日以降は動作停止 | `POST https://pushapi-{dc}.moengage.com/transaction/sendpush`。元のバージョンで、`appId` と `signature` はリクエストボディのフィールドとして送信します。リクエストに応じてのみ利用可能です。 |
 
-| バージョン | エンドポイント | 注記 |
-| :--- | :--- | :--- |
-| **v2.1**（最新） | [Push API](/ja/api/push/push-api) | `appId` と `signature` をリクエストボディのフィールドではなくリクエストヘッダー（`X-MOE-APPKEY` と `X-MOE-PushAPI-Signature`）として送信し、`targetAudience` フィールドに対応する `X-MOE-Query-Type` ヘッダーを追加します。その他のリクエストボディとレスポンスの構造は v2 から変更されていません。 |
-| **v2**（レガシー） | [Push API（レガシー）](/ja/api/push/push-api-legacy) | このエンドポイントの元のバージョンです。`appId` と `signature` はリクエストボディのフィールドとして送信されます。既存の連携では引き続き完全にサポートされます。 |
+<Warning>
+  **v2.1 および v2 エンドポイントは 2026 年 10 月 30 日をもって非推奨となり、2026 年 11 月 30 日以降は動作しなくなります。** これらのエンドポイントは今後保守されません。それまでに、すべての連携を [Push API (V5)](/ja/api/push/push-api) に移行してください。
+</Warning>
+
+## 認証
+
+<ApiAuthentication />
+
+キーのローテーションと失効については、[API キーのローテーションと API アクセスの保護](/ja/user-guide/settings/account/security/rotate-api-keys-and-secure-api-access) を参照してください。
+
+## オーディエンスの種類
+
+`targetAudience` は、通知の受信者と `campaignName` の扱いを決定します。対応する値を `X-MOE-Query-Type` ヘッダーで送信してください（大文字と小文字は区別されません）。
+
+| `targetAudience` | `X-MOE-Query-Type` | キャンペーンの動作 | `campaignDelivery.type` |
+| :--- | :--- | :--- | :--- |
+| `User` | `user`、または `bulkUserRequest` が `true` の場合は `bulk users` | 同じ `campaignName` を渡す呼び出し間でキャンペーンが再利用されます。 | 常に即時送信されます。 |
+| `Custom Segment` | `custom segment` | 呼び出しごとに新しいキャンペーンが作成されるため、`campaignName` は一意である必要があります。 | `soon`、`later`、または `periodic`。デフォルトは `soon` です。 |
+| `All Users` | `all users` | 呼び出しごとに新しいキャンペーンが作成されるため、`campaignName` は一意である必要があります。 | `soon`、`later`、または `periodic`。デフォルトは `soon` です。 |
 
 <Note>
-  v2.1 に対応するには、`appId` と `signature` をリクエストボディから移動し、`X-MOE-APPKEY` ヘッダーと `X-MOE-PushAPI-Signature` ヘッダーとして送信します。その他のリクエストボディのフィールドとレスポンスの構造はすべて変わりません。ヘッダーの完全なリファレンスについては [Push API](/ja/api/push/push-api) を、v2 エンドポイントの詳細については [Push API（レガシー）](/ja/api/push/push-api-legacy) を参照してください。
+  一部のワークスペースでは、`User` オーディエンスのみが有効になっています。そのようなワークスペースでは、`Custom Segment` または `All Users` をターゲットとするリクエストは `403` を返します。これらのオーディエンスに送信するには、カスタマーサクセスマネージャー（CSM）または MoEngage サポートにお問い合わせください。
 </Note>
 
-## よくある質問
+## IP ホワイトリスト
 
-<AccordionGroup>
-  <Accordion title="Push API はサイレント通知をサポートしていますか？">
-    いいえ、MoEngage Push API は現在、サイレント（データのみの）通知をサポートしていません。
-  </Accordion>
-  <Accordion title="HTML を使用して通知テキストをフォーマットできますか？">
-    はい、ベーシックテンプレートは、サポートされているプラットフォームでテキストをフォーマットするための標準的な HTML タグをサポートしています。
-  </Accordion>
-  <Accordion title="特定のユーザーでパーソナライズが失敗した場合はどうなりますか？">
-    ペイロード内に `fallback` オブジェクトを指定できます。パーソナライズのロジックが失敗した場合（ユーザー属性が存在しない場合など）、システムは代わりにフォールバックコンテンツを自動的に送信します。
-  </Accordion>
-  <Accordion title="デバイストークンを直接使用してユーザーをターゲティングするにはどうすればよいですか？">
-    `targetUserAttributes` オブジェクトで、`attribute` フィールドを `PUSH_ID` に設定し、`attributeValue` としてデバイストークンを指定します。
-  </Accordion>
-  <Accordion title="v2.1 はレガシーの v2 エンドポイントと比べて何が変わりましたか？">
-    v2.1 では、IP ホワイトリストのサポートを含め、セキュリティとレート制限が強化されています。`appId` と `signature` をリクエストボディから `X-MOE-APPKEY` ヘッダーと `X-MOE-PushAPI-Signature` ヘッダーに移動し、`X-MOE-Query-Type` ヘッダーを追加しています。その他のリクエストボディのフィールドとレスポンスの構造は v2 から変更されていません。MoEngage は、すべての新規連携で v2.1 を推奨しています。レガシーの v2 エンドポイントは、既存の連携で引き続き完全にサポートされます。
-  </Accordion>
-</AccordionGroup>
+<ApiIpWhitelisting category="Campaigns" />
+
+IP ホワイトリストは任意ですが、MoEngage では設定を推奨しています。
 
 ## Postman コレクション
 
 API を簡単にテストできるようにしています。
 
-- [v2.1 Postman コレクション](https://www.postman.com/moengage-dev/api-docs/collection/5ujszpd/moengage-transaction-push-api-v2-1?action=share&source=copy-link&creator=5883765)
-- [レガシー v2 Postman コレクション](https://www.postman.com/moengage-dev/api-docs/collection/acmujor/moengage-transaction-push-api-v2?action=share&source=copy-link&creator=5883765)
+- **Push API (V5)** — [Push API (V5)](/ja/api/push/push-api) からサンプルペイロードを直接送信できます。
+- [Push API（v2.1、レガシー）コレクション](https://www.postman.com/moengage-dev/api-docs/collection/5ujszpd/moengage-transaction-push-api-v2-1?action=share&source=copy-link&creator=5883765)
+- [Push API（v2、レガシー）コレクション](https://www.postman.com/moengage-dev/api-docs/collection/acmujor/moengage-transaction-push-api-v2?action=share&source=copy-link&creator=5883765)
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="Push API はサイレント通知をサポートしていますか？">
+    はい、iOS ではサポートしています。`payload.IOS.contentAvailable` を `1` に設定すると、サイレントのバックグラウンド更新を送信できます。
+  </Accordion>
+  <Accordion title="HTML を使用して通知テキストをフォーマットできますか？">
+    はい、ベーシックテンプレートは、サポートされているプラットフォームでテキストをフォーマットするための標準的な HTML タグをサポートしています。
+  </Accordion>
+  <Accordion title="特定のユーザーでパーソナライズが失敗した場合はどうなりますか？">
+    プラットフォームのペイロード内に `fallback` オブジェクトを追加します。ユーザー属性が存在しないなどの理由でパーソナライズのロジックが失敗した場合、MoEngage は代わりにフォールバックコンテンツを送信します。
+  </Accordion>
+  <Accordion title="デバイストークンを直接使用してユーザーをターゲティングするにはどうすればよいですか？">
+    `targetUserAttributes.attribute` を `PUSH_ID` に設定し、`targetUserAttributes.attributeValue` にデバイストークンを渡します。
+  </Accordion>
+  <Accordion title="request_id と response_id の違いは何ですか？">
+    `request_id` は、リクエストボディで `requestId` として送信するトレース ID です。この値は `data.request_id` でそのまま返されます。`response_id` はレスポンス自体を識別します。MoEngage サポートに問い合わせる際は、`response_id` をお伝えください。
+  </Accordion>
+  <Accordion title="通知が受け付けられたことを示すステータスコードはどれですか？">
+    `201` は、通知が送信のために受け付けられたことを意味します。それ以外のステータスコードはすべてエラーであり、理由は `error.code` と `error.message` に示されます。
+  </Accordion>
+  <Accordion title="RPM と時間の両方で配信をスロットリングできますか？">
+    `advancedSettings.campaignThrottleRpm` と `advancedSettings.campaignThrottleTime` の両方を設定した場合は、`campaignThrottleRpm` が優先されます。ワークスペースの制限を超えるスロットル値を指定すると `422` が返されます。
+  </Accordion>
+  <Accordion title="Push API を使用するには IP ホワイトリストが必要ですか？">
+    いいえ。任意ですが、承認済みのサーバーのみがワークスペースにアクセスできるように、MoEngage では設定を推奨しています。[IP ホワイトリスト](#ip-whitelisting) を参照してください。
+  </Accordion>
+</AccordionGroup>

@@ -4,6 +4,8 @@ description: "MoEngage エコシステムの外部で作成されたメールテ
 icon: "file-magnifying-glass"
 ---
 
+import ApiIpWhitelisting from '/ja/snippets/api-ip-whitelisting.mdx';
+
 MoEngage Email Template API を使用すると、マーケターは MoEngage エコシステムの外部で作成されたメールテンプレートを簡単に定義、再利用、更新、管理できます。同じテンプレートの複数のバージョンを作成し、現在アクティブなキャンペーンで使用できるかどうかを指定できます。ユーザーは Create Email Template API を使用してテンプレートを作成し、Update Email Template API を使用して更新するか、MoEngage ダッシュボードで編集できます（ロールに対してテンプレートの特定の編集権限が許可されている場合）。これらの API を使用して作成・更新されたテンプレートは、Custom HTML Editor（Froala Editor）でサポートされており、Drag and Drop Editor ではサポートされていません。
 
 ## エンドポイント
@@ -14,17 +16,54 @@ Email Template API（V2）は、次のエンドポイントで構成されてい
 - [Search Email Template API](/ja/api/email-templates/search-email-template): Template ID、またはテンプレート名やテンプレートバージョンなどのその他のフィルターを使用してメールテンプレートを取得します。また、Create Email Template API を使用して MoEngage で作成されたすべてのメールテンプレートを一覧表示することもできます。
 
 
+## IP ホワイトリスト
+
+<ApiIpWhitelisting category="Content" />
+
 ## よくある質問
 
-### Create Email Template API
-
 <AccordionGroup>
-  <Accordion title="この API を使用して作成したテンプレートに MoEngage ダッシュボードでアクセスするにはどうすればよいですか？" icon="sparkles">
+  <Accordion title="Create Email Template API を使用して作成したテンプレートに MoEngage ダッシュボードでアクセスするにはどうすればよいですか？" icon="sparkles">
     Create Email Template API を使用して作成したテンプレートには、以下の画像のように、MoEngage ダッシュボードでのキャンペーン作成の 2 番目のステップにある Imported API Templates タブからアクセスできます。
 
     ![保存済みテンプレートへのアクセス](/images/AccessSavedTemplates_CUSTOMTEMPLATEAPI.png)
   </Accordion>
-  <Accordion title="同じ名前のテンプレートを複数作成できますか？" icon="sparkles">
+  <Accordion title="Create Email Template API を使用して、同じ名前のテンプレートを複数作成できますか？" icon="sparkles">
     はい、バージョンが異なれば、同じ名前のテンプレートを複数作成できます。
+  </Accordion>
+  <Accordion title="API を使用してメールテンプレートとともに保存できるコネクターの詳細は何ですか？" icon="sparkles">
+    カスタムメールテンプレートとともに、4 つのコネクターの詳細を保存できます。コネクタータイプ（`connector.connector_type`。例: `SENDGRID` や `AMAZON_SES`）、コネクター名（`connector.connector_name`）、送信元メールアドレス（`from_address`）、返信先メールアドレス（`reply_to_address`）です。これらは、`subject`、`email_content`、`sender_name`、`preview_text`、`attachments` などの他のテンプレートフィールドとともに `basic_details` で渡します。これらのフィールドは、[Create Email Template](/ja/api/email-templates/create-email-template-v2) API と [Update Email Template](/ja/api/email-templates/update-email-template) API の両方でサポートされています。
+  </Accordion>
+  <Accordion title="コネクターのフィールドは必須ですか？" icon="sparkles">
+    いいえ。4 つのコネクターフィールドはすべて任意であり、`subject`、`email_content`、`sender_name` などの `basic_details` の必須フィールドは変わりません。ただし、コネクターフィールドはセットとして機能します。いずれか 1 つを渡す場合は、4 つすべてを渡す必要があります。コネクターフィールドの一部のみを含むリクエストは失敗します。
+  </Accordion>
+  <Accordion title="MoEngage はコネクターの詳細に対してどのような検証を行いますか？" icon="sparkles">
+    コネクターの詳細を渡すと、MoEngage は次の点を確認します。
+    * コネクタータイプとコネクター名が、ワークスペースに存在するコネクターと一致していること。
+    * 送信元メールアドレスがそのコネクターにマッピングされていること。
+    * 送信元メールアドレスが検証済みであること。
+
+    3 つのチェックすべてに合格した場合にのみ、テンプレートが保存されます。
+  </Accordion>
+  <Accordion title="送信元メールアドレスをパーソナライズした場合も検証されますか？" icon="sparkles">
+    いいえ。送信元メールアドレスのパーソナライズが有効になっている場合、MoEngage は送信元メールアドレスのマッピングと検証のチェックをスキップします。
+  </Accordion>
+  <Accordion title="保存したコネクターの詳細をテンプレートから削除できますか？" icon="sparkles">
+    いいえ。コネクターの詳細をテンプレートとともに保存した後は、Update Email Template API を使用して更新できますが、削除することはできません。同じコンテンツをコネクターの詳細なしで使用するには、新しいテンプレートを作成してください。
+  </Accordion>
+  <Accordion title="この機能の導入前に作成したテンプレートにコネクターの詳細を追加できますか？" icon="sparkles">
+    はい。以前に作成されたテンプレートにはコネクターの詳細がありません。Update Email Template API を使用して追加できます。
+  </Accordion>
+  <Accordion title="テンプレートのコネクターの詳細を更新し、関連するキャンペーンの更新も要求した場合はどうなりますか？" icon="sparkles">
+    `update_campaigns` を `true` として渡し、テンプレートのバージョン間でコネクターの詳細が異なる場合、テンプレートは新しいバージョンとして保存されますが、関連するキャンペーンは更新されません。キャンペーンは現在のバージョンのままとなり、現在のコネクターの詳細が維持されます。レスポンスでは `campaigns_updated` が `false` として返され、その理由を説明する `message` が含まれます。
+  </Accordion>
+  <Accordion title="その他のテンプレートの更新は、関連するキャンペーンに引き続き適用されますか？" icon="sparkles">
+    はい。`email_content`、`subject`、`sender_name` など、コネクターの詳細以外のフィールドを更新し、`update_campaigns` を `true` として渡した場合、変更はそれらのキャンペーンに適用されます。
+  </Accordion>
+  <Accordion title="コネクターでテンプレートを検索できますか？" icon="sparkles">
+    はい。[Search Email Template](/ja/api/email-templates/search-email-template) API は、コネクタータイプ（`connector_type`）、コネクター名（`connector_name`）、送信元メールアドレス（`from_address`）によるフィルタリングをサポートしています。たとえば、SendGrid を使用するすべてのテンプレートや、特定の SendGrid コネクターを使用するテンプレートのみを検索できます。コネクターの詳細がないテンプレートも返すには、`include_templates_without_connector` を `true` に設定します。これらのフィルターは、`template_name` や `team_names` などの既存のフィルターと組み合わせることができます。
+  </Accordion>
+  <Accordion title="テンプレートとともにコネクターの詳細を保存する機能は、すべてのワークスペースで利用できますか？" icon="sparkles">
+    テンプレートとともにコネクターの詳細を保存する機能は、段階的に展開されています。ワークスペースでコネクターフィールドを利用できない場合は、MoEngage カスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
   </Accordion>
 </AccordionGroup>

@@ -43,7 +43,7 @@ pod 'MoEngage-iOS-SDK/Cards',
 <Info>
   **手動統合**
 
-  `MoEngageCards` SDKをプロジェクトに手動で統合するには、この[ドキュメント](https://www.moengage.com/docs/developer-guide/ios-sdk/manual-integration/manual-integration)に従ってください。
+  `MoEngageCards` SDKをプロジェクトに手動で統合するには、この[ドキュメント](/ja/developer-guide/ios-sdk/manual-integration/manual-integration)に従ってください。
 </Info>
 
 # AppInbox/Feedの表示
@@ -96,6 +96,54 @@ MoEngageSDKCards.sharedInstance.getCardsViewController(withUIConfiguration: nil,
 
 <Note>
   iOS SDK [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) 以降、`getCardsViewController` には `@MainActor` アノテーションが付いています。Objective-Cの呼び出し元には影響しません。（上記のように）`UIViewController` 内のSwiftコードはすでにメインアクター上で実行されるため、この呼び出しは変更なしでコンパイルされます。メインアクター以外のSwiftコンテキストから呼び出す場合は、`await MainActor.run { ... }` を使用してメインアクターに移行してください。
+</Note>
+
+# SwiftUIでのInboxの表示
+
+<Info>
+  **前提条件**
+
+  SwiftUIのサポートには、MoEngage iOS SDK [11.3.0](/ja/release-notes/sdks/ios#8th-october-2026) 以降が必要です。
+</Info>
+
+`cardsView(withUIConfiguration:withCardsViewControllerDelegate:forAppID:isModallyPresented:onResolutionFailure:)` を使用すると、SwiftUIのビュー階層内の任意の場所にInboxを配置できます。このメソッドは標準のSwiftUIビューを返すため、インライン、タブ、ナビゲーションスタック、またはシート内に埋め込むことができます。
+
+<CodeGroup>
+
+```swift Swift wrap
+import MoEngageCards
+
+MoEngageSDKCards.sharedInstance.cardsView(
+    withUIConfiguration: uiConfig,          // Optional. The same MoEngageCardsUIConfiguration you pass in UIKit.
+    withCardsViewControllerDelegate: self,  // Optional. The same delegate callbacks you receive in UIKit.
+    forAppID: "YOUR_WORKSPACE_ID",          // Optional. Pass this only when your app runs multiple SDK instances.
+    isModallyPresented: false,              // Set this to true only inside .sheet or .fullScreenCover.
+    onResolutionFailure: { appID in         // Optional. Called when the SDK is not initialized or the instance is not found.
+        print("Cards inbox failed for \(appID ?? "default")")
+    }
+)
+```
+
+</CodeGroup>
+
+## UIKitからのSwiftUI Inboxの表示
+
+`presentCardsSwiftUIView(withUIConfiguration:withCardsViewControllerDelegate:forAppID:)` を使用すると、UIKitアプリからSwiftUI Inboxを表示できます。SDKは最前面のビューコントローラーからInboxを表示するため、アプリで `UIHostingController` を作成する必要はありません。
+
+<CodeGroup>
+
+```swift Swift wrap
+MoEngageSDKCards.sharedInstance.presentCardsSwiftUIView(
+    withUIConfiguration: uiConfig,
+    withCardsViewControllerDelegate: self,
+    forAppID: "YOUR_WORKSPACE_ID"
+)
+```
+
+</CodeGroup>
+
+<Note>
+  `cardsView` と `presentCardsSwiftUIView` には `@MainActor` アノテーションが付いています。メインアクターから呼び出してください。そうしないと、コードはコンパイルされません。
 </Note>
 
 # Inbox UIのカスタマイズ

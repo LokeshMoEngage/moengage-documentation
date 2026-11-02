@@ -10,11 +10,11 @@ MoEngage では、さまざまなユースケースやデータソースに対�
 | セグメントタイプ | 概要 | 使用するタイミング |
 | --- | --- | --- |
 | [File](/ja/user-guide/segment/create-segments/file-segments) | CSV ファイルとしてアップロードされた、ユーザーの静的なリスト。 | 移行リストやオフラインデータベースからのエクスポートなど、固定された既知のユーザーリストがある場合。 |
-| [Rule-based (filter)](/ja/user-guide/segment/create-segments/rule-based-filter-segments) | ユーザー属性、イベント、イベント属性の条件によって定義される動的なグループ。 | ユーザーデータや行動の変化に応じて、メンバーシップを自動的に更新したい場合。 |
+| [Rule-based (filter)](/ja/user-guide/segment/create-segments/rule-based-filter-segments) | ユーザープロパティ、イベント、イベントプロパティの条件によって定義される動的なグループ。 | ユーザーデータや行動の変化に応じて、メンバーシップを自動的に更新したい場合。 |
 | [Affinity](/ja/user-guide/segment/create-segments/affinity-segments) | ユーザーがアクションを行う頻度や一貫性など、行動パターンと嗜好に基づくグループ。 | 行動の強さでユーザーをターゲットにしたい場合。たとえば、40% 以上の割合で特定の時間帯に乗車を予約するユーザーなど。 |
 | [Custom](/ja/user-guide/segment/create-segments/manage-segments) | キャンペーン、フロー、分析全体で再利用できる、名前付きの保存済みセグメントクエリ。 | 同じオーディエンスロジックを複数の場所で再利用する場合、またはファイル、ルールベース、その他のカスタムセグメントを組み合わせる場合。 |
 | [RFM](/ja/user-guide/segment/create-segments/rfm-segments) | 取引の最新性、頻度、金額に基づく、Loyal、Promising、At Risk などの自動バケット。 | ルールを手動で作成せずに、取引行動でユーザーをグループ化したい場合。 |
-| [Warehouse](/ja/user-guide/segment/create-segments/warehouse-segments) | MoEngage にデータをコピーせずに、データウェアハウス（BigQuery、Snowflake、Redshift）から直接作成されるオーディエンス。 | セグメンテーションがウェアハウスにのみ存在するスコアやデータに依存している場合、またはまだ MoEngage SDK を統合していない場合。 |
+| [Warehouse](/ja/user-guide/segment/create-segments/warehouse-segments) | MoEngage にデータをコピーせずに、データウェアハウスから直接作成されるオーディエンス。SQL で定義するか、ウェアハウスのテーブルが MoEngage でマッピングされている場合はドロップダウンのフィルターで定義します。 | セグメンテーションがウェアハウスにのみ存在するスコアやデータに依存している場合、またはまだ MoEngage SDK を統合していない場合。 |
 
 ## ファイルセグメント
 
@@ -24,7 +24,7 @@ MoEngage では、さまざまなユースケースやデータソースに対�
 
 ## ルールベース（フィルター）セグメント
 
-ルールベースセグメントは、ユーザー属性、イベント、イベント属性に適用される条件によって定義されます。MoEngage はこれらのルールをデータに対して評価し、ユーザーの動的なグループを生成します。セグメントのメンバーシップは、ユーザーデータの変化に応じて更新されます。
+ルールベースセグメントは、ユーザープロパティ、イベント、イベントプロパティに適用される条件によって定義されます。MoEngage はこれらのルールをデータに対して評価し、ユーザーの動的なグループを生成します。セグメントのメンバーシップは、ユーザーデータの変化に応じて更新されます。
 
 [ルールベースセグメントの作成方法について説明します。](/ja/user-guide/segment/create-segments/rule-based-filter-segments)
 
@@ -48,13 +48,16 @@ RFM（Recency、Frequency、Monetary）セグメントは、取引行動（最�
 
 ## ウェアハウスセグメント
 
-ウェアハウスセグメントを使用すると、MoEngage にデータをコピーせずに、データウェアハウス（BigQuery、Snowflake、Redshift）から直接オーディエンスを作成できます。セグメンテーションのロジックが、ウェアハウスにのみ存在する独自のスコアやデータに依存している場合に使用します。
+ウェアハウスセグメントを使用すると、MoEngage にデータをコピーせずに、データウェアハウス（BigQuery、Snowflake、Databricks、Redshift）から直接オーディエンスを作成できます。セグメンテーションのロジックが、ウェアハウスにのみ存在する独自のスコアやデータに依存している場合に使用します。
+
+定義する方法は 2 つあります。
+
+- **SQL エディター** — ユーザー ID の単一列を返すクエリを作成します。接続されているすべてのウェアハウスで使用できます。[SQL を使用してセグメントを作成する方法について説明します。](/ja/user-guide/segment/create-segments/warehouse-segments/create-using-sql)
+- **フィルタービルダー** — ルールベースセグメントと同様に、ドロップダウンから属性とイベントを選択します。事前にウェアハウスのテーブルを [MoEngage でマッピング](/ja/user-guide/data/warehouse-schemas)しておく必要があり、BigQuery と Databricks に対応しています。[フィルターを使用してセグメントを作成する方法について説明します。](/ja/user-guide/segment/create-segments/warehouse-segments/create-using-filters)
 
 <Note>
   ウェアハウスセグメントでは、MoEngage との SDK または API の統合は必要ありません。まだ MoEngage SDK を統合していない場合でも、ウェアハウスセグメントを使用すればすぐにオーディエンスの作成を開始できます。
 </Note>
-
-[ウェアハウスセグメントの作成方法について説明します。](/ja/user-guide/segment/create-segments/warehouse-segments)
 
 ## セグメントの処理
 
@@ -76,7 +79,7 @@ RFM（Recency、Frequency、Monetary）セグメントは、取引行動（最�
 
 #### リアルタイムのセグメント評価
 
-過去 30 日以内のデータ（ユーザー属性、ユーザーイベント、イベント属性、イベント期間）を使用するセグメントは、リアルタイムで評価されます。これは、Push、Email、SMS、WhatsApp（すべてイベントトリガー）、In-Apps、On-Site Messaging、Personalize、Flows で利用できます。
+過去 30 日以内のデータ（ユーザープロパティ、ユーザーイベント、イベントプロパティ、イベント期間）を使用するセグメントは、リアルタイムで評価されます。これは、Push、Email、SMS、WhatsApp（すべてイベントトリガー）、In-Apps、On-Site Messaging、Personalize、Flows で利用できます。
 
 #### 事前計算済みセグメント
 

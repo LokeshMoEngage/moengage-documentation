@@ -1,7 +1,8 @@
 ---
 title: "レート制限"
 description: "MoEngage REST API のレート制限とペイロードサイズの上限、使用状況の監視方法、および制限を超えた場合の動作について説明します。"
-keywords: ["rate limit", "API limits", "429", "RPM", "payload size", "throttling"]
+keywords: ["rate limit", "API limits", "429", "RPM", "payload size", "throttling", "OAuth rate limit", "Retry-After"]
+icon: "gauge"
 ---
 
 MoEngage は、共有プラットフォームをすべてのお客様にとって高速かつ信頼性の高い状態に保つため、REST API にレート制限を適用しています。特定のエンドポイントで別途記載がない限り（クライアント単位またはコンシューマー単位のものもあります）、制限は**ワークスペース単位**で適用され、制限を超えたリクエストは `HTTP 429 Too Many Requests` レスポンスで拒否されます。
@@ -15,6 +16,25 @@ MoEngage は、共有プラットフォームをすべてのお客様にとっ�
 ## エンドポイント別のレート制限
 
 エンドポイントは、API リファレンスのナビゲーションに合わせて製品領域ごとにグループ化されています。複数のエンドポイントが 1 つのプールを共有している場合、制限はそれらすべてにまたがって適用されます。
+
+### 認証
+
+| エンドポイント | レート制限 |
+| --- | --- |
+| `POST /v1/oauth/token` (Generate Access Token) | 10 分あたり 30 リクエスト、かつ 1 分あたり 5 リクエスト |
+| `POST /v1/oauth/refresh` (Refresh Access Token) | 10 分あたり 30 リクエスト、かつ 1 分あたり 5 リクエスト |
+
+<Note>
+  OAuth の制限は、ワークスペース単位ではなく `client_id` と `client_secret` のペアごとに適用されます。また、両エンドポイントは REST API ホストではなく OAuth ホスト（`https://oauth2-{dc}.moengage.com`）で動作します。いずれかのエンドポイントから返される `429` レスポンスには、待機する秒数を示す `Retry-After` ヘッダーが含まれます。
+
+  アクセストークンは有効期間中は再利用できるため、トークンを 1 つ生成し、有効期限が近づくまで再利用してください。フロー全体については、[OAuth 2.0 の概要](/ja/api/oauth/oauth-overview) を参照してください。
+</Note>
+
+<Note>
+  AWS STS Auth は MoEngage のエンドポイントを追加せず、独自のレート制限もありません。署名済みの `GetCallerIdentity` リクエストはローカルで作成され、通常の API 呼び出しのヘッダーとして MoEngage に送信されるため、呼び出すエンドポイントの制限が適用されます。
+
+  キーの **Expiry time (in minutes)** 設定（5～15）は、MoEngage が検証済みの署名を信頼する期間を制御するものであり、リクエスト量を制限するものではありません。[AWS STS Auth](/ja/api/aws-sts/aws-sts-overview) を参照してください。
+</Note>
 
 ### Data
 
@@ -49,7 +69,7 @@ MoEngage は、共有プラットフォームをすべてのお客様にとっ�
 
 | エンドポイント | レート制限 |
 | --- | --- |
-| `POST` / `GET` / `PUT /email-templates`, `PUT /bulk/email-templates` (V1) | ワークスペースごとに 1 分あたり 1,000 リクエスト（すべての V1 テンプレートエンドポイントの合計） |
+| `POST` / `GET /email-templates`, `GET` / `PUT /email-templates/{id}`, `PUT /bulk/email-templates` (V1) | ワークスペースごとに 1 分あたり 1,000 リクエスト（すべての V1 テンプレートエンドポイントの合計） |
 | `POST /custom-templates/email` — Create Email Template (V2) | 1 分あたり 100 リクエスト、チャネルあたり最大 10,000 テンプレート |
 | `PUT /custom-templates/email`, `POST /custom-templates/email/search` | 1 分あたり 100 リクエスト |
 | `POST /custom-templates/push` — Create Push Template | 1 分あたり 100 リクエスト |
@@ -76,8 +96,8 @@ MoEngage は、共有プラットフォームをすべてのお客様にとっ�
 
 | エンドポイント | レート制限 |
 | --- | --- |
-| `GET /recommendations/{recommendations_id}` — Fetch Recommendation Details | 1 分あたり 1,000 レコメンデーション |
-| `POST /recommendations/{recommendations_id}/items` — Fetch Recommendation Results | 1 分あたり 10,000 レコメンデーション |
+| `GET /recommendations/{recommendation_id}` — Fetch Recommendation Details | 1 分あたり 1,000 レコメンデーション |
+| `POST /recommendations/{recommendation_id}/items` — Fetch Recommendation Results | 1 分あたり 10,000 レコメンデーション |
 
 ### Coupons
 
@@ -136,6 +156,7 @@ MoEngage は、共有プラットフォームをすべてのお客様にとっ�
 | `POST /v5/campaigns/search` — Search Campaigns | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
 | `POST /v5/campaigns/meta` — Get Campaign Meta | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
 | `POST /v5/campaigns/test` — Test Campaign | クライアントごとに 1 秒あたり 10 回、1 分あたり 100 回 |
+| `POST /v5/personalizations/previews` — Personalized Preview | 1 秒あたり 100 回、10 秒あたり 1,000 回、1 分あたり 6,000 回 |
 
 ### Campaigns (Legacy)
 
@@ -166,6 +187,13 @@ MoEngage は、共有プラットフォームをすべてのお客様にとっ�
 | `POST /v5/analytics/retention` — Register a Retention Query | ワークスペースごとに 1 秒あたり 5 回、1 分あたり 10 回、1 時間あたり 50 回 |
 | `POST /v5/analytics/session-source` — Register a Session-Source Query | ワークスペースごとに 1 秒あたり 5 回、1 分あたり 20 回、1 時間あたり 50 回 |
 | `POST /v5/analytics/user-analysis` — Register a User Analysis Query | ワークスペースごとに 1 秒あたり 5 回、1 分あたり 15 回、1 時間あたり 100 回 |
+| `GET /v5/analytics/dashboards` — [List Dashboards](/ja/api/dashboards/list-dashboards) | データセンターによって異なります: ワークスペースごとに 1 秒あたり 5 回、1 分あたり 20～30 回、1 時間あたり 40～100 回、1 日あたり 200～400 回 |
+| `GET /v5/analytics/dashboards/{dashboard_id}/charts` — [Get Dashboard Charts](/ja/api/dashboards/get-dashboard-charts) | データセンターによって異なります: ワークスペースごとに 1 秒あたり 5～10 回、1 分あたり 30～50 回、1 時間あたり 100～300 回、1 日あたり 250～500 回 |
+| `GET /v5/analytics/dashboards/{dashboard_id}/charts/{chart_id}` — [Get Chart Data](/ja/api/dashboards/get-chart-data) | データセンターによって異なります: ワークスペースごとに 1 秒あたり 2～3 回、1 分あたり 3～5 回、1 時間あたり 20～30 回、1 日あたり 200～300 回 |
+
+<Note>
+  ダッシュボードのエンドポイントには、データセンターごとに異なる制限があります。ご利用のデータセンターでの正確な制限については、各エンドポイントのリファレンスページを参照してください。
+</Note>
 
 <Note>
   Analytics クエリには、これらのレート制限とは別に、ワークスペースの月間フェアユースポリシー（FUP）のデータスキャンクォータも適用されます。クォータを使い切ると、請求サイクルの残りの期間、Analytics クエリは `HTTP 428` を返します。クォータを拡張するには、カスタマーサクセスマネージャーにお問い合わせください。
@@ -201,8 +229,9 @@ MoEngage は、共有プラットフォームをすべてのお客様にとっ�
 
 | エンドポイント | レート制限 |
 | --- | --- |
-| `POST /transaction/sendpush` — Send Push Notification | 1 分あたり 10,000 リクエスト |
-| `POST /v2.1/transaction/sendpush` — Send Push Notification (V2.1) | 1 分あたり 10,000 リクエスト |
+| `POST /v5/push/notifications` — Send Push Notification (V5) | 1 分あたり 10,000 リクエスト |
+| `POST /v2.1/transaction/sendpush` — Send Push Notification (v2.1、2026 年 11 月 30 日以降は動作停止) | 1 分あたり 10,000 リクエスト |
+| `POST /transaction/sendpush` — Send Push Notification (v2、2026 年 11 月 30 日以降は動作停止) | 1 分あたり 10,000 リクエスト |
 
 ### Cards
 
@@ -244,6 +273,9 @@ MoEngage は、共有プラットフォームをすべてのお客様にとっ�
 | API / エンドポイント | 最大ペイロード |
 | --- | --- |
 | Track User (`/customer/{app_id}`) | 1 リクエストあたり 128 KB |
+| Track Event (`/event/{Workspace_ID}`) | 1 リクエストあたり 128 KB |
+| Track Device (`/device/{app_id}`) | 1 リクエストあたり 128 KB |
+| Bulk Import Users and Events (`/transition/{Workspace_ID}`) | 1 リクエストあたり 128 KB（ペイロード内のすべてのユーザー、イベント、デバイス操作の合計） |
 | Merge Users (`/customer/merge`) | 1 リクエストあたり 128 KB |
 | Cohort sync (`/v1/integrations/cohortsync`) | 1 リクエストあたり 128 KB |
 | GDPR / CCPA (`/opengdpr_requests/{appId}`) | 1 リクエストあたり 128 KB、1 ユーザーレコードあたり 100 KB |

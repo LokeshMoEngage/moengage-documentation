@@ -5,6 +5,7 @@ icon: "file-magnifying-glass"
 ---
 
 import ApiAuthentication from '/ja/snippets/api-authentication.mdx';
+import ApiIpWhitelisting from '/ja/snippets/api-ip-whitelisting.mdx';
 
 Campaigns API (V5) を使用すると、完全なペイロードを 1 回のリクエストで送信するのではなく、キャンペーンを段階的に構築できます。まずドラフト状態でキャンペーンを作成し、その後の呼び出しでコンテンツ、オーディエンスセグメント、トリガー条件、スケジュールを追加します。キャンペーンの準備が整ったら、設定を検証し、テストメッセージを送信して公開します。
 
@@ -83,7 +84,7 @@ Campaigns API は、キャンペーンのライフサイクルを管理するた
 * [Search Campaigns](/ja/api/get-campaign-details/search-campaigns): 詳細なフィルターを使用してキャンペーンを検索します。ドラフト状態のキャンペーンを明示的に含めたり除外したりできます。
 * [Get Campaign Meta](/ja/api/get-campaign-details/get-campaign-meta-v5): スケジュール済みキャンペーンの日次キャッシュされたリーチ見込み数を含む、軽量なメタデータを取得します。
 * [Test Campaign](/ja/api/test-campaigns/test-campaign): 最大 10 人のユーザーにテストのプッシュまたはメールを送信します。**インラインモード** (`channel` と `campaign_content` を直接渡す) と**ドラフトモード** (`draft_id` を渡して保存済みドラフトからコンテンツを読み込む) をサポートしています。ドラフトモードは V5 の新機能です。
-* Personalized Preview: メッセージを送信せずに、特定のユーザー向けにパーソナライズされたキャンペーンコンテンツの解決済みプレビューを返します。(このエンドポイントは改訂中のため、ドキュメントは一時的に利用できません。)
+* [Personalized Preview](/ja/api/personalized-preview/personalized-preview-v5): メッセージを送信せずに、特定のユーザー向けにパーソナライズされたキャンペーンコンテンツの解決済みプレビューを返します。
 
 <Note>
 Get Child Campaigns と Update Global Control Group は、V5 ではまだ利用できません。これらの操作には引き続き V1 Campaigns API を使用してください。
@@ -99,6 +100,10 @@ Get Child Campaigns と Update Global Control Group は、V5 ではまだ利用�
   - キャンペーンの作成と更新には **Create & Manage**
   - キャンペーンの公開には **Create, Manage & Publish**
 </Note>
+
+## IP ホワイトリスト
+
+<ApiIpWhitelisting category="Campaigns" />
 
 ## よくある質問
 
@@ -354,7 +359,7 @@ Get Child Campaigns と Update Global Control Group は、V5 ではまだ利用�
 
 <AccordionGroup>
   <Accordion title="Personalized Preview エンドポイントはどのチャネルをサポートしていますか?">
-    このエンドポイントは `PUSH`、`EMAIL`、`SMS` をサポートしています。リクエスト本文の `channel` フィールドで対象のチャネルを渡してください。
+    このエンドポイントは `PUSH`、`SMS`、`EMAIL`、`INAPP`、`OSM`、`WHATSAPP`、`CARDS`、`GENERIC` をサポートしています。対象のチャネルは `personalization_details.channel` で渡してください。このフィールドは、保存済みのカスタムテンプレートをプレビューする場合にのみ必須です。取得するテンプレートがこのフィールドによって決まるためです。インラインコンテンツの場合は任意です。
   </Accordion>
   <Accordion title="このエンドポイントはユーザーにメッセージを送信しますか?">
     いいえ。このエンドポイントは読み取り専用です。指定したユーザーのプロファイルに対してすべてのパーソナライズ式を解決し、完全にレンダリングされたコンテンツを返しますが、メッセージは配信されません。
@@ -363,24 +368,36 @@ Get Child Campaigns と Update Global Control Group は、V5 ではまだ利用�
     このエンドポイントは、MoEngage の標準的なパーソナライズソース (ユーザー属性、イベント属性、カスタムテンプレート、コンテンツブロック、Content API、プロダクトセット) をすべて解決します。コンテンツ内のすべての Jinja 式は、指定したユーザーのプロファイルに対して評価されます。
   </Accordion>
   <Accordion title="イベントトリガー型キャンペーンのコンテンツをプレビューするにはどうすればよいですか?">
-    トリガーとなるイベントの属性のキーと値のペアを `event_attributes` オブジェクトで渡します。エンドポイントは解決時にこれらの値を挿入し、特定のイベントに対してコンテンツがどのようにレンダリングされるかをシミュレートします。例:
+    トリガーとなるイベントの名前を `personalization_details.event_name` で、その属性のキーと値のペアを `personalization_details.event_attributes` で渡します。エンドポイントは解決時にこれらの値を挿入し、特定のイベントに対してコンテンツがどのようにレンダリングされるかをシミュレートします。例:
 
     ```json
     {
-      "event_attributes": {
-        "product_name": "Running Shoes",
-        "product_price": "4999"
+      "personalization_details": {
+        "event_name": "Product Viewed",
+        "event_attributes": {
+          "product_name": "Running Shoes",
+          "product_price": "4999"
+        }
       }
     }
     ```
 
-    コンテンツ内では、`{{ event.product_name }}` を使用してこれらの値を参照します。
+    コンテンツ内では、`{{EventAttribute['product_name']}}` を使用してこれらの値を参照します。コンテンツで `EventAttribute` トークンを使用する場合は、`event_name` が必須です。指定しないと、リクエストは検証に失敗します。
   </Accordion>
   <Accordion title="カスタムテンプレートを使用するコンテンツをプレビューするにはどうすればよいですか?">
-    Create Campaign リクエストと同じ方法で、`campaign_content` オブジェクトに `custom_template_id` を渡します。エンドポイントはテンプレートを取得して解決し、指定したユーザー向けに完全にレンダリングされた出力を返します。
+    テンプレートの `template_id` と `version` を指定した `personalization_content.custom_template_data` を渡します。また、取得する保存済みテンプレートを決定する `personalization_details.channel` も設定してください。エンドポイントはテンプレートを解決し、指定したユーザー向けに完全にレンダリングされた出力を返します。
   </Accordion>
   <Accordion title="Personalized Preview エンドポイントで保存済みのドラフトを使用できますか?">
-    いいえ。Personalized Preview エンドポイントは、`campaign_content` で渡されたインラインコンテンツのみを受け付けます。保存済みのドラフトからコンテンツを読み込むことはありません。保存済みのドラフトからテストメッセージを送信するには、`draft_id` を指定して Test Campaign エンドポイントを使用してください。
+    いいえ。このエンドポイントは、`personalization_content.payload` のインラインコンテンツ、または `personalization_content.custom_template_data` の保存済みカスタムテンプレートのいずれかを受け付けます。保存済みのキャンペーンドラフトからコンテンツを読み込むことはありません。保存済みのドラフトからテストメッセージを送信するには、`draft_id` を指定して Test Campaign エンドポイントを使用してください。
+  </Accordion>
+  <Accordion title="コンテンツを指定するとリクエストが検証に失敗するのはなぜですか?">
+    `personalization_content` は、`payload` または `custom_template_data` のどちらか一方のみを受け付けます。両方を指定した場合、またはどちらも指定しなかった場合は、検証に失敗します。インラインコンテンツには `payload` を、保存済みのカスタムテンプレートを解決するには `custom_template_data` を使用してください。
+  </Accordion>
+  <Accordion title="コンテンツでイベント属性を使用するとリクエストが失敗するのはなぜですか?">
+    `EventAttribute` トークンには、解決の対象となるイベントが必要です。`personalization_details.event_name` にトリガーとなるイベントの名前を設定してください。設定しない場合、`EventAttribute` トークンを含むコンテンツのリクエストは検証に失敗します。
+  </Accordion>
+  <Accordion title="Jinja 式の解析に失敗するのはなぜですか?">
+    式で使用している引用符とデータ型を確認してください。よくある原因は、整数値に文字列演算子を適用していることです。構文の詳細については、[Jinja Templating Language](/ja/user-guide/campaigns-and-channels/getting-started/message-personalization/jinja-templating-language) および [Why Does Parsing Jinja Template Format in the Personalization Preview Fail?](/ja/user-guide/campaigns-and-channels/campaign-management-and-reports/faqs-campaign-management/why-does-parsing-jinja-template-format-in-the-personalization-preview-fail) を参照してください。
   </Accordion>
 </AccordionGroup>
 

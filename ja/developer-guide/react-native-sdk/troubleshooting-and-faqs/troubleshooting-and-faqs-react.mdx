@@ -1,7 +1,7 @@
 ---
 title: "トラブルシューティングとよくある質問 - React Native"
 description: "プッシュ、コールバック、アプリ内メッセージ、iOS ビルド設定に関する MoEngage React Native SDK の一般的な問題の解決方法をご確認ください。"
-keywords: ["Unsupported Swift Architecture", "framework not found", "arm64", "ONLY_ACTIVE_ARCH", "MoEngageKMMConditionEvaluator", "MoEngageInitializer", "undeclared identifier", "Podfile post_install", "EXCLUDED_ARCHS"]
+keywords: ["Unsupported Swift Architecture", "framework not found", "arm64", "ONLY_ACTIVE_ARCH", "MoEngageKMMConditionEvaluator", "MoEngageInitializer", "undeclared identifier", "Podfile post_install", "EXCLUDED_ARCHS", "npx react-native spm", "swift package manager", "package not found", "deployment target"]
 ---
 
 import MoeDebuggerActivityFaq from '/ja/snippets/moe-debugger-activity-hybrid-faq.mdx';
@@ -111,3 +111,24 @@ cd ios && pod install --repo-update
 </CodeGroup>
 
 その後、Xcode でビルドフォルダをクリーンアップして、再度ビルドします。
+
+# iOS (SPM) - 依存関係を追加または更新した後に、パッケージが見つからないというエラーでビルドが失敗するのはなぜですか？
+
+React Native の SPM 自動リンクは自動的には実行されません。`ios` ディレクトリに移動し、`npx react-native spm` を再度実行して自動リンクのグラフを再生成してください。
+
+このコマンドは、新規クローン後、`node_modules` のリセット後、および依存関係の変更後に実行してください。CocoaPods とは異なり、`npx react-native run-ios` はこのコマンドを自動的には実行しません。
+
+# iOS (SPM) - アプリが古いバージョンの SDK でビルドされ続けるのはなぜですか？
+
+Xcode で **Product > Clean Build Folder** を選択し、次に **File > Packages > Reset Package Caches** を選択します。それでも古いバージョンが使用される場合は、Xcode を終了して `~/Library/Developer/Xcode/DerivedData` を削除し、`ios` ディレクトリから `npx react-native spm` を再度実行してください。
+
+# iOS (SPM) - 最小デプロイメントターゲットのエラーでビルドが失敗するのはなぜですか？
+
+React Native が生成する SPM パッケージには iOS 15 が必要なため、SPM では最小デプロイメントターゲットとして iOS 15.0 が必要です。Xcode で `ios/<YourApp>.xcodeproj` を開いてアプリのターゲットを選択し、**General > Minimum Deployments** を 15.0 に設定します。通知拡張機能のターゲットについても同じ操作を繰り返します。SPM では、`Podfile` の `platform :ios` の行は適用されなくなります。アプリで iOS 13 または 14 をサポートする必要がある場合は、代わりに CocoaPods を使用してください。
+
+# iOS (SPM) - apple-sdk のバージョン競合により Xcode でパッケージの解決に失敗するのはなぜですか？
+
+MoEngage React Native プラグインは、`MoEngageRichNotification` を含む MoEngage iOS SDK（`apple-sdk`）を特定のバージョンですでに取り込んでいます。このエラーは、`apple-sdk` が別のバージョンで Xcode プロジェクトにも追加されていることを意味します。
+
+- 拡張機能インテグレーターツールを使用している場合は、Xcode の **Package Dependencies** で、別途追加した `apple-sdk` パッケージを削除してください。このパッケージは不要です。
+- 独自の拡張機能のコードで `MoEngageRichNotification` をインポートしている場合は、別途追加した `apple-sdk` パッケージの **Dependency Rule** を **Exact Version** に設定し、プラグインが使用するバージョンを指定してください。MoEngage React Native パッケージをアップグレードするたびに更新してください。

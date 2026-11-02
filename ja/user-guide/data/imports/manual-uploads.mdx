@@ -10,6 +10,8 @@ import ReachabilityNote from '/ja/snippets/imports-reachability-note.mdx';
 import PortfolioRouting from '/ja/snippets/imports-portfolio-routing.mdx';
 import UniversalImportFaqs from '/ja/snippets/imports-faq-universal.mdx';
 import DataArchival from '/ja/snippets/imports-data-archival.mdx';
+import FileImportLimits from '/ja/snippets/imports-limits.mdx';
+import FileRowOrder from '/ja/snippets/imports-file-row-order-callout.mdx';
 
 手動アップロードを使用すると、MoEngageダッシュボードでCSVを直接アップロードしてユーザーまたはイベントをインポートできます。接続を設定せずに、他のプラットフォームからの移行、属性の一括更新、1回限りの履歴データの読み込みを行う場合に便利です。
 
@@ -44,7 +46,7 @@ import DataArchival from '/ja/snippets/imports-data-archival.mdx';
 
     ### ステップ2: 列を設定する
 
-    各CSV列をMoEngageのユーザー属性にマッピングします (または新しい属性を作成します)。上位3行 (ヘッダーを除く) とすべての列が表示されます。
+    各CSV列をMoEngageのユーザープロパティにマッピングします (または新しい属性を作成します)。上位3行 (ヘッダーを除く) とすべての列が表示されます。
 
     - **識別子の設定**: 登録ユーザーの場合は、1つの列を **ID** としてマークします。[Unified Identity](/ja/user-guide/data/user-data/unified-identity-identity-resolution) が有効な場合は、追加の識別子もマッピングするオプションがあります。匿名ユーザーの場合は、列を **Anonymous ID** としてマークします。
     - **新しい属性の追加**: **+** をクリックし、一意の属性名を入力します。
@@ -52,12 +54,13 @@ import DataArchival from '/ja/snippets/imports-data-archival.mdx';
     - **列のスキップ**: **Skip the column** をクリックして列を除外します。**Show Skipped Columns** を切り替えると、スキップした列を非表示にしたり再度含めたりできます。
 
     <Info>
-      列名は大文字と小文字が区別され、ダッシュボード上の属性名と完全に一致する必要があります。イベント、イベント属性、ユーザー属性のプレフィックスとして `moe_` を使用しないでください。これは予約済みのシステムプレフィックスであり、使用すると事前の連絡なしに定期的にブラックリストに登録される可能性があります。
+      列名は大文字と小文字が区別され、ダッシュボード上の属性名と完全に一致する必要があります。イベント、イベントプロパティ、ユーザープロパティのプレフィックスとして `moe_` を使用しないでください。これは予約済みのシステムプレフィックスであり、使用すると事前の連絡なしに定期的にブラックリストに登録される可能性があります。
     </Info>
 
     ### インポートの動作
 
-    MoEngageにすでに存在するユーザーの属性を一括更新するには、**Update existing users only** を選択します。そのアップロードから新しいユーザーは作成されず、識別子がMoEngageに存在しない行は無視されます。オフのままにすると、アップロードでユーザーの更新に加えて作成も行われます。
+    MoEngageにすでに存在するユーザーの属性を一括更新するには、**Skip new users during this import** を選択します。そのアップロードから新しいユーザーは作成されず、識別子がMoEngageに存在しない行は無視されます。オフのままにすると、アップロードでユーザーの更新に加えて作成も行われます。
+    
 
     ### インポート通知を送信する
 
@@ -98,7 +101,7 @@ import DataArchival from '/ja/snippets/imports-data-archival.mdx';
 
     1. **Import name**: インポートの名前を入力します。
     2. **Select event**: アップロードするイベントを選択するか、**Create new event** をクリックして **Event name** を入力し、**Create** をクリックします。
-    3. **Select file**: CSV (150 MB未満) をドラッグ&ドロップまたはアップロードします。サンプルファイルをダウンロードして、想定されるフォーマットを確認してください。各列はイベント属性を表します。
+    3. **Select file**: CSV (150 MB未満) をドラッグ&ドロップまたはアップロードします。サンプルファイルをダウンロードして、想定されるフォーマットを確認してください。各列はイベントプロパティを表します。
     4. **File preview**: **Preview file** をクリックして、最初の5行をプレビューします。
     5. **Next** をクリックします。
 
@@ -106,11 +109,15 @@ import DataArchival from '/ja/snippets/imports-data-archival.mdx';
 
     **必須マッピング**: 必須のMoEngage属性である **User Identifier** と **Event time** を、CSVの列にマッピングします。Event timeをマッピングする際は、日時フォーマットとタイムゾーンを選択します。
 
-    **列のマッピング**: 残りのCSV列をMoEngageのイベント属性にマッピングします。
+    **列のマッピング**: 残りのCSV列をMoEngageのイベントプロパティにマッピングします。
 
     1. リストから属性を選択するか、**Create new attribute** をクリックして **Attribute name** と **Data type** を入力し、**Create** をクリックします。
     2. 各属性の **Data type** を選択します。
     3. 列を除外するには **Skip column** を選択します。マッピング済みの必須フィールドは無効になります。
+
+    ### インポートの動作
+
+    選択した列で重複排除を行うには、**Skip duplicate rows** を選択します。MoEngageはその列に重複する値を持つ行をスキップし、最初に出現した行のみを取り込みます。このオプションを選択しない場合、MoEngageは重複を含むすべての行を取り込みます。
 
     **Send Import Status**: インポートステータスを受け取る最大 **10件のメール受信者** を選択し、**Next** をクリックします。
 
@@ -169,9 +176,13 @@ MoEngageは、言語と空の値を次のように処理します。
 
 <DataArchival />
 
-- **ファイルサイズ**: CSV 1ファイルあたり150 MB未満。
-- **行数**: 1つのCSVファイルは、1時間あたりの行数制限までサポートします。1時間あたりの行数制限を超えるファイルは拒否されます。5行未満のファイルはエラーの原因となる場合があるため、必要に応じてダミー行を追加してください。
-- **列/属性**: ユーザーは100列、イベントは1イベントあたり100列。
+| 制限 | 値 |
+| --- | --- |
+| ファイルサイズ | CSV 1ファイルあたり150 MB未満。これより大きいファイルは分割してください。 |
+| 行数 | 1つのCSVまたはJSONファイルは、1時間あたりの行数制限までサポートします。1時間あたりの行数制限を超えるファイルは拒否されます。5行未満のファイルはエラーの原因となる場合があるため、必要に応じてダミー行を追加してください。 |
+| 列/属性 | ユーザーは100列、イベントは1イベントあたり100列。 |
+
+<FileImportLimits />
 
 ## サポートされていないもの
 
@@ -180,6 +191,27 @@ MoEngageは、言語と空の値を次のように処理します。
 - 属性タイプ _list_ およびその他の複合型 (JSON、ディクショナリなど)。
 - CSVファイルの複数行サポートはデフォルトで無効になっています。この機能が必要な場合は、サポートにお問い合わせください。`Ctrl+M` や `\r` など、`\n` 以外の改行フォーマットはサポートされていません。複数行サポートを有効にすると、インポートの処理速度に悪影響を及ぼす可能性があります。
 - JSONファイル。
+
+<FileRowOrder />
+
+# 実行履歴
+
+インポート詳細ページの **Run history** には、アップロードの実行が表示されます。これにより、スケジュールされた日時、完了した日時、所要時間、およびファイルの処理結果を確認できます。手動アップロードは1回限りのインポートであるため、実行は1回のみです。
+
+**Run history** を開くには、次の手順を実行します。
+
+1. Data importsページで、対象のインポートの **Actions** の下にあるケバブメニューをクリックします。
+2. **View** をクリックします。
+
+![Data importsページのActions列でメニューが開き、Viewオプションがハイライトされている画面](/images/import-actions-view.png)
+
+![インポート詳細ページのRun history。実行ごとに1行が表示され、View filesアクションがある画面](/images/import-run-history.png)
+
+行には、実行がスケジュールされた日時、完了した日時、ステータス、処理されたファイル数、検出された合計行数が、インポートした内容の件数とともに表示されます。MoEngageは、実行が完了した後にのみこれらの統計情報を入力します。ファイル自体を確認するには **View Files** をクリックします。ファイルをダウンロードできるほか、失敗したファイルまたは一部成功したファイルについてはエラーレポートもダウンロードできます。
+
+![テーブル上部に実行の概要が表示され、各ファイルの行数、追加されたイベント、失敗したイベント、スキップされた行を示すView filesスライドアウト](/images/import-run-file-breakdown.png)
+
+列の詳細と実行ステータスのロジックについては、[実行履歴](/ja/user-guide/data/imports/setting-up-a-file-import#run-history)および[インポートステータス](/ja/user-guide/data/imports/overview-imports#import-statuses)を参照してください。
 
 # インポートを管理する
 

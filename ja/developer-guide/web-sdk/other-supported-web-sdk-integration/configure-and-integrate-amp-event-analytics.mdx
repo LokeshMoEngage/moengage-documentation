@@ -7,6 +7,18 @@ MoEngage AMP イベント分析プラグインは、ユーザー属性とイベ�
 
 MoEngage AMP イベント分析プラグインは、AMP 分析モジュールとは異なります。
 
+<Warning>
+  重要
+
+  Web SDK v2.81.01 以降では、トリガーで `request` を `eventV2` に設定してください。従来の `event` リクエストは非推奨であり、今後のアップデートで削除される予定です。既存のトリガーを `eventV2` に移行してください。イベント名を `e` から `viewsInfo[].EVENT_ACTION` に、属性を `a` から `viewsInfo[].EVENT_ATTRS` に移動します。
+
+  v2.81.01 未満の Web SDK バージョンでは、引き続き `event` を使用してください。
+</Warning>
+
+<Info>
+  Web SDK をメジャーバージョン（`sdkVersion = "2"`）で参照している統合では、`eventV2` のサポートが自動的に適用されます。特定のリリースに固定している統合では、v2.81.01 以降が必要です。詳細については、[SDK のアップグレード](/ja/developer-guide/web-sdk/web-sdk-integration/basic-integration/web-sdk-integration#upgrading-the-sdk)を参照してください。
+</Info>
+
 AMP ページにイベントのトラッキングとユーザー属性のトラッキングを追加するには、次の手順に従います。
 
 ## AMP 分析スクリプトの追加
@@ -31,7 +43,7 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
 {
   "vars": {
     "appId": "YOUR_WORKSPACE_ID",
-    "dataCenter": "sdk-01",
+    "dataCenter": "sdk-01"
   }
 }
 </script>
@@ -43,7 +55,7 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
 <Info>
   注意
 
-  Your_Workspace_ID は、MoEngage ダッシュボード -\> Settings -\> App -\> General Settings にある実際の Workspace Id に必ず置き換えてください。
+  YOUR_WORKSPACE_ID は、MoEngage ダッシュボード -\> Settings -\> App -\> General Settings にある実際の Workspace Id に必ず置き換えてください。
 
   dataCenter の詳細については、サポートチームにお問い合わせください。
 </Info>
@@ -66,6 +78,10 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
 上記の手順を実施した場合、Page Viewed イベントはデフォルトでトラッキングされます。\
 ただし、AMP フレームワークにはイベントのトラッキングに関する制限があるため、トラッキングできるのは `Page Viewed`、`Element Clicked`、`Page Scroll` など、一部の種類のイベントのみです。
 
+<Info>
+  MoEngage のベンダー構成では、すべてのリクエストに `identifiers` と `meta` が自動的に含まれます。これらをトリガーの構成に追加する必要はありません。カスタムの `identifiers` オブジェクトを追加するのは、リクエストを特定のログイン済みユーザーに関連付けるために、ログインイベントをトラッキングする場合のみです。
+</Info>
+
 イベントの一覧の詳細については、[AMP Analytics Examples](https://amp.dev/documentation/examples/components/amp-analytics/) を参照してください。
 
 ### 例 1: 要素のクリックイベント
@@ -77,45 +93,55 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
 ```HTML HTML lines wrap
 <button id="test" data-vars-title="Example request title">
   Click here to generate an event
-  </button>
-  
-  
-  <amp-analytics type="moengage" id="moengage">
-  <script type="application/json">
-  {
-    "vars": {
-      "appId": "YOUR_WORKSPACE_ID",
-      "dataCenter": "sdk-01"
-    },
-    "triggers": {
-      "clickTrigger": {
-        "on": "click",
-        "selector": "#test",
-        "request": "event",
-        "extraUrlParams": {
-          "a": {
-            "title": "${title}"
-          },
-          "e": "amp example button click"
-        }
+</button>
+
+<amp-analytics type="moengage" id="moengage">
+<script type="application/json">
+{
+  "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+  },
+  "triggers": {
+    "clickTrigger": {
+      "on": "click",
+      "selector": "#test",
+      "request": "eventV2",
+      "extraUrlParams": {
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "amp example button click",
+            "EVENT_ATTRS": {
+              "title": "${title}"
+            },
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
-  </script>
-  </amp-analytics>
+}
+</script>
+</amp-analytics>
 ```
 
 </CodeGroup>
 
  
 
-| パラメーター  | 説明                                                                                                                                                  |
-| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `on`       | イベントのタイプ                                                                                                                                                |
-| `selector` | 標準の CSS セレクター                                                                                                                                        |
-| `request`  | 常に event である必要があります                                                                                                                                    |
-| `a`        | イベント属性。この例では、`title` が属性です。ボタン要素の `data-vars-title` を使用して、変数 `title` の変更を確認してください。 |
-| `e`        | イベント名                                                                                                                                                   |
+| パラメーター | 説明 |
+| --------- | ----------- |
+| `on` | イベントのタイプ |
+| `selector` | 標準の CSS セレクター |
+| `request` | 常に `eventV2` である必要があります |
+| `viewsCount` | このリクエストに含まれるイベントの数。`viewsInfo` 内のオブジェクトの数に設定します。 |
+| `viewsInfo` | イベントオブジェクトを含む配列。 |
+| `viewsInfo[].EVENT_ACTION` | イベント名。この例では `"amp example button click"` です。 |
+| `viewsInfo[].EVENT_ATTRS` | キーと値のペアで指定するイベント属性。ボタン要素の `data-vars-title` を使用して、変数 `title` を確認してください。 |
+| `viewsInfo[].EVENT_G_TIME` | イベントのグローバル（UTC）タイムスタンプ。`${timestamp}` を使用します。 |
+| `viewsInfo[].EVENT_L_TIME` | イベントのローカルタイムスタンプ。`${timestamp}` を使用します。 |
 
 ### 例 2: ページスクロールイベント
 
@@ -135,12 +161,19 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
       "scrollSpec": {
         "verticalBoundaries": [25, 50, 90]
       },
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
-        "a": {
-          "scrolledUpto": "${scrollTop}"
-        },
-        "e": "PageScroll"
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "PageScroll",
+            "EVENT_ATTRS": {
+              "scrolledUpto": "${scrollTop}"
+            },
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -175,13 +208,20 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
   "triggers": {
     "formSubmit": {
       "on": "amp-form-submit",
-      "request": "event",
+      "request": "eventV2",
       "selector": "#testForm",
       "extraUrlParams": {
-        "a": {
-          "anyKey": "anyValue"
-        },
-        "e": "FormSubmit"
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "FormSubmit",
+            "EVENT_ATTRS": {
+              "anyKey": "anyValue"
+            },
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -192,7 +232,7 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
 
 </CodeGroup>
 
-上記の例では、フォームの id をセレクターの値 (**#testForm**) として設定しています。"extraUrlParams" 内の "e" はイベント名で、"a" にはこのイベントでトラッキングしたいキーと値が含まれます。
+上記の例では、フォームの id をセレクターの値 (**#testForm**) として設定しています。`viewsInfo` 内の `EVENT_ACTION` はイベント名で、`EVENT_ATTRS` にはこのイベントでトラッキングしたいキーと値が含まれます。
 
 ## ユーザー属性のトラッキング
 
@@ -202,7 +242,7 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
   アカウントでユーザー属性が ID として設定されている場合は、このセクションで示すように単にユーザー属性としてトラッキングするのではなく、[ログイン](#tracking-user-login-and-logout)の一部としてトラッキングしてください。詳細については、[こちらのドキュメント](https://www.moengage.com/docs/user-guide/data/user-data/unified-identity-identity-resolution)を参照してください。
 </Warning>
 
-"EVENT_ACTION_USER_ATTRIBUTE" イベントを使用してユーザー属性をトラッキングできます。たとえば、Web サイトに次のボタンがあるとします。
+`EVENT_ACTION_USER_ATTRIBUTE` イベントを使用してユーザー属性をトラッキングできます。たとえば、Web サイトに次のボタンがあるとします。
 
 <CodeGroup>
 
@@ -228,12 +268,19 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
     "clickTrigger": {
       "on": "click",
       "selector": "#first-name",
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
-        "a": {
-          "USER_ATTRIBUTE_USER_FIRST_NAME": "${first-name}"
-        },
-        "e": "EVENT_ACTION_USER_ATTRIBUTE"
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+            "EVENT_ATTRS": {
+              "USER_ATTRIBUTE_USER_FIRST_NAME": "${firstName}"
+            },
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -268,12 +315,19 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
     "clickTrigger": {
       "on": "click",
       "selector": "#email",
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
-        "a": {
-          "USER_ATTRIBUTE_USER_EMAIL": "${email}"
-        },
-        "e": "EVENT_ACTION_USER_ATTRIBUTE"
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+            "EVENT_ATTRS": {
+              "USER_ATTRIBUTE_USER_EMAIL": "${email}"
+            },
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -308,12 +362,19 @@ AMP 分析を使用してユーザー属性とイベントをトラッキング�
     "clickTrigger": {
       "on": "click",
       "selector": "#btnId",
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
-        "a": {
-         "USER_ATTRIBUTE_NAME": "${attribute-value}"
-        },
-        "e": "EVENT_ACTION_USER_ATTRIBUTE"
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+            "EVENT_ATTRS": {
+              "USER_ATTRIBUTE_NAME": "${attributeValue}"
+            },
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -348,20 +409,27 @@ USER_ATTRIBUTE_USER_BDAY //for user birthday - value needs to be in date format,
 <amp-analytics type="moengage" id="moengage">
 <script type="application/json">
 {
-"vars": {
-"appId": "YOUR_WORKSPACE_ID",
-"dataCenter": "sdk-01"
-},
-"triggers": {
+  "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+  },
+  "triggers": {
     "clickTrigger": {
       "on": "click",
       "selector": "#btnId",
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
-        "a": {
-         "colors": ["blue","green","red"]
-        },
-        "e": "EVENT_ACTION_USER_ATTRIBUTE"
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+            "EVENT_ATTRS": {
+              "colors": ["blue", "green", "red"]
+            },
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -410,23 +478,32 @@ Web サイトへの訪問中にユーザーのログインとログアウトが�
 <amp-analytics type="moengage" id="moengage">
 <script type="application/json">
 {
-"vars": {
-"appId": "YOUR_WORKSPACE_ID",
-"dataCenter": "sdk-01"
-},
-"triggers": {
+  "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+  },
+  "triggers": {
     "clickTrigger": {
       "on": "click",
       "selector": "#login",
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
         "identifiers": {
-            "moe_user_id": "${unique-id}",
-            "user_identities": { 
-              "uid": "${unique-id}", 
-              "u_em": "${user-email}" 
-            }
-        }
+          "moe_user_id": "${uniqueId}",
+          "user_identities": {
+            "uid": "${uniqueId}",
+            "u_em": "${userEmail}"
+          }
+        },
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+            "EVENT_ATTRS": {},
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -466,21 +543,30 @@ Web サイトへの訪問中にユーザーのログインとログアウトが�
 <amp-analytics type="moengage" id="moengage">
 <script type="application/json">
 {
-"vars": {
-"appId": "YOUR_WORKSPACE_ID",
-"dataCenter": "sdk-01"
-},
-"triggers": {
+  "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+  },
+  "triggers": {
     "clickTrigger": {
       "on": "click",
       "selector": "#login",
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
         "identifiers": {
-            "user_identities": { 
-              "u_mb": "${user-mobile}" 
-            }
-        }
+          "user_identities": {
+            "u_mb": "${userMobile}"
+          }
+        },
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+            "EVENT_ATTRS": {},
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -500,7 +586,7 @@ Web サイトへの訪問中にユーザーのログインとログアウトが�
 <Warning>
   重要
 
-  ログインをトラッキングした後は、ログアウトイベントが実行されるまで、以降のすべての属性とイベントのトラッキングコード内に、上記のように "identifiers" オブジェクト ("moe_user_id" および/または "user_identities" を含む) を定義する必要があります。そうしないと、その属性やイベントのトラッキングは、MoEngage ダッシュボードでこのログイン済みユーザーに関連付けられません。
+  ログインをトラッキングした後は、ログアウトを実行するまで、以降のすべてのトリガーの `extraUrlParams` に `identifiers` オブジェクト（`moe_user_id` および/または `user_identities` を含む）を含めてください。ベンダー構成はデフォルトで `identifiers: {}`（空）を送信するため、ログイン後の各トリガーでユーザーの実際の ID で上書きする必要があります。そうしないと、MoEngage はダッシュボードでそれらのイベントをログイン済みユーザーに関連付けません。
 </Warning>
 
 たとえば、ユーザーに ID が設定された後にイベントをトラッキングしたい場合は、次のようにします。
@@ -519,27 +605,34 @@ Web サイトへの訪問中にユーザーのログインとログアウトが�
 <amp-analytics type="moengage" id="moengage">
 <script type="application/json">
 {
-"vars": {
-"appId": "YOUR_WORKSPACE_ID",
-"dataCenter": "sdk-01"
-},
-"triggers": {
+  "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+  },
+  "triggers": {
     "clickTrigger": {
       "on": "click",
       "selector": "#title",
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
-        "a": {
-          "title": "${title}"
-        },
-        "e": "amp example button click",
         "identifiers": {
-            "moe_user_id": "someUniqueId",
-            "user_identities": { 
-              "uid": "someUniqueId", 
-              "u_em": "emailValue@emailDomain.com" 
-            } //because we logged-in the user with "someUniqueId" as the ID and "emailValue@emailDomain.com" as the Email
-        }
+          "moe_user_id": "someUniqueId",
+          "user_identities": {
+            "uid": "someUniqueId",
+            "u_em": "emailValue@emailDomain.com"
+          }
+        },
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "amp example button click",
+            "EVENT_ATTRS": {
+              "title": "${title}"
+            },
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -570,23 +663,32 @@ ID の値を更新する場合は、変更された ID を `identifiers` -\> `pr
 <amp-analytics type="moengage" id="moengage">
 <script type="application/json">
 {
-"vars": {
-"appId": "YOUR_WORKSPACE_ID",
-"dataCenter": "sdk-01"
-},
-"triggers": {
+  "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+  },
+  "triggers": {
     "clickTrigger": {
       "on": "click",
       "selector": "#login",
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
         "identifiers": {
-            "moe_user_id": "${unique-id}",
-            "user_identities": { 
-              "uid": "${unique-id}", 
-              "u_em": "${user-email}" 
-            }
-        }
+          "moe_user_id": "${uniqueId}",
+          "user_identities": {
+            "uid": "${uniqueId}",
+            "u_em": "${userEmail}"
+          }
+        },
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+            "EVENT_ATTRS": {},
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -613,26 +715,35 @@ ID の値を更新する場合は、変更された ID を `identifiers` -\> `pr
 <amp-analytics type="moengage" id="moengage">
 <script type="application/json">
 {
-"vars": {
-"appId": "YOUR_WORKSPACE_ID",
-"dataCenter": "sdk-01"
-},
-"triggers": {
+  "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+  },
+  "triggers": {
     "clickTrigger": {
       "on": "click",
       "selector": "#update",
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
         "identifiers": {
-            "moe_user_id": "${updated-id}",
-            "user_identities": {
-              "uid": "${updated-id}", 
-              "u_em": "${user-email}" 
-            },
-            "previous_identities": {
-              "uid": "someUniqueId" // because we updated the ID from "someUniqueId"
-            }
-        }
+          "moe_user_id": "${updatedId}",
+          "user_identities": {
+            "uid": "${updatedId}",
+            "u_em": "${userEmail}"
+          },
+          "previous_identities": {
+            "uid": "someUniqueId"
+          }
+        },
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "EVENT_ACTION_USER_ATTRIBUTE",
+            "EVENT_ATTRS": {},
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -665,18 +776,25 @@ ID の値を更新する場合は、変更された ID を `identifiers` -\> `pr
 <amp-analytics type="moengage" id="moengage">
 <script type="application/json">
 {
-"vars": {
-"appId": "YOUR_WORKSPACE_ID",
-"dataCenter": "sdk-01"
-},
-"triggers": {
+  "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+  },
+  "triggers": {
     "clickTrigger": {
       "on": "click",
       "selector": "#logout",
-      "request": "event",
+      "request": "eventV2",
       "extraUrlParams": {
-        "a": {},
-        "e": "MOE_LOGOUT"
+        "viewsCount": 1,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "MOE_LOGOUT",
+            "EVENT_ATTRS": {},
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
       }
     }
   }
@@ -690,5 +808,84 @@ ID の値を更新する場合は、変更された ID を `identifiers` -\> `pr
 <Warning>
   重要
 
-  上記の MoEngage ログアウトイベントを実行した後は、以降のトラッキングコードで "identifiers" を送信しないでください。ユーザーはログアウトしており、以降の属性/イベントのトラッキングをこのユーザーに関連付けてはならないためです。
+  MoEngage のログアウトイベントを実行した後は、以降のトリガーにカスタムの `identifiers` オブジェクトを含めないでください。ベンダー構成は引き続きデフォルトの空の `identifiers: {}` を送信し、これにより以降のイベントはログアウトしたユーザーから正しく切り離されます。ログアウト後にカスタムの `identifiers` ブロックを追加すると、イベントが誤ったユーザーに関連付けられるおそれがあります。
+</Warning>
+
+## イベントのバッチ処理
+
+複数のイベントを 1 つのトリガーの `viewsInfo` 配列内にまとめることで、1 回の HTTP リクエストで送信できます。`viewsCount` をイベントの数に設定し、各イベントオブジェクトを `viewsInfo` に追加します。このパターンは、常に同時に発生するイベントに使用します。たとえば、1 回のクリックで `Add To Cart` と `Product Clicked` の両方を 1 つのリクエストでトラッキングする場合です。
+
+<Info>
+  注
+
+  この方法が機能するのは、構成時に両方のイベントを 1 つのトリガー内に記述するためです。AMP はトリガーを 1 回発火し、すべてのイベントをまとめて送信します。これは、自動的なトリガー間のバッチ処理（個別のトリガーの発火を 1 つのリクエストにまとめること）とは異なります。MoEngage はトリガー間のバッチ処理をサポートしていません。以下の注意事項を参照してください。
+</Info>
+
+<CodeGroup>
+
+```HTML HTML lines wrap
+<amp-analytics type="moengage" id="moengage">
+<script type="application/json">
+{
+  "vars": {
+    "appId": "YOUR_WORKSPACE_ID",
+    "dataCenter": "sdk-01"
+  },
+  "triggers": {
+    "addToCartBundle": {
+      "on": "click",
+      "selector": "#addToCart",
+      "request": "eventV2",
+      "extraUrlParams": {
+        "viewsCount": 2,
+        "viewsInfo": [
+          {
+            "EVENT_ACTION": "Add To Cart",
+            "EVENT_ATTRS": {
+              "productId": "${productId}",
+              "price": "${price}"
+            },
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          },
+          {
+            "EVENT_ACTION": "Product Clicked",
+            "EVENT_ATTRS": {
+              "productId": "${productId}",
+              "category": "${category}"
+            },
+            "EVENT_G_TIME": "${timestamp}",
+            "EVENT_L_TIME": "${timestamp}"
+          }
+        ]
+      }
+    }
+  }
+}
+</script>
+</amp-analytics>
+```
+
+</CodeGroup>
+
+この例では、`${productId}`、`${price}`、`${category}` は、クリックされた要素の `data-vars-product-id`、`data-vars-price`、`data-vars-category` 属性から解決されます。
+
+MoEngage は次のリクエストボディを受け取ります。
+
+```json JSON lines wrap
+{
+  "viewsCount": 2,
+  "viewsInfo": [
+    { "EVENT_ACTION": "Add To Cart", "EVENT_ATTRS": { "productId": "...", "price": "..." }, "EVENT_G_TIME": "...", "EVENT_L_TIME": "..." },
+    { "EVENT_ACTION": "Product Clicked", "EVENT_ATTRS": { "productId": "...", "category": "..." }, "EVENT_G_TIME": "...", "EVENT_L_TIME": "..." }
+  ],
+  "identifiers": {},
+  "meta": { "bid": "...", "request_time": "...", "integration_type": "AMP" }
+}
+```
+
+<Warning>
+  自動的なトリガー間のバッチ処理はサポートされていません
+
+  AMP の組み込みの `batchInterval` は、個別のトリガーからの発火を収集し、発火ごとに 1 つのオブジェクトを含むトップレベルの JSON 配列としてまとめて送信します。MoEngage の `/v2/sdk/report` エンドポイントはトップレベルの配列のボディを受け付けず、単一の JSON オブジェクトを想定しています。リクエストが拒否されるため、`batchInterval` は使用しないでください。常に同時に発生するイベントには、代わりに上記の手動のマルチイベントトリガーパターンを使用してください。
 </Warning>

@@ -4,6 +4,7 @@ description: "Snowflake、BigQuery、Databricksのテーブルやビューから
 keywords: "data warehouse import, Snowflake, BigQuery, Databricks, table import, view import, updated_at, object data type, VARIANT"
 ---
 
+import FeatureAvailability from '/ja/snippets/feature-availability.mdx';
 import MappingFileConcept from '/ja/snippets/imports-mapping-file-concept.mdx';
 import DatetimeFormats from '/ja/snippets/imports-datetime-formats.mdx';
 import UniversalImportFaqs from '/ja/snippets/imports-faq-universal.mdx';
@@ -11,6 +12,8 @@ import DwImportFaqs from '/ja/snippets/imports-faq-dw.mdx';
 import PortfolioRouting from '/ja/snippets/imports-portfolio-routing.mdx';
 import TimezoneDisplayNote from '/ja/snippets/imports-timezone-display-note.mdx';
 import DataArchival from '/ja/snippets/imports-data-archival.mdx';
+
+<FeatureAvailability />
 
 MoEngageは、データウェアハウス (Snowflake、BigQuery、またはDatabricks) のテーブルやビューから、ユーザーとイベントを直接インポートします。ウェアハウスインポートは接続ベースです。MoEngageに読み取りアクセス権を付与し、列を一度マッピングすれば、1回限りまたは定期的なスケジュールでインポートを実行できます。
 
@@ -41,7 +44,7 @@ MoEngageは特定のテーブルスキーマを必要としません。すべて
   </Tab>
 </Tabs>
 
-**日時属性のインポート:** 日付または時刻を保持する列をマッピングする場合は、**Date Time** 属性として作成し、一致するフォーマットを選択します ([サポートされている日時フォーマット](#supported-datetime-formats)を参照)。最初のインポートが成功した後、アカウント管理者は [Data Management](/ja/user-guide/settings/data-management/overview-data-management) を開き、ユーザー属性とイベント属性の両方について、新しい各属性の **allowed data type** を _datetime_ に設定する必要があります。データ型が固定されるまで、値がdatetimeとして取り込まれたりセグメント化されたりしない場合があります。
+**日時属性のインポート:** 日付または時刻を保持する列をマッピングする場合は、**Date Time** 属性として作成し、一致するフォーマットを選択します ([サポートされている日時フォーマット](#supported-datetime-formats)を参照)。最初のインポートが成功した後、アカウント管理者は [Data Management](/ja/user-guide/settings/data-management/overview-data-management) を開き、ユーザープロパティとイベントプロパティの両方について、新しい各属性の **allowed data type** を _datetime_ に設定する必要があります。データ型が固定されるまで、値がdatetimeとして取り込まれたりセグメント化されたりしない場合があります。
 
 ## 定期同期で変更された行を検出する仕組み
 
@@ -237,15 +240,16 @@ MoEngageには、ウェアハウスへの `READ` アクセス権が必要です�
 
 Imports Dashboardでこのインポートを識別するための名前を入力します。インポートタイプに応じて、次の手順が異なります。
 
-<Accordion title="ユーザーインポート">
-  **Registered users**、**Anonymous users**、またはその両方をまとめてインポートするかを選択します。
-</Accordion>
+<Tabs>
+  <Tab title="ユーザーインポート">
+    **Registered users**、**Anonymous users**、またはその両方をまとめてインポートするかを選択します。
+  </Tab>
+  <Tab title="イベントインポート">
+    インポートするイベントを選択するか、新しいイベントを作成します。1つのテーブルに複数のイベントが含まれている場合、MoEngageは **Event Name** 列を使用してインポートする行を決定します。その値は選択したイベントによって異なります。イベントの表示名とイベント名は異なる場合があり、[Data Management](/ja/user-guide/settings/data-management/overview-data-management) ページで確認できます。たとえば、イベント _App/Site Opened_ のイベント名は `MOE_APP_OPENED` です。
 
-<Accordion title="イベントインポート">
-  インポートするイベントを選択するか、新しいイベントを作成します。1つのテーブルに複数のイベントが含まれている場合、MoEngageは **Event Name** 列を使用してインポートする行を決定します。その値は選択したイベントによって異なります。イベントの表示名とイベント名は異なる場合があり、[Data Management](/ja/user-guide/settings/data-management/overview-data-management) ページで確認できます。たとえば、イベント _App/Site Opened_ のイベント名は `MOE_APP_OPENED` です。
-
-  新しいイベントを作成するには、**Select event** リストの末尾にある **+ Create event** をクリックし、一意の名前を入力します。新しいイベントは、最初のインポートが成功した後にのみData Managementページに表示されます。
-</Accordion>
+    新しいイベントを作成するには、**Select event** リストの末尾にある **+ Create event** をクリックし、一意の名前を入力します。新しいイベントは、最初のインポートが成功した後にのみData Managementページに表示されます。
+  </Tab>
+</Tabs>
 
 次に、接続と、インポート元のテーブルまたはビューを選択します。接続を作成していない場合は、**+ Add connection** をクリックしてApp Marketplaceで設定します。接続を選択した後、**Schema/Dataset** と **Table/View** を選択します。スキーマの読み込みに失敗した場合は、上記の権限を付与したことを確認してください。
 
@@ -382,7 +386,15 @@ JSONは、ウェアハウスに応じた正しい列の型で保存してくだ�
 
 ### インポートの動作
 
-ユーザーインポートでは、Import Behaviourの下にある **Update existing users only** を選択すると、新しいユーザーを作成せずに属性を一括更新できます。
+
+<Tabs>
+  <Tab title="ユーザーインポート">
+    ユーザーインポートでは、Import Behaviourの下にある **Skip new users during this import** を選択すると、新しいユーザーを作成せずに属性を一括更新できます。このインポートから新しいユーザーは作成されず、識別子がMoEngageに存在しない行は無視されます。
+  </Tab>
+  <Tab title="イベントインポート">
+    イベントインポートでは、**Skip duplicate rows** を選択すると、選択した列で重複排除を行います。MoEngageはその列に重複する値を持つ行をスキップし、最初に出現した行のみを取り込みます。このオプションを選択しない場合、MoEngageは重複を含むすべての行を取り込みます。
+  </Tab>
+</Tabs>
 
 ### インポート通知を送信する
 
@@ -432,8 +444,9 @@ MoEngageがテーブルと同期するタイミングを定義します。
 
 | フェーズ | 1時間あたり | 1日あたり |
 | --- | --- | --- |
-| 履歴 (初回同期) | 15M rows/hr | 50M rows/day |
-| 通常 (以降の同期) | 600K rows/hr | 14M rows/day |
+| 通常 (デフォルト) | 600K rows/hr | 14M rows/day |
+| 移行 (リクエストに応じて) | 15M rows/hr | 50M rows/day |
+
 
 インポートの最初の実行は、一致するすべての行を取得する履歴同期であり、より高い移行用の制限が適用されます。以降の定期実行にはすべて通常の制限が適用されます。
 

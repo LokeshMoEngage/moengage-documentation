@@ -3,9 +3,43 @@ title: "プッシュコールバック"
 description: "MoEngage React Native SDK で、プッシュトークンとプッシュクリックのコールバックリスナーを設定します。"
 ---
 
+# Firebase Installation ID のコールバック
+
+MoEngage プラグインは、Firebase Installation ID が生成または更新されるたびに `firebaseInstallationIdAvailable` イベントをトリガーします。このイベントは Core プラグインバージョン `13.0.0` から利用でき、Android でのみトリガーされます。リスナーを設定するには、以下のコードを参照してください。
+
+<CodeGroup>
+
+```typescript TypeScript
+import ReactMoE from 'react-native-moengage'
+ReactMoE.setEventListener("firebaseInstallationIdAvailable", (result) => {
+  console.log("firebaseInstallationIdAvailable", result);
+});
+```
+
+</CodeGroup>
+
+コールバックで受け取る結果は、以下の定義を持つ `MoEFirebaseInstallationIdResult` インスタンスです。
+
+<CodeGroup>
+
+```typescript TypeScript
+class MoEFirebaseInstallationIdResult {
+ /// Account information which contains the Workspace ID.
+ accountMeta: MoEAccountMeta;
+ /// Native platform from which the callback was triggered. Always Android, since iOS doesn't support this.
+ platform: MoEPlatform;
+ /// push type associated with platform
+ pushService: MoEPushService;
+ /// Firebase Installation ID value
+ installationId: String;
+}
+```
+
+</CodeGroup>
+
 # プッシュトークンのコールバック
 
-MoEngage プラグインは、デバイストークンが生成されるたびに `pushTokenGenerated` イベントをトリガーします。このイベントは iOS と Android の両プラットフォームに共通のトリガーで、プラグインバージョン `6.0.0` から利用できます。リスナーを設定するには、以下のコードを参照してください。
+MoEngage プラグインは、デバイストークンが生成されるたびに `pushTokenGenerated` イベントをトリガーします。このイベントはプラグインバージョン `6.0.0` から利用できます。リスナーを設定するには、以下のコードを参照してください。
 
 <CodeGroup>
 
@@ -34,6 +68,10 @@ class MoEPushToken {
 ```
 
 </CodeGroup>
+
+<Warning>
+  Core プラグインバージョン `13.0.0` 以降、Android では `pushTokenGenerated` は非推奨になりました。引き続き動作しますが、MoEngage は [Firebase Installation ID のコールバック](/ja/developer-guide/react-native-sdk/push/basic/push-callback#firebase-installation-id-callback)に移行することをお勧めします。
+</Warning>
 
 # プッシュクリックのコールバック
 

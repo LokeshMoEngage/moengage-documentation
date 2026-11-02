@@ -1,0 +1,190 @@
+---
+title: "レコメンデーション"
+description: "MoEngageSDKRecommendations.fetchRecommendations() を使用して iOS アプリで MoEngage のレコメンデーションからアイテムを取得し、キャッシュ期間を設定して、失敗を処理します。"
+keywords: "ios recommendations sdk, MoEngageSDKRecommendations, fetchRecommendations ios, recommended items, product recommendations ios, recommendation id, item id, included fields, recommendations cache duration, moengage ios catalog"
+---
+
+## 概要
+
+MoEngage iOS SDK は、MoEngage ダッシュボードで作成したレコメンデーションのおすすめアイテムを取得し、キー値データとしてアプリに返します。ユーザー ID、ネットワーク、キャッシュは内部で処理されます。
+
+<Tip>
+  **前提条件**
+
+  - Recommendations モジュールを含む MoEngage iOS SDK 11.3.0 以降を統合します。詳細については、[SDK の統合](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration)を参照してください。
+  - `didFinishLaunchingWithOptions` で SDK を初期化します。詳細については、[SDK の初期化](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)を参照してください。
+  - ワークスペースで Recommendations を有効にし、MoEngage ダッシュボードでレコメンデーションを作成します。詳細については、[Recommendations の概要](/ja/user-guide/content/recommendations/getting-started/overview)を参照してください。
+</Tip>
+
+## モジュールのインストール
+
+<Tabs>
+  <Tab title="SPM (Swift Package Manager)">
+    SPM を使用して `MoEngageRecommendations` をインストールするには、次の手順を実行します。
+
+    1. **File** \> **Add Package** に移動します。
+    2. リポジトリ URL [https://github.com/moengage/apple-sdk.git](https://github.com/moengage/apple-sdk.git) を入力します。
+    3. master ブランチまたは目的のバージョンを選択します。
+    4. **Add Package** をクリックします。
+    5. `MoEngageRecommendations` プロダクトをアプリのターゲットに追加します。
+  </Tab>
+  <Tab title="CocoaPods">
+    <Warning>
+      CocoaPods は非推奨になりつつあります。MoEngage は、すべての新規統合に Swift Package Manager を推奨しています。詳細については、[SDK の統合](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration)を参照してください。
+    </Warning>
+
+    `Podfile` に次の内容を追加します。
+
+    <CodeGroup>
+
+    ```ruby Cocoapods
+    pod 'MoEngage-iOS-SDK/Recommendations'
+    ```
+
+    </CodeGroup>
+
+    次に、以下を実行します。
+
+    <CodeGroup>
+
+    ```shellscript Shell wrap
+    pod repo update
+    pod install
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+## おすすめアイテムの取得
+
+`MoEngageSDKRecommendations` で `fetchRecommendations(recommendationId:itemId:includedFields:workspaceId:)` を呼び出し、返された `MoEngageFetchRecommendationsTask` に `onSuccess` コールバックと `onFailure` コールバックを付加します。アイテムを取得するレコメンデーションの Recommendation ID を、MoEngage ダッシュボードで定義されたとおりに渡します。また、アンカーアイテムの ID と、各アイテムで返されるカタログフィールドを渡すこともできます。パラメーターの完全な一覧については、[API リファレンス](https://moengage.github.io/ios-api-reference/)を参照してください。
+
+<CodeGroup>
+
+```swift Swift wrap
+import MoEngageRecommendations
+
+MoEngageSDKRecommendations.sharedInstance
+    .fetchRecommendations(
+        recommendationId: "YOUR_RECOMMENDATION_ID",
+        itemId: "YOUR_ITEM_ID",
+        includedFields: ["FIELD_1", "FIELD_2"]
+    )
+    .onSuccess { recommendedItems in
+        if recommendedItems.items.isEmpty {
+            // No recommended items are available for this user. Show your empty state.
+        } else {
+            // Render the items.
+        }
+    }
+    .onFailure { failure in
+        switch failure.reason.code {
+        case .networkError:
+            // The device is offline. Retry when connectivity returns.
+            break
+        default:
+            // Show a fallback.
+            break
+        }
+    }
+```
+
+```objective-c Objective C wrap
+@import MoEngageRecommendations;
+
+MoEngageFetchRecommendationsTask* task =
+    [[MoEngageSDKRecommendations sharedInstance]
+     fetchRecommendationsWithRecommendationId:@"YOUR_RECOMMENDATION_ID"
+     itemId:@"YOUR_ITEM_ID"
+     includedFields:@[@"FIELD_1", @"FIELD_2"]
+     workspaceId:@"YOUR_WORKSPACE_ID"];
+
+[task onSuccess:^(MoEngageRecommendedItems * _Nonnull recommendedItems) {
+    if (recommendedItems.items.count == 0) {
+        // No recommended items are available for this user. Show your empty state.
+    } else {
+        // Render the items.
+    }
+}];
+
+[task onFailure:^(MoEngageRequestFailure * _Nonnull failure) {
+    // Show a fallback.
+}];
+```
+
+</CodeGroup>
+
+<Info>
+  `workspaceId` は、アプリケーションで複数の MoEngage インスタンスを実行している場合にのみ渡してください。`includedFields` は `Set<String>` であり、Objective-C にはブリッジされません。Objective-C の呼び出し元は、Set の代わりに配列を受け取る `fetchRecommendations` のオーバーロードを使用します。
+</Info>
+
+### 結果の処理
+
+`onSuccess` コールバックは `MoEngageRecommendedItems` オブジェクトを受け取ります。その `items` プロパティはマップのリストで、各マップはカタログ属性名をキーとする 1 つのおすすめアイテムです。空のリストは成功した結果であり、ユーザーが利用できるおすすめアイテムがないことを意味します。
+
+SDK は、カタログのキーと値の型を変更せずにそのまま渡します。レコメンデーションが何も返さない場合にデフォルトのアイテムセットを提供するには、レコメンデーションで [Fallback Items](/ja/user-guide/content/recommendations/getting-started/fallback-items) を設定します。
+
+### 失敗の処理
+
+失敗した場合、`onFailure` は `MoEngageRequestFailure` オブジェクトを受け取ります。その `reason` プロパティを使用して失敗を特定します。`message` プロパティにはログ記録専用の詳細が含まれ、空の場合もあります。`cause` プロパティには、失敗がネットワークレイヤーで発生した場合に基になる `NSError` が含まれます。失敗時、SDK はキャッシュに何も書き込まず、キャッシュ済みのアイテムはそのまま残ります。
+
+失敗を特定するには `reason.code` を読み取ります。すべての MoEngage SDK リクエストに共通するコードの完全な一覧については、[API リファレンス](https://moengage.github.io/ios-api-reference/Classes/MoEngageRequestFailureReason/Code.html)を参照してください。
+
+SDK は失敗したリクエストを再試行しません。再試行するには、`fetchRecommendations()` を再度呼び出します。SDK は失敗時に何もキャッシュしないため、次の呼び出しでは新しいネットワークリクエストが行われます。再試行は、次の理由の場合にのみ行ってください。
+
+- `networkError`
+- `serverError`
+- `unknownError`
+
+<Note>
+  Recommendations は、`MoEngageRequestFailureReason` のサブクラスで独自の失敗コードも定義しており、ネストされた `ModuleCode` 列挙型と `moduleCode` プロパティで公開しています。これらのコードの一覧については、[API リファレンス](https://moengage.github.io/ios-api-reference/)を参照してください。
+</Note>
+
+## キャッシュ
+
+SDK は取得したアイテムをキャッシュするため、同じレコメンデーションに対して繰り返し呼び出しても、ネットワークリクエストはトリガーされません。
+
+- SDK は、各キャッシュエントリーを Recommendation ID、アイテム ID、含めるフィールドの組み合わせごとに管理します。3 つのいずれかを変更すると、新しいリストが取得されます。
+- キャッシュ期間内であれば、`fetchRecommendations()` はネットワーク呼び出しを行わずにキャッシュ済みのアイテムを返します。
+- キャッシュ期間が経過すると、次の呼び出しでサーバーからアイテムを取得し、エントリーを更新します。
+- SDK は空の結果も同じ方法でキャッシュするため、空のレコメンデーションによって画面の表示のたびにネットワーク呼び出しがトリガーされることはありません。
+- SDK は、ユーザーがログアウトしたとき、ユーザー ID が変更されたとき、SDK が無効化されたときにキャッシュをクリアします。
+
+### キャッシュ期間の設定
+
+SDK は、おすすめアイテムを 24 時間（86400 秒）キャッシュします。より長くキャッシュするには、SDK を初期化する前に `MoEngageSDKConfig` オブジェクトの `recommendationConfig` プロパティを設定します。詳細については、[SDK の初期化](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)を参照してください。
+
+<CodeGroup>
+
+```swift Swift wrap
+let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
+sdkConfig.recommendationConfig = MoEngageRecommendationConfig(recommendedItemsCacheDuration: 172800)
+MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
+```
+
+</CodeGroup>
+
+<Note>
+  期間の単位は秒です。キャッシュ期間の最小値は 86400 秒（24 時間）です。これより小さい値は無視され、SDK は代わりに 86400 秒を使用します。
+</Note>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="SDK はおすすめアイテムを表示しますか？">
+    いいえ。SDK はアイテムのデータのみを返します。アプリケーションでレスポンスを解析し、ユーザーインターフェースを構築します。
+  </Accordion>
+
+  <Accordion title="SDK はアイテムで参照されている画像をダウンロードしますか？">
+    いいえ。SDK はメディアをダウンロードまたはキャッシュしません。レスポンス内の画像 URL には、標準の画像読み込みライブラリを使用してください。
+  </Accordion>
+
+  <Accordion title="SDK を初期化する前に fetchRecommendations() を呼び出すとどうなりますか？">
+    SDK が致命的な例外を発生させ、アプリケーションがクラッシュします。iOS SDK 11.0.0 以降、これは Debug、Release、TestFlight のすべてのビルドで、すべての公開 MoEngage API に適用されます。レコメンデーションを取得する前に、`didFinishLaunchingWithOptions` で SDK を初期化してください。詳細については、[SDK の初期化](/ja/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization)を参照してください。
+  </Accordion>
+
+  <Accordion title="キャッシュの有効期限が切れる前に強制的に再取得できますか？">
+    いいえ。SDK はキャッシュ期間が経過するまでキャッシュ済みのアイテムを提供します。カタログの変更頻度に合った期間を設定してください。
+  </Accordion>
+</AccordionGroup>

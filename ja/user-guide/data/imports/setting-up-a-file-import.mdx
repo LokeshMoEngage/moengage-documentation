@@ -13,6 +13,8 @@ import ArraySupport from '/ja/snippets/imports-array-support.mdx';
 import ReachabilityNote from '/ja/snippets/imports-reachability-note.mdx';
 import PgpEncryption from '/ja/snippets/imports-pgp-encryption.mdx';
 import DataArchival from '/ja/snippets/imports-data-archival.mdx';
+import FileRowOrder from '/ja/snippets/imports-file-row-order-callout.mdx';
+import FileImportLimits from '/ja/snippets/imports-limits.mdx';
 
 MoEngage は、Amazon S3 バケットまたは SFTP サーバーに配置したファイルから、ユーザー、イベント、補助データのインポートを自動化します。ファイルを準備し、接続と列マッピングを一度設定するだけで、MoEngage が 1 回限りまたは定期的なスケジュールで新しいファイルを取得します。
 
@@ -28,6 +30,10 @@ MoEngage は、ファイルから以下をインポートできます。
 - **補助データ**：一時的に取り込まれる補足的なユーザーデータ。補助データには独自の設定があります。[補助データ](/ja/user-guide/data/imports/auxiliary-data)を参照してください。
 
 # ファイルを準備する
+
+<Info>
+  インポートするファイルのコピーはご自身で保管してください。MoEngage からのファイルの再ダウンロードには期限があり、保証されていません。
+</Info>
 
 ## サポートされるファイル形式
 
@@ -65,7 +71,7 @@ MoEngage は、`<custom name>_<date time format>.<file extension>` に従うカ�
 | `{yyyymmdd}_{hhmm}` | 日付は上記と同じ、`hh`：時 00～23、`mm`：分 00～59 | `20220131_1259` |
 
 <Info>
-  イベント、イベント属性、ユーザー属性のプレフィックスとして `moe_` を使用しないでください。これは予約済みのシステムプレフィックスです。
+  イベント、イベントプロパティ、ユーザープロパティのプレフィックスとして `moe_` を使用しないでください。これは予約済みのシステムプレフィックスです。
 </Info>
 
 **ファイル拡張子：**
@@ -150,9 +156,34 @@ MoEngage は、`<custom name>_<date time format>.<file extension>` に従うカ�
 
 すべてのファイルを 1 つのフォルダに配置し、設定時にフォルダパスを構成します。MoEngage はサブフォルダやルートフォルダ内を参照しません。
 
-## 配列のサポート（CSV）
+<FileRowOrder />
 
-<ArraySupport />
+## 配列のサポート
+
+<Tabs>
+  <Tab title="CSV ファイル">
+    <ArraySupport />
+  </Tab>
+  <Tab title="JSON ファイル">
+    * シンプルな配列とオブジェクトの配列がサポートされています。
+    * 有効な JSON 配列を渡してください。例：`[1, 2, 3]`。
+    * サポートされるデータ型は Array String、Array Double（数値）、Array Object です。列のマッピング時に **Map column to attribute** リストで型を選択します。
+    * 配列内のすべての要素は同種である必要があります。すべて integer/double か、すべて string のいずれかです。そうでない場合、MoEngage は各要素を宣言された型に型変換しようとし、その結果を保存します。
+    * **配列の型変換**：配列 `["1", 2, "abc"]` が Array Double としてマッピングされている場合、`"abc"` は数値に変換できず破棄されるため、MoEngage は `[1, 2]` を取り込みます。
+
+    **例**
+
+    String 列、Array String 列、Array Double 列を含む JSON 行：
+
+    ```json
+    {"user_id": "u123","tags": ["premium", "beta_user", "newsletter"],"scores": [4.5, 3.8, 5.0],"subscriptions":[{"type":"email","status":"active"},{"type":"sms","status":"inactive"}]}
+    ```
+
+    * `tags` は **Array String** としてマッピングされ、MoEngage は `["premium", "beta_user", "newsletter"]` を取り込みます。
+    * `scores` は **Array Double** としてマッピングされ、MoEngage は `[4.5, 3.8, 5.0]` を取り込みます。
+    * `subscriptions` は **Array Object** としてマッピングされ、MoEngage は `[{"type":"email","status":"active"},{"type":"sms","status":"inactive"}]` を取り込みます。
+  </Tab>
+</Tabs>
 
 # 制限
 
@@ -162,20 +193,17 @@ MoEngage は、`<custom name>_<date time format>.<file extension>` に従うカ�
 
 | 制限 | 値 |
 | --- | --- |
-| ファイルサイズ | CSV/JSON ファイルあたり 500 MB 未満。これより大きいファイルは分割してください。 |
+| ファイルサイズ | <ul><li>ユーザーインポート：1 GB 未満</li><li>イベントインポート：500 MB 未満</li><li>補助データインポート：[補助データ](/ja/user-guide/data/imports/auxiliary-data#limits)を参照してください</li></ul> |
 | 行数 | 1 つの CSV または JSON ファイルは、1 時間あたりの行数制限までサポートします。1 時間あたりの行数制限を超えるファイルは拒否されます。 |
 | 列/属性 | ユーザーは 100 列、イベントはイベントあたり 100 列。 |
 | ファイル名のプレフィックス | 最大 100 文字。 |
 | ファイル数 | インポート実行あたり最大 250 ファイル。 |
 
-**レート制限**（デフォルト値。引き上げについては MoEngage にお問い合わせください）：
+<Note>
+PGP で暗号化されたファイルの場合、MoEngage はまずファイルを復号してからサイズを確認します。復号後のファイルは、ユーザーインポートの場合は 1 GB 未満、イベントインポートの場合は 500 MB 未満である必要があります。
+</Note>
 
-| インポートの種類 | 1 時間あたり | 1 日あたり |
-| --- | --- | --- |
-| ユーザー | 600K/時 | 14M/日 |
-| イベント | 5M/時 | 40M/日 |
-
-1 時間あたりのレートは 1 時間に取り込まれる最大数、1 日あたりのレートは 1 日の合計上限です。レート制限を超えると、Data Imports ダッシュボードに _Rate limit breached_ アラートが表示されます。
+<FileImportLimits />
 
 <Tip>
   非常に多数のファイルを同時にスケジュールすることは避けてください。個々のファイルが小さくても、処理のバックログが発生し、取り込みが遅れる可能性があります。多数のファイルをまとめてキューに入れるのではなく、スケジュールされたインポートを時間をずらすか、バッチに分けて実行してください。
@@ -303,7 +331,9 @@ MoEngage がファイルを取得できない場合、以下のメッセージ�
 
 ### インポートの動作
 
-ユーザーインポートの場合、**Import Behaviour** で **Update existing users only** を選択すると、MoEngage にすでに存在するユーザーの属性を一括更新できます。このインポートでは MoEngage は新しいユーザーを作成せず、識別子が MoEngage にまだ存在しない行は無視されます。
+ユーザーインポートの場合、**Import Behaviour** で **Skip new users during this import** を選択すると、MoEngage にすでに存在するユーザーの属性を一括更新できます。このインポートでは MoEngage は新しいユーザーを作成せず、識別子が MoEngage にまだ存在しない行は無視されます。
+
+イベントインポートの場合、**Skip duplicate rows** を選択すると、選択した列で重複排除を行います。MoEngage はその列に重複する値を持つ行をスキップし、最初に出現した行のみを取り込みます。このオプションを選択しない場合、MoEngage は重複を含むすべての行を取り込みます。
 
 ### インポート通知を送信する
 
@@ -349,6 +379,68 @@ MoEngage は、失敗したファイルを最大 30 回まで自動的に再試�
 これらは、マッピングファイルの `datetime_format` フィールドで使用するか、マッピング時に DateTime 列を構成する際に使用します。
 
 <DatetimeFormats />
+
+# 実行履歴
+
+インポート詳細ページの **Run history** には、インポートのすべての実行が一覧表示されます。これにより、各実行がスケジュールされた日時、完了した日時、所要時間、および実行内の各ファイルの処理結果を確認できます。1 回限りのインポートには 1 行が表示されます。定期インポートには、スケジュールされた実行ごとに 1 行が表示されます。**Run history** には過去 2 か月間の実行が表示されます。
+
+**Run history** を開くには、次の手順を実行します。
+
+1. Data imports ページで、対象のインポートの **Actions** の下にあるケバブメニューをクリックします。
+2. **View** をクリックします。
+
+![Data imports ページの Actions 列でメニューが開き、View オプションがハイライトされている画面](/images/import-actions-view.png)
+
+![インポート詳細ページの Run history。実行ごとに 1 行が表示され、View files アクションがある画面](/images/import-run-history.png)
+
+MoEngage は **Run history** をスケジュール時刻で並べ替え、最新の実行を先頭に表示します。各行は 1 回の実行を表し、次の列が表示されます。
+
+| 列 | 説明 |
+| --- | --- |
+| Scheduled at | 実行がスケジュールされた日時。 |
+| Completed at | 実行が完了した日時。実行が完了するまでは `--` と表示されます。値にカーソルを合わせると、開始時刻、完了時刻、実行の合計所要時間が表示されます。 |
+| Status | 実行のステータス。MoEngage がステータスを決定する方法については、[インポートステータス](/ja/user-guide/data/imports/overview-imports#import-statuses)を参照してください。 |
+| Files processed | その実行で処理されたファイル数と、実行内のファイル数。 |
+| Total rows | 実行内のファイル全体で検出された行数。 |
+| Rows processed | 実行全体で MoEngage が処理した行数。ユーザーインポートのみ。 |
+| Rows failed | 失敗した行数。ユーザーインポートのみ。 |
+| Events added | MoEngage が追加したイベント数。イベントインポートのみ。 |
+| Events failed | 失敗したイベント数。イベントインポートのみ。 |
+| Auxiliary data added | MoEngage が追加した補助データレコード数。補助データインポートのみ。 |
+| Auxiliary data failed | 失敗した補助データレコード数。補助データインポートのみ。 |
+| Rows skipped | MoEngage がスキップした行数。イベントインポートおよび補助データインポート。 |
+| Actions | その実行のファイル内訳を開きます。 |
+
+MoEngage は実行が完了した後にのみこれらの統計情報を入力するため、処理中の実行には件数が表示されません。リストを絞り込むには、**Select status** から値を選択するか、**Select scheduled date** から期間を選択します。
+
+## 実行内のファイルを表示する
+
+ファイル内訳には実行内の各ファイルが個別に表示されるため、失敗したファイルや実行を遅延させたファイルを特定できます。
+
+内訳を開くには、次の手順を実行します。
+
+1. インポート詳細ページで、確認したい実行を見つけます。
+2. **View files** をクリックします。
+
+![テーブル上部に実行の概要が表示され、各ファイルの行数、追加されたイベント、失敗したイベント、スキップされた行を示す View files スライドアウト](/images/import-run-file-breakdown.png)
+
+スライドアウト上部の概要には、実行のスケジュール時刻、開始時刻、完了時刻、ファイル数、ステータスが表示されます。その下のファイルは完了時刻で並べ替えられて最新のものが先頭に表示され、処理中のファイルはそれらの上に開始時刻順で表示されます。テーブルには、各ファイルについて次の情報が表示されます。
+
+| 列 | 説明 |
+| --- | --- |
+| File name | ファイルの名前。 |
+| Completed at | ファイルの処理が完了した日時。値にカーソルを合わせると、開始時刻とファイルの合計所要時間が表示されます。 |
+| Status | Pending、Processing、Successful、Partial Success、または Failed。 |
+| Rows in file | ファイル内の行数。 |
+| Rows processed | MoEngage がファイルから処理した行数。ユーザーインポートのみ。 |
+| Rows failed | 失敗した行数。ユーザーインポートのみ。 |
+| Events added | MoEngage がファイルから追加したイベント数。イベントインポートのみ。 |
+| Events failed | 失敗したイベント数。イベントインポートのみ。 |
+| Auxiliary data added | MoEngage がファイルから追加した補助データレコード数。補助データインポートのみ。 |
+| Auxiliary data failed | 失敗した補助データレコード数。補助データインポートのみ。 |
+| Rows skipped | MoEngage がスキップした行数。イベントインポートおよび補助データインポート。 |
+| Actions | ファイルをダウンロードします。失敗したファイルまたは一部成功したファイルについては、エラーレポートもダウンロードできます。ワークスペースで PII フラグがオンになっている間はファイルをダウンロードできませんが、エラーレポートは引き続き利用できます。 |
+
 
 # インポートを管理する
 

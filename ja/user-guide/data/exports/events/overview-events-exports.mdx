@@ -1,0 +1,76 @@
+---
+title: "概要 - イベントエクスポート"
+description: "MoEngage のイベントエクスポートを始めましょう。エクスポート先と配信頻度を比較し、データウェアハウス、クラウドストレージ、または API エンドポイントとの連携を設定します。"
+keywords: "event exports, streams, data warehouse, cloud storage, Snowflake, BigQuery, Redshift, Databricks, S3, GCS, SFTP"
+---
+
+## はじめに
+
+MoEngage のイベントエクスポートを使用すると、ユーザーアクションやキャンペーンのインタラクションイベントなど、MoEngage が受信または生成するイベントを MoEngage 外部のエクスポート先に転送できます。このページでは、ユースケースに適したエクスポート先を選択する方法について説明します。エクスポート先を選択したら、その専用のヘルプドキュメントで設定手順を確認してください。
+
+<Info>
+  イベントエクスポートは Streams アドオンの一部です。アカウントで有効にするには、MoEngage のカスタマーサクセスマネージャー（CSM）にお問い合わせください。
+</Info>
+
+## エクスポート先を選択する
+
+MoEngage は、次の 3 つのカテゴリのエクスポート先をサポートしています。
+
+| カテゴリ | エクスポート先 | 配信 |
+| --- | --- | --- |
+| API | Streams | ほぼリアルタイム、イベントごと |
+| データウェアハウス | Snowflake、Google BigQuery、Amazon Redshift、Databricks | 1 時間ごと |
+| クラウドストレージ | Amazon S3、Google Cloud Storage、SFTP | 15 分ごと、毎日、または毎週（Amazon S3 および SFTP）、1 時間ごと（Google Cloud Storage） |
+
+ご利用の環境に合ったエクスポート先を選択してください。
+
+<CardGroup cols={2}>
+  <Card title="Streams" href="/ja/api/data/moengage-streams" icon="webhook">
+    Bulk API 呼び出しを使用して、イベントをほぼリアルタイムで独自の API エンドポイントに転送します。
+  </Card>
+  <Card title="Snowflake" href="/ja/user-guide/data/exports/events/data-warehouse/snowflake-exports" icon="database">
+    イベントを Snowflake テーブルに直接エクスポートします。
+  </Card>
+  <Card title="Databricks" href="/ja/user-guide/data/exports/events/data-warehouse/databricks-exports" icon="database">
+    直接エクスポートまたは OpenSharing（ゼロコピー共有）を通じて、イベントを Databricks にエクスポートします。
+  </Card>
+  <Card title="Google BigQuery" href="/ja/user-guide/data/exports/events/data-warehouse/bigquery-exports" icon="database">
+    中間の Google Cloud Storage を経由せずに、イベントを BigQuery に直接エクスポートします。
+  </Card>
+  <Card title="Amazon Redshift" href="/ja/user-guide/data/exports/events/data-warehouse/redshift-exports" icon="database">
+    イベントを Amazon Redshift クラスターに直接エクスポートします。
+  </Card>
+  <Card title="Amazon S3" href="/ja/user-guide/data/exports/events/data-warehouse/s3-exports" icon="folder">
+    選択したスケジュールで、イベントを JSON ファイルとして S3 バケットにエクスポートします。
+  </Card>
+  <Card title="SFTP" href="/ja/user-guide/data/exports/events/data-warehouse/sftp-exports" icon="folder">
+    選択したスケジュールで、イベントを JSON ファイルとして独自の SFTP サーバーにエクスポートします。
+  </Card>
+  <Card title="Google Cloud Storage" href="/ja/user-guide/data/exports/events/data-warehouse/google-cloud-storage-gcs-exports" icon="folder">
+    選択したスケジュールで、イベントを JSON ファイルとして GCS バケットにエクスポートします。
+  </Card>
+</CardGroup>
+
+## エクスポートの仕組み
+
+以下の仕組みは、データウェアハウスとクラウドストレージのエクスポート先に共通です。Streams はスケジュールされたエクスポートではなく直接の API 呼び出しであるため、このフローには従いません。
+
+すべてのエクスポートは **App Marketplace** で設定および管理します。エクスポート先を検索してそのタイルを開き、**Integrate** タブに移動してエクスポートを追加または管理します。
+
+### エクスポートの失敗、一時停止、リプレイ
+
+MoEngage は、エクスポートを失敗としてマークする前に複数回再試行します。スケジュールされたエクスポートが複数回失敗すると、エクスポートは一時停止されます。一時停止中、MoEngage はエクスポートで配信されるはずだったイベントを保存します。問題を修正してエクスポートを再度有効にした後、収集されたデータをリプレイできます。
+
+- エクスポートが一時停止している間、MoEngage は収集されたデータを最大 7 日分保持します。一時停止がそれより長く続く場合は、最も古い日のデータから破棄されます。
+- 収集されたデータは、一時停止中の最も古いデータが収集された日から最大 30 日間リプレイできます。複数回の一時停止がある場合は 7 日間の保持期間によってこの期間が短くなることがあるため、すべての日を常にリプレイできるとは限りません。具体例については、各エクスポート先のページにある失敗時のポリシーのセクションを参照してください。
+- リプレイでは収集されたデータ全体が再送信されるため、複数回リプレイする場合は、お客様側で `event_uuid` フィールドに基づいて重複を排除してください。
+
+MoEngage がエクスポートを一時停止するまでに失敗する必要があるスケジュール済みエクスポートの正確な回数は、その頻度によって異なります（たとえば、1 時間ごとのデータウェアハウスエクスポートはスケジュール済みエクスポートが 3 回連続で失敗すると一時停止し、毎日または毎週のクラウドストレージエクスポートは 1 回失敗すると一時停止します）。具体的なしきい値とリプレイの手順については、各エクスポート先のページにある失敗時のポリシーのセクションを参照してください。
+
+MoEngage はエクスポートを一時停止すると、**Data Exports** システムアラートで通知します。これにより、問題を修正してデータをリプレイできます。デフォルトでは、ワークスペースの管理者と、エクスポートを作成または更新したユーザーが登録されます。このアラートを受信する他のユーザーを管理するには、[アラート管理](/ja/user-guide/settings/reports-and-alerts/alert-management/getting-started/overview-alert-management)を参照してください。
+
+## 関連情報
+
+各エクスポート先にエクスポートされるイベントと属性の完全なスキーマについては、[データエクスポート用語集](/ja/user-guide/data/exports/events/data-export-glossary)を参照してください。
+
+月間使用量に対してエクスポートしているデータ量を追跡するには、[データエクスポートの量を分析する](/ja/user-guide/data/exports/events/analyze-the-volume-of-data-exports)を参照してください。

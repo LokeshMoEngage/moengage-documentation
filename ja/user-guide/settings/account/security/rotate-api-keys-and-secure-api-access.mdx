@@ -1,0 +1,205 @@
+---
+title: "セキュリティアドバイザリー - API キーのローテーションと API アクセスの保護"
+description: "インテグレーションで使用している API キーをローテーションし、API Firewall を使用して API アクセスを信頼できる IP アドレスに制限します。"
+keywords: ["rotate API keys", "regenerate API key", "API Firewall", "security advisory", "API key security"]
+---
+
+API キーの漏洩に起因するサイバー攻撃が業界全体で増加していることを受け、MoEngage はすべてのお客様に対して、サーバー間連携で使用している API キーをローテーションし、API アクセスを信頼できる IP アドレスに制限することを推奨します。ほとんどのお客様は長期間有効な API キーを使用しているため、この対応を強く推奨するとともに、API キーを定期的にローテーションすることもお勧めします。
+
+このガイドでは、影響を最小限に抑えながら各種類のキーをローテーションする方法と、API Firewall を使用して IP ベースの保護策を追加する方法について説明します。
+
+<Info>
+  これは予防的なガイダンスです。引き続き調査を進めており、さらなる更新情報を共有する予定です。
+
+  ワークスペースで想定外のキャンペーン、メッセージ、または API アクティビティに気付いた場合は、直ちに MoEngage のサポートおよびセキュリティチーム (Security@moengage.com) にお問い合わせください。
+</Info>
+
+## 適用されるローテーション方法
+
+MoEngage では、キーをローテーションする方法が 2 つあります。再生成では、キーがその場で置き換えられ、古いキーは直ちに機能しなくなります。新しいキーの作成では、古いキーを廃止する前に移行できるため、ダウンタイムが発生しません。
+
+| API またはインテグレーション | ローテーションするキー | 方法 | 古いキーへの影響 |
+| --- | --- | --- | --- |
+| Push API (V5) | API Keys ページ上の任意のキー | 新しいキーを作成して切り替えてから、古いキーをアーカイブします ([サポートされている API の新しいキーを作成する](#create-new-keys-for-supported-apis)) | アーカイブするまで機能し続けます |
+| Push API (v2.1 および v2、レガシー) | Push キー (レガシー) | キーを再生成します ([Push API キーと Campaigns API V1 キーを再生成する](#regenerate-your-push-api-and-campaigns-api-v1-keys)) | 直ちに機能しなくなります |
+| Campaigns API V1、Business Events、Custom Templates、Catalog API | Campaign report / Business events / Custom templates / Catalog API キー (レガシー) | キーを再生成します ([Push API キーと Campaigns API V1 キーを再生成する](#regenerate-your-push-api-and-campaigns-api-v1-keys)) | 直ちに機能しなくなります |
+| Data API、Segmentation API、Inform、Offerings、Decision Policy、Dashboard and Analyze、Personalize、Channel Configuration、および新しい Campaigns API | API Keys ページ上の任意のキー | 新しいキーを作成して切り替えてから、古いキーをアーカイブします ([サポートされている API の新しいキーを作成する](#create-new-keys-for-supported-apis)) | アーカイブするまで機能し続けます |
+
+インテグレーションがどのキーを使用しているかわからない場合は、MoEngage API を呼び出している各サーバー、スケジュールされたジョブ、サードパーティツール、ベンダーを確認し、最初の列の API と照合してください。
+
+## 始める前に
+
+- 各キーを使用しているすべてのシステム (バックエンドサービス、スケジュールされたジョブ、CI/CD 変数、データパイプライン、パートナーおよびベンダーのツール、保存済みの Postman コレクション) を一覧にします。
+- Workspace ID を手元に用意しておきます。キーをローテーションしても Workspace ID は変わりません。
+- 新しいキーは、ソースコード、チケット、チャット、メールではなく、シークレットマネージャーまたは暗号化された設定に保存します。
+- 再生成するキーについては、短い変更時間枠をスケジュールし、設定の更新をデプロイできるよう準備しておきます。再生成した時点で、古いキーを使用した呼び出しは失敗します。
+- **Settings** > **Account** > **API keys** を開けることを確認します。開けない場合は、ワークスペースの管理者に依頼してください。
+
+## Push API キーと Campaigns API V1 キーを再生成する
+
+<Warning>
+  古いキーは、再生成した直後に失効します。インテグレーションでキーを置き換えるまで、古いキーを使用しているリクエストは `401` エラーを返します。
+</Warning>
+
+1. MoEngage ダッシュボードで、**Settings** > **Account** > **API keys** に移動します。以前のページが表示されるワークスペースでは、**Settings** > **Account** > **APIs** に移動します。
+2. ローテーションするキーを見つけます。Push API は **Push** キーを使用します。Campaigns API V1、Business Events、Custom Templates、Catalog API は **Campaign report / Business events / Custom templates / Catalog API** キーを使用します。レガシーキーは、認証タイプ **Basic Auth (Legacy)** と表示されます。
+3. キーのアクションメニューを開き、**Regenerate key** を選択します。以前のページでは、代わりにキーの横にある **Regenerate** アイコンを選択します。
+4. 操作を確定します。
+5. 新しいキーをすぐにコピーし、シークレットマネージャーに保存します。
+6. [始める前に](#before-you-begin)で一覧にしたすべてのシステムでキーを更新し、デプロイします。
+7. Push API の場合は、Push API リファレンスの説明に従って、新しいキーを使用して `X-MOE-PushAPI-Signature` ヘッダーを再計算します。`X-MOE-APPKEY` ヘッダーには引き続き Workspace ID を指定します。
+8. 各 API にテストリクエストを送信し、成功レスポンスが返されることを確認します。`401` レスポンスは、リクエストがまだ古いキーを使用していることを意味します。
+
+キーは必要に応じて何度でも再生成できます。レガシーキーに再生成オプションが表示されない場合は、ダッシュボードからチケットを作成して MoEngage サポートにお問い合わせください。
+
+## サポートされている API の新しいキーを作成する
+
+以下の API グループでは、新しいキーを作成できます。この方法では、インテグレーションを新しいキーに移行している間も既存のキーが機能し続けるため、ダウンタイムは発生しません。
+
+| API グループ | サポートされている認証タイプ |
+| --- | --- |
+| Data APIs | Basic Auth、OAuth 2.0、AWS STS Auth |
+| Segmentation APIs | Basic Auth |
+| Campaigns | Basic Auth、OAuth 2.0 |
+| Inform | Basic Auth |
+| Offerings | Basic Auth、OAuth 2.0 |
+| Decision Policy | Basic Auth、OAuth 2.0 |
+| Dashboard and Analyze | Basic Auth、OAuth 2.0 |
+| Channel Configuration | Basic Auth、OAuth 2.0、AWS STS Auth |
+| Personalize | Basic Auth、OAuth 2.0、AWS STS Auth |
+
+<Note>
+  **Create new key** が表示されない場合は、アカウントで有効にするよう MoEngage サポートに依頼してください。
+</Note>
+
+1. **Settings** > **Account** > **API keys** に移動し、**+ Create new key** を選択します。
+2. 最大 100 文字の一意の **Key name** を入力します。アーカイブされたキーは名前を保持するため、名前を再利用することはできません。
+3. **Authentication type** を選択します。キーの作成後は変更できません。
+   - **Basic Auth:** サーバー間呼び出し用の API キーとシークレットです。
+   - **OAuth 2.0:** 有効期限が 5 ～ 60 分 (デフォルトは 15 分) の短期間有効なアクセストークンです。盗まれたトークンはすぐに機能しなくなります。
+   - **AWS STS Auth:** 指定した AWS の引き受けロール ARN (キーごとに最大 10 個) のみを認可します。ワークロードがすでに AWS IAM ロールで実行されている場合に使用します。
+4. **Select APIs for access** で、そのインテグレーションに必要な API グループと個々の API のみを選択します。
+5. **Create key** を選択し、キーをコピーして安全に保存します。
+6. 新しいキーをインテグレーションにデプロイし、リクエストが成功することを確認します。
+7. **API Keys** ページに戻り、古いキーのアクションメニューを開いて **Archive key** を選択します。
+
+<Note>
+  アーカイブされたキーはアーカイブ解除できません。また、MoEngage はアーカイブ済みリストに最大 10 個のアーカイブ済みキーを保持します。古いキーは、すべてのインテグレーションが移行した後にのみアーカイブしてください。レガシーキーはアーカイブできないため、[Push API キーと Campaigns API V1 キーを再生成する](#regenerate-your-push-api-and-campaigns-api-v1-keys)の手順でローテーションしてください。
+</Note>
+
+社内の各チームや各ベンダーには、それぞれが使用する API にスコープを限定した個別のキーを発行してください。1 つのキーが漏洩した場合でも、他のユーザーに影響を与えることなく、そのキーを再生成またはアーカイブできます。
+
+## API Firewall で IP による保護を追加する
+
+キーをローテーションすることで、漏洩したキーが悪用可能な期間を制限できます。API Firewall は 2 つ目の制御を追加します。有効なキーを使用していても、許可リストにない IP アドレスからのリクエストには `403` レスポンスが返されます。
+
+<Note>
+  **Settings** > **Account** > **Security** に **API firewall** タブが表示されない場合は、ワークスペースで API Firewall を有効にするよう MoEngage サポートに依頼してください。
+</Note>
+
+### Firewall の対象範囲
+
+ルールは、**Data**、**Segmentation**、**Campaigns**、**Partner Integration**、**Content** の 5 つの API カテゴリに適用されます。すべてのルールは少なくとも 1 つのカテゴリを対象にする必要があります。適用はカテゴリ単位で行われるため、ルールを公開しても、保護されるのはそのルールが対象とするカテゴリのみです。
+
+<Warning>
+  レガシーの Push API は API Firewall でサポートされておらず、IP ルールは適用されません。レガシーの Push API に対する主な保護策は、Push キーの再生成です。API Firewall は Inform API をサポートしていますが、適用除外となっている一部のアカウントは例外です。ご自身のアカウントが適用除外の対象と思われる場合は、MoEngage のカスタマーサクセスマネージャー (CSM) またはサポートチームにお問い合わせください。Inform API キーをローテーションするには、新しいキーを作成して古いキーをアーカイブします。また、Firewall はモバイルアプリやウェブサイトの SDK からのトラフィックには影響しません。
+</Warning>
+
+### ルールの設定と公開
+
+<Info>
+  Firewall ルールを追加するには、MoEngage ワークスペースの Admin である必要があります。まず、DevOps チームまたはセキュリティチームから、サーバーで使用されている静的 IP アドレスと CIDR ブロックの完全なリストを入手してください。
+</Info>
+
+1. **Settings** > **Account** > **Security** に移動し、**API firewall** タブを開きます。
+2. **Enable API Firewall** を選択します。
+3. わかりやすい **Rule name** (例: "AWS production servers") を入力します。
+4. **Whitelist categories** で、ルールが対象とするすべてのカテゴリを選択します。
+5. **Condition** (単一の IPv4、単一の IPv6、IPv4 CIDR 範囲、IPv6 CIDR 範囲、または IPv4 範囲) を選択し、**Value** を入力します。
+6. **Add rule** を選択します。新しいルールは **Unpublished** として保存され、まだ適用されません。
+7. ステージング、バッチジョブ、MoEngage を呼び出すベンダーシステムを含め、すべてのサーバー IP について繰り返します。
+8. すべてのルールを選択して **Publish** を選択し、確定します。適用は約 15 分以内に開始されます。
+
+<Warning>
+  あるカテゴリに対して最初のルールを公開すると、そのカテゴリの公開済みルールに含まれていない IP アドレスからのリクエストはすべて拒否されます。自社のシステムがブロックされないよう、まずすべてのルールを未公開の状態で追加し、まとめて公開してください。
+</Warning>
+
+詳細なリファレンスについては、[API Firewall](/ja/user-guide/settings/account/security/api-firewall) を参照してください。
+
+### Firewall を通過するようにパートナー連携を許可する
+
+MoEngage API を呼び出すのは自社のサーバーだけではありません。一部のパートナー連携は、パートナーのインフラストラクチャから MoEngage に直接リクエストを送信するため、Firewall はそれらを他の呼び出し元と同様に扱います。カテゴリのルールを公開する前に、使用しているパートナーについて次の表を確認してください。パートナーがそのカテゴリで IP ホワイトリスト登録を必要とする場合は、パートナーの IP 範囲を取得してルールに追加してください。追加しない場合、MoEngage はパートナーのリクエストを `403` レスポンスで拒否します。
+
+| パートナー名 | IP ホワイトリスト登録は必要か | スコープ | 必要なアクション |
+| --- | --- | --- | --- |
+| [Salesforce Sales CRM](/ja/partner-guide/data-and-analytics/crm/salesforce-crm-native/overview) | はい | Data | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [Hightouch](/ja/partner-guide/data-and-analytics/cdps/hightouch) | はい | Data | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [RudderStack](/ja/partner-guide/data-and-analytics/cdps/rudderstack/moengage-destination) | はい | Data | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [Salla](/ja/partner-guide/commerce-and-loyalty/e-commerce/salla) | はい | Data | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [Zapier](/ja/partner-guide/data-and-analytics/workflow-automation/zapier/overview) | はい | Data | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [Amplitude (イベント同期)](/ja/partner-guide/data-and-analytics/analytics/amplitude/amplitude-event-streaming) | はい | Data | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [AppsFlyer Audiences](/ja/partner-guide/data-and-analytics/install-attribution/appsflyer/appsflyer-audience) | はい | Data | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [Microsoft Dynamics 365](/ja/partner-guide/data-and-analytics/crm/microsoft-dynamics-365-sales/microsoft-dynamics-365-sales) | はい | Data | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [Mixpanel](/ja/partner-guide/data-and-analytics/analytics/mixpanel) | はい | Cohort APIs | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [Amplitude](/ja/partner-guide/data-and-analytics/analytics/amplitude/amplitude-audiences) | はい | Cohort APIs | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [Salesforce Marketing Cloud](/ja/partner-guide/message-orchestration/marketing-cloud/salesforce-marketing-cloud-sfmc/overview) | はい | Data, Campaigns | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [AEM](/ja/partner-guide/personalize-and-optimize/dynamic-content/adobe-experience-manager/syncing-experience-fragments-as-content-blocks) | はい | Content | パートナーの IP 範囲を取得し、ホワイトリストに追加 |
+| [Segment](/ja/partner-guide/data-and-analytics/cdps/twillio-segment/getting-started/overview) | いいえ | – | – |
+| [mParticle](/ja/partner-guide/data-and-analytics/cdps/mparticle/getting-started/overview) | いいえ | – | – |
+| [Adobe RT CDP](/ja/partner-guide/data-and-analytics/cdps/adobe-real-time-cdp/overview) | いいえ | – | – |
+| Connected sources (Punchh、RevenueCat、Unbounce など) | いいえ | – | – |
+
+<Note>
+  Connected Segments (旧称 Outbound Segment Sync)、Streams、または Connector Campaigns を使用して MoEngage ワークスペースにデータを送信する場合は、MoEngage の IP アドレスをそのワークスペースのルールに追加してください。IP アドレスの一覧については、[MoEngage の IP ホワイトリスト](/ja/user-guide/settings/account/security/ip-whitelisting-in-moengage)を参照してください。
+</Note>
+
+### Firewall のヒント
+
+- ルールで指定できるのは IP アドレスと CIDR 範囲のみです。ワイルドカードとドメイン名はサポートされていません。
+- ルールは編集、公開取り消し、削除ができます。編集したルールは、再度公開するまで **Unpublished** に戻ります。
+- Firewall で内部障害が発生した場合は、正当なトラフィックが引き続き流れるようにフェイルオープンします。
+- ルールの変更は、変更ごとのユーザー、時刻、IP アドレスとともに Audit Logs に記録されます。
+
+## 検証と監視
+
+- すべてのインテグレーションが新しいキーで成功レスポンスを返し、古いキーを送信しているものが残っていないことを確認します。
+- [Audit Logs](/ja/user-guide/settings/account/audit-logs/audit-logs) を確認して、各キーを誰がいつ作成、再生成、またはアーカイブしたかを確認します。
+- Wiki、チケット、チャットメッセージ、コードリポジトリから、古いキーの保存済みコピーを削除します。
+- 定期的なスケジュールで、またキーにアクセスできる人がチームやベンダーから離れるたびに、ローテーションを繰り返します。
+
+| レスポンス | 考えられる原因 | 対処方法 |
+| --- | --- | --- |
+| `401 Unauthorized` | リクエストがまだ古いキー、再生成されたキー、またはアーカイブされたキーを使用しているか、認証情報が正しくエンコードされていません。 | インテグレーションでキーを置き換えます。Basic Auth の場合、`Authorization` ヘッダーは `workspace_id:api_key` を Base64 エンコードしたものです。 |
+| `403 Forbidden` | リクエストが、そのカテゴリの公開済み API Firewall ルールに含まれていない IP アドレスから送信されました。 | サーバーの IP アドレスをそのカテゴリのルールに追加して公開します。 |
+
+## FAQ
+
+<AccordionGroup>
+
+<Accordion title="キーをローテーションすると Workspace ID は変わりますか？">
+  いいえ。変わるのはキーのみです。
+</Accordion>
+
+<Accordion title="再生成後に古いキーと新しいキーを併用できますか？">
+  いいえ。再生成すると、古いキーは直ちに無効になります。古いキーと新しいキーを並行して使用するには、[サポートされている API の新しいキーを作成する](#create-new-keys-for-supported-apis)の説明に従って新しいキーを作成してください。
+</Accordion>
+
+<Accordion title="アーカイブしたキーを復元できますか？">
+  いいえ。アーカイブされたキーはアーカイブ解除できません。代わりに新しいキーを作成してください。
+</Accordion>
+
+<Accordion title="すでにキーをローテーションした場合でも Firewall を使用すべきですか？">
+  はい。この 2 つの制御は異なるリスクから保護します。ローテーションは漏洩した可能性のある認証情報を置き換え、Firewall は後から有効なキーが漏洩した場合でも、不明な IP アドレスからのリクエストをブロックします。
+</Accordion>
+
+<Accordion title="サポートが必要な場合は誰に連絡すればよいですか？">
+  カスタマーサクセスマネージャーに連絡するか、ダッシュボードから MoEngage サポートにチケットを作成してください。
+</Accordion>
+
+</AccordionGroup>
+
+## 関連ドキュメント
+
+- [API Key Dashboard](/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard)
+- [API Firewall](/ja/user-guide/settings/account/security/api-firewall)
+- [セキュリティのベストプラクティス](/ja/user-guide/settings/account/security/security-best-practices)

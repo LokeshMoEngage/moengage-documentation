@@ -1,7 +1,7 @@
 ---
 title: "ユーザーリーチャビリティ"
 description: "MoEngage における Push、Email、SMS、WhatsApp チャネル全体のユーザーリーチャビリティの概要と、各モジュールでのリーチの算出方法について説明します。"
-keywords: ["reachability", "reachable users", "overall reachability", "reachability across channels", "reachability by channel", "segment reachability", "reachability higher than channel"]
+keywords: ["reachability", "reachable users", "overall reachability", "reachability across channels", "reachability by channel", "segment reachability", "reachability higher than channel", "reachability count mismatch", "reachable users differ", "segment count vs campaign count"]
 ---
 
 その名のとおり、リーチャビリティ (Reachability) とは、MoEngage 上の各コミュニケーションチャネルまたはプラットフォームを使用して連絡またはつながることができるユーザーの数を表します。
@@ -65,7 +65,7 @@ Push キャンペーンページで実行されたクエリには、Android、iO
 ### Email
 
 Email キャンペーンページで実行されたクエリには、Email リーチャビリティが表示されます。\
-リーチャビリティの算出には、キャンペーンページの **User attribute with email address** リストで指定された属性が Email キャンペーンで使用されます。
+リーチャビリティの算出には、キャンペーンページの **User property with email address** リストで指定された属性が Email キャンペーンで使用されます。
 
 ![Email.png](/images/moengage_021428.png)
 
@@ -75,7 +75,7 @@ Email キャンペーンページで実行されたクエリには、Email リ�
 
 SMS キャンペーンページで実行されたクエリには、SMS リーチャビリティが表示されます。
 
-リーチャビリティの算出には、キャンペーンページの **User attribute that stores user’s mobile numbers** リストで指定された属性が SMS キャンペーンで使用されます。
+リーチャビリティの算出には、キャンペーンページの **User property that stores user’s mobile numbers** リストで指定された属性が SMS キャンペーンで使用されます。
 
 ![SMS.png](/images/moengage_f3ece5.png)
 
@@ -102,6 +102,31 @@ WhatsApp キャンペーンページで実行されたクエリには、WhatsApp
 | Email アドレスの検証 | Email アドレスが存在し、Hard Bounce、Spam、Unsubscribe の各ユーザープロパティが false であることをチェックします。 | 同じチェックを実行し、さらに Email アドレスに `@` 記号が含まれていることを確認します。 |
 | ソース属性 | **Settings** \> **Channels** で設定された Email および携帯電話番号の属性を使用します。 | Email および SMS キャンペーンでは、キャンペーンページで選択された属性を使用します。これは異なる属性である場合があります。 |
 
+## ページ間でリーチ可能なユーザー数が異なる理由
+
+MoEngage ダッシュボードのいくつかのページには、リーチ可能数または送信数が表示されます。各ページがカウントする対象は異なるため、同じオーディエンスでも数値が一致するとは限りません。次の表に、各ページが測定する内容と、その数が他のページと異なる場合がある理由を示します。
+
+| ページ | カウントが測定する内容 | 異なる場合がある理由 |
+| --- | --- | --- |
+| **Create segment**（Reachability カード） | クエリを実行した時点で、各チャネルおよび少なくとも 1 つのチャネルでリーチ可能な、セグメント内のユニークユーザー。 | クエリを実行した時点の値を反映します。**Settings** \> **Channels** で設定された Email および携帯電話番号の属性を使用します。 |
+| **Custom segment** の詳細ページ | ページに表示されている最終更新時刻時点での、保存済みセグメント内のユニークユーザーとリーチ可能なユーザー。 | セグメントを再度実行するまで、最後に更新された値のままです。詳細については、[セグメントの管理](/ja/user-guide/segment/create-segments/manage-segments)を参照してください。 |
+| **Campaign** のオーディエンスステップ | キャンペーンのチャネルでリーチ可能な、ターゲットオーディエンス内のユニークユーザー。 | コントロールグループのユーザーを除外し、Email アドレスと携帯電話番号を検証し、キャンペーンページで選択された属性を使用します。詳細については、[セグメンテーションとキャンペーンのリーチャビリティの違い](#セグメンテーションとキャンペーンのリーチャビリティの違い)を参照してください。 |
+| **Campaign stats**（Sent） | 送信された通知。Push の場合、MoEngage はユーザーのすべてのアクティブなデバイストークンに送信します。 | 複数のデバイスを持つユーザーは各デバイスで Push を受信するため、リーチ可能なユーザー数より多くなる場合があります。詳細については、[Push キャンペーンの送信数がセグメントのリーチ可能なユーザー数より多いのはなぜですか？](/ja/user-guide/campaigns-and-channels/web-push/faqs-web-push/why-is-push-campaign-sent-count-greater-than-reachable-users-in-segment)を参照してください。 |
+| **Reachability dashboard** | 指定した期間における Android、iOS、Web の日次 Push リーチャビリティの推移。 | Push チャネルのみが対象です。**Push reachable users** はリーチャビリティコード 200 と 201 をカウントし、**Push eligible users** はオプトアウトしたユーザー（202）もカウントします。詳細については、[Reachability Dashboard](/ja/user-guide/analyze/dashboards/reachability) を参照してください。 |
+| **User Profile** | 各チャネルおよびプラットフォームにおける 1 人のユーザーのリーチャビリティ。 | 1 人のユーザーを表示するため、特定のユーザーが他の場所でカウントされる理由、またはカウントされない理由を確認する場合に使用します。 |
+
+### どの数値を使用するか
+
+| 目的 | 使用するもの |
+| --- | --- |
+| セグメント内で各チャネルでリーチできるユーザー数を見積もる | **Create segment** ページの Reachability カード。 |
+| 特定のキャンペーンがターゲットとするユーザー数を把握する | キャンペーンのオーディエンスステップに表示されるリーチ可能なユーザー数。 |
+| キャンペーンが送信した通知数を把握する | キャンペーン統計の **Sent** 数。 |
+| Push のオプトインとオプトアウトの推移を追跡する | [Reachability dashboard](/ja/user-guide/analyze/dashboards/reachability)。 |
+| 特定のユーザーがメッセージを受信しなかった理由を確認する | ユーザーの [User Profile](/ja/user-guide/data/user-data/user-profile) にあるリーチャビリティカード。 |
+
+リーチャビリティに関係しない、Analytics、Segmentation、キャンペーン統計、Flows 間の数値の違いについては、[Analytics、Segmentation、キャンペーン統計、Flows で数値が異なる場合](/ja/user-guide/analyze/analytics-how-to/different-count-in-analytics-segmentation-campaigns-stats-and-flows)を参照してください。
+
 ## Open Analytics
 
 リーチャビリティは、MoEngage ウェアハウスに存在するデータを使用して直接算出できます。Open Analytics を使用すると、リーチャビリティを算出し、それに関連する必要なデータを取得できます。[Open Analytics を使用したリーチャビリティについては、こちらをクリックしてください](/ja/user-guide/analyze/analytics-how-to/reachability-queries-for-open-analytics)。
@@ -120,13 +145,13 @@ Push リーチャビリティは、以下のパラメーターによって算出
 3. iOS と Android のそれぞれでのリーチャビリティについては、該当するプラットフォームのアクティブなデバイスが少なくとも 1 台存在し、そのデバイスにアプリがインストールされている必要があります。
 4. MoEngage は、サイレント Push（設定が ON の場合に定期的に実行）または Push 通知からのフィードバックに基づいて、ユーザーのリーチャビリティも更新します。
 
-上記のパラメーターに基づいて、システムはすべてのプラットフォームのリーチャビリティコードを生成します。リーチャビリティコードは、ユーザー属性 '_Reachability Push Android_'、'_Reachability Push iOS_'、'_Reachability Push Web_' に保存されます。これらの属性の値（リーチャビリティコード）が 200 の場合、ユーザーは該当するプラットフォームでリーチ可能と見なされます。
+上記のパラメーターに基づいて、システムはすべてのプラットフォームのリーチャビリティコードを生成します。リーチャビリティコードは、ユーザープロパティ '_Reachability Push Android_'、'_Reachability Push iOS_'、'_Reachability Push Web_' に保存されます。これらの属性の値（リーチャビリティコード）が 200 の場合、ユーザーは該当するプラットフォームでリーチ可能と見なされます。
 
 ### ユーザーのオプトイン設定と Push リーチャビリティ
 
 iOS、Android（13 以降）、Web では、アプリのインストール時に Push 通知の送信について明示的にユーザーの許可が求められます。ユーザーは、デバイスのアプリ設定に移動して設定を選択することで、Push 通知の受信をオプトインまたはオプトアウトできます。
 
-以下の表は、MoEngage ダッシュボードのセグメンテーションセクションで確認できる、次のユーザー属性を使用して追跡されるリーチャビリティとオプトインの状態を示しています。
+以下の表は、MoEngage ダッシュボードのセグメンテーションセクションで確認できる、次のユーザープロパティを使用して追跡されるリーチャビリティとオプトインの状態を示しています。
 
 - Reachability Push Android
 - Reachability Push iOS

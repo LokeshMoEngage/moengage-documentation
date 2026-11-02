@@ -98,7 +98,34 @@ MoECoreHelper.INSTANCE.logoutUser(context);
 
 </CodeGroup>
 
+ログアウトすると、ユーザーの属性と ID がクリアされ、新しいセッションで新しい匿名ユーザーが開始されます。SDK はデバイス識別子とプッシュトークンを保持するため、ログアウトしてもデバイスのプッシュ登録は解除されません。
+
 アプリケーションがプッシュトークンを登録している場合は、ユーザーのログアウト後に新しいプッシュトークンを MoEngage SDK に渡す必要があります。プッシュトークンの受け渡しの詳細については、[Android SDK のプッシュ設定](/ja/developer-guide/android-sdk/push/basic/push-configuration)を参照してください。
+
+### ログアウトコールバック
+
+ログアウトの完了時にコールバックを受け取るには、[`OnLogoutCompleteListener`](https://moengage.github.io/android-api-reference/core/com.moengage.core.listeners/-on-logout-complete-listener/index.html) を実装し、[`MoECoreHelper.addLogoutCompleteListener()`](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-e-core-helper/add-logout-complete-listener.html) を使用して登録します。
+
+コールバックはメインスレッドで呼び出され、[`LogoutData`](https://moengage.github.io/android-api-reference/core/com.moengage.core.model/-logout-data/index.html) インスタンスを受け取ります。コールバックを取りこぼさないように、`Application` クラスの `onCreate()` でリスナーを登録してください。SDK はリスナーへの強参照を保持するため、`Activity` や `Fragment` に実装しないでください。実装すると、そのコンポーネントでメモリリークが発生します。コールバックの受信を停止するには、[`MoECoreHelper.removeLogoutListener()`](https://moengage.github.io/android-api-reference/core/com.moengage.core/-mo-e-core-helper/remove-logout-listener.html) を使用して同じリスナーインスタンスの登録を解除します。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+MoECoreHelper.addLogoutCompleteListener { logoutData ->
+    // Process your logout completion here, for example, identify the next user
+    // or navigate to the login screen.
+}
+```
+
+
+```java Java
+MoECoreHelper.INSTANCE.addLogoutCompleteListener(logoutData -> {
+    // Process your logout completion here, for example, identify the next user
+    // or navigate to the login screen.
+});
+```
+
+</CodeGroup>
 
 # ユーザー属性のトラッキング
 

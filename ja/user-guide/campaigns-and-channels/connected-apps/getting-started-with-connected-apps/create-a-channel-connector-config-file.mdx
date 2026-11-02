@@ -113,7 +113,7 @@ Config ファイルのファイル形式は次のとおりです。 kkk
 | `header` | いいえ | String | 任意の文字列 | UI の入力フィールドの上に表示されるセクション見出しです。キーと値のペアのセットなど、関連するフィールドをグループ化するために使用します。 |
 | `help_text` | いいえ | String | 任意の文字列 | 見出しの下に表示される短い説明で、ユーザーが入力すべき内容をガイドします。 |
 | `is_hidden` | いいえ | Boolean | `true` / `false` | `true` の場合、フィールドは UI から非表示になりますが、その値 (`default_value` を含む) は引き続きリクエストに渡されます。デフォルトは `false` です。 |
-| `default_value` | いいえ | Object / Array | タイプによって異なる | フィールドが最初に読み込まれたときにレンダリングされる事前入力値です。`key_value` タイプの場合、これはキーと値のオブジェクトの配列です。 |
+| `default_value` | いいえ | String | 任意の文字列 | フィールドが最初に読み込まれたときにレンダリングされる事前入力値です。 |
 
 ## 可視性スコープ
 
@@ -411,12 +411,7 @@ Hash Map を追加するには、次の構造に従います。
   "is_hidden": {{true or false}},
   "header": "Section heading shown above the field",
   "help_text": "Short instructions shown below the header",
-  "default_value": [
-    {
-      "key": "default_key_1",
-      "value": "default_value_1"
-    }
-  ]
+  "default_value": ""
 }
 ```
 
@@ -884,6 +879,44 @@ MoEngage は、キャンペーンが送信されるたびにアプリへの API 
 | `body_type` | はい | String | `JSON` | ペイロードの形式です。 |
 | `body` | はい | String | NIL | API リクエストのペイロードです。ここでは入力変数の参照がサポートされています。 |
 
+### バッチのサポート
+
+MoEngage はバッチ処理をサポートしており、1 つの API リクエストで複数のキャンペーンペイロードを送信して、呼び出しのオーバーヘッドを削減できます。
+
+バッチ処理を有効にするには、`request` オブジェクトに次のフィールドを追加します。
+
+| キー | 必須 | タイプ | 有効なオプション | 説明 |
+| --- | --- | --- | --- | --- |
+| `batching` | いいえ | Boolean | `true` / `false` | バッチ処理を有効にします。デフォルトは `false` です。 |
+| `batch_size` | 条件付き | Number | 正の整数 (例: `100`) | バッチあたりのユーザー数です。`batching` が `true` の場合は必須です。 |
+
+**バッチ処理に関する注意:** `batching: true` の場合は、`body` で `CampaignCreationFormList` を参照し、Jinja テンプレートを使用して反復処理します: `{% for item in CampaignCreationFormList %} ... {% endfor %}`。バッチ処理には、リクエストあたり最大 2,000 項目の制限があることに注意してください。
+
+<CodeGroup>
+
+```json Batching Example
+"request": {
+    "method": "POST",
+    "headers": {
+        "Content-Type": "application/json"
+    },
+    "url": "https://your-api-endpoint.com/batch",
+    "batching": true,
+    "batch_size": 100,
+    "body_type": "JSON",
+    "body": "[{% for item in CampaignCreationFormList %}{\"phone\":\"{{ item.mobile }}\",\"message\":\"{{ item.message }}\",\"email\":\"{{ item.email }}\"}{% if not loop.last %},{% endif %}{% endfor %}]"
+}
+```
+
+</CodeGroup>
+
+**重要なポイント:**
+- `batching: true` の場合、MoEngage はユーザーを `batch_size` 単位のチャンクにグループ化し、バッチごとに 1 つの API リクエストを送信します。
+- 現在のバッチ内のすべてのユーザーを参照するには、`CampaignCreationFormList` を使用します (これはリストオブジェクトです)。
+- `{% for item in CampaignCreationFormList %}` を使用した Jinja テンプレートで反復処理し、ペイロード配列を構築します。
+- バッチ処理を使用しない場合、MoEngage はユーザーごとに 1 回の API 呼び出しを行います。
+
+
 ## レスポンスの処理
 
 API リクエストを行った後、レスポンスの解釈方法を MoEngage に通知できます。また、成功や失敗などのすべてのレスポンスをカバーするように、リクエストに複数のレスポンスを追加することもできます。
@@ -1049,10 +1082,10 @@ API リクエストを行った後、レスポンスの解釈方法を MoEngage 
 | `event` | はい | Object | NIL | このアクションをトリガーしたイベントです。 |
 | `event.name` | はい | String | NIL | イベントの名前です。 |
 | `event.attributes` | はい | Object-Array | NIL | イベントの一部としての、属性のさまざまなキーと値のペアの配列です。 |
-| ` event.attributes[].key` | はい | String | NIL | イベント属性の名前です。属性の表示名を使用できます。 |
-| `event.attributes[].value` | はい | String | NIL | イベント属性の値です。ここでは入力変数の参照がサポートされています。 |
+| ` event.attributes[].key` | はい | String | NIL | イベントプロパティの名前です。属性の表示名を使用できます。 |
+| `event.attributes[].value` | はい | String | NIL | イベントプロパティの値です。ここでは入力変数の参照がサポートされています。 |
 
-MoEngage には、ユーザーのトラッキングを改善するために、次のデフォルトの標準イベント属性も含まれています。
+MoEngage には、ユーザーのトラッキングを改善するために、次のデフォルトの標準イベントプロパティも含まれています。
 
 | 属性名 | 説明 |
 | --- | --- |

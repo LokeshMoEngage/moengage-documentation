@@ -1,0 +1,202 @@
+---
+title: "レコメンデーション"
+description: "React Native アプリで MoEngage のレコメンデーションから推奨アイテムを取得し、独自の UI を構築します。"
+keywords: "react native recommendations, fetchRecommendations, ReactMoEngageRecommendations, react-native-moengage-recommendations, recommended items, recommendation id, item id, included fields, catalog"
+---
+
+import ReactNativeIosInstall from '/ja/snippets/react-native-ios-install.mdx';
+
+## 概要
+
+MoEngage React Native SDK は、MoEngage ダッシュボードで作成したレコメンデーションの推奨アイテムを取得し、キーと値のデータとしてアプリに返します。ユーザー ID、ネットワーク通信、キャッシュは内部で処理されます。
+
+<Tip>
+  **前提条件**
+
+  - ワークスペースでレコメンデーションが有効になっている必要があります。有効にするには、MoEngage のアカウントマネージャーにお問い合わせください。
+  - Recommendations プラグインに必要な `react-native-moengage` 13.1.0 以降を統合します。詳細については、[フレームワークの依存関係](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-installation/framework-dependency)を参照してください。
+  - MoEngage ダッシュボードでレコメンデーションを作成し、その Recommendation ID を把握している必要があります。詳細については、[レコメンデーション](/ja/user-guide/content/recommendations/getting-started/overview)を参照してください。
+  - アプリケーションでコアの MoEngage SDK を初期化している必要があります。詳細については、[React Native SDK の初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization)を参照してください。
+</Tip>
+
+## モジュールのインストール
+
+MoEngage Recommendations プラグインをプロジェクトに追加します。
+
+```shellscript Shell
+npm install react-native-moengage-recommendations
+```
+
+### iOS のインストール
+
+CocoaPods または Swift Package Manager（SPM）を使用して、`react-native-moengage-recommendations` プラグインの iOS 依存関係をインストールします。サポートされているパッケージとセットアップの詳細については、[iOS のインストール](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-installation/ios)を参照してください。
+
+<ReactNativeIosInstall />
+
+## 推奨アイテムの取得
+
+<Warning>
+  `fetchRecommendations()` を呼び出す前に、コアの MoEngage SDK を初期化してください。SDK が初期化されていない場合、Promise は `SDK_STATE` の理由で reject され、SDK はリクエストを送信しません。詳細については、[React Native SDK の初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization)を参照してください。
+</Warning>
+
+レコメンデーションのアイテムを取得するには、`ReactMoEngageRecommendations` インスタンスで `fetchRecommendations()` を呼び出します。MoEngage ダッシュボードで定義された、アイテムを取得するレコメンデーションの Recommendation ID を渡します。アンカーとなるアイテム ID と、各アイテムで返すカタログのフィールドを渡すこともできます。このメソッドは Promise を返します。
+
+<CodeGroup>
+
+```javascript React Native wrap
+import ReactMoEngageRecommendations, {
+  RecommendationsFailureReason,
+} from "react-native-moengage-recommendations";
+
+const recommendations = new ReactMoEngageRecommendations("YOUR_WORKSPACE_ID");
+
+recommendations
+  .fetchRecommendations("YOUR_RECOMMENDATION_ID", "YOUR_ITEM_ID", ["title", "price"])
+  .then((recommendedItems) => {
+    if (recommendedItems.items.length === 0) {
+      // No recommended items are available for this user. Show your empty state.
+    } else {
+      // Render the items.
+    }
+  })
+  .catch((failure) => {
+    switch (failure.failureReason) {
+      case RecommendationsFailureReason.NETWORK_ERROR:
+        // The device is offline. Retry when connectivity returns.
+        break;
+      default:
+        // Show your error state.
+        break;
+    }
+  });
+```
+
+</CodeGroup>
+
+<Info>
+  各 `ReactMoEngageRecommendations` インスタンスのスコープは、コンストラクターに渡したワークスペースに限定されます。アプリケーションで複数の MoEngage ワークスペースを使用する場合は、ワークスペースごとに 1 つのインスタンスを作成してください。
+</Info>
+
+### パラメーター
+
+| パラメーター | 型 | 必須 | 説明 |
+| --- | --- | --- | --- |
+| `recommendationId` | string | はい | MoEngage ダッシュボードで作成したレコメンデーションの ID。空白にはできません。 |
+| `itemId` | string | いいえ | レコメンデーションを取得する対象のアイテムの ID（例：`shirts`）。空白の場合は無視されます。デフォルトは空の文字列です。 |
+| `includedFields` | Array\<string\> | いいえ | コアフィールドに加えて各アイテムで返すカタログ属性（例：`size`、`color`）。空の場合は無視され、重複する値は除外されます。デフォルトは空の配列です。 |
+
+### 結果の処理
+
+Promise は `RecommendedItems` オブジェクトで resolve されます。その `items` プロパティは、評価の高い順に並べられたオブジェクトのリストで、各オブジェクトはカタログ属性名をキーとする 1 つの推奨アイテムです。空のリストも成功した結果であり、ユーザーに対して利用可能な推奨アイテムがないことを意味します。
+
+SDK は [カタログ](/ja/user-guide/content/recommendations/getting-started/catalogs) のキーと値の型を変更せずにそのまま渡します。そのため、キーは `product_id` や `image_link` などの `snake_case` であり、値はカタログによって異なります。各値の型は `unknown` であるため、使用する前に型を絞り込んでください。
+
+<CodeGroup>
+
+```javascript React Native wrap
+const products = recommendedItems.items.map((item) => ({
+  id: typeof item.product_id === "string" ? item.product_id : "",
+  price: typeof item.price === "number" ? item.price : 0,
+}));
+```
+
+</CodeGroup>
+
+レコメンデーションが何も返さない場合にデフォルトのアイテムセットを提供するには、レコメンデーションで [フォールバックアイテム](/ja/user-guide/content/recommendations/getting-started/fallback-items) を設定します。SDK は、それらのアイテムを resolve された結果の同じ `items` リストで返します。フォールバックアイテムは、推奨アイテムがない成功した取得に適用されます。取得が失敗した場合には適用されません。
+
+### 失敗の処理
+
+Promise は `RecommendationsFailure` オブジェクトで reject されます。その `failureReason` プロパティを使用して失敗を特定します。`message` プロパティにはログ記録専用の詳細が含まれ、空の場合もあります。失敗時、SDK はキャッシュに何も書き込まず、キャッシュ済みのアイテムも変更しません。
+
+`failureReason` は `RecommendationsFailureReason` であり、レコメンデーション固有の理由と、すべての MoEngage SDK リクエストに共通する理由を組み合わせたものです。SDK が分類できない理由は `UNKNOWN_ERROR` にマッピングされます。
+
+レコメンデーション固有の理由は次のとおりです。
+
+| 理由 | 原因 |
+| --- | --- |
+| `INVALID_REQUEST` | Recommendation ID が空白であったか、サーバーがリクエストを拒否しました。 |
+| `PAYLOAD_TOO_LARGE` | リクエストがサーバーで受け入れられるサイズの上限を超えました。 |
+| `RATE_LIMIT_EXCEEDED` | リクエストがフェアユースポリシーのレート制限を超えました。 |
+| `INTERNAL_SERVER_ERROR` | サーバーがリクエストの処理に失敗しました。 |
+
+すべての MoEngage SDK リクエストに共通する理由は次のとおりです。
+
+| 理由 | 原因 |
+| --- | --- |
+| `SDK_STATE` | SDK が初期化されていないか、操作を許可する状態にありません。 |
+| `FEATURE_DISABLED` | レコメンデーションがダッシュボードでブロックされているか、SDK の構成で無効になっています。 |
+| `NETWORK_ERROR` | リクエストの送信中にネットワークエラーが発生しました。 |
+| `PARSE_ERROR` | レスポンスを解析できませんでした。 |
+| `INVALID_PARAMETERS` | API に渡された 1 つ以上のパラメーターが無効です。 |
+| `SERVER_ERROR` | サーバーがリクエストの処理に失敗しました。 |
+| `AUTHENTICATION_FAILED` | リクエストを認証できませんでした。 |
+| `UNKNOWN_ERROR` | 失敗を分類できませんでした。 |
+
+SDK は失敗したリクエストを再試行しません。再試行するには、`fetchRecommendations()` を再度呼び出します。失敗時には SDK は何もキャッシュしないため、次の呼び出しでは新しいネットワークリクエストが送信されます。次の理由の場合にのみ再試行してください。
+
+- `NETWORK_ERROR`
+- `RATE_LIMIT_EXCEEDED`（一定時間待機した後）
+- `INTERNAL_SERVER_ERROR`
+- `SERVER_ERROR`
+- `UNKNOWN_ERROR`
+
+## キャッシュ
+
+SDK は取得したアイテムをキャッシュするため、同じレコメンデーションに対する繰り返しの呼び出しではネットワークリクエストは発生しません。
+
+- SDK は、各キャッシュエントリのスコープを Recommendation ID、アイテム ID、含めるフィールドの組み合わせに限定します。この 3 つのいずれかを変更すると、新しいリストが取得されます。
+- キャッシュ期間内は、`fetchRecommendations()` はネットワーク呼び出しを行わずにキャッシュ済みのアイテムを返します。
+- キャッシュ期間が経過すると、次の呼び出しでサーバーからアイテムを取得し、エントリを更新します。
+- SDK は空の結果も同様にキャッシュするため、空のレコメンデーションによって画面のレンダリングごとにネットワーク呼び出しが発生することはありません。
+- SDK は、ユーザーがログアウトしたとき、ユーザー ID が変更されたとき、および SDK が無効になったときにキャッシュをクリアします。
+
+### キャッシュ期間の設定
+
+SDK は推奨アイテムを 24 時間（86400 秒）キャッシュします。より長くキャッシュするには、各プラットフォームのネイティブの初期化でキャッシュ期間を設定します。プラグインはこの設定を JavaScript では公開していません。MoEngage フレームワークを初期化するネイティブクラスで、次の変更を行います。
+
+<CodeGroup>
+
+```kotlin Android wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.RecommendationConfig
+import com.moengage.react.MoEInitializer
+
+// Replace X with your data center number
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureRecommendations(RecommendationConfig(recommendedItemsCacheDuration = 172800L))
+MoEInitializer.initializeDefaultInstance(applicationContext, moEngage)
+```
+
+```swift iOS wrap
+// Replace 0x with your data center number
+let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: MoEngageDataCenter.data_center_0x)
+sdkConfig.recommendationConfig = MoEngageRecommendationConfig(recommendedItemsCacheDuration: 172800)
+MoEngageInitializer.sharedInstance().initializeDefaultSDKConfig(sdkConfig, andLaunchOptions: launchOptions)
+```
+
+</CodeGroup>
+
+<Note>
+  期間の単位は秒です。キャッシュ期間の最小値は 86400 秒（24 時間）です。これより小さい値を指定した場合、SDK はその値を無視して 86400 秒を使用します。
+</Note>
+
+## FAQ
+
+<AccordionGroup>
+  <Accordion title="SDK は推奨アイテムをレンダリングしますか？">
+    いいえ。SDK はアイテムのデータのみを返します。レスポンスの解析とユーザーインターフェイスの構築はアプリケーションで行います。
+  </Accordion>
+
+  <Accordion title="SDK はアイテムで参照されている画像をダウンロードしますか？">
+    いいえ。SDK はメディアのダウンロードやキャッシュを行いません。レスポンス内の画像 URL には、標準的な画像読み込みライブラリを使用してください。
+  </Accordion>
+
+  <Accordion title="SDK を初期化する前に fetchRecommendations() を呼び出すとどうなりますか？">
+    Promise は `SDK_STATE` の理由で reject されます。レコメンデーションを取得する前にコア SDK を初期化してください。詳細については、[React Native SDK の初期化](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/framework-initialization)を参照してください。
+  </Accordion>
+
+  <Accordion title="キャッシュの有効期限が切れる前に強制的に再取得できますか？">
+    いいえ。SDK はキャッシュ期間が経過するまでキャッシュ済みのアイテムを提供します。カタログの更新頻度に合ったキャッシュ期間を設定してください。
+  </Accordion>
+</AccordionGroup>

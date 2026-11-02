@@ -17,7 +17,7 @@ MoEngage と GCS の統合により、キャンペーンのインタラクショ
   **前提条件**
 
   - 新しいバケットとサービスアカウントを作成する権限を持つ Google Cloud Platform アカウントがあることを確認してください。
-  - GCS へのエクスポートは Streams アドオンの一部です。アカウントで有効にするには、MoEngage の専任 CSM（カスタマーサクセスマネージャー）にお問い合わせください。
+  - MoEngage から Google Cloud Storage へのデータのエクスポートには、有料アドオンである MoEngage Streams を使用します。ご利用のプランで利用可能な機能を確認するには、[Plans and Pricing](https://www.moengage.com/plans-and-pricing/) を参照してください。アカウントで有効にするには、MoEngage のカスタマーサクセスマネージャー（CSM）またはサポートチームにお問い合わせください。
 </Info>
 
 ### ステップ 1: MoEngage 専用のサービスアカウントを作成する
@@ -61,20 +61,6 @@ Google Cloud Platform コンソールで、**IAM & Admin** コンソールに移
 3. **Enable** をクリックして有効にします。
    ![GCP での Cloud Storage API の有効化](/images/partner_12063394282388.png)
 
-### ステップ 4: App Marketplace で GCS 統合を設定する
-
-1. MoEngage ダッシュボードで **App Marketplace** に移動します。
-2. **Google Cloud Storage** を検索します。
-3. **Integrate** タブに移動し、**\+ Add Integration** をクリックします。
-   ![Google Cloud Storage の Integrate タブにある Add Integration オプション](/images/partner_12063471722644.png)
-4. 接続に識別しやすい名前を付けます。
-5. バケット名を入力します。
-6. 必要に応じて、バケットのリージョンを選択します。リージョンは Bucket Details ページで確認できます。
-7. 先ほどダウンロードしたサービスアカウントの認証情報 JSON ファイルをアップロードします。アップロード時に Client ID と Client Email を確認できます。
-8. エクスポートするイベントを選択します。デフォルトでは、各イベントは標準属性とともにエクスポートされます。
-   ![MoEngage App Marketplace での GCS 統合の設定](/images/partner_12064408178068.png)
-9. 必要に応じて、接続をテストできます。MoEngage は入力された詳細が正しいかどうかの検証を試みます。問題がある場合はエラーが表示されるので、修正できます。
-
 ### 必要な権限に関する注意
 
 エンドツーエンドのテストを実行するには、MoEngage でいくつかの追加の権限を設定する必要があります。IT ポリシーでこれらの権限が許可されていない場合は、スキップできます。ただし、その場合は App Marketplace から接続をテストできません。これらの任意の権限をスキップしても、実際のデータエクスポートには一切影響しません。
@@ -90,87 +76,6 @@ Google Cloud Platform コンソールで、**IAM & Admin** コンソールに移
 
 MoEngage が必要とする必須の権限と、IT ポリシーで承認されたテスト用の任意の権限を組み合わせたカスタムロールを自由に作成してください。
 
-## データを正しく受信しているかどうかを確認する
+## MoEngage から GCS へのイベントのエクスポート
 
-MoEngage は次のパス構造を使用してファイルをアップロードします。
-
-```text wrap
-gs://<your-bucket-name>/event-exports/<your_app_name>/<connection_id>/export_day=YYYY-MM-DD/export_hour=HH/<file-name>.json.gz
-```
-
-バケットに移動し、ファイルが存在することを確認します。
-
-![エクスポートされたファイルが GCS バケットに存在することの確認](/images/partner_12064664073364.png)
-
-## エクスポート頻度
-
-MoEngage は 1 時間ごとにデータをダンプします。
-
-## サンプルファイル
-
-エクスポートされるファイルは `.json.gz` 形式です。[サンプルファイルをダウンロード](https://app-cdn.moengage.com/partners-integration-ui/app-marketplace-public/helpdoc/event_exports_sample_files.json.gz)して構造を確認してください。実際の内容は、エクスポートを選択したイベントと属性によって異なります。
-
-```json JSON
-{
-  "app_name": "App Name",
-  "export_hour": "6",
-  "db_name": "MoEngage App Name",
-  "event": {
-    "uid": "user id",
-    "event_type": "CAMPAIGN_EVENT",
-    "event_code": "MOE_EMAIL_SENT",
-    "event_name": "Email Sent",
-    "user_attributes": {
-      "moengage_user_id": "userid1",
-      "user_attr1": "value1",
-      "user_attr2": "value2"
-    },
-    "event_source": "MOENGAGE",
-    "email_id": "test@xyz.com",
-    "event_attributes": {
-      "campaign_name": "Campaign name",
-      "moe_campaign_tags": [
-        "Tag1",
-        "Tag2"
-      ],
-      "campaign_type": "GENERAL",
-      "moe_campaign_channel": "Email",
-      "moe_delivery_type": "One Time",
-      "campaign_id": "moengage campaign id",
-      "campaign_channel": "EMAIL"
-    },
-    "event_uuid": "3b918064-08dc-47ae-b674-c23797475a8d",
-    "event_time": 1653022310,
-    "device_attributes": {
-      "moengage_device_id": "device id if applicable"
-    }
-  },
-  "export_day": "2022-05-20"
-}
-```
-
-サポートされているイベントと属性の一覧については、[データエクスポート用語集](https://www.moengage.com/docs/user-guide/data/exports/events/data-export-glossary)を参照してください。
-
-## よくある質問
-
-<AccordionGroup>
-  <Accordion title="データの受信はいつから始まりますか？">
-    通常、アカウントで自動データエクスポートが設定され、データが表示され始めるまでに最大 30 分かかります。
-  </Accordion>
-
-  <Accordion title="後から追加のイベントをエクスポートできますか？">
-    はい。後から新しいイベントをエクスポートする必要がある場合は、App Marketplace で設定を編集し、新しいイベントをエクスポートに追加できます。
-  </Accordion>
-
-  <Accordion title="自動データエクスポートを使用して過去のデータをエクスポートできますか？">
-    自動データエクスポートを使用して過去のデータをエクスポートすることはできません。設定が完了すると、エクスポートを有効にした時点以降の各イベントのデータが表示され始めます。
-  </Accordion>
-
-  <Accordion title="自動データエクスポートには料金がかかりますか？">
-    お使いの課金プランにまだ含まれておらず、後から有効にする必要がある場合は、カスタマーサクセスマネージャーと協力して課金プランに追加する必要があります。MoEngage が毎月データウェアハウス、パートナー、または API の宛先に送信するデータ量によっては、追加料金が発生する場合があります。
-  </Accordion>
-
-  <Accordion title="データエクスポートでは最新のユーザー属性が保証されますか？">
-    いいえ。データエクスポートは主にイベントをほぼリアルタイムでエクスポートするために構築されており、MoEngage のユーザー属性は非同期で更新されるため、現時点ではエクスポートにユーザー属性の最新の値が含まれることを保証できません。
-  </Accordion>
-</AccordionGroup>
+MoEngage から Google Cloud Storage バケットにイベントをエクスポートできます。エクスポートを設定するには、[GCS エクスポートガイド](/ja/user-guide/data/exports/events/data-warehouse/google-cloud-storage-gcs-exports)を参照してください。

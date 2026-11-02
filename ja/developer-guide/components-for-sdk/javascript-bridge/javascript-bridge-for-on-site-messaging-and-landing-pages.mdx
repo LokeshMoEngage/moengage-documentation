@@ -1,7 +1,7 @@
 ---
 title: "On-Site Messaging およびランディングページ向け JavaScript Bridge"
-description: "MoEngage JavaScript Bridge を使用して、On-Site Messaging キャンペーンやランディングページからイベント、クリック、閉じる操作、フォーム送信をトラッキングします。"
-keywords: ["OSM", "オンサイトメッセージング", "ランディングページ", "JavaScript bridge", "MoeOsm", "Moengage.landingPages"]
+description: "MoEngage JavaScript Bridge を使用して、On-Site Messaging キャンペーンやランディングページからイベント、クリック、閉じる操作、フォーム送信をトラッキングし、メールの購読設定を読み書きします。"
+keywords: ["OSM", "オンサイトメッセージング", "ランディングページ", "JavaScript bridge", "MoeOsm", "Moengage.landingPages", "updateEmailSubscription", "getEmailSubscription", "購読設定"]
 ---
 
 On-Site Messaging（OSM）キャンペーンとランディングページは、Web テンプレートが MoEngage SDK とやり取りできる JavaScript Bridge インターフェースをサポートしています。
@@ -136,5 +136,47 @@ Moengage.landingPages.trackFormSubmit(lp_context, attributeObj);
 <CodeGroup>
 ```javascript JavaScript
 Moengage.landingPages.trackEvent('plan_selected', lp_context, {plan: 'premium', price: 499});
+```
+</CodeGroup>
+
+## メールの購読設定
+
+これらのメソッドを使用して、カスタム HTML ランディングページからユーザーのメール購読カテゴリーを読み書きします（たとえば、プリファレンスセンターを構築する場合）。ページはチャネル経由で配信する際に渡される MoEngage ID によってユーザーごとにパーソナライズされるため、これらのメソッドはページを開いたユーザーに対して動作します。
+
+代わりにドラッグアンドドロップエディターでプリファレンスセンターを構築する場合は、[ランディングページによる購読設定の管理](/ja/user-guide/content/landing-pages/create/manage-subscription-preferences) を参照してください。
+
+| メソッド名 | 説明 |
+| --- | --- |
+| `Moengage.updateEmailSubscription(<subscription_object>)` | ユーザーのメール購読を更新します。ユーザーがグローバルに購読解除されているかどうかと、各カテゴリーの購読状態（`true` または `false`）を渡します。 |
+| `Moengage.getEmailSubscription()` | ユーザーの現在のメール購読を取得します。既存の設定をフォームにあらかじめ入力するために使用できます。 |
+
+### メール購読の更新
+
+ユーザーの設定を MoEngage に書き戻すには、`Moengage.updateEmailSubscription(<subscription_object>)` を使用します。カテゴリー名（表示名ではありません）は、メールの [購読カテゴリー](/ja/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-subscription-categories) で設定されているとおりに正確に使用してください。
+
+<CodeGroup>
+```javascript JavaScript
+Moengage.updateEmailSubscription({
+  is_globally_unsubscribed: false,
+  categories: {
+    "New_Product_Launches": true,
+    "Price_drop_alerts": false
+  }
+});
+```
+</CodeGroup>
+
+| フィールド | 説明 |
+| --- | --- |
+| `is_globally_unsubscribed` | ブール値。`true` に設定するとユーザーをすべてのカテゴリーから購読解除し、`false` に設定するとカテゴリーごとの値を適用します。 |
+| `categories` | 各購読カテゴリー名をその購読状態にマッピングするオブジェクト。`true` で購読、`false` で購読解除します。 |
+
+### メール購読の取得
+
+ユーザーの現在の設定を読み取って、すでに購読しているカテゴリーをあらかじめ選択しておくには、`Moengage.getEmailSubscription()` を使用します。
+
+<CodeGroup>
+```javascript JavaScript
+Moengage.getEmailSubscription();
 ```
 </CodeGroup>

@@ -9,43 +9,76 @@ GitHub リポジトリから最新の SDK をダウンロードします。各 S
 
 ![Manualintegration1 1](/images/manualintegration1-1.png)
 
- 
+## アプリターゲットへのフレームワークの埋め込み
 
-# アプリターゲットへのフレームワークの埋め込み
+<Note>
+  以下の表の **リンク方式** 列は、SDK 11.2.0 以降に適用されます。それより前のバージョンでは、すべてのフレームワークが動的であり、**Embed & Sign** が必要です。静的リンクがコールドローンチ時間に与える影響については、[フレームワークの影響](/ja/developer-guide/ios-sdk/framework-size-impact/framework-size-impact)を参照してください。
+</Note>
 
-以下の画像に示すように、必要なフレームワークをアプリターゲットに埋め込み、MoEngage のフレームワークファイルの Embed オプションを **Embed & Sign** に設定してください。
+以下に示すように、必要なフレームワークをアプリターゲットに追加します。**Embed** オプションは、フレームワークのリンク方式によって異なります。
+
+*   **動的フレームワーク:** **Embed** を **Embed & Sign** に設定します。
+*   **静的フレームワーク:** [静的フレームワークの追加手順](#additional-steps-for-static-frameworks)に従います。
 
 ![Manualintegration2 1](/images/manualintegration2-1.png)
 
 必須のフレームワーク：
 
-| フレームワーク | ステータス | 目的 |
-| --------------------- | -------- | --------------------------------------------------------------------------------------------- |
-| MoEngageCore          | 必須 | SDK の基盤となるサービス、初期化、ライフサイクル管理を提供します。 |
-| MoEngageSDK           | 必須 | MoEngage SDK のすべての機能の主要な公開インターフェースおよびオーケストレーターとして機能します。 |
-| MoEngageSecurity      | 必須 | アクセス時および送信時のデータ保護を可能にします。 |
-| MoEngageMessaging     | 必須 | プッシュ通知の登録、ペイロードの処理、コアとなるメッセージング機能を管理します。 |
-| MoEngageCampaignsCore | 必須 | キャンペーンのペイロードの処理と表示を管理します。 |
+| フレームワーク | ステータス | リンク方式 | 目的 |
+| --------------------- | -------- | ------- | --------------------------------------------------------------------------------------------- |
+| MoEngageCore          | 必須 | 動的 | SDK の基盤となるサービス、初期化、ライフサイクル管理を提供します。 |
+| MoEngageSDK           | 必須 | 静的 | MoEngage SDK のすべての機能の主要な公開インターフェースおよびオーケストレーターとして機能します。 |
+| MoEngageSecurity      | 必須 | 動的 | アクセス時および送信時のデータ保護を可能にします。 |
+| MoEngageMessaging     | 必須 | 動的 | プッシュ通知の登録、ペイロードの処理、コアとなるメッセージング機能を管理します。 |
+| MoEngageCampaignsCore | 必須 | 動的 | キャンペーンのペイロードの処理と表示を管理します。 |
 
 アドオンのフレームワーク：
 
-| フレームワーク | ステータス | 目的 |
-| ------------------------ | -------- | ---------------------------------------------------------------------------------------------------------------- |
-| MoEngageTriggerEvaluator | 任意 | AND トリガー条件に基づいて、アプリ内メッセージとデバイストリガー型プッシュ通知の表示を可能にします。 |
-| MoEngageInApps           | 任意 | ポップアップやモーダルなどのアプリ内メッセージの表示を可能にします。 |
-| MoEngageGeofence         | 任意 | 位置情報ベースのキャンペーントリガーのためのジオフェンスモニタリングを可能にします。 |
-| MoEngageInbox            | 任意 | アプリケーション内で永続的な通知センター（Inbox）を利用可能にします。 |
-| MoEngageCards            | 任意 | Content Cards の表示と管理を可能にします。 |
-| MoEngageRichNotification | 任意 | プッシュ通知でリッチメディアコンテンツ（画像、動画、音声）とテンプレートを利用可能にします。 |
-| MoEngageRealTimeTrigger  | 任意 | ユーザーイベントに基づく高頻度のリアルタイムキャンペーントリガーを実現します。 |
-| MoEngageLiveActivity     | 任意 | Live Activities の登録、ペイロードの処理、トラッキングを管理します。 |
+| フレームワーク | ステータス | リンク方式 | 目的 |
+| ------------------------ | -------- | ------- | ---------------------------------------------------------------------------------------------------------------- |
+| MoEngageInApps           | 任意 | 静的 | ポップアップやモーダルなどのアプリ内メッセージの表示を可能にします。 |
+| MoEngageGeofence         | 任意 | 静的 | 位置情報ベースのキャンペーントリガーのためのジオフェンスモニタリングを可能にします。 |
+| MoEngageInbox            | 任意 | 静的 | アプリケーション内で永続的な通知センター（Inbox）を利用可能にします。 |
+| MoEngageCards            | 任意 | 静的 | Content Cards の表示と管理を可能にします。 |
+| MoEngagePersonalization  | 任意 | 静的 | パーソナライズされたエクスペリエンスキャンペーンの取得とトラッキングを可能にします。 |
+| MoEngageRecommendations  | 任意 | 静的 | おすすめのカタログアイテムの取得を可能にします。SDK 11.3.0 から提供されます。 |
+| MoEngageRichNotification | 任意 | 動的 | プッシュ通知でリッチメディアコンテンツ（画像、動画、音声）とテンプレートを利用可能にします。 |
+| MoEngageRealTimeTrigger  | 任意 | 静的 | ユーザーイベントに基づく高頻度のリアルタイムキャンペーントリガーを実現します。 |
+| MoEngageLiveActivity     | 任意 | 動的 | Live Activities の登録、ペイロードの処理、トラッキングを管理します。 |
 
-# App Extension での MoEngageRichNotification フレームワークのリンク
+## 静的フレームワークの追加手順
 
-これは、プロジェクトで `MoEnagageRichNotification` フレームワークを使用している場合にのみ必要です。以下に示すように Extension ターゲットでフレームワークをリンクし、この場合は既にアプリターゲットに埋め込まれているため、**Embed** オプションを **Do Not Embed** に設定してください。
+<Steps>
+  <Step title="Embed を Do Not Embed に設定する">
+    統合する各静的フレームワークについて、アプリターゲットで **Embed** オプションを **Do Not Embed** に設定します。
+  </Step>
+  <Step title="リソースバンドルをコピーする">
+    **Do Not Embed** ではフレームワークから何もコピーされないため、モジュールのリソースバンドルはアプリに含まれません。リソースを含む各静的フレームワークには、リリース zip 内の `.xcframework` と並んで `.bundle` が含まれています。統合するフレームワークごとに、その `.bundle` をアプリターゲットの **Copy Bundle Resources** ビルドフェーズに追加します。
+
+    | フレームワーク | リソースバンドル |
+    | ----------------------- | -------------------------------- |
+    | MoEngageSDK             | `MoEngageSDK.bundle`             |
+    | MoEngageInApps          | `MoEngageInApps.bundle`          |
+    | MoEngageGeofence        | `MoEngageGeofence.bundle`        |
+    | MoEngageInbox           | `MoEngageInbox.bundle`           |
+    | MoEngageCards           | `MoEngageCards.bundle`           |
+    | MoEngagePersonalization | `MoEngagePersonalization.bundle` |
+    | MoEngageRecommendations | `MoEngageRecommendations.bundle` |
+    | MoEngageRealTimeTrigger | `MoEngageRealTimeTrigger.bundle` |
+
+    バンドルがない場合、In-App、Cards、Inbox の画面は空白で表示され、クラッシュもビルドエラーも発生しません。また、アプリはモジュールのプライバシーマニフェストなしで出荷されます。
+  </Step>
+  <Step title="-ObjC リンカーフラグを追加する">
+    アプリターゲットのビルド設定で、**Other Linker Flags** に `-ObjC` を追加します。このフラグにより、アプリが直接参照していないものも含め、静的フレームワークのすべての Objective-C クラスとカテゴリがリンカーに取り込まれます。統合する静的フレームワークの数にかかわらず、アプリターゲットに 1 回追加します。
+  </Step>
+</Steps>
+
+## App Extension での MoEngageRichNotification のリンク
+
+`MoEngageRichNotification` フレームワークを使用している場合は、この手順を完了してください。フレームワークはすでにアプリターゲットに埋め込まれているため、以下に示すように Extension ターゲットでフレームワークをリンクし、**Embed** オプションを **Do Not Embed** に設定します。
 
 <Frame>
   ![Manualintegration3](/images/manualintegration3.png)
 </Frame>
 
-Extension ターゲットのビルド設定で、追加の `LD_RUNPATH_SEARCH_PATHS` として `@executable_path/../../Frameworks` を追加します。
+Extension ターゲットのビルド設定で、`LD_RUNPATH_SEARCH_PATHS` に `@executable_path/../../Frameworks` を追加します。

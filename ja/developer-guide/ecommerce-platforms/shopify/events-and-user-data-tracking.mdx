@@ -7,7 +7,9 @@ description: "Shopify ストアから MoEngage に行動データを送信して
 
 ## トラッキングされるイベント
 
-統合時に Shopify アプリで有効にすると、MoEngage は次のイベントをトラッキングします。
+統合が完了すると、MoEngage はすべてのストアで次のイベントをトラッキングします。イベントを選択する必要はありません。イベントとその属性を確認するには、MoEngage アプリの **Configuration** タブで **User events** を展開します。
+
+![各イベントタイプ、イベント、およびその属性を一覧表示する User events セクション](/images/shopify-user-events.png)
 
 | イベントタイプ       | イベント名                                    | 説明                                                                                                                                                                                                                                                                                                                                                                                                            |
 | ---------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -59,9 +61,9 @@ Webhook イベントのペイロードには、商品 URL や画像 URL は含�
 
 ### Shopify 顧客メタフィールド
 
-MoEngage は、デフォルトでは Shopify 顧客メタフィールド（Shopify の顧客オブジェクトに付加されたカスタムデータフィールド）を MoEngage のユーザープロファイルに同期しません。また、イベント属性にも含めません。
+Shopify 顧客メタフィールドは、Shopify の顧客オブジェクトに付加されたカスタムデータフィールドです。これらをユーザー属性として MoEngage のユーザープロファイルに同期できます。詳細については、[顧客メタフィールド](#customer-metafields)を参照してください。
 
-このデータをカスタムの方法で渡すには、以下の [**カスタムユーザー属性のトラッキング**](#track-custom-user-attributes) セクションを参照してください。
+MoEngage は、顧客メタフィールドをイベント属性には含めません。
 
 ## Shopify Liquid を使用したカスタムイベントのトラッキング
 
@@ -130,11 +132,13 @@ Moengage.track_event("EVENT_NAME", {
 
 ## カスタムユーザー属性のトラッキング
 
-次の回避策を使用して、カスタム属性（メタフィールドなど）を MoEngage のプロファイルに渡すことができます。
+Shopify 顧客メタフィールドを同期するには、MoEngage アプリの **Configuration** タブでそれらを選択します。詳細については、[顧客メタフィールド](#customer-metafields)を参照してください。
 
-### 公開メタフィールド向けの Liquid ベースの方法
+テーマでのみ利用できる値など、顧客メタフィールドに保存されていないデータを渡すには、次の方法を使用します。
 
-メタフィールドのストアフロントアクセスを有効にしている場合は、Shopify Liquid で直接読み取ることができます。正しいファイルを見つけてコードを追加するには、次の手順を実行します。
+### Liquid ベースの方法
+
+ストアフロントアクセスが有効になっているメタフィールドなど、データが Shopify Liquid で利用できる場合は、テーマ内で読み取ることができます。正しいファイルを見つけてコードを追加するには、次の手順を実行します。
 
 1. Shopify 管理画面にログインします。
 2. **Online Store** > **Themes** に移動します。
@@ -154,13 +158,12 @@ Moengage.track_event("EVENT_NAME", {
 
 _loyalty_ と _tier_ を、メタフィールドの実際の名前空間とキーに置き換えてください。`{% if customer %}` ガードにより、顧客がログインしている場合にのみコードが実行されます。
 
-### アプリ所有メタフィールド向けのサーバーサイド同期
+### サーバーサイドの方法
 
-サードパーティアプリがメタフィールドを作成した場合、ストアフロントアクセスは通常 **None** に設定されています。この場合は、サーバーサイドの統合を行う必要があります。
+サードパーティアプリなど、データが Shopify 顧客メタフィールド以外に保存されている場合は、サーバーサイドの統合を行います。
 
-1. Shopify の `customers/update` Webhook をサブスクライブします。
-2. Webhook ハンドラーで、Shopify Admin API を使用して顧客のメタフィールドの値を読み取ります。
-3. MoEngage Data API を呼び出して、顧客のプロファイルの対応するユーザー属性を更新します。
+1. バックエンドで、同期する値を読み取ります。
+2. MoEngage Data API を呼び出して、顧客のプロファイルの対応するユーザー属性を更新します。
 
 ## イベントペイロードのサンプル
 
@@ -548,28 +551,107 @@ _loyalty_ と _tier_ を、メタフィールドの実際の名前空間とキ�
 
 </CodeGroup>
 
-## トラッキングされるユーザープロパティ
+## プロファイル同期
 
-統合時に有効にすると、MoEngage は次のユーザー属性をトラッキングします。
+MoEngage は、Shopify からユーザープロファイルをほぼリアルタイムで同期します。Shopify で顧客が作成または更新されたとき、あるいは顧客のタグ、マーケティング同意、購入合計が変更されたときに、Shopify は MoEngage に Webhook を送信し、MoEngage は一致するユーザープロファイルを更新します。
 
-| 属性名 | 説明                    |
-| -------------- | ------------------------------ |
-| First Name     | ユーザーの名。    |
-| Last Name      | ユーザーの姓。     |
-| Mobile         | ユーザーの携帯電話番号。 |
-| Email          | ユーザーのメールアドレス。 |
-| Shopify ID     | Shopify 内でのユーザーの ID。  |
-| Shopify LTV    | ユーザーの顧客生涯価値（LTV） |
+MoEngage は、統合時に選択したユーザー識別子を使用して、各更新をユーザープロファイルと照合します。一致するプロファイルがない場合、MoEngage は新しいユーザープロファイルを作成します。たとえば、ストアでアカウントまたはニュースレターに登録した顧客は、注文を行う前でも MoEngage のユーザープロファイルが作成されます。
 
-## イベントとユーザートラッキングの設定
+<Note>
+  **Mobile number** 属性には、顧客の Shopify アカウントの電話番号が入力されます。顧客の住所に含まれる電話番号は **Shipping Mobile Number** 属性に同期され、ユーザーの識別には使用されません。
+</Note>
 
-MoEngage がトラッキングするイベントとユーザープロパティを選択するには、次の手順を実行します。
+## トラッキングされるユーザー属性
+
+### デフォルトのユーザープロパティ
+
+**Configuration** タブの **User properties** セクションには、デフォルトで次のユーザー属性が一覧表示されます。MoEngage は、削除しない限りこれらの属性を同期します。**Shopify ID**、**Email**、**Mobile number** は削除できません。
+
+| プロパティ名 | データ型 | 説明 |
+| --- | --- | --- |
+| Shopify ID | Number | Shopify におけるユーザーの顧客 ID。 |
+| Email | String | ユーザーのメールアドレス。 |
+| Mobile number | String | ユーザーの Shopify アカウントの携帯電話番号。 |
+| First name | String | ユーザーの名。 |
+| Last name | String | ユーザーの姓。 |
+| Shopify tags | Array | Shopify 顧客に付与されたすべてのタグ。Shopify でタグが変更されると、MoEngage はタグを追加または削除します。 |
+| Shopify order count | Number | ユーザーが行った注文の合計数。注文がキャンセルまたは返金されても、この値は減少しません。 |
+| Shopify last order ID | String | ユーザーの最新の注文の ID。 |
+| Shopify last order name | String | ユーザーの最新の注文の名前（例: `#1008`）。 |
+| Shopify LTV | Number | ストアにおけるユーザーの正味の生涯支出額。詳細については、[Shopify LTV](#shopify-ltv) を参照してください。 |
+| Shopify zip code | String | ユーザーのデフォルト住所の郵便番号。 |
+| Address line 1 (street) | String | ユーザーのデフォルト住所の 1 行目。 |
+| Address line 2 (apartment, suite) | String | ユーザーのデフォルト住所の 2 行目。 |
+| City | String | ユーザーのデフォルト住所の市区町村。 |
+| Province / state | String | ユーザーのデフォルト住所の州または都道府県。 |
+| Province code | String | ユーザーのデフォルト住所の州または都道府県のコード。 |
+| Country | String | ユーザーのデフォルト住所の国。 |
+| Country code | String | ユーザーのデフォルト住所の国コード。 |
+| Shipping Mobile Number | String | ユーザーのデフォルト住所の電話番号。 |
+
+### カスタムユーザープロパティ
+
+追加の顧客データを同期するには、**User properties** セクションで **+ Custom property** をクリックし、プロパティ名を入力してデータ型を選択してから、次のいずれかの Shopify ソースを選択します。
+
+| Shopify ソース | 説明 |
+| --- | --- |
+| Shopify verified email | ユーザーが Shopify でメールアドレスを確認済みかどうか。 |
+| Shopify customer since | ユーザーの Shopify 顧客アカウントが作成された日時。 |
+| Tax exempt | ユーザーが Shopify で免税対象かどうか。 |
+| Tax exemptions | ユーザーに適用される免税コード。 |
+| Shopify note | チームが Shopify で顧客に追加したメモ。 |
+
+![新しいカスタムプロパティの Shopify ソースリストを展開した User properties セクション](/images/shopify-custom-property.png)
+
+### 顧客メタフィールド
+
+Shopify 顧客メタフィールドをカスタムユーザープロパティとして同期できます。Shopify ソースリストには、ストア内の顧客メタフィールド定義が最大 250 件含まれます。入力したプロパティ名が、MoEngage ダッシュボードでのユーザー属性の名前になります。
+
+MoEngage は、Shopify で顧客が作成または更新されたときにメタフィールドの値を更新します。
+
+### 同期されない属性
+
+MoEngage は、次の Shopify 顧客データを同期しません。
+
+- 顧客アカウントの状態（有効または無効）
+- 顧客の住所履歴全体。MoEngage はデフォルト住所のみを同期します。
+- 従来の **Accepts marketing** フラグ。代わりにマーケティング同意の属性を使用してください。
+- Multipass 識別子
+
+## マーケティング同意のマッピング
+
+MoEngage は、各チャネルの Shopify のマーケティング同意状態を、次のように MoEngage のサブスクリプション属性にマッピングします。
+
+| Shopify の同意状態 | Email (`moe_unsubscribe`) | Email (`moe_email_optin_status`) | SMS (`moe_sms_subscription`) | WhatsApp (`moe_wa_subscription`) |
+| --- | --- | --- | --- | --- |
+| Subscribed | `false` | `DOUBLE_OPTED_IN` | `OPTIN` | `true` |
+| Pending | `false` | `OPT_IN_PENDING` | `OPT-IN PENDING` | 更新されない |
+| Unsubscribed | `true` | `OPTED_OUT` | `OPTOUT` | `false` |
+| Not subscribed | `true` | 更新されない | `EMPTY` | 更新されない |
+| Invalid | `true` | 更新されない | 該当なし | 該当なし |
+| Redacted | 更新されない | 更新されない | 更新されない | 更新されない |
+
+MoEngage は、**Configuration** タブの **Sync user OPTIN** セクションで該当チャネルのトグル（**Email subscription sync**、**SMS subscription sync**、または **WhatsApp subscription sync**）がオンになっている場合にのみ、そのチャネルのマーケティング同意を同期します。
+
+## Shopify LTV
+
+**Shopify LTV** 属性には、Shopify が顧客の合計支出額として報告する金額が保持されます。この値は、キャンセルされていないすべての注文について、送料を含む注文合計の合計から返品された商品の金額を差し引いて計算されます。
+
+この属性を使用する際は、次の点に注意してください。
+
+- Shopify は、注文が全額返金されたときに値を更新します。一部返金の場合は、Shopify が合計を再計算するまで値は更新されないため、しばらくの間、実際の正味支出額よりも高い値になることがあります。
+- テスト注文ではこの値は更新されません。
+
+## ユーザープロパティの設定
+
+MoEngage が同期するユーザープロパティを追加または削除するには、次の手順を実行します。
 
 1. Shopify アプリの **Configuration** タブに移動します。
-2. トラッキングするユーザーイベントとプロパティを選択します。
-3. **Save configuration** をクリックします。
+2. **User properties** を展開します。
+3. 不要なプロパティを削除するか、**+ Custom property** をクリックしてプロパティを追加します。
+4. **Save configuration** をクリックします。
 
-![MoEngage Shopify アプリの設定画面](/images/EventsandUserDataTracking1.png)
+![MoEngage Shopify アプリの User properties セクション](/images/shopify-user-properties.png)
 
 <Info>
   Shopify 統合について質問がある場合は、[MoEngage Shopify FAQ](/ja/developer-guide/ecommerce-platforms/shopify/faqs) を参照してください。

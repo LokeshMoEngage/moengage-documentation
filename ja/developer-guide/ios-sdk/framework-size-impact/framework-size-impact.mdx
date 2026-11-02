@@ -1,10 +1,16 @@
 ---
-title: 'フレームワークのサイズへの影響'
-description: "MoEngage iOS SDK の各フレームワークが与える圧縮サイズおよび非圧縮サイズへの影響を確認します。"
+title: 'フレームワークの影響'
+description: "MoEngage iOS SDK フレームワークがアプリサイズとコールドローンチ時間に与える影響を確認します。"
+keywords: "app size, download size, install size, cold launch, app launch time, startup time, static linking, dynamic framework"
 ---
-SDK のサイズへの影響を評価するために、サンプルアプリケーションを開発しました。次に、さまざまな構成でアプリケーションのビルドを App Store Connect にアップロードしました。これにより、圧縮サイズ（アプリのダウンロードサイズ）と非圧縮サイズ（ユーザーのデバイス上でアプリが占有するディスク容量）の両方を見積もることができました。
 
-**分析対象の SDK バージョン**
+このページでは、MoEngage iOS SDK がアプリに与える 2 つの影響について説明します。ダウンロードサイズとインストールサイズに追加されるサイズと、アプリの起動に追加される時間です。
+
+## アプリサイズへの影響
+
+MoEngage は、SDK をサンプルアプリに統合し、各モジュール構成を App Store Connect にアップロードしてサイズへの影響を測定しました。結果は、アプリのダウンロードサイズである圧縮サイズと、インストールされたアプリがデバイス上で占有する容量である非圧縮サイズで示しています。
+
+測定したバージョン:
 
 *   [MoEngage-iOS-SDK](https://cocoapods.org/pods/MoEngage-iOS-SDK) - 9.14.0
 *   [MoEngageRichNotification](https://cocoapods.org/pods/MoEngageRichNotification) - 7.13.0
@@ -17,12 +23,12 @@ SDK のサイズへの影響を評価するために、サンプルアプリケ�
 <Info>
   **基準としての iPhone 12 Pro**
 
-  Apple はユニバーサルビルドをユーザーのデバイスにインストールしないため、分析ではユニバーサルビルドを除外しています。Apple はユーザーのデバイスに応じて必要なアーキテクチャのみをインストールすることで、各アプリを最適化します。そのため、この分析ではオペレーティングシステムのバージョン 15.0 を搭載した iPhone 12 Pro を基準としています。
+  App Store は各デバイスに必要なアーキテクチャのみをインストールするため、分析ではユニバーサルビルドを除外しています。以下の数値は、iOS 15.0 を搭載した iPhone 12 Pro を想定しています。
 </Info>
 
-# MoEngage SDK のサイズへの影響
+## MoEngage SDK のサイズへの影響
 
-サイズ分析は、MoEngage-iOS-SDK をダミーのサンプルアプリに統合した状態で実施しました。
+サイズ分析は、MoEngage-iOS-SDK をダミーのサンプルアプリに統合した状態で実施しました。これらの数値は上記の SDK バージョンで測定したものであり、SDK 11.2.0 でのフレームワークのリンク方式の変更以前のものです。
 
 | フレームワーク | バージョン | 圧縮サイズ | 非圧縮サイズ |
 | :--- | :--- | :--- | :--- |
@@ -42,3 +48,38 @@ SDK のサイズへの影響を評価するために、サンプルアプリケ�
   *   圧縮サイズはアプリのダウンロードサイズです。非圧縮サイズは、デバイスにインストールされたアプリのサイズに相当します。
   *   [MoEngage-iOS-SDK](https://cocoapods.org/pods/MoEngage-iOS-SDK)（Core SDK）と、[MoEngageInApp](https://cocoapods.org/pods/MoEngageInApp)、[MoEngageCards](https://cocoapods.org/pods/MoEngageCards)、[MoEngageRichNotification](https://cocoapods.org/pods/MoEngageRichNotification)、[MoEngageGeofence](https://cocoapods.org/pods/MoEngageGeofence)、[MoEngageInbox](https://cocoapods.org/pods/MoEngageInbox)、[MoEngageRealTimeTrigger](https://cocoapods.org/pods/MoEngageRealTimeTrigger) モジュールを合わせた全体的なサイズへの影響は、圧縮サイズで 1.8 MB、アプリのインストールサイズ（非圧縮サイズ）で 5.2 MB です。
 </Info>
+
+## アプリ起動時間への影響
+
+アプリに埋め込まれた動的リンクのフレームワークは、アプリの `main()` が実行される前にシステムによって読み込まれ、バインドされます。この処理は、そのセッションでアプリがフレームワークを呼び出すかどうかにかかわらず、コールドローンチのたびに発生します。アプリに埋め込むフレームワークが多いほど、この起動前のフェーズにかかる時間が長くなります。
+
+SDK 11.2.0 以降、次のモジュールは個別の動的フレームワークとして埋め込まれるのではなく、アプリのバイナリに静的にリンクされるため、起動前の処理から除外されます。
+
+*   `MoEngageSDK`
+*   `MoEngageInApps`
+*   `MoEngageCards`
+*   `MoEngageInbox`
+*   `MoEngageGeofence`
+*   `MoEngageRealTimeTrigger`
+*   `MoEngagePersonalization`
+*   `MoEngageRecommendations`（SDK 11.3.0 から提供）
+
+`MoEngageCore`、`MoEngageSecurity`、`MoEngageMessaging`、`MoEngageCampaignsCore`、`MoEngageRichNotification`、`MoEngageLiveActivity` は引き続き動的フレームワークです。Notification Service、Notification Content、Live Activity の各拡張機能もこれらのモジュールをリンクしており、拡張機能は独自のプロセスで実行されるため、アプリのバイナリにリンクされたコードを使用できません。
+
+<Note>
+  静的リンクには SDK 11.2.0 以降が必要です。詳細については、[iOS SDK リリースノート](/ja/release-notes/sdks/ios)を参照してください。
+</Note>
+
+### 測定された改善
+
+iOS SDK が提供するすべてのモジュールを統合したサンプルアプリで、これらのモジュールが静的リンクに移行した後、MoEngage はコールドローンチ時間が 44.6% 短縮されたことを測定しました。
+
+短縮の度合いは、統合するモジュールの組み合わせによって異なります。統合における変化を測定するには、アップグレードの前後で Xcode Organizer のアプリの **Launch Time** 指標を比較してください。
+
+### 統合における変更
+
+| 統合方法 | 必要な変更 |
+| :--- | :--- |
+| CocoaPods | なし。podspec がリンクの種類を設定します。 |
+| Swift Package Manager | なし。パッケージマニフェストがリンクの種類を設定します。 |
+| 手動（xcframework） | アプリのターゲットにフレームワークを追加し、静的フレームワークについて 3 つの手順を実行します。各静的フレームワークについて **Do Not Embed** を設定してリソースバンドルをコピーし、アプリのターゲットに `-ObjC` を 1 回追加します。[手動統合](/ja/developer-guide/ios-sdk/manual-integration/manual-integration)を参照してください。 |

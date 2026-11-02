@@ -79,24 +79,24 @@ JSON
 | event\_name | イベントの表示名。 |
 | event\_code | イベントコード、またはイベントの内部名。 |
 | event\_uuid | 取得されたイベントの一意のコード。 |
-| event\_time | イベントが取得されたときのエポックタイムスタンプ。 |
+| event\_time | イベントが発生した時刻 (秒単位の UTC エポックタイムスタンプ)。これは Event Time であり、MoEngage がイベントを受信した時刻ではありません。詳細については、[Event Time と Received Time](/ja/user-guide/data/event-data/event-time-and-received-time) を参照してください。 |
 | event\_type | イベントのタイプ: <ul><li>ACQUISITION</li><li>CAMPAIGN\_ACTIVITY</li><li>LIFECYCLE</li><li>REACHABILITY</li><li>UNINSTALL</li><li>USER\_ACTION\_EVENT</li></ul> |
 | source | このイベントが取得されたソース。 |
 | push\_id | 受信者のデバイスのプッシュトークン。この属性は、PUSH 関連のキャンペーンイベントでのみ送信されます。 |
 | email\_id | 受信者のメール ID。この属性は、EMAIL 関連のキャンペーンイベントでのみ送信されます。 |
 | mobile\_number | 受信者の携帯電話番号。この属性は、SMS 関連のキャンペーンイベントでのみ送信されます。 |
 | uid | MoEngage でユーザーを一意に識別するための MoEngage customer\_id。 |
-| event\_attributes | 次の形式のイベント属性オブジェクト:  <br />attribute\_name: value |
-| user\_attributes | 次の形式のユーザー属性オブジェクト:  <br />attribute\_name: value |
+| event\_attributes | 次の形式のイベントプロパティオブジェクト:  <br />attribute\_name: value |
+| user\_attributes | 次の形式のユーザープロパティオブジェクト:  <br />attribute\_name: value |
 | device\_attributes | 次の形式のデバイス属性オブジェクト:  <br />attribute\_name: value |
 
-#### **イベント属性オブジェクト**
+#### **イベントプロパティオブジェクト**
 
-イベント属性は、エクスポートされるイベントによって異なる場合があります。どの属性がエクスポートされるかについては、以下のイベント定義を参照してください。
+イベントプロパティは、エクスポートされるイベントによって異なる場合があります。どの属性がエクスポートされるかについては、以下のイベント定義を参照してください。
 
-#### **ユーザー属性オブジェクト**
+#### **ユーザープロパティオブジェクト**
 
-ユーザー属性は、設定によって異なる場合があります。どの属性がエクスポートされるかについては、以下のユーザープロパティの定義を参照してください。
+ユーザープロパティは、設定によって異なる場合があります。どの属性がエクスポートされるかについては、以下のユーザープロパティの定義を参照してください。
 
 - moengage\_user\_id - この属性は常にエクスポートされます。これはユーザーの MoEngage 内部 ID です。
 
@@ -120,12 +120,12 @@ MoEngage はデータウェアハウスに単一のテーブルを作成し、�
 
 ### テーブル構造
 
-テーブルの全体的な構造は、すべてのイベントタイプで固定されています。エクスポートされる新しいユーザープロパティまたはイベント属性は、それぞれ `user_attributes` 列または `event_attributes` 列の一部になります。すべてのイベントは、分析しやすいように、イベント名やイベント時刻などの必要な情報をすべて含む単一のテーブルに格納されます。
+テーブルの全体的な構造は、すべてのイベントタイプで固定されています。エクスポートされる新しいユーザープロパティまたはイベントプロパティは、それぞれ `user_attributes` 列または `event_attributes` 列の一部になります。すべてのイベントは、分析しやすいように、イベント名やイベント時刻などの必要な情報をすべて含む単一のテーブルに格納されます。
 
 次の一般的なスキーマに従います。
 
-- _event\_attributes\__ で始まる列にはイベント属性が含まれます。その後に _event\_attributes\_campaign\_name_ のようにイベント属性名が続きます。
-- _user\_attributes\__ で始まる列にはユーザー属性が含まれます。その後に _user\_attributes\_moengage\_user\_id_ のようにユーザー属性名が続きます。
+- _event\_attributes\__ で始まる列にはイベントプロパティが含まれます。その後に _event\_attributes\_campaign\_name_ のようにイベントプロパティ名が続きます。
+- _user\_attributes\__ で始まる列にはユーザープロパティが含まれます。その後に _user\_attributes\_moengage\_user\_id_ のようにユーザープロパティ名が続きます。
 - device\_attributes で始まる列にはデバイス属性が含まれます。その後に _device\_attributes\_moengage\_device\_id_ のようにデバイス属性名が続きます。
 - また、_event\_attributes_、_user\_attributes_、_device\_attributes_ という 3 つの JSON (または同等の) フィールドがあります。これらの各フィールドには、辞書形式の生の JSON フィールドが含まれます。
 
@@ -136,35 +136,35 @@ MoEngage はデータウェアハウスに単一のテーブルを作成し、�
 | device\_attributes | 次のいずれか: <ul><li>super</li><li>variant</li></ul> | JSON オブジェクト形式のデバイス属性の辞書:  <br />JSON  <br />`{ `<br />`"attribute": "value", `<br />`"attribute": "value" `<br />`}` | NULL |
 | device\_attributes\_  moengage\_device\_id | character varying(256) | ユーザーの内部デバイス ID です。 | NULL |
 | email\_address | character varying(256) | 受信者のメール ID。この属性は、EMAIL 関連のキャンペーンイベントでのみ送信されます。 | NULL |
-| event\_attributes | 次のいずれか: <ul><li>super</li><li>variant</li></ul> | JSON オブジェクト形式のイベント属性の辞書:  <br />JSON  <br />`{ `<br />`"attribute": "value", `<br />`"attribute": "value" `<br />`}` | NULL |
-| event\_attributes\_  app\_version | character varying(256) | 共通のイベント属性を参照してください。 | NULL |
-| event\_attributes\_  campaign\_channel | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
-| event\_attributes\_  campaign\_id | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
-| event\_attributes\_  campaign\_name | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
-| event\_attributes\_  campaign\_type | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
-| event\_attributes\_  first\_session | boolean | 共通のイベント属性を参照してください。 | NULL |
+| event\_attributes | 次のいずれか: <ul><li>super</li><li>variant</li></ul> | JSON オブジェクト形式のイベントプロパティの辞書:  <br />JSON  <br />`{ `<br />`"attribute": "value", `<br />`"attribute": "value" `<br />`}` | NULL |
+| event\_attributes\_  app\_version | character varying(256) | 共通のイベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  campaign\_channel | character varying(256) | キャンペーン関連イベントの共通イベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  campaign\_id | character varying(256) | キャンペーン関連イベントの共通イベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  campaign\_name | character varying(256) | キャンペーン関連イベントの共通イベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  campaign\_type | character varying(256) | キャンペーン関連イベントの共通イベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  first\_session | boolean | 共通のイベントプロパティを参照してください。 | NULL |
 | event\_attributes\_  locale\_id | character varying(256) | キャンペーンが Localization を使用して送信された場合に追跡されます。メッセージロケールの ID を表します。 | NULL |
 | event\_attributes\_  locale\_name | character varying(256) | キャンペーンが Localization を使用して送信された場合に追跡されます。メッセージロケールの名前を表します。 | NULL |
-| event\_attributes\_  logged\_in\_status | character varying(256) | 共通のイベント属性を参照してください。 | NULL |
-| event\_attributes\_  parent\_campaign\_id | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
-| event\_attributes\_  parent\_flow\_id | character varying(256) | フロー ID。キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
-| event\_attributes\_  parent\_flow\_name | character varying(256) | フローの名前。キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
-| event\_attributes\_  platform | character varying(256) | 共通のイベント属性を参照してください。 | NULL |
-| event\_attributes\_  readable\_campaign\_id | character varying(256) | キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
-| event\_attributes\_  sdk\_version | character varying(256) | 共通のイベント属性を参照してください。 | NULL |
-| event\_attributes\_  timestamp | 次のいずれか:   - bigint - timestamp\_ntz | 共通のイベント属性を参照してください。 | NULL |
+| event\_attributes\_  logged\_in\_status | character varying(256) | 共通のイベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  parent\_campaign\_id | character varying(256) | キャンペーン関連イベントの共通イベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  parent\_flow\_id | character varying(256) | フロー ID。キャンペーン関連イベントの共通イベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  parent\_flow\_name | character varying(256) | フローの名前。キャンペーン関連イベントの共通イベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  platform | character varying(256) | 共通のイベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  readable\_campaign\_id | character varying(256) | キャンペーン関連イベントの共通イベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  sdk\_version | character varying(256) | 共通のイベントプロパティを参照してください。 | NULL |
+| event\_attributes\_  timestamp | 次のいずれか:   - bigint - timestamp\_ntz | 共通のイベントプロパティを参照してください。 | NULL |
 | event\_attributes\_  url | character varying(256) | アプリ内キャンペーンで表示フィルターが選択されている場合に追跡されます。 | NULL |
-| event\_attributes\_  variation\_id | character varying(256) | メッセージバリエーションの ID を表します。キャンペーン関連イベントの共通イベント属性を参照してください。 | NULL |
+| event\_attributes\_  variation\_id | character varying(256) | メッセージバリエーションの ID を表します。キャンペーン関連イベントの共通イベントプロパティを参照してください。 | NULL |
 | event\_code | character varying(256) | イベントコード、またはイベントの内部名。 | NOT NULL |
 | event\_name | character varying(256) | イベントの表示名。 | NOT NULL |
 | event\_source | character varying(256) | このイベントが取得されたソース。 | NOT NULL |
-| event\_time | 次のいずれか: <ul><li>bigint</li><li>timestamp\_ntz</li></ul> | イベントが取得されたときのエポックタイムスタンプ。 | NOT NULL |
+| event\_time | 次のいずれか: <ul><li>bigint</li><li>timestamp\_ntz</li></ul> | イベントが発生した時刻 (UTC)。これは Event Time であり、MoEngage がイベントを受信した時刻ではありません。詳細については、[Event Time と Received Time](/ja/user-guide/data/event-data/event-time-and-received-time) を参照してください。 | NOT NULL |
 | event\_type | character varying(256) | イベントのタイプ:   - ACQUISITION - CAMPAIGN\_ACTIVITY - LIFECYCLE - REACHABILITY - UNINSTALL - USER\_ACTION\_EVENT | NOT NULL |
 | event\_uuid | character varying(256) | 取得されたイベントの一意のコード。 | NOT NULL |
 | mobile\_number | character varying(256) | 受信者の携帯電話番号。この属性は、SMS 関連のキャンペーンイベントでのみ送信されます。 | NULL |
 | push\_id | character varying(256) | 受信者のデバイスのプッシュトークン。この属性は、プッシュ関連のキャンペーンイベントでのみ送信されます。 | NULL |
 | uid | character varying(256) | MoEngage でユーザーを一意に識別するための MoEngage customer\_id。 | NULL |
-| user\_attributes | 次のいずれか: <ul><li>super</li><li>variant</li></ul> | JSON オブジェクト形式のユーザー属性の辞書:  <br />JSON  <br />`{ `<br />`"attribute": "value", `<br />`"attribute": "value" `<br />`}` | NULL |
+| user\_attributes | 次のいずれか: <ul><li>super</li><li>variant</li></ul> | JSON オブジェクト形式のユーザープロパティの辞書:  <br />JSON  <br />`{ `<br />`"attribute": "value", `<br />`"attribute": "value" `<br />`}` | NULL |
 | user\_attributes\_  moengage\_user\_id | character varying(256) | ユーザーの MoEngage 内部 ID です。 | NULL |
 
 ### Google BigQuery (汎用)
@@ -280,24 +280,24 @@ JSON
 | event\_name | イベントの表示名。 |
 | event\_code | イベントコード、またはイベントの内部名。 |
 | event\_uuid | 取得されたイベントの一意のコード。 |
-| event\_time | イベントが取得されたときのエポックタイムスタンプ。 |
+| event\_time | イベントが発生した時刻 (秒単位の UTC エポックタイムスタンプ)。これは Event Time であり、MoEngage がイベントを受信した時刻ではありません。詳細については、[Event Time と Received Time](/ja/user-guide/data/event-data/event-time-and-received-time) を参照してください。 |
 | event\_type | イベントのタイプ: <ul><li>ACQUISITION</li><li>CAMPAIGN\_ACTIVITY</li><li>LIFECYCLE</li><li>REACHABILITY</li><li>UNINSTALL</li><li>USER\_ACTION\_EVENT</li></ul> |
 | event\_source | このイベントが取得されたソース。 |
 | push\_id | 受信者のデバイスのプッシュトークン。この属性は、PUSH 関連のキャンペーンイベントでのみ送信されます。 |
 | email\_id | 受信者のメール ID。この属性は、EMAIL 関連のキャンペーンイベントでのみ送信されます。 |
 | mobile\_number | 受信者の携帯電話番号。この属性は、SMS 関連のキャンペーンイベントでのみ送信されます。 |
 | uid | MoEngage でユーザーを一意に識別するための MoEngage customer\_id。 |
-| event\_attributes | 次の形式のイベント属性の辞書:  attribute\_name: value |
-| user\_attributes | 次の形式のユーザー属性の辞書:  attribute\_name: value |
+| event\_attributes | 次の形式のイベントプロパティの辞書:  attribute\_name: value |
+| user\_attributes | 次の形式のユーザープロパティの辞書:  attribute\_name: value |
 | device\_attributes | 次の形式のデバイス属性の辞書:  attribute\_name: value |
 
-#### **イベント属性オブジェクト**
+#### **イベントプロパティオブジェクト**
 
-イベント属性は、エクスポートされるイベントによって異なる場合があります。どの属性がエクスポートされるかについては、以下のイベント定義を参照してください。
+イベントプロパティは、エクスポートされるイベントによって異なる場合があります。どの属性がエクスポートされるかについては、以下のイベント定義を参照してください。
 
-#### **ユーザー属性オブジェクト**
+#### **ユーザープロパティオブジェクト**
 
-ユーザー属性は、設定によって異なる場合があります。どの属性がエクスポートされるかについては、以下のユーザープロパティの定義を参照してください。
+ユーザープロパティは、設定によって異なる場合があります。どの属性がエクスポートされるかについては、以下のユーザープロパティの定義を参照してください。
 
 - moengage\_user\_id - この属性は常にエクスポートされます。これはユーザーの MoEngage 内部 ID です。
 
@@ -331,7 +331,7 @@ _sftp://\<your\_host\_name\>/\[\<folder\_path\>/\]\<connection\_name\>/export\_d
 
 MoEngage が追跡するすべての属性は moe\_ で始まります。
 
-## ユーザー属性
+## ユーザープロパティ
 
 <Tabs>
   <Tab title="ライフサイクル">
@@ -401,7 +401,7 @@ MoEngage が追跡するすべての属性は moe\_ で始まります。
 
 ## デバイス属性
 
-これらは、ユーザーのデバイスデータから導出されるプロパティです。これらの属性は、エクスポートではユーザー属性の下に表示される点に注意してください。
+これらは、ユーザーのデバイスデータから導出されるプロパティです。これらの属性は、エクスポートではユーザープロパティの下に表示される点に注意してください。
 
 <Tabs>
   <Tab title="iOS">
@@ -444,7 +444,7 @@ MoEngage が追跡するすべての属性は moe\_ で始まります。
 
 MoEngage は、デフォルトでいくつかの標準イベントを追跡します。
 
-### 共通イベント属性
+### 共通イベントプロパティ
 
 これらの属性は、MoEngage が標準イベントを取得するときに自動的に追跡されます。
 
@@ -491,7 +491,7 @@ MoEngage は、デフォルトでいくつかの標準イベントを追跡し�
     | **イベント名** | **イベントコード** | **説明** | **プラットフォーム** |
     | --- | --- | --- | --- |
     | App/Site Opened | MOE\_APP\_OPENED | アプリまたはウェブサイトでユーザーセッションが開始されたときに追跡されます。また、ユーザーの Last Active Time と App/Site Open Time の時間差が 30 分を超える場合にのみ追跡されます。 | Android, iOS, Web |
-    | Viewed Web Page | MOE\_PAGE\_VIEWED | ユーザーがウェブページを訪問したときに追跡されます。イベント属性としてページ URL を選択すると、特定のページを訪問したユーザー数を確認したり、Drop-off capture" イベントトリガー型ウェブプッシュを設定したりできます。 | Web |
+    | Viewed Web Page | MOE\_PAGE\_VIEWED | ユーザーがウェブページを訪問したときに追跡されます。イベントプロパティとしてページ URL を選択すると、特定のページを訪問したユーザー数を確認したり、Drop-off capture" イベントトリガー型ウェブプッシュを設定したりできます。 | Web |
     | App Exit | MOE\_APP\_EXIT | アプリがバックグラウンドに移行するたびに追跡されます。 | Android, iOS |
     | User Logout | MOE\_LOGOUT | ユーザーがアプリ/サイトからログアウトしたとき、またはユーザーがリセットされたときに追跡されます。 | Android, iOS, Web |
     | Push ID Register Android | TOKEN\_EVENT | MoEngage システムが Android デバイスのプッシュ ID を登録したときに追跡されます。属性 registered\_by にステータスが含まれます。 | Android |
@@ -598,7 +598,7 @@ MoEngage は、デフォルトでいくつかの標準イベントを追跡し�
 
 ## ユーザー定義 (カスタム) イベント
 
-### 共通イベント属性
+### 共通イベントプロパティ
 
 これらの属性は、カスタム/ユーザー定義イベントを追跡するときに自動的に追跡されます。
 

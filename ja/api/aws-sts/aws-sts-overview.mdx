@@ -1,0 +1,311 @@
+---
+title: "AWS STS Auth"
+description: "AWS IAM ロールを使用して MoEngage Public API に認証します。AWS STS Auth キーを作成し、GetCallerIdentity リクエストに署名して、署名済みのヘッダーを API 呼び出しで送信します。"
+keywords: ["AWS STS Auth", "AWS IAM role", "GetCallerIdentity", "Signature Version 4", "SigV4", "assumed-role ARN", "MOE-APPKEY", "MOE-APPSECRET", "X-Amz-Date", "X-Amz-Security-Token", "regional STS host", "API authentication", "role session name", "botocore SigV4Auth"]
+---
+
+AWS STS Auth は、MoEngage Public API の認証方法の 1 つです。アプリケーションは、すでに実行に使用している AWS IAM ロールの一時的な認証情報で各リクエストに署名し、MoEngage は AWS で署名を確認して、どのロールがリクエストを送信したかを確認します。有効期間の長い AWS 認証情報をコードに保存する必要はありません。
+
+AWS STS Auth は、Basic Auth および OAuth 2.0 と並ぶ 3 つの認証方法の 1 つです。既存のキーと併用できます。
+
+## 認証フロー
+
+| ステージ | アクション | リファレンス |
+| --- | --- | --- |
+| 1. キーを作成する | **Authentication type** を **AWS STS Auth** に設定して API キーを作成し、そのキーを使用できる assumed-role ARN を許可リストに登録します。 | [ステップ 1: AWS STS Auth API キーを作成する](#step-1-create-an-aws-sts-auth-api-key) |
+| 2. リクエストに署名する | AWS STS の `GetCallerIdentity` リクエストに `MOE-APPKEY` と `MOE-APPSECRET` を追加し、ロールの一時的な認証情報でリクエストに署名します。 | [ステップ 2: GetCallerIdentity リクエストに署名する](#step-2-sign-a-getcalleridentity-request) |
+| 3. API を呼び出す | 生成された 5 つのヘッダーを MoEngage Public API リクエストで送信します。 | [ステップ 3: MoEngage Public API を呼び出す](#step-3-call-the-moengage-public-apis) |
+| 4. MoEngage が検証する | MoEngage は署名済みのリクエストを AWS STS に対して再実行し、解決された ARN をキーの ARN と照合して、`MOE-APPSECRET` を検証します。 | [トラブルシューティング](#troubleshooting) |
+
+アプリケーションが `GetCallerIdentity` リクエストを AWS に送信することはありません。署名を検証するために AWS STS を呼び出すのは MoEngage だけです。
+
+各 MoEngage API リクエストには、次の 5 つのヘッダーが含まれます。
+
+| ヘッダー | 取得元 |
+| --- | --- |
+| `MOE-APPKEY` | API キーダッシュボードに表示される Workspace ID。 |
+| `MOE-APPSECRET` | MoEngage が AWS STS Auth キー用に生成するシークレット。 |
+| `Authorization` | AWS SDK の署名機能によって生成される Signature Version 4 ヘッダー。 |
+| `X-Amz-Date` | AWS SDK の署名機能によって生成される署名タイムスタンプ。 |
+| `X-Amz-Security-Token` | ロールの一時的な認証情報のセッショントークン。 |
+
+## 前提条件
+
+- アプリケーションが、Amazon EC2 インスタンスプロファイル、Amazon ECS タスクロール、AWS Lambda 実行ロール、AWS STS を通じて引き受けたロールなどの AWS IAM **ロール**で実行されていること。永続的な IAM ユーザーの認証情報はサポートされていません。
+- アプリケーションが、Signature Version 4 署名を提供する AWS SDK を使用していること。この記事の例では、Python の `botocore` ライブラリを使用しています。
+- API キーを作成する権限を持ち、**Settings** \> **Account** \> **API keys** にアクセスできること。
+- ワークスペースをホストしているデータセンターを特定していること。[データセンター](/ja/api/introduction#data-centers)を参照してください。
+
+## リージョンごとの AWS STS ホスト
+
+MoEngage のデータセンターに対応する AWS STS ホストに対して署名してください。自社のインフラストラクチャが実行されているリージョンは関係ありません。MoEngage は同じホストに対して検証するため、他のホストに対して生成された署名は失敗します。これには、グローバルな `sts.amazonaws.com` エンドポイントに対して生成された署名も含まれます。
+
+| MoEngage データセンター | AWS リージョン | 署名対象の STS ホスト |
+| --- | --- | --- |
+| DC-01 | us-east-1 (バージニア北部) | `sts.us-east-1.amazonaws.com` |
+| DC-02 | eu-central-1 (フランクフルト) | `sts.eu-central-1.amazonaws.com` |
+| DC-03 | ap-south-1 (ムンバイ) | `sts.ap-south-1.amazonaws.com` |
+| DC-04 | us-east-2 (オハイオ) | `sts.us-east-2.amazonaws.com` |
+| DC-05 | ap-southeast-1 (シンガポール) | `sts.ap-southeast-1.amazonaws.com` |
+| DC-06 | ap-southeast-3 (ジャカルタ) | `sts.ap-southeast-3.amazonaws.com` |
+| DC-101 | us-west-2 (オレゴン) | `sts.us-west-2.amazonaws.com` |
+
+<Note>
+  DC-06 に対応する `ap-southeast-3` は、AWS のオプトインリージョンです。そのホストに対して署名する前に、AWS アカウントの **Account** \> **AWS Regions** で有効にしてください。これは MoEngage が管理しない AWS アカウントの設定です。
+</Note>
+
+## ステップ 1: AWS STS Auth API キーを作成する
+
+<Steps>
+  <Step title="API Keys ページを開く">
+    **Settings** \> **Account** \> **API keys** に移動します。
+  </Step>
+
+  <Step title="Create New Key ダイアログを開く">
+    **+ Create new key** をクリックします。
+  </Step>
+
+  <Step title="キー名を入力する">
+    **Key name** ボックスに、わかりやすい名前 (例: `orders-integration`) を入力します。
+  </Step>
+
+  <Step title="認証タイプを選択する">
+    **Authentication type** で **AWS STS Auth** を選択します。
+  </Step>
+
+  <Step title="有効期限を設定する">
+    **Expiry time (in minutes)** ボックスに、MoEngage が検証済みの署名を信頼する期間を入力します。範囲は 5～15 分で、デフォルトは 15 分です。この設定は、MoEngage が最初に検証する時点で許容される署名の古さには影響しません。これは AWS の有効期間ウィンドウによって決まります。
+  </Step>
+
+  <Step title="ロール ARN を追加する">
+    **ARN** ボックスに、アプリケーションが署名に使用する assumed-role ARN を入力します。ARN を追加するには **+ Add value** をクリックします (最大 10 件)。キーに登録されたすべての ARN に、そのキーの API アクセスが付与されます。形式、ワイルドカードのルール、検証については、[Add Role ARNs](/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard#add-role-arns) を参照してください。
+  </Step>
+
+  <Step title="API アクセスを選択する">
+    **Select APIs for access** で、キーが呼び出す API グループを選択します。
+  </Step>
+
+  <Step title="キーを保存する">
+    **Create key** をクリックします。MoEngage がキーの `MOE-APPSECRET` の値を生成します。
+  </Step>
+
+  <Step title="MOE-APPSECRET の値を取得する">
+    **API Keys** ページで、キーの <Icon icon="ellipsis-stroke-vertical" /> をクリックし、**View key details** を選択します。詳細パネルに `MOE-APPSECRET` の値が表示されます。この値は作成後も引き続き確認できます。
+  </Step>
+</Steps>
+
+<Note>
+  AWS STS Auth キーは、すべての **Data APIs** スコープ、**Channel Configuration** \> **Setup & Manage**、**Personalize** \> **View** にアクセスできます。すべての Campaigns スコープを含むその他のスコープには、Basic Auth キーまたは OAuth 2.0 キーが必要です。[Scopes Available to AWS STS Auth](/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard#scopes-available-to-aws-sts-auth) を参照してください。
+</Note>
+
+### 認証情報の取り扱い
+
+- `MOE-APPKEY` には Workspace ID が格納されます。この値は秘密情報ではなく、すべてのリクエストに含める必要があります。
+- `MOE-APPSECRET` は 1 つのキーに固有です。パスワードとして扱い、シークレットマネージャーに保存して、ソース管理に含めないでください。
+- `MOE-APPSECRET` は、リクエストを 1 つの MoEngage キーとその API アクセスに結び付けます。AWS ロールはチームや環境間で共有されることが多いため、AWS の署名だけでは対象のキーを特定できません。
+- `MOE-APPSECRET` は、リクエストに署名する AWS 認証情報とは異なり、有効期限がなく、自動でローテーションされることもありません。
+- `MOE-APPSECRET` は作成後も取得できます。キーの <Icon icon="ellipsis-stroke-vertical" /> メニューから **View key details** を選択すると、値が再度表示されます。
+- シークレットをローテーションするには、API キーダッシュボードで **Regenerate key** を使用します。再生成はキーのロール ARN や API アクセスには影響せず、以前のシークレットは直ちに使用できなくなります。
+
+## ステップ 2: GetCallerIdentity リクエストに署名する
+
+次の AWS STS リクエストを作成して署名します。送信はしないでください。MoEngage は署名を検証するために同じリクエストを AWS STS に対して再実行するため、すべての部分が正確に一致している必要があります。
+
+| 部分 | 値 | 注記 |
+| --- | --- | --- |
+| メソッド | `POST` | |
+| URL | `https://sts.{region}.amazonaws.com/` | データセンターに対応するリージョンを使用します。[リージョンごとの AWS STS ホスト](#regional-aws-sts-hosts)を参照してください。 |
+| ボディ | `Action=GetCallerIdentity&Version=2011-06-15` | 固定値です。これらは AWS STS のパラメーターなので、表示されているとおりに正確に送信してください。 |
+| `MOE-APPKEY` ヘッダー | Workspace ID | 署名する前に追加します。署名後に追加したヘッダーは署名の対象外となり、リクエストは失敗します。 |
+| `MOE-APPSECRET` ヘッダー | AWS STS Auth キーのシークレット | 署名する前に追加します。 |
+| `Content-Type` ヘッダー | 省略します | 値を指定すると署名に含まれ、不一致の原因になります。 |
+
+このリクエストの AWS での定義については、AWS STS API リファレンスの [GetCallerIdentity](https://docs.aws.amazon.com/STS/latest/APIReference/API_GetCallerIdentity.html) を参照してください。
+
+リクエストへの署名には AWS SDK を使用してください。cURL などのコマンドラインクライアントは署名と送信を 1 回の操作で行うため、再利用可能な署名済みヘッダーを生成できません。次の例では Python の `botocore` を使用しています。使用する言語の AWS SDK に置き換えてください。
+
+```python Sign a GetCallerIdentity Request
+import boto3
+from botocore.awsrequest import AWSRequest
+from botocore.auth import SigV4Auth
+
+# boto3 reads your role's temporary credentials from the Amazon EC2 instance
+# profile, Amazon ECS task role, or AWS Lambda execution role automatically.
+session = boto3.Session()
+credentials = session.get_credentials().get_frozen_credentials()
+
+region = "ap-south-1"  # AWS region for your MoEngage data center
+moe_app_key = "YOUR_WORKSPACE_ID"
+moe_app_secret = "YOUR_MOE_APPSECRET"
+
+request = AWSRequest(
+    method="POST",
+    url=f"https://sts.{region}.amazonaws.com/",
+    data="Action=GetCallerIdentity&Version=2011-06-15",
+    headers={
+        "MOE-APPKEY": moe_app_key,        # Added before signing
+        "MOE-APPSECRET": moe_app_secret,  # Added before signing
+        # Content-Type intentionally omitted
+    },
+)
+
+SigV4Auth(credentials, "sts", region).add_auth(request)
+prepared = request.prepare()
+```
+
+署名により、`prepared.headers` に `Authorization`、`X-Amz-Date`、`X-Amz-Security-Token` が追加されます。
+
+## ステップ 3: MoEngage Public API を呼び出す
+
+署名済みのヘッダーを MoEngage Public API リクエストで送信します。AWS STS Auth には、MoEngage の個別の認証エンドポイントはありません。
+
+```bash Call an API With the Signed Headers
+curl --request POST \
+  --url https://api-{dc}.moengage.com/v1/customer/YOUR_WORKSPACE_ID \
+  --header 'Authorization: AWS4-HMAC-SHA256 Credential=YOUR_SIGNED_CREDENTIAL, SignedHeaders=host;moe-appkey;moe-appsecret;x-amz-date;x-amz-security-token, Signature=YOUR_CALCULATED_SIGNATURE' \
+  --header 'MOE-APPKEY: YOUR_WORKSPACE_ID' \
+  --header 'MOE-APPSECRET: YOUR_MOE_APPSECRET' \
+  --header 'X-Amz-Date: YOUR_SIGNING_TIMESTAMP' \
+  --header 'X-Amz-Security-Token: YOUR_SESSION_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{ "type": "customer", "customer_id": "user_12345" }'
+```
+
+- `{dc}` をデータセンター番号に置き換え、各プレースホルダーを [ステップ 2](#step-2-sign-a-getcalleridentity-request) で生成された値に置き換えてください。
+- `Content-Type` は、MoEngage の呼び出しでは必須ですが、署名済みの `GetCallerIdentity` リクエストでは指定できません。
+- 呼び出し可能なエンドポイントについては、[API ドキュメント](/ja/api/introduction)を参照してください。リクエスト制限とペイロードの上限については、[Rate Limits](/ja/api/rate-limits#authentication) を参照してください。
+
+### 認証エラー
+
+認証されたリクエストは、エンドポイントが通常返すレスポンスを返します。MoEngage が認証できないリクエストは `401 Unauthorized` を返します。失敗したリクエストから設定のどの部分が間違っているかがわからないように、具体的な原因ではなく汎用的なメッセージが返されます。[トラブルシューティング](#troubleshooting)を参照してください。
+
+## トラブルシューティング
+
+リクエストで `401 Unauthorized` が返された場合は、次の項目を順番に確認してください。
+
+| # | 確認項目 | 期待される状態 |
+| --- | --- | --- |
+| 1 | 認証情報のタイプ | 引き受けたロールの一時的な認証情報であること。永続的な IAM ユーザーの認証情報では失敗します。 |
+| 2 | STS ホスト | データセンターに対応するリージョンのホストであること。グローバルな `sts.amazonaws.com` エンドポイントでは失敗します。 |
+| 3 | 署名済みヘッダー | `MOE-APPKEY` と `MOE-APPSECRET` が署名前に追加されていること。 |
+| 4 | `Content-Type` | 署名済みリクエストに含まれていないこと。値を指定すると署名の不一致が発生します。 |
+| 5 | 解決された ARN | キーの許可リストに登録されており、セッション名が含まれているか、ワイルドカードでカバーされていること。[MoEngage が解決する ARN を確認する](#find-the-arn-that-moengage-resolves)を参照してください。 |
+| 6 | 署名の経過時間 | AWS の有効期間ウィンドウ内であること。署名と送信は同じ操作で行ってください。 |
+| 7 | 認証ヘッダー | 1 つのリクエストにつき 1 つの方法のみであること。`Authorization: Basic` ヘッダーが残っていると失敗します。 |
+| 8 | AWS リージョン (DC-06 のみ) | AWS アカウントで `ap-southeast-3` が有効になっていること。[リージョンごとの AWS STS ホスト](#regional-aws-sts-hosts)を参照してください。 |
+
+それでもリクエストが失敗する場合は、失敗したリクエストのおおよそのタイムスタンプを添えて MoEngage サポートにお問い合わせください。
+
+### MoEngage が解決する ARN を確認する
+
+MoEngage がリクエストを検証すると、AWS STS は、ロールセッション名を含む、リクエストに署名したロールの ARN を返します。MoEngage はその ARN をキーの ARN と比較します。この AWS レスポンスがアプリケーションに返されることはありません。
+
+同じ ARN を確認するには、Amazon EC2 インスタンスや Amazon ECS タスクなど、アプリケーションが実行されている環境で次の AWS CLI コマンドを実行します。AWS Lambda では、代わりに `boto3` の STS クライアントで `get_caller_identity()` を呼び出します。
+
+```bash Show the Resolved ARN
+aws sts get-caller-identity
+```
+
+```json Example Output
+{
+    "UserId": "AROAEXAMPLEUSERID:data-pipeline-prod",
+    "Account": "123456789012",
+    "Arn": "arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole/data-pipeline-prod"
+}
+```
+
+`Arn` の値をキーに追加します。セッション名がインスタンスや呼び出しごとに変わる場合は、[ロール ARN のワイルドカード](#wildcards-in-role-arns)の説明に従って、`*` に置き換えてください。
+
+### ロール ARN のワイルドカード
+
+AWS が解決する ARN には、Amazon EC2 インスタンス ID、Amazon ECS タスク ID、AWS Lambda リクエスト ID などのロールセッション名が含まれます。この値はインスタンスや呼び出しごとに変わりますが、MoEngage は ARN を完全一致で照合します。また、セッション名は必須であるため、ロール名で終わるエントリは **Invalid format** として拒否されます。
+
+範囲を広げたいセグメントの末尾に `*` を配置します。
+
+| 目的 | エントリ |
+| --- | --- |
+| 1 つのロールのすべてのセッションに一致させる | `arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole/*` |
+| 名前のプレフィックスが共通するすべてのロールに一致させる | `arn:aws:sts::123456789012:assumed-role/MoEngageIngestionRole-*` |
+
+すべてのワイルドカードエントリには、次の 2 つのルールが適用されます。
+
+- 1 つのエントリで使用できる `*` は 1 つだけで、最後の文字としてのみ使用できます。`assumed-role/My*Role` や、ワイルドカードを 2 つ含むエントリは無効です。
+- ロール名には、ワイルドカードの前に少なくとも 1 文字が含まれている必要があります。そのため、`assumed-role/*` は無効です。
+
+検証の完全な一覧については、[Add Role ARNs](/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard#add-role-arns) を参照してください。
+
+<Warning>
+  ワイルドカードを使用すると、一致するすべての ARN にキーの完全な API アクセスが付与されます。一致するすべてのロールまたはセッションに同じアクセスが必要な場合にのみ使用してください。
+</Warning>
+
+## 推奨されるプラクティス
+
+- 本番トラフィックをルーティングする前に、ステージング用のロール ARN を登録したステージング専用キーで検証してください。
+- 移行期間中は、Basic Auth または OAuth 2.0 の認証情報を有効なままにしてください。切り替え作業は必要ありません。
+- 署名と送信は同じ操作で行ってください。署名をキャッシュしないでください。
+- `MOE-APPSECRET` はシークレットマネージャーに保存し、クライアントサイドのコードに含めないでください。
+- ロールごとに必要な API アクセスのレベルが異なる場合は、別々のキーを作成してください。
+
+## 連携チェックリスト
+
+- アプリケーションが、引き受けたロールの一時的な認証情報で署名している。
+- STS ホストが MoEngage のデータセンターと一致している。
+- `MOE-APPKEY` と `MOE-APPSECRET` が署名前に追加されている。
+- 署名済みリクエストに `Content-Type` ヘッダーが含まれていない。
+- 実行時に解決される ARN が、正確なセッション名または `*` ワイルドカードでキーに登録されている。
+- キーに、連携に必要な API アクセスが設定されている。
+- `MOE-APPSECRET` がシークレットマネージャーに保存されている。
+- 署名済みのヘッダーを使用した MoEngage Public API の呼び出しが成功する。
+- 追加の認証ヘッダーが含まれていない。
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="1 つの MoEngage キーで複数の AWS ロールを承認できますか?">
+    はい。1 つのキーに、異なる AWS アカウントのロールを含め、最大 10 件のロール ARN を追加できます。キーに登録されたすべての ARN は、そのキーの API アクセスを共有します。ロールごとに異なるアクセスが必要な場合は、別々のキーを作成してください。
+  </Accordion>
+
+  <Accordion title="正しいロールが許可リストに登録されているのに、リクエストが拒否されるのはなぜですか?">
+    解決された ARN には、インスタンスや呼び出しごとに変わるロールセッション名が含まれており、照合は完全一致で行われます。[ロール ARN のワイルドカード](#wildcards-in-role-arns)を参照してください。
+  </Accordion>
+
+  <Accordion title="キーの作成後、MOE-APPSECRET はどこで確認できますか?">
+    **API Keys** ページで、キーの <Icon icon="ellipsis-stroke-vertical" /> をクリックし、**View key details** を選択します。この値は作成後も引き続き確認できます。
+  </Accordion>
+
+  <Accordion title="ダウンタイムなしで MOE-APPSECRET をローテーションできますか?">
+    再生成は直ちに有効になるため、新しいシークレットが発行されるとすぐに以前のシークレットは使用できなくなります。通常の認証情報のローテーションと同様に、展開を計画してください。
+  </Accordion>
+
+  <Accordion title="AWS STS Auth は Basic Auth や OAuth 2.0 に代わるものですか?">
+    いいえ。3 つの方法はそれぞれ独立して動作し、並行して使用できます。
+  </Accordion>
+
+  <Accordion title="キーの変更はいつ有効になりますか?">
+    直ちに有効になります。ロール ARN の追加や削除、API アクセスの変更、シークレットの再生成、キーのアーカイブは、待機時間なしで適用されます。
+  </Accordion>
+</AccordionGroup>
+
+## 関連記事
+
+<CardGroup cols={2}>
+  <Card title="API Key Dashboard" icon="table-list" href="/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard#aws-sts-auth">
+    AWS STS Auth キーの作成、ロール ARN の許可リストへの登録、キーの再生成やアーカイブを行います。
+  </Card>
+
+  <Card title="OAuth 2.0 の概要" icon="key" href="/ja/api/oauth/oauth-overview">
+    有効期間の短い OAuth 2.0 アクセストークンを使用して認証します。
+  </Card>
+
+  <Card title="Rate Limits" icon="gauge" href="/ja/api/rate-limits#authentication">
+    呼び出すエンドポイントに適用されるリクエスト制限とペイロードの上限を確認します。
+  </Card>
+</CardGroup>
+
+## サポートへのお問い合わせ
+
+Workspace ID、呼び出したエンドポイント、HTTP ステータス、失敗したリクエストのおおよそのタイムスタンプを添えて、MoEngage サポートにお問い合わせください。チケットを作成するには、[Raise a Support Ticket](/ja/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard) を参照してください。
+
+<Warning>
+  サポートリクエストに `MOE-APPSECRET`、AWS 認証情報、署名済みの `Authorization` ヘッダーを含めないでください。
+</Warning>

@@ -1,0 +1,152 @@
+---
+title: "LiveIntent"
+description: "メールリンクに LiveConnect パラメーターを追加し、メールテンプレートに LiveIntent の広告タグを配置することで、LiveIntent を使用して MoEngage のメールニュースレターを収益化します。"
+keywords: ["LiveIntent", "LiveConnect", "lctg", "SafeRTB", "LiveTag", "email monetization", "newsletter ads"]
+---
+
+## はじめに
+
+[LiveIntent](https://www.liveintent.com/) は、パブリッシャー向けにメールの収益化とアイデンティティのソリューションを提供しています。LiveIntent を使用すると、ニュースレター内に広告を配信し、ニュースレターの購読者を Web サイトの訪問者と結び付けることができるため、オーディエンスへのリーチ性が高まります。
+
+LiveIntent と MoEngage の統合により、LiveIntent が認識して収益化できるニュースレターを MoEngage から送信できます。メール内のリンクに LiveIntent の識別子を追加し、メールテンプレートに LiveIntent の広告タグを配置します。
+
+## 対象範囲
+
+この統合は **Email** チャネルのみをサポートしています。統合は次の 2 つの部分で構成されます。
+
+| 機能 | 内容 | 使用する MoEngage のコンポーネント |
+| - | - | - |
+| LiveConnect Email Extension | Web サイトを指すすべてのリンクに一意の識別子 (`lctg` パラメーター) を追加し、LiveIntent がメールのクリックと Web サイトへの訪問を結び付けられるようにします。 | UTM パラメーターまたはメールテンプレートの HTML、Jinja パーソナライズ |
+| LiveIntent の広告タグ (SafeRTB と LiveTag) | ニュースレターの広告枠に LiveIntent の広告を配信します。 | メールテンプレートの HTML |
+
+## メリットとユースケース
+
+LiveIntent と MoEngage の統合により、次のことが可能になります。
+
+- MoEngage で作成して送信するメールテンプレートに LiveIntent のディスプレイ広告やネイティブ広告を配信し、ニュースレターを収益化する。
+- リンクと広告タグ全体で 1 つの識別子を使用し、ニュースレターのクリックを Web サイトへの訪問と結び付ける。
+- 広告配信を LiveIntent に任せながら、ニュースレターの作成、パーソナライズ、配信は MoEngage で継続して行う。
+
+## 統合
+
+<Info>
+  **前提条件**
+
+  * LiveIntent アカウントと、LiveIntent のアカウントマネージャーの連絡先。
+  * Web サイトのページに LiveConnect タグが配置されていること。手順については、LiveIntent の Web サイト実装ガイダンスを参照するか、LiveIntent のアカウントマネージャーにお問い合わせください。
+  * MoEngage のメールテンプレートの HTML を編集する権限。
+</Info>
+
+`lctg` 識別子は、メールリンクと広告タグを結び付けます。すべてのメールリンクとすべての LiveIntent タグで同じ識別子を使用し、同じニュースレター内で異なる種類の識別子を混在させないでください。
+
+### パート 1: LiveConnect Email Extension を追加する
+
+#### ステップ 1: 識別子を選択する
+
+`lctg` で送信する識別子は、Web サイトでの LiveConnect タグの設定方法によって異なります。LiveIntent は次の識別子をサポートしています。
+
+| オプション | `lctg` で送信する識別子 | 使用するケース |
+| - | - | - |
+| ハッシュ化されたメールアドレス (最も一般的) | `li.` の後にユーザーの小文字のメールアドレスを続けた文字列の MD5 ハッシュ | Web サイトでメールアドレスによって訪問者を識別している場合に、このオプションを使用します。 |
+| MoEngage ID | ユーザーの MoEngage ID | Web サイトで MoEngage ID によって訪問者を識別している場合に、このオプションを使用します。 |
+
+次のコードは、各オプションの MoEngage の式を示しています。
+
+<CodeGroup>
+  ```jinja Hashed Email (Most Common)
+  {{ ('li.' ~ (UserAttribute['Email (Standard)'] | lower)) | md5 }}
+  ```
+
+  ```jinja MoEngage ID
+  {{UserAttribute['moengage_user_id']}}
+  ```
+</CodeGroup>
+
+ハッシュ化されたメールアドレスの場合、値は `md5('li.' + lowercase_email)` である必要があります。このガイドの以降の部分では、選択した式を **識別子の式** と呼びます。
+
+#### ステップ 2: リンクに lctg パラメーターを追加する
+
+Web サイトを指すすべてのリンクに、識別子の式を値とする `lctg` パラメーターを追加します。次のいずれかの方法で追加できます。
+
+* **カスタム UTM パラメーターを使用して自動的に追加する:** MoEngage で、識別子の式を値とする `lctg` という名前のカスタム UTM パラメーターを作成します。MoEngage がキャンペーン内のリンクにこのパラメーターを付加します。手順については、[カスタム UTM パラメーターを作成する](/ja/user-guide/settings/advanced-settings/configure-general-utm-parameters-at-account-level#create-a-custom-utm-parameter)を参照してください。
+* **各リンクに手動で追加する:** メールテンプレートの HTML で、クエリ文字列を持たないリンクには `?lctg=` に続けて識別子の式を付加し、すでにクエリ文字列を持つリンクには `&lctg=` を付加します。
+
+次の例は、両方の種類のリンクに手動で追加する方法を示しています。
+
+```html
+<a href="https://www.example.com/article-1?lctg={{UserAttribute['moengage_user_id']}}">Read the article</a>
+<a href="https://www.example.com/article-2?utm_source=newsletter&lctg={{UserAttribute['moengage_user_id']}}">Read the article</a>
+```
+
+<Warning>
+  識別子の式は、示されているとおりに正確に挿入してください。パーソナライズトークンや、トークンを含む `href` を URL エンコードしないでください。URL エンコードを行うと `{{` 区切り文字が置き換えられ、キャンペーンの保存時または送信時に Jinja の解析エラーが発生します。
+</Warning>
+
+#### ステップ 3: 拡張機能を検証する
+
+拡張機能を検証するには、次の手順を実行します。
+
+1. LiveIntent のアカウントマネージャーから提供された検証用アドレスに、MoEngage からテストメールを送信します。
+2. 設定が完了したことを LiveIntent のアカウントマネージャーに通知するか、見つかった問題を報告します。
+
+### パート 2: LiveIntent の広告タグを追加する
+
+LiveIntent の広告タグは、LiveIntent が提供する小さな HTML スニペットです。メールテンプレートに一度配置すれば、送信のたびに変更する必要はありません。
+
+#### ステップ 4: メールテンプレートにタグを配置する
+
+メールテンプレートにタグを配置するには、次の手順を実行します。
+
+1. 収益化するメールキャンペーンまたはテンプレートを開き、その HTML エディターを開きます。
+2. LiveIntent から提供された **SafeRTB** タグを、テンプレートの HTML の上部付近に貼り付けます。
+3. 広告を表示する位置に **LiveTag** を貼り付けます。広告枠ごとに 1 つの LiveTag を追加します。
+4. LiveIntent から提供されたメディアクエリをテンプレートの HTML の `head` セクションに追加し、メディアクエリで指定を求められる箇所にはテンプレートのモバイル幅を使用します。
+
+広告枠をいくつ追加しても、SafeRTB タグはテンプレートごとに 1 つだけ必要です。HTML の上部に配置すると、Gmail でメッセージが切り詰められるのを防ぐのに役立ちます。すべての SafeRTB タグ、LiveTag の画像 URL、リンクに `lctg` パラメーターが含まれていることを確認してください。エディターで `head` セクションにアクセスできない場合は、LiveIntent のアカウントマネージャーにお問い合わせください。
+
+<Note>
+  インプレッションに対して配信可能な広告がない場合、LiveTag は高さ 1 ピクセルに縮小され、読者には表示されません。
+</Note>
+
+#### ステップ 5: タグを有効化する
+
+タグを有効化するには、次の手順を実行します。
+
+1. テンプレートを使用するキャンペーンを作成し、LiveIntent のアカウントマネージャーから提供された有効化用アドレスを含むオーディエンスに送信します。
+2. LiveIntent のアカウントマネージャーに通知します。LiveIntent がタグを確認し、広告枠を有効化します。
+
+<Note>
+  有効化用のメールは、MoEngage から実際のキャンペーンとして送信してください。メールを転送したり、プレビューやテスト送信を有効化に使用したりしないでください。
+</Note>
+
+### 統合を確認する
+
+本番運用を開始する前に、次の点を確認してください。
+
+* テンプレート内の Web サイトへのすべてのリンクに、識別子の式を含む `lctg` が含まれていること。
+* すべての SafeRTB タグと LiveTag に同じ `lctg` パラメーターが含まれていること。
+* LiveIntent が `lctg` の設定を確認し、広告枠を有効化していること。
+
+## トラブルシューティングと FAQ
+
+<AccordionGroup>
+  <Accordion title="どの識別子を使用すればよいですか？">
+    Web サイトで LiveConnect タグが訪問者を識別する方法に一致する識別子を使用してください。最も一般的なのはハッシュ化されたメールアドレスです。リンクとタグ全体で 1 つの識別子を一貫して使用してください。
+  </Accordion>
+
+  <Accordion title="識別子の式を追加した後、MoEngage からメールが送信されませんでした。">
+    パーソナライズトークンが null 値に解決されると、MoEngage はメッセージを送信しません。式で使用している属性が、オーディエンス内のユーザーに存在することを確認してください。
+  </Accordion>
+
+  <Accordion title="テンプレートを保存すると Jinja の解析エラーが発生します。">
+    テンプレートに URL エンコードされたパーソナライズトークンが含まれている可能性があります。HTML にはトークンをエンコードせずに挿入してください。トークンや、トークンを含むリンクを URL エンコードしないでください。
+  </Accordion>
+
+  <Accordion title="広告枠に広告が表示されません。">
+    配信可能な広告がない場合、LiveTag は 1 ピクセルに縮小されます。広告枠で広告がまったく配信されない場合は、LiveIntent のアカウントマネージャーに連絡して広告枠が有効になっていることを確認し、SafeRTB タグと LiveTag に `lctg` パラメーターが含まれていることを確認してください。
+  </Accordion>
+</AccordionGroup>
+
+## サポート
+
+MoEngage のテンプレート、パーソナライズ、UTM パラメーターに関するご質問は、MoEngage の CSM またはサポートチームにお問い合わせください。LiveIntent のアカウント、タグ、検証に関するご質問は、LiveIntent のアカウントマネージャーにお問い合わせください。

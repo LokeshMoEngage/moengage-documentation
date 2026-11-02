@@ -5,6 +5,7 @@ icon: "gift"
 ---
 
 import ApiAuthentication from '/ja/snippets/api-authentication.mdx';
+import ApiIpWhitelisting from '/ja/snippets/api-ip-whitelisting.mdx';
 
 MoEngage Offerings API を使用すると、オファリングを管理できます。期間限定のプロモーションやパーソナライズされたコンテンツの作成、既存のオファリングのスケジュールやターゲティングの更新、レポートやオーケストレーションのワークフロー向けのオファリングの一覧表示、オファリングコンテンツで使用可能なパーソナライズテンプレートの一覧表示を行うことができます。
 
@@ -29,13 +30,11 @@ MoEngage Offerings API を使用すると、オファリングを管理できま
 Offerings API は、次のエンドポイントで構成されています。
 
 - [List Offerings](/ja/api/public-offerings/list-offerings): ID、名前、ステータス、タグ、日付範囲、作成者によるフィルタリングを使用して、ページ分割されたオファリングの一覧を返します。
+- [Get Offering](/ja/api/public-offerings/get-offering): ID を指定して、コンテンツ、ターゲティング、スケジュール、バリエーション、キャッピングルールを含む単一のオファリングの完全な設定を返します。
 - [Create Offering](/ja/api/public-offerings/create-offering): コンテンツ、スケジュール、セグメンテーション、バリエーション設定を含むオファリングをワークスペースに作成します。
 - [Update Offering](/ja/api/public-offerings/update-offering): 既存のオファリングを部分的に更新します。リクエストボディに含まれるフィールドのみが変更されます。
 - [List Offer Templates](/ja/api/public-offerings/list-offer-templates): ワークスペースで使用可能なパーソナライズテンプレートのページ分割された一覧を返します。テンプレートの `id` を、オファリングコンテンツの `meta.templateId` として使用します。
-
-<Note>
-  ID で単一のオファリングを取得するエンドポイントはありません。
-</Note>
+- [Get Offer Template](/ja/api/public-offerings/get-offer-template): ID を指定して、単一のテンプレートの完全なフィールドスキーマとプレビュー HTML を返します。各フィールドのタイプ、必須かどうか、ドロップダウンフィールドの有効なオプションが含まれます。
 
 ## 認証
 
@@ -56,7 +55,9 @@ Offerings API は、次のエンドポイントで構成されています。
 | エンドポイント | メソッド | レート制限 |
 | :--- | :--- | :--- |
 | `/v5/offers` | GET | 150 リクエスト/分、500/時間、1000/日 |
+| `/v5/offers/{offer_id}` | GET | 150 リクエスト/分、500/時間、1000/日 |
 | `/v5/offers/templates` | GET | 150 リクエスト/分、500/時間、1000/日 |
+| `/v5/offers/templates/{template_id}` | GET | 150 リクエスト/分、500/時間、1000/日 |
 | `/v5/offers` | POST | 100 リクエスト/分、300/時間、600/日 |
 | `/v5/offers/{offer_id}` | PATCH | 100 リクエスト/分、300/時間、600/日 |
 
@@ -153,6 +154,10 @@ Offerings API は標準的な HTTP ステータスコードを使用し、すべ
 | `ARCHIVED_OFFERING` | 403 | オファリングはアーカイブされているため、変更できません。 |
 | `OFFER_NOT_FOUND` | 404 | 指定された ID のオファリングがこのワークスペースに存在しません。 |
 
+## IP ホワイトリスト
+
+<ApiIpWhitelisting category="Content" />
+
 ## よくある質問
  
 ### はじめに
@@ -176,9 +181,6 @@ Offerings API は標準的な HTTP ステータスコードを使用し、すべ
   <Accordion title="オファリングにはどのような状態がありますか？">
     オファリングは常に、`scheduled`、`active`、`expired`、`archived`、`draft` の 5 つの状態のいずれかにあります。
     状態の完全な一覧については、上記の [オファリングのライフサイクル](#offering-lifecycle) セクションを参照してください。
-  </Accordion>
-  <Accordion title="ID で単一のオファリングを取得できますか？">
-    現在、専用の `GET /v5/offers/{offer_id}` エンドポイントはありません。特定のオファリングを取得するには、`id` クエリパラメーターにオファリングの ID（`offer_` プレフィックスを含む）を設定して [List Offerings](/ja/api/public-offerings/list-offerings) を呼び出します。これにより、そのオファリングのみを含む一覧が返されます。
   </Accordion>
 </AccordionGroup>
 ### Create Offering

@@ -8,6 +8,318 @@ rss: true
   サポートされている SDK バージョンと非推奨化のタイムラインについては、[SDK 非推奨ポリシー](/ja/developer-guide/sdk-lifecycle-and-policies/sdk-deprecation-policy)を参照してください。
 </Info>
 
+<Update label="20th October 2026" description="Core 13.1.0 · Cards 7.1.0 · Geofence 8.1.0 · Inbox 7.1.0 · Personalize 2.1.0 · Recommendations 1.0.0">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>13.1.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>7.1.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>8.1.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>7.1.0</span>
+
+**Personalize** <span style={{ color: '#00C896', fontWeight: 'bold' }}>2.1.0</span>
+
+**Recommendations** <span style={{ color: '#00C896', fontWeight: 'bold' }}>1.0.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 9.1.1
+- Kotlin: 2.3.20
+- Compile SDK: 36
+- Gradle: 9.3.1
+
+**iOS**
+- 最小 iOS: 13 (CocoaPods)、15 (Swift Package Manager、React Native 0.87 以降)
+- tvOS デプロイメントターゲット: 13
+
+</Card>
+</CardGroup>
+
+<Note>
+このリリースのすべてのプラグインに、次のネイティブ SDK の更新が適用されます。
+
+- **Android:** MoEngage SDK BOM [4.6.0](/ja/release-notes/sdks/android#9th-october-2026) に更新しました。
+- **iOS:** MoEngage-iOS-SDK を [11.4.0](/ja/release-notes/sdks/ios#14th-october-2026) に更新しました。
+</Note>
+
+#### Core 13.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- `MoEngageFailureReason` エクスポートを追加しました。これは、`NETWORK_ERROR`、`FEATURE_DISABLED`、`AUTHENTICATION_FAILED` など、機能プラグイン間で共有される共通の失敗理由のセットです。これを最初に使用するプラグインは Recommendations です。`fetchRecommendations()` は `RecommendationsFailure` で reject され、その `failureReason` はこれらの共通の理由と Recommendations 固有の理由を組み合わせたものになります。詳細については、[失敗の処理](/ja/developer-guide/react-native-sdk/recommendations/recommendations#handle-failures)を参照してください。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+**Android**
+
+- Android Studio の **Build APK(s)** オプションまたは `gradlew assemble` で作成したデバッグビルドで発生する `NoSuchMethodError` を修正しました。このエラーはアプリケーションの `minSdk` が 23 のデバッグビルドでのみ発生します。リリースビルドには影響しません。
+- 縮小ビルドで `Missing class com.moengage.core.internal.model.NetworkDataEncryptionKey` が報告される R8 のビルドエラーを修正しました。
+- 日付属性を使用するリアルタイムトリガー条件の評価を修正しました。
+- リアルタイムトリガー条件で否定または大文字と小文字を区別する演算子が使用され、イベントに属性キーが存在しない場合に発生する例外を修正しました。
+
+**iOS**
+
+- SDK の初期化中に不要な `unsupported event type` デバッグログが出力される問題を修正しました。Firebase Installation ID のサポートは引き続き Android のみです。
+- ユーザーのログアウト中にアプリ内メッセージが表示された場合に、閉じるボタンを含むアプリ内メッセージのボタンがタップに反応しない問題を修正しました。
+- iOS 26 のナビゲーションバーが、ポップアップおよびフルスクリーンのアプリ内メッセージの閉じるボタンを覆ってしまう問題を修正しました。
+- ナッジが表示されるタイミングでユーザーが画面を切り替えた場合に、ナッジが誤った位置に表示される問題を修正しました。特定の画面をターゲットにしたナッジは、新しい画面がその対象でない場合はスキップされるようになりました。
+- 最大化した動画ナッジで縦長の動画が切り取られ、全幅ボタンの位置に隙間ができる問題を修正しました。
+- 動画の最大化ボタンとミュートボタンによってナッジが閉じてしまう問題を修正しました。
+
+#### Recommendations 1.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+- `react-native-moengage-recommendations` プラグインを追加しました。`fetchRecommendations(recommendationId, itemId, includedFields)` を呼び出すと、MoEngage ダッシュボードで設定したレコメンデーションのアイテムを取得し、独自のインターフェイスを構築できます。詳細については、[Recommendations](/ja/developer-guide/react-native-sdk/recommendations/recommendations) を参照してください。
+- キャッシュが有効な間は、アイテムはローカルキャッシュから提供されます。
+- 取得に失敗した場合、Promise は型付きの失敗理由で reject されます。
+- 空のリストは成功を意味します。そのレコメンデーションについて、ユーザーにおすすめのアイテムがないことを示します。
+- このプラグインには `react-native-moengage` 13.1.0 以降が必要です。
+
+#### Cards 7.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+**iOS**
+
+- ネイティブ SDK で、アニメーション GIF のレンダリングを含む Cards インボックスの SwiftUI サポートが追加されました。プラグインの JavaScript API に変更はありません。これは、iOS のネイティブコードで Cards インボックスを直接レンダリングしている場合にのみ影響します。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- `react-native-moengage` へのピア依存関係を `^13.0.0` に更新しました。これにより、プラグインを `react-native-moengage` 13 と併せてインストールできるようになりました。
+
+#### Geofence 8.1.0
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- `react-native-moengage` へのピア依存関係を `^13.0.0` に更新しました。これにより、プラグインを `react-native-moengage` 13 と併せてインストールできるようになりました。
+
+**iOS**
+
+- iOS 17 以前でアプリケーション起動時に Xcode コンソールに `data race detected` というランタイム警告が表示される問題を修正しました。
+
+#### Inbox 7.1.0
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- `react-native-moengage` へのピア依存関係を `^13.0.0` に更新しました。これにより、プラグインを `react-native-moengage` 13 と併せてインストールできるようになりました。
+
+#### Personalize 2.1.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+**Android**
+
+- ユーザー ID が更新された場合、またはセッション内の属性が変更された場合に、パーソナライズされたエクスペリエンスとメタのキャッシュが無効化されるようになりました。これにより、以前のユーザーやセッションのパーソナライズされたコンテンツが配信されなくなります。
+
+**iOS**
+
+- ユーザーが識別された直後、または時間帯 (時) が変わった直後に、SDK がキャッシュされたパーソナライズキャンペーンを更新するようになりました。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+- `react-native-moengage` へのピア依存関係を `^13.0.0` に更新しました。これにより、プラグインを `react-native-moengage` 13 と併せてインストールできるようになりました。
+
+</Update>
+
+<Update label="1st October 2026" description="Core 13.0.0 · Cards 7.0.0 · Geofence 8.0.0 · Inbox 7.0.0 · Personalize 2.0.0 — Major Release">
+<CardGroup cols={2}>
+<Card title="プラグイン">
+
+**Core** <span style={{ color: '#00C896', fontWeight: 'bold' }}>13.0.0</span>
+
+**Cards** <span style={{ color: '#00C896', fontWeight: 'bold' }}>7.0.0</span>
+
+**Geofence** <span style={{ color: '#00C896', fontWeight: 'bold' }}>8.0.0</span>
+
+**Inbox** <span style={{ color: '#00C896', fontWeight: 'bold' }}>7.0.0</span>
+
+**Personalize** <span style={{ color: '#00C896', fontWeight: 'bold' }}>2.0.0</span>
+
+</Card>
+<Card title="依存関係">
+
+**Android**
+- AGP: 9.1.1
+- Kotlin: 2.3.20
+- Compile SDK: 36
+- Gradle: 9.3.1
+
+**iOS**
+- 最小 iOS: 13 (CocoaPods)、15 (Swift Package Manager、React Native 0.87 以降)
+- tvOS デプロイメントターゲット: 13
+
+</Card>
+</CardGroup>
+
+<Note>
+このリリースのすべてのプラグインに、次のネイティブ SDK の更新が適用されます。両方のネイティブ SDK が新しいメジャーバージョンに移行するため、アップグレードの前にそれぞれのリリースノートを確認してください。
+
+- **Android:** MoEngage SDK BOM [4.4.0](/ja/release-notes/sdks/android#23rd-september-2026) に更新しました。このリリースでは、プッシュトークン登録が廃止されて Firebase Installation ID に置き換えられ、ビルドツールチェーンが AGP 9 に移行しています。
+- **iOS:** MoEngage-iOS-SDK を [11.2.0](/ja/release-notes/sdks/ios#16th-september-2026) に更新しました。このバージョンには [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) の変更も含まれています。
+
+Android の Firebase Installation ID の変更により、以下の Core に記載されている 2 つの JavaScript API が追加されています。それ以外の JavaScript API に変更はありません。iOS ネイティブ SDK の変更は、`AppDelegate` やカスタム通知拡張機能などの iOS ネイティブコードから MoEngage iOS API を直接呼び出している場合にのみ影響します。
+</Note>
+
+#### Core 13.0.0
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>新機能</span>
+
+**Android**
+
+- Firebase Installation ID を SDK に渡すための `ReactMoE.passFirebaseInstallationId()` を追加しました。詳細については、[Firebase Installation ID を渡す](/ja/developer-guide/react-native-sdk/push/basic/android-push-configuration#passing-the-firebase-installation-id)を参照してください。
+- `MoEFirebaseInstallationIdResult` を配信する `firebaseInstallationIdAvailable` イベントを追加しました。詳細については、[Firebase Installation ID コールバック](/ja/developer-guide/react-native-sdk/push/basic/push-callback#firebase-installation-id-callback)を参照してください。
+
+**iOS**
+
+- `react-native-moengage`、`react-native-moengage-cards`、`react-native-moengage-geofence`、`react-native-moengage-inbox`、`react-native-moengage-personalize` に、試験的な Swift Package Manager (SPM) のサポートを追加しました。SPM には React Native 0.87 以降と iOS 15.0 以降が必要で、tvOS と Expo はサポートされていません。このリリースでは、引き続き CocoaPods がデフォルトです。設定については、[iOS のインストール](/ja/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-installation/ios)を参照してください。既存のアプリを移行するには、[CocoaPods から SPM への移行](/ja/developer-guide/react-native-sdk/migration/migration-of-moengage-sdk-from-cocoapods-to-spm)を参照してください。
+
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+- React Native の旧アーキテクチャのサポートを廃止しました。プラグインは New Architecture のみをサポートするようになったため、New Architecture を有効にした React Native 0.68 以降が必要です。New Architecture は React Native 0.76 以降ではデフォルトで有効です。アプリで無効にしている場合は、アップグレードの前に有効にするか、12.x を引き続き使用してください。
+
+**Android**
+
+- プッシュ登録で FCM トークンの代わりに Firebase Installation ID を使用するようになりました。MoEngage を使用してプッシュ登録を行っている場合は、アップグレードの前に Firebase の依存関係を 25.1.2 以上に移行し、Firebase Installation ID の統合を完了してください。詳細については、[Firebase Installation ID への移行](/ja/developer-guide/android-sdk/migration/migrating-to-firebase-installation-id)を参照してください。
+- `ReactMoE.passFcmPushToken()` と `pushTokenGenerated` イベントは非推奨になりました。どちらもこのリリースでは引き続き動作します。`ReactMoE.passFirebaseInstallationId()` と `firebaseInstallationIdAvailable` への移行をお勧めします。
+- ビルドツールチェーンを AGP 9.1.1、Gradle 9.3.1、Kotlin 2.3.20、compile SDK 36 に更新しました。アップグレードの前に、プロジェクトのビルド設定をこれに合わせて更新してください。
+- MoEngage SDK BOM を [4.4.0](/ja/release-notes/sdks/android#23rd-september-2026) に更新しました
+
+**iOS**
+
+- MoEngage-iOS-SDK を [11.2.0](/ja/release-notes/sdks/ios#16th-september-2026) に更新しました。このバージョンには [11.0.0](/ja/release-notes/sdks/ios#22nd-july-2026) で導入された破壊的変更が含まれています
+- SDK のデフォルトの **Dismiss** 通知アクションが、通知カテゴリから削除されました。通知には、設定したアクションのみが表示されるようになりました。アプリケーションでこのボタンを使用している場合は、独自のカテゴリ定義に追加してください。
+- `trackUserPushPreference` は非推奨になりました。このリリースでは引き続き動作しますが、今後のメジャーバージョンで削除される予定です。
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+**iOS**
+
+- InApp フレームワークは、動的フレームワークとして埋め込まれるのではなく、ホストバイナリに静的にリンクされるようになりました。CocoaPods および Swift Package Manager の統合に変更は必要ありません。
+- RealTimeTrigger フレームワークは、動的フレームワークとして埋め込まれるのではなく、ホストバイナリに静的にリンクされるようになりました。CocoaPods および Swift Package Manager の統合に変更は必要ありません。
+- リアルタイムトリガーの評価と配信がアクターモデルで実行されるようになり、同時アクセスの安全性が向上しました。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+**Android**
+
+- グループ化された通知のアラートを修正しました。到着したばかりの通知ではなく、サマリー通知がアラートを鳴らすことがありました。グループ内の各通知が到着時にアラートを鳴らし、サマリー通知はサイレントになりました。
+- 下部のナッジがナビゲーションバーに隠れる問題を修正しました。画面下部に固定された、コンテンツの高さが大きいナッジが、システムのナビゲーションバーやジェスチャーバーの下にはみ出し、テキストが切れたり、CTA をタップしにくくなったりすることがありました。ナッジはすべてのデバイスでシステムのインセットの上にレイアウトされるようになりました。
+
+**iOS**
+
+- プラグインの pod が静的フレームワークとして宣言されるようになりました。これにより、`use_frameworks!` を使用するアプリケーション (Firebase 用など) でも、MoEngage-iOS-SDK 11 で引き続き `pod install` を正常に実行できます。
+- データ同期中にイベント識別子が重複する問題を修正しました。保留中の書き込みが完了する前にアプリケーションが終了した場合、分析バッチの識別子が 2 つのイベントセットで再利用されることがありました。
+- Swift Package Manager の統合でアプリ内メッセージが初期化されない問題を修正しました。この問題は MoEngage-iOS-SDK 11.1.0 で発生していました。
+- プロセスのライフサイクル内で SDK が複数回初期化された場合に、アプリ内メッセージの統計トラッキングで競合状態が発生する問題を修正しました。
+- 動的メディア URL でリッチプッシュのメディアがレンダリングされない問題を修正しました。識別可能なファイル拡張子のない URL から配信されるメディアが、展開された通知に表示されませんでした。メディアの種類はサーバーのレスポンスから判別されるようになり、URL の拡張子はフォールバックとして使用されます。
+- 通知の更新後に、アプリケーションアイコンのバッジが通知トレイの件数より 1 つ多くなる問題を修正しました。
+
+#### Cards 7.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+**Android**
+
+- MoEngage SDK BOM を [4.4.0](/ja/release-notes/sdks/android#23rd-september-2026) に更新しました
+
+**iOS**
+
+- MoEngage-iOS-SDK を [11.2.0](/ja/release-notes/sdks/ios#16th-september-2026) に更新しました
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+**iOS**
+
+- Cards フレームワークは、動的フレームワークとして埋め込まれるのではなく、ホストバイナリに静的にリンクされるようになりました。CocoaPods および Swift Package Manager の統合に変更は必要ありません。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+**Android**
+
+- デバイスの Force Dark 設定がオンの場合に、Android 10 以降でカードに予期しない色が表示される問題を修正しました。カードは、ライトモードとダークモードの両方で、設定した色を使用するようになりました。
+
+**iOS**
+
+- プラグインの pod が静的フレームワークとして宣言されるようになりました。これにより、`use_frameworks!` を使用するアプリケーション (Firebase 用など) でも、MoEngage-iOS-SDK 11 で引き続き `pod install` を正常に実行できます。
+- Swift Package Manager の統合でモジュールが初期化されない問題を修正しました。この問題は MoEngage-iOS-SDK 11.1.0 で発生していました。
+
+#### Geofence 8.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+**Android**
+
+- MoEngage SDK BOM を [4.4.0](/ja/release-notes/sdks/android#23rd-september-2026) に更新しました
+
+**iOS**
+
+- MoEngage-iOS-SDK を [11.2.0](/ja/release-notes/sdks/ios#16th-september-2026) に更新しました
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+**iOS**
+
+- Geofence フレームワークは、動的フレームワークとして埋め込まれるのではなく、ホストバイナリに静的にリンクされるようになりました。CocoaPods および Swift Package Manager の統合に変更は必要ありません。
+- Geofence がアクターベースの同時実行モデルで動作するようになりました。位置情報とキャンペーンの処理が Swift Concurrency を中心に構成され、ジオフェンス処理におけるデータ競合のリスクが解消されました。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+**iOS**
+
+- プラグインの pod が静的フレームワークとして宣言されるようになりました。これにより、`use_frameworks!` を使用するアプリケーション (Firebase 用など) でも、MoEngage-iOS-SDK 11 で引き続き `pod install` を正常に実行できます。
+- Swift Package Manager の統合でモジュールが初期化されない問題を修正しました。この問題は MoEngage-iOS-SDK 11.1.0 で発生していました。
+
+#### Inbox 7.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+**Android**
+
+- MoEngage SDK BOM を [4.4.0](/ja/release-notes/sdks/android#23rd-september-2026) に更新しました
+
+**iOS**
+
+- MoEngage-iOS-SDK を [11.2.0](/ja/release-notes/sdks/ios#16th-september-2026) に更新しました
+- Inbox API が Swift の同時実行モデルに従うようになりました。`presentInboxViewController`、`pushInboxViewController`、`getInboxViewController` はメインアクターにバインドされます。これは、iOS のネイティブコードからこれらの API を直接呼び出している場合にのみアプリケーションに影響します。
+- Inbox のすべての完了ブロックがメインスレッドで呼び出されるようになったため、そこから直接ユーザーインターフェイスを更新できます。
+- `getInboxViewController` は常に完了ブロックを呼び出すようになり、指定された Workspace ID に SDK インスタンスが登録されていない場合は `nil` を渡します。
+- Inbox のエントリーはイミュータブルなスナップショットになりました。`isRead` や `clickedDate` などの既読状態の変更は、すでに保持しているエントリーオブジェクトを変更するのではなく、次回の取得時に反映されます。エントリーを既読にした後は、インボックスを再取得してください。
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+**iOS**
+
+- Inbox フレームワークは、動的フレームワークとして埋め込まれるのではなく、ホストバイナリに静的にリンクされるようになりました。CocoaPods および Swift Package Manager の統合に変更は必要ありません。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+**iOS**
+
+- プラグインの pod が静的フレームワークとして宣言されるようになりました。これにより、`use_frameworks!` を使用するアプリケーション (Firebase 用など) でも、MoEngage-iOS-SDK 11 で引き続き `pod install` を正常に実行できます。
+- Swift Package Manager の統合でモジュールが初期化されない問題を修正しました。この問題は MoEngage-iOS-SDK 11.1.0 で発生していました。
+
+#### Personalize 2.0.0
+<span style={{ background: 'rgba(212,56,13,0.1)', color: '#D4380D', border: '1px solid #FFCCC7', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>破壊的変更</span>
+
+**Android**
+
+- MoEngage SDK BOM を [4.4.0](/ja/release-notes/sdks/android#23rd-september-2026) に更新しました
+
+**iOS**
+
+- MoEngage-iOS-SDK を [11.2.0](/ja/release-notes/sdks/ios#16th-september-2026) に更新しました
+
+<span style={{ background: 'rgba(0,135,103,0.1)', color: '#008767', border: '1px solid #B5F5EC', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>改善</span>
+
+**iOS**
+
+- Personalize フレームワークは、動的フレームワークとして埋め込まれるのではなく、ホストバイナリに静的にリンクされるようになりました。CocoaPods および Swift Package Manager の統合に変更は必要ありません。
+
+<span style={{ background: 'rgba(212,107,8,0.1)', color: '#D46B08', border: '1px solid #FFE58F', borderRadius: '4px', padding: '2px 8px', fontSize: '12px', fontWeight: '600' }}>修正</span>
+
+**iOS**
+
+- プラグインの pod が静的フレームワークとして宣言されるようになりました。これにより、`use_frameworks!` を使用するアプリケーション (Firebase 用など) でも、MoEngage-iOS-SDK 11 で引き続き `pod install` を正常に実行できます。
+- Swift Package Manager の統合でモジュールが初期化されない問題を修正しました。この問題は MoEngage-iOS-SDK 11.1.0 で発生していました。
+
+</Update>
+
 <Update label="12th August 2026" description="Core 12.9.1 · Cards 6.6.1 · Geofence 7.5.1 · Inbox 6.5.1 · Personalize 1.1.1">
 <CardGroup cols={2}>
 <Card title="プラグイン">
@@ -419,7 +731,6 @@ MoEngage Personalize プラグインの初回リリースです。パーソナ�
 - iOS: MoEngage-iOS-SDK を [10.10.0](/ja/release-notes/sdks/ios#29th-january-2026) に更新
 
 </Update>
-
 
 <Update label="19th November 2025" description="Core 12.4.0 · Cards 6.1.0 · Geofence 7.1.0 · Inbox 6.1.0">
 <CardGroup cols={2}>
@@ -990,7 +1301,6 @@ MoEngage Personalize プラグインの初回リリースです。パーソナ�
 
 </Update>
 
-
 <Update label="25th November 2024" description="Core 11.1.1">
 <CardGroup cols={2}>
 <Card title="プラグイン">
@@ -1337,7 +1647,6 @@ Core 11.0.0 にアップデートすると、iOS でのカスタム Boolean ユ�
 - iOS: MoEngageInbox を 2.14.0 に更新
 
 </Update>
-
 
 <Update label="29th November 2023" description="Core 8.6.0 · Cards 1.1.0 · Geofence 3.5.0 · Inbox 2.5.0">
 

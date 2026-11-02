@@ -1,0 +1,217 @@
+---
+title: "Recommendations"
+description: "MoERecommendationsHelper.fetchRecommendations() を使用して Android アプリで MoEngage のレコメンデーションからアイテムを取得し、キャッシュ期間を設定して、失敗を処理します。"
+keywords: "android recommendations sdk, MoERecommendationsHelper, fetchRecommendations android, recommended items, product recommendations android, recommendation id, item id, included fields, recommendations cache duration, moengage android catalog"
+---
+
+## 概要
+
+MoEngage Android SDK は、MoEngage ダッシュボードで作成したレコメンデーションのおすすめアイテムを取得し、キーと値のデータとしてアプリに返します。ユーザー ID、ネットワーク、キャッシュは SDK 内部で処理されます。
+
+<Tip>
+  **前提条件**
+
+  - Recommendations モジュールを含む BOM 4.6.0 以降を統合します。詳細については、[BOM を使用したインストール](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM) を参照してください。
+  - `Application.onCreate()` で SDK を初期化します。詳細については、[SDK の初期化](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization) を参照してください。
+  - ワークスペースで Recommendations を有効にし、MoEngage ダッシュボードでレコメンデーションを作成します。詳細については、[Recommendations の概要](/ja/user-guide/content/recommendations/getting-started/overview) を参照してください。
+</Tip>
+
+## モジュールのインストール
+
+BOM を設定した後、`app/build.gradle` または `app/build.gradle.kts` に Recommendations のアーティファクトを追加します。バージョン番号は BOM で管理されるため、バージョンを指定する必要はありません。
+
+<CodeGroup>
+
+```groovy build.gradle wrap
+dependencies {
+    ...
+    implementation("com.moengage:recommendations")
+}
+```
+
+```kotlin build.gradle.kts wrap
+dependencies {
+    implementation("com.moengage:recommendations")
+}
+```
+
+</CodeGroup>
+
+## おすすめアイテムの取得
+
+`MoERecommendationsHelper.fetchRecommendations()` を呼び出し、返されたタスクに `onSuccess` と `onFailure` のコールバックを追加します。MoEngage ダッシュボードで定義されている、アイテムを取得するレコメンデーションの Recommendation ID を渡します。パラメーターの完全なリストについては、[API リファレンス](https://moengage.github.io/android-api-reference/recommendations/com.moengage.recommendations/-mo-e-recommendations-helper/fetch-recommendations.html) を参照してください。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.model.MoERequestFailureReason
+import com.moengage.recommendations.MoERecommendationsHelper
+import com.moengage.recommendations.model.RecommendationsFailureReason
+
+MoERecommendationsHelper.fetchRecommendations(
+    context = context,
+    recommendationId = "YOUR_RECOMMENDATION_ID",
+    itemId = "YOUR_ITEM_ID",
+    includedFields = setOf("title", "price")
+)
+    .onSuccess { recommendedItems ->
+        val items = recommendedItems.items
+        if (items.isEmpty()) {
+            // No recommended items are available for this user. Show your empty state.
+        } else {
+            // Render the items.
+        }
+    }
+    .onFailure { failure ->
+        when (failure.reason) {
+            RecommendationsFailureReason.RATE_LIMIT_EXCEEDED -> {
+                // Retry later.
+            }
+            MoERequestFailureReason.NetworkError -> {
+                // The device is offline. Retry when connectivity returns.
+            }
+            else -> {
+                // Show a fallback.
+            }
+        }
+    }
+```
+
+```java Java wrap
+import com.moengage.core.exceptions.SdkNotInitializedException;
+import com.moengage.core.model.MoERequestFailureReason;
+import com.moengage.recommendations.MoERecommendationsHelper;
+import com.moengage.recommendations.model.RecommendationsFailureReason;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import kotlin.Unit;
+
+Set<String> includedFields = new HashSet<>();
+includedFields.add("title");
+includedFields.add("price");
+
+try {
+    MoERecommendationsHelper.INSTANCE
+        .fetchRecommendations(context, "YOUR_RECOMMENDATION_ID", "YOUR_ITEM_ID", includedFields)
+        .onSuccess(recommendedItems -> {
+            List<Map<String, Object>> items = recommendedItems.getItems();
+            if (items.isEmpty()) {
+                // No recommended items are available for this user. Show your empty state.
+            } else {
+                // Render the items.
+            }
+            return Unit.INSTANCE;
+        })
+        .onFailure(failure -> {
+            MoERequestFailureReason reason = failure.getReason();
+            if (reason == RecommendationsFailureReason.RATE_LIMIT_EXCEEDED) {
+                // Retry later.
+            } else if (reason == MoERequestFailureReason.NetworkError.INSTANCE) {
+                // The device is offline. Retry when connectivity returns.
+            } else {
+                // Show a fallback.
+            }
+            return Unit.INSTANCE;
+        });
+} catch (SdkNotInitializedException e) {
+    // The SDK was not initialized before this call.
+}
+```
+
+</CodeGroup>
+
+<Warning>
+  SDK の初期化前に `fetchRecommendations()` を呼び出すと、`SdkNotInitializedException` がスローされます。
+</Warning>
+
+### 結果の処理
+
+`onSuccess` コールバックは、メインスレッドで `RecommendedItems` オブジェクトを受け取ります。その `items` プロパティは `List<Map<String, Any>>` であり、各マップは属性名をキーとする 1 つのおすすめアイテムです。空のリストも成功した結果であり、ユーザーが利用できるおすすめアイテムがないことを意味します。
+
+属性値は JSON レスポンスから Kotlin および Java の型に変換され、オブジェクトや配列内にネストされた値も同じルールに従います。変換ルールについては、[API リファレンス](https://moengage.github.io/android-api-reference/recommendations/com.moengage.recommendations.model/-recommended-items/index.html) を参照してください。
+
+### 失敗の処理
+
+失敗した場合、`onFailure` はメインスレッドで `MoERequestFailure` オブジェクトを受け取ります。失敗の内容を特定するには、その `reason` プロパティを使用します。`message` プロパティにはログ記録専用の詳細が含まれ、空の場合もあります。失敗時、SDK はキャッシュに何も書き込まず、キャッシュ済みのアイテムもそのまま残します。
+
+`reason` プロパティは、Recommendations に固有の失敗を表す [`RecommendationsFailureReason`](https://moengage.github.io/android-api-reference/recommendations/com.moengage.recommendations.model/-recommendations-failure-reason/index.html)、またはすべての MoEngage SDK リクエストに共通する失敗を表す [`MoERequestFailureReason`](https://moengage.github.io/android-api-reference/core/com.moengage.core.model/-mo-e-request-failure-reason/index.html) のいずれかです。理由の完全なリストについては、API リファレンスを参照してください。
+
+SDK は失敗したリクエストを再試行しません。再試行するには、`fetchRecommendations()` を再度呼び出してください。失敗時には何もキャッシュされないため、次の呼び出しでは新しいネットワークリクエストが行われます。再試行は、次の理由の場合にのみ行ってください。
+
+- `MoERequestFailureReason.NetworkError`
+- `RecommendationsFailureReason.RATE_LIMIT_EXCEEDED`（一定時間待機した後）
+- `RecommendationsFailureReason.INTERNAL_SERVER_ERROR`
+- `RecommendationsFailureReason.UNKNOWN_ERROR`
+
+## キャッシュ
+
+SDK は取得したアイテムをキャッシュするため、同じレコメンデーションに対する呼び出しを繰り返してもネットワークリクエストは発生しません。
+
+- SDK は、Recommendation ID、アイテム ID、含めるフィールドの組み合わせごとにキャッシュエントリーを管理します。3 つのいずれかを変更すると、新しいリストが取得されます。
+- キャッシュ期間内は、`fetchRecommendations()` はネットワーク呼び出しを行わずにキャッシュ済みのアイテムを返します。
+- キャッシュ期間が経過すると、次の呼び出しでサーバーからアイテムが取得され、エントリーが更新されます。
+- SDK は空の結果も同様にキャッシュするため、レコメンデーションが空でも、画面を表示するたびにネットワーク呼び出しが発生することはありません。
+- SDK は、ユーザーがログアウトしたとき、ユーザー ID が変更されたとき、および SDK が無効化されたときにキャッシュをクリアします。
+
+### キャッシュ期間の設定
+
+SDK は、おすすめアイテムを 24 時間（86400 秒）キャッシュします。より長くキャッシュするには、SDK を初期化する前に `MoEngage.Builder` に `RecommendationConfig` を渡します。詳細については、[SDK の初期化](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization) を参照してください。
+
+<CodeGroup>
+
+```kotlin Kotlin wrap
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.RecommendationConfig
+
+// Replace X with your data center number
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureRecommendations(RecommendationConfig(recommendedItemsCacheDuration = 172800L))
+    .build()
+MoEngage.initialiseDefaultInstance(moEngage)
+```
+
+```java Java wrap
+import com.moengage.core.DataCenter;
+import com.moengage.core.MoEngage;
+import com.moengage.core.config.RecommendationConfig;
+
+// Replace X with your data center number
+MoEngage moEngage = MoEngage.builder(this, "YOUR_WORKSPACE_ID", DataCenter.getDataCenterX())
+    .configureRecommendations(new RecommendationConfig(172800L))
+    .build();
+MoEngage.initialiseDefaultInstance(moEngage);
+```
+
+</CodeGroup>
+
+<Note>
+  期間の単位は秒です。キャッシュ期間の最小値は 86400 秒（24 時間）です。これより小さい値は無視され、代わりに 86400 秒が使用されます。
+</Note>
+
+
+## よくある質問
+
+<AccordionGroup>
+  <Accordion title="SDK はおすすめアイテムを表示しますか？">
+    いいえ、SDK はアイテムのデータのみを返します。レスポンスの解析とユーザーインターフェースの構築はアプリケーション側で行います。
+  </Accordion>
+
+  <Accordion title="SDK はアイテム内で参照されている画像をダウンロードしますか？">
+    いいえ、SDK はメディアのダウンロードやキャッシュを行いません。レスポンス内の画像 URL には、標準的な画像読み込みライブラリを使用してください。
+  </Accordion>
+
+  <Accordion title="SDK を初期化する前に fetchRecommendations() を呼び出すとどうなりますか？">
+    呼び出しで `SdkNotInitializedException` がスローされます。レコメンデーションを取得する前に、`Application.onCreate()` で SDK を初期化してください。詳細については、[SDK の初期化](/ja/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization) を参照してください。
+  </Accordion>
+
+  <Accordion title="キャッシュの有効期限が切れる前に強制的に再取得できますか？">
+    いいえ、SDK はキャッシュ期間が経過するまでキャッシュ済みのアイテムを返します。カタログの変更頻度に合わせた期間を設定してください。
+  </Accordion>
+
+  <Accordion title="SDK はどのスレッドで結果を返しますか？">
+    SDK は `onSuccess` と `onFailure` の両方をメインスレッドで呼び出すため、どちらのコールバックからでもビューを直接更新できます。
+  </Accordion>
+</AccordionGroup>

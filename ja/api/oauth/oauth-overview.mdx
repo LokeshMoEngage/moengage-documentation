@@ -1,0 +1,250 @@
+---
+title: "OAuth 2.0 の概要"
+description: "有効期間の短い OAuth 2.0 アクセストークンを使用して MoEngage Public API に認証します。キーを作成し、トークンを生成して API を呼び出し、有効期限が切れる前に更新します。"
+keywords: ["OAuth 2.0", "MoEngage OAuth", "access token", "refresh token", "client credentials", "Bearer token", "API authentication", "oauth2 base URL", "token expiry", "expires_in", "refresh_token_expires_in", "ER011", "ER008", "ER010", "ER005", "MOENGAGE-AUTH-ERROR-CODE"]
+icon: "file-magnifying-glass"
+---
+
+OAuth 2.0 では、呼び出しのたびに API キーを送信する代わりに、有効期間の短いアクセストークンを使用して、アプリケーションを MoEngage Public API に認証します。認証情報を一度アクセストークンと交換し、トークンの有効期限が切れるまで API リクエストでそのトークンを送信します。その後は、API キーを再送信することなくトークンを更新できます。
+
+この記事では、OAuth 2.0 API キーの作成、アクセストークンの生成、API の呼び出し、有効期限が切れる前のアクセストークンの更新という、エンドツーエンドの連携について説明します。
+
+## 認証フロー
+
+| ステージ | アクション | リファレンス |
+| --- | --- | --- |
+| 1. キーを作成する | **Authentication Type** を **OAuth 2.0** に設定して API キーを作成します。 | [API Key Dashboard](/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard) |
+| 2. トークンを生成する | `client_id` と `client_secret` を、アクセストークンおよびリフレッシュトークンと交換します。 | [Generate Access Token](/ja/api/oauth/generate-access-token) |
+| 3. API を呼び出す | アクセストークンを Bearer トークンとして `Authorization` ヘッダーで送信します。 | [ステップ 3: MoEngage Public API を呼び出す](#step-3-call-the-moengage-public-apis) |
+| 4. トークンを更新する | 現在のアクセストークンの有効期限が切れる前に、リフレッシュトークンを新しいアクセストークンと交換します。 | [Refresh Access Token](/ja/api/oauth/refresh-access-token) |
+
+OAuth パラメーターは、次のようにダッシュボードの値に対応します。
+
+| パラメーター | ダッシュボードの値 |
+| --- | --- |
+| `client_id` | このパラメーターには、API キーダッシュボードに常に表示される Workspace ID を指定します。 |
+| `client_secret` | このパラメーターには、キーの作成時に一度だけダッシュボードに表示される API キーの値を指定します。 |
+| `access_token` | このパラメーターには、すべての API 呼び出しで送信する有効期間の短い JWT が格納されます。トークンの有効期間は 5～60 分で、デフォルトは 15 分です。 |
+| `refresh_token` | このパラメーターには、新しいアクセストークンと交換するためのトークンが格納されます。このトークンは、更新しないまま 24 時間経過すると期限切れになり、最長でも 30 日で期限切れになります。 |
+
+## 前提条件
+
+始める前に、次の要件を満たしていることを確認してください。
+
+- MoEngage ダッシュボードの **Settings** \> **Account** \> **API keys** にアクセスできること。
+- ワークスペースをホストしているデータセンターを特定していること。データセンターはダッシュボードの URL で確認できます。詳細については、[データセンター](/ja/api/introduction#data-centers)を参照してください。ワークスペースをホストしているデータセンターがわからない場合は、MoEngage サポートにお問い合わせください。
+
+## OAuth ベース URL
+
+OAuth リクエストはデータセンターの OAuth ホストに送信し、Public API へのリクエストは REST API ホストに送信します。このページの例に含まれる `{dc}` は、データセンター番号に置き換えてください。
+
+| データセンター | OAuth ベース URL |
+| --- | --- |
+| DC-01 | `https://oauth2-01.moengage.com` |
+| DC-02 | `https://oauth2-02.moengage.com` |
+| DC-03 | `https://oauth2-03.moengage.com` |
+| DC-04 | `https://oauth2-04.moengage.com` |
+| DC-05 | `https://oauth2-05.moengage.com` |
+| DC-06 | `https://oauth2-06.moengage.com` |
+| DC-101 | `https://oauth2-101.moengage.com` |
+
+## ステップ 1: OAuth 2.0 API キーを作成する
+
+<Steps>
+  <Step title="API Keys ページを開く">
+    MoEngage ダッシュボードの左側のナビゲーションメニューで、**Settings** \> **Account** \> **API keys** に移動します。
+  </Step>
+  <Step title="Create New Key ダイアログを開く">
+    **+ Create new key** をクリックします。
+  </Step>
+  <Step title="キー名を入力する">
+    **Key name** ボックスに、わかりやすい名前 (例: `orders-integration`) を入力します。
+  </Step>
+  <Step title="認証タイプを選択する">
+    **Authentication Type** で **OAuth 2.0** を選択します。
+  </Step>
+  <Step title="有効期限を設定する">
+    **Expiry time (in minutes)** ボックスに、各アクセストークンの有効期間を入力します。値は 5～60 分の範囲で指定する必要があり、デフォルトは 15 分です。
+  </Step>
+  <Step title="API アクセスを選択する">
+    **Select APIs for access** で、キーが呼び出す API グループを選択します。キーは、この一覧で選択したエンドポイントにのみアクセスできます。
+  </Step>
+  <Step title="キーを保存する">
+    **Create key** をクリックします。ダッシュボードに Workspace ID と API キーの値が表示されます。
+  </Step>
+</Steps>
+
+<Warning>
+  API キーはすぐにコピーしてください。MoEngage が API キーを表示するのは一度だけで、後から取得することはできません。API キーを紛失した場合は、キーを再生成してください。キーを再生成すると、以前のキーと、そのキーから発行されたすべてのリフレッシュトークンが無効になります。
+</Warning>
+
+**Create new key** ダイアログの項目は、次のように OAuth パラメーターに対応します。
+
+| ダッシュボードのフィールド | フィールドの用途 | 注記 |
+| --- | --- | --- |
+| Workspace ID | `client_id` | ダッシュボードには Workspace ID が常に表示されます。 |
+| API key | `client_secret` | ダッシュボードに API キーが表示されるのは、キーの作成時の一度だけです。 |
+| Authentication Type | 該当なし | 値は **OAuth 2.0** である必要があります。そうでない場合、トークンの生成は `ER012` で失敗します。 |
+| Select APIs for access | 該当なし | この選択によって、キーが呼び出す API が決まります。 |
+| Expiry time (in minutes) | 該当なし | 値は 5～60 分の範囲で指定する必要があります。デフォルトは 15 分です。 |
+
+キーの名前、API アクセス、または有効期限を編集すると、キーを再生成した場合と同様に、そのキーから発行されたリフレッシュトークンが取り消されます。その後の更新では `ER010` が返されます。[ステップ 2: アクセストークンを生成する](#step-2-generate-an-access-token)の説明に従って、新しいアクセストークンを生成してください。
+
+<Note>
+  Segmentation API または Inform を呼び出すには、代わりに Basic Auth キーを作成してください。OAuth 2.0 キーがサポートする API グループと、キーの編集、再生成、アーカイブの手順については、[API Key Dashboard](/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard) を参照してください。
+</Note>
+
+## ステップ 2: アクセストークンを生成する
+
+`client_id` と `client_secret` を、アクセストークンおよびリフレッシュトークンと交換します。リクエストボディはフォームエンコード形式 (`application/x-www-form-urlencoded`) で送信してください。JSON ボディを送信すると `415 Unsupported Media Type` が返されます。
+
+```bash Generate Access Token
+curl --request POST \
+  --url https://oauth2-{dc}.moengage.com/v1/oauth/token \
+  --header 'Content-Type: application/x-www-form-urlencoded' \
+  --data grant_type=client_credentials \
+  --data client_id=YOUR_WORKSPACE_ID \
+  --data client_secret=YOUR_API_KEY
+```
+
+アクセストークンとリフレッシュトークンの両方を保存してください。リフレッシュトークンがあれば、更新を続けている限り API キーを再送信する必要はありません。
+
+リクエストを実行し、すべてのパラメーター、レスポンスフィールド、エラーコードを確認するには、[Generate Access Token](/ja/api/oauth/generate-access-token) を参照してください。
+
+### トークンの有効期限を確認する
+
+レスポンスには 2 つの有効期限フィールドが含まれます。
+
+| フィールド | 意味 |
+| --- | --- |
+| `expires_in` | MoEngage がトークンを発行した時点から数えた、アクセストークンの有効期間 (秒)。この値に基づいて更新をスケジュールしてください。有効期間は、API キーに設定された **Expiry time (in minutes)** を反映します。 |
+| `refresh_token_expires_in` | トークンを使用しない場合に、リフレッシュトークンの有効期限が切れるまでの秒数。値は 24 時間です。リフレッシュトークンが 30 日の上限に近づいている場合は、それより短くなります。 |
+
+## ステップ 3: MoEngage Public API を呼び出す
+
+アクセストークンを Bearer トークンとして `Authorization` ヘッダーで送信します。
+
+```bash Call an API with an Access Token
+curl --request POST \
+  --url https://api-{dc}.moengage.com/v1/customer/YOUR_WORKSPACE_ID \
+  --header 'Authorization: Bearer YOUR_ACCESS_TOKEN' \
+  --header 'Content-Type: application/json' \
+  --data '{ "type": "customer", "customer_id": "user_12345" }'
+```
+
+キーで呼び出せるエンドポイントについては、[API ドキュメント](/ja/api/introduction)を参照してください。エンドポイントごとのリクエスト制限とペイロードサイズの上限については、[Rate Limits](/ja/api/rate-limits) を参照してください。
+
+### 認証エラー
+
+認証に失敗すると、レスポンスに `MOENGAGE-AUTH-ERROR-CODE` ヘッダーが含まれます。
+
+| HTTP | `MOENGAGE-AUTH-ERROR-CODE` | 原因 | 解決方法 |
+| --- | --- | --- | --- |
+| `401` | `ER008` | アクセストークンの有効期限が切れています。 | アクセストークンを更新してください。[ステップ 4: アクセストークンを更新する](#step-4-refresh-the-access-token)を参照してください。 |
+| `401` | `ER010` | このアクセストークンを発行したリフレッシュトークンの有効期限が切れているか、取り消されています。 | 新しいアクセストークンをリクエストしてください。[Generate Access Token](/ja/api/oauth/generate-access-token) を参照してください。 |
+| `403` | `ER007` | アクセストークンは有効ですが、エンドポイントがキーのスコープ外です。 | ダッシュボードで、キーの API アクセスにエンドポイントを追加してください。 |
+| `401` | `ER003` または `ER004` | アクセストークンの形式が正しくないか、改変されています。 | 新しいアクセストークンをリクエストしてください。[Generate Access Token](/ja/api/oauth/generate-access-token) を参照してください。 |
+| `403` | `ER005` | MoEngage がアクセストークンの内容を読み取れませんでした。 | 新しいアクセストークンをリクエストしてください。[Generate Access Token](/ja/api/oauth/generate-access-token) を参照してください。 |
+| `401` | `ER022` | リクエストで認証情報が複数の場所に送信されました。 | アクセストークンは `Authorization` ヘッダーでのみ送信してください。 |
+
+<Warning>
+  リフレッシュトークンの有効期限が切れると、`expires_in` の期間が残っていても、アクセストークンは機能しなくなります。リフレッシュトークンを有効な状態に保つため、少なくとも 24 時間に 1 回は更新してください。
+</Warning>
+
+## ステップ 4: アクセストークンを更新する
+
+アクセストークンの有効期限が切れる前に、リフレッシュトークンを新しいアクセストークンと交換します。更新リクエストでは API キーを使用しません。ステップ 2 と同様に、リクエストボディはフォームエンコード形式 (`application/x-www-form-urlencoded`) で送信してください。
+
+```bash Refresh Access Token
+curl --request POST \
+  --url https://oauth2-{dc}.moengage.com/v1/oauth/refresh \
+  --header 'Content-Type: application/x-www-form-urlencoded' \
+  --data grant_type=refresh_token \
+  --data client_id=YOUR_WORKSPACE_ID \
+  --data refresh_token=YOUR_REFRESH_TOKEN
+```
+
+<Note>
+  更新では新しいリフレッシュトークンは発行されません。同じリフレッシュトークンを引き続き使用してください。更新が成功するたびに、そのトークンの有効期間がさらに 24 時間延長されます (MoEngage がトークンを発行した時点から最長 30 日まで)。`refresh_token_expires_in` フィールドには、リフレッシュトークンの残りの有効期間が示されます。値が 0 に近づいた場合、または更新で `ER010` が返された場合は、`client_id` と `client_secret` を使用して新しいアクセストークンを生成してください。
+</Note>
+
+リクエストを実行し、すべてのパラメーター、レスポンスフィールド、エラーコードを確認するには、[Refresh Access Token](/ja/api/oauth/refresh-access-token) を参照してください。
+
+## トークンのライフサイクル
+
+トークンエンドポイントは両方のトークンを発行します。その後、リフレッシュエンドポイントがアクセストークンを更新し、リフレッシュトークンの 24 時間の期間を再開します。これは、リフレッシュトークンが 30 日の上限に達し、トークンエンドポイントを再度呼び出すまで続きます。
+
+| トークン | 有効期間 | 更新方法 |
+| --- | --- | --- |
+| アクセストークン | 有効期間は 5～60 分で、API キーで設定します。デフォルトは 15 分です。 | [Refresh Access Token](/ja/api/oauth/refresh-access-token) |
+| リフレッシュトークン | 有効期間は、MoEngage がトークンを発行した時点または最後の更新から 24 時間で、最長 30 日です。 | [Generate Access Token](/ja/api/oauth/generate-access-token) |
+
+## レート制限
+
+[トークンエンドポイント](/ja/api/oauth/generate-access-token)と[リフレッシュエンドポイント](/ja/api/oauth/refresh-access-token)には、次の制限が共通で適用されます。
+
+| 制限 | 期間 |
+| --- | --- |
+| 30 リクエスト | 10 分あたり |
+| 5 リクエスト | 1 分あたり |
+
+トークンエンドポイントでは、両方の制限が `client_id` と `client_secret` のペアごとに適用されます。リフレッシュエンドポイントでは、両方の制限が `client_id` と `refresh_token` のペアごとに適用されます。`429` レスポンスには、待機する秒数を示す `Retry-After` ヘッダーが含まれます。同じ値は、非推奨の `X-RETRY-AFTER` ヘッダーにも含まれます。`Retry-After` を参照してください。
+
+<Warning>
+  アクセストークンは、有効期間中は何度でも再利用できます。アクセストークンを 1 つ生成し、有効期限が近づくまでそのトークンを再利用してください。API リクエストごとにアクセストークンを生成すると、レート制限を超えます。
+</Warning>
+
+これらの制限は OAuth エンドポイントにのみ適用されます。アクセストークンを使用して呼び出す Public API の制限とペイロードサイズの上限については、[Rate Limits](/ja/api/rate-limits) を参照してください。
+
+## 推奨されるプラクティス
+
+- **アクセストークンを再利用する**: 有効期間中はアクセストークンを再利用してください。API 呼び出しのたびに新しいアクセストークンをリクエストしないでください。
+- **事前に更新する**: `ER008` を待たずに、アクセストークンの有効期限が切れる数分前に更新してください。`expires_in` を使用して更新をスケジュールします。
+- **少なくとも 24 時間に 1 回は更新する**: 24 時間使用されなかったリフレッシュトークンは期限切れになり、そのリフレッシュトークンから発行されたアクセストークンは機能しなくなります。連携がそれより長くアイドル状態になる場合は、`ER010` が返されることを想定し、新しいアクセストークンを生成してください。
+- **フォールバックとして `ER010` を処理する**: 更新リクエストと API 呼び出しの両方で対応してください。いずれかで `ER010` が返された場合は、`client_id` と `client_secret` を使用して新しいアクセストークンを生成します。
+- **API キーを安全に保管する**: API キーは認証情報として扱ってください。キーをソース管理にコミットしたり、クライアントサイドのコードで公開したりしないでください。
+- **`Retry-After` に従う**: `429` レスポンスを受け取った場合は、すぐに再試行せず、`Retry-After` に従ってください。
+
+## 連携チェックリスト
+
+連携を本番環境に移行する前に、次の点を確認してください。
+
+- OAuth ベース URL がデータセンターと一致している。
+- OAuth 2.0 API キーに、連携に必要な API アクセスが設定されている。
+- アプリケーションが Workspace ID と API キーを安全に保管している。
+- トークンエンドポイントがアクセストークンとリフレッシュトークンを返す。
+- アクセストークンを使用した Public API の呼び出しが成功する。
+- アプリケーションが `expires_in` フィールドからトークンの有効期限を読み取っている。
+- リフレッシュエンドポイントが新しいアクセストークンを返す。
+- アプリケーションが、有効期限が切れる前にアクセストークンを更新している。
+- アプリケーションが `refresh_token_expires_in` を追跡し、少なくとも 24 時間に 1 回は更新している。
+- 更新リクエストと API 呼び出しの両方で、`ER010` のフォールバック処理が `client_id` と `client_secret` を使用して再認証する。
+- アプリケーションが `429` レスポンスの `Retry-After` に従っている。
+
+## 関連記事
+
+<CardGroup cols={2}>
+  <Card title="Generate Access Token" icon="key" href="/ja/api/oauth/generate-access-token">
+    クライアントクレデンシャルグラントを使用して、アクセストークンとリフレッシュトークンをリクエストします。
+  </Card>
+
+  <Card title="Refresh Access Token" icon="rotate" href="/ja/api/oauth/refresh-access-token">
+    リフレッシュトークンを新しいアクセストークンと交換します。
+  </Card>
+
+  <Card title="API Key Dashboard" icon="table-list" href="/ja/user-guide/settings/account/api-and-api-keys/api-key-dashboard">
+    API キーの作成、スコープ設定、編集、再生成、アーカイブを行います。
+  </Card>
+
+  <Card title="API ドキュメント" icon="rocket" href="/ja/api/introduction">
+    MoEngage REST API 全体に適用されるデータセンター、ベース URL、認証方法、エラー処理を確認します。
+  </Card>
+</CardGroup>
+
+## サポートへのお問い合わせ
+
+MoEngage サポートに、Workspace ID、呼び出したエンドポイント、リクエストの時刻 (UTC)、HTTP ステータス、レスポンスの `error_type` または `MOENGAGE-AUTH-ERROR-CODE` を添えてお問い合わせください。チケットを作成するには、[Raise a Support Ticket](/ja/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard) を参照してください。
+
+<Warning>
+  サポートリクエストに API キー、アクセストークン、リフレッシュトークンを含めないでください。
+</Warning>
