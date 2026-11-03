@@ -110,14 +110,19 @@ Select the authentication method that matches how you plan to use the connection
   </Accordion>
 
   <Accordion title="IAM Policy [Exports] — supports exports only">
-    In this method, you grant MoEngage's export role access directly through your S3 bucket policy (there is no role for MoEngage to assume). MoEngage uses a single export role for this method across all data centers, so no per-data-center ARN table is needed:
+    In this method, you grant MoEngage's export role access directly through your S3 bucket policy (there is no role for MoEngage to assume). The export role ARN depends on your workspace's data center:
 
-    ```text wrap
-    arn:aws:iam::612427630422:role/service-role/core_s3_export-role-e1qw8ulf
-    ```
+    | Data center | MoEngage export role ARN |
+    | :--- | :--- |
+    | DC-01 to DC-04 | `arn:aws:iam::612427630422:role/service-role/core_s3_export-role-e1qw8ulf` |
+    | DC-06 | `arn:aws:iam::163129101105:role/core_s3_export-role-e1qw8ulf` |
+
+    <Warning>
+    If your workspace is on any other data center, contact MoEngage Support for your data center's export role ARN before you edit the bucket policy. Using the wrong ARN makes the connection fail with an `AccessDenied` error.
+    </Warning>
 
     1. Open the **AWS Management Console** \> **S3**, select your bucket, and go to **Permissions** \> **Bucket policy** \> **Edit**.
-    2. Add the following statement. Replace `<INSERTPOLICYID>` and `<INSERTSID>` with values of your choice (any unique identifiers), and `your-bucket-name` with your bucket name. Keep the MoEngage **Principal** ARN exactly as shown.
+    2. Add the following statement. Replace `<INSERTPOLICYID>` and `<INSERTSID>` with values of your choice (any unique identifiers), and `your-bucket-name` with your bucket name. Replace the **Principal** ARN with the export role ARN for your data center from the table above.
 
     ```json wrap
     {
@@ -131,7 +136,7 @@ Select the authentication method that matches how you plan to use the connection
             "AWS": "arn:aws:iam::612427630422:role/service-role/core_s3_export-role-e1qw8ulf"
           },
           "Action": "s3:PutObject",
-          "Resource": "arn:aws:s3::<INSERTBUCKETNAME>/*"
+          "Resource": "arn:aws:s3:::your-bucket-name/*"
         }
       ]
     }
