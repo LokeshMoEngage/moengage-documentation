@@ -141,6 +141,7 @@ Keep the map in sync whenever you change the docs tree:
 - [ ] Verify every code block has a language tag.
 - [ ] Verify every image has alt text.
 - [ ] Confirm new pages are added to `docs.json` under the correct tab and group.
+- [ ] If you added a partner page, add a card for it on its category overview (`partner-guide/<category>/overview.mdx`).
 - [ ] Confirm new or moved folders have an owner in `.docsagent/owners.yaml`.
 - [ ] Check formatting matches similar existing pages.
 - [ ] Read changes aloud to catch awkward phrasing.
