@@ -1,0 +1,105 @@
+---
+title: "Agent Permissions and Security"
+description: "Review the prerequisites, feature enablement, permission scopes, data privacy protocols, and enterprise security guardrails governing Merlin AI agents within MoEngage."
+keywords: "RBAC, role-based access control, agent security, data governance, tool permissions, agent audit trail, data privacy, zero model training, agent permissions, global agent permissions, custom agent permissions, agent safeguards, prerequisites, feature enablement, Early Access"
+---
+
+This guide covers what you need before you run a Merlin AI agent, what an agent is permitted to do in your workspace, and how MoEngage protects your data. It applies to the [Global Agent](/user-guide/ai-and-intelligence/merlin-ai/agents/global-agent) and to your [Custom Agents](/user-guide/ai-and-intelligence/merlin-ai/agents/custom-agents).
+
+## Prerequisites
+
+Before you run your first task, confirm the following:
+
+- **The feature is enabled for your workspace.** Refer to [Feature Enablement](#feature-enablement).
+- **Your MoEngage role covers the work.** An agent acts within your own permissions, so you need the native MoEngage permission for any data the agent reads and any change the agent makes. Refer to [Overlap with Role-Based Access Control (RBAC)](#overlap-with-role-based-access-control-rbac).
+- **Your workspace has MoEngage Credits available.** Every agent run draws on your workspace's monthly balance. Refer to [Merlin AI Usage](/user-guide/settings/account/billing/merlin-ai-usage).
+
+## Feature Enablement
+
+MoEngage enables the following capabilities per workspace. When a capability does not appear in your dashboard, contact your Customer Success Manager (CSM) or [raise a support ticket](/user-guide/contact-support/raise-a-support-ticket-through-moengage-dashboard).
+
+| Capability | Status | What you see when the capability is unavailable |
+| :--- | :--- | :--- |
+| **Global Agent** | Early Access, enabled one workspace at a time | The Global Agent is missing from the agent list in the composer. |
+| **Custom Agents** | Early Access | **Custom Agents** is missing from the **Merlin AI** menu. |
+| **Connectors** | Enabled per workspace | The **Connectors** page lists no applications. Refer to [Connect External Apps to Custom Agents](/user-guide/ai-and-intelligence/merlin-ai/connectors/connect-external-apps). |
+| **Sub-agents** | Enabled per workspace | The **Sub Agents** section does not appear in the Agent Builder. Refer to [Build Multi-Agent Workflows](/user-guide/ai-and-intelligence/merlin-ai/agents/build-multi-agent-workflows). |
+| **Image generation and image analysis** | Enabled per workspace | The image tools do not appear in the tool picker. Refer to [Generate and Analyze Images](/user-guide/ai-and-intelligence/merlin-ai/agents/custom-agents#generate-and-analyze-images). |
+
+The tools available to an agent also depend on what MoEngage enables for your workspace, so a capability documented in this section may not be enabled for you.
+
+<Note>
+ Some workspaces encounter an authorization error when running an agent on the **Expert** model tier. If you encounter this error, switch the agent to the **Balanced** tier or contact MoEngage support. Refer to [Choose a Mode](/user-guide/ai-and-intelligence/merlin-ai/agents/run-and-manage-agent-tasks#choose-a-mode).
+</Note>
+
+## What an Agent is Permitted to Do
+
+An agent reaches your workspace through tools. The Global Agent carries the tools MoEngage enables for your workspace, and a Custom Agent carries the tools its creator assigns to it in the Agent Builder.
+
+### How Capabilities are Derived
+
+- **Tool assignment:** An agent can only perform actions for which it has an explicit tool. If a Custom Agent is assigned `Read campaign analytics` but not `Create campaign drafts`, it is fundamentally impossible for that agent to alter or create any campaigns, regardless of what the user types in the chat prompt. For steps to assign tools, refer to [Assign Tools](/user-guide/ai-and-intelligence/merlin-ai/agents/custom-agents#assign-tools).
+- **Read vs. write boundaries:** Read-only tools allow the agent to fetch and analyze data. Write tools allow the agent to modify data.
+- **Hard system limits:** Even with full write permissions assigned, agents do not possess auto-send or publish capabilities. Final deployment requires human intervention through the standard MoEngage builder.
+
+### What an Agent Writes to Your Workspace
+
+On your instruction, an agent with the matching tools:
+
+- **Creates and edits campaign drafts.**
+- **Changes the status of an existing campaign or flow.** The agent pauses, resumes, or stops a campaign, and pauses, resumes, stops, retires, or archives a flow.
+- **Writes content.** The agent sends test messages and writes content blocks, email templates, and catalog items.
+
+### Steps That Stay With You
+
+Publishing a campaign stays with you. An agent is instructed not to publish a campaign. Even with write tools enabled, an agent creates drafts and edits, pauses, resumes, or stops existing campaigns, and never launches or publishes a campaign. Final publishing is executed manually through the standard MoEngage campaign builder, using the draft ID the agent generated.
+
+## Data Privacy, Security, and Governance
+
+Because agents process real workspace data including campaign metadata, analytics, and custom segments, MoEngage enforces strict data governance protocols to meet enterprise security standards.
+
+### Data Handling and Model Training
+
+You retain complete ownership and control of your proprietary data.
+
+- **Zero model training:** MoEngage does not use your workspace data, user segments, campaign content, or task transcripts to train Merlin AI or any foundational Large Language Models (LLMs).
+- **Data isolation:** All data processed during a task is strictly isolated within your specific MoEngage workspace. Agents cannot cross-reference data from other organizations or environments. A task reads only the workspace the task runs in, and tasks cannot be shared across different organizations.
+- **Shared memory scope:** Agents write to a memory store shared across your workspace, so a fact one agent records is readable by every other agent in the same workspace, including the Global Agent. That store never crosses into another workspace or organization, and reading it grants no access beyond what the running user's permissions already allow. Its contents cannot be viewed or cleared from the dashboard or through an API, and deleting an agent leaves the facts that agent contributed in place. For details, refer to [Agent Memory](/user-guide/ai-and-intelligence/merlin-ai/agents/run-and-manage-agent-tasks#agent-memory).
+
+### Overlap with Role-Based Access Control (RBAC)
+
+Agents respect your organization's existing governance structure.
+
+- When a user interacts with an agent, the agent operates within the intersection of its assigned tools and the user's underlying MoEngage RBAC permissions.
+- If a user does not have the native MoEngage permission to view financial analytics or modify specific campaigns, the agent cannot bypass those restrictions to fetch or alter that data on the user's behalf.
+- Beyond RBAC, MoEngage restricts editing, publishing, pausing, and deleting a Custom Agent to its **creator**. Any other workspace member with access to a public agent can run or duplicate it, but cannot change or remove it. For the full list of creator-only actions, refer to [Manage Custom Agents](/user-guide/ai-and-intelligence/merlin-ai/agents/custom-agents#manage-custom-agents).
+- MoEngage restricts schedule configuration and edits to the agent's **creator**, because every scheduled run executes using the creator's permissions rather than the permissions of whoever views the dashboard when the scheduled run fires. For steps to configure a schedule, refer to [Set a Trigger](/user-guide/ai-and-intelligence/merlin-ai/agents/custom-agents#set-a-trigger).
+- A scheduled run authenticates as its creator. If the creator's stored credentials for a required tool are missing, that tool reports a credential error instead of running.
+- When an agent delegates part of a task to a sub-agent, the sub-agent executes with the permissions and credentials of the user who starts the run rather than those of the sub-agent's creator. A sub-agent keeps its own tool assignments, so a coordinator restricted to read-only tools can delegate to a sub-agent that holds write tools. That tool list is not an escalation path: MoEngage authorizes each MoEngage data or campaign action against the running user's live permissions at the moment of the call, so a delegated write fails if that user cannot perform it themselves. Delegation gives a coordinator's creator no access that they do not already hold. MoEngage also blocks a builder from adding another user's private agent to a roster, so delegation never reaches an agent the builder cannot see. For details, refer to [Build Multi-Agent Workflows](/user-guide/ai-and-intelligence/merlin-ai/agents/build-multi-agent-workflows).
+- A connector authenticates the user who starts a task rather than the user who built the agent, so an agent reaches an external application only with the access that user granted from their own account. For details, refer to [Connect External Apps to Custom Agents](/user-guide/ai-and-intelligence/merlin-ai/connectors/connect-external-apps).
+
+### Task Ownership
+
+Each task has one owner, who is the user who started the task. The owner sends every message in the task, and colleagues read a shared task without continuing the conversation. For what a colleague does on a task you own, refer to [What a Colleague Does on Your Task](/user-guide/ai-and-intelligence/merlin-ai/agents/merlin-ai-agents-home#what-a-colleague-does-on-your-task).
+
+### Compliance Guardrails
+
+Every action taken by an agent is fully logged and auditable.
+
+- **Traceability:** Every tool execution, including the exact parameters used and the time of execution, is recorded in the underlying audit log. The transcript displayed in the dashboard may not show every recorded tool call.
+- **Summary emails:** When you request a summary email of a task, the summary and its attachments leave MoEngage and reach an external mailbox. MoEngage fixes the recipient to the person who ran the task (for a scheduled task, the agent's creator), and the email cannot be redirected or copied to anyone else. Refer to [Send Summary Emails](/user-guide/ai-and-intelligence/merlin-ai/agents/custom-agents#send-summary-emails).
+- **Immutability:** Individual transcript events cannot be edited by users. Tasks cannot be deleted, and their transcripts remain in the agent's history for you to view. Deleting a Custom Agent archives its task history rather than erasing it. MoEngage retains the record for auditing, but the history becomes inaccessible through the standard gallery interface. For details on reviewing a transcript, refer to [Anatomy of a Task Transcript](/user-guide/ai-and-intelligence/merlin-ai/agents/run-and-manage-agent-tasks#anatomy-of-a-task-transcript).
+
+## Next Steps
+
+<CardGroup cols={3}>
+  <Card title="Merlin AI Agents Home" icon="house" href="/user-guide/ai-and-intelligence/merlin-ai/agents/merlin-ai-agents-home">
+    Reach the hub, start a task, and manage the tasks in your workspace.
+  </Card>
+  <Card title="Run and Manage Tasks" icon="play" href="/user-guide/ai-and-intelligence/merlin-ai/agents/run-and-manage-agent-tasks">
+    Follow a running task, read a transcript, review outputs, and understand agent memory.
+  </Card>
+  <Card title="Build a Custom Agent" icon="wrench" href="/user-guide/ai-and-intelligence/merlin-ai/agents/custom-agents">
+    Turn a job you repeat into an agent with its own instructions, tools, and schedule.
+  </Card>
+</CardGroup>
