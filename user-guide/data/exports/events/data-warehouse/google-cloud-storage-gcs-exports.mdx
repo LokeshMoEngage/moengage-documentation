@@ -21,9 +21,9 @@ The MoEngage and GCS integration exports Campaign Interaction Events to your Goo
 
 ### Prerequisites
 
-- Ensure you have a Google Cloud Platform account with permission to create a new bucket and a service account.
-- If your system requires IP whitelisting, you must whitelist MoEngage IPs. For more information, refer [here](/user-guide/settings/account/security/ip-whitelisting-in-moengage).
-- Ensure you have a [GCS Connection](/partner-guide/data-and-analytics/cloud-storage/google-cloud-storage) on the App marketplace.
+- Ensure you have a Google Cloud Platform account with permission to create a bucket, a service account, and custom roles.
+- Ensure you have a [GCS Connection](/partner-guide/data-and-analytics/cloud-storage/google-cloud-storage) on the App marketplace. The service account needs `storage.objects.create` and `storage.buckets.get` on the bucket, and `resourcemanager.projects.getIamPolicy` on the project to test the connection.
+- To restrict bucket access to MoEngage IPs, use [bucket IP filtering](https://docs.cloud.google.com/storage/docs/ip-filtering-overview) and allow the [MoEngage IPs](/user-guide/settings/account/security/ip-whitelisting-in-moengage#data-transfer) for your data center. If you load the exported files into BigQuery, bucket IP filtering blocks those loads. Use [VPC Service Controls](https://cloud.google.com/vpc-service-controls/docs/overview) instead.
 
 ### Set Up Your Export
 
@@ -136,6 +136,10 @@ On the App Marketplace, click the **Integrate** tab, and then hover over the **P
 #### Enable the Export
 
 Fix the cause at your end, and then turn on **Export status** for the export. Do this as soon as you can, because the 7-day window keeps moving while the export stays paused.
+
+<Note>
+  MoEngage tests the connection before it turns the export back on. If the service account doesn't have `resourcemanager.projects.getIamPolicy` on the project, the test fails and you can't turn on the export. For the permissions, refer to [Google Cloud Storage](/partner-guide/data-and-analytics/cloud-storage/google-cloud-storage#note-on-required-permissions).
+</Note>
 
 When you enable the export, MoEngage stops collecting and sets aside what it has: the last 7 days of paused data, or all of it if the pause was shorter. This is the data you can replay. It stays fixed from then on, and does not reduce further even if you wait to replay it.
 
