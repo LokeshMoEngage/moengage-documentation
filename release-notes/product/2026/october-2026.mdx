@@ -1,0 +1,184 @@
+---
+title: "October 2026"
+description: "View the October 2026 release notes covering new features and enhancements to the MoEngage platform."
+keywords: ["Flows Assist", "Flow versioning", "Segment Assist", "Icon Shortcuts", "File Imports", "OAuth 2.0", "AWS STS Auth", "API keys", "AI Campaign Decisioning", "Warehouse Segments", "Pivot Tables", "Performance-Based Routing", "Fallback Items", "Partner Usage Metrics", "Export pause", "MoEngage Go"]
+---
+
+## AI Campaign Decisioning
+
+AI Campaign Decisioning, powered by Aampe, selects the best message variation for each user in a Push campaign. This release adds:
+
+- **Content labels**: Tag messages with labels and categories under **Settings > Advanced settings > Content Labels**. Out-of-the-box categories include Incentives, Message Tone, User Motivation, and Platform Benefits.
+- **Event relation**: Mark events as Positive, Negative, or Irrelevant in Data Management to control how they're used in policy metrics.
+- **Campaign Decisioning Policy enhancements**: Set a reward event for the policy to optimize for, track additional positive or negative events, define time slots with send limits, and view treatment versus control uplift at the policy level and in each campaign's analytics.
+- **Push campaign variations**: Add multiple message variations to one Push campaign. Variations are auto-labeled as you build them, and you can review, add, or remove labels for each variation.
+
+This release supports Push campaigns with one-time and periodic scheduling.
+
+For more information, refer to [AI Campaign Decisioning](/user-guide/decisioning/campaign-decisioning/ai-campaign-decisioning/introduction).
+
+## API Authentication: OAuth 2.0, AWS STS Auth, and Scoped API Keys
+
+You can now choose one of three authentication types for each API key: Basic Auth, OAuth 2.0, or AWS STS Auth.
+
+- **OAuth 2.0**: Exchange your Workspace ID and API key for a short-lived access token and a refresh token. You can set the access token expiration from 5 to 60 minutes.
+- **AWS STS Auth**: Sign each request with the temporary credentials of an AWS IAM role. Add up to 10 assumed-role ARNs to a key and set an expiry time from 5 to 15 minutes.
+- **Scoped Basic Auth keys**: Create multiple keys and choose which API groups, or individual APIs, each key can access. Name, edit, regenerate, or archive each key independently. Existing keys created with your workspace continue to work as legacy keys.
+
+The authentication type can't be changed after you create a key. These options are rolling out in phases. If you don't see them under **Settings > Account > API keys**, contact your CSM or the MoEngage Support team.
+
+For more information, refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard), [OAuth 2.0 Overview](/api/oauth/oauth-overview), and [AWS STS Auth Overview](/api/aws-sts/aws-sts-overview).
+
+## Warehouse Segments Without SQL
+
+You can now build warehouse segments in the drag-and-drop segment builder instead of writing SQL. Pick attributes and events from dropdowns, combine conditions with AND/OR, add exclusions, and save the result as a segment. MoEngage generates the query and runs it on your warehouse.
+
+To set it up, connect BigQuery or Databricks from the App Marketplace, then map your schema once under **Settings > Data > Warehouse Schema**. A User Master table supplies user attributes, and event tables supply event attributes. Admins and Developers manage schemas, and every change is recorded in audit logs. The SQL editor remains available for advanced segments.
+
+For more information, refer to [Warehouse Schemas](/user-guide/data/warehouse-schemas) and [Create Warehouse Segments Using Filters](/user-guide/segment/create-segments/warehouse-segments/create-using-filters).
+
+## Performance-Based Routing in Inform
+
+Dynamic Sender Routing in Inform now supports a **Performance based** rule type for SMS and Email. If a sender's Sent Rate or Delivery Rate drops below your threshold within the monitoring window, MoEngage automatically switches traffic to the next sender. You can configure a primary sender and up to four fallback senders. When the monitoring window resets, traffic returns to the primary sender.
+
+To configure it, go to **Settings > Channels**, select **SMS** or **Email**, open **Dynamic Sender Routing**, add a condition, and select **Performance based** as the rule type. To enable it, contact your CSM or the MoEngage Support team.
+
+For more information, refer to [Dynamic Sender Routing](/user-guide/inform/advanced-concepts/dynamic-sender-routing).
+
+## Pivot Tables in Analytics
+
+You can now switch an analysis table from Standard to Pivot mode and cross-tabulate your data without exporting it. The pivot uses the same events, filters, and date range as the analysis.
+
+- **Drag-and-drop setup**: Arrange dimensions across Row Groups, Column Labels, Values, and Filters.
+- **Aggregations**: Choose sum, average, min, max, count, first, or last for each value column.
+- **Grand totals**: View row and column totals, with subtotals when groups are collapsed.
+- **Export and pin**: Export the pivot to Excel or pin it to a dashboard with its configuration intact.
+
+Pivot mode is available in Behavior Analysis and Session & Source Analysis. Metrics such as median, percentile, and derived ratios aren't supported.
+
+For more information, refer to [Pivot Tables](/user-guide/analyze/analytics/getting-started-with-analytics/overview#pivot-tables).
+
+## Fallback Items for Recommendations
+
+Recommendations can now fill empty slots with fallback items when the primary recommendation returns fewer items than you need. This can happen for new or inactive users, with tight filters, or when items are out of stock.
+
+- **Number of items to show**: Set how many items a recommendation returns. The default is 10 and the maximum is 25. This setting is available for Basic and Advanced recommendations.
+- **Fallback source**: Fill the remaining slots with popular items or with items from another recommendation, such as Trending Items. Fallback items are part of Advanced Recommendations.
+- **Verify the result**: In Test a Recommendation, select or clear the **Fallback items** checkbox to see what the fallback adds.
+
+Items found by the primary recommendation are always kept, and the fallback fills only the remaining slots. This feature is rolling out in phases.
+
+For more information, refer to [Fallback Items](/user-guide/content/recommendations/getting-started/fallback-items).
+
+## Icon Shortcuts Template for Android Push
+
+Icon Shortcuts is a new Android push template that shows a row of three to six tappable icons in a single notification. Each icon opens its own destination, so one push can offer several entry points, such as product categories, brands, or content genres.
+
+- **Customize the layout**: Choose the icons, round or square shape, card color, and corner rounding.
+- **No app code**: The MoEngage SDK renders the template natively in collapsed and expanded views.
+- **Track each icon**: Each icon click is tracked with its own `widget_id` on the **Notification Clicked Android** event.
+- **Automatic fallback**: If a device can't show the template, the user receives the campaign's Basic notification.
+
+To use Icon Shortcuts, use the payload builder on the Icon Shortcuts page to build the value, then add it as the `moeFeatures` key-value pair on a Push campaign that uses the Basic notification template. The template requires Android 12 or later and MoEngage Android SDK BOM 4.5.0 or later with the Rich Notification module. Icon Shortcuts is in Beta.
+
+For more information, refer to [Icon Shortcuts](/user-guide/campaigns-and-channels/mobile-push/create/icon-shortcuts-template).
+
+## Flow Versioning: Move Active Users to a New Version
+
+When you publish a new version of a flow, your changes can now reach users who are already in the flow. With this release:
+
+- **Choose what happens to active users**: At publish time, select **Let them continue on the previous version** or **Move them to this version as soon as possible**.
+- **Stage matching**: Users move based on what changed. Users who haven't reached an added stage go through it. Users at a deleted stage go back to the nearest remaining stage above it. Users on a deleted branch exit the flow. Users already inside an updated stage keep the configuration they entered with.
+- **No duplicate or skipped sends**: Users waiting at a Wait stage, a Condition stage with **Keep Evaluating For** turned on, or an action stage that respects Do Not Disturb (DND) settings move only after their pending delay ends.
+- **Consolidated stats**: Flow-level channel stats add up across all versions in one view.
+- **Restore a previous version**: Use **Actions > Restore as draft** on an older version to copy it into a new draft and republish it.
+- **Traceability**: Each move is logged with a **User Exited Flow** event that you can query in Behavior Analytics.
+
+This feature is rolling out in phases.
+
+For more information, refer to [Publishing a New Version](/user-guide/flows-cross-channel-messaging/create/create-flows/editing-a-flow#publishing-a-new-version) and [Restoring a Previous Version](/user-guide/flows-cross-channel-messaging/create/create-flows/editing-a-flow#restoring-a-previous-version).
+
+## File Imports Enhancements
+
+File imports from Amazon S3, SFTP, and manual file uploads have been upgraded:
+
+- **Larger files and higher limits for user imports**: User imports now support files up to 1 GB, with higher hourly and daily import limits.
+- **Row-level failure reasons**: The downloadable error report for user imports includes the reason each row failed or was skipped.
+- **Import Limit Overview**: View hourly and daily consumption across user, event, and auxiliary data imports, see which imports are affected when a limit is reached and when processing resumes, and identify the imports that consume the most of your limit.
+- **Run history timing**: Run history for all imports shows when each run was scheduled, started, and completed, and the **View Files** option shows rows processed, rows failed, and runtime for each file.
+- **Simplified processing stats**: User imports now show Total Rows, Processed Rows, and Failed Rows. Added and Updated counts no longer appear separately.
+
+Limits for event and auxiliary data imports are unchanged. The Import Limit Overview is rolling out in phases.
+
+For more information, refer to [File Import Limits](/user-guide/data/imports/setting-up-a-file-import#limits) and [Check Import Limits](/user-guide/data/imports/overview-imports#check-import-limits).
+
+## Segment Assist: Conversational Segment Builder
+
+Segment Assist is now an AI agent with its own chat workspace. Describe your audience in plain language, and Segment Assist builds the segment, shows the filters it used, and previews the audience before you save. You can:
+
+- **Start from a prompt or a suggestion**: Go to **Segment > + New Segment** and choose to create the segment with Merlin AI. Describe your audience or start from a suggested type such as active users or abandoned cart users.
+- **See how the segment was built**: Each result explains the events it mapped your request to and the time window it applied.
+- **Refine across turns**: Ask for changes such as "use the last 90 days instead" or "remove a filter". Each version appears as a card, so you can switch between versions.
+- **Preview the audience**: View the user count, reachable users, sample users with masked sensitive fields, and reachability by channel.
+- **Edit filters manually**: Open any query in the filter view to change conditions, add nested filters, or exclude users.
+- **Get clarifying questions**: When a term is ambiguous, a value isn't recognized, or the workspace has no matching data, Segment Assist asks instead of guessing.
+- **Revisit past chats**: Past conversations are saved under **History**.
+
+Segment Assist creates segments in the default team and default app only. This feature is in Early Access. To enable it, contact your CSM or the MoEngage Support team.
+
+For more information, refer to [Segment Assist](/user-guide/ai-and-intelligence/merlin-ai/merlin-ai-segment-assist).
+
+## Flows Assist: Attachments and Flow References
+
+Flows Assist now accepts attachments, so you can build a flow from material you already have instead of describing it from memory. Use the **+** menu next to the prompt box to:
+
+- **Reference an existing flow**: Pick a published flow from any workspace you belong to. In the same workspace, you get an exact copy when you ask for no changes. If the flow no longer fits the workspace, for example because a channel is turned off or an event no longer exists, Merlin AI repairs it and lists what it changed. If you add an instruction such as "add a push after the email step", Merlin AI rebuilds the flow and then applies your change.
+- **Move flows across workspaces**: Open Flows Assist in the destination workspace and reference a flow from another workspace. Merlin AI rebuilds it using the destination workspace's events and attributes. Message content, segments, tags, and teams don't carry over, and the audience resets to All Users.
+- **Upload a document or images**: Attach a PDF, TXT, or MD brief, or up to five screenshots, such as a whiteboard sketch or a flow diagram. Merlin AI reads the file, asks clarifying questions, and builds the flow.
+- **Attach mid-conversation**: A new attachment edits your current draft instead of starting over.
+- **Add flow descriptions**: Each flow can carry a plain-language summary of up to 1,000 characters. Write it yourself or generate it with Merlin AI from Flow settings. Descriptions appear in the flow picker so you can tell similar flows apart.
+
+You can attach up to one flow, one document, and five images per conversation. Each file must be under 10 MB. This feature is rolling out in phases.
+
+For more information, refer to [Attach a Reference](/user-guide/flows-cross-channel-messaging/create/create-flows/create-a-flow-using-ai-assist#attach-a-reference).
+
+## Automatic Pause for Failing Event Exports
+
+Event exports to data warehouses and cloud storage, such as Snowflake, Databricks, S3, SFTP, and Google Cloud Storage (GCS), now pause automatically after repeated delivery failures. When an export pauses:
+
+1. You receive a **Data Exports** system alert.
+2. Fix the failure reason shown on the partner page in the App Marketplace, then re-enable the export.
+3. Optionally, select **Replay paused data** to recover the saved data.
+
+MoEngage saves the most recent seven days of data during a pause. You can replay it within 30 days of when the pause started. This change does not apply to Streams. It is rolling out in phases.
+
+For more information, refer to [Export Failure, Pause, and Replay](/user-guide/data/exports/events/overview-events-exports#export-failure-pause-and-replay).
+
+## Partner Usage Metrics
+
+The **Add-ons** section of the Usage tab now shows the volume you consume for partner integrations:
+
+- **Streams**: Events sent to external partners.
+- **Data Warehouse Imports**: Records received from data warehouses such as Snowflake, Databricks, and BigQuery.
+- **Data Warehouse Exports**: Events sent to destination warehouses and storage, such as S3, SFTP, Snowflake, and Databricks.
+
+You can view totals or trend charts, filter by date, switch between workspaces, and configure overage alerts. To view these metrics, go to **Settings > Account > Billing** and open the **Usage** tab.
+
+For more information, refer to [Add-Ons](/user-guide/settings/account/billing/usage-details#add-ons).
+
+## Edit In-App Templates with Merlin AI
+
+You can now edit existing in-app templates with Merlin AI. Import your own HTML or pick an existing HTML template, then use prompts to change colors, layout, copy, or CTAs. **Edit in Merlin** is available in step 2 of in-app campaign creation for HTML templates, for workspaces with the Merlin AI in-app template generator enabled.
+
+For more information, refer to [Edit an Existing Template](/user-guide/ai-and-intelligence/merlin-ai/merlin-ai-in-app-template-generator/merlin-ai-in-app-template-generator#edit-an-existing-template).
+
+## MoEngage Go: New Sign-in Experience
+
+The MoEngage Go mobile app has a new sign-in flow. Enter your email once, verify your identity, and choose from the workspaces you have access to. With this update:
+
+- **Workspace selection**: Your last used workspace is selected by default, and you can switch to any workspace you have access to before you sign in.
+- **Login methods for each workspace**: Sign in with password, Google, or SSO, based on what's configured for the selected workspace.
+- **2-step verification**: Verify your identity with an authenticator app or email OTP. If 2-step verification isn't set up yet, request a setup link from the app and complete the setup on the web.
+- **Clear access messages**: The app tells you when a workspace is blocked or is a test environment workspace available only on the web.
+
+For more information, refer to [MoEngage Go: Install and Sign-in](/user-guide/moengage-go/moengage-go-install-and-signin).
