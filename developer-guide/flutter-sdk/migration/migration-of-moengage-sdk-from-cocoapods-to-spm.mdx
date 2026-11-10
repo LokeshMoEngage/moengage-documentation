@@ -1,0 +1,133 @@
+---
+title: "Migrate the MoEngage Flutter SDK From CocoaPods to Swift Package Manager"
+sidebarTitle: "Migrate From CocoaPods to SPM"
+description: "Migrate the iOS side of an existing MoEngage Flutter application from CocoaPods to Swift Package Manager (SPM), including the notification extensions, the extension integrator tool, and CI scripts."
+keywords: ["cocoapods to spm", "flutter cocoapods migration", "flutter swift package manager", "moengage_flutter spm", "MoEngage-iOS-SDK", "flutter build ios --config-only", "pod deintegrate", "moengage-extensions-integration", "MoEngageRichNotification", "FlutterGeneratedPluginSwiftPackage", "duplicate symbols", "apple-sdk", "cocoapods read-only"]
+---
+
+This guide describes how to migrate the iOS side of an existing MoEngage Flutter application from CocoaPods to Swift Package Manager (SPM). SPM support starts in `moengage_flutter` [10.3.0](/release-notes/sdks/flutter). From Flutter 3.44, Flutter turns SPM on by default and adds the SPM integration for the Flutter plugins to the iOS project. The steps in this guide cover the MoEngage-specific tasks: the MoEngage pods that your `Podfile` declares by hand, the push notification extension targets, and the [extension integrator tool](/developer-guide/flutter-sdk/push/basic/integrating-moengage-service-and-content-extension-in-ios/set-up-ios-notification-extensions-for-rich-push-and-impression-tracking#step-5-integrate-the-extension-integrator-tool). For the Flutter-specific migration steps, refer to [Swift Package Manager for app developers](https://docs.flutter.dev/packages-and-plugins/swift-package-manager/for-app-developers) in the Flutter documentation.
+
+The Dart code, SDK initialization, and dashboard configuration remain unchanged.
+
+## Migration Scope
+
+<Note>
+  The CocoaPods registry becomes read-only on December 2, 2026, and MoEngage publishes new SDK versions to CocoaPods until that date. After that date, new MoEngage SDK versions are available only through Swift Package Manager. MoEngage recommends planning the migration ahead of December 2, 2026.
+
+  Migrate only after every other plugin in your application supports SPM.
+</Note>
+
+## Before You Begin
+
+- Use Flutter 3.44.0 or later, where SPM is the default.
+- Use `moengage_flutter` [10.3.0](/release-notes/sdks/flutter) or later. The extension integrator tool needs [10.6.0](/release-notes/sdks/flutter) or later.
+- Confirm that every other plugin in your `pubspec.yaml` supports SPM. Check each plugin's page on [pub.dev](https://pub.dev).
+- Open `ios/Podfile` and note every `MoEngage-iOS-SDK` pod that the `Podfile` declares. The `moengage_flutter` plugin adds the MoEngage iOS SDK automatically, so any MoEngage pod in the `Podfile` was added manually, usually for the push notification extension.
+- Identify which extension targets use MoEngage, and whether the application uses the extension integrator tool.
+- Commit or back up the project, including the `ios` directory.
+
+## Step 1: Upgrade Flutter and the MoEngage Plugins
+
+1. Upgrade Flutter to 3.44.0 or later.
+2. Upgrade `moengage_flutter`, and any other MoEngage plugins in use (Cards, Inbox, Geofence, Personalize), to the latest versions listed in the [Flutter SDK release notes](/release-notes/sdks/flutter).
+3. Update the MoEngage plugin versions in `pubspec.yaml` (for example, `moengage_flutter: ^11.0.0`), and then run the following command:
+
+   ```bash Bash
+   flutter pub get
+   ```
+
+## Step 2: Remove Manually Declared MoEngage Pods
+
+Remove every MoEngage pod that you declared manually in `ios/Podfile`. Pods that Flutter adds for the plugins need no change.
+
+```ruby Podfile
+target 'Runner' do
+  pod 'MoEngage-iOS-SDK/RichNotification'
+end
+```
+
+Delete every line that starts with `pod 'MoEngage-iOS-SDK`, and remove any MoEngage settings from the `post_install` block.
+
+<Warning>
+  If the MoEngage SDK is added through both CocoaPods and SPM, the build fails with duplicate symbols. To avoid this:
+
+  - Remove every MoEngage pod from `ios/Podfile`. Even one remaining MoEngage pod causes this failure.
+  - Do not run `pod install` after this step.
+</Warning>
+
+## Step 3: Switch the Project to SPM
+
+1. Run the following command. Flutter adds the SPM integration to the iOS project, including `FlutterGeneratedPluginSwiftPackage`, without building the app.
+
+   ```bash Bash
+   flutter build ios --config-only
+   ```
+
+   Build and run the app only after you complete [Step 4](#step-4-update-the-push-notification-extensions). Before you complete Step 4, the build can fail at the MoEngage Run Script or in your notification extension. If SPM is turned off in your Flutter configuration, turn SPM on with `flutter config --enable-swift-package-manager`.
+2. From the `ios` directory, run the following command:
+
+   ```bash Bash
+   pod deintegrate
+   ```
+
+3. Delete the following from the `ios` directory: `Podfile`, `Podfile.lock`, the `Pods` folder, and the `.symlinks` folder if present.
+4. In `ios/Flutter/Debug.xcconfig` and `ios/Flutter/Release.xcconfig`, delete every `#include` line that references `Pods/Target Support Files`.
+
+## Step 4: Update the Push Notification Extensions
+
+Flutter's automatic migration does not update the extension targets. Without the `MoEngageRichNotification` library, MoEngage cannot render rich media, and rich push templates fall back to plain text. In DEBUG builds, the SDK throws a fatal error when a rich push payload arrives and the `MoEngageRichNotification` library is missing.
+
+**If the application uses the extension integrator tool**, replace the CocoaPods Run Script in the application target's **Build Phases** with the following script. The script works with Flutter commands (`flutter run`, `flutter build`) and with builds and archives from Xcode.
+
+```bash Bash lines wrap
+TOOL="SourcePackages/artifacts/apple-sdk/moengage-extensions-integration/moengage-extensions-integration.artifactbundle/moengage-extensions-integration/bin/moengage-extensions-integration"
+case "$ACTION" in
+  install) XCODE_ROOT="$OBJROOT/../../../../.." ;;   # archive from Xcode
+  *)       XCODE_ROOT="$OBJROOT/../.." ;;            # build or run from Xcode
+esac
+# Flutter commands keep Swift packages in build/ios; Xcode keeps them in DerivedData.
+for ROOT in "$FLUTTER_APPLICATION_PATH/${FLUTTER_BUILD_DIR:-build}/ios" "$XCODE_ROOT"; do
+  if [ -x "$ROOT/$TOOL" ]; then
+    "$ROOT/$TOOL" $OPTIONS
+    exit $?
+  fi
+done
+echo "error: moengage-extensions-integration not found. Run 'flutter pub get' and build again." >&2
+exit 1
+```
+
+Replace `$OPTIONS` with the flags from your current CocoaPods script, for example `--enable-push-notification-templates`.
+
+**Add `MoEngageRichNotification` to the Runner target:**
+
+1. In Xcode, expand **Package Dependencies** in the Project navigator and note the `apple-sdk` version. Then select **File > Add Package Dependencies**, enter `https://github.com/moengage/apple-sdk.git`, and set **Dependency Rule** to **Exact Version** with the version you noted. Do not use the `master` branch.
+2. Add the `MoEngageRichNotification` product to the **Runner** target. If your own notification extension's code imports `MoEngageRichNotification`, add the product to that extension target as well.
+3. After every upgrade of the MoEngage Flutter plugins, update the **Exact Version** to the `apple-sdk` version shown under **Package Dependencies**.
+
+For the notification extension setup, refer to [Set Up iOS Notification Extensions for Rich Push and Impression Tracking](/developer-guide/flutter-sdk/push/basic/integrating-moengage-service-and-content-extension-in-ios/set-up-ios-notification-extensions-for-rich-push-and-impression-tracking).
+
+## Step 5: Update Build Scripts and CI
+
+- In CI and local scripts, remove every `pod install` and `pod repo update` step. Keep `flutter pub get` and `flutter build ios`.
+- If your build uses flavors, make sure each flavor scheme has the **Run Prepare Flutter Framework Script** pre-action.
+
+## Step 6: Verify the Migration
+
+1. Run `flutter clean` and `flutter pub get`.
+2. Open `ios/Runner.xcworkspace` in Xcode. Under **Frameworks, Libraries, and Embedded Content** for the **Runner** target, confirm that `FlutterGeneratedPluginSwiftPackage` is present. Confirm that `ios/Podfile.lock`, if present, has no MoEngage entries.
+3. Build and run the application. Confirm that the SDK initialization logs report the MoEngage SDK version that you upgraded to.
+4. Select **Product > Archive** and confirm that the archive succeeds. The archive build tests the extension targets and the integrator script in a release build.
+5. Send a test push notification. Confirm that the device receives the notification, that the SDK tracks the notification impression, and that rich content renders. If the application uses the [Cards](/developer-guide/flutter-sdk/cards/self-handled-cards), Inbox, Geofence, or [Personalize](/developer-guide/flutter-sdk/personalize/overview) modules, verify each module as well.
+
+## Troubleshooting
+
+| Issue | Cause and fix |
+| :-- | :-- |
+| Duplicate symbols, or "Multiple commands produce" | MoEngage comes from both CocoaPods and SPM. Remove the remaining MoEngage pods from `ios/Podfile`, as described in [Step 2](#step-2-remove-manually-declared-moengage-pods). |
+| Package resolution fails with a version conflict on `apple-sdk` | The `apple-sdk` package you added in Step 4 is at a different version from the one the MoEngage plugin uses. Set the **Exact Version** of the `apple-sdk` package to the version shown under **Package Dependencies**, and update the version after every plugin upgrade. Refer to [Step 4](#step-4-update-the-push-notification-extensions). |
+| Archive fails with "moengage-extensions-integration: No such file or directory" | The Run Script still uses the CocoaPods path or a fixed SPM path. Use the script in [Step 4](#step-4-update-the-push-notification-extensions). |
+| Rich media or templates do not render, the app crashes on a rich push in a DEBUG build, or the device log shows "Library not loaded: MoEngageRichNotification" | The Runner target does not have the `MoEngageRichNotification` product. Add it to the Runner target, as described in [Step 4](#step-4-update-the-push-notification-extensions). |
+| The build still uses CocoaPods | A plugin does not support SPM, or SPM is turned off. Run `flutter config --enable-swift-package-manager`, and check each plugin for SPM support. |
+| Build fails with a reference to a `Pods-*.xcconfig` file | `Debug.xcconfig` or `Release.xcconfig` still includes a CocoaPods file. Remove the `#include` line, as described in [Step 3](#step-3-switch-the-project-to-spm). |
+| Linker errors or "framework not found" on the simulator | `EXCLUDED_ARCHS` or `ONLY_ACTIVE_ARCH` values set in the `Podfile` `post_install` block no longer apply. Set these values in Xcode on the app and extension targets. Refer to [Configuring Project for Architecture Compatibility](/developer-guide/ios-sdk/sdk-integration/basic/Configuring-Project-for-Architecture-Compatibility). |
+| The app builds against an older SDK version after an upgrade | In Xcode, select **Product > Clean Build Folder**, and then **File > Packages > Reset Package Caches**. Run `flutter pub get` and rebuild. |
