@@ -32,28 +32,42 @@ To ensure the encryption works as expected, follow the below steps to set up the
    </Frame>
 4. Get your AppID: The App ID Prefix (also called Team ID) is a unique text identifier associated with your Apple developer account that allows the sharing of keychain and pasteboard items between your apps.
 
-   Assume the AppID is **_AB123CDE45_**, Keychain group name is **_AB123CDE45.com.example.sharedItems_**. Make sure to pass the same keychain group name to MoEngage SDK via the [**_keyChainConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)keyChainConfig) property on [**_MoEngageSDKConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html) object.
+   Assume the AppID is **_AB123CDE45_**, Keychain group name is **_AB123CDE45.com.example.sharedItems_**. Pass the same keychain group name to the SDK in the step below.
 
 ## Enabling Encryption
 
-You can enable the storage encryption by setting the [**_storageConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)storageConfig) property on the [**_MoEngageSDKConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html) while initializing the SDK.
+Enable storage encryption using the initialization method your app implements.
 
-<CodeGroup>
+<Tabs>
+  <Tab title="Config-Based Initialization">
+    Return to the [MoEngage config generator](https://app-cdn.moengage.com/sdk/integration/initialization/index.html) and generate your configuration again with storage encryption turned on:
 
-```swift Swift wrap
-let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: .data_center_01)
-  sdkConfig.storageConfig = MoEngageStorageConfig(encryptionConfig: MoEngageStorageEncryptionConfig(isEncryptionEnabled: true))
-  sdkConfig.keyChainConfig = MoEngageKeyChainConfig(groupName: "YOUR_KEYCHAIN_GROUP_NAME")
-```
+    1. Select **Storage and Network Encryption** at the features step, along with the modules you already use.
+    2. Under **Security**, set **Enable Storage Encryption** to **Yes** and enter your **Keychain Group Name**.
+    3. Select **Generate the code**, then replace the `MoEngage` dictionary in your `Info.plist` with the new output.
 
+    Regenerate rather than adding the keys by hand. Your dictionary already carries them, so pasted copies leave two entries for the same key. See [Config-Based Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/config-based-initialization).
+  </Tab>
+  <Tab title="Manual Initialization">
+    Set the [`storageConfig`](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)storageConfig) and [`keyChainConfig`](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)keyChainConfig) properties on your [`MoEngageSDKConfig`](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html) object before you initialize the SDK.
 
-```objective-c Objective C wrap
-MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:MoEngageDataCenterData_center_01];      
-  sdkConfig.storageConfig = [[MoEngageStorageConfig alloc] initWithEncryptionConfig: [[MoEngageStorageEncryptionConfig alloc] initWithIsEncryptionEnabled:true]];
-  sdkConfig.keyChainConfig = [[MoEngageKeyChainConfig alloc] initWithGroupName:@"YOUR_KEYCHAIN_GROUP_NAME"];
-```
+    <CodeGroup>
 
-</CodeGroup>
+    ```swift Swift wrap
+    let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
+    sdkConfig.storageConfig = MoEngageStorageConfig(encryptionConfig: MoEngageStorageEncryptionConfig(isEncryptionEnabled: true))
+    sdkConfig.keyChainConfig = MoEngageKeyChainConfig(groupName: "AB123CDE45.com.example.sharedItems")
+    ```
+
+    ```objective-c Objective C wrap
+    MoEngageSDKConfig *sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:DATA_CENTER];
+    sdkConfig.storageConfig = [[MoEngageStorageConfig alloc] initWithEncryptionConfig:[[MoEngageStorageEncryptionConfig alloc] initWithIsEncryptionEnabled:YES]];
+    sdkConfig.keyChainConfig = [[MoEngageKeyChainConfig alloc] initWithGroupName:@"AB123CDE45.com.example.sharedItems"];
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
 
 <Note>
   **Note**
@@ -72,22 +86,36 @@ By default, we use HTTPS protocol for all requests made from the SDK; HTTPS encr
 
 ## Enabling Encryption
 
-You can enable the storage encryption setting in the [**_networkConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)networkConfig) property on the [**_MoEngageSDKConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html) while initializing the SDK.
+Enable network encryption using the initialization method your app implements. Provide the keys for both the TEST and LIVE environments.
 
-<CodeGroup>
+<Tabs>
+  <Tab title="Config-Based Initialization">
+    Return to the [MoEngage config generator](https://app-cdn.moengage.com/sdk/integration/initialization/index.html) and generate your configuration again with network encryption turned on:
 
-```swift Swift wrap
-let sdkConfig = MoEngageSDKConfig(appId: appId, dataCenter: .data_center_01)
-sdkConfig.networkConfig = MoEngageNetworkRequestConfig(dataSecurityConfig:  MoEngageNetworkDataSecurityConfig(isEncryptionEnabled: true, encryptionKeyDebug: "YOUR_TEST_ENVIRONMENT_ENCRYPTION_KEY", encryptionKeyRelease: "YOUR_LIVE_ENVIRONMENT_ENCRYPTION_KEY"))
-```
+    1. Select **Storage and Network Encryption** at the features step, along with the modules you already use.
+    2. Under **Security**, set **Enable Network Encryption** to **Yes** and enter the encryption keys for both environments.
+    3. Select **Generate the code**, then replace the `MoEngage` dictionary in your `Info.plist` with the new output.
 
+    Regenerate rather than adding the keys by hand. Your dictionary already carries them, so pasted copies leave two entries for the same key. See [Config-Based Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/config-based-initialization).
+  </Tab>
+  <Tab title="Manual Initialization">
+    Set the [`networkConfig`](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)networkConfig).[`dataSecurityConfig`](https://moengage.github.io/ios-api-reference/Classes/MoEngageNetworkRequestConfig.html) property on your [`MoEngageSDKConfig`](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html) object before you initialize the SDK.
 
-```objective-c Objective C wrap
-MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:MoEngageDataCenterData_center_01];
-sdkConfig.networkConfig = [[MoEngageNetworkRequestConfig alloc] initWithDataSecurityConfig:[[MoEngageNetworkDataSecurityConfig alloc] initWithIsEncryptionEnabled:true encryptionKeyDebug:@"YOUR_TEST_ENVIRONMENT_ENCRYPTION_KEY" encryptionKeyRelease:@"YOUR_LIVE_ENVIRONMENT_ENCRYPTION_KEY"]];;
-```
+    <CodeGroup>
 
-</CodeGroup>
+    ```swift Swift wrap
+    let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
+    sdkConfig.networkConfig = MoEngageNetworkRequestConfig(dataSecurityConfig: MoEngageNetworkDataSecurityConfig(isEncryptionEnabled: true, encryptionKeyDebug: "YOUR_TEST_ENVIRONMENT_ENCRYPTION_KEY", encryptionKeyRelease: "YOUR_LIVE_ENVIRONMENT_ENCRYPTION_KEY"))
+    ```
+
+    ```objective-c Objective C wrap
+    MoEngageSDKConfig *sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:DATA_CENTER];
+    sdkConfig.networkConfig = [[MoEngageNetworkRequestConfig alloc] initWithDataSecurityConfig:[[MoEngageNetworkDataSecurityConfig alloc] initWithIsEncryptionEnabled:YES encryptionKeyDebug:@"YOUR_TEST_ENVIRONMENT_ENCRYPTION_KEY" encryptionKeyRelease:@"YOUR_LIVE_ENVIRONMENT_ENCRYPTION_KEY"]];
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
 
 <Note>
   **Note**
@@ -97,5 +125,8 @@ sdkConfig.networkConfig = [[MoEngageNetworkRequestConfig alloc] initWithDataSecu
 </Note>
 
 <Warning>
-  When network encryption is enabled (`isEncryptionEnabled: true`), you must provide non-empty values for both `encryptionKeyDebug` and `encryptionKeyRelease`. Passing an empty key for the active build configuration throws a fatal exception and crashes the app in `DEBUG` builds. In release builds, network requests fall back to standard HTTPS without the additional encryption layer.
+  When network encryption is enabled, you must provide non-empty values for both `EncryptionEncodedTestKey` and `EncryptionEncodedLiveKey`. The consequence of a missing key for the active environment depends on your initialization method:
+
+  - **Config-based initialization:** the whole `MoEngage` dictionary is invalid. The SDK does not initialize, in any build configuration, and the first MoEngage API call hits a `fatalError`.
+  - **Manual initialization:** an empty key throws a fatal exception and crashes the app in `DEBUG` builds. In release builds, network requests fall back to standard HTTPS without the additional encryption layer.
 </Warning>

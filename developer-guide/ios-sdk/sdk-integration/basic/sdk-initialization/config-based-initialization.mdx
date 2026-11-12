@@ -1,0 +1,76 @@
+---
+title: "Config-Based Initialization"
+sidebarTitle: "Config-Based Initialization (Recommended)"
+description: "Configure the MoEngage iOS SDK from a MoEngage dictionary in your app's Info.plist to initialize the SDK."
+keywords: "Info.plist, MoEngage dictionary, WorkspaceId, config generator, initializeDefaultInstance, plist configuration"
+---
+
+## Overview
+
+Config-based initialization keeps your MoEngage configuration in a `MoEngage` dictionary in your app target's `Info.plist`. You generate the dictionary from the MoEngage config generator, and the SDK initializes from it.
+
+## Prerequisites
+
+- MoEngage iOS SDK 10.03.2 or later. See [SDK Integration](/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration).
+- Your Workspace ID, from **Settings > Account > General Settings** in the MoEngage dashboard.
+- Your data center. See [Data Center](/developer-guide/ios-sdk/sdk-integration/basic/data-center).
+
+## Generate the Configuration
+
+<Steps>
+  <Step title="Choose the Platform">
+    Go to the [MoEngage config generator](https://app-cdn.moengage.com/sdk/integration/initialization/index.html), select **iOS**, then select **Continue**.
+  </Step>
+  <Step title="Select Your Features">
+    Select the modules your app needs, then select **Continue**.
+  </Step>
+  <Step title="Set Your Values">
+    Enter your values.
+  </Step>
+  <Step title="Generate the Configuration">
+    Select **Generate the code**. The generator lists your packages under **Dependencies** and the configuration under **Config File**. Select **Copy**.
+  </Step>
+</Steps>
+
+Add the package products listed under **Dependencies** through Swift Package Manager or CocoaPods, against the targets the same section names.
+
+## Add the Configuration to Info.plist
+
+<Steps>
+  <Step title="Open Info.plist">
+    Open your app target's `Info.plist`. An app created with Xcode 13 or later often has no `Info.plist` file, because the target generates one at build time. In that case, add the dictionary under **Custom iOS Target Properties** on the target's **Info** tab, and Xcode creates the file.
+  </Step>
+  <Step title="Add the MoEngage Dictionary">
+    Add a top-level key named `MoEngage` of type **Dictionary**, and add the generated keys inside it.
+  </Step>
+</Steps>
+
+<Warning>
+  Return to the config generator whenever a value changes or you adopt another module, and replace the dictionary with the new output. The SDK matches key names exactly and ignores any key it does not recognize, without a build or run-time warning, so a hand-typed key leaves the default in place and the SDK runs on a configuration you did not intend.
+</Warning>
+
+## Test and Live Environments
+
+The TEST environment serves development and testing. The LIVE environment runs campaigns against your production user base. You [switch between the two environments in the dashboard](/user-guide/getting-started/initial-setup/dashboard-overview#live-and-test-environments).
+
+Select the environment in the generator's **MoEngage Environment** field:
+
+| MoEngage Environment | Behavior |
+| :-- | :-- |
+| **Default** | Debug builds track to TEST, and release builds track to LIVE. |
+| **Test** | Every build tracks to TEST. |
+| **Live** | Every build tracks to LIVE. |
+
+<Warning>
+  Verify the resolved environment before you ship. A mismatch between the build and the environment returns a **Bad Device Token** error on push delivery.
+</Warning>
+
+### Set the Build Configuration
+
+When you run the app from Xcode without archiving, confirm that the build configuration for **Run** mode of the app target in **Edit Scheme** is set to **Debug**, which is the default. The SDK then tracks data in the TEST environment.
+
+![Xcode Edit Scheme dialog with Run mode build configuration set to Debug](/images/sdkini3.png)
+
+For the **Archive** section in **Edit Scheme**, the build configuration defaults to **Release**. For a development build, go to **App Target > Edit Scheme > Archive > Build Configuration** and select **Debug** before you export.
+
+![Xcode Edit Scheme dialog with Archive build configuration selection](/images/sdkini4.png)

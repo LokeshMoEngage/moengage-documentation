@@ -32,50 +32,124 @@ pod 'mParticle-MoEngage','~> 1.0.0'
 1. Disable MoEngageSDK method swizzling by setting **MoEngageAppDelegateProxyEnabled** as **false** /**NO** in app's **Info.plist**.
 2. Get Workspace ID (earlier App ID) from the Settings Page Dashboard --\> Settings --\> Account --\> General and configure the MoEngage SDK in the **_AppDelegate's didFinishLaunchingWithOptions_** callback \_\_ before initializing the mParticle Kit.
 
-<CodeGroup>
+Configure the SDK from your app's `Info.plist`, or pass a `MoEngageSDKConfig` object in code.
 
-```swift Swift wrap
-import MoEngageSDK
-import mParticle_Apple_SDK
-import mParticle_MoEngage
- 
- func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-    // Add your MoEngage Workspace ID and Data center.
-    let sdkConfig = MoEngageSDKConfig(appId: "YOUR WorkspaceID", dataCenter: DATA_CENTER)
-    // MoEngage SDK configuration
-    MoEngageConfigurator.configureDefaultInstance(sdkConfig: sdkConfig)
- 
-    // Initialize mParticle
-    let mParticleOptions = MParticleOptions(key: "YOU MPARTICLE API KEY", secret: "YOUR MPARTICLE API SECRET")
-    MParticle.sharedInstance().start(with: mParticleOptions)
- 
-    // Rest of the implementation of method
-    //-------
-    return true
-}
-```
+<Tabs>
+  <Tab title="Config-Based">
+    Requires **mParticle-MoEngage 2.0.0** or later. Earlier kit versions have only the `sdkConfig:` form shown on the Manual tab.
 
-```objectivec Objective-C
-@import MoEngageSDK;
-@import mParticle_Apple_SDK;
-@import mParticle_MoEngage;
- 
-- (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
-     // Add your MoEngage Workspace ID and Data center.
-     MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR Workspace ID" dataCenter: DATA_CENTER];
-    // MoEngage SDK configuration
-    [MoEngageConfigurator configureDefaultInstanceWithSdkConfig:sdkConfig];
- 
-    // Initialize mParticle
-    MParticleOptions* mParticleOptions = [MParticleOptions optionsWithKey:@"YOU MPARTICLE API KEY" secret:@"YOUR MPARTICLE API SECRET"];
-    [[MParticle sharedInstance] startWithOptions:mParticleOptions];
-    
-    //Rest of the implementation of method
-    //-------
-}
-```
+    Add a `MoEngage` dictionary to your app target's `Info.plist`, and set `IntegrationPartner` to `mparticle`. To generate the dictionary, see [Config-Based Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/config-based-initialization).
 
-</CodeGroup>
+    ```xml Info.plist
+    <key>MoEngage</key>
+    <dict>
+        <key>WorkspaceId</key>
+        <string>YOUR_WORKSPACE_ID</string>
+        <key>DataCenter</key>
+        <integer>1</integer>
+        <key>IntegrationPartner</key>
+        <string>mparticle</string>
+        <key>IsTestEnvironment</key>
+        <string>$(SWIFT_ACTIVE_COMPILATION_CONDITIONS)|$(GCC_PREPROCESSOR_DEFINITIONS)</string>
+    </dict>
+    ```
+
+    Call `configureDefaultInstance()` with no arguments. The kit reads every value from the dictionary.
+
+    <CodeGroup>
+
+    ```swift Swift wrap
+    import MoEngageSDK
+    import mParticle_Apple_SDK
+    import mParticle_MoEngage
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // MoEngage SDK configuration, read from Info.plist
+        MoEngageConfigurator.configureDefaultInstance()
+
+        // Initialize mParticle
+        let mParticleOptions = MParticleOptions(key: "YOUR_MPARTICLE_API_KEY", secret: "YOUR_MPARTICLE_API_SECRET")
+        MParticle.sharedInstance().start(with: mParticleOptions)
+
+        return true
+    }
+    ```
+
+    ```objectivec Objective-C
+    @import MoEngageSDK;
+    @import mParticle_Apple_SDK;
+    @import mParticle_MoEngage;
+
+    - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+        // MoEngage SDK configuration, read from Info.plist
+        [MoEngageConfigurator configureDefaultInstance];
+
+        // Initialize mParticle
+        MParticleOptions* mParticleOptions = [MParticleOptions optionsWithKey:@"YOUR_MPARTICLE_API_KEY" secret:@"YOUR_MPARTICLE_API_SECRET"];
+        [[MParticle sharedInstance] startWithOptions:mParticleOptions];
+
+        return YES;
+    }
+    ```
+
+    </CodeGroup>
+
+    <Warning>
+      Call `MoEngageConfigurator.configureDefaultInstance()` rather than `MoEngage.sharedInstance.initializeDefaultInstance()`. Both read the `MoEngage` dictionary, but only the kit method records the plugin type and version that identify your traffic as mParticle.
+    </Warning>
+
+    <Note>
+      `IsTestEnvironment` selects the TEST or LIVE environment on this path. The `configureDefaultInstance(sdkConfig:)` form below instead selects TEST for builds that define the `DEBUG` macro and LIVE for the rest.
+    </Note>
+  </Tab>
+  <Tab title="Manual">
+    <CodeGroup>
+
+    ```swift Swift wrap
+    import MoEngageSDK
+    import mParticle_Apple_SDK
+    import mParticle_MoEngage
+
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        // Add your MoEngage Workspace ID and Data center.
+        let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: .data_center_01)
+        // MoEngage SDK configuration
+        MoEngageConfigurator.configureDefaultInstance(sdkConfig: sdkConfig)
+
+        // Initialize mParticle
+        let mParticleOptions = MParticleOptions(key: "YOUR_MPARTICLE_API_KEY", secret: "YOUR_MPARTICLE_API_SECRET")
+        MParticle.sharedInstance().start(with: mParticleOptions)
+
+        // Rest of the implementation of method
+        //-------
+        return true
+    }
+    ```
+
+    ```objectivec Objective-C
+    @import MoEngageSDK;
+    @import mParticle_Apple_SDK;
+    @import mParticle_MoEngage;
+
+    - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions {
+        // Add your MoEngage Workspace ID and Data center.
+        MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:MoEngageDataCenterData_center_01];
+        // MoEngage SDK configuration
+        [MoEngageConfigurator configureDefaultInstanceWithSdkConfig:sdkConfig];
+
+        // Initialize mParticle
+        MParticleOptions* mParticleOptions = [MParticleOptions optionsWithKey:@"YOUR_MPARTICLE_API_KEY" secret:@"YOUR_MPARTICLE_API_SECRET"];
+        [[MParticle sharedInstance] startWithOptions:mParticleOptions];
+
+        //Rest of the implementation of method
+        //-------
+        return YES;
+    }
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
 
 # Install / Update Differentiation :
 

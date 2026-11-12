@@ -97,19 +97,36 @@ After you configure the NSE, the SDK tracks impressions for **both text-only and
     2. **Create App Group ID**:
        - Create a new App Group ID (for example, `group.com.yourcompany.appname`).
        - **Crucially**, ensure this exact App Group ID is enabled for both the main app and the NSE targets.
-    3. **Update AppDelegate**: Modify your `AppDelegate.swift` in your iOS application to set the App Group ID as shown below:
-       <CodeGroup>
-       ```swift Swift wrap
-       // In your main AppDelegate.swift - didFinishLaunchingWithOptions
-       let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: .data_center_01)
-       sdkConfig.appGroupID = "group.com.yourcompany.appname" // Your App Group ID
-       ```
-       ```objective-c Objective C wrap
-        MoEngageSDKConfig *sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:MoEngageDataCenterData_center_01];
-        sdkConfig.appGroupID = @"group.com.yourcompany.appname"; // Add your App Group ID here
-        [[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
-       ```
-       </CodeGroup>
+    3. **Set the App Group in your SDK configuration**: Pass the same App Group ID to the SDK using the initialization method your app implements.
+
+    <Tabs>
+      <Tab title="Config-Based Initialization">
+        Return to the [MoEngage config generator](https://app-cdn.moengage.com/sdk/integration/initialization/index.html), enter your App Group ID in the **App Group Name** field, and select **Generate the code**. Replace the `MoEngage` dictionary in your `Info.plist` with the new output.
+
+        Regenerate rather than adding `AppGroupName` by hand, so that the dictionary stays consistent with the rest of your configuration. See [Config-Based Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/config-based-initialization).
+      </Tab>
+      <Tab title="Manual Initialization">
+        Set `appGroupID` on your `MoEngageSDKConfig` object in `application(_:didFinishLaunchingWithOptions:)`, before you initialize the SDK.
+
+        <CodeGroup>
+
+        ```swift Swift wrap
+        let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
+        sdkConfig.appGroupID = "group.com.yourcompany.appname"
+        ```
+
+        ```objective-c Objective C wrap
+        MoEngageSDKConfig *sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:DATA_CENTER];
+        sdkConfig.appGroupID = @"group.com.yourcompany.appname";
+        ```
+
+        </CodeGroup>
+      </Tab>
+    </Tabs>
+
+    <Note>
+      Call `MoEngageSDKRichNotification.setAppGroupID(_:)` in each extension you ship, regardless of how your app target initializes the SDK. With config-based initialization, the extension also reads `AppGroupName` from the containing app's `Info.plist`; `setAppGroupID(_:)` is the fallback. With manual initialization, it is the only source.
+    </Note>
   </Step>
   <Step title="Configure the NSE Code">
     Replace the entire content of the generated `NotificationService.swift` file with the following:

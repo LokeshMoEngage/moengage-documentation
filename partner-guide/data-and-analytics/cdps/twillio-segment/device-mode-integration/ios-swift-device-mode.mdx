@@ -12,22 +12,61 @@ To integrate use the following GitHub URL link and set the branch as master or v
 
 # Setup Twilio Segment SDK
 
-Now head to the AppDelegate, and setup the Twilio Segment SDK :
+Now head to the AppDelegate, and setup the Twilio Segment SDK. Configure the SDK from your app's `Info.plist`, or pass a `MoEngageSDKConfig` object in code.
 
-<CodeGroup>
+<Tabs>
+  <Tab title="Config-Based">
+    Requires **Segment-MoEngage 2.03.0** or later. Earlier plugin versions have only the `sdkConfig:` form shown on the Manual tab.
 
-```swift Swift wrap
-import Segment_MoEngage
-...
-func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-...
-   let sdkConfig = MoEngageSDKConfig(appId: "YOUR Workspace ID", dataCenter: .data_center_01)
-   MoEngageInitializer.initializeDefaultInstance(sdkConfig: sdkConfig)
-...
-}
-```
+    Add a `MoEngage` dictionary to your app target's `Info.plist`, and set `IntegrationPartner` to `segment`. To generate the dictionary, see [Config-Based Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/config-based-initialization).
 
-</CodeGroup>
+    ```xml Info.plist
+    <key>MoEngage</key>
+    <dict>
+        <key>WorkspaceId</key>
+        <string>YOUR_WORKSPACE_ID</string>
+        <key>DataCenter</key>
+        <integer>1</integer>
+        <key>IntegrationPartner</key>
+        <string>segment</string>
+        <key>IsTestEnvironment</key>
+        <string>$(SWIFT_ACTIVE_COMPILATION_CONDITIONS)|$(GCC_PREPROCESSOR_DEFINITIONS)</string>
+    </dict>
+    ```
+
+    Call `initializeDefaultInstance()` with no arguments. The plugin reads every value from the dictionary.
+
+    ```swift Swift wrap
+    import Segment_MoEngage
+    ...
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    ...
+       MoEngageInitializer.initializeDefaultInstance()
+    ...
+    }
+    ```
+
+    <Warning>
+      Call `MoEngageInitializer.initializeDefaultInstance()` rather than `MoEngage.sharedInstance.initializeDefaultInstance()`. Both read the `MoEngage` dictionary, but only the plugin method records the plugin type and version that identify your traffic as Segment.
+    </Warning>
+
+    <Note>
+      `IsTestEnvironment` selects the TEST or LIVE environment on this path. The `initializeDefaultInstance(sdkConfig:)` form below instead selects TEST for builds that define the `DEBUG` macro and LIVE for the rest.
+    </Note>
+  </Tab>
+  <Tab title="Manual">
+    ```swift Swift wrap
+    import Segment_MoEngage
+    ...
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+    ...
+       let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: .data_center_01)
+       MoEngageInitializer.initializeDefaultInstance(sdkConfig: sdkConfig)
+    ...
+    }
+    ```
+  </Tab>
+</Tabs>
 
 Just under your Analytics-Swift library setup, call `analytics.add(plugin: ...)` to add an instance of the plugin to the Analytics timeline.
 
@@ -49,7 +88,7 @@ func application(_ application: UIApplication, didFinishLaunchingWithOptions lau
 </CodeGroup>
 
 <Warning>
-  Make sure to set the correct Data Center/Region for your MoEngage account using the `dataCenter` parameter of `MoEngageSDKConfig` (shown as `.data_center_01` above). Refer [doc](/developer-guide/ios-sdk/sdk-integration/basic/data-center) for more info.
+  Make sure to set the correct Data Center/Region for your MoEngage account: the `DataCenter` key in the `MoEngage` dictionary, or the `dataCenter` parameter of `MoEngageSDKConfig` (shown as `.data_center_01` above). Refer [doc](/developer-guide/ios-sdk/sdk-integration/basic/data-center) for more info.
 </Warning>
 
 # Setup MoEngage

@@ -28,32 +28,48 @@ Follow these steps to integrate JWT authentication into your iOS application.
 
 ### Step 1: Enable JWT Authentication
 
-You can enable JWT authentication during [SDK initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization) by configuring the [**_networkConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)networkConfig).[**_authorizationConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageNetworkRequestConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageNetworkRequestConfig\(py\)authorizationConfig) property on the [**_MoEngageSDKConfig_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html) object.
+Enable JWT authentication using the initialization method your app implements.
 
-<CodeGroup>
+<Tabs>
+  <Tab title="Config-Based Initialization">
+    Return to the [MoEngage config generator](https://app-cdn.moengage.com/sdk/integration/initialization/index.html) and generate your configuration again with JWT turned on:
 
-```swift Swift wrap
-let sdkConfig = MoEngageSDKConfig(appId: "", dataCenter: .YOUR_DATA_CENTER)
-sdkConfig.networkConfig = MoEngageNetworkRequestConfig(authorizationConfig: MoEngageNetworkAuthorizationConfig(isJwtEnabled: true))
-#if DEBUG
-MoEngage.sharedInstance.initializeDefaultTestInstance(sdkConfig)
-#else
-MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
-#endif
-```
+    1. Select **Storage and Network Encryption** at the features step, along with the modules you already use.
+    2. Set **Enable JWT Authorisation** to **Yes** under **Security**.
+    3. Select **Generate the code**, then replace the `MoEngage` dictionary in your `Info.plist` with the new output.
 
+    Regenerate rather than adding `IsJwtEnabled` by hand. Your dictionary already carries the key, so a pasted copy leaves two entries for it, and the key name can change between SDK versions. See [Config-Based Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/config-based-initialization).
+  </Tab>
+  <Tab title="Manual Initialization">
+    Set the [`networkConfig`](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageSDKConfig\(py\)networkConfig).[`authorizationConfig`](https://moengage.github.io/ios-api-reference/Classes/MoEngageNetworkRequestConfig.html#/c:@M@MoEngageCore@objc\(cs\)MoEngageNetworkRequestConfig\(py\)authorizationConfig) property on your [`MoEngageSDKConfig`](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKConfig.html) object before you initialize the SDK.
 
-```objective-c Objective C wrap
-MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"" dataCenter:YOUR_DATA_CENTER];
-sdkConfig.networkConfig = [[MoEngageNetworkRequestConfig alloc] initWithAuthorizationConfig:[[MoEngageNetworkAuthorizationConfig alloc] initWithIsJwtEnabled:YES]];
-#ifdef DEBUG
-[[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
-#else
-[[MoEngage sharedInstance] initializeDefaultLiveInstance:sdkConfig];
-#endif
-```
+    <CodeGroup>
 
-</CodeGroup>
+    ```swift Swift wrap
+    let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
+    sdkConfig.networkConfig = MoEngageNetworkRequestConfig(authorizationConfig: MoEngageNetworkAuthorizationConfig(isJwtEnabled: true))
+
+    #if DEBUG
+        MoEngage.sharedInstance.initializeDefaultTestInstance(sdkConfig)
+    #else
+        MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
+    #endif
+    ```
+
+    ```objective-c Objective C wrap
+    MoEngageSDKConfig *sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:DATA_CENTER];
+    sdkConfig.networkConfig = [[MoEngageNetworkRequestConfig alloc] initWithAuthorizationConfig:[[MoEngageNetworkAuthorizationConfig alloc] initWithIsJwtEnabled:YES]];
+
+    #ifdef DEBUG
+        [[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
+    #else
+        [[MoEngage sharedInstance] initializeDefaultLiveInstance:sdkConfig];
+    #endif
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
 
 ### Step 2: Pass the JWT to the SDK
 
@@ -62,12 +78,12 @@ Your application is responsible for managing the JWT lifecycle. The recommended 
 Use the [**_MoEngageSDKCore.passAuthenticationDetails()_**](https://moengage.github.io/ios-api-reference/Classes/MoEngageSDKCore.html#/c:@CM@MoEngageCore@objc\(cs\)MoEngageSDKCore\(im\)passAuthenticationDetails:workspaceId:) method to provide the token to the SDK.
 
 <Warning>
- - `MoEngageSDKCore.sharedInstance.passAuthenticationDetails` requires JWT to be enabled in `MoEngageNetworkAuthorizationConfig` during SDK initialization (Step 1 above). Calling this method without first enabling JWT throws a fatal exception and crashes the app in `DEBUG` builds. In release builds, the call is dropped silently and the token is not registered with the SDK.
+ - `MoEngageSDKCore.sharedInstance.passAuthenticationDetails` requires JWT to be enabled in your SDK configuration (Step 1 above). Calling this method without first enabling JWT throws a fatal exception and crashes the app in `DEBUG` builds. In release builds, the call is dropped silently and the token is not registered with the SDK.
  - If these `DEBUG` validations crash your app while you upgrade, call `MoEngageSDKCore.sharedInstance.disableIntegrationValidator()` before initializing the SDK to opt out temporarily. Remove the call once the issues are fixed.
 </Warning>
 
 <Info>
-  In the iOS SDK, `DEBUG` mode means the SDK was initialized using `initializeDefaultTestInstance(_:)` (TEST workspace) and the app is running attached to Xcode. This is different from a release build that has debug symbols enabled.
+  In the iOS SDK, `DEBUG` mode means the SDK is running against the TEST workspace and the app is attached to Xcode. This is different from a release build that has debug symbols enabled.
 </Info>
 
 <CodeGroup>

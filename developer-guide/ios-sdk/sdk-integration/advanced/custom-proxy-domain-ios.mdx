@@ -35,38 +35,52 @@ MoEngage will provide you with a list of Name Server (NS) records. You must add 
 
 ## Implementation
 
-Once the DNS delegation is verified, update your SDK initialization logic. The SDK will dynamically rewrite all MoEngage endpoints (API calls and CDN assets) to use your custom proxy domain.
+After MoEngage verifies the DNS delegation, set your subdomain in the SDK configuration. The SDK rewrites all MoEngage endpoints, including API calls and CDN assets, to use your custom proxy domain.
 
 ### Update MoEngage Configuration
 
-<CodeGroup>
+Set your delegated subdomain using the initialization method your app implements.
 
-```swift Swift wrap
-import MoEngageSDK
+<Tabs>
+  <Tab title="Config-Based Initialization">
+    Return to the [MoEngage config generator](https://app-cdn.moengage.com/sdk/integration/initialization/index.html), enter your delegated subdomain in the **Custom Domain** field, and select **Generate the code**. Replace the `MoEngage` dictionary in your `Info.plist` with the new output.
 
-let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
-sdkConfig.customBaseDomain = "CUSTOM_DOMAIN"
-#if DEBUG
-MoEngage.sharedInstance.initializeDefaultTestInstance(sdkConfig)
-#else
-MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
-#endif
-```
+    Regenerate rather than adding `CustomBaseDomain` by hand, so that the dictionary stays consistent with the rest of your configuration. See [Config-Based Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/config-based-initialization).
+  </Tab>
+  <Tab title="Manual Initialization">
+    Set `customBaseDomain` on your `MoEngageSDKConfig` object before you initialize the SDK. See [Manual Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/manual-initialization).
 
+    <CodeGroup>
 
-```objective-c Objective C wrap
-@import MoEngageSDK;
+    ```swift Swift wrap
+    import MoEngageSDK
 
-MoEngageSDKConfig* sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter: DATA_CENTER];
-sdkConfig.customBaseDomain = @"CUSTOM_DOMAIN";
-#ifdef DEBUG
-[[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
-#else
-[[MoEngage sharedInstance] initializeDefaultLiveInstance:sdkConfig];
-#endif
-```
+    let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
+    sdkConfig.customBaseDomain = "data.example.com"
 
-</CodeGroup>
+    #if DEBUG
+        MoEngage.sharedInstance.initializeDefaultTestInstance(sdkConfig)
+    #else
+        MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
+    #endif
+    ```
+
+    ```objective-c Objective C wrap
+    @import MoEngageSDK;
+
+    MoEngageSDKConfig *sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:DATA_CENTER];
+    sdkConfig.customBaseDomain = @"data.example.com";
+
+    #ifdef DEBUG
+        [[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
+    #else
+        [[MoEngage sharedInstance] initializeDefaultLiveInstance:sdkConfig];
+    #endif
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
 
 ## Best Practices and Validation
 

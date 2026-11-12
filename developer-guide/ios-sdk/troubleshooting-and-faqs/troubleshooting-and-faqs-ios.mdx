@@ -6,43 +6,72 @@ description: "Enable SDK logs and find answers to common MoEngage iOS SDK integr
 
 # Enable SDK logs
 
-By default, we have disabled logs from the SDK. For debugging if you want to see the SDK logs in your console, add the configuration below:
+Manual initialization disables logs by default. With config-based initialization, `LogLevel` controls logging: `0` turns it off, and the default, `3`, prints INFO logs. Set the verbosity using the initialization method your app implements.
+
+<Tabs>
+  <Tab title="Config-Based Initialization">
+    Add the `LogLevel` key inside the `MoEngage` dictionary in your `Info.plist`. See [Config-Based Initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/config-based-initialization).
+
+    ```xml Info.plist
+    <key>MoEngage</key>
+    <dict>
+        <!-- Your existing keys -->
+        <key>LogLevel</key>
+        <integer>5</integer>
+    </dict>
+    ```
+
+    Set `LogLevel` to `0` in the builds you ship. The default prints logs in release builds as well as debug builds.
+  </Tab>
+  <Tab title="Manual Initialization">
+    Set `consoleLogConfig` on your `MoEngageSDKConfig` object before you initialize the SDK.
+
+    <CodeGroup>
+
+    ```swift Swift wrap
+    let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: DATA_CENTER)
+    sdkConfig.consoleLogConfig = MoEngageConsoleLogConfig(isLoggingEnabled: true, loglevel: .verbose)
+
+    #if DEBUG
+        MoEngage.sharedInstance.initializeDefaultTestInstance(sdkConfig)
+    #else
+        MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
+    #endif
+    ```
+
+    ```objective-c Objective C wrap
+    MoEngageSDKConfig *sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID" dataCenter:DATA_CENTER];
+    sdkConfig.consoleLogConfig = [[MoEngageConsoleLogConfig alloc] initWithIsLoggingEnabled:YES loglevel:MoEngageLoggerTypeVerbose];
+
+    #ifdef DEBUG
+        [[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
+    #else
+        [[MoEngage sharedInstance] initializeDefaultLiveInstance:sdkConfig];
+    #endif
+    ```
+
+    </CodeGroup>
+  </Tab>
+</Tabs>
+
+Both methods also support enabling logs at runtime. Call `enableAllLogs()` before you initialize the SDK:
 
 <CodeGroup>
 ```swift Swift wrap
 MoEngageSDKCore.sharedInstance.enableAllLogs()
-
-let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: .data_center_0X)
-// add the below config along with other configs
-sdkConfig.consoleLogConfig = MoEngageConsoleLogConfig(isLoggingEnabled: true, loglevel: .verbose)
-
-#if DEBUG
-    MoEngage.sharedInstance.initializeDefaultTestInstance(sdkConfig)
-#else
-    MoEngage.sharedInstance.initializeDefaultLiveInstance(sdkConfig)
-#endif
 ```
 ```objective-c Objective C wrap
 [[MoEngageSDKCore sharedInstance] enableAllLogs];
-
-MoEngageSDKConfig *sdkConfig = [[MoEngageSDKConfig alloc] initWithAppId:@"YOUR_WORKSPACE_ID", dataCenter:MoEngageDataCenterData_center_0X];
-sdkConfig.consoleLogConfig = [[MoEngageConsoleLogConfig alloc] initWithIsLoggingEnabled:YES loglevel:MoEngageLoggerTypeVerbose];
-
-#ifdef DEBUG
-    [[MoEngage sharedInstance] initializeDefaultTestInstance:sdkConfig];
-#else
-    [[MoEngage sharedInstance] initializeDefaultLiveInstance:sdkConfig];
-#endif
 ```
 </CodeGroup>
 
-_All MoEngage logs are prefixed by the keyword "MoEngage"._
+All MoEngage logs are prefixed by the keyword "MoEngage".
 
 # FAQs
 
 ## Don't see events in the dashboard?
 
-- Make sure that the [SDK initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization) is done properly. Check if the App ID provided in the initialization method is correct.
+- Make sure that the [SDK initialization](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/config-based-initialization) is done properly. Check if the App ID provided in the initialization method is correct.
 - Once the App ID is checked, make sure you are checking in the right MoEngage environment. While initializing the SDK, you must make use of the **DEBUG** macro in your project. By default behavior, if the build configuration is set to Debug then events will show up in **Test Environment**, or else if build configuration is set to Release then events will be tracked in **Live Environment**.
 - In the SDK we reject events with invalid event attributes. Event attribute values can only have Strings, Numbers, and dictionaries, or else events might get rejected. For confirming enable the SDK logs and check if the events list sent while the app goes to the background has the event you are tracking, if not then events are getting rejected by the SDK.
 - If neither of the above applies, allow 1-2 minutes for the events to appear on the user's profile.
@@ -67,7 +96,7 @@ _All MoEngage logs are prefixed by the keyword "MoEngage"._
 ## Getting BadDeviceToken Error while sending the push notifications?
 
 - This error comes whenever you try to send push notifications from the TEST environment to AppStore/AdHoc Build **OR** from a LIVE environment to development build.
-- Set Build Configuration correctly and test in the correct environment. Refer [link](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization) for more info.
+- Set Build Configuration correctly and test in the correct environment. Refer [link](/developer-guide/ios-sdk/sdk-integration/basic/sdk-initialization/config-based-initialization) for more info.
 
 ## Getting DeviceTokenNotForTopic Error while sending the push notifications?
 
