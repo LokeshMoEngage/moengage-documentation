@@ -93,6 +93,55 @@ If your Snowflake instances aren't public and are on AWS, we recommend you set u
 | `"datetime_format": "YYYY-MM-DDThh:mm:ss.sTZD"` | <ul><li>2019-02-22T17:54:14.957Z</li><li>2019-02-22T17:54:14.957299-08:00</li><li>2019-02-22T17:54:14.957299\+08:00</li></ul> |
 | `"datetime_format": "YYYY/MM/DDThh:mm:ss.sTZD"` | <ul><li>2019/02/22T17:54:14.957Z</li><li>2019/02/22T17:54:14.957299-08:00</li><li>2019/02/22T17:54:14.957299\+08:00</li></ul> |
 
+### Rotating your Snowflake credentials
+
+MoEngage recommends rotating your credentials every 90 days or as per your IT policy. Follow the steps below to rotate your credentials.
+
+<AccordionGroup>
+  <Accordion title="Rotating your password">
+    Change the password of your Snowflake user, then update it in MoEngage. Your old password stops working as soon as you change it in Snowflake.
+
+    <Warning>
+    Your imports and exports fail from the moment you change the password in Snowflake until you save the new password in MoEngage. Complete both parts together, ideally when no imports or exports are scheduled.
+    </Warning>
+
+    1. In Snowflake, set a new password for the user that MoEngage uses to connect. You can do this in one of the following ways:
+       - **Snowsight:** Go to **Governance & security** > **Users & roles**, find the user, click the **More options** icon, and click **Reset Password**. Enter and confirm the new password, then click **Update**.
+       - **SQL:** Run the following command with a role that has the OWNERSHIP privilege on the user:
+         ```sql
+         ALTER USER <username> SET PASSWORD = '<new_password>' MUST_CHANGE_PASSWORD = FALSE;
+         ```
+       For more information, refer to the [Snowflake password reset guide](https://docs.snowflake.com/en/user-guide/password-authentication#resetting-the-password-for-a-user).
+    2. In your MoEngage Dashboard, go to **App Marketplace**, open **Snowflake**, and go to the **Integrate** tab. Edit the existing connection.
+    3. Enter the new password in the **Password** field.
+    4. Click **Test connection**. The test must succeed to complete the rotation.
+    5. Click **Connect** to save the connection. MoEngage then starts using the new password.
+
+    <Note>
+    Snowflake is phasing out password sign-in for service users. For more information, refer to the [Snowflake MFA rollout guide](https://docs.snowflake.com/en/user-guide/security-mfa-rollout). To avoid disruption, consider switching the connection to key pair authentication.
+    </Note>
+  </Accordion>
+  <Accordion title="Rotating your key">
+    Generate a new key in MoEngage and attach it to your Snowflake user as a second key. Your imports and exports keep running with the current key until you save the new one.
+
+    1. In your MoEngage Dashboard, go to **App Marketplace**, open **Snowflake**, and go to the **Integrate** tab. Edit the existing connection.
+    2. Click the **Generate new key** icon.
+       <img src="/images/partner_23949032074388.png" alt="Generate new key icon" />
+    3. Read the confirmation message carefully, then continue. MoEngage shows the new key.
+       <img src="/images/partner_23948983277332.png" alt="Key rotation confirmation" />
+    4. Copy the new key and attach it to your Snowflake user as the second RSA key, following the [Snowflake key rotation guide](https://docs.snowflake.com/en/user-guide/key-pair-auth#configuring-key-pair-rotation). Keep the current key in place for now.
+       <Warning>
+       Attach the new key before you save the connection, or your imports and exports might break.
+       </Warning>
+    5. Click **Test connection**. The test must succeed to complete the rotation.
+    6. Click **Connect** to save the connection. MoEngage then starts using the new key.
+       <Note>
+       If you close the form without clicking **Connect**, MoEngage continues to use the current key and deletes the new one.
+       </Note>
+    7. After you confirm the connection works as expected, delete the old key from your Snowflake user.
+  </Accordion>
+</AccordionGroup>
+
 ### Warehouse Segments Using Snowflake
 
 Snowflake is now available in our Warehouse Segments. For more information, refer to [Warehouse Segments](/user-guide/segment/create-segments/warehouse-segments).
