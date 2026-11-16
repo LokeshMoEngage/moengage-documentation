@@ -28,6 +28,10 @@ Make sure your Redshift Cluster has the "Publicly Accessible" setting turned on.
 
 In the properties, turn on publicly accessible and then save <img src="/images/partner_12060233602452.png" alt="Edit-Public.png" />
 
+<Warning>
+  Since your Redshift cluster is publicly accessible, you must allow inbound access only from the MoEngage NAT IPs for your data center. Add a rule for each IP in your cluster's security group, as described in [Step 3](#step-3-allow-moengage-ips-to-access-your-cluster). MoEngage connects only from these IPs, so if your security group doesn't allow them, MoEngage can't connect to your cluster. For the IPs for your data center, refer to [Data Transfer](/user-guide/settings/account/security/ip-whitelisting-in-moengage#data-transfer).
+</Warning>
+
 ### Step 2: Create a new database user for MoEngage
 
 We will connect to your Redshift cluster using the credentials you provide. It is recommended to create a new user with limited permissions just for MoEngage. You can also provide an existing user's credentials. To create a new dedicated user, run the below commands in your Redshift cluster:
@@ -36,7 +40,7 @@ We will connect to your Redshift cluster using the credentials you provide. It i
 
 ```sql SQL
 -- create a new user with a strong password
-CREATE USER <username> PASSWORD <password>;
+CREATE USER <username> PASSWORD '<password>';
 -- create a new schema where MoEngage will dump data
 -- you can skip this if you want to use existing schema
 CREATE SCHEMA IF NOT EXISTS <schema_name>;
@@ -58,26 +62,17 @@ From your EC2 Console, under "Network & Security", open the Security Groups page
 
 1. Give your Security Group a name, and an optional description.
 2. Select the VPC (by default, it is already selected).
-3. Add a new inbound rule with the following details:
+3. Add an inbound rule with the following details for each MoEngage IP listed for your data center in [Data Transfer](/user-guide/settings/account/security/ip-whitelisting-in-moengage#data-transfer). Whitelist all the IPs listed for your data center.
 
 | **Property** | **Value** |
 | --- | --- |
 | Type | Redshift |
 | Protocol | TCP |
 | Port range | 5439 |
-| Source | From the dropdown, select **Custom**. In the CIDR block: Depending on your MoEngage Dashboard's data center, you need to enter the corresponding CIDR. Refer to the table below. |
+| Source | From the dropdown, select **Custom**. In the CIDR block, enter one MoEngage IP for your data center followed by `/32`, for example `52.1.205.204/32`. |
 | Description | Give an optional description. |
 
-The correct IP address to enter in the "source" field depends on your MoEngage Data Center region:
-
-| **Data Center Region** | **CIDR block** |
-| --- | --- |
-| DC-01 | 52.1.205.204/32 |
-| DC-02 | 18.195.110.23/32 |
-| DC-03 | 3.6.251.95/32 |
-| DC-04 | 10.22.3.193/32 |
-
-You only need to add one inbound rule. For example, if you're based in MoEngage's DC-01 servers, you need to add just the first CIDR block:
+The following image shows an example inbound rule for one IP. Add one rule like this for each IP listed for your data center:
 
 ![securitygroup.png](/images/partner_12060649054356.png)
 
@@ -89,7 +84,7 @@ You only need to add one inbound rule. For example, if you're based in MoEngage'
 From your EC2 Console, under "Network & Security", open the Security Groups page. From the list of your Security Groups, open the one you want to edit.
 
 1. Click on the "Actions" button on the security group page and select "Edit inbound rules".
-2. Add a new inbound rule according to the table provided above.
+2. Add an inbound rule for each MoEngage IP for your data center, with the details described in [Create a new Security Group](#create-a-new-security-group).
 3. Click "Save rules" when done.
 
 #### Attach the Security Group to your Redshift Cluster
@@ -162,6 +157,40 @@ From the Redshift Console, open your Redshift cluster.
 ![attachrole.png](/images/partner_12062024553236.png)
 
 4. Click on "Associate IAM roles" to attach this role to your Redshift cluster.
+
+### Rotating Your Redshift Credentials
+
+MoEngage recommends rotating your credentials every 90 days or as per your IT policy. Follow the steps below to rotate your credentials.
+
+MoEngage connects to your Redshift cluster with the username and password of a database user that you provide, and each Redshift export stores these credentials separately. To rotate them, create a new database user, switch every export to it, and then remove the old user. The old user keeps working until every export uses the new one, so exports don't fail during the rotation. Run the SQL commands as a Redshift superuser or a user with admin privileges.
+
+1. Create a new database user and grant it the same schema access as the current user:
+   <CodeGroup>
+   ```sql SQL
+   CREATE USER <new_username> PASSWORD '<new_password>';
+   GRANT CREATE, USAGE ON SCHEMA <schema_name> TO <new_username>;
+   ```
+   </CodeGroup>
+2. Grant the new user access to the tables that MoEngage created in your schema:
+   <CodeGroup>
+   ```sql SQL
+   GRANT ALL ON <schema_name>.moengage_events, <schema_name>.test_connection_moengage TO <new_username>;
+   ```
+   </CodeGroup>
+3. In your MoEngage Dashboard, go to **App Marketplace**, open **Redshift**, and go to the **Integrate** tab. Open the kebab menu on your Redshift export and click **Edit**. Under **Login Credentials**, enter the new user in the **Username** field and its password in the **Password** field.
+4. Click **Test** to check the connection, and then click **Connect** to save the export. Changes can take up to 15 minutes to apply. If more than one Redshift export uses the old database user, in this workspace or in other workspaces, repeat steps 3 and 4 for each export.
+5. After the next hourly export, check that no export shows as **Paused** on the **Integrate** tab and that new data is arriving in the `moengage_events` table. If an export pauses, refer to the [Export Failure Policy](/user-guide/data/exports/events/data-warehouse/redshift-exports#export-failure-policy).
+6. Transfer ownership of the tables to the new user, and then remove the old user:
+   <CodeGroup>
+   ```sql SQL
+   ALTER TABLE <schema_name>.moengage_events OWNER TO <new_username>;
+   ALTER TABLE <schema_name>.test_connection_moengage OWNER TO <new_username>;
+   REVOKE ALL ON SCHEMA <schema_name> FROM <old_username>;
+   DROP USER <old_username>;
+   ```
+   </CodeGroup>
+
+If other tools use the old database user, move them to their own user before you remove it in step 6. MoEngage recommends a dedicated Redshift user for MoEngage with limited permissions, so that no other tool depends on its credentials.
 
 ### Supported Datetime Formats
 
