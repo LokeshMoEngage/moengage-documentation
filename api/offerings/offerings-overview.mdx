@@ -5,7 +5,6 @@ icon: "gift"
 ---
 
 import ApiAuthentication from '/snippets/api-authentication.mdx';
-import ApiIpWhitelisting from '/snippets/api-ip-whitelisting.mdx';
 
 The MoEngage Offerings API allows you to manage offerings. You can create time-bound promotions and personalized content, update scheduling or targeting on existing offerings, list offerings for reporting or orchestration workflows, and list the personalization templates available for offering content.
 
@@ -15,15 +14,15 @@ The MoEngage Offerings API allows you to manage offerings. You can create time-b
 
 ## Offering lifecycle
 
-An offering moves through different states automatically based on its scheduling window. There is no separate publish step — the offering goes live as soon as it is created, if the scheduling window is current.
+An offering moves through different states based on its scheduling window. Offerings created through the API are always saved in `draft` state, and publishing isn't available through the API. A draft goes live only when you publish it manually from the MoEngage dashboard. You can update an offering through the API only while it is a draft. A scheduled offering becomes `active` when its `start_datetime` is reached, and `expired` once its `expiry_datetime` has passed.
 
 | State | Meaning |
 | :--- | :--- |
 | `scheduled` | Indicates that the `start_datetime` is in the future. The offering is not yet eligible for decisioning. |
 | `active` | Indicates that the current time is between `start_datetime` and `expiry_datetime`. The offering is eligible for decisioning. |
 | `expired` | Indicates that the `expiry_datetime` has passed. The offering is no longer served and cannot be updated via the API. |
-| `archived` | Indicates that the offering is manually archived from the dashboard. The offering is excluded from decisioning and cannot be updated via the API. |
-| `draft` | Indicates that the offering is not yet published. Offerings created via the API are never in `draft` state. |
+| `archived` | Indicates that the offering is archived. The offering is excluded from decisioning and cannot be updated via the API. |
+| `draft` | Indicates that the offering is saved but not yet published. Offerings created through the API are always created in `draft` state, and only drafts can be updated through the API. A draft goes live only when you publish it manually from the MoEngage dashboard. |
 
 ## Endpoints
 
@@ -33,6 +32,11 @@ The Offerings API is a collection of the following endpoints:
 - [Get Offering](/api/public-offerings/get-offering): Returns a single offering's full configuration by ID, including its content, targeting, scheduling, variation, and capping rules.
 - [Create Offering](/api/public-offerings/create-offering): Creates an offering in your workspace, including content, scheduling, segmentation, and variation configuration.
 - [Update Offering](/api/public-offerings/update-offering): Partially updates an existing offering. Only the fields in the request body are changed.
+- [Validate Offering](/api/public-offerings/validate-offering): Checks a draft offering and returns the errors that would block publishing it.
+
+<Note>
+  The IDs, dates and tag names in the examples are for illustration. Use a new UUID v4 for every `Idempotency-Key` and request ID, and take `offer_id` and `last_updated_at` from your own offerings.
+</Note>
 - [List Offer Templates](/api/public-offerings/list-offer-templates): Returns a paginated list of the personalization templates available in your workspace. Use a template `id` as `meta.templateId` in offering content.
 - [Get Offer Template](/api/public-offerings/get-offer-template): Returns a single template's full field schema and preview HTML by ID, including each field's type, whether it's required, and the valid options for dropdown fields.
 
@@ -43,8 +47,7 @@ The Offerings API is a collection of the following endpoints:
 <Note>
   When creating an API key for this API, ensure the **Offerings** checkbox is selected under **Select APIs for access**. The key permissions you select determine your access level:
   - **View** for read endpoints (list offerings and templates)
-  - **Create & Manage** to create and update offerings
-  - **Create, Manage & Publish** to publish offerings
+  - **Create & Manage** to create drafts and update draft offerings
   - **Download** to download offering reports
 </Note>
 
@@ -86,9 +89,9 @@ The Offerings API uses standard HTTP status codes and returns all errors in a co
 | `201` | Offering created (POST). |
 | `400` | Validation failed. One or more fields are invalid, missing, or violate a business rule. |
 | `401` | Authentication failed. Credentials are missing or invalid. |
-| `403` | Forbidden. The feature is not enabled, or the offering is expired or archived. |
+| `403` | Forbidden. The API key doesn't have the required permission, the feature is not enabled, or the offering is expired. |
 | `404` | Offering not found. The `offer_id` in the path does not exist in this workspace. |
-| `409` | Idempotency conflict. See [Idempotency](#idempotency). |
+| `409` | Conflict. An idempotency conflict (see [Idempotency](#idempotency)), or a version conflict on update (`VERSION_CONFLICT`). |
 | `429` | Rate limit exceeded. Retry after the number of seconds in the `Retry-After` header. |
 | `503` | Gateway unavailable. Treat as transient and retry with exponential backoff. |
 
@@ -101,37 +104,36 @@ All `4xx` and `5xx` responses return a JSON body in the following format:
   "error": {
     "code": "VALIDATION_FAILED",
     "message": "One or more fields failed validation.",
-    "target": "scheduling.expiry_datetime",
+    "target": "offering",
     "details": [
       {
-        "code": "REQUIRED_FIELD_MISSING",
-        "target": "variation_meta",
-        "message": "variation_meta is required."
-      },
-      {
-        "code": "INVALID_SCHEDULING",
-        "target": "scheduling",
-        "message": "expiry_datetime must be after start_datetime."
+        "code": "INVALID_STATUS",
+        "target": "status",
+        "message": "status has an unsupported value: published. Create Offering accepts draft only. Send draft, or omit status to create a draft."
       }
     ],
-    "doc_url": "https://www.moengage.com/docs/api/offerings/offerings-overview"
+    "doc_url": "https://www.moengage.com/docs/api/offerings/offerings-overview#errors"
   },
-  "response_id": "resp_c5f83262-3127-4e23-bc1b-9efd4c929e12"
+  "response_id": "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
 }
 ```
 
 | Field | Description |
 | :--- | :--- |
-| `error.code` | Machine-readable error code in `ALL_CAPS_SNAKE_CASE`. Use this to branch on specific errors in your code. |
+| `error.code` | Machine-readable error code in `ALL_CAPS_SNAKE_CASE`. For validation errors this is `VALIDATION_FAILED`, and the specific code is in `error.details[].code`. |
 | `error.message` | Human-readable explanation of the error. |
-| `error.target` | The field or resource that caused the error, in dot-notation (e.g. `scheduling.expiry_datetime`). |
-| `error.details[]` | Per-field violations for `400 VALIDATION_FAILED` responses. The API collects all errors before responding — a single `400` may list multiple entries. |
+| `error.target` | The field or resource that caused the error. For validation errors this is `offering`. |
+| `error.details[]` | Per-field violations. The API collects all errors before responding, so a single `400` may list multiple entries. Each entry has a `code`, a `target` (the field, in dot-notation) and a `message`. |
 | `error.doc_url` | Link to documentation for this error code. |
 | `response_id` | Trace identifier for this response. Always present, even on errors. Provide this to MoEngage support when reporting an issue. |
 
 <Note>
-  The `details` array is only present on `400 VALIDATION_FAILED` responses. All other error codes return only the top-level `error` object.
+  Validation errors (`400`) and not-found errors (`404`) include `error.target` and `error.details[]`. Errors such as `VERSION_CONFLICT` and `EXPIRED_OFFERING` return only `code`, `message` and `doc_url`.
 </Note>
+
+For `400` responses, read the specific code from `error.details[].code`, not from `error.code`. For example, `INVALID_STATUS`, `UNRECOGNISED_FIELD`, `IMMUTABLE_FIELD` and `INVALID_STATUS_TRANSITION` all arrive inside a `VALIDATION_FAILED` response. `EXPIRED_OFFERING`, `VERSION_CONFLICT`, `TEMPLATE_NOT_FOUND` and `OFFER_NOT_FOUND` are returned as the top-level `error.code`.
+
+The API saves drafts without checking completeness. Required fields, scheduling, split totals, tags, conversion settings, and required template fields are checked by [Validate Offering](/api/public-offerings/validate-offering) and when the offering is published.
 
 ### Common error codes
 
@@ -140,23 +142,21 @@ For the full list of error codes per endpoint, see the individual endpoint pages
 | Code | HTTP | Meaning |
 | :--- | :--- | :--- |
 | `VALIDATION_FAILED` | 400 | One or more request fields failed validation. Check `error.details` for the full list. |
-| `REQUIRED_FIELD_MISSING` | 400 | A required field is absent. `error.target` identifies which field. |
-| `INVALID_SCHEDULING` | 400 | `expiry_datetime` is not after `start_datetime`, or a datetime is in the past. |
-| `INVALID_OFFER_NAME` | 400 | `name` contains characters other than letters, numbers, and underscores. |
-| `DUPLICATE_OFFER_NAME` | 400 | `name` matches an existing non-archived offering in the workspace. |
-| `INVALID_TAG_ID` | 400 | One or more tag IDs in `tags` do not exist in the workspace. |
-| `IMMUTABLE_FIELD` | 400 | An attempt was made to change a status-locked field. |
+| `REQUIRED_FIELD_MISSING` | 400 | `created_by` is absent (Update: `updated_by` or `last_updated_at`), or no request ID was sent. Send `request_id` in the body or the `X-MOE-Request-Id` header. |
+| `INVALID_OFFER_NAME` | 400 | `display_name` does not follow the naming rules: 5–100 characters after trimming spaces, starts with a letter, and contains only letters, digits, spaces, and `- & _ % ( )`. |
 | `MISSING_IDEMPOTENCY_KEY` | 400 | The `Idempotency-Key` header is absent. |
 | `INVALID_IDEMPOTENCY_KEY` | 400 | The `Idempotency-Key` is not a valid UUID v4. |
 | `DUPLICATE_IDEMPOTENCY_KEY` | 409 | A request with the same key is in-flight. |
 | `IDEMPOTENCY_CONFLICT` | 409 | The key was reused with a different request body. |
+| `VERSION_CONFLICT` | 409 | The `last_updated_at` value doesn't match the current version of the offering. Call Get Offering, copy the `updated_at` value from the response, and send it as `last_updated_at`. |
+| `INSUFFICIENT_SCOPE` | 403 | The API key doesn't have the **Create & Manage** permission. |
+| `FEATURE_DISABLED` | 403 | The Offerings feature is not enabled for the workspace. |
 | `EXPIRED_OFFERING` | 403 | The offering is past its `expiry_datetime` and cannot be modified. |
-| `ARCHIVED_OFFERING` | 403 | The offering is archived and cannot be modified. |
+| `UNRECOGNISED_FIELD` | 400 | The request body contains a field the API doesn't recognise. |
+| `INVALID_STATUS` | 400 | `status` is not an accepted value. Create accepts only `draft`, and Update doesn't accept `status`. |
+| `INVALID_STATUS_TRANSITION` | 400 | The offering isn't a draft, so it can't be edited. Only drafts can be edited. |
+| `IMMUTABLE_FIELD` | 400 | The request contains a field that can't be set: `name` (it is server-generated; use `display_name`), or `smv_distribution` with a `DMV` variation type. |
 | `OFFER_NOT_FOUND` | 404 | No offering with the given ID exists in this workspace. |
-
-## IP Whitelisting
-
-<ApiIpWhitelisting category="Content" />
 
 ## FAQs
  
@@ -164,12 +164,12 @@ For the full list of error codes per endpoint, see the individual endpoint pages
  
 <AccordionGroup>
   <Accordion title="Do I need to do anything before using the API?">
-    Yes. Make sure the Offer Decisioning feature is enabled for your workspace — if it isn't, all API calls return `403 FORBIDDEN`. Contact your MoEngage CSM or the Support team to request enablement.
+    Yes. Make sure the Offer Decisioning feature is enabled for your workspace — if it isn't, all Offerings API endpoints return `403 FEATURE_DISABLED`. Contact your MoEngage CSM or the Support team to request enablement.
     Before calling the Create Offering API, ensure the following workspace resources already exist:
  
-    - **Tags** — create and manage them in the MoEngage dashboard under **Settings → Advanced Settings → Tags**. The tag IDs you pass in the `tags` array must already exist.
+    - **Tags** — create and manage them in the MoEngage dashboard under **Settings → Advanced Settings → Tags**. Pass the names of existing tags in the `tags` array.
     - **Offering attributes** — configured under **Offer Decisioning → Attributes** in the dashboard. Pass their IDs in `offering_attribute_configuration`.
-    - **Personalization templates** — list available templates using `GET /v5/offers/templates` and use the returned `id` as `meta.templateId` in your content.
+    - **Personalization templates** — list available templates using [List Offer Templates](/api/public-offerings/list-offer-templates) and use the returned `id` as `meta.templateId` in your content. To see a template's fields, use [Get Offer Template](/api/public-offerings/get-offer-template). For the full steps, see the Create Offering FAQs below.
   </Accordion>
   <Accordion title="Where do I find my API key and Workspace ID?">
     In the MoEngage dashboard, go to **Settings** \> **Account** \> **API keys**, copy the Workspace ID, and create a key with access to the Personalize APIs. Use the Workspace ID as the Basic Auth username and the API key as the password. For the full steps, refer to [Authentication](#authentication).
@@ -182,58 +182,196 @@ For the full list of error codes per endpoint, see the individual endpoint pages
     An offering is always in one of five states: `scheduled`, `active`, `expired`, `archived`, or `draft`.
     See the [Offering lifecycle](#offering-lifecycle) section above for the full state table.
   </Accordion>
+  <Accordion title="How long are draft offerings kept?">
+    A draft that is never published is automatically removed 180 days after its last update. Publish it manually from the MoEngage dashboard before then if you want to keep it.
+  </Accordion>
 </AccordionGroup>
 ### Create Offering
  
 <AccordionGroup>
   <Accordion title="What is the minimum required to create an offering?">
-    The required top-level fields are: `name`, `priority`, `delivery`, `created_by`, `scheduling` (with both `start_datetime` and `expiry_datetime`), `segment_info`, `offer_content`, and `variation_meta`. All other fields — `tags`, `capping_rules`, `conversion`, `imp_track_hours`, `offering_attribute_configuration` — are optional and can be omitted.
+    Only `created_by` is required. You also need a request ID, sent as `request_id` in the body or as the `X-MOE-Request-Id` header. Every other field is optional while the offering is a draft, so you can create a draft with just a few fields (for example `created_by` and `display_name`) and complete it later with Update Offering.
+
+    Some fields are required to publish the offering: `display_name`, `priority`, `scheduling` (with both `start_datetime` and `expiry_datetime`), `segment_info`, `offer_content` and `variation_meta`. If you add a `conversion` goal, `attribution_multiplier` and `imp_track_hours` are also required to publish.
+  </Accordion>
+  <Accordion title="How do I send the request ID?">
+    Send it as `request_id` in the request body, or as the `X-MOE-Request-Id` header. If you send both, the `request_id` in the body is used. If you send neither, the API returns `400 REQUIRED_FIELD_MISSING`. A UUID v4 is recommended. The same rule applies to Update Offering.
+  </Accordion>
+  <Accordion title="What are the rules for attribution_multiplier and imp_track_hours?">
+    `attribution_multiplier` and `imp_track_hours` are required to publish only when you add a conversion goal (`conversion`).
+
+    `attribution_multiplier` accepts only `1` or `24`. It sets the unit for conversion goal tracking, and the unit sets the allowed range for `imp_track_hours`:
+
+    | `attribution_multiplier` | Tracking unit | Allowed `imp_track_hours` |
+    | :--- | :--- | :--- |
+    | `1` | Hours | 1 to 36 hours |
+    | `24` | Days | 1 to 10 days |
+
+    Despite its name, `imp_track_hours` is in days when `attribution_multiplier` is `24`.
+
+    The same rules apply on Update Offering when you add or change a conversion goal on a draft offering. Get Offering returns `attribution_multiplier` along with `imp_track_hours`.
   </Accordion>
   <Accordion title="Can I change variation_meta after creation?">
-    It depends on the offering's status and variation `type`:
+    Yes, while the offering is a `draft`. The entire `variation_meta` object is editable on a draft, including the `type`, the variation keys and split percentages in `smv_distribution`, and the `control_group`. Only drafts can be updated through the API. Don't send `smv_distribution` when the `type` is `DMV`. The variation types are `SMV` (static allocation you control) and `DMV` (dynamic allocation MoEngage optimizes).
+  </Accordion>
+  <Accordion title="What does the status field do when I create an offering?">
+    The `status` field is optional. Offerings created through the API are always saved as drafts, so you can omit `status` or send `draft`. Any other value returns `400 INVALID_STATUS`. Publishing isn't available through the API. To make the offering live, publish the draft manually from the MoEngage dashboard.
 
-    - While the offering is `scheduled`, the entire `variation_meta` object is editable.
-    - Once the offering is `active`, the `type` and the `variantsPerLocale` key set are locked. For `SMV`, you can still update the `smv_distribution` split percentages and `control_group.percentage`. For `DMV`, only `control_group.percentage` is editable.
-
-    Editing a locked field returns `IMMUTABLE_FIELD`. The variation types are `SMV` (static allocation you control) and `DMV` (dynamic allocation MoEngage optimizes).
+    Creating a draft requires the **Create & Manage** permission.
   </Accordion>
   <Accordion title="Can I include all fields in a single Create request, or do I build it incrementally?">
-    You include all fields in a single Create request — there is no incremental or draft-building flow. The offering's initial status is set from the scheduling dates: `scheduled` when `start_datetime` is in the future, `active` when the current time is within the scheduling window, or `expired` when `start_datetime` is already in the past.
+    Either. You can include everything in one Create request, or create a draft with only `created_by` (plus a request ID) and add the rest with Update Offering while the offering is a draft. Offerings created through the API are always saved as drafts. To make one live, publish it manually from the MoEngage dashboard.
   </Accordion>
   <Accordion title="What does priority control?">
     Priority is an integer from 1 to 100 used by Decision Policies to rank eligible offerings for a user. Higher values rank the offering higher relative to others with lower priority. The exact ranking behavior also depends on any scoring formulas configured in the associated Decision Policy and any `offering_attribute_configuration` scores.
   </Accordion>
   <Accordion title="What characters are allowed in an offering name?">
-    Offering names must be 5–100 characters and contain only letters, numbers, and underscores. Spaces, hyphens, and special characters are not allowed. Names must be unique within the workspace. Example of a valid name: `Summer_Sale_Promo_2026`.
+    An offering name (`display_name`) must follow these rules:
+
+    - **Length:** 5–100 characters, measured after leading and trailing spaces are trimmed.
+    - **Starting character:** Must start with a letter (A–Z or a–z). It cannot start with a digit, a space, or a special character.
+    - **Letters:** Must contain at least one letter (A–Z or a–z).
+    - **Allowed characters:** Letters, digits, spaces, and the special characters hyphen (`-`), ampersand (`&`), underscore (`_`), percent (`%`), and round brackets (`(` and `)`).
+
+    Names must be unique within the workspace. Example of a valid name: `Summer Sale - Promo (2026)`.
+  </Accordion>
+  <Accordion title="How do I create an offering using a personalization template?">
+    Use a template when you want the offering content to follow a predefined layout. The flow is:
+
+    1. Call [List Offer Templates](/api/public-offerings/list-offer-templates) and note the `id` of the template you want (for example, `promo_banner_demo`).
+    2. Call [Get Offer Template](/api/public-offerings/get-offer-template) with that `id`. In the response, `template_config` lists every field of the template, including which fields are required and the options for dropdown fields.
+    3. Call Create Offering with the content `type` set to `template`:
+        - `value`: the field values, keyed by each field's `outputKeyName`. Include every required field, and include optional fields only if you want MoEngage to return them. For a field with `dataType: dropdown`, pass the option's `value` (for example, `_blank`), not its `id` (`new_tab`) or `label` (`New tab`).
+        - `meta.templateId`: the template `id`.
+        - `meta.metaConfigObject`: the `template_config` from step 2, with each field's `value` set to the content you want. It must match what you send in `value`.
+
+    Keep the following in mind:
+
+    - **Matching values:** For every field, the `value` in `meta.metaConfigObject` must equal the same field in `value`. [Validate Offering](/api/public-offerings/validate-offering) reports each difference as `TEMPLATE_VALUE_MISMATCH`, for example: *Field 'title' in value ('Summer sale is on') does not match its value in meta.metaConfigObject ('Your offer title').*
+    - **Required fields:** Every field marked `REQUIRED` in `template_config` must be present in `value` and have a non-empty `value` in `metaConfigObject`. Otherwise Validate Offering returns `MISSING_TEMPLATE_FIELD`, with a `target` such as `offer_content.content_1.meta.metaConfigObject.cta_url.value`. A required field that is missing from `value` is reported as a mismatch. The API doesn't check any of this when you create or update a draft.
+    - **Optional fields:** Include them only if you want MoEngage to return them in the Personalize API response. MoEngage returns only the fields in `value`.
+    - **Dropdown fields:** Pass the option's `value`, not its `id` or `label`.
+    - **`metaConfigObject`:** Include it in the `meta` of every variation. MoEngage also uses it to render the offering preview in the dashboard. It is not part of the Personalize API response.
+
+    For complete requests, see the template examples on the [Create Offering](/api/public-offerings/create-offering) page.
+  </Accordion>
+  <Accordion title="How do I target visitors with in-session attributes?">
+    In-session attributes enable real-time visitor grouping based on dynamic conditions, using attributes passed as key-value (KV) pairs. To use them, add the optional top-level `insession_attr_info` field to Create Offering or Update Offering.
+
+    - `filters.included_filters` includes visitors and `filters.excluded_filters` excludes them. Each has a `filter_operator` (`and` or `or`) and a list of `filters`.
+    - Each entry in `filters` is a single attribute (`filter_type` `query_parameter`) or a group of attributes (`filter_type` `nested_filters`) with its own `filter_operator` and `filters`.
+    - An attribute has a `name`, a `data_type`, an `operator` and a `value`. The data types are `string`, `double`, `bool`, `datetime`, `array_string` and `array_double`. `case_sensitive` applies to `string` and `array_string`.
+    - You can add up to 10 attributes in a group and up to 5 groups per offering. [Validate Offering](/api/public-offerings/validate-offering) checks these limits.
+
+    A single group with one attribute looks like this:
+
+    ```json
+    "insession_attr_info": {
+      "filters": {
+        "included_filters": {
+          "filter_operator": "and",
+          "filters": [
+            {
+              "data_type": "string",
+              "filter_type": "query_parameter",
+              "name": "OS",
+              "negate": false,
+              "operator": "is",
+              "case_sensitive": false,
+              "value": "android"
+            }
+          ]
+        }
+      }
+    }
+    ```
+
+    To learn more about in-session attributes and the supported operators and data types, see [In-session attributes](https://www.moengage.com/docs/user-guide/decisioning/offer-decisioning/create-offerings#in-session-attributes).
   </Accordion>
 </AccordionGroup>
 ### Update Offering
  
 <AccordionGroup>
   <Accordion title="Which fields can I update after creation?">
-    You can update `name`, `description`, `priority`, `tags`, `scheduling` (within state-based rules below), `segment_info`, `offer_content`, `capping_rules`, `is_global_control_enabled`, `imp_track_hours`, `offering_attribute_configuration`, and `conversion`. You can also update `variation_meta`, but only within the status-based and type-based rules described below.
+    You can update `display_name`, `description`, `priority`, `tags`, `scheduling`, `segment_info`, `offer_content`, `capping_rules`, `is_global_control_enabled`, `imp_track_hours`, `attribution_multiplier`, `offering_attribute_configuration`, `conversion`, and `variation_meta`. Only offerings in `draft` state can be updated, and the API can't change an offering's `status`.
   </Accordion>
-  <Accordion title="What can I change when an offering is active vs. scheduled?">
-    | Field | `scheduled` | `active` |
-    | :--- | :--- | :--- |
-    | `scheduling.start_datetime` | ✅ Editable | ❌ Locked |
-    | `scheduling.expiry_datetime` | ✅ Editable | ✅ Editable |
-    | `conversion` | ✅ Editable | ❌ Locked |
-    | `offer_content` | ✅ Editable | ✅ Editable |
-    | `name`, `tags`, `priority`, `segment_info` | ✅ Editable | ✅ Editable |
-    | `variation_meta.type`, `variantsPerLocale` | ✅ Editable | ❌ Locked |
-    | `variation_meta.smv_distribution` (`SMV`) | ✅ Editable | ✅ Editable |
-    | `variation_meta.smv_distribution` (`DMV`) | ✅ Editable | ❌ Locked |
-    | `variation_meta.control_group.percentage` | ✅ Editable | ✅ Editable |
+  <Accordion title="Which offerings can I update?">
+    Only offerings in `draft` state can be updated through the API, and all fields can be edited on a draft. Offerings in any other state (`scheduled`, `active`, `expired`, or `archived`) can't be updated through the API. Updating an offering that isn't a draft returns `400 INVALID_STATUS_TRANSITION`, and updating an expired offering returns `403 EXPIRED_OFFERING`.
+  </Accordion>
+  <Accordion title="What is last_updated_at, and how do I get it?">
+    `last_updated_at` is required on every Update Offering request. It guards against concurrent updates. To get it:
+
+    1. Call [Get Offering](/api/public-offerings/get-offering) for the offering you want to update.
+    2. Read the `updated_at` value from the response.
+    3. Send that value as `last_updated_at` in the Update Offering request.
+
+    If the value doesn't match the offering's current version, the API returns `409 VERSION_CONFLICT`. Call Get Offering again, copy the new `updated_at` value, and resend. This check runs before the offering's state is checked, so a stale `last_updated_at` returns `VERSION_CONFLICT` before any other error about the offering.
   </Accordion>
   <Accordion title="Do I need to send the full offering payload when updating?">
-    No. The Update endpoint is a PATCH — only the fields you include in the request body are changed. Omitted fields retain their current values. However, `tags` and `offering_attribute_configuration` are **replaced entirely** when included, not merged. To add a single tag, send the current tag list plus the new one. To remove all tags, send an empty array.
+    No. The Update endpoint is a PATCH — only the fields you include in the request body are changed. Omitted fields retain their current values. The exceptions are `updated_by` and `last_updated_at`, which are required on every request. Also, `tags` and `offering_attribute_configuration` are **replaced entirely** when included, not merged. To add a single tag, send the current tag list plus the new one. To remove all tags, send an empty array.
   </Accordion>
-  <Accordion title="Can I update an expired or archived offering?">
-    No. The API returns `403` with `EXPIRED_OFFERING` or `ARCHIVED_OFFERING`. Only offerings in `active` and `scheduled` states can be updated.
+  <Accordion title="How do I update the content of an offering that uses a personalization template?">
+    Send the updated `value` together with `meta.templateId` and `meta.metaConfigObject`, and keep each field's value in `metaConfigObject` equal to the same field in `value`. If you change the template, send the complete `metaConfigObject` of the new template, from [Get Offer Template](/api/public-offerings/get-offer-template).
+
+    The same field rules apply as when you create an offering: required fields must be present before the offering can be published, and dropdown fields take the option's `value`, not its `id` or `label`.
   </Accordion>
   <Accordion title="How do I find the offering ID to use in the Update request?">
     The `offer_id` (including the `offer_` prefix) is returned in the `data.id` field of the Create Offering response. You can also retrieve it by calling [List Offerings](/api/public-offerings/list-offerings) and filtering by name or status.
+  </Accordion>
+</AccordionGroup>
+### Validate Offering
+
+<AccordionGroup>
+  <Accordion title="How do I check that a draft is ready to publish?">
+    Call [Validate Offering](/api/public-offerings/validate-offering) with the draft's `offer_id` and an empty body (`{}`). It runs the same validations that apply when an offering is published and returns the result:
+
+    ```json
+    {
+      "response_id": "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3",
+      "type": "offer_validation",
+      "data": {
+        "valid": false,
+        "errors": [
+          {
+            "code": "INVALID_ENUM_VALUE",
+            "target": "conversion.primary.filter_type",
+            "message": "conversion.primary.filter_type must be 'actions'. Received: 'ACTIONS'."
+          },
+          {
+            "code": "REQUIRED_FIELD_MISSING",
+            "target": "attribution_multiplier",
+            "message": "attribution_multiplier is required when a conversion goal is set."
+          }
+        ]
+      }
+    }
+    ```
+
+    When `data.valid` is `false`, fix each item in `data.errors` with Update Offering, then validate again. When `data.valid` is `true`, the response has no `errors` and the draft is ready to publish from the MoEngage dashboard.
+  </Accordion>
+  <Accordion title="What can Validate Offering report?">
+    Create Offering and Update Offering save drafts without checking completeness, so Validate Offering is where those checks happen. Each entry in `data.errors` has a `code`, a `target` (the field, in dot-notation) and a `message`. The codes are:
+
+    | Code | Meaning |
+    | :--- | :--- |
+    | `REQUIRED_FIELD_MISSING` | A field needed to publish is absent, such as `priority`, `scheduling`, `segment_info`, `offer_content`, `variation_meta`, or `attribution_multiplier` when a conversion goal is set. |
+    | `INVALID_TYPE` | A field has the wrong type or format. |
+    | `OUT_OF_RANGE` | A numeric field is outside its allowed range. |
+    | `INVALID_ENUM_VALUE` | A field has a value that isn't allowed, for example a `conversion.primary.filter_type` other than `actions`. |
+    | `INVALID_OFFER_NAME` | `display_name` does not follow the naming rules. |
+    | `INVALID_SCHEDULING` | `expiry_datetime` is not after `start_datetime`, `start_datetime` is in the past, or `expiry_datetime` is less than 10 minutes in the future. |
+    | `INVALID_TIMEZONE` | `scheduling.timezone` is not a valid IANA timezone name. |
+    | `SPLIT_KEY_MISMATCH` | The keys in `smv_distribution.split` don't match the variation keys in `offer_content`. |
+    | `INVALID_SPLIT` | The values in `smv_distribution.split` don't add up to 100. |
+    | `VARIANT_COUNT_MISMATCH` | The number of variations in `offer_content` doesn't match `smv_distribution.split`. |
+    | `INVALID_TEMPLATE_ID` | `meta.templateId` isn't a template in your workspace. |
+    | `MISSING_TEMPLATE_FIELD` | A required template field has an empty `value` in `meta.metaConfigObject`. |
+    | `TEMPLATE_VALUE_MISMATCH` | A field's `value` doesn't match its `value` in `meta.metaConfigObject`. A required field that is missing from `value` is reported the same way. |
+    | `DUPLICATE_OFFER_NAME` | `display_name` matches an existing non-archived offering. |
+    | `REVENUE_FIELDS_INCOMPLETE` | `revenue_amount` or `revenue_currency` is missing when `is_revenue_tracking` is `true`. |
+    | `INVALID_CURRENCY_CODE` | `revenue_currency` isn't a valid ISO 4217 code. |
+
+    Validate Offering also checks the in-session attribute limits: up to 10 attributes in a group and up to 5 groups per offering.
   </Accordion>
 </AccordionGroup>
 ### Idempotency

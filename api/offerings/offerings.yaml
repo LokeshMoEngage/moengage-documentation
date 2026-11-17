@@ -26,10 +26,6 @@ paths:
         Fetch all offerings in the workspace. Returns a summary of each offering — ID, name,
         status, tags, and creation metadata.
 
-      x-mint:
-        content: |
-          #### Rate Limit
-          The rate limit is 150 requests per minute, 500 requests per hour, and 1000 requests per day per consumer.
       x-moe-mcp:
         expose:
           external: true
@@ -42,8 +38,8 @@ paths:
           Use the fields parameter to request only the fields you need (reduces token usage).
 
           Typical agent flow:
-            1. Call list_offerings (optionally filter by status_in=active or name_contains)
-            2. Pick the offering ID (e.g. 6a4f69ee490f66322f968b87) from the results
+            1. Call list_offerings (optionally filter by status_in=draft to find offerings you can update, or display_name_contains)
+            2. Pick the offering ID (it starts with offer_) from the results
             3. Call update_offering with that ID to modify the offering
 
           Pagination: pass next_cursor from the pagination object on the next call.
@@ -82,7 +78,7 @@ paths:
           schema:
             type: string
           description: >
-            Look up a single offering by its exact prefixed ID (e.g. offer_6a4f69ee490f66322f968b87).
+            Look up a single offering by its exact prefixed ID (it starts with `offer_`).
             Use this when you already know the offering ID and want to confirm it exists
             before updating it.
         - name: display_name_contains
@@ -113,8 +109,8 @@ paths:
           style: form
           explode: true
           description: >
-            Filter to offerings that have ALL of the specified tags.
-            Repeat the parameter for multiple tags: tags=summer-sale&tags=vip-users.
+            Filter to offerings that have ALL of the specified tags, by tag name.
+            Repeat the parameter for multiple tags: `tags=SUMMER_SALE&tags=NEW_USER_ACQUISITION`.
         - name: created_date_gte
           in: query
           required: false
@@ -171,6 +167,7 @@ paths:
         - name: X-MOE-Request-Id
           in: header
           required: false
+          example: "5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
           schema:
             type: string
             format: uuid
@@ -219,22 +216,22 @@ paths:
                   pagination:
                     $ref: '#/components/schemas/CursorPagination'
               example:
-                response_id: resp_d31d6d61-6f3b-40dc-a459-548f385a60cb
+                response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
                 type: offer
                 data:
-                  - id: offer_6a4f69ee490f66322f968b87
+                  - id: "offer_65a1c0de9b2f4a7d8e3c5f10"
                     display_name: Summer_Sale_Promo_2026
                     status: active
-                    tags: [tag_<object-id>]
+                    tags: ["SUMMER_SALE", "NEW_USER_ACQUISITION"]
                     created_at: "2026-06-23T12:29:41.225270281Z"
                     created_by: marketing-team@example.com
-                  - id: offer_6a4f69ee490f66322f968b87
+                  - id: "offer_65a1c0de9b2f4a7d8e3c5f11"
                     display_name: Homepage_Banner_AB_Test
                     status: scheduled
                     created_at: "2026-06-23T12:29:41.225270281Z"
                     created_by: growth-team@example.com
                 pagination:
-                  next_cursor: b2ZmZXJzOjZhM2E3YzM0NTE4NjdkNGRjZmIxNzQ5Mw==
+                  next_cursor: "b2ZmZXJzOjY1YTFjMGRlOWIyZjRhN2Q4ZTNjNWYxMQ=="
                   limit: 20
                   has_more: true
                   total_count: 42
@@ -260,11 +257,24 @@ paths:
                       target: status_in
                       message: "'invalid_status' is not a valid status. Allowed values: active, scheduled, expired, archived, draft."
                       doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                response_id: resp_<trace-id>
+                response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         '401':
           $ref: '#/components/responses/GatewayAuthError'
         '403':
-          $ref: '#/components/responses/GatewayAuthError'
+          description: |
+            Forbidden. Two distinct sources produce 403 on this endpoint:
+            - **Gateway (APISIX)** — insufficient scope for this route. Returns `Content-Type: text/plain`
+              with body `{"code":"ER007","target":"Authentication Invalid","message":"..."}`.
+            - **Service** — returns `Content-Type: application/json`. Error code: `FEATURE_DISABLED`
+              (the Offerings feature is not enabled for the workspace).
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Gateway (APISIX) scope failure. Body is JSON-formatted but sent as text/plain.
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '429':
           description: |
             The rate limit for this endpoint has been exceeded. Retry after the window
@@ -287,10 +297,12 @@ paths:
       description: |
         Create a new Offering in the workspace.
 
-      x-mint:
-        content: |
-          #### Rate Limit
-          The rate limit is 100 requests per minute, 300 requests per hour, and 600 requests per day per consumer.
+        **Creating an offering with a template:** call [List Offer Templates](/api/public-offerings/list-offer-templates) to find the template `id`, then [Get Offer Template](/api/public-offerings/get-offer-template) to read its fields (`template_config`). In your request, set the content `type` to `template` and send:
+
+        1. `value`: the field values, keyed by each field's `outputKeyName`. Include every required field. For a dropdown field, use the option's `value`.
+        2. `meta.templateId`: the template `id`.
+        3. `meta.metaConfigObject`: the `template_config`, with each field's `value` set to the same value you send in `value`. Validate Offering returns `TEMPLATE_VALUE_MISMATCH` when they differ.
+
       x-moe-mcp:
         expose:
           external: true
@@ -299,11 +311,19 @@ paths:
           Create a new offering in the workspace.
 
           Key constraints:
-            - start_datetime MUST be in the future and use UTC "Z" suffix (e.g. "2026-07-01T00:00:00Z").
-              A past value returns 400 INVALID_SCHEDULING. Offset strings like "+05:30" are not accepted.
-            - tags must be pre-existing tag IDs — unknown IDs return 400 INVALID_TAG_ID.
-            - variation_meta CAN be updated via PATCH with status-based rules. See update_offering.
-            - display_name must be alphanumeric + underscores only (no spaces or hyphens). 5–100 chars.
+            - start_datetime and expiry_datetime must use the UTC "Z" suffix (e.g. "2027-06-01T00:00:00Z").
+              Offset strings like "+05:30" are not accepted.
+            - tags are tag names (for example "SUMMER_SALE"); use the names of tags that already exist in the workspace.
+            - variation_meta can be updated via PATCH while the offering is a draft. See update_offering.
+            - display_name: 5–100 chars after trimming spaces; must start with a letter and contain at least one letter;
+              allowed characters are letters, digits, spaces, and - & _ % ( ).
+
+          In-session targeting (optional): include insession_attr_info to target visitors by in-session attributes
+          (key-value pairs passed at decision time). Structure: filters.included_filters and/or filters.excluded_filters,
+          each with filter_operator ("and" or "or") and a filters list. Each entry is a single attribute (filter_type
+          "query_parameter" with data_type, name, operator, value, negate) or a group (filter_type "nested_filters" with its
+          own filter_operator and filters). data_type: string, double, bool, datetime, array_string, array_double;
+          case_sensitive applies to string and array_string. Up to 10 attributes per group and 5 groups per offering.
 
           Always supply a unique Idempotency-Key (UUID v4) header to prevent duplicate offerings
           on retries. The same key within 24 hours returns the original 201 response.
@@ -320,21 +340,20 @@ paths:
                 type: SMV, split: {variation_1: 100}
               Variation keys must follow the variation_N format (e.g. variation_1, variation_2). Other formats are rejected.
               Maximum 5 variations per offering.
-              For A/B test (SMV): split values must sum to exactly 100 inclusive of control group allocation(INVALID_SPLIT if not).
-              For AI optimization (DMV): provide equal initial splits; the server learns over time.
-              Status-based PATCH rules: SCHEDULED=free; ACTIVE+SMV=split% only; ACTIVE+DMV=control_group.percentage only.
+              For A/B test (SMV): split values must sum to exactly 100 inclusive of control group allocation(checked when the offering is validated before it is published).
+              For AI optimization (DMV): do not send smv_distribution — the server learns the allocation over time (sending it returns IMMUTABLE_FIELD).
+              Only draft offerings can be updated via PATCH, and all variation_meta fields are editable on a draft.
           offer_content:
             description: |
               Content payload. Use the locales["0"] nested format for single-locale offerings:
                 {"locales": {"0": {"variations": {"variation_1": {"content_1": {"type": "json", "value": "..."}}}}}}
               The locale key "0" is required for single-locale — do not use "default" or "en".
-              Variation keys in offer_content must exactly match variantsPerLocale and split keys (SPLIT_KEY_MISMATCH if not).
+              Variation keys in offer_content must exactly match the split keys (checked when the offering is validated before it is published).
               Variation keys must follow the variation_N format (e.g. variation_1, variation_2).
           scheduling:
             description: |
-              Schedule window. Both start_datetime and expiry_datetime are required and **MUST** use
-              UTC "Z" suffix (e.g. "2026-07-01T00:00:00Z"). Offset strings like "+05:30" return INVALID_TYPE.
-              start_datetime must be in the future.
+              Schedule window. start_datetime and expiry_datetime **MUST** use
+              UTC "Z" suffix (e.g. "2027-06-01T00:00:00Z"). Offset strings like "+05:30" return INVALID_TYPE.
           segment_info:
             description: |
               Audience targeting. To target all users, use the built-in moe_all_users segment:
@@ -348,6 +367,7 @@ paths:
         - name: Idempotency-Key
           in: header
           required: true
+          example: "9e3c1a52-6f7b-4d08-b2a4-71c5e8f90d36"
           schema:
             type: string
             format: uuid
@@ -359,12 +379,14 @@ paths:
         - name: X-MOE-Request-Id
           in: header
           required: false
+          example: "5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
           schema:
             type: string
             format: uuid
           description: >
             Client-supplied trace ID (UUID v4). Echoed back in the X-MOE-Request-Id response
-            header. Use this to correlate client requests with server-side logs.
+            header. Use this to correlate client requests with server-side logs. If you also send `request_id`
+            in the body, the body value is used.
       requestBody:
         required: true
         content:
@@ -373,24 +395,26 @@ paths:
               $ref: '#/components/schemas/ClientOfferCreateRequest'
             examples:
               jsonSingleVariantNoCapping:
-                summary: "JSON: 1 variant, no control group, no capping"
+                summary: "Basic offering with JSON content"
                 value:
                   display_name: Summer_Sale
                   description: Summer sale discount offers
                   priority: 50
                   created_by: john.doe@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  status: draft
                   scheduling:
-                    start_datetime: "2026-07-16T00:00:00Z"
-                    expiry_datetime: "2026-07-16T23:59:00Z"
+                    start_datetime: '2027-06-01T00:00:00Z'
+                    expiry_datetime: '2027-08-31T23:59:00Z'
                     timezone: Asia/Kolkata
                   segment_info:
                     filters:
                       included_filters:
                         filter_operator: and
                         filters:
-                          - filter_type: custom_segments
-                            name: level_0_for_automation
-                            id: 6a572827fad010a3318a1bc1
+                        - filter_type: custom_segments
+                          name: custom_segment
+                          id: 65a1c0de9b2f4a7d8e3c5f2a
                   offer_content:
                     content_1:
                       type: json
@@ -407,27 +431,29 @@ paths:
                   is_global_control_enabled: false
                   imp_track_hours: 36
               jsonMultiVariantWithCapping:
-                summary: "JSON: 2 variants, control group enabled, overall + user-level capping (scheduled delivery)"
+                summary: "A/B test with a control group and caps"
                 value:
                   display_name: Summer_Sale
                   description: Summer sale discount offers
                   priority: 50
                   created_by: john.doe@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  status: draft
                   scheduling:
-                    start_datetime: "2026-07-16T00:00:00Z"
-                    expiry_datetime: "2026-07-16T23:59:00Z"
+                    start_datetime: '2027-06-01T00:00:00Z'
+                    expiry_datetime: '2027-08-31T23:59:00Z'
                     timezone: Asia/Kolkata
                   segment_info:
                     filters:
                       included_filters:
                         filter_operator: and
                         filters:
-                          - filter_type: custom_segments
-                            name: level_0_for_automation
-                            id: 6a572827fad010a3318a1bc1
+                        - filter_type: custom_segments
+                          name: custom_segment
+                          id: 65a1c0de9b2f4a7d8e3c5f2a
                   offer_content:
                     locales:
-                      "0":
+                      '0':
                         variations:
                           variation_1:
                             content_1:
@@ -457,97 +483,722 @@ paths:
                       limit_schedule: MONTHLY
                   is_global_control_enabled: true
                   imp_track_hours: 36
-              templateDmvWithCapping:
-                summary: "Template: 2 variants (DMV), control group enabled, user_attributes segment, capping (scheduled delivery)"
+              jsonWithConversionGoal:
+                summary: "Offering with a conversion goal (Purchase) configured"
                 value:
-                  display_name: Summer_Sale
-                  description: Summer sale discount offers
+                  display_name: Summer_Sale_Conversion
+                  description: Summer sale offer with a purchase conversion goal
                   priority: 50
                   created_by: john.doe@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  status: draft
                   scheduling:
-                    start_datetime: "2026-07-16T11:00:00Z"
-                    expiry_datetime: "2026-07-16T23:59:00Z"
+                    start_datetime: '2027-06-01T00:00:00Z'
+                    expiry_datetime: '2027-08-31T23:59:00Z'
                     timezone: Asia/Kolkata
                   segment_info:
                     filters:
                       included_filters:
                         filter_operator: and
                         filters:
-                          - filter_type: user_attributes
-                            data_type: string
-                            name: Name
-                            value: [David]
-                            case_sensitive: false
-                            operator: in
-                            negate: false
-                          - filter_type: user_attributes
-                            data_type: string
-                            name: last_purchase_category
-                            value: [Electronics]
-                            case_sensitive: false
-                            operator: in
-                            negate: false
-                      excluded_filters:
+                        - filter_type: custom_segments
+                          name: All Users
+                          id: moe_all_users
+                  offer_content:
+                    content_1:
+                      type: json
+                      value: '{"discount":"10%"}'
+                  variation_meta:
+                    type: SMV
+                    control_group:
+                      is_enabled: false
+                      percentage: 0
+                    smv_distribution:
+                      split:
+                        variation_1: 100
+                  conversion:
+                    primary:
+                      goal_name: Purchase
+                      action: purchase
+                      filter_type: actions
+                      is_revenue_tracking: true
+                      revenue_amount: order_value
+                      revenue_currency: USD
+                  attribution_multiplier: 1
+                  imp_track_hours: 24
+              templateSingleVariation:
+                summary: "Offering from a template"
+                value:
+                  display_name: Summer_Banner_Single
+                  description: Sample promo banner offer
+                  created_by: john.doe@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  status: draft
+                  priority: 10
+                  tags:
+                  - SUMMER_SALE
+                  - NEW_USER_ACQUISITION
+                  scheduling:
+                    start_datetime: '2027-06-01T00:00:00Z'
+                    expiry_datetime: '2027-08-31T23:59:00Z'
+                    timezone: Asia/Kolkata
+                  segment_info:
+                    filters:
+                      included_filters:
                         filter_operator: and
                         filters:
-                          - filter_type: user_attributes
-                            data_type: string
-                            name: city
-                            value: [Detroit]
-                            case_sensitive: false
-                            operator: in
-                            negate: false
+                        - filter_type: custom_segments
+                          name: All Users
+                          id: moe_all_users
+                  offer_content:
+                    content_1:
+                      type: template
+                      value:
+                        id: summer-banner-1
+                        title: Summer sale is on
+                        description: Save 20% on your first order.
+                        cta_label: Shop now
+                        cta_url: https://example.com/summer-sale
+                        cta_target: _blank
+                        theme: light
+                      meta:
+                        templateId: promo_banner_demo
+                        metaConfigObject:
+                          id:
+                            label: ID
+                            outputKeyName: id
+                            value: summer-banner-1
+                            isValid: true
+                            errorMessage: []
+                            dataType: string
+                            validations:
+                              REQUIRED: true
+                          title:
+                            label: Title
+                            outputKeyName: title
+                            value: Summer sale is on
+                            isValid: true
+                            errorMessage: []
+                            dataType: string
+                            validations:
+                              REQUIRED: true
+                          description:
+                            label: Description
+                            outputKeyName: description
+                            value: Save 20% on your first order.
+                            isValid: true
+                            errorMessage: []
+                            dataType: string
+                            validations: {}
+                          cta_label:
+                            label: CTA Label
+                            outputKeyName: cta_label
+                            value: Shop now
+                            isValid: true
+                            errorMessage: []
+                            dataType: string
+                            validations:
+                              REQUIRED: true
+                          cta_url:
+                            label: CTA URL
+                            outputKeyName: cta_url
+                            value: https://example.com/summer-sale
+                            isValid: true
+                            errorMessage: []
+                            dataType: string
+                            validations:
+                              REQUIRED: true
+                          cta_target:
+                            label: CTA Target
+                            outputKeyName: cta_target
+                            value: _blank
+                            isValid: true
+                            errorMessage: []
+                            dataType: dropdown
+                            validations:
+                              REQUIRED: true
+                            options:
+                            - id: same_tab
+                              value: _self
+                              label: Same tab
+                            - id: new_tab
+                              value: _blank
+                              label: New tab
+                          theme:
+                            label: Theme
+                            outputKeyName: theme
+                            value: light
+                            isValid: true
+                            errorMessage: []
+                            dataType: dropdown
+                            validations: {}
+                            options:
+                            - id: light_theme
+                              value: light
+                              label: Light
+                            - id: dark_theme
+                              value: dark
+                              label: Dark
+                  variation_meta:
+                    type: SMV
+                    control_group:
+                      is_enabled: false
+                      percentage: 0
+                    smv_distribution:
+                      split:
+                        variation_1: 100
+                  capping_rules:
+                    overall:
+                      enabled: true
+                      limit_value: 10
+                      limit_schedule: WEEKLY
+                    user_level:
+                      enabled: true
+                      limit_value: 1
+                      limit_schedule: DAILY
+              OfferingTemplateManualAB:
+                summary: "A/B test two template designs (50/50)"
+                value:
+                  display_name: Summer_Banner_Manual_AB
+                  created_by: john.doe@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  status: draft
+                  priority: 10
+                  scheduling:
+                    start_datetime: '2027-06-01T00:00:00Z'
+                    expiry_datetime: '2027-08-31T23:59:00Z'
+                    timezone: Asia/Kolkata
+                  segment_info:
+                    filters:
+                      included_filters:
+                        filter_operator: and
+                        filters:
+                        - filter_type: custom_segments
+                          name: All Users
+                          id: moe_all_users
                   offer_content:
                     locales:
-                      "0":
+                      '0':
                         variations:
                           variation_1:
                             content_1:
                               type: template
                               value:
-                                id: card_notification_01
-                                title: Welcome to Your Dashboard
-                                description: This is a generic description field supporting standard text notification content.
-                                ctaUrl: https://example.com/destination-pathv2
-                                darkModeImageUrl: https://example.com/assets/dark-mode-featurev2.png
-                                lightModeImageUrl: https://example.com/assets/light-mode-featurev2.png
-                                darkModeBackgroundImageUrl: https://example.com/assets/dark-mode-bgv2.png
-                                ariaLabel: Alternative text description for screen readers
+                                id: summer-banner-1
+                                title: Summer sale is on
+                                description: Save 20% on your first order.
+                                cta_label: Shop now
+                                cta_url: https://example.com/summer-sale
+                                cta_target: _blank
+                                theme: light
                               meta:
-                                templateId: feature_hero_slide
+                                templateId: promo_banner_demo
+                                metaConfigObject:
+                                  id:
+                                    label: ID
+                                    outputKeyName: id
+                                    value: summer-banner-1
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  title:
+                                    label: Title
+                                    outputKeyName: title
+                                    value: Summer sale is on
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  description:
+                                    label: Description
+                                    outputKeyName: description
+                                    value: Save 20% on your first order.
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations: {}
+                                  cta_label:
+                                    label: CTA Label
+                                    outputKeyName: cta_label
+                                    value: Shop now
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  cta_url:
+                                    label: CTA URL
+                                    outputKeyName: cta_url
+                                    value: https://example.com/summer-sale
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  cta_target:
+                                    label: CTA Target
+                                    outputKeyName: cta_target
+                                    value: _blank
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: dropdown
+                                    validations:
+                                      REQUIRED: true
+                                    options:
+                                    - id: same_tab
+                                      value: _self
+                                      label: Same tab
+                                    - id: new_tab
+                                      value: _blank
+                                      label: New tab
+                                  theme:
+                                    label: Theme
+                                    outputKeyName: theme
+                                    value: light
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: dropdown
+                                    validations: {}
+                                    options:
+                                    - id: light_theme
+                                      value: light
+                                      label: Light
+                                    - id: dark_theme
+                                      value: dark
+                                      label: Dark
                           variation_2:
                             content_1:
                               type: template
                               value:
-                                id: card_notification_01
-                                title: Welcome to Your Dashboard
-                                description: This is a generic description field supporting standard text notification content.
-                                ctaUrl: https://example.com/destination-path
-                                darkModeImageUrl: https://example.com/assets/dark-mode-feature.png
-                                lightModeImageUrl: https://example.com/assets/light-mode-feature.png
-                                darkModeBackgroundImageUrl: https://example.com/assets/dark-mode-bg.png
-                                ariaLabel: Alternative text description for screen readers
+                                id: summer-banner-2
+                                title: 'Last chance: 20% off'
+                                description: The offer ends soon.
+                                cta_label: See deals
+                                cta_url: https://example.com/deals
+                                cta_target: _self
+                                theme: dark
                               meta:
-                                templateId: feature_hero_slide
+                                templateId: promo_banner_demo
+                                metaConfigObject:
+                                  id:
+                                    label: ID
+                                    outputKeyName: id
+                                    value: summer-banner-2
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  title:
+                                    label: Title
+                                    outputKeyName: title
+                                    value: 'Last chance: 20% off'
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  description:
+                                    label: Description
+                                    outputKeyName: description
+                                    value: The offer ends soon.
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations: {}
+                                  cta_label:
+                                    label: CTA Label
+                                    outputKeyName: cta_label
+                                    value: See deals
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  cta_url:
+                                    label: CTA URL
+                                    outputKeyName: cta_url
+                                    value: https://example.com/deals
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  cta_target:
+                                    label: CTA Target
+                                    outputKeyName: cta_target
+                                    value: _self
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: dropdown
+                                    validations:
+                                      REQUIRED: true
+                                    options:
+                                    - id: same_tab
+                                      value: _self
+                                      label: Same tab
+                                    - id: new_tab
+                                      value: _blank
+                                      label: New tab
+                                  theme:
+                                    label: Theme
+                                    outputKeyName: theme
+                                    value: dark
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: dropdown
+                                    validations: {}
+                                    options:
+                                    - id: light_theme
+                                      value: light
+                                      label: Light
+                                    - id: dark_theme
+                                      value: dark
+                                      label: Dark
                   variation_meta:
-                    type: DMV
+                    type: SMV
                     control_group:
-                      is_enabled: true
-                      percentage: 5
+                      is_enabled: false
+                      percentage: 0
+                    smv_distribution:
+                      split:
+                        variation_1: 50
+                        variation_2: 50
                   capping_rules:
                     overall:
                       enabled: true
-                      limit_value: 1
-                      limit_schedule: DAILY
+                      limit_value: 10000
+                      limit_schedule: WEEKLY
                     user_level:
                       enabled: true
-                      limit_value: 1
+                      limit_value: 2
+                      limit_schedule: DAILY
+              OfferingTemplateDynamicAB:
+                summary: "A/B test two templates with Merlin AI"
+                value:
+                  display_name: Summer_Banner_Dynamic_AB
+                  created_by: john.doe@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  status: draft
+                  priority: 10
+                  scheduling:
+                    start_datetime: '2027-06-01T00:00:00Z'
+                    expiry_datetime: '2027-08-31T23:59:00Z'
+                    timezone: Asia/Kolkata
+                  segment_info:
+                    filters:
+                      included_filters:
+                        filter_operator: and
+                        filters:
+                        - filter_type: custom_segments
+                          name: All Users
+                          id: moe_all_users
+                  offer_content:
+                    locales:
+                      '0':
+                        variations:
+                          variation_1:
+                            content_1:
+                              type: template
+                              value:
+                                id: summer-banner-1
+                                title: Summer sale is on
+                                cta_label: Shop now
+                                cta_url: https://example.com/summer-sale
+                                cta_target: _blank
+                              meta:
+                                templateId: promo_banner_demo
+                                metaConfigObject:
+                                  id:
+                                    label: ID
+                                    outputKeyName: id
+                                    value: summer-banner-1
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  title:
+                                    label: Title
+                                    outputKeyName: title
+                                    value: Summer sale is on
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  description:
+                                    label: Description
+                                    outputKeyName: description
+                                    value: ''
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations: {}
+                                  cta_label:
+                                    label: CTA Label
+                                    outputKeyName: cta_label
+                                    value: Shop now
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  cta_url:
+                                    label: CTA URL
+                                    outputKeyName: cta_url
+                                    value: https://example.com/summer-sale
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  cta_target:
+                                    label: CTA Target
+                                    outputKeyName: cta_target
+                                    value: _blank
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: dropdown
+                                    validations:
+                                      REQUIRED: true
+                                    options:
+                                    - id: same_tab
+                                      value: _self
+                                      label: Same tab
+                                    - id: new_tab
+                                      value: _blank
+                                      label: New tab
+                                  theme:
+                                    label: Theme
+                                    outputKeyName: theme
+                                    value: light
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: dropdown
+                                    validations: {}
+                                    options:
+                                    - id: light_theme
+                                      value: light
+                                      label: Light
+                                    - id: dark_theme
+                                      value: dark
+                                      label: Dark
+                          variation_2:
+                            content_1:
+                              type: template
+                              value:
+                                id: summer-banner-2
+                                title: 'Last chance: 20% off'
+                                cta_label: See deals
+                                cta_url: https://example.com/deals
+                                cta_target: _self
+                              meta:
+                                templateId: promo_banner_demo
+                                metaConfigObject:
+                                  id:
+                                    label: ID
+                                    outputKeyName: id
+                                    value: summer-banner-2
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  title:
+                                    label: Title
+                                    outputKeyName: title
+                                    value: 'Last chance: 20% off'
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  description:
+                                    label: Description
+                                    outputKeyName: description
+                                    value: ''
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations: {}
+                                  cta_label:
+                                    label: CTA Label
+                                    outputKeyName: cta_label
+                                    value: See deals
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  cta_url:
+                                    label: CTA URL
+                                    outputKeyName: cta_url
+                                    value: https://example.com/deals
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  cta_target:
+                                    label: CTA Target
+                                    outputKeyName: cta_target
+                                    value: _self
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: dropdown
+                                    validations:
+                                      REQUIRED: true
+                                    options:
+                                    - id: same_tab
+                                      value: _self
+                                      label: Same tab
+                                    - id: new_tab
+                                      value: _blank
+                                      label: New tab
+                                  theme:
+                                    label: Theme
+                                    outputKeyName: theme
+                                    value: light
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: dropdown
+                                    validations: {}
+                                    options:
+                                    - id: light_theme
+                                      value: light
+                                      label: Light
+                                    - id: dark_theme
+                                      value: dark
+                                      label: Dark
+                  variation_meta:
+                    type: DMV
+                    control_group:
+                      is_enabled: false
+                      percentage: 0
+                  capping_rules:
+                    overall:
+                      enabled: true
+                      limit_value: 10000
                       limit_schedule: WEEKLY
-                  is_global_control_enabled: true
+                    user_level:
+                      enabled: true
+                      limit_value: 2
+                      limit_schedule: DAILY
+              inSessionTargeting:
+                summary: "Target visitors by in-session attributes"
+                value:
+                  display_name: Summer_Sale_InSession
+                  description: Summer sale offer for Android and iOS visitors
+                  priority: 50
+                  created_by: john.doe@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  status: draft
+                  scheduling:
+                    start_datetime: '2027-06-01T00:00:00Z'
+                    expiry_datetime: '2027-08-31T23:59:00Z'
+                    timezone: Asia/Kolkata
+                  segment_info:
+                    filters:
+                      included_filters:
+                        filter_operator: and
+                        filters:
+                        - filter_type: custom_segments
+                          name: custom_segment
+                          id: 65a1c0de9b2f4a7d8e3c5f2a
+                  insession_attr_info:
+                    filters:
+                      included_filters:
+                        filter_operator: or
+                        filters:
+                        - filter_type: nested_filters
+                          filter_operator: and
+                          filters:
+                          - data_type: string
+                            filter_type: query_parameter
+                            name: OS
+                            negate: false
+                            operator: is
+                            case_sensitive: false
+                            value: android
+                          - data_type: double
+                            filter_type: query_parameter
+                            name: appVersion
+                            negate: false
+                            operator: greaterThan
+                            value: 2
+                          - data_type: bool
+                            filter_type: query_parameter
+                            name: featureEnabled
+                            negate: false
+                            operator: is
+                            value: true
+                        - filter_type: nested_filters
+                          filter_operator: and
+                          filters:
+                          - data_type: string
+                            filter_type: query_parameter
+                            name: OS
+                            negate: false
+                            operator: is
+                            case_sensitive: false
+                            value: iOS
+                          - data_type: double
+                            filter_type: query_parameter
+                            name: appVersion
+                            negate: false
+                            operator: greaterThan
+                            value: 4
+                          - data_type: bool
+                            filter_type: query_parameter
+                            name: featureEnabled
+                            negate: false
+                            operator: is
+                            value: true
+                      excluded_filters:
+                        filter_operator: and
+                        filters:
+                        - filter_type: nested_filters
+                          filter_operator: or
+                          filters:
+                          - data_type: datetime
+                            filter_type: query_parameter
+                            name: visitDate
+                            negate: false
+                            operator: 'on'
+                            value: '2027-06-15T00:00:00.000Z'
+                            value_type: absolute
+                          - data_type: array_string
+                            filter_type: query_parameter
+                            name: category
+                            negate: false
+                            operator: in
+                            case_sensitive: false
+                            value:
+                            - clearance
+                            - outlet
+                            array_filter_type: any_of
+                  offer_content:
+                    content_1:
+                      type: json
+                      value: '{"discount":"10%"}'
+                  variation_meta:
+                    type: SMV
+                    control_group:
+                      is_enabled: false
+                      percentage: 0
+                    smv_distribution:
+                      split:
+                        variation_1: 100
+                  capping_rules: {}
+                  is_global_control_enabled: false
                   imp_track_hours: 36
       responses:
         '201':
-          description: Offering created successfully.
+          description: Offering created as a draft. To make it live, publish it manually from the MoEngage dashboard.
           headers:
             X-MOE-Request-Id:
               schema:
@@ -572,54 +1223,79 @@ paths:
                 $ref: '#/components/schemas/PublicOfferCreateResponse'
         '400':
           description: |
-            Validation errors. All errors are collected before returning, so a single 400
-            response may contain multiple `details` entries. Possible error codes:
-            - `REQUIRED_FIELD_MISSING` — a required field is absent (e.g. missing `variation_meta`, `name`, `scheduling.start_datetime`). The `target` field identifies the missing field.
+            Validation errors. All errors are collected before returning, so a single `400` response may contain multiple `details` entries. Validation errors are returned as `VALIDATION_FAILED`, with the specific code in `error.details[].code`.
+
+            The API saves drafts without checking completeness. Required fields, scheduling, split totals, tags, conversion settings, and required template fields are checked by [Validate Offering](/api/public-offerings/validate-offering) and when the offering is published.
+
+            Possible error codes:
+            - `REQUIRED_FIELD_MISSING` — `created_by` is absent, or no request ID was sent (neither `request_id` in the body nor the `X-MOE-Request-Id` header). The `target` field identifies the missing field.
             - `INVALID_TYPE` — a field has the wrong type or format (e.g. `content_1.value` is not a JSON object when `type` is `template`; or `scheduling.start_datetime` is not a valid ISO 8601 datetime with UTC "Z" suffix).
-            - `OUT_OF_RANGE` — numeric field outside its allowed range (e.g. `priority` outside 1–100, `control_group.percentage` outside 1–99).
+            - `OUT_OF_RANGE` — numeric field outside its allowed range (e.g. `priority` outside 1–100, `control_group.percentage` outside 1–99 when the control group is enabled).
             - `INVALID_ENUM_VALUE` — enum field has an unrecognised value.
-            - `INVALID_OFFER_NAME` — `display_name` contains characters other than alphanumeric characters and underscores. Spaces and hyphens are not allowed.
-            - `INVALID_SCHEDULING` — `expiry_datetime` is not after `start_datetime`; `start_datetime` is in the past; or `expiry_datetime` is less than 10 minutes in the future.
+            - `UNRECOGNISED_FIELD` — the request body contains a field the API doesn't recognise.
+            - `INVALID_STATUS` — `status` is not an accepted value. On create, `status` accepts only `draft`.
+            - `IMMUTABLE_FIELD` — the request contains a field that can't be set: `name` (it is server-generated; use `display_name`), or `variation_meta.smv_distribution` when `variation_meta.type` is `DMV` (the split is allocated automatically).
+            - `INVALID_OFFER_NAME` — `display_name` does not follow the naming rules: 5–100 characters after trimming spaces, starts with a letter, and contains only letters, digits, spaces, and the characters `- & _ % ( )`.
             - `INVALID_TIMEZONE` — `scheduling.timezone` is present but not a valid IANA timezone name (e.g. `Asia/Kolkata`, `America/New_York`, `UTC`).
-            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match the variation keys used in `offer_content`.
-            - `INVALID_SPLIT` — values in `smv_distribution.split` do not sum to exactly 100. Adjust the percentages so the total equals 100.
-            - `VARIANT_COUNT_MISMATCH` — count of variants in `offer_content` does not match the keys in `smv_distribution.split`.
-            - `INVALID_TEMPLATE_ID` — `meta.templateId` refers to a template ID not registered in the workspace.
-            - `MISSING_TEMPLATE_FIELD` — a required field (per the template's config) is missing or blank in the `value` map.
-              The `target` field will be `offer_content.locales.<locale>.variations.<variant>.content_1.value.<fieldKey>`.
-            - `DUPLICATE_OFFER_NAME` — `display_name` matches an existing non-archived offering in this workspace. Offering names must be unique. Choose a different name.
-            - `INVALID_TAG_ID` — one or more tag IDs in `tags` do not exist in this workspace. Create the tags first via the dashboard before referencing them here.
-            - `REVENUE_FIELDS_INCOMPLETE` — `conversion.primary.revenue_amount` or `conversion.primary.revenue_currency` is missing when `is_revenue_tracking` is true.
-            - `INVALID_CURRENCY_CODE` — `conversion.primary.revenue_currency` is not a valid ISO 4217 code (e.g. use "USD", "EUR", "INR").
             - `MISSING_IDEMPOTENCY_KEY` — `Idempotency-Key` header is absent. Add the header with a UUID v4 value.
-            - `INVALID_IDEMPOTENCY_KEY` — `Idempotency-Key` is present but not a valid UUID v4. Use a standard UUID v4 format (e.g. <uuid-v4>).
+            - `INVALID_IDEMPOTENCY_KEY` — `Idempotency-Key` is present but not a valid UUID v4. Use a standard UUID v4 format.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  code: VALIDATION_FAILED
-                  message: Request validation failed.
-                  doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                  details:
-                    - code: REQUIRED_FIELD_MISSING
-                      target: variation_meta
-                      message: variation_meta is required.
-                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                    - code: INVALID_SCHEDULING
-                      target: scheduling
-                      message: expiry_datetime must be after start_datetime.
-                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                    - code: INVALID_TEMPLATE_ID
-                      target: offer_content.locales.0.variations.variation_1.content_1.meta.templateId
-                      message: "Template 'app_large' is not registered in this workspace."
-                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                    - code: MISSING_TEMPLATE_FIELD
-                      target: offer_content.locales.0.variations.variation_1.content_1.value.cta_url
-                      message: "Field 'cta_url' is required by the template but is missing or blank."
-                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                response_id: resp_<trace-id>
+              examples:
+                invalidStatus:
+                  summary: "status is not draft"
+                  value:
+                    error:
+                      code: VALIDATION_FAILED
+                      message: One or more fields failed validation.
+                      target: offering
+                      details:
+                      - code: INVALID_STATUS
+                        target: status
+                        message: 'status has an unsupported value: published. Create Offering accepts draft only. Send draft, or omit status to create a draft.'
+                      doc_url: https://www.moengage.com/docs/api/offerings/offerings-overview#errors
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+                unrecognisedField:
+                  summary: "Unknown field in the body"
+                  value:
+                    error:
+                      code: VALIDATION_FAILED
+                      message: One or more fields failed validation.
+                      target: offering
+                      details:
+                      - code: UNRECOGNISED_FIELD
+                        target: unexpected_field
+                        message: 'The request body contains a field the API doesn''t recognise: unexpected_field. Remove the field, or check its name against the API reference, and send the request again.'
+                      doc_url: https://www.moengage.com/docs/api/offerings/offerings-overview#errors
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+                nameNotAllowed:
+                  summary: "name sent instead of display_name"
+                  value:
+                    error:
+                      code: VALIDATION_FAILED
+                      message: One or more fields failed validation.
+                      target: offering
+                      details:
+                      - code: IMMUTABLE_FIELD
+                        target: name
+                        message: '''name'' is server-generated and cannot be set. Only ''display_name'' is accepted.'
+                      doc_url: https://www.moengage.com/docs/api/offerings/offerings-overview#errors
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+                dmvWithSplit:
+                  summary: "smv_distribution sent for a DMV offering"
+                  value:
+                    error:
+                      code: VALIDATION_FAILED
+                      message: One or more fields failed validation.
+                      target: offering
+                      details:
+                      - code: IMMUTABLE_FIELD
+                        target: variation_meta.smv_distribution
+                        message: variation_meta.smv_distribution cannot be provided for DMV type — the split is allocated automatically.
+                      doc_url: https://www.moengage.com/docs/api/offerings/offerings-overview#errors
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         '401':
           description: |
             Authentication failure. Two sources produce 401 on this endpoint:
@@ -636,7 +1312,21 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
         '403':
-          $ref: '#/components/responses/GatewayAuthError'
+          description: |
+            Forbidden. Two distinct sources produce 403 on this endpoint:
+            - **Gateway (APISIX)** — insufficient scope for this route. Returns `Content-Type: text/plain`
+              with body `{"code":"ER007","target":"Authentication Invalid","message":"..."}`.
+            - **Service** — returns `Content-Type: application/json`. Error codes: `INSUFFICIENT_SCOPE`
+              (the API key doesn't have the **Create & Manage** permission) or `FEATURE_DISABLED`
+              (the Offerings feature is not enabled for the workspace).
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Gateway (APISIX) scope failure. Body is JSON-formatted but sent as text/plain.
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '409':
           description: |
             Idempotency conflict. Two distinct error codes are possible:
@@ -671,10 +1361,28 @@ paths:
       operationId: getPublicOffering
       summary: Get Offering
       description: Retrieve the full configuration of a single offering by its ID.
-      x-mint:
-        content: |
-          #### Rate Limit
-          The rate limit is 150 requests per minute, 500 requests per hour, and 1000 requests per day.
+      x-moe-mcp:
+        expose:
+          external: true
+          internal: true
+        tool_description: |
+          Retrieve the full configuration of a single offering by its ID.
+
+          Use list_offerings first to find the offering ID if you don't already have it. Use this
+          tool when you need more than the summary that list_offerings returns — for example, to read
+          an offering's current content, targeting, scheduling, variation, capping, and conversion
+          settings before calling update_offering.
+
+          The offer_id must include the "offer_" prefix.
+
+          Its updated_at value is the last_updated_at that update_offering requires.
+
+          Returns 404 if the offer_id does not exist or does not belong to the workspace.
+        param_overrides:
+          offer_id:
+            description: |
+              Prefixed offering ID (it starts with offer_).
+              Obtain this from list_offerings — it is the 'id' field in the data array.
       tags:
         - Public Offerings
       security:
@@ -683,11 +1391,12 @@ paths:
         - name: offer_id
           in: path
           required: true
+          example: "offer_65a1c0de9b2f4a7d8e3c5f10"
           schema:
             type: string
           description: >
             Must include the `offer_` prefix
-            (e.g. `offer_6a4f69ee490f66322f968b87`). You can retrieve the prefixed ID from the
+            (the ID starts with `offer_`). You can retrieve the prefixed ID from the
             `data[].id` field in the [List Offerings API](/api/public-offerings/list-offerings) response.
       responses:
         '200':
@@ -711,6 +1420,21 @@ paths:
                 $ref: '#/components/schemas/PublicOfferGetResponse'
         '401':
           $ref: '#/components/responses/GatewayAuthError'
+        '403':
+          description: |
+            Forbidden. Two distinct sources produce 403 on this endpoint:
+            - **Gateway (APISIX)** — insufficient scope for this route. Returns `Content-Type: text/plain`
+              with body `{"code":"ER007","target":"Authentication Invalid","message":"..."}`.
+            - **Service** — returns `Content-Type: application/json`. Error code: `FEATURE_DISABLED`
+              (the Offerings feature is not enabled for the workspace).
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Gateway (APISIX) scope failure. Body is JSON-formatted but sent as text/plain.
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: The `offer_id` does not exist or does not belong to the authenticated workspace.
           content:
@@ -745,10 +1469,8 @@ paths:
         Modify an existing offering. Only the fields you include in the request body are
         changed.
 
-      x-mint:
-        content: |
-          #### Rate Limit
-          The rate limit is 100 requests per minute, 300 requests per hour, and 600 requests per day per consumer.
+        When you change template content, send `meta.metaConfigObject` with each field's `value` matching the same field in `value`.
+
       x-moe-mcp:
         expose:
           external: true
@@ -759,32 +1481,32 @@ paths:
 
           Use list_offerings first to discover the offering ID if you don't already have it.
 
+          last_updated_at is required on every call: call get_offering first and pass the
+          offering's updated_at value as last_updated_at.
+
           Common update patterns:
             - Extend expiry: include only scheduling.expiry_datetime with a later date (Z suffix required)
-            - Rename: include only display_name (alphanumeric + underscores only; returns DUPLICATE_OFFER_NAME if taken)
+            - Rename: include only display_name (same naming rules as create)
             - Update content: include only offer_content
-            - Replace tags: include tags as a full list of tag IDs (full replacement, not additive).
-              Tag IDs from list_offerings are returned with "tag_" prefix (e.g. "tag_<object-id>")
-              and can be passed directly — both "tag_<id>" and raw "<id>" formats are accepted.
+            - Replace tags: include tags as a full list of tag names (full replacement, not additive).
 
-          Status-gated fields — return 400 IMMUTABLE_FIELD if violated:
-            - scheduling.start_datetime: locked once status becomes 'active'
-            - conversion: locked once status becomes 'active'
-            - variation_meta.type: locked once status is 'active'
-            - Adding/removing variant keys in smv_distribution.split: locked once 'active'
-            - ACTIVE + SMV: only split percentages editable
-            - ACTIVE + DMV: only control_group.percentage editable
-            - SCHEDULED: all variation_meta fields freely editable
-
-          Returns 403 EXPIRED_OFFERING or 403 ARCHIVED_OFFERING if offering is in terminal state.
+          Only offerings in draft state can be updated, and all fields can be edited on a draft.
+          Offerings in any other state cannot be updated: returns 400 INVALID_STATUS_TRANSITION, or 403 EXPIRED_OFFERING if the offering is expired.
           Returns 404 if the {offer_id} does not exist — verify with list_offerings first.
+
+          In-session targeting (optional): include insession_attr_info to target visitors by in-session attributes
+          (key-value pairs passed at decision time). Structure: filters.included_filters and/or filters.excluded_filters,
+          each with filter_operator ("and" or "or") and a filters list. Each entry is a single attribute (filter_type
+          "query_parameter" with data_type, name, operator, value, negate) or a group (filter_type "nested_filters" with its
+          own filter_operator and filters). data_type: string, double, bool, datetime, array_string, array_double;
+          case_sensitive applies to string and array_string. Up to 10 attributes per group and 5 groups per offering.
 
           Always supply a unique Idempotency-Key (UUID v4) header. Same key within 24 hours
           returns the original 200 response without re-applying the update.
         param_overrides:
           offer_id:
             description: |
-              Prefixed offering ID to update (e.g. offer_6a4f69ee490f66322f968b87).
+              Prefixed offering ID to update (it starts with offer_).
               Obtain this from list_offerings — it is the 'id' field in the data array.
       tags:
         - Public Offerings
@@ -794,15 +1516,17 @@ paths:
         - name: offer_id
           in: path
           required: true
+          example: "offer_65a1c0de9b2f4a7d8e3c5f10"
           schema:
             type: string
           description: >
             The unique ID of the offering to be updated. Must include the `offer_` prefix
-            (e.g. `offer_6a4f69ee490f66322f968b87`). You can retrieve the prefixed ID from the
+            (the ID starts with `offer_`). You can retrieve the prefixed ID from the
             `data[].id` field in the [List Offerings API](/api/public-offerings/list-offerings) response.
         - name: Idempotency-Key
           in: header
           required: true
+          example: "9e3c1a52-6f7b-4d08-b2a4-71c5e8f90d36"
           schema:
             type: string
             format: uuid
@@ -814,12 +1538,14 @@ paths:
         - name: X-MOE-Request-Id
           in: header
           required: false
+          example: "5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
           schema:
             type: string
             format: uuid
           description: >
             Client-supplied trace ID (UUID v4). Echoed back in the `X-MOE-Request-Id` response
-            header. Use this to correlate client requests with server-side logs.
+            header. Use this to correlate client requests with server-side logs. If you also send `request_id`
+            in the body, the body value is used.
       requestBody:
         required: true
         content:
@@ -828,29 +1554,154 @@ paths:
               $ref: '#/components/schemas/ClientOfferPatchRequest'
             examples:
               extendExpiry:
-                summary: Extend expiry date only
+                summary: "Extend the end date"
                 value:
                   updated_by: marketing-team@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  last_updated_at: '2026-11-16T10:27:45.194Z'
                   scheduling:
-                    expiry_datetime: "2026-12-31T23:59:59Z"
+                    expiry_datetime: '2027-09-30T23:59:59Z'
               updateNameAndTags:
-                summary: Rename offering and replace tags
+                summary: "Rename and retag"
                 value:
                   updated_by: marketing-team@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  last_updated_at: '2026-11-16T10:27:45.194Z'
                   display_name: Summer_Sale_Promo_2026_V2
-                  tags: [summer-sale, vip-users]
+                  tags:
+                  - SUMMER_SALE
+                  - NEW_USER_ACQUISITION
               updateContent:
-                summary: Update offer content (single variant, locale "0")
+                summary: "Change the content"
                 value:
                   updated_by: marketing-team@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  last_updated_at: '2026-11-16T10:27:45.194Z'
                   offer_content:
                     locales:
-                      "0":
+                      '0':
                         variations:
                           variation_1:
                             content_1:
                               type: json
                               value: '{"headline":"Flash Sale - 30% Off!","cta_text":"Claim Now","cta_url":"https://example.com/flash"}'
+              updateTemplateContent:
+                summary: "Change the template content"
+                value:
+                  updated_by: marketing-team@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  last_updated_at: '2026-11-16T10:27:45.194Z'
+                  offer_content:
+                    locales:
+                      '0':
+                        variations:
+                          variation_1:
+                            content_1:
+                              type: template
+                              value:
+                                id: summer-banner-1
+                                title: 'Summer sale: now 30% off'
+                                description: Save 30% on your first order.
+                                cta_label: Shop now
+                                cta_url: https://example.com/summer-sale
+                                cta_target: _blank
+                                theme: light
+                              meta:
+                                templateId: promo_banner_demo
+                                metaConfigObject:
+                                  id:
+                                    label: ID
+                                    outputKeyName: id
+                                    value: summer-banner-1
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  title:
+                                    label: Title
+                                    outputKeyName: title
+                                    value: 'Summer sale: now 30% off'
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  description:
+                                    label: Description
+                                    outputKeyName: description
+                                    value: Save 30% on your first order.
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations: {}
+                                  cta_label:
+                                    label: CTA Label
+                                    outputKeyName: cta_label
+                                    value: Shop now
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  cta_url:
+                                    label: CTA URL
+                                    outputKeyName: cta_url
+                                    value: https://example.com/summer-sale
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: string
+                                    validations:
+                                      REQUIRED: true
+                                  cta_target:
+                                    label: CTA Target
+                                    outputKeyName: cta_target
+                                    value: _blank
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: dropdown
+                                    validations:
+                                      REQUIRED: true
+                                    options:
+                                    - id: same_tab
+                                      value: _self
+                                      label: Same tab
+                                    - id: new_tab
+                                      value: _blank
+                                      label: New tab
+                                  theme:
+                                    label: Theme
+                                    outputKeyName: theme
+                                    value: light
+                                    isValid: true
+                                    errorMessage: []
+                                    dataType: dropdown
+                                    validations: {}
+                                    options:
+                                    - id: light_theme
+                                      value: light
+                                      label: Light
+                                    - id: dark_theme
+                                      value: dark
+                                      label: Dark
+              addInsessionTargeting:
+                summary: "Add in-session targeting"
+                value:
+                  updated_by: marketing-team@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  last_updated_at: '2026-11-16T10:27:45.194Z'
+                  insession_attr_info:
+                    filters:
+                      included_filters:
+                        filter_operator: and
+                        filters:
+                        - data_type: string
+                          filter_type: query_parameter
+                          name: OS
+                          negate: false
+                          operator: is
+                          case_sensitive: false
+                          value: android
       responses:
         '200':
           description: Offering updated successfully.
@@ -878,53 +1729,67 @@ paths:
                 $ref: '#/components/schemas/PublicOfferPatchResponse'
         '400':
           description: |
-            Validation errors. All errors collected before returning. Possible error codes:
-            - `REQUIRED_FIELD_MISSING` — a required field is absent (`updated_by`). The `target` field identifies the missing field.
+            Validation errors. All errors are collected before returning, so a single `400` response may contain multiple `details` entries. Validation errors are returned as `VALIDATION_FAILED`, with the specific code in `error.details[].code`.
+
+            The API saves drafts without checking completeness. Required fields, scheduling, split totals, tags, conversion settings, and required template fields are checked by [Validate Offering](/api/public-offerings/validate-offering) and when the offering is published.
+
+            Possible error codes:
+            - `REQUIRED_FIELD_MISSING` — `updated_by` or `last_updated_at` is absent, or no request ID was sent (neither `request_id` in the body nor the `X-MOE-Request-Id` header). The `target` field identifies the missing field.
             - `INVALID_TYPE` — wrong type or format (e.g. `scheduling.start_datetime` is not a valid ISO 8601 datetime with UTC "Z" suffix).
-            - `OUT_OF_RANGE` — numeric field outside its allowed range (e.g. `priority` outside 1–100, `control_group.percentage` outside 1–99).
+            - `OUT_OF_RANGE` — numeric field outside its allowed range (e.g. `priority` outside 1–100, `control_group.percentage` outside 1–99 when the control group is enabled).
             - `INVALID_ENUM_VALUE` — enum field has an unrecognised value (e.g. unrecognised `variation_meta.type`).
-            - `INVALID_OFFER_NAME` — `display_name` contains characters other than alphanumeric characters and underscores.
-            - `INVALID_SCHEDULING` — `expiry_datetime` is not after `start_datetime`; `start_datetime` is in the past; or `expiry_datetime` is less than 10 minutes in the future.
+            - `UNRECOGNISED_FIELD` — the request body contains a field the API doesn't recognise.
+            - `INVALID_STATUS` — `status` can't be changed through the API. Remove `status` from the request.
+            - `IMMUTABLE_FIELD` — the request tries to change a field that can't be changed: `name` (use `display_name` to rename the offering), or `variation_meta.smv_distribution` sent when `variation_meta.type` is `DMV` (the split is allocated automatically).
+            - `INVALID_OFFER_NAME` — `display_name` does not follow the naming rules: 5–100 characters after trimming spaces, starts with a letter, and contains only letters, digits, spaces, and the characters `- & _ % ( )`.
             - `INVALID_TIMEZONE` — `scheduling.timezone` is present but not a valid IANA timezone name.
-            - `IMMUTABLE_FIELD` — attempt to change a status-locked field:
-              • `scheduling.start_datetime` when offering is ACTIVE or EXPIRED.
-              • `conversion` when offering is not in `scheduled` status.
-              • `variation_meta.type` when offering is ACTIVE.
-              • Adding or removing variation keys in `smv_distribution.split` when offering is ACTIVE — only split percentages (SMV) or `control_group.percentage` (DMV) can change on an ACTIVE offering.
-            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match the variation keys used in `offer_content`.
-            - `INVALID_SPLIT` — values in `smv_distribution.split` do not sum to exactly 100.
-            - `INVALID_TEMPLATE_ID` — `meta.templateId` refers to a template ID not registered in the workspace.
-            - `MISSING_TEMPLATE_FIELD` — a required field (per the template's config) is missing or blank in the `value` map.
-              The `target` field will be `offer_content.locales.<locale>.variations.<variant>.content_1.value.<fieldKey>`.
-            - `DUPLICATE_OFFER_NAME` — `display_name` matches an existing non-archived offering in this workspace.
-            - `INVALID_TAG_ID` — one or more tag IDs in `tags` do not exist in this workspace.
-            - `REVENUE_FIELDS_INCOMPLETE` — `conversion.primary.revenue_amount` or `conversion.primary.revenue_currency` is missing when `is_revenue_tracking` is true.
-            - `INVALID_CURRENCY_CODE` — `conversion.primary.revenue_currency` is not a valid ISO 4217 code.
             - `MISSING_IDEMPOTENCY_KEY` — `Idempotency-Key` header is absent.
             - `INVALID_IDEMPOTENCY_KEY` — `Idempotency-Key` is present but not a valid UUID v4.
+            - `INVALID_STATUS_TRANSITION` — the offering isn't a draft. Only drafts can be edited.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-              example:
-                error:
-                  code: VALIDATION_FAILED
-                  message: Request validation failed.
-                  doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                  details:
-                    - code: IMMUTABLE_FIELD
-                      target: variation_meta.type
-                      message: variation_meta.type cannot be changed on an active offering.
-                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                    - code: INVALID_TEMPLATE_ID
-                      target: offer_content.locales.0.variations.variation_1.content_1.meta.templateId
-                      message: "Template 'app_large' is not registered in this workspace."
-                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                    - code: MISSING_TEMPLATE_FIELD
-                      target: offer_content.locales.0.variations.variation_1.content_1.value.cta_url
-                      message: "Field 'cta_url' is required by the template but is missing or blank."
-                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                response_id: resp_<trace-id>
+              examples:
+                invalidStatus:
+                  summary: "status sent in an update"
+                  value:
+                    error:
+                      code: VALIDATION_FAILED
+                      message: One or more fields failed validation.
+                      target: offering
+                      details:
+                      - code: INVALID_STATUS
+                        target: status
+                        message: 'status has an unsupported value: published. Update Offering does not accept status.'
+                      doc_url: https://www.moengage.com/docs/api/offerings/offerings-overview#errors
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+                nameNotAllowed:
+                  summary: "name sent in an update"
+                  value:
+                    error:
+                      code: VALIDATION_FAILED
+                      message: One or more fields failed validation.
+                      target: offering
+                      details:
+                      - code: IMMUTABLE_FIELD
+                        target: name
+                        message: '''name'' cannot be modified after creation. Only ''display_name'' is editable.'
+                      doc_url: https://www.moengage.com/docs/api/offerings/offerings-overview#errors
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+                notADraft:
+                  summary: "Offering is not a draft"
+                  value:
+                    error:
+                      code: VALIDATION_FAILED
+                      message: One or more fields failed validation.
+                      target: offering
+                      details:
+                      - code: INVALID_STATUS_TRANSITION
+                        target: status
+                        message: This offering is live and can no longer be edited. Only drafts can be edited.
+                      doc_url: https://www.moengage.com/docs/api/offerings/offerings-overview#errors
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         '401':
           description: |
             Authentication failure. Two sources produce 401 on this endpoint:
@@ -945,8 +1810,256 @@ paths:
             Forbidden. Two distinct sources produce 403 on this endpoint:
             - **Gateway (APISIX)** — insufficient scope for this route. Returns `Content-Type: text/plain`
               with body `{"code":"ER007","target":"Authentication Invalid","message":"..."}`.
-            - **Service** — offering is in a terminal lifecycle state. Returns `Content-Type: application/json`.
-              Error codes: `EXPIRED_OFFERING` (past expiry_datetime) or `ARCHIVED_OFFERING` (manually archived).
+            - **Service** — returns `Content-Type: application/json`. Error codes: `EXPIRED_OFFERING`
+              (the offering is past its `expiry_datetime`), `INSUFFICIENT_SCOPE` (the API key doesn't have
+              the **Create & Manage** permission), or `FEATURE_DISABLED` (the Offerings feature is
+              not enabled for the workspace).
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Gateway (APISIX) scope failure. Body is JSON-formatted but sent as text/plain.
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expiredOffering:
+                  summary: Offering has expired
+                  value:
+                    error:
+                      code: EXPIRED_OFFERING
+                      message: Offering has expired and cannot be updated.
+                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview#errors"
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+        '404':
+          description: Offering not found (OFFER_NOT_FOUND).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                offerNotFound:
+                  summary: "Offering not found"
+                  value:
+                    error:
+                      code: OFFER_NOT_FOUND
+                      message: Offering not found.
+                      target: offering
+                      details:
+                      - code: OFFER_NOT_FOUND
+                        target: offer_id
+                        message: Offering not found.
+                      doc_url: https://www.moengage.com/docs/api/offerings/offerings-overview#errors
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+        '409':
+          description: |
+            Conflict. Three distinct error codes are possible:
+
+            **DUPLICATE_IDEMPOTENCY_KEY** — a request with the same Idempotency-Key is already
+            in-flight (concurrent duplicate). Wait for the first request to complete before retrying.
+
+            **IDEMPOTENCY_CONFLICT** — the Idempotency-Key was already used within the 24-hour
+            window but the request body hash differs from the original request. Use a new
+            Idempotency-Key to submit a different payload.
+
+            **VERSION_CONFLICT** — the `last_updated_at` value doesn't match the current version of
+            the offering. Call Get Offering for the offering, copy the `updated_at` value from the
+            response, and send it as `last_updated_at`. This check runs before the offering's state is
+            checked, so a stale `last_updated_at` returns `VERSION_CONFLICT` before any other error about
+            the offering.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                duplicateInFlight:
+                  summary: Concurrent duplicate (in-flight)
+                  value:
+                    error:
+                      code: DUPLICATE_IDEMPOTENCY_KEY
+                      message: A request with this Idempotency-Key is already being processed.
+                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
+                      target: Idempotency-Key
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+                bodyMismatch:
+                  summary: Same key, different body
+                  value:
+                    error:
+                      code: IDEMPOTENCY_CONFLICT
+                      message: The Idempotency-Key was already used with a different request body. Use a new key.
+                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
+                      target: Idempotency-Key
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+                versionConflict:
+                  summary: last_updated_at does not match the current version
+                  value:
+                    error:
+                      code: VERSION_CONFLICT
+                      message: "A newer version of this draft is available. Please reload to continue."
+                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview#errors"
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+        '429':
+          description: |
+            The rate limit for this endpoint has been exceeded. Retry after the window
+            indicated in the `Retry-After` response header (in seconds).
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: Seconds to wait before retrying.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '503':
+          $ref: '#/components/responses/ServiceUnavailable'
+
+  /v5/offers/{offer_id}/validate:
+    post:
+      operationId: validatePublicOffering
+      summary: Validate Offering
+      description: |
+        Check whether a draft offering is ready to publish. This runs the same validations that apply when an offering is published and returns the errors that would block it, so you can fix a draft before publishing it from the MoEngage dashboard.
+
+        Create Offering and Update Offering save drafts without checking completeness. Call this endpoint after you create or update a draft to find missing or invalid fields. The request body is empty (`{}`).
+
+        A failed validation is a normal response: `data.valid` is `false` and `data.errors` lists what to fix. Repeat Update Offering and Validate Offering until `data.valid` is `true`.
+
+        Validate Offering also checks that each template field's `value` matches its value in `meta.metaConfigObject`, and the in-session attribute limits (up to 10 attributes in a group and up to 5 groups per offering).
+      tags:
+        - Public Offerings
+      security:
+        - basicAuth: []
+      parameters:
+        - name: offer_id
+          in: path
+          required: true
+          example: "offer_65a1c0de9b2f4a7d8e3c5f10"
+          schema:
+            type: string
+          description: >
+            The unique ID of the offering to validate. Must include the `offer_` prefix
+            (the ID starts with `offer_`). You can retrieve the prefixed ID from the
+            `data[].id` field in the [List Offerings API](/api/public-offerings/list-offerings) response.
+        - name: X-MOE-Request-Id
+          in: header
+          required: false
+          example: "5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+          schema:
+            type: string
+            format: uuid
+          description: >
+            Client-supplied trace ID (UUID v4). Echoed back in the `X-MOE-Request-Id` response
+            header and in server logs. A request ID is required, either this header or `request_id`
+            in the body. If you send both, the body value is used.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              description: Send an empty object. No fields are needed to validate an offering.
+              properties:
+                request_id:
+                  type: string
+                  description: |
+                    Optional. A unique ID for this request, used to trace it in logs and support tickets. If you omit it, the `X-MOE-Request-Id` header is used.
+                  example: "5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+            example: {}
+      responses:
+        '200':
+          description: |
+            Validation result. When `data.valid` is `false`, `data.errors` lists each problem with a `code`, the `target` field, and a `message`. All errors are collected, so one response can list several.
+
+            Possible `data.errors[].code` values:
+            - `REQUIRED_FIELD_MISSING` — a field needed to publish is absent (for example `priority`, `scheduling`, `segment_info`, `offer_content`, `variation_meta`, or `attribution_multiplier` when a conversion goal is set). The `target` identifies the field.
+            - `INVALID_TYPE` — a field has the wrong type or format (e.g. `content_1.value` is not a JSON object when `type` is `template`; or `scheduling.start_datetime` is not a valid ISO 8601 datetime with UTC "Z" suffix).
+            - `OUT_OF_RANGE` — numeric field outside its allowed range (e.g. `priority` outside 1–100, `control_group.percentage` outside 1–99).
+            - `INVALID_ENUM_VALUE` — enum field has an unrecognised value.
+            - `INVALID_OFFER_NAME` — `display_name` contains characters other than alphanumeric characters and underscores. Spaces and hyphens are not allowed.
+            - `INVALID_SCHEDULING` — `expiry_datetime` is not after `start_datetime`; `start_datetime` is in the past; or `expiry_datetime` is less than 10 minutes in the future.
+            - `INVALID_TIMEZONE` — `scheduling.timezone` is present but not a valid IANA timezone name (e.g. `Asia/Kolkata`, `America/New_York`, `UTC`).
+            - `SPLIT_KEY_MISMATCH` — keys in `smv_distribution.split` do not match the variation keys used in `offer_content`.
+            - `INVALID_SPLIT` — values in `smv_distribution.split` do not sum to exactly 100. Adjust the percentages so the total equals 100.
+            - `VARIANT_COUNT_MISMATCH` — count of variants in `offer_content` does not match the keys in `smv_distribution.split`.
+            - `INVALID_TEMPLATE_ID` — `meta.templateId` refers to a template ID not registered in the workspace.
+            - `MISSING_TEMPLATE_FIELD` — a field marked `REQUIRED` in the template has an empty `value` in `meta.metaConfigObject`. The `target` is `offer_content.content_1.meta.metaConfigObject.<fieldKey>.value` for the flat format, or `offer_content.locales.<locale>.variations.<variant>.content_1.meta.metaConfigObject.<fieldKey>.value` for the nested format.
+            - `TEMPLATE_VALUE_MISMATCH` — a field's `value` does not match its `value` in `meta.metaConfigObject`. A required field that is missing from `value` is reported the same way. The `target` is the field's path under `value`.
+            - `DUPLICATE_OFFER_NAME` — `display_name` matches an existing non-archived offering in this workspace. Offering names must be unique. Choose a different name.
+            - `REVENUE_FIELDS_INCOMPLETE` — `conversion.primary.revenue_amount` or `conversion.primary.revenue_currency` is missing when `is_revenue_tracking` is true.
+            - `INVALID_CURRENCY_CODE` — `conversion.primary.revenue_currency` is not a valid ISO 4217 code (e.g. use "USD", "EUR", "INR").
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OfferValidationResponse'
+              examples:
+                validationFailed:
+                  summary: "Validation failed"
+                  value:
+                    response_id: resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                    type: offer_validation
+                    data:
+                      valid: false
+                      errors:
+                      - code: INVALID_ENUM_VALUE
+                        target: conversion.primary.filter_type
+                        message: 'conversion.primary.filter_type must be ''actions''. Received: ''ACTIONS''.'
+                      - code: REQUIRED_FIELD_MISSING
+                        target: attribution_multiplier
+                        message: attribution_multiplier is required when a conversion goal is set.
+                minimalDraft:
+                  summary: "Required fields missing"
+                  value:
+                    response_id: resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                    type: offer_validation
+                    data:
+                      valid: false
+                      errors:
+                      - code: REQUIRED_FIELD_MISSING
+                        target: offer_content
+                        message: offer_content is required.
+                      - code: REQUIRED_FIELD_MISSING
+                        target: priority
+                        message: priority is required.
+                      - code: REQUIRED_FIELD_MISSING
+                        target: segment_info
+                        message: segment_info is required.
+                      - code: REQUIRED_FIELD_MISSING
+                        target: variation_meta
+                        message: variation_meta is required.
+                      - code: REQUIRED_FIELD_MISSING
+                        target: scheduling
+                        message: scheduling is required.
+                templateMismatch:
+                  summary: "Template values don't match"
+                  value:
+                    response_id: resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                    type: offer_validation
+                    data:
+                      valid: false
+                      errors:
+                      - code: TEMPLATE_VALUE_MISMATCH
+                        target: offer_content.locales.0.variations.variation_1.content_1.value.title
+                        message: Field 'title' in value ('Summer sale is on') does not match its value in meta.metaConfigObject ('Your offer title').
+                      - code: MISSING_TEMPLATE_FIELD
+                        target: offer_content.locales.0.variations.variation_1.content_1.meta.metaConfigObject.cta_url.value
+                        message: Required field 'cta_url' is missing or empty in the template configuration for template 'promo_banner_demo'.
+                valid:
+                  summary: "Ready to publish"
+                  value:
+                    response_id: resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                    type: offer_validation
+                    data:
+                      valid: true
+        '401':
+          $ref: '#/components/responses/GatewayAuthError'
+        '403':
+          description: |
+            Forbidden. Two distinct sources produce 403 on this endpoint:
+            - **Gateway (APISIX)** — insufficient scope for this route. Returns `Content-Type: text/plain`
+              with body `{"code":"ER007","target":"Authentication Invalid","message":"..."}`.
+            - **Service** — returns `Content-Type: application/json`. Error code: `FEATURE_DISABLED`
+              (the Offerings feature is not enabled for the workspace).
           content:
             text/plain:
               schema:
@@ -961,39 +2074,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
-        '409':
-          description: |
-            Idempotency conflict. Two distinct error codes are possible:
-
-            **DUPLICATE_IDEMPOTENCY_KEY** — a request with the same Idempotency-Key is already
-            in-flight (concurrent duplicate). Wait for the first request to complete before retrying.
-
-            **IDEMPOTENCY_CONFLICT** — the Idempotency-Key was already used within the 24-hour
-            window but the request body hash differs from the original request. Use a new
-            Idempotency-Key to submit a different payload.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorResponse'
               examples:
-                duplicateInFlight:
-                  summary: Concurrent duplicate (in-flight)
+                offerNotFound:
+                  summary: "Offering not found"
                   value:
                     error:
-                      code: DUPLICATE_IDEMPOTENCY_KEY
-                      message: A request with this Idempotency-Key is already being processed.
-                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                      target: Idempotency-Key
-                    response_id: resp_<trace-id>
-                bodyMismatch:
-                  summary: Same key, different body
-                  value:
-                    error:
-                      code: IDEMPOTENCY_CONFLICT
-                      message: The Idempotency-Key was already used with a different request body. Use a new key.
-                      doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                      target: Idempotency-Key
-                    response_id: resp_<trace-id>
+                      code: OFFER_NOT_FOUND
+                      message: Offering not found.
+                      target: offering
+                      details:
+                      - code: OFFER_NOT_FOUND
+                        target: offer_id
+                        message: Offering not found.
+                      doc_url: https://www.moengage.com/docs/api/offerings/offerings-overview#errors
+                    response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         '429':
           description: |
             The rate limit for this endpoint has been exceeded. Retry after the window
@@ -1017,10 +2111,6 @@ paths:
       description: |
         Fetch the personalization templates available in the workspace.
 
-      x-mint:
-        content: |
-          #### Rate Limit
-          The rate limit is 150 requests per minute, 500 requests per hour, and 1000 requests per day per consumer.
       x-moe-mcp:
         expose:
           external: true
@@ -1034,8 +2124,12 @@ paths:
 
           Typical agent flow:
             1. Call list_offer_templates to find the template you need (match on label).
-            2. Use its id as meta.templateId in the offer_content content block.
-            3. Call create_offering or update_offering with that content block.
+            2. Call get_offer_template with its id to read template_config — the template's fields,
+               which are required, and the options for dropdown fields.
+            3. Build the content block: type "template", value (keyed by outputKeyName),
+               meta.templateId, and meta.metaConfigObject. Set each field's value in
+               meta.metaConfigObject to the same value you send in value.
+            4. Call create_offering or update_offering with that content block.
 
           Pagination: pass next_cursor from the pagination object on the next call.
           Keep paginating until has_more is false.
@@ -1078,6 +2172,7 @@ paths:
         - name: X-MOE-Request-Id
           in: header
           required: false
+          example: "5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
           schema:
             type: string
             format: uuid
@@ -1109,7 +2204,6 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [response_id, type, data, pagination]
                 properties:
                   response_id:
                     type: string
@@ -1128,18 +2222,26 @@ paths:
                   pagination:
                     $ref: '#/components/schemas/CursorPagination'
               example:
-                response_id: resp_<trace-id>
+                response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
                 type: template
                 data:
-                  - id: app_small
-                    value: app_small
-                    label: App small
-                    template_type: []
+                - id: promo_banner_demo
+                  value: promo_banner_demo
+                  label: Promo Banner
+                  template_type: []
+                - id: notice_card_demo
+                  value: notice_card_demo
+                  label: Notice Card
+                  template_type: []
+                - id: hero_slide_demo
+                  value: hero_slide_demo
+                  label: Hero Slide
+                  template_type: []
                 pagination:
                   next_cursor: null
                   limit: 20
                   has_more: false
-                  total_count: 1
+                  total_count: 3
         '400':
           description: |
             Invalid query parameter. Possible error codes in `error.details[].code`:
@@ -1158,11 +2260,24 @@ paths:
                     - code: OUT_OF_RANGE
                       target: limit
                       message: "limit must be between 1 and 100."
-                response_id: resp_<trace-id>
+                response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         '401':
           $ref: '#/components/responses/GatewayAuthError'
         '403':
-          $ref: '#/components/responses/GatewayAuthError'
+          description: |
+            Forbidden. Two distinct sources produce 403 on this endpoint:
+            - **Gateway (APISIX)** — insufficient scope for this route. Returns `Content-Type: text/plain`
+              with body `{"code":"ER007","target":"Authentication Invalid","message":"..."}`.
+            - **Service** — returns `Content-Type: application/json`. Error code: `FEATURE_DISABLED`
+              (the Offerings feature is not enabled for the workspace).
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Gateway (APISIX) scope failure. Body is JSON-formatted but sent as text/plain.
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '429':
           description: |
             The rate limit for this endpoint has been exceeded. Retry after the window
@@ -1192,10 +2307,45 @@ paths:
         exactly which fields it needs and what values are valid, then supply those values in
         [Create Offering](/api/public-offerings/create-offering). To find template IDs, use
         [List Offer Templates](/api/public-offerings/list-offer-templates).
-      x-mint:
-        content: |
-          #### Rate Limit
-          The rate limit is 150 requests per minute, 500 requests per hour, and 1000 requests per day per consumer.
+      x-moe-mcp:
+        expose:
+          external: true
+          internal: true
+        tool_description: |
+          Retrieve a single personalization template by its ID, including its full field configuration.
+
+          Use list_offer_templates first to find the template ID if you don't already have it. Use this
+          tool before creating or updating an offering with template-type content, to learn which fields
+          the template has.
+
+          The response's template_config lists every field of the template, keyed by field name:
+            - outputKeyName: the key to use for the field in the content value object.
+            - validations.REQUIRED: true means the field must be present and non-empty in value
+              (required to publish; each field's value in meta.metaConfigObject must match value). Optional fields can be omitted; only the fields
+              in value are returned in the Personalize API response.
+            - options: for dropdown fields, the allowed choices — pass an option's value, not its label.
+
+          To build the offering content:
+            1. Set content_1.type = "template".
+            2. Set content_1.value to an object of field values keyed by outputKeyName (every required
+               field, plus any optional fields you want returned).
+            3. Set content_1.meta.templateId to the template id.
+            4. Set content_1.meta.metaConfigObject to the template_config structure, with each field's value set to
+               the same value you send in content_1.value (validation returns TEMPLATE_VALUE_MISMATCH when they
+               differ). It also renders the preview in the MoEngage dashboard. For a multi-variation offering,
+               include it in every variation.
+
+          When updating template content with update_offering, send metaConfigObject with values that match
+          value. If you change the template, send the complete metaConfigObject of the new template.
+
+          template_html in the response is preview markup only; you do not need it to build the request.
+
+          Returns 404 TEMPLATE_NOT_FOUND if the template_id does not exist.
+        param_overrides:
+          template_id:
+            description: |
+              The template ID (for example, promo_banner_demo).
+              Obtain this from list_offer_templates — it is the 'id' field in the data array.
       tags:
         - Public Offerings
       security:
@@ -1210,45 +2360,107 @@ paths:
               schema:
                 $ref: '#/components/schemas/OfferTemplateGetResponse'
               example:
-                response_id: resp_<trace-id>
+                response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
                 type: template
                 data:
-                  id: app_small
-                  value: app_small
-                  label: App small
+                  id: promo_banner_demo
+                  value: promo_banner_demo
+                  label: Promo Banner
                   template_config:
-                    title:
-                      label: Title
-                      outputKeyName: title
-                      value: "Life happens. Stay covered."
-                      dataType: md
-                      validations:
-                        REQUIRED: true
-                    lightMode:
-                      label: Light Mode
-                      outputKeyName: lightMode
-                      value: "https://image.moengage.com/.../light-mode.jpg"
+                    id:
+                      label: ID
+                      outputKeyName: id
+                      value: ''
+                      isValid: true
+                      errorMessage: []
                       dataType: string
                       validations:
                         REQUIRED: true
-                    aspectRatio:
-                      label: Aspect Ratio
-                      outputKeyName: aspectRatio
-                      value: "4x3"
+                    title:
+                      label: Title
+                      outputKeyName: title
+                      value: Your offer title
+                      isValid: true
+                      errorMessage: []
+                      dataType: string
+                      validations:
+                        REQUIRED: true
+                    description:
+                      label: Description
+                      outputKeyName: description
+                      value: ''
+                      isValid: true
+                      errorMessage: []
+                      dataType: string
+                      validations: {}
+                    cta_label:
+                      label: CTA Label
+                      outputKeyName: cta_label
+                      value: Learn more
+                      isValid: true
+                      errorMessage: []
+                      dataType: string
+                      validations:
+                        REQUIRED: true
+                    cta_url:
+                      label: CTA URL
+                      outputKeyName: cta_url
+                      value: ''
+                      isValid: true
+                      errorMessage: []
+                      dataType: string
+                      validations:
+                        REQUIRED: true
+                    cta_target:
+                      label: CTA Target
+                      outputKeyName: cta_target
+                      value: _blank
+                      isValid: true
+                      errorMessage: []
                       dataType: dropdown
                       validations:
                         REQUIRED: true
                       options:
-                        - id: "4x3"
-                          value: "4x3"
-                          label: "4x3"
-                        - id: "16x9"
-                          value: "16x9"
-                          label: "16x9"
-                  template_html: "<!DOCTYPE html> ... ${config.lightMode.value} ... </html>"
+                      - id: same_tab
+                        value: _self
+                        label: Same tab
+                      - id: new_tab
+                        value: _blank
+                        label: New tab
+                    theme:
+                      label: Theme
+                      outputKeyName: theme
+                      value: light
+                      isValid: true
+                      errorMessage: []
+                      dataType: dropdown
+                      validations: {}
+                      options:
+                      - id: light_theme
+                        value: light
+                        label: Light
+                      - id: dark_theme
+                        value: dark
+                        label: Dark
+                  template_html: <!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Promo Banner</title><style>.promo-banner{padding:24px;text-align:center;font-family:sans-serif}.promo-banner.dark{background:#1a1a1a;color:#fff}.promo-banner .cta{display:inline-block;margin-top:16px}</style></head><body><div class="promo-banner ${config.theme.value}"><h3>${config.title.value}</h3><p>${config.description.value}</p><a class="cta" href="${config.cta_url.value}" target="${config.cta_target.value}">${config.cta_label.value}</a></div></body></html>
                   template_meta: {}
         '401':
           $ref: '#/components/responses/GatewayAuthError'
+        '403':
+          description: |
+            Forbidden. Two distinct sources produce 403 on this endpoint:
+            - **Gateway (APISIX)** — insufficient scope for this route. Returns `Content-Type: text/plain`
+              with body `{"code":"ER007","target":"Authentication Invalid","message":"..."}`.
+            - **Service** — returns `Content-Type: application/json`. Error code: `FEATURE_DISABLED`
+              (the Offerings feature is not enabled for the workspace).
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: Gateway (APISIX) scope failure. Body is JSON-formatted but sent as text/plain.
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           description: |
             Template not found (`TEMPLATE_NOT_FOUND`). The `template_id` does not exist or does
@@ -1267,7 +2479,7 @@ paths:
                       target: template_id
                       message: Template not found.
                   doc_url: "https://www.moengage.com/docs/api/offerings/offerings-overview"
-                response_id: resp_<trace-id>
+                response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         '429':
           description: |
             The rate limit for this endpoint has been exceeded. Retry after the window
@@ -1299,19 +2511,18 @@ components:
       schema:
         type: string
       description: >
-        The ID of the personalization template to retrieve (for example, `app_small`).
+        The ID of the personalization template to retrieve (for example, `promo_banner_demo`).
         This is the template's natural key, not a prefixed ObjectId. You can fetch template
         IDs using the [List Offer Templates API](/api/public-offerings/list-offer-templates).
   schemas:
     OfferTemplateGetResponse:
       description: Full detail for a single personalization template.
       type: object
-      required: [response_id, type, data]
       properties:
         response_id:
           type: string
           description: Trace identifier for the response.
-          example: resp_<trace-id>
+          example: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         type:
           type: string
           enum: [template]
@@ -1324,22 +2535,21 @@ components:
         A personalization template's identity, its field-level configuration, and its
         preview HTML.
       type: object
-      required: [id, value, label, template_config, template_html, template_meta]
       properties:
         id:
           type: string
           description: >
             The template's ID (natural key). Use this value as `meta.templateId` in
             template-type offering content when calling Create Offering.
-          example: app_small
+          example: promo_banner_demo
         value:
           type: string
           description: Returned alongside `id`; identical to `id` in observed responses.
-          example: app_small
+          example: promo_banner_demo
         label:
           type: string
           description: Human-readable display name of the template.
-          example: App small
+          example: Promo Banner
         template_config:
           type: object
           description: >
@@ -1428,15 +2638,15 @@ components:
             deviation, intentional). Copy this value verbatim into
             offer_content.locales["0"].variations.*.content_1.meta.templateId when
             creating template-type content.
-          example: app_small
+          example: promo_banner_demo
         value:
           type: string
           description: Identical to id. Present for form-select UI compatibility.
-          example: app_small
+          example: promo_banner_demo
         label:
           type: string
           description: Human-readable display name of the template.
-          example: App small
+          example: Promo Banner
         template_type:
           type: array
           description: Tags describing where this template can be used. Empty if unset.
@@ -1444,15 +2654,14 @@ components:
             type: string
           example: []
       example:
-        id: app_small
-        value: app_small
-        label: App small
+        id: promo_banner_demo
+        value: promo_banner_demo
+        label: Promo Banner
         template_type: []
 
     CursorPagination:
       description: Pagination metadata included in list responses.
       type: object
-      required: [limit, has_more, total_count]
       properties:
         next_cursor:
           type: string
@@ -1460,7 +2669,7 @@ components:
           description: >
             Opaque cursor pointing to the start of the next page. Pass this value as the
             cursor query parameter on the next request. null when there are no more pages.
-          example: "<base64-encoded-cursor>"
+          example: "b2ZmZXJzOjY1YTFjMGRlOWIyZjRhN2Q4ZTNjNWYxMQ=="
         limit:
           type: integer
           description: Number of items returned per page, matching the limit query parameter.
@@ -1537,7 +2746,7 @@ components:
             Stable prefixed offering identifier assigned by the server at creation.
             Format: the literal prefix "offer_" followed by the hex MongoDB ObjectId.
             Use this value as the {offer_id} path parameter in PATCH /v5/offers/{offer_id}.
-          example: offer_6a4f69ee490f66322f968b87
+          example: "offer_65a1c0de9b2f4a7d8e3c5f10"
         display_name:
           type: string
           description: Unique display name of the offering within the workspace.
@@ -1556,13 +2765,10 @@ components:
         tags:
           type: array
           description: >
-            Prefixed tag IDs attached to this offering (format: "tag_" + raw tag ObjectId).
-            Example: "tag_<object-id>". When passing tag IDs in POST/PATCH
-            requests, both the prefixed format ("tag_<id>") and the raw format ("<id>")
-            are accepted. Tags are used for offer grouping and Decision Policy selection.
+            Names of the tags attached to this offering. Tags are used for offer grouping and Decision Policy selection.
           items:
             type: string
-          example: [tag_<object-id>]
+          example: ["SUMMER_SALE", "NEW_USER_ACQUISITION"]
         created_at:
           type: string
           format: date-time
@@ -1573,10 +2779,10 @@ components:
           description: Email address of the user who created this offering.
           example: marketing-team@example.com
       example:
-        id: offer_6a4f69ee490f66322f968b87
+        id: "offer_65a1c0de9b2f4a7d8e3c5f10"
         display_name: Summer_Sale_Promo_2026
         status: active
-        tags: [summer-sale, returning-users]
+        tags: ["SUMMER_SALE", "NEW_USER_ACQUISITION"]
         created_at: "2026-01-15T09:00:00Z"
         created_by: marketing-team@example.com
 
@@ -1584,17 +2790,27 @@ components:
       description: |
         Request body for creating an Offering via `POST /v5/offers`.
 
-        Required fields: `display_name`, `priority`, `created_by`, `scheduling`,
-        `segment_info`, `offer_content`, `variation_meta`.
+        Required field: `created_by`. A request ID is also required, either as `request_id` in the
+        body or as the `X-MOE-Request-Id` header. All other fields are optional while the offering is a
+        draft, so you can create a draft with a few fields and complete it later with Update Offering.
+
+        Some fields are required to publish the offering: `display_name`, `priority`, `scheduling`,
+        `segment_info`, `offer_content` and `variation_meta`, plus `attribution_multiplier` and
+        `imp_track_hours` when you add a conversion goal (`conversion`). To see what is still missing, call
+        [Validate Offering](/api/public-offerings/validate-offering).
       type: object
-      required: [display_name, priority, created_by, scheduling, segment_info, offer_content, variation_meta]
+      required: [created_by]
       properties:
         display_name:
           type: string
-          description: >
+          description: |
             Unique display name for this offering within the workspace. Names are
-            case-sensitive and must be unique. 
-            Allowed characters: alphanumeric characters and underscores (_).
+            case-sensitive and must be unique. Follow these rules:
+
+            - **Length:** 5–100 characters, measured after leading and trailing spaces are trimmed.
+            - **Starting character:** Must start with a letter (A–Z or a–z). It cannot start with a digit, a space, or a special character.
+            - **Letters:** Must contain at least one letter (A–Z or a–z).
+            - **Allowed characters:** Letters, digits, spaces, and the special characters hyphen (`-`), ampersand (`&`), underscore (`_`), percent (`%`), and round brackets (`(` and `)`).
           minLength: 5
           maxLength: 100
           example: Summer_Sale_Promo_2026
@@ -1619,19 +2835,33 @@ components:
           description: >
             Email address of the user creating this offering.
           example: marketing-team@example.com
+        request_id:
+          type: string
+          description: |
+            Optional. A unique ID for this request, used to trace it in logs and support tickets. A UUID v4 is recommended. If you omit it, the `X-MOE-Request-Id` header is used. If you send both, `request_id` is used. If neither is sent, the API returns `400 REQUIRED_FIELD_MISSING`.
+          example: "5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+        status:
+          type: string
+          description: |
+            Optional. Offerings created through the API are always saved as drafts, so the only accepted value is `draft`. If you omit `status`, the offering is created in `draft` state. Any other value returns `400 INVALID_STATUS`. Publishing isn't available through the API. To make the offering live, publish the draft manually from the MoEngage dashboard.
+
+            Creating a draft requires the **Create & Manage** permission. Without it, the API returns `403 INSUFFICIENT_SCOPE`.
+          enum: [draft]
+          example: draft
         tags:
           type: array
           description: >
-            Tags that provide context about the Offering's nature or theme. Each tag ID must already exist in the
-            workspace — the service returns `400 INVALID_TAG_ID` for any unknown tag ID.
+            Names of existing tags to attach to the offering (for example `SUMMER_SALE`). Tags are used to group offerings and to select offerings in Decision Policies.
           items:
             type: string
           maxItems: 10
-          example: [activation,summer_sale]
+          example: ["SUMMER_SALE", "NEW_USER_ACQUISITION"]
         scheduling:
           $ref: '#/components/schemas/OfferSchedulingCreate'
         segment_info:
           $ref: '#/components/schemas/OfferSegmentInfo'
+        insession_attr_info:
+          $ref: '#/components/schemas/InSessionAttrInfo'
         offer_content:
           $ref: '#/components/schemas/OfferContent'
         variation_meta:
@@ -1645,11 +2875,25 @@ components:
           default: false
         imp_track_hours:
           type: integer
-          description: >
-            The attribution window in hours.
+          description: |
+            The attribution window for conversion goal tracking. Required to publish when `conversion` is provided.
+
+            The unit and allowed range depend on `attribution_multiplier`. Despite its name, the value is in days when `attribution_multiplier` is `24`:
+
+            - `attribution_multiplier` is `1` — hours. `imp_track_hours` must be between 1 and 36.
+            - `attribution_multiplier` is `24` — days. `imp_track_hours` must be between 1 and 10.
           minimum: 1
-          maximum: 240
+          maximum: 36
           example: 36
+        attribution_multiplier:
+          type: integer
+          description: |
+            Sets the unit for conversion goal tracking. Required to publish when `conversion` is provided. Accepts only `1` or `24`:
+
+            - `1` — tracking is done in hours. `imp_track_hours` must be between 1 and 36.
+            - `24` — tracking is done in days. `imp_track_hours` must be between 1 and 10.
+          enum: [1, 24]
+          example: 1
         offering_attribute_configuration:
           type: array
           description: >
@@ -1662,17 +2906,21 @@ components:
           $ref: '#/components/schemas/ConversionDto'
           description: >
             Conversion goal configuration for measuring offering effectiveness.
-            This can be set at creation time or later via PATCH while the offering is
-            still in "scheduled" status. Once the offering goes "active", the conversion
-            configuration is locked to preserve Thompson Sampling statistical integrity.
+            This can be set at creation time or later via PATCH while the offering is a draft.
+
+            When you add a conversion goal, `attribution_multiplier` and `imp_track_hours` are also required to publish.
 
     ClientOfferPatchRequest:
       description: |
         Request body for partially updating an existing offering via the public API (`PATCH /v5/offers/{offer_id}`). Only the fields explicitly provided in the request body will be modified.
 
-        Some fields are status-gated based on the offering's current lifecycle phase — see the field-level descriptions for `variation_meta`, `conversion`, and `scheduling` for the exact rules. Modifying a locked field returns a `400 IMMUTABLE_FIELD` error.
+        Only offerings in `draft` state can be updated, and all fields can be edited on a draft. Updating an offering that isn't a draft returns `400 INVALID_STATUS_TRANSITION` (or `403 EXPIRED_OFFERING` for an expired offering). The API can't change an offering's `status`; sending `status` returns `400 INVALID_STATUS`. To make a draft live, publish it manually from the MoEngage dashboard.
+
+        `last_updated_at` is required on every request. Get it from the `updated_at` field in the [Get Offering](/api/public-offerings/get-offering) response. A request ID is also required, either as `request_id` in the body or as the `X-MOE-Request-Id` header.
+
+        `attribution_multiplier` and `imp_track_hours` are required to publish when `conversion` is provided.
       type: object
-      required: [updated_by]
+      required: [updated_by, last_updated_at]
       properties:
         updated_by:
           type: string
@@ -1680,11 +2928,30 @@ components:
           description: >
             Email address of the team member making this update.
           example: marketing-team@example.com
+        request_id:
+          type: string
+          description: |
+            Optional. A unique ID for this request, used to trace it in logs and support tickets. A UUID v4 is recommended. If you omit it, the `X-MOE-Request-Id` header is used. If you send both, `request_id` is used. If neither is sent, the API returns `400 REQUIRED_FIELD_MISSING`.
+          example: "5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+        last_updated_at:
+          type: string
+          format: date-time
+          description: |
+            The offering's last-updated timestamp. It guards against concurrent updates. Required on every request.
+
+            To get it, call [Get Offering](/api/public-offerings/get-offering) and pass the `updated_at` value from the response as `last_updated_at`.
+
+            If the value doesn't match the offering's current version, the API returns `409 VERSION_CONFLICT`. This check runs before the offering's state is checked.
+          example: "2026-11-16T10:27:45.194Z"
         display_name:
           type: string
-          description: >
-            Updated display name for the offering. Must remain unique within the workspace.
-            **Allowed characters:** alphanumeric characters and underscores (_) only.
+          description: |
+            Updated display name for the offering. Must remain unique within the workspace. Follow these rules:
+
+            - **Length:** 5–100 characters, measured after leading and trailing spaces are trimmed.
+            - **Starting character:** Must start with a letter (A–Z or a–z). It cannot start with a digit, a space, or a special character.
+            - **Letters:** Must contain at least one letter (A–Z or a–z).
+            - **Allowed characters:** Letters, digits, spaces, and the special characters hyphen (`-`), ampersand (`&`), underscore (`_`), percent (`%`), and round brackets (`(` and `)`).
           minLength: 5
           maxLength: 100
         description:
@@ -1699,7 +2966,7 @@ components:
         tags:
           type: array
           description: >
-            **Full replacement, not additive** — the entire existing tag list is overwritten with this value.
+            Tag names. **Full replacement, not additive** — the entire existing tag list is overwritten with this value.
             To add a single tag, send the complete current tag list plus the new tag.
             To remove all tags, send an empty array.
           items:
@@ -1710,6 +2977,8 @@ components:
           $ref: '#/components/schemas/OfferSchedulingPatch'
         segment_info:
           $ref: '#/components/schemas/OfferSegmentInfo'
+        insession_attr_info:
+          $ref: '#/components/schemas/InSessionAttrInfo'
         offer_content:
           $ref: '#/components/schemas/OfferContent'
         variation_meta:
@@ -1723,9 +2992,24 @@ components:
             receiving this offering. When false, all eligible users can receive it.
         imp_track_hours:
           type: integer
-          description: Updated impression de-duplication window in hours (1 to 240).
+          description: |
+            Updated attribution window for conversion goal tracking. Required to publish when `conversion` is provided.
+
+            The unit and allowed range depend on `attribution_multiplier`. Despite its name, the value is in days when `attribution_multiplier` is `24`:
+
+            - `attribution_multiplier` is `1` — hours. `imp_track_hours` must be between 1 and 36.
+            - `attribution_multiplier` is `24` — days. `imp_track_hours` must be between 1 and 10.
           minimum: 1
-          maximum: 240
+          maximum: 36
+        attribution_multiplier:
+          type: integer
+          description: |
+            Sets the unit for conversion goal tracking. Required to publish when `conversion` is provided. Accepts only `1` or `24`:
+
+            - `1` — tracking is done in hours. `imp_track_hours` must be between 1 and 36.
+            - `24` — tracking is done in days. `imp_track_hours` must be between 1 and 10.
+          enum: [1, 24]
+          example: 24
         offering_attribute_configuration:
           type: array
           description: >
@@ -1848,7 +3132,7 @@ components:
           description: >
             Format of the content payload.
             `json` — serialised JSON string. `content_block` — Content Block library reference ID.
-            `template` — object of template field key-value pairs.
+            `template` — a serialised JSON string of all the template's field values (the fields you sent, plus the template defaults for the rest).
           enum: [json, content_block, template]
         value:
           oneOf:
@@ -1859,7 +3143,7 @@ components:
         meta:
           type: object
           description: >
-            Key-value metadata attached to this content block.
+            Metadata attached to this content block. For `template` content it includes `templateId` and `metaConfigObject`.
           additionalProperties: true
 
     OfferContentResponse:
@@ -1962,8 +3246,8 @@ components:
         filter_type:
           type: string
           description: >
-            How the conversion event is matched. "ACTIONS" matches by event name and
-            optional attribute-level filters.
+            How the conversion event is matched. Only `actions` is supported: it matches by
+            event name and optional attribute-level filters.
         attributes:
           $ref: '#/components/schemas/ConversionAttributesResponse'
           description: >
@@ -2066,8 +3350,7 @@ components:
     OfferSchedulingPatch:
       description: |
         Partial scheduling update for `PATCH` operations. All fields are optional.
-        `start_datetime` can only be changed when offering status is `scheduled`. 
-        `expiry_datetime` can be updated only when offering status is `active` or `scheduled`.
+        `start_datetime` and `expiry_datetime` can be updated while the offering is a `draft`.
       type: object
       properties:
         start_datetime:
@@ -2173,7 +3456,7 @@ components:
 
         * **Payload Structure:** Send a structured `locales` map object.
         * **Single-Locale Targeting:** For single-locale offerings, you **must** use `"0"` as the literal locale key string.
-        * **Variations Mapping:** Inside each locale, the nested `variations` map keys must exactly match the variation IDs defined in `smv_distribution.split`. Variation keys must follow the `variation_N` format (e.g. `variation_1`, `variation_2`).
+        * **Variations Mapping:** Inside each locale, the nested `variations` map keys must exactly match the variation IDs defined in `smv_distribution.split` for `SMV`. `DMV` has no split, so the keys are the variations you define. Variation keys must follow the `variation_N` format (e.g. `variation_1`, `variation_2`).
       type: object
       properties:
         content_1:
@@ -2214,8 +3497,9 @@ components:
         `content_block` — The ID of a content block stored in the
         MoEngage Content Block library.
 
-        `template` — value is a JSON object of the personalized template's field values, and
-        meta.templateId carries the template id (from GET /v1/offers/templates).
+        `template` — value is a JSON object of the template's field values. `meta.templateId`
+        carries the template ID (from `GET /v5/offers/templates`), and `meta.metaConfigObject`
+        carries the template's field configuration (from `GET /v5/offers/templates/{template_id}`).
       type: object
       required: [type, value]
       properties:
@@ -2235,11 +3519,12 @@ components:
               Passing a raw JSON object instead of a string returns `400 INVALID_TYPE`.
             - **`content_block`** — value is the reference ID string of a Content Block from the
               MoEngage Content Block library.
-            - **`template`** — value is a JSON **object** (not a string) whose keys are the field
-              names defined by the template schema. Retrieve available templates and required fields
-              from `GET /v5/offers/templates`. Omitting a required template field returns
-              `400 MISSING_TEMPLATE_FIELD`. For a dropdown field, use the option's `value` — not its
-              `label` or `id`.
+            - **`template`** — value is a JSON **object** (not a string) whose keys are the field names
+              (`outputKeyName`) from `template_config` in the [Get Offer Template](/api/public-offerings/get-offer-template) response.
+              Include every required field (`validations.REQUIRED: true`) and any optional field you want MoEngage to return.
+              Each field's value must match the `value` of the same field in `meta.metaConfigObject`; Validate Offering returns
+              `TEMPLATE_VALUE_MISMATCH` for any difference. The API doesn't check this when you create or update a draft.
+              For a dropdown field, use the option's `value` — not its `label` or `id`.
           oneOf:
             - type: string
               description: For `json` and `content_block` types. For `json`, must be a serialised JSON string — not an inline object.
@@ -2250,25 +3535,39 @@ components:
         meta:
           type: object
           description: |
-            Key-value metadata attached to this content block.
+            Metadata for the content block. Used with the `template` type. Get the template's
+            field configuration from the [Get Offer Template](/api/public-offerings/get-offer-template)
+            API, then apply the following rules:
 
-            **Required for `template` type:** When `type` is `template`, you **must** include
-            `templateId` in this object, set to the template's `id` value returned by
-            `GET /v5/offers/templates`.
-
-            **Using `metaConfigObject`:** When creating a `template`-type offering, call the
-            `GET /v5/offers/templates/{templateId}` endpoint first. The response returns a
-            `metaConfigObject` — a map of all template fields with their configuration (data type,
-            validations, options, etc.). Include this `metaConfigObject` in `meta` exactly as
-            received.
-
-            **Key matching requirement:** The keys in the `value` object **must exactly match**
-            the keys in `metaConfigObject`. A key present in `value` but absent from
-            `metaConfigObject`, or a required key in `metaConfigObject` missing from `value`,
-            will result in a validation error.
+            - **Matching values:** Set each field's `value` in `metaConfigObject` to the content you want,
+              and send the same value in `value`. Validate Offering returns `TEMPLATE_VALUE_MISMATCH` for every
+              field whose two values differ, for example: Field 'title' in value ('Summer sale is on') does not
+              match its value in meta.metaConfigObject ('Your offer title').
+            - **Required fields:** Every field marked `REQUIRED` in `template_config` must be present in `value`
+              and have a non-empty `value` in `metaConfigObject` (otherwise Validate Offering returns
+              `MISSING_TEMPLATE_FIELD`). The API doesn't check this when you create or update a draft.
+            - **Optional fields:** Include them only if you want MoEngage to return them in the
+              Personalize API response. MoEngage returns only the fields in `value`.
+            - **Dropdown fields:** Pass the option's `value`, not its `label` or `id`.
+            - **`metaConfigObject`:** Include it in the `meta` of every variation. MoEngage also uses it to render
+              the offering preview in the dashboard. If you change the template, send the complete
+              `metaConfigObject` of the new template.
+          properties:
+            templateId:
+              type: string
+              description: >
+                ID of the template to use. Required when `type` is `template`. Use the `id`
+                returned by the List Offer Templates API.
+              example: promo_banner_demo
+            metaConfigObject:
+              type: object
+              description: >
+                Field configuration of the template, in the same structure as `template_config` in the Get Offer Template response. Each key is a field's `outputKeyName`. Set each field's `value` to match the same field in `value`.
+              additionalProperties:
+                $ref: '#/components/schemas/TemplateConfigField'
           additionalProperties: true
           example:
-            templateId: app_small
+            templateId: promo_banner_demo
 
     OfferVariationMeta:
       description: |
@@ -2280,14 +3579,7 @@ components:
 
         #### Lifecycle & Mutation Rules
 
-        `variation_meta` can be edited later via `PATCH /v5/offers/{offer_id}`, subject to status-based rules. Field mutability depends on both the offering status and the variation type. Attempting to modify a locked field returns a `400 IMMUTABLE_FIELD` error.
-
-        | Offering Status | Variation Type | Editable Fields | Locked Fields |
-        | :--- | :--- | :--- | :--- |
-        | **`scheduled`** | Any | Entire object (`type`, `smv_distribution`, `control_group`) | None |
-        | **`active`** | **SMV** | `smv_distribution.split` percentages, `control_group.percentage` | `type`, Variant key names |
-        | **`active`** | **DMV** | `control_group.percentage` | `type`, `smv_distribution` |
-        | **`expired`** | Any | None | All fields are locked |
+        `variation_meta` can be edited via `PATCH /v5/offers/{offer_id}` while the offering is a `draft`. All fields (`type`, `smv_distribution`, `control_group`) are editable on a draft.
       type: object
       required: [type]
       properties:
@@ -2301,7 +3593,7 @@ components:
         smv_distribution:
           type: object
           description: >
-            Variation percentage allocation. Required when type is `SMV`; optional for `DMV`.
+            Variation percentage allocation. Required when `type` is `SMV`. Don't send it when `type` is `DMV`: the allocation is managed automatically, and sending it returns `400 IMMUTABLE_FIELD`.
           properties:
             split:
               type: object
@@ -2327,8 +3619,9 @@ components:
             percentage:
               type: integer
               description: >
-                Percentage of eligible users to hold out. 
-              minimum: 1
+                Percentage of eligible users to hold out. Must be between 1 and 99 when
+                `is_enabled` is `true`. When `is_enabled` is `false`, send `0` or omit the field.
+              minimum: 0
               maximum: 99
               example: 10
       example:
@@ -2398,7 +3691,9 @@ components:
       description: |
         List of conversion goals to track.
 
-        **Status constraint:** `conversion` can only be set or updated while the offering status is `scheduled`. Attempting to update it on an `active` or `expired` offering returns a `400 IMMUTABLE_FIELD` error.
+        A conversion goal can be set at creation, or later via PATCH while the offering is a `draft`.
+
+        When you add a conversion goal, `attribution_multiplier` and `imp_track_hours` are also required to publish.
       type: object
       properties:
         primary:
@@ -2430,9 +3725,11 @@ components:
         filter_type:
           type: string
           description: >
-            How the conversion event is matched. "ACTIONS" matches by event name and
-            optional attribute-level filters.
-          example: ACTIONS
+            How the conversion event is matched. Only `actions` is supported: it matches by
+            event name and optional attribute-level filters. Any other value, including `ACTIONS`,
+            is rejected when the offering is validated.
+          enum: [actions]
+          example: actions
         attributes:
           $ref: '#/components/schemas/ConversionAttributesDto'
           description: >
@@ -2556,6 +3853,162 @@ components:
           minItems: 1
 
 
+    InSessionAttrInfo:
+      description: |
+        Optional. Targets visitors in real time. In-session attributes enable real-time visitor grouping based on dynamic conditions, using attributes passed as key-value (KV) pairs. Use `included_filters` to include visitors and `excluded_filters` to exclude them.
+
+        You can add up to 10 attributes in a group and up to 5 groups per offering. [Validate Offering](/api/public-offerings/validate-offering) checks these limits.
+
+        Supported data types: `string`, `double`, `bool`, `datetime`, `array_string` and `array_double`. To learn more about in-session attributes and the supported operators and data types, see [In-session attributes](https://www.moengage.com/docs/user-guide/decisioning/offer-decisioning/create-offerings#in-session-attributes).
+      type: object
+      properties:
+        filters:
+          type: object
+          properties:
+            included_filters:
+              $ref: '#/components/schemas/InSessionFilterGroup'
+            excluded_filters:
+              $ref: '#/components/schemas/InSessionFilterGroup'
+
+    InSessionFilterGroup:
+      description: A set of in-session filters combined with `filter_operator`. Each entry in `filters` is either a single attribute or a nested group of attributes.
+      type: object
+      properties:
+        filter_operator:
+          type: string
+          enum: [and, or]
+          description: How the entries in `filters` are combined.
+          example: and
+        filters:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/InSessionNestedFilter'
+              - $ref: '#/components/schemas/InSessionAttributeFilter'
+
+    InSessionNestedFilter:
+      description: A group of in-session attributes, combined with its own `filter_operator`.
+      type: object
+      properties:
+        filter_type:
+          type: string
+          enum: [nested_filters]
+          description: Always `nested_filters` for a group.
+          example: nested_filters
+        filter_operator:
+          type: string
+          enum: [and, or]
+          description: How the attributes in this group are combined.
+          example: and
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/InSessionAttributeFilter'
+
+    InSessionAttributeFilter:
+      description: A single in-session attribute condition.
+      type: object
+      properties:
+        filter_type:
+          type: string
+          enum: [query_parameter]
+          description: Always `query_parameter` for an attribute.
+          example: query_parameter
+        data_type:
+          type: string
+          enum: [string, double, bool, datetime, array_string, array_double]
+          description: Data type of the attribute.
+          example: string
+        name:
+          type: string
+          description: Name (key) of the in-session attribute.
+          example: OS
+        operator:
+          type: string
+          description: Comparison operator, for example `is`, `greaterThan`, `on` or `in`. The supported operators depend on `data_type`; see the in-session attributes guide.
+          example: is
+        negate:
+          type: boolean
+          description: Set to `true` to negate the condition.
+          example: false
+        case_sensitive:
+          type: boolean
+          description: Whether the comparison is case sensitive. Applies to `string` and `array_string` attributes only.
+          example: false
+        value:
+          description: Value to compare against. Its type follows `data_type`.
+          oneOf:
+            - type: string
+            - type: number
+            - type: boolean
+            - type: array
+              items:
+                oneOf:
+                  - type: string
+                  - type: number
+          example: android
+        value_type:
+          type: string
+          description: For `datetime` attributes, how the value is interpreted, for example `absolute`.
+          example: absolute
+        array_filter_type:
+          type: string
+          description: For array attributes, how the values are matched, for example `any_of`.
+          example: any_of
+
+    OfferValidationResponse:
+      description: Response returned by `POST /v5/offers/{offer_id}/validate`.
+      type: object
+      properties:
+        response_id:
+          type: string
+          description: >
+            Trace identifier for this response. Format: "resp_" + X-MOE-Request-Id.
+          example: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+        type:
+          type: string
+          enum: [offer_validation]
+          description: Resource type discriminator. Always `offer_validation`.
+        data:
+          type: object
+          properties:
+            valid:
+              type: boolean
+              description: >
+                `true` when the offering passes every validation. `false` when `errors` lists what to fix.
+              example: false
+            errors:
+              type: array
+              description: The validation errors. Not returned when `valid` is `true`.
+              items:
+                $ref: '#/components/schemas/OfferValidationError'
+      example:
+        response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
+        type: offer_validation
+        data:
+          valid: false
+          errors:
+            - code: REQUIRED_FIELD_MISSING
+              target: attribution_multiplier
+              message: attribution_multiplier is required when a conversion goal is set.
+
+    OfferValidationError:
+      description: A single validation problem found in a draft offering.
+      type: object
+      properties:
+        code:
+          type: string
+          description: Machine-readable error code in `ALL_CAPS_SNAKE_CASE`.
+          example: INVALID_ENUM_VALUE
+        target:
+          type: string
+          description: The field that failed validation, in dot-notation.
+          example: conversion.primary.filter_type
+        message:
+          type: string
+          description: Human-readable explanation of the problem.
+          example: "conversion.primary.filter_type must be 'actions'. Received: 'ACTIONS'."
+
     PublicOfferCreateResponse:
       description: Response returned by `POST /v5/offers` on successful creation.
       type: object
@@ -2565,7 +4018,7 @@ components:
           description: >
             Format: `resp_<X-MOE-Request-Id>` header value
             (auto-generated UUID if the `X-MOE-Request-Id` header was not part of the request body).
-          example: resp_c5f83262-3127-4e23-bc1b-9efd4c929e12
+          example: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         type:
           type: string
           enum: [offer]
@@ -2579,25 +4032,26 @@ components:
               description: >
                 Offering ID assigned by the server. Format: `offer_<OfferingId>`.
                 Use this value as the `{offer_id}` path parameter in subsequent PATCH requests.
-              example: offer_6a4f69ee490f66322f968b87
+              example: "offer_65a1c0de9b2f4a7d8e3c5f10"
             status:
               type: string
-              enum: [active, scheduled]
+              enum: [draft]
               description: >
-                Lifecycle status of the newly created offering
-              example: scheduled
+                Lifecycle status of the newly created offering. Offerings created through the API
+                are always `draft`.
+              example: draft
             created_at:
               type: string
               format: date-time
               description: ISO 8601 UTC timestamp when the offering was persisted.
-              example: "2026-07-09T09:29:18.526812352Z"
+              example: "2026-07-09T09:29:18.526Z"
       example:
-        response_id: resp_c5f83262-3127-4e23-bc1b-9efd4c929e12
+        response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         type: offer
         data:
-          id: offer_6a4f69ee490f66322f968b87
-          status: scheduled
-          created_at: "2026-07-09T09:29:18.526812352Z"
+          id: "offer_65a1c0de9b2f4a7d8e3c5f10"
+          status: draft
+          created_at: "2026-07-09T09:29:18.526Z"
 
     PublicOfferPatchResponse:
       description: Response returned by `PATCH /v5/offers/{offer_id}` on successful update.
@@ -2608,7 +4062,7 @@ components:
           description: >
             Format: `resp_<X-MOE-Request-Id>` header value
             (auto-generated UUID if the `X-MOE-Request-Id` header was not part of the request body).
-          example: resp_c5f83262-3127-4e23-bc1b-9efd4c929e12
+          example: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         type:
           type: string
           enum: [offer]
@@ -2619,24 +4073,24 @@ components:
             id:
               type: string
               description: Offering ID
-              example: offer_6a4f69ee490f66322f968b87
+              example: "offer_65a1c0de9b2f4a7d8e3c5f10"
             status:
               type: string
-              enum: [active, scheduled]
-              description: Current lifecycle status after the update.
-              example: active
+              enum: [draft]
+              description: Current lifecycle status after the update. Always `draft`, because only drafts can be updated.
+              example: draft
             updated_at:
               type: string
               format: date-time
               description: ISO 8601 UTC timestamp of the update.
-              example: "2026-07-09T09:29:18.526812352Z"
+              example: "2026-07-09T09:29:18.526Z"
       example:
-        response_id: resp_c5f83262-3127-4e23-bb1b-9efd4c929e12
+        response_id: "resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3"
         type: offer
         data:
-          id: offer_6a4f69ee490f66322f968b87
-          status: active
-          updated_at: "2026-07-09T09:29:18.526812352Z"
+          id: "offer_65a1c0de9b2f4a7d8e3c5f10"
+          status: draft
+          updated_at: "2026-07-09T09:29:18.526Z"
 
     PublicOfferGetResponse:
       type: object
@@ -2664,7 +4118,9 @@ components:
             updated_at:
               type: string
               format: date-time
-              description: ISO 8601 UTC timestamp of the update.
+              description: >
+                ISO 8601 UTC timestamp of the last update. Pass this value as `last_updated_at`
+                when you update the offering.
               example: "2026-08-07T23:42:21.556979662Z"
             updated_by:
               type: string
@@ -2676,7 +4132,7 @@ components:
               format: email
               description: Email address of the user creating this offering.
               example: marketing.team@example.com
-            name:
+            display_name:
               type: string
               description: >
                 Unique display name for this offering within the workspace.
@@ -2697,7 +4153,7 @@ components:
               items:
                 type: string
               description: >
-                Tags that provide context about the Offering's nature or theme.
+                Names of the tags attached to this offering.
             scheduling:
               allOf:
                 - $ref: '#/components/schemas/OfferSchedulingResponse'
@@ -2706,6 +4162,10 @@ components:
               allOf:
                 - $ref: '#/components/schemas/OfferSegmentInfoResponse'
               description: Segment targeting configuration that controls which users are eligible to receive this offering.
+            insession_attr_info:
+              allOf:
+                - $ref: '#/components/schemas/InSessionAttrInfo'
+              description: In-session attribute targeting configured for this offering, if any.
             offer_content:
               allOf:
                 - $ref: '#/components/schemas/OfferContentResponse'
@@ -2726,7 +4186,15 @@ components:
             imp_track_hours:
               type: integer
               description: >
-                The attribution window in hours.
+                The attribution window for conversion goal tracking. The unit depends on
+                `attribution_multiplier`: hours when it is `1`, days when it is `24`.
+            attribution_multiplier:
+              type: integer
+              enum: [1, 24]
+              description: >
+                Sets the unit for conversion goal tracking: `1` for hours, `24` for days.
+                It also determines the allowed range of `imp_track_hours` (1 to 36 hours, or 1 to 10 days).
+              example: 1
             offering_attribute_configuration:
               type: array
               description: >
@@ -2738,39 +4206,53 @@ components:
                 - $ref: '#/components/schemas/ConversionDtoResponse'
               description: List of conversion goals to track.
       example:
+        response_id: resp_5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
         type: offer
         data:
-          status: scheduled
-          created_at: "2026-08-07T23:42:21.556936210Z"
-          updated_at: "2026-08-07T23:42:21.556979662Z"
-          updated_by: marketing.team@example.com
-          created_by: marketing.team@example.com
-          name: personalized_offer
-          description: Configured using personalization template
-          priority: 90
+          id: offer_65a1c0de9b2f4a7d8e3c5f10
+          status: draft
+          created_at: '2026-11-16T10:27:45.194Z'
+          updated_at: '2026-11-16T10:27:45.194Z'
+          updated_by: john.doe@example.com
+          created_by: john.doe@example.com
+          display_name: Summer_Sale_Conversion
+          description: Summer sale offer with a purchase conversion goal
+          priority: 50
+          tags:
+          - SUMMER_SALE
+          - NEW_USER_ACQUISITION
           scheduling:
-            start_datetime: "2026-08-08T00:23:00Z"
-            expiry_datetime: "2027-08-07T23:23:00Z"
+            start_datetime: '2027-06-01T00:00:00Z'
+            expiry_datetime: '2027-08-31T23:59:00Z'
             timezone: Asia/Kolkata
           segment_info:
             filters:
               included_filters:
                 filter_operator: and
                 filters:
-                  - action_name: MOE_PAGE_VIEWED
-                    executed: true
-                    filter_type: actions
-                    execution:
-                      count: 1
-                      type: atleast
-                    primary_time_range:
-                      type: inTheLast
-                      value: 2
-                      value_type: relative_past
-                      period_unit: weeks
-                    attributes:
-                      filter_operator: and
-                      filters: []
+                - filter_type: custom_segments
+                  name: All Users
+                  id: moe_all_users
+          insession_attr_info:
+            filters:
+              included_filters:
+                filter_operator: and
+                filters:
+                - data_type: string
+                  filter_type: query_parameter
+                  name: OS
+                  negate: false
+                  operator: is
+                  case_sensitive: false
+                  value: android
+          offer_content:
+            locales:
+              '0':
+                variations:
+                  variation_1:
+                    content_1:
+                      type: json
+                      value: '{"discount":"10%"}'
           variation_meta:
             type: SMV
             control_group:
@@ -2778,7 +4260,7 @@ components:
               percentage: 0
             smv_distribution:
               split:
-                "1": 100
+                variation_1: 100
           capping_rules:
             overall:
               enabled: false
@@ -2788,7 +4270,17 @@ components:
               enabled: false
               limit_value: 1
               limit_schedule: DAILY
-          is_global_control_enabled: true
+          is_global_control_enabled: false
+          conversion:
+            primary:
+              goal_name: Purchase
+              action: purchase
+              filter_type: actions
+              is_revenue_tracking: true
+              revenue_amount: order_value
+              revenue_currency: USD
+          imp_track_hours: 24
+          attribution_multiplier: 1
 
 
   responses:
