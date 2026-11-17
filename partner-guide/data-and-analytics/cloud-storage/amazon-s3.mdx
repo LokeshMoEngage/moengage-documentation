@@ -57,7 +57,7 @@ Select the authentication method that matches how you plan to use the connection
     <Info>
       **Where to find these values**
 
-      In MoEngage, go to **Amazon S3** \> **Integrations** \> **Add Connection**. The **MoEngage AWS Account ARN** and your workspace's **MoEngage External ID** appear on the **Add Connection** form (see [Step 3: Connect Amazon S3 on the App Marketplace](#step-3-connect-amazon-s3-on-the-app-marketplace)). Copy them before you configure AWS.
+      In MoEngage, go to **Amazon S3** \> **Integrations** \> **Add Connection**. The **MoEngage AWS Account ARN** and your workspace's **MoEngage External ID** appear on the **Add Connection** form (see [Step 4: Connect Amazon S3 on the App Marketplace](#step-4-connect-amazon-s3-on-the-app-marketplace)). Copy them before you configure AWS.
     </Info>
 
     ![Add Connection form highlighting the MoEngage AWS Account ARN and MoEngage External ID fields](/images/s3-cross-1.png)
@@ -92,7 +92,7 @@ Select the authentication method that matches how you plan to use the connection
     5. On the **Add permissions** screen, click **Next**. You attach the bucket permissions later, in [Step 2: Grant Permissions](#step-2-grant-permissions).
     6. On the **Name, review, and create** screen, enter a **Role name** that begins with the required prefix `moe-export-` (for example, `moe-export-moengage-s3`). A role whose name does not start with `moe-export-` fails to connect, because MoEngage can only assume roles with this prefix.
     7. Click **Create role**.
-    8. Open the role you created and copy its **Role ARN** (for example, `arn:aws:iam::111122223333:role/moe-export-moengage-s3`). You paste this into the **Add Connection** page in [Step 3](#step-3-connect-amazon-s3-on-the-app-marketplace).
+    8. Open the role you created and copy its **Role ARN** (for example, `arn:aws:iam::111122223333:role/moe-export-moengage-s3`). You paste this into the **Add Connection** page in [Step 4](#step-4-connect-amazon-s3-on-the-app-marketplace).
 
     After you create the role, attach the bucket permissions described in [Step 2: Grant Permissions](#step-2-grant-permissions) (Imports tab, Exports tab, or both).
   </Accordion>
@@ -104,9 +104,9 @@ Select the authentication method that matches how you plan to use the connection
 
     1. In your AWS account, create an **IAM user** (or use an existing programmatic user) and generate an **Access Key ID** and **Secret Access Key**.
     2. Attach a permission policy granting read access to your bucket (see [Step 2: Grant Permissions](#step-2-grant-permissions) → **Imports** tab).
-    3. Enter the **Access Key ID** and **Secret Access Key** on the **Add Connection** page (see [Step 3: Connect Amazon S3 on the App Marketplace](#step-3-connect-amazon-s3-on-the-app-marketplace)).
+    3. Enter the **Access Key ID** and **Secret Access Key** on the **Add Connection** page (see [Step 4: Connect Amazon S3 on the App Marketplace](#step-4-connect-amazon-s3-on-the-app-marketplace)).
 
-    Access-key credentials are stored once as a reusable S3 connection in MoEngage, rather than being entered inside each import. Create the connection once (Step 3), and then select it when you configure any S3 import.
+    Access-key credentials are stored once as a reusable S3 connection in MoEngage, rather than being entered inside each import. Create the connection once (Step 4), and then select it when you configure any S3 import.
   </Accordion>
 
   <Accordion title="IAM Policy [Exports] — supports exports only">
@@ -213,7 +213,19 @@ In each example, the bucket is named `your-bucket-name` and files live under the
   </Tab>
 </Tabs>
 
-## Step 3: Connect Amazon S3 on the App Marketplace
+## Step 3: Enable IP Whitelisting for Imports
+
+You can restrict your import bucket to the MoEngage IPs only if the bucket is in a different AWS region from your MoEngage data center. To confirm which AWS region your data center runs in, contact MoEngage Support.
+
+<Warning>
+  If your bucket is in the same AWS region as your data center, don't restrict it by IP address. MoEngage reaches the bucket through an AWS private endpoint, so its requests have no public IP address and an `aws:SourceIp` condition blocks them. Your imports fail as soon as you save the policy. Rely on the IAM role or bucket policy from [Step 2: Grant Permissions](#step-2-grant-permissions) alone.
+</Warning>
+
+If your bucket is in a different region, add an `aws:SourceIp` condition with all the MoEngage IPs listed for your data center under [Data Transfer](/user-guide/settings/account/security/ip-whitelisting-in-moengage#data-transfer) to the policy that grants MoEngage read access to your import bucket. Depending on your authentication method, that's the IAM policy attached to the role or user you created for MoEngage, or your bucket policy. For the condition syntax, see [aws:SourceIp](https://docs.aws.amazon.com/IAM/latest/UserGuide/reference_policies_condition-keys.html#condition-keys-sourceip) in the AWS documentation.
+
+Add the condition only to the statement that grants read access for imports. Don't add it to the permissions MoEngage uses for exports. For details, see [S3 Exports](/user-guide/data/exports/events/data-warehouse/s3-exports).
+
+## Step 4: Connect Amazon S3 on the App Marketplace
 
 To connect your S3 bucket in the MoEngage dashboard:
 
