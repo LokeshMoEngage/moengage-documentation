@@ -1,0 +1,247 @@
+---
+title: "Recommendations"
+description: "Fetch recommended items from a MoEngage recommendation in your Flutter app and build your own UI."
+keywords: "flutter recommendations, fetchRecommendations, MoEngageRecommendations, moengage_recommendations, recommended items, recommendation id, item id, included fields, catalog"
+---
+
+## Overview
+
+The MoEngage Flutter SDK fetches the recommended items for a recommendation you created on the MoEngage dashboard and returns them to your app as key-value data, handling user identity, networking, and caching internally.
+
+<Tip>
+  **Prerequisites**
+
+  - Recommendations must be enabled for your workspace. Contact your MoEngage account manager to enable it.
+  - Use Flutter 3.44.0 or above and Dart 3.6.0 or above.
+  - Integrate `moengage_flutter` 11.1.0 or above, which the Recommendations plugin requires. For more information, refer to [Framework Dependency](/developer-guide/flutter-sdk/sdk-integration/sdk-installation/framework-dependency).
+  - You have created a recommendation on the MoEngage dashboard and know its Recommendation ID. For more information, refer to [Recommendations](/user-guide/content/recommendations/getting-started/overview).
+  - You have initialized the core MoEngage SDK in your application. For more information, refer to [Flutter SDK Initialization](/developer-guide/flutter-sdk/sdk-integration/sdk-initialization/manual-initialization/framework-initialization).
+</Tip>
+
+## Install the Module
+
+Add the MoEngage Recommendations plugin to the `dependencies` section of your application's `pubspec.yaml` file:
+
+```yaml pubspec.yaml
+dependencies:
+  moengage_recommendations: $latestVersion
+```
+
+`$latestVersion` refers to the latest version of the plugin. After you add the dependency, run the following command to install it:
+
+```shellscript Shell
+flutter pub get
+```
+
+The plugin adds the native Recommendations modules for Android and iOS, so you do not add any native dependency or run a separate iOS installation step.
+
+## Fetch Recommended Items
+
+<Warning>
+  Initialize the core MoEngage SDK before you call `fetchRecommendations()`. If the SDK is not initialized, the app stops or the `Future` completes with a `RecommendationsFailure` carrying the `CommonFailureReason.sdkState` reason, depending on the platform. For more information, refer to [Flutter SDK Initialization](/developer-guide/flutter-sdk/sdk-integration/sdk-initialization/manual-initialization/framework-initialization).
+</Warning>
+
+Call `fetchRecommendations()` on a `MoEngageRecommendations` instance to retrieve the items of a recommendation. Pass the Recommendation ID of the recommendation you want to fetch items from, as defined on the MoEngage dashboard. You can also pass an anchor item ID and the catalog fields you want returned for each item as named parameters. The method returns a `Future`.
+
+<CodeGroup>
+
+```dart Dart wrap
+import 'package:moengage_flutter/moengage_flutter.dart';
+import 'package:moengage_recommendations/moengage_recommendations.dart';
+
+final recommendations = MoEngageRecommendations('YOUR_WORKSPACE_ID');
+
+Future<void> loadRecommendations() async {
+  try {
+    final recommendedItems = await recommendations.fetchRecommendations(
+      'YOUR_RECOMMENDATION_ID',
+      itemId: 'YOUR_ITEM_ID',
+      includedFields: {'title', 'price'},
+    );
+    if (recommendedItems.items.isEmpty) {
+      // No recommended items are available for this user. Show your empty state.
+    } else {
+      // Render the items.
+    }
+  } on RecommendationsFailure catch (failure) {
+    if (failure.failureReason == CommonFailureReason.networkError) {
+      // The device is offline. Retry when connectivity returns.
+    } else {
+      // Show your error state.
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+<Info>
+  Each `MoEngageRecommendations` instance is scoped to the workspace you pass to its constructor. If your application runs multiple MoEngage workspaces, create one instance per workspace.
+</Info>
+
+### Parameters
+
+| Parameter | Type | Required | Description |
+| --- | --- | --- | --- |
+| `recommendationId` | String | Yes | ID of the recommendation created on the MoEngage dashboard. Must not be blank. |
+| `itemId` | String | No | Named parameter. ID of the item you want recommendations for, such as `shirts`. Ignored when blank. Defaults to an empty string. |
+| `includedFields` | Set\<String\> | No | Named parameter. Catalog attributes to return for each item in addition to the core fields, such as `size` and `color`. Ignored when empty. Defaults to an empty set. |
+
+### Handle the Result
+
+The `Future` completes with a `RecommendedItems` object. Its `items` property is a `List<Map<String, dynamic>>` ranked best-first, where each map is one recommended item keyed by its catalog attribute names. An empty list is a successful result and means no recommended items are available for the user.
+
+The SDK passes the keys and value types through from your [catalog](/user-guide/content/recommendations/getting-started/catalogs) unchanged, so keys are `snake_case`, such as `product_id` and `image_link`, and values differ between catalogs. Check each value's type before you use it. A numeric attribute decodes to an `int` or a `double` depending on its value, for example `200` or `199.99`, so read it as `num` instead of casting it to `double`:
+
+<CodeGroup>
+
+```dart Dart wrap
+final products = recommendedItems.items.map((item) {
+  final productId = item['product_id'];
+  final price = item['price'];
+  return (
+    id: productId is String ? productId : '',
+    price: price is num ? price.toDouble() : 0.0,
+  );
+}).toList();
+```
+
+</CodeGroup>
+
+To serve a default set of items when a recommendation returns nothing, configure [Fallback Items](/user-guide/content/recommendations/getting-started/fallback-items) on the recommendation. The SDK returns those items in the successful result, in the same `items` list. Fallback Items apply to a successful fetch that has no recommended items. They do not apply when the fetch fails.
+
+### Handle Failures
+
+If the fetch fails, the `Future` completes with an error of type `RecommendationsFailure`. Use its `failureReason` property to identify the failure. Its `message` property carries details for logging only and can be empty. The SDK writes nothing to the cache on failure and leaves any cached items untouched.
+
+`failureReason` is either a `RecommendationsFailureReason`, for reasons specific to Recommendations, or a `CommonFailureReason`, for reasons common to every MoEngage SDK request. `RecommendationsFailureReason` is exported by `moengage_recommendations`. Import `CommonFailureReason` from `moengage_flutter`. A reason the SDK cannot classify maps to `CommonFailureReason.unknownError`.
+
+Check the type of `failureReason` first, then its value:
+
+<CodeGroup>
+
+```dart Dart wrap
+} on RecommendationsFailure catch (failure) {
+  final reason = failure.failureReason;
+  if (reason is RecommendationsFailureReason) {
+    switch (reason) {
+      case RecommendationsFailureReason.rateLimitExceeded:
+        scheduleRetry(); // Your function. Retry after a delay.
+      default:
+        // For example, invalidRequest, payloadTooLarge, or a reason added
+        // in a later plugin version.
+        showFallback(); // Your function.
+    }
+  } else if (reason is CommonFailureReason) {
+    switch (reason) {
+      case CommonFailureReason.networkError:
+        retryWhenOnline(); // Your function. The device is offline.
+      default:
+        showFallback();
+    }
+  }
+}
+```
+
+</CodeGroup>
+
+The following `RecommendationsFailureReason` values are specific to Recommendations:
+
+| Reason | Cause |
+| --- | --- |
+| `invalidRequest` | The Recommendation ID was blank, or the server rejected the request. |
+| `payloadTooLarge` | The request exceeded the size limit the server accepts. |
+| `rateLimitExceeded` | The request exceeded the fair use policy rate limit. |
+| `internalServerError` | The server failed to process the request. |
+| `unknownError` | The server responded with an unexpected status code. |
+
+The following `CommonFailureReason` values are common to every MoEngage SDK request:
+
+| Reason | Cause |
+| --- | --- |
+| `sdkState` | The SDK is not initialized, or it is not in a state that allows the operation. |
+| `featureDisabled` | Recommendations is blocked from the dashboard, or disabled in the SDK configuration. |
+| `networkError` | A network error occurred while making the request. |
+| `parseError` | The response could not be parsed. |
+| `invalidParameters` | One or more parameters passed to the API are invalid. |
+| `invalidInitialisationConfiguration` | The configuration used to initialize the SDK is invalid. |
+| `duplicateFunctionCall` | A duplicate call was made. The SDK processes only the last call. |
+| `serverError` | The server failed to process the request. |
+| `authenticationFailed` | The request could not be authenticated. |
+| `unknownError` | The failure could not be classified. |
+
+The SDK does not retry a failed request. To try again, call `fetchRecommendations()` again. Because the SDK caches nothing on failure, the next call makes a fresh network request. Retry only for these reasons:
+
+- `CommonFailureReason.networkError`
+- `RecommendationsFailureReason.rateLimitExceeded`, after a delay
+- `RecommendationsFailureReason.internalServerError`
+- `CommonFailureReason.serverError`
+- `RecommendationsFailureReason.unknownError` and `CommonFailureReason.unknownError`
+
+Treat both `unknownError` values as an unknown failure.
+
+## Caching
+
+The SDK caches the items it fetches, so repeated calls for the same recommendation do not trigger a network request.
+
+- The SDK scopes each cache entry to the combination of Recommendation ID, item ID, and included fields. Changing any of the three fetches a fresh list.
+- Within the cache duration, `fetchRecommendations()` returns the cached items without a network call.
+- After the cache duration elapses, the next call fetches the items from the server and refreshes the entry.
+- The SDK caches an empty result in the same way, so an empty recommendation does not trigger a network call on every widget build.
+- The SDK clears the cache when the user logs out, when the user identity changes, and when the SDK is disabled.
+
+### Configure the Cache Duration
+
+The SDK caches recommended items for 24 hours (86400 seconds). To cache items for longer, set the cache duration in the native initialization on each platform. The plugin does not expose this setting in Dart. Make the following changes in the native classes where you initialize the MoEngage framework.
+
+<CodeGroup>
+
+```kotlin Android wrap
+// Android — in your Application class
+import com.moengage.core.DataCenter
+import com.moengage.core.MoEngage
+import com.moengage.core.config.RecommendationConfig
+import com.moengage.flutter.MoEInitializer
+
+// Replace X with your data center number
+val moEngage = MoEngage.Builder(this, "YOUR_WORKSPACE_ID", DataCenter.DATA_CENTER_X)
+    .configureRecommendations(RecommendationConfig(recommendedItemsCacheDuration = 172800L))
+MoEInitializer.initialiseDefaultInstance(context = this, builder = moEngage)
+```
+
+```swift iOS wrap
+// iOS — in AppDelegate
+import MoEngageSDK
+import moengage_flutter_ios
+
+// Replace 0x with your data center number
+let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: MoEngageDataCenter.data_center_0x)
+sdkConfig.recommendationConfig = MoEngageRecommendationConfig(recommendedItemsCacheDuration: 172800)
+MoEngageInitializer.sharedInstance.initializeDefaultInstance(sdkConfig, launchOptions: launchOptions)
+```
+
+</CodeGroup>
+
+<Note>
+  The duration is in seconds. The minimum cache duration is 86400 seconds (24 hours). The SDK ignores a smaller value and uses 86400 seconds instead.
+</Note>
+
+## FAQs
+
+<AccordionGroup>
+  <Accordion title="Does the SDK render the recommended items?">
+    No, the SDK returns the item data only. Your application parses the response and builds the user interface.
+  </Accordion>
+
+  <Accordion title="Does the SDK download the images referenced in the items?">
+    No, the SDK does not download or cache media. Use a standard image loading package for the image URLs in the response.
+  </Accordion>
+
+  <Accordion title="What happens if I call fetchRecommendations() before I initialize the SDK?">
+    The app stops or the `Future` completes with a `RecommendationsFailure` carrying the `CommonFailureReason.sdkState` reason, depending on the platform. Initialize the core SDK before you fetch recommendations. For more information, refer to [Flutter SDK Initialization](/developer-guide/flutter-sdk/sdk-integration/sdk-initialization/manual-initialization/framework-initialization).
+  </Accordion>
+
+  <Accordion title="Can I force a fresh fetch before the cache expires?">
+    No, the SDK serves the cached items until the cache duration elapses. Configure a duration that matches how frequently your catalog changes.
+  </Accordion>
+</AccordionGroup>
