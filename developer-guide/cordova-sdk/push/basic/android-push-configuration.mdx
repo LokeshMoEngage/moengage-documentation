@@ -1,19 +1,41 @@
 ---
 title: "Android Push Configuration"
-description: "Configure Android push notifications in your Cordova app including FCM setup and push token handling."
+description: "Configure Android push notifications in your Cordova app, including FCM setup, the Firebase Installation ID, and push payload handling."
+keywords: ["Cordova Android push", "Firebase Installation ID", "passFirebaseInstallationId", "firebase_messaging_installation_id_enabled", "passFcmToken deprecated"]
 ---
 
 ## Basic Configuration
 
 - **FCM Setup on MoEngage Dashboard** - FCM Authentication is the method to enable sending push notifications to your app installed on Android devices. Use the methods mentioned in [this article](/developer-guide/android-sdk/push/basic/fcm-authentication) to authenticate MoEngage to access Firebase services.
+- **Enable the Firebase Installation ID** - From Core plugin version `11.0.0`, the SDK registers devices for push using the Firebase Installation ID. Use `com.google.firebase:firebase-messaging` 25.1.0 or later, and add the `firebase_messaging_installation_id_enabled` metadata to `config.xml` using the method in [this article](/developer-guide/cordova-sdk/migration/migrating-to-firebase-installation-id#step-2-enable-the-firebase-installation-id). Without this metadata, the SDK does not register for push automatically, and debug builds crash at launch.
 
-## Passing Push Token
+## Passing the Firebase Installation ID
+
+The SDK registers devices for push using the Firebase Installation ID. Pass the installation ID with `passFirebaseInstallationId()`:
 
 <CodeGroup>
 
 ```javascript JavaScript
 var moe = MoECordova.init(YOUR_WORKSPACE_ID);
-moe.passFcmToken()
+// pass the Firebase Installation ID as a string
+moe.passFirebaseInstallationId("YOUR_INSTALLATION_ID");
+```
+
+</CodeGroup>
+
+<Warning>
+  Starting from Core plugin version `11.0.0`, `passFcmToken()` is deprecated. It continues to work, and MoEngage recommends moving to `passFirebaseInstallationId()`. For more information, refer to [Case 2: Your Application Registers the Token](/developer-guide/cordova-sdk/migration/migrating-to-firebase-installation-id#case-2-your-application-registers-the-token).
+</Warning>
+
+To read the Firebase Installation ID saved in the SDK, call `moe.getFirebaseInstallationId()`:
+
+<CodeGroup>
+
+```javascript JavaScript
+var moe = MoECordova.init(YOUR_WORKSPACE_ID);
+moe.getFirebaseInstallationId().then(function (result) {
+    console.log(result.data.installationId);
+});
 ```
 
 </CodeGroup>
@@ -24,13 +46,13 @@ moe.passFcmToken()
 
 ```javascript JavaScript
 var moe = MoECordova.init(YOUR_WORKSPACE_ID);
-moe.passFcmPayload()
+moe.passFcmPayload(payload);
 ```
 
 </CodeGroup>
 
 <Info>
-  Passing payload and token from JavaScript is only supported for Firebase Messaging Service.
+  Passing the payload and the Firebase Installation ID from JavaScript is only supported for Firebase Messaging Service.
 </Info>
 
 <Warning>

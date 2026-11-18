@@ -15,10 +15,13 @@ Follow the basic setup outlined in this section to enable push notifications on 
 <Tabs>
   <Tab title="Let MoEngage handle Push(Recommended)">
     **Add messaging service**\
-    You must add the messaging service to the Manifest file for MoEngage SDK to show the notifications. Refer to this document [here](/developer-guide/android-sdk/push/basic/push-token-registration-and-display#push-token-registration-and-display-by-moengage-sdk).
+    You must add the messaging service to the Manifest file for MoEngage SDK to show the notifications. Refer to this document [here](/developer-guide/android-sdk/push/basic/push-token-registration-and-display#step-1-declare-the-moengage-messaging-service).
 
-    **Callback on token registration (optional)**\
-    To get a callback whenever a new token is registered or refreshed, refer to the method [here](/developer-guide/android-sdk/push/basic/push-token-registration-and-display#push-token-registration-and-display-by-moengage-sdk).
+    **Enable the Firebase Installation ID**\
+    From Core plugin 8.0.0, the SDK registers devices for push using the Firebase Installation ID. Use `com.google.firebase:firebase-messaging` 25.1.2 or later, and add the `firebase_messaging_installation_id_enabled` metadata to the manifest file, as described in [this article](/developer-guide/android-sdk/push/basic/push-token-registration-and-display#step-2-enable-the-firebase-installation-id). Without this metadata, the SDK doesn't register for push automatically, and debug builds crash at launch.
+
+    **Callback on Installation ID availability (optional)**\
+    To get a callback whenever the Firebase Installation ID becomes available, refer to the [Firebase Installation ID Callback](/developer-guide/capacitor-sdk/push/basic/push-callback#firebase-installation-id-callback).
 
     **Notification Clicked Callback**
 
@@ -26,9 +29,9 @@ Follow the basic setup outlined in this section to enable push notifications on 
   </Tab>
   <Tab title="You handle Push via Android Native">
     **How to opt out of MoEngage Registration?**\
-    The MoEngage SDK attempts to register for a push token; since your application handles push, you need to opt out of SDK's token registration using the method in [this article](/developer-guide/android-sdk/push/basic/push-token-registration-and-display#pass-the-push-token-to-moengage-sdk).
+    The MoEngage SDK attempts to register for a push token; since your application handles push, you need to opt out of SDK's token registration using the method in [this article](/developer-guide/android-sdk/push/basic/push-token-registration-and-display#step-1-opt-out-of-moengage-push-token-registration).
 
-    **Pass the Push Token To MoEngage SDK** - After receiving the push token from FCM, use the method in [this article](/developer-guide/android-sdk/push/basic/push-token-registration-and-display) to pass the Push Token to the MoEngage SDK to set it in the MoEngage platform.
+    **Pass the Firebase Installation ID To MoEngage SDK** - After your application receives the Firebase Installation ID, use the method in [this article](/developer-guide/android-sdk/push/basic/push-token-registration-and-display#step-2-pass-the-installation-id-to-the-moengage-sdk) to pass the Installation ID to the MoEngage SDK.
 
     **Passing the Push payload to the MoEngage SDK** - After receiving the push payload on the app, use the method in [this article](/developer-guide/android-sdk/push/basic/push-token-registration-and-display#passing-the-push-payload-to-the-moengage-sdk)to send out push notifications to the device.
   </Tab>
@@ -36,9 +39,9 @@ Follow the basic setup outlined in this section to enable push notifications on 
     <Warning>
       MoEngage recommends using the Android native APIs to pass the push payload to the MoEngage SDK instead of the React-Native/Javascript APIs. React-Native Engine might not get initialized if the application is killed or if the notification is not sent at a high priority.
     </Warning>
-    - [Pass the Push Token To MoEngage SDK](/developer-guide/capacitor-sdk/push/basic/android-push-configuration#passing-push-token)
+    - [Pass the Firebase Installation ID To MoEngage SDK](/developer-guide/capacitor-sdk/push/basic/android-push-configuration#passing-the-firebase-installation-id)
     - [Pass the Push payload to the MoEngage SDK](/developer-guide/capacitor-sdk/push/basic/android-push-configuration#passing-push-payload)
-    - [Callbacks and customizations](/developer-guide/react-native-sdk/push/basic/android-push-configuration#customizing-push-notification)
+    - [Callbacks and customizations](/developer-guide/capacitor-sdk/push/basic/android-push-configuration#customizing-push-notification)
   </Tab>
 </Tabs>
 
@@ -52,14 +55,31 @@ Follow the basic setup outlined in this section to enable push notifications on 
   We highly recommend you to use the Android native APIs for passing the push payload to the MoEngage SDK instead of the Capacitor APIs. Capacitor Engine might not get initialised if the application is killed or if the notification is not sent at a high priority.
 </Warning>
 
-## Passing Push Token
+## Passing the Firebase Installation ID
+
+The SDK registers devices for push using the Firebase Installation ID. Pass the installation ID with `passFirebaseInstallationId()`:
 
 <CodeGroup>
 
-```javascript TypeScript
+```typescript TypeScript
 import { MoECapacitorCore } from 'capacitor-moengage-core'
-// pass the push token as a string
-passFcmPushToken({ token: "TOKEN", appId: "YOUR_WORKSPACE_ID" });
+// pass the Firebase Installation ID as a string
+MoECapacitorCore.passFirebaseInstallationId({ installationId: "YOUR_INSTALLATION_ID", appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+<Warning>
+  Starting from Core plugin version `8.0.0`, `passFcmPushToken()` is deprecated. It continues to work, and MoEngage recommends moving to `passFirebaseInstallationId()`. For more information, refer to [Case 2: Your Application Registers the Token](/developer-guide/capacitor-sdk/migration/migrating-to-firebase-installation-id#case-2-your-application-registers-the-token).
+</Warning>
+
+To read the Firebase Installation ID saved in the SDK, call `getFirebaseInstallationId({ appId })`:
+
+<CodeGroup>
+
+```typescript TypeScript
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+const result = await MoECapacitorCore.getFirebaseInstallationId({ appId: "YOUR_WORKSPACE_ID" });
 ```
 
 </CodeGroup>
@@ -71,7 +91,7 @@ passFcmPushToken({ token: "TOKEN", appId: "YOUR_WORKSPACE_ID" });
 ```javascript TypeScript
 import { MoECapacitorCore } from 'capacitor-moengage-core'
 // pass the push payload object
-passFcmPushPayload(payload: object, appId: "YOUR_WORKSPACE_ID" });
+MoECapacitorCore.passFcmPushPayload({ payload: payloadObject, appId: "YOUR_WORKSPACE_ID" });
 ```
 
 </CodeGroup>

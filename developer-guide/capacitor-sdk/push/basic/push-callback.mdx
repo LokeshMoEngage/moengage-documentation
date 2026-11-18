@@ -1,7 +1,62 @@
 ---
 title: "Push Callback"
-description: "Set up listeners for push token generation and notification click events in the MoEngage Capacitor SDK."
+description: "Set up listeners for Firebase Installation ID availability, push token generation, and notification click events in the MoEngage Capacitor SDK."
 ---
+
+# Firebase Installation ID Callback
+
+MoEngage plugin triggers the `firebaseInstallationIdAvailable` event whenever the Firebase Installation ID becomes available. This event is available from Core plugin version `8.0.0` and is triggered on Android only. Refer to the below code to set the listener to the same:
+
+<CodeGroup>
+
+```typescript TypeScript
+import { MoECapacitorCore, MoEFirebaseInstallationIdData } from 'capacitor-moengage-core'
+MoECapacitorCore.addListener("firebaseInstallationIdAvailable", (data: MoEFirebaseInstallationIdData) => {
+ console.log(" Received callback 'firebaseInstallationIdAvailable',  data: " + JSON.stringify(data))
+});
+```
+
+</CodeGroup>
+
+Result received in the callback is a `MoEFirebaseInstallationIdData` instance with the following definition:
+
+<CodeGroup>
+
+```typescript TypeScript
+/**
+ * Firebase Installation Id data
+ */
+export interface MoEFirebaseInstallationIdData {
+    /**
+     * Account information
+     */
+    accountMeta: MoEAccountMeta;
+    /**
+     * Firebase Installation Id details
+     */
+    data: MoEFirebaseInstallationId;
+}
+
+/**
+ * Firebase Installation Id details
+ */
+export interface MoEFirebaseInstallationId {
+    /**
+     * Firebase Installation Id
+     */
+    installationId: string;
+    /**
+     * Platform type
+     */
+    platform: MoEPlatform;
+    /**
+     * Type of push service, always `FCM`
+     */
+    pushService: string;
+}
+```
+
+</CodeGroup>
 
 # Configuring Push Callbacks
 
@@ -25,6 +80,10 @@ MoECapacitorCore.addListener("pushTokenGenerated", (data: MoEPushTokenData) => {
 ```
 
 </CodeGroup>
+
+<Warning>
+  Starting from Core plugin version `8.0.0`, the SDK no longer sends `pushTokenGenerated` for FCM on Android. MoEngage recommends moving to the [Firebase Installation ID Callback](/developer-guide/capacitor-sdk/push/basic/push-callback#firebase-installation-id-callback). For more information, refer to [Migrating to Firebase Installation ID](/developer-guide/capacitor-sdk/migration/migrating-to-firebase-installation-id#step-4-migrate-pushtokengenerated-to-firebaseinstallationidavailable).
+</Warning>
 
 ## Notification Click Observers
 

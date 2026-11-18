@@ -1,0 +1,139 @@
+---
+title: "Migrate the MoEngage Cordova SDK From CocoaPods to Swift Package Manager"
+sidebarTitle: "Migrate From CocoaPods to SPM"
+description: "Migrate the iOS side of an existing MoEngage Cordova application from CocoaPods to Swift Package Manager (SPM) by upgrading to cordova-ios 8, including the AppDelegate, the notification extensions, and CI scripts."
+keywords: ["cocoapods to spm", "cordova cocoapods migration", "cordova swift package manager", "cordova-ios 8", "cordova-moengage-core spm", "MoEngage-iOS-SDK", "MoEngageCordovaBridge", "MoEngageRichNotification", "apple-sdk", "duplicate symbols", "cocoapods read-only"]
+---
+
+This guide describes how to migrate the iOS side of an existing MoEngage Cordova application from CocoaPods to Swift Package Manager (SPM). SPM support starts in `cordova-moengage-core` [11.0.0](/release-notes/sdks/cordova#18th-november-2026) and requires `cordova-ios` 8. On `cordova-ios` 8 and later, the MoEngage plugin installs through SPM. On `cordova-ios` 7 and earlier, it continues to install through CocoaPods, so the migration is the upgrade to `cordova-ios` 8.
+
+The steps in this guide cover the MoEngage-specific tasks: the `AppDelegate` initialization, the push notification extension targets, and your build scripts. For the Cordova-specific upgrade steps and breaking changes, refer to the [cordova-ios 8.0.0 release announcement](https://cordova.apache.org/announcements/2025/11/23/cordova-ios-8.0.0.html) in the Cordova documentation.
+
+The JavaScript code and dashboard configuration remain unchanged.
+
+## Migration Scope
+
+<Note>
+  The CocoaPods registry becomes read-only on December 2, 2026, and MoEngage publishes new SDK versions to CocoaPods until that date. After that date, new MoEngage SDK versions are available only through Swift Package Manager. MoEngage recommends planning the migration ahead of December 2, 2026.
+
+  Upgrading to `cordova-ios` 8 removes and re-adds the iOS platform, which deletes the `platforms/ios` directory. Any native changes that you made directly in that directory, such as `AppDelegate` code and notification extension targets, are removed with it.
+</Note>
+
+## Before You Begin
+
+- Use Xcode 15 or later and Node.js 20.17 or later. These are the minimum versions for `cordova-ios` 8.
+- Use `cordova-moengage-core` [11.0.0](/release-notes/sdks/cordova#18th-november-2026) or later. If your application uses the Geofence plugin, use `cordova-moengage-geofence` 4.0.0 or later.
+- Confirm that every other plugin in your application supports `cordova-ios` 8.
+- Identify which extension targets use MoEngage, such as a notification service extension or a content extension.
+- Commit or back up the project, including the `platforms/ios` directory, so that you can copy your native code and extension targets back after the upgrade.
+
+## Step 1: Upgrade the MoEngage Plugins
+
+Upgrade the MoEngage Core plugin. If your application uses the Geofence plugin, upgrade it as well.
+
+```bash Bash
+cordova plugin rm cordova-moengage-core
+cordova plugin add cordova-moengage-core@^11.0.0
+```
+
+```bash Bash
+cordova plugin rm cordova-moengage-geofence
+cordova plugin add cordova-moengage-geofence@^4.0.0
+```
+
+## Step 2: Note the Native MoEngage Changes
+
+Before you remove the iOS platform, note every MoEngage change in the `platforms/ios` directory:
+
+- The MoEngage initialization code in your `AppDelegate`.
+- Every `MoEngage-iOS-SDK` pod that your `Podfile` declares for the extension targets, for example:
+
+  ```ruby Podfile
+  target 'NotificationService' do
+    pod 'MoEngage-iOS-SDK/RichNotification'
+  end
+  ```
+
+- The source files and settings of each notification extension target.
+
+The platform upgrade deletes these files. You add the equivalent code and Swift package in [Step 4](#step-4-update-the-appdelegate) and [Step 5](#step-5-update-the-push-notification-extensions). The `cordova-moengage-core` plugin adds the MoEngage iOS SDK to the main app target automatically, so pods for the main app target need no replacement.
+
+## Step 3: Upgrade to cordova-ios 8
+
+From the project root, remove the iOS platform and add `cordova-ios` 8:
+
+```bash Bash
+cordova platform rm ios
+cordova platform add ios@8
+```
+
+When the platform is added, `cordova-ios` installs the MoEngage plugin as a Swift package. The plugin's Swift package pins the `apple-sdk` (MoEngage-iOS-SDK) version that your `cordova-moengage-core` version uses, so you don't add the MoEngage iOS SDK to the main app target yourself.
+
+<Warning>
+  If the MoEngage SDK is added through both CocoaPods and SPM, the build fails with duplicate symbols. After the migration, do not add `MoEngage-iOS-SDK` pods to the `Podfile` or through a hook.
+</Warning>
+
+<Note>
+  In `cordova-ios` 8, the Xcode project and the build target are always named `App`. Update any hook or script that assumes the project name matches the name in `config.xml`.
+</Note>
+
+## Step 4: Update the AppDelegate
+
+On `cordova-ios` 8 and later, the `AppDelegate` must be in Swift, and you initialize the SDK through `MoEngageCordovaBridge`. Add the MoEngage initialization to `application(_:didFinishLaunchingWithOptions:)` in the `AppDelegate` that `cordova-ios` 8 generates:
+
+```swift AppDelegate.swift wrap
+import MoEngageSDK
+import MoEngageCordovaPlugin
+
+let sdkConfig = MoEngageSDKConfig(appId: "YOUR_WORKSPACE_ID", dataCenter: .data_center_01)
+MoEngageCordovaBridge.shared.initializeDefaultInstance(sdkConfig: sdkConfig, launchOptions: launchOptions)
+```
+
+Set `dataCenter` to the data center of your workspace. For all the initialization methods, including file-based initialization, refer to [iOS SDK Initialization](/developer-guide/cordova-sdk/sdk-integration/sdk-initialization/ios-sdk-initialization). For the replacements of the earlier `AppDelegate` initialization APIs, refer to the [Cordova SDK release notes](/release-notes/sdks/cordova#18th-november-2026).
+
+## Step 5: Update the Push Notification Extensions
+
+Complete this step only if your application has a notification service extension or a notification content extension that uses MoEngage.
+
+Add the extension targets back to the `App` project in Xcode, and copy their source files from your backup. The extension targets aren't part of the plugin's Swift package, so add the `MoEngageRichNotification` library manually:
+
+1. Open the [Cordova release notes](/release-notes/sdks/cordova), find your `cordova-moengage-core` version, and note the **MoEngage-iOS-SDK** version listed under **Dependencies > iOS**.
+2. In Xcode, select **File > Add Package Dependencies**, enter `https://github.com/moengage/apple-sdk.git`, and set **Dependency Rule** to **Exact Version** with the version from the release notes.
+3. On the product screen, set **MoEngageRichNotification** to the **App** target, and leave the other products set to **None**.
+4. In your notification service extension target, open **General > Frameworks and Libraries**, click **+**, and add **MoEngageRichNotification**. Do the same for your content extension target if you use push templates.
+
+<Note>
+  When you upgrade `cordova-moengage-core` in the future, open the Cordova release notes, find the version you're upgrading to, and note the MoEngage-iOS-SDK version listed for it. Then, in Xcode, open **Package Dependencies**, select **apple-sdk**, and change its **Exact Version** to that version. If the `apple-sdk` version doesn't match the MoEngage-iOS-SDK version, package resolution fails.
+</Note>
+
+The extension code does not change. For the notification extension setup, refer to [Rich Push](/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial) and [Push Templates](/developer-guide/ios-sdk/push/optional/push-templates) in the iOS SDK documentation.
+
+## Step 6: Update Your Workflow
+
+- In CI and local scripts, remove every `pod install` step that you added for the MoEngage pods.
+- Use `cordova-ios` 8 or later in every build environment. On `cordova-ios` 7 and earlier, the MoEngage plugin installs through CocoaPods.
+
+## Step 7: Verify the Migration
+
+1. In Xcode, select **Product > Clean Build Folder**.
+2. Build and run the application:
+
+   ```bash Bash
+   cordova run ios
+   ```
+
+3. Confirm that the SDK initialization logs report the MoEngage SDK version that you upgraded to.
+4. Select **Product > Archive** and confirm that the archive succeeds. The archive build tests the extension targets in a release build.
+5. Send a test push notification. Confirm that the device receives the notification, that the SDK tracks the notification impression (the Notification Received event), and that rich content renders. If the application uses the Geofence plugin, verify geofence functionality as well.
+
+## Troubleshooting
+
+| Issue | Cause and fix |
+| :-- | :-- |
+| Duplicate symbols, or "Multiple commands produce" | MoEngage comes from both CocoaPods and SPM. A `MoEngage-iOS-SDK` pod was added to the `Podfile` or through a hook. Remove the MoEngage pods, delete the `Podfile.lock` and `Pods/` folder, and rebuild. |
+| Package resolution fails with a version conflict on `apple-sdk` | The `apple-sdk` version that you added for the extensions doesn't match the MoEngage-iOS-SDK version that your `cordova-moengage-core` version uses. This mismatch usually occurs after a plugin upgrade. Open the [Cordova release notes](/release-notes/sdks/cordova), find your `cordova-moengage-core` version, and note the MoEngage-iOS-SDK version listed for it. Then, in Xcode, open **Package Dependencies**, select **apple-sdk**, and set its **Exact Version** to that version. |
+| The MoEngage plugin still installs through CocoaPods | The iOS platform is on `cordova-ios` 7 or earlier, or `cordova-moengage-core` is earlier than 11.0.0. Complete [Step 1](#step-1-upgrade-the-moengage-plugins) and [Step 3](#step-3-upgrade-to-cordova-ios-8) again. |
+| No such module `MoEngageCordovaPlugin` in the `AppDelegate` | The MoEngage plugin was not installed as a Swift package. Confirm that the iOS platform is on `cordova-ios` 8 and that `cordova-moengage-core` is 11.0.0 or later, then run `cordova prepare ios`. |
+| Rich media does not render, or the app crashes on a rich push in a DEBUG build | `MoEngageRichNotification` is missing from the extension target or from the App target. Add the library to both targets, as described in [Step 5](#step-5-update-the-push-notification-extensions). |
+| `MoEngageRichNotification` isn't listed when you click **+** in an extension target | The `apple-sdk` package hasn't been added to the project. Add the `apple-sdk` package with the exact version from the Cordova release notes, as described in [Step 5](#step-5-update-the-push-notification-extensions). |
+| Notifications arrive, but images and templates don't show | `MoEngageRichNotification` isn't linked to the App target. Select the **App** target, open **General > Frameworks, Libraries, and Embedded Content**, click **+**, add **MoEngageRichNotification**, and rebuild. |
