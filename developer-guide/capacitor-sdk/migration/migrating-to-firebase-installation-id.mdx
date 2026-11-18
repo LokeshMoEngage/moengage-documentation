@@ -1,0 +1,116 @@
+---
+title: "Migrating to Firebase Installation ID"
+description: "Update your Capacitor Android integration to the Firebase Installation ID when you upgrade to Capacitor Core plugin 8.0.0."
+keywords: ["Firebase Installation ID migration", "Capacitor Core 8.0.0 migration", "passFirebaseInstallationId", "firebaseInstallationIdAvailable", "firebase_messaging_installation_id_enabled", "MoEngage Capacitor breaking change"]
+---
+
+From Capacitor Core plugin 8.0.0, the SDK registers Android devices for push using the Firebase Installation ID, which is the identifier that Firebase assigns to each installation of an application on a device. This plugin version uses MoEngage Android BOM 4.6.0.
+
+This migration applies to Android only. Your iOS integration doesn't change.
+
+The changes this migration requires depend on which component registers the push token in your application. Identify your case below, then complete the steps for that case.
+
+## Which Case Applies to Your Application
+
+| Your integration | Case | Required |
+| --- | --- | --- |
+| The MoEngage SDK registers the token. Your application declares `com.moengage.firebase.MoEFireBaseMessagingService` in the manifest file and does not opt out of token registration. | [Case 1](#case-1-the-moengage-sdk-registers-the-token) | Mandatory. This is a breaking change. |
+| Your application registers the token and passes it to the MoEngage SDK with `passFcmPushToken()`. | [Case 2](#case-2-your-application-registers-the-token) | Recommended. The previous API is deprecated. |
+
+<Note>
+  If your application registers the token in native Android code and passes it with `MoEFireBaseHelper`, follow [Case 2 of the Android migration](/developer-guide/android-sdk/migration/migrating-to-firebase-installation-id#case-2-your-application-registers-the-token) instead of Case 2 on this page.
+</Note>
+
+## Case 1: The MoEngage SDK Registers the Token
+
+This case is a breaking change. Complete Steps 1 to 3, in order. Step 4 applies only if your application listens for the `pushTokenGenerated` event.
+
+### Step 1: Update the Firebase Messaging Library
+
+Update `com.google.firebase:firebase-messaging` to 25.1.2 or higher. Refer to the [Firebase Android release notes](https://firebase.google.com/support/release-notes/android#messaging_v25-1-2) for this version.
+
+### Step 2: Enable the Firebase Installation ID
+
+Add the following metadata to your application manifest file.
+
+<CodeGroup>
+
+```xml AndroidManifest.xml wrap
+<meta-data
+    android:name="firebase_messaging_installation_id_enabled"
+    android:value="true" />
+```
+
+</CodeGroup>
+
+Refer to the [Firebase documentation on accessing the Firebase Installation ID](https://firebase.google.com/docs/cloud-messaging/android/get-started#access-firebase-installation-id) for details.
+
+<Warning>
+  Without this metadata, the SDK doesn't register for push automatically, and debug builds crash at launch.
+</Warning>
+
+### Step 3: Upgrade the MoEngage Plugin
+
+Upgrade `capacitor-moengage-core` to 8.0.0 or above. This version also requires Capacitor 8, compile SDK 36, and minimum SDK 24. Refer to the [Capacitor SDK release notes](/release-notes/sdks/capacitor#18th-november-2026) for the full list of changes in this release.
+
+### Step 4: Migrate pushTokenGenerated to firebaseInstallationIdAvailable
+
+Apply this step only if your application listens for the `pushTokenGenerated` event. From Core plugin 8.0.0, the SDK no longer sends `pushTokenGenerated` for FCM. Listen for the `firebaseInstallationIdAvailable` event instead, which fires when the Firebase Installation ID becomes available.
+
+| Previous | Current |
+| --- | --- |
+| `pushTokenGenerated` | `firebaseInstallationIdAvailable` |
+
+The code block below is the replacement. Copy it as it is.
+
+<CodeGroup>
+
+```typescript TypeScript wrap
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+MoECapacitorCore.addListener("firebaseInstallationIdAvailable", (data) => {
+  console.log("Received callback 'firebaseInstallationIdAvailable', data: " + JSON.stringify(data))
+});
+```
+
+</CodeGroup>
+
+### Impact
+
+This migration is mandatory. Complete Steps 1 to 3 correctly, because an incomplete migration affects reachability and causes a push token drop.
+
+## Case 2: Your Application Registers the Token
+
+Complete Step 1 to Step 4 from [Case 1](#case-1-the-moengage-sdk-registers-the-token) first, then apply the API change below. The replacement API is available only from Capacitor Core plugin 8.0.0, so applying this change before you upgrade results in errors.
+
+The following table summarizes the replacement. The code block in the step below shows the replacement API only, so that the code you copy is the code you keep.
+
+| Previous API | Replacement | Applies when |
+| --- | --- | --- |
+| `passFcmPushToken()` | `passFirebaseInstallationId()` | Always |
+
+To read the Installation ID that the SDK holds, call `getFirebaseInstallationId()`. This API is new in Core plugin 8.0.0 and has no previous equivalent.
+
+### Step 5: Migrate passFcmPushToken to passFirebaseInstallationId
+
+Call `passFirebaseInstallationId()` in place of `passFcmPushToken()` to pass the Firebase Installation ID to the MoEngage SDK. Obtain the Installation ID from your application's Firebase integration.
+
+| Previous | Current |
+| --- | --- |
+| `passFcmPushToken({ token, appId })` | `passFirebaseInstallationId({ installationId, appId })` |
+
+The code block below is the replacement. Copy it as it is.
+
+<CodeGroup>
+
+```typescript TypeScript wrap
+import { MoECapacitorCore } from 'capacitor-moengage-core'
+MoECapacitorCore.passFirebaseInstallationId({ installationId: "YOUR_INSTALLATION_ID", appId: "YOUR_WORKSPACE_ID" });
+```
+
+</CodeGroup>
+
+### Impact
+
+Case 2 is not a breaking change. Your application keeps registering for push on Core plugin 8.0.0 without this API change, because it supplies the identifier itself. Only [Case 1](#case-1-the-moengage-sdk-registers-the-token) is mandatory.
+
+MoEngage still recommends the migration. The Installation ID remains available when Firebase refreshes or drops the push token, which keeps reachability consistent, and it replaces `passFcmPushToken()`, which is deprecated.
