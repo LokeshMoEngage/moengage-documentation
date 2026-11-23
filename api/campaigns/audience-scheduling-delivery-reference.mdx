@@ -857,20 +857,37 @@ For `API_TRIGGERED` campaigns, only `ignore_frequency_capping` and `count_for_fr
 | `send_message_in_offline_mode` | boolean | Whether to store and deliver the message while the device is offline. Applies to device-triggered campaigns. |
 | `send_limit_value` | string | Maximum times a user can receive the campaign within the window. Applies to location-triggered campaigns. |
 | `send_limit_granularity_in_hours` | string | The window in hours for `send_limit_value`. Applies to location-triggered campaigns. |
-| `ignore_global_minimum_delay` | boolean | Whether to bypass the workspace-wide minimum interval between pushes. Applies to event-triggered campaigns. |
-| `queuing_enabled` | boolean | Whether undeliverable messages are queued for later delivery. **Flag-gated**. Contact the MoEngage account team to enable. |
-| `queue_duration` | integer | The hours to keep messages queued. Must be greater than `0` when `queuing_enabled` is `true`. **Flag-gated**. |
+| `ignore_minimum_delay` | boolean | Whether to bypass the workspace-wide minimum interval between pushes. The `ignore_minimum_delay` field applies to all delivery types. |
+| `queuing_enabled` | boolean | Whether undeliverable messages are queued for later delivery. The value must be a boolean. The string `"true"` and the value `null` are both rejected. Availability depends on the delivery type. See [Queuing availability](#queuing-availability). **Flag-gated**. Contact the MoEngage account team to enable. For how MoEngage delivers a queued message, see [Message Queuing](/user-guide/settings/channels/delivery-controls/message-queuing). |
+| `queue_duration` | integer | The number of hours to keep messages queued, from `1` to `48`. `queue_duration` is **required** when `queuing_enabled` is `true`, and must be omitted when `queuing_enabled` is `false`. **Flag-gated**. |
 | `limit_send_config` | object | Configuration for limiting how many times a user can receive this campaign within a rolling time window. Applies to periodic and event-triggered campaigns. Not applicable to transactional campaigns. **Flag-gated**. Contact the MoEngage account team to enable.  |
 
+Each delivery type supports a distinct set of `delivery_controls` keys. Send only the keys listed for the delivery type you are configuring. Every key is optional unless the Required column states otherwise.
+
 <Tabs>
-<Tab title="Throttle with frequency capping">
+<Tab title="One-time, periodic, business event">
+
+| Field | Required |
+| :--- | :--- |
+| `campaign_throttle_rpm` | No |
+| `ignore_frequency_capping` | No |
+| `count_for_frequency_capping` | No. Send `count_for_frequency_capping` only when `ignore_frequency_capping` is `true`. |
+| `bypass_dnd` | No |
+| `ignore_minimum_delay` | No |
+| `queuing_enabled` | No |
+| `queue_duration` | Yes, when `queuing_enabled` is `true` |
+| `limit_send_config` | No. Available on periodic campaigns only. **Flag-gated**. |
 
 ```json
 {
   "delivery_controls": {
     "campaign_throttle_rpm": 50000,
+    "ignore_frequency_capping": true,
     "count_for_frequency_capping": true,
-    "ignore_frequency_capping": false
+    "bypass_dnd": true,
+    "ignore_minimum_delay": false,
+    "queuing_enabled": true,
+    "queue_duration": 12
   }
 }
 ```
@@ -878,12 +895,27 @@ For `API_TRIGGERED` campaigns, only `ignore_frequency_capping` and `count_for_fr
 </Tab>
 <Tab title="Event-triggered">
 
+| Field | Required |
+| :--- | :--- |
+| `bypass_dnd` | Yes |
+| `ignore_frequency_capping` | No |
+| `count_for_frequency_capping` | No. Send `count_for_frequency_capping` only when `ignore_frequency_capping` is `true`. |
+| `minimum_delay_between_two_notification_in_hour` | No |
+| `ignore_minimum_delay` | No |
+| `queuing_enabled` | No |
+| `queue_duration` | Yes, when `queuing_enabled` is `true` |
+| `limit_send_config` | No. **Flag-gated**. |
+
 ```json
 {
   "delivery_controls": {
-    "bypass_dnd": false,
+    "ignore_frequency_capping": true,
+    "count_for_frequency_capping": true,
     "minimum_delay_between_two_notification_in_hour": 24,
-    "ignore_global_minimum_delay": false
+    "bypass_dnd": false,
+    "ignore_minimum_delay": false,
+    "queuing_enabled": true,
+    "queue_duration": 12
   }
 }
 ```
@@ -891,13 +923,28 @@ For `API_TRIGGERED` campaigns, only `ignore_frequency_capping` and `count_for_fr
 </Tab>
 <Tab title="Device-triggered">
 
+| Field | Required |
+| :--- | :--- |
+| `ignore_frequency_capping` | No |
+| `count_for_frequency_capping` | No. Send `count_for_frequency_capping` only when `ignore_frequency_capping` is `true`. |
+| `minimum_delay_between_two_notification_in_hour` | No |
+| `max_time_to_show_message_of_same_camapign` | No |
+| `expiry_time_of_sync_data_in_hour` | No |
+| `send_message_in_offline_mode` | No |
+| `bypass_dnd` | No |
+| `ignore_minimum_delay` | No |
+
 ```json
 {
   "delivery_controls": {
+    "ignore_frequency_capping": true,
+    "count_for_frequency_capping": true,
     "minimum_delay_between_two_notification_in_hour": 12,
     "max_time_to_show_message_of_same_camapign": "48",
     "expiry_time_of_sync_data_in_hour": "24",
-    "send_message_in_offline_mode": true
+    "send_message_in_offline_mode": true,
+    "bypass_dnd": true,
+    "ignore_minimum_delay": true
   }
 }
 ```
@@ -905,31 +952,181 @@ For `API_TRIGGERED` campaigns, only `ignore_frequency_capping` and `count_for_fr
 </Tab>
 <Tab title="Location-triggered">
 
+| Field | Required |
+| :--- | :--- |
+| `send_limit_value` | No |
+| `send_limit_granularity_in_hours` | No. Send `send_limit_granularity_in_hours` together with `send_limit_value`. |
+| `ignore_frequency_capping` | No |
+| `count_for_frequency_capping` | No. Send `count_for_frequency_capping` only when `ignore_frequency_capping` is `true`. |
+| `bypass_dnd` | No |
+| `ignore_minimum_delay` | No |
+
 ```json
 {
   "delivery_controls": {
     "send_limit_value": "1",
-    "send_limit_granularity_in_hours": "24"
+    "send_limit_granularity_in_hours": "24",
+    "ignore_frequency_capping": true,
+    "count_for_frequency_capping": true,
+    "bypass_dnd": true,
+    "ignore_minimum_delay": true
   }
 }
 ```
-
-</Tab>
-<Tab title="Queuing (flag-gated)">
-
-```json
-{
-  "delivery_controls": {
-    "queuing_enabled": true,
-    "queue_duration": 12
-  }
-}
-```
-
-`queuing_enabled` and `queue_duration` are flag-gated. Including them on a workspace where the feature is not enabled returns a validation error. For detailed behavior of queued messages, see [Message Queuing](/user-guide/settings/channels/delivery-controls/message-queuing).
 
 </Tab>
 </Tabs>
+
+#### Dashboard mapping
+
+| Dashboard control | API field |
+| :--- | :--- |
+| Enable message queuing | `queuing_enabled` |
+| Queuing duration | `queue_duration` |
+| Ignore frequency capping | `ignore_frequency_capping` |
+| Count for frequency capping | `count_for_frequency_capping` |
+| Ignore minimum delay | `ignore_minimum_delay` |
+| Bypass DND | `bypass_dnd` |
+| Minimum delay between two notifications | `minimum_delay_between_two_notification_in_hour` |
+| Request limit (throttle) | `campaign_throttle_rpm` |
+| Maximum times to show the message from same campaign | `max_time_to_show_message_of_same_camapign` |
+| Expiry time for sync data | `expiry_time_of_sync_data_in_hour` |
+| Send the messages in offline mode | `send_message_in_offline_mode` |
+
+#### Queuing availability
+
+`queuing_enabled` and `queue_duration` are sent together. `queue_duration` is required when `queuing_enabled` is `true`, and must be omitted when `queuing_enabled` is `false`. Neither key can be sent without the other. `queue_duration` accepts whole numbers from `1` to `48`, so the values `0`, `-1`, `1.5`, `"1"`, and `null` are rejected, as is a `queuing_enabled` value of `"true"` or `null`.
+
+| Delivery type | Queuing | Blocked when |
+| :--- | :--- | :--- |
+| `ONE_TIME`, `PERIODIC`, `BUSINESS_EVENT_TRIGGERED` | Supported | `ignore_frequency_capping` and `ignore_minimum_delay` are both `true` |
+| `EVENT_TRIGGERED` | Supported | `ignore_frequency_capping` and `ignore_minimum_delay` are both `true` **and** `minimum_delay_between_two_notification_in_hour` is `0` |
+| `DEVICE_TRIGGERED`, `LOCATION_TRIGGERED` | Not supported | Always. Sending either key fails validation whatever value the key carries, including `false` and `null`. |
+
+Where queuing is blocked, the dashboard disables the **Enable message queuing** toggle, and the API rejects `queuing_enabled: true`. Setting either flag to `false` makes queuing available again, as does a non-zero minimum delay on an event-triggered campaign. An omitted flag is not treated as `true`.
+
+#### Queuing on an unsupported delivery type
+
+Both of the following requests return `400 Bad Request`, and no campaign is created. Removing `queuing_enabled` and `queue_duration` from `delivery_controls` allows each request to succeed.
+
+<CodeGroup>
+
+```bash Device-triggered
+curl --location 'https://api-{dc}.moengage.com/v5/campaigns' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Basic {{auth_token}}' \
+--header 'X-MOE-Request-Id: {{request_id}}' \
+--header 'Idempotency-Key: {{idempotency_key}}' \
+--data-raw '{
+  "request_id": "{{request_id}}",
+  "channel": "PUSH",
+  "campaign_delivery_type": "DEVICE_TRIGGERED",
+  "created_by": "{{user_email}}",
+  "basic_details": {
+    "name": "Device triggered queuing check",
+    "team": "{{team_name}}",
+    "platforms": ["ANDROID", "IOS"]
+  },
+  "trigger_condition": {
+    "included_filters": {
+      "filter_operator": "or",
+      "filters": [
+        {
+          "filter_type": "actions",
+          "action_name": "MOE_APP_OPENED",
+          "execution": { "type": "atleast", "count": 1 },
+          "executed": true
+        }
+      ]
+    }
+  },
+  "scheduling_details": {
+    "delivery_type": "AT_FIXED_TIME",
+    "start_time": "2030-01-15T10:00:00",
+    "expiry_time": "2030-02-15T10:00:00",
+    "timezone": "Asia/Kolkata"
+  },
+  "delivery_controls": {
+    "ignore_frequency_capping": true,
+    "count_for_frequency_capping": true,
+    "minimum_delay_between_two_notification_in_hour": 0,
+    "max_time_to_show_message_of_same_camapign": "0",
+    "expiry_time_of_sync_data_in_hour": "0",
+    "send_message_in_offline_mode": false,
+    "bypass_dnd": true,
+    "ignore_minimum_delay": true,
+    "queuing_enabled": true,
+    "queue_duration": 1
+  }
+}'
+```
+
+```bash Location-triggered
+curl --location 'https://api-{dc}.moengage.com/v5/campaigns' \
+--header 'Content-Type: application/json' \
+--header 'Authorization: Basic {{auth_token}}' \
+--header 'X-MOE-Request-Id: {{request_id}}' \
+--header 'Idempotency-Key: {{idempotency_key}}' \
+--data-raw '{
+  "request_id": "{{request_id}}",
+  "channel": "PUSH",
+  "campaign_delivery_type": "LOCATION_TRIGGERED",
+  "created_by": "{{user_email}}",
+  "basic_details": {
+    "name": "Location triggered queuing check",
+    "team": "{{team_name}}",
+    "platforms": ["ANDROID", "IOS"],
+    "geofences": [
+      {
+        "name": "{{geofence_name}}",
+        "latitude": "{{latitude}}",
+        "longitude": "{{longitude}}",
+        "radius": "100000",
+        "response_time_value": "5",
+        "response_time_granularity": "MINUTES",
+        "triggered_at": "ENTRY"
+      }
+    ]
+  },
+  "scheduling_details": {
+    "delivery_type": "ASAP",
+    "geo_fence_timelimit": {
+      "notification_schedule": "ALWAYS"
+    }
+  },
+  "delivery_controls": {
+    "send_limit_value": "1",
+    "send_limit_granularity_in_hours": "5",
+    "ignore_frequency_capping": true,
+    "count_for_frequency_capping": true,
+    "bypass_dnd": true,
+    "ignore_minimum_delay": true,
+    "queuing_enabled": true,
+    "queue_duration": 1
+  }
+}'
+```
+
+</CodeGroup>
+
+Both requests return the following error:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_FAILED",
+    "message": "Queuing is not supported for device triggered and location triggered campaigns.",
+    "target": "delivery_controls",
+    "details": [
+      {
+        "target": "queuing_enabled",
+        "message": "Queuing is not supported for device triggered and location triggered campaigns."
+      }
+    ]
+  },
+  "response_id": "abc-102"
+}
+```
 
 ### Email delivery controls
 
@@ -1170,7 +1367,7 @@ When `false`, `metric`, `frequency`, and `limit` must not be included.
 
 ## Advanced Push settings
 
-The `advanced` object (Push only) carries notification-expiration settings and per-platform priority.
+The `advanced` object (Push only) carries notification-expiration settings, per-platform priority, and background update targeting.
 
 <Note>
 `advanced` is part of the Push request body. It is not part of the Email request body.
@@ -1241,6 +1438,48 @@ The `advanced` object (Push only) carries notification-expiration settings and p
 
 </Tab>
 </Tabs>
+
+### Background update targeting
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `advanced_targeting` | boolean | Whether to send the campaign to users who have opted out of push. Can be `true` only when every platform, A/B variation, and locale in the campaign uses `template_type: BACKGROUND_UPDATE`. |
+
+A background update carries no visible notification, and therefore does not require the recipient's push permission. The `advanced_targeting` field is the API equivalent of the dashboard option **Send campaign to opted-out users**, under **Background update targeting**.
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "BACKGROUND_UPDATE",
+          "custom_kv_pairs": {
+            "order_id": "12345",
+            "status": "shipped",
+            "qty": 3
+          }
+        },
+        "ios": {
+          "template_type": "BACKGROUND_UPDATE",
+          "custom_kv_pairs": {
+            "order_id": "12345",
+            "status": "shipped",
+            "qty": 3
+          }
+        }
+      }
+    }
+  },
+  "advanced": {
+    "advanced_targeting": true
+  }
+}
+```
+
+A campaign that mixes `BACKGROUND_UPDATE` with any other template remains valid, but it must send `advanced_targeting` as `false`. For an example, see [Mixing background update with Web](/api/campaigns/campaign-content-reference#mixing-background-update-with-web).
+
+For the `BACKGROUND_UPDATE` template definition and the complete set of rules, see [Android background update fields](/api/campaigns/campaign-content-reference#android-background-update-fields) and [iOS background update fields](/api/campaigns/campaign-content-reference#ios-background-update-fields).
 
 ## Geofence targeting
 
@@ -1352,7 +1591,8 @@ The following rules span multiple sub-objects on this page.
 | For `SEND_IN_BTS`, `bts_details` is required. For `SEND_IN_USER_TIMEZONE`, `user_timezone_details` is required. | `BTSDetails`, `UserTimezoneDetails` descriptions |
 | `delivery_controls.bypass_dnd` is **required** for Push event-triggered campaigns. | `PushDeliveryControls.bypass_dnd` |
 | `delivery_controls.campaign_throttle_rpm` is **not applicable** for Push device-triggered, location-triggered, and event-triggered campaigns. | `PushDeliveryControls.campaign_throttle_rpm` |
-| `delivery_controls.queuing_enabled` and `queue_duration` are flag-gated. `queue_duration` must be greater than `0` when `queuing_enabled` is `true`. | `PushDeliveryControls.queuing_enabled` |
+| `delivery_controls.queuing_enabled` and `queue_duration` are flag-gated, must be sent together, and are not supported on device-triggered or location-triggered campaigns. `queuing_enabled: true` is rejected when the campaign already bypasses every restriction that queuing would otherwise apply. | [Queuing availability](#queuing-availability) |
+| `delivery_controls.count_for_frequency_capping` can be sent only when `ignore_frequency_capping` is `true`. | [Push delivery controls](#push-delivery-controls) |
 | `delivery_controls.send_limit_value` and `send_limit_granularity_in_hours` apply to **location-triggered** campaigns. | `PushDeliveryControls.send_limit_value` |
 | `delivery_controls.max_time_to_show_message_of_same_camapign`, `expiry_time_of_sync_data_in_hour`, and `send_message_in_offline_mode` apply to **device-triggered** campaigns. | `PushDeliveryControls` |
 | `control_group_details.campaign_control_group_percentage` is **required** when `is_campaign_control_group_enabled` is `true`. The percentage must be between `0` and `100`. | `ControlGroupDetails.campaign_control_group_percentage` |
@@ -1360,6 +1600,7 @@ The following rules span multiple sub-objects on this page.
 | `utm_params` accepts the 5 standard keys plus up to 5 additional `utm_`-prefixed custom keys. `utm_source` and `utm_medium` are required when UTM parameters are used. | `UTMParams` description |
 | `advanced.expiration_settings.remove_from_inbox_after_type` accepts only `DAY`. Other granularities fail. | `AdvancedDetails.expiration_settings` |
 | `advanced.platform_level_priority.ios_specific_priority.apns_priority` values are **strings** (`"1"`, `"5"`, `"10"`). `relevance_score` values are **numbers** (`0`, `0.5`, `1`). `interruption_level` accepts `Passive`, `Active`, `Time sensitive`, `Critical` (note the space and casing of `Time sensitive`). | `AdvancedDetails.platform_level_priority` |
+| `advanced.advanced_targeting` can be `true` only when every platform, A/B variation, and locale in the campaign uses `template_type: BACKGROUND_UPDATE`. | `AdvancedDetails.advanced_targeting` |
 
 ## Updating an existing campaign
 

@@ -1454,15 +1454,33 @@ components:
       type: object
       description: Android push notification content.
       properties:
-        template_type: 
+        template_type:
           type: string
-          enum: [BASIC, STYLIZED_BASIC, SIMPLE_IMAGE_CAROUSEL, IMAGE_BANNER_WITH_TEXT, TIMER, TIMER_WITH_PROGRESS_BAR, Custom]
+          enum: [BASIC, STYLIZED_BASIC, SIMPLE_IMAGE_CAROUSEL, IMAGE_BANNER_WITH_TEXT, TIMER, TIMER_WITH_PROGRESS_BAR, BACKGROUND_UPDATE, Custom]
           description: |
             The type of Android push template.
-            
+
             **Note:** If you are passing a template ID, set template_type to "Custom" and use `custom_template_id`.
 
-        custom_template_id: 
+            **Note:** `BACKGROUND_UPDATE` is a silent notification that displays nothing to the user. Send `custom_kv_pairs` with `BACKGROUND_UPDATE`, and omit `basic_details`, `buttons`, `advanced`, and `template_backup`. The `BACKGROUND_UPDATE` template is available on `ONE_TIME`, `PERIODIC`, and `EVENT_TRIGGERED` campaigns only. See [Android background update fields](/api/campaigns/campaign-content-reference#android-background-update-fields).
+
+        custom_kv_pairs:
+          type: object
+          additionalProperties: true
+          description: |
+            The payload delivered to your app by a `BACKGROUND_UPDATE` push. The `custom_kv_pairs` object is used only with `template_type: BACKGROUND_UPDATE`.
+
+            Each key is a plain string the app reads. Keys cannot be empty, cannot use personalization, and cannot be reserved. The reserved keys are `push_from`, `gcm_campaign_id`, `moe_app_id`, `moe_cid_attr`, `moe_push_source`, `shownOffline`, and any key beginning with `moe` in any letter case.
+
+            Each value can be a string, number, boolean, or JSON, up to 1048 characters. Values support personalization.
+
+            **Note:** On Android, a JSON value must be sent as a stringified value, for example `"order": "{\"id\": 99}"`. A raw JSON object is rejected.
+
+            A draft can be created with an empty `custom_kv_pairs` object, but validating or publishing the draft requires at least one pair.
+          example:
+            order_id: "12345"
+            status: "shipped"
+        custom_template_id:
           type: string
           description: |
             The ID of the custom template.
@@ -1802,13 +1820,29 @@ components:
       type: object
       description: iOS push notification content.
       properties:
-        template_type: 
+        template_type:
           type: string
-          enum: [BASIC, STYLIZED_BASIC, SIMPLE_IMAGE_CAROUSEL, Custom]
+          enum: [BASIC, STYLIZED_BASIC, SIMPLE_IMAGE_CAROUSEL, BACKGROUND_UPDATE, Custom]
           description: |
             The type of iOS push template.
 
-        custom_template_id: 
+            **Note:** `BACKGROUND_UPDATE` is a silent notification that displays nothing to the user. Send `custom_kv_pairs` with `BACKGROUND_UPDATE`, and omit `basic_details`, `buttons`, `advanced`, and `template_backup`. The `BACKGROUND_UPDATE` template is available on `ONE_TIME`, `PERIODIC`, and `EVENT_TRIGGERED` campaigns only. See [iOS background update fields](/api/campaigns/campaign-content-reference#ios-background-update-fields).
+
+        custom_kv_pairs:
+          type: object
+          additionalProperties: true
+          description: |
+            The payload delivered to your app by a `BACKGROUND_UPDATE` push. The `custom_kv_pairs` object is used only with `template_type: BACKGROUND_UPDATE`.
+
+            Each key is a plain string the app reads. Keys cannot be empty, cannot use personalization, and cannot be reserved. The reserved keys are `moengage`, `moeFeatures`, `app_extra`, `aps`, and any key beginning with `moe` in any letter case.
+
+            Each value can be a string, number, boolean, or JSON object, up to 1048 characters. Values support personalization.
+
+            A draft can be created with an empty `custom_kv_pairs` object, but validating or publishing the draft requires at least one pair.
+          example:
+            order_id: "12345"
+            status: "shipped"
+        custom_template_id:
           type: string
           description: |
             The ID of the custom template.
@@ -2017,7 +2051,10 @@ components:
         template_type: 
           type: string
           enum: [BASIC]
-          description: The template type for web push (currently only BASIC is supported).
+          description: |
+            The template type for web push (currently only BASIC is supported).
+
+            **Note:** Web does not support `BACKGROUND_UPDATE`. Sending `BACKGROUND_UPDATE` for Web fails validation.
         basic_details: { $ref: '#/components/schemas/WebBasicDetails' }
         buttons: 
           type: array
@@ -2855,7 +2892,7 @@ components:
             Time window (in hours) during which the send_limit_value is enforced.
             
             Applicable for location-triggered campaigns.
-        ignore_global_minimum_delay:
+        ignore_minimum_delay:
           type: boolean
           description: |
             Whether to bypass the global minimum delay setting configured at the workspace level.
@@ -2865,19 +2902,30 @@ components:
             for time-sensitive campaigns (for example, transactional or alert-style messages) where
             respecting the global delay would reduce delivery timeliness.
 
-            Applies to event-triggered campaigns.
+            The `ignore_minimum_delay` field applies to all delivery types.
         queuing_enabled:
           type: boolean
           description: |
             Enables message queuing for this campaign. When set to `true`, messages that are temporarily blocked by DND, frequency capping, or minimum delay restrictions are held in a queue and delivered as soon as the restriction clears, rather than being dropped.
 
-            **Supported delivery types:** `ONE_TIME`, `PERIODIC`, `EVENT_TRIGGERED`, `BUSINESS_EVENT_TRIGGERED`. Not applicable to `DEVICE_TRIGGERED` or `LOCATION_TRIGGERED` campaigns.
+            The value must be a boolean. The string `"true"` and the value `null` both fail validation.
+
+            **Supported delivery types:** `ONE_TIME`, `PERIODIC`, `EVENT_TRIGGERED`, `BUSINESS_EVENT_TRIGGERED`. `queuing_enabled` is not part of the `DEVICE_TRIGGERED` or `LOCATION_TRIGGERED` contract. On `DEVICE_TRIGGERED` and `LOCATION_TRIGGERED` campaigns, sending `queuing_enabled` fails validation whatever value the field carries, including `false`.
+
+            **Pairing with `queue_duration`:**
+            - When `queuing_enabled` is `true`, `queue_duration` is required.
+            - When `queuing_enabled` is `false`, `queue_duration` must be omitted.
+            - `queue_duration` cannot be sent without `queuing_enabled`.
 
             **DND interaction:**
             - When `bypass_dnd` is `false` (DND respected): messages blocked during a DND window are queued and delivered once the window passes.
             - When `bypass_dnd` is `true` (DND ignored): queuing applies to frequency capping and minimum delay blocks only.
 
-            **Auto-disabled:** When both `ignore_frequency_capping` and `minimum_delay_between_two_notification_in_hour` are configured to bypass all delivery restrictions, queuing is automatically disabled.
+            **Blocked combinations:** Queuing cannot be enabled when the campaign already bypasses every delivery restriction that queuing would otherwise apply.
+            - On `ONE_TIME`, `PERIODIC`, and `BUSINESS_EVENT_TRIGGERED`: blocked when `ignore_frequency_capping` and `ignore_minimum_delay` are both `true`.
+            - On `EVENT_TRIGGERED`: blocked only when `ignore_frequency_capping` is `true`, `ignore_minimum_delay` is `true`, and `minimum_delay_between_two_notification_in_hour` is `0`. Any non-zero minimum delay leaves queuing available.
+
+            Sending `queuing_enabled: true` in a blocked combination fails validation, and no campaign is created. An omitted flag is not equivalent to a flag set to `true`.
 
             **Queue limits:** Up to 10,000,000 messages for `ONE_TIME`, `PERIODIC`, and `BUSINESS_EVENT_TRIGGERED` campaigns; up to 1,000,000 for `EVENT_TRIGGERED` campaigns.
 
@@ -2885,10 +2933,14 @@ components:
 
         queue_duration:
           type: integer
-          minimum: 0
+          minimum: 1
           maximum: 48
           description: |
-            The duration in hours during which a queued message will be retried for delivery. Accepted range: `1`–`48` hours. Set to `0` when `queuing_enabled` is `false`.
+            The duration in hours during which a queued message is retried for delivery. The accepted range is `1` to `48` hours.
+
+            `queue_duration` is **required** when `queuing_enabled` is `true`, and must be omitted when `queuing_enabled` is `false`. `queue_duration` cannot be sent without `queuing_enabled`.
+
+            Must be a positive whole number. `0`, negative values, decimals such as `1.5`, strings such as `"1"`, and `null` all fail validation.
 
             If a user does not become eligible for delivery within the configured window, the message is dropped and the outcome is recorded in campaign analytics.
 
@@ -3035,10 +3087,21 @@ components:
                   type: string
                   enum: [PASSIVE, ACTIVE, TIME_SENSITIVE, CRITICAL]
                   description: The interruption level for iOS notifications.
-                relevance_score: 
+                relevance_score:
                   type: number
                   enum: [0, 0.5, 1]
                   description: The relevance score for iOS notifications.
+        advanced_targeting:
+          type: boolean
+          description: |
+            Whether to deliver the campaign to users who have opted out of push. A background update carries no visible notification, and therefore does not require push permission.
+
+            The `advanced_targeting` field can be `true` only when every platform, A/B variation, and locale in the campaign uses `template_type: BACKGROUND_UPDATE`. If any platform, variation, or locale uses a different template, the request fails validation, including an update that moves one platform, variation, or locale away from `BACKGROUND_UPDATE` while `advanced_targeting` remains `true`.
+
+            A campaign that mixes `BACKGROUND_UPDATE` with other templates remains valid, but the campaign must send `advanced_targeting: false`.
+
+            The `advanced_targeting` field is the API equivalent of the dashboard option **Send campaign to opted-out users**, under **Background update targeting**.
+          example: true
 
     ConversionGoalDetails:
       type: object
@@ -4745,7 +4808,7 @@ paths:
                   delivery_controls:
                     bypass_dnd: false
                     minimum_delay_between_two_notification_in_hour: 24
-                    ignore_global_minimum_delay: false
+                    ignore_minimum_delay: false
                     limit_send_config:
                       enabled: true
                       max_count: 1
@@ -5067,6 +5130,107 @@ paths:
                                 message: "{{message_es_v2}}"
                   scheduling_details:
                     delivery_type: "ASAP"
+              push_background_update:
+                summary: Push - Background update (Android and iOS)
+                value:
+                  request_id: '{{request_id}}'
+                  channel: PUSH
+                  campaign_delivery_type: ONE_TIME
+                  created_by: '{{user_email}}'
+                  basic_details:
+                    name: Order status background sync
+                    platforms:
+                    - ANDROID
+                    - IOS
+                    platform_specific_details:
+                      ios:
+                        send_to_all_eligible_device: true
+                        exclude_provisional_push_devices: false
+                        send_to_only_provisional_push_enabled_devices: false
+                  campaign_content:
+                    content:
+                      push:
+                        android:
+                          template_type: BACKGROUND_UPDATE
+                          custom_kv_pairs:
+                            order_id: '12345'
+                            status: shipped
+                            qty: 3
+                        ios:
+                          template_type: BACKGROUND_UPDATE
+                          custom_kv_pairs:
+                            order_id: '12345'
+                            status: shipped
+                            qty: 3
+                  scheduling_details:
+                    delivery_type: AT_FIXED_TIME
+                    start_time: '2027-01-15T10:00:00'
+                    timezone: Asia/Kolkata
+                  advanced:
+                    advanced_targeting: true
+              push_one_time_queuing:
+                summary: Push - ONE_TIME with queuing
+                value:
+                  request_id: '{{request_id}}'
+                  channel: PUSH
+                  campaign_delivery_type: ONE_TIME
+                  created_by: '{{user_email}}'
+                  basic_details:
+                    name: Weekend offer
+                    platforms:
+                    - ANDROID
+                  campaign_content:
+                    content:
+                      push:
+                        android:
+                          template_type: BASIC
+                          basic_details:
+                            notification_channel: general
+                            title: Weekend offer
+                            message: <div>20% off this weekend only</div>
+                            default_click_action: DEEPLINKING
+                            default_click_action_value: https://example.com/sale
+                  scheduling_details:
+                    delivery_type: AT_FIXED_TIME
+                    start_time: '2027-01-15T10:00:00'
+                    timezone: Asia/Kolkata
+                  delivery_controls:
+                    campaign_throttle_rpm: 60000
+                    ignore_frequency_capping: false
+                    bypass_dnd: true
+                    ignore_minimum_delay: false
+                    queuing_enabled: true
+                    queue_duration: 12
+              push_event_triggered_queuing:
+                summary: Push - EVENT_TRIGGERED with queuing
+                value:
+                  request_id: '{{request_id}}'
+                  channel: PUSH
+                  campaign_delivery_type: EVENT_TRIGGERED
+                  created_by: '{{user_email}}'
+                  basic_details:
+                    name: Cart abandonment nudge
+                    platforms:
+                    - ANDROID
+                  trigger_condition:
+                    included_filters:
+                      filter_operator: and
+                      filters:
+                      - filter_type: actions
+                        action_name: added_to_cart
+                        execution:
+                          type: atleast
+                          count: 1
+                        executed: true
+                    trigger_delay_type: ASAP
+                  delivery_controls:
+                    ignore_frequency_capping: true
+                    count_for_frequency_capping: true
+                    minimum_delay_between_two_notification_in_hour: 15
+                    bypass_dnd: true
+                    ignore_minimum_delay: true
+                    queuing_enabled: true
+                    queue_duration: 12
       responses:
         '201':
           description: Draft created
@@ -5098,7 +5262,33 @@ paths:
                       status: "DRAFT"
                       campaign_delivery_type: "API_TRIGGERED"
         '400':
-          $ref: '#/components/responses/V5ValidationError'
+          description: Request failed schema or component validation.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/V5ErrorEnvelope' }
+              examples:
+                missing_required_field:
+                  summary: A required field is missing
+                  value:
+                    response_id: "abc-101"
+                    error:
+                      code: VALIDATION_FAILED
+                      message: "One or more fields failed validation."
+                      request_id: "req-push-001"
+                      details:
+                        - target: "campaign_delivery_type"
+                          message: "campaign_delivery_type value is required."
+                queuing_unsupported_delivery_type:
+                  summary: Queuing sent on a device-triggered or location-triggered campaign
+                  value:
+                    response_id: "abc-102"
+                    error:
+                      code: VALIDATION_FAILED
+                      message: "Queuing is not supported for device triggered and location triggered campaigns."
+                      target: "delivery_controls"
+                      details:
+                        - target: "queuing_enabled"
+                          message: "Queuing is not supported for device triggered and location triggered campaigns."
         '401':
           $ref: '#/components/responses/V5Unauthorized'
         '429':
@@ -5739,6 +5929,30 @@ paths:
                     metric: "SENT"
                     frequency: "TOTAL"
                     limit: 100000
+              push_update_background_update_kv:
+                summary: Push - Update background update custom_kv_pairs
+                value:
+                  request_id: '{{request_id}}'
+                  campaign_content:
+                    content:
+                      push:
+                        android:
+                          template_type: BACKGROUND_UPDATE
+                          custom_kv_pairs:
+                            order_id: '12345'
+                            status: delivered
+                            priority: high
+              push_update_delivery_controls_queuing:
+                summary: Push - Enable queuing on a draft
+                value:
+                  request_id: '{{request_id}}'
+                  delivery_controls:
+                    campaign_throttle_rpm: 60000
+                    ignore_frequency_capping: false
+                    bypass_dnd: true
+                    ignore_minimum_delay: false
+                    queuing_enabled: true
+                    queue_duration: 12
       responses:
         '200':
           description: |

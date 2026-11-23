@@ -391,7 +391,7 @@ When locales or A/B test variations are configured, `content` is keyed first by 
 
 `campaign_content.content.push.android` (flat shape) or `content[locale][variation].push.android` (locale/variation shape). Accepted `template_type` values for Android:
 
-`BASIC`, `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`, `IMAGE_BANNER_WITH_TEXT`, `TIMER`, `TIMER_WITH_PROGRESS_BAR`, `Custom`.
+`BASIC`, `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`, `IMAGE_BANNER_WITH_TEXT`, `TIMER`, `TIMER_WITH_PROGRESS_BAR`, `BACKGROUND_UPDATE`, `Custom`.
 
 <Warning>
 `Custom` is mixed case (not `CUSTOM`). Submitting `CUSTOM` fails validation.
@@ -399,7 +399,8 @@ When locales or A/B test variations are configured, `content` is keyed first by 
 
 | Sub-object | Schema | When used |
 | :--- | :--- | :--- |
-| `basic_details` | [Android basic details fields](#android-basic-details-fields) | Always. Title, message, image, click action, and template-specific fields. |
+| `basic_details` | [Android basic details fields](#android-basic-details-fields) | All templates except `BACKGROUND_UPDATE`. Title, message, image, click action, and template-specific fields. |
+| `custom_kv_pairs` | object | **Required** for `BACKGROUND_UPDATE`. See [Android background update fields](#android-background-update-fields). |
 | `timer` | [Android timer fields](#android-timer-fields) | **Required** for `TIMER` and `TIMER_WITH_PROGRESS_BAR`. |
 | `buttons` | array of [Android button fields](#android-button-fields) | Optional. Action buttons. |
 | `advanced` | [Android advanced fields](#android-advanced-fields) | Optional. TTL, sticky/dismiss behavior, group key. |
@@ -642,6 +643,32 @@ References a Push template created in the MoEngage dashboard's Custom Template l
 `custom_template_id` is required. `custom_template_version` is optional. When omitted, the latest published version is used.
 
 </Tab>
+<Tab title="BACKGROUND_UPDATE">
+
+The `BACKGROUND_UPDATE` template sends a silent notification that displays nothing to the user. The payload in `custom_kv_pairs` is passed to your app to act on. See [Android background update fields](#android-background-update-fields) for the complete set of rules.
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "BACKGROUND_UPDATE",
+          "custom_kv_pairs": {
+            "order_id": "12345",
+            "status": "shipped",
+            "qty": 3
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+`custom_kv_pairs` is required. The `basic_details`, `buttons`, `advanced`, and `template_backup` objects are not used with `BACKGROUND_UPDATE`.
+
+</Tab>
 </Tabs>
 
 ### Android basic details fields
@@ -668,9 +695,9 @@ References a Push template created in the MoEngage dashboard's Custom Template l
 | `banner_image_url` | URI | **Required** for `IMAGE_BANNER_WITH_TEXT`. |
 | `collapsed_push_notification` | string | `IMAGE_BANNER_WITH_TEXT`. Configuration for the collapsed view. |
 | `image_scaling` | enum | `SIMPLE_IMAGE_CAROUSEL`, `IMAGE_BANNER_WITH_TEXT`. `FIT_INSIDE_IMAGE_CONTAINER` or `FILL_IMAGE_CONTAINER`. |
-| `carousel_content` | object | **Required** for `SIMPLE_IMAGE_CAROUSEL`. See [Android carousel content](#android-carousel-content). |
+| `carousel_content` | object | **Required** for `SIMPLE_IMAGE_CAROUSEL`. See [Android carousel content fields](#android-carousel-content-fields). |
 
-#### Android carousel content
+### Android carousel content fields
 
 Configuration for the image carousel used by `SIMPLE_IMAGE_CAROUSEL` on Android.
 
@@ -681,6 +708,67 @@ Configuration for the image carousel used by `SIMPLE_IMAGE_CAROUSEL` on Android.
 | `slide_data[].image_click_action` | enum | `DEEPLINKING`, `RICH_LANDING`, or `NAVIGATE_TO_A_SCREEN`. |
 | `slide_data[].image_click_action_value` | string | **Required** when `image_click_action` is provided. |
 | `slide_data[].key_value_pairs` | array of `{ key, value }` | Optional per-slide custom payload keys. |
+
+### Android background update fields
+
+`BACKGROUND_UPDATE` is a silent push that displays nothing to the recipient. The notification carries only custom key-value pairs, which the MoEngage SDK passes to your app to act on in the background, for example to sync an order status, refresh a cached catalog, or start an in-app flow. Because your app determines how to process the payload, the template is known as self-handled.
+
+Set `template_type` to `BACKGROUND_UPDATE` and send the payload in `custom_kv_pairs`. The objects that carry a visible notification are not used: `basic_details` (and therefore `title`, `message`, and `default_click_action`), `buttons`, the platform-level `advanced`, and `template_backup`.
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `custom_kv_pairs` | object | **Required** for `BACKGROUND_UPDATE`. The payload delivered to your app, as one or more key-value pairs. |
+
+The template is available on `ONE_TIME`, `PERIODIC`, and `EVENT_TRIGGERED` campaigns only, the same three delivery types that offer it on the dashboard. Every campaign structure is supported: single content, A/B variations, multiple locales, and locales combined with variations. The `BACKGROUND_UPDATE` content sits under the variation, the locale, or both, exactly as any other template does, and templates can be mixed across platforms, variations, and locales.
+
+The following rules apply to keys:
+
+- A key is required and cannot be empty or only whitespace.
+- A key must be a plain string. JSON objects are rejected.
+- A key does not support personalization.
+- A key cannot be reserved.
+- Multiple pairs can be added to the same variation or locale.
+
+The MoEngage Android SDK reserves `push_from`, `gcm_campaign_id`, `moe_app_id`, `moe_cid_attr`, `moe_push_source`, and `shownOffline`, along with any key beginning with `moe` in any letter case, so `moe_sync` and `MOEsync` are both rejected. A campaign that sends a reserved key in `custom_kv_pairs` is rejected.
+
+The following rules apply to values:
+
+- A value is required and cannot be empty, only whitespace, or `null`.
+- A value can be up to 1048 characters. 1048 is accepted; 1049 is rejected.
+- A value can be a string, number, boolean, or JSON, including nested JSON.
+- A value supports personalization, including personalization inside a JSON value.
+
+<Note>
+On Android, a JSON value must be sent as a stringified value, with the JSON escaped inside a string. See `order` and `address` in the following example. Sending a raw JSON object as an Android value is rejected.
+</Note>
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "BACKGROUND_UPDATE",
+          "custom_kv_pairs": {
+            "order_id": "12345",
+            "qty": 5,
+            "in_stock": true,
+            "order": "{\"id\": 99, \"region\": \"us-west\"}",
+            "customer_name": "{{UserAttribute['First Name']|default('there')}}",
+            "address": "{\"name\": \"{{UserAttribute['First Name']|default('there')}}\", \"city\": \"{{UserAttribute['City']|default('Unknown')}}\"}"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+A draft can be created with an empty `custom_kv_pairs` object, but validating or publishing the draft fails. Add at least one pair before you validate the campaign.
+
+To add or change key-value pairs on an existing draft, send the complete set in `PATCH /v5/campaigns/{campaign_id}`, including the pairs already saved. Keys omitted from the request are not retained.
+
+A background update carries no visible notification, and therefore does not require the recipient's push permission. To deliver the campaign to users who have opted out of push, set `advanced_targeting` to `true` in the campaign-level `advanced` object, which sits beside `campaign_content` in the request body rather than inside the platform content. See [Background update targeting](/api/campaigns/audience-scheduling-delivery-reference#background-update-targeting) for the rule that governs when the field can be `true`.
 
 ### Android timer fields
 
@@ -742,7 +830,7 @@ Each entry in `buttons` is an `AndroidButton`.
 
 `campaign_content.content.push.ios`. Accepted `template_type` values for iOS:
 
-`BASIC`, `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`, `Custom`.
+`BASIC`, `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`, `BACKGROUND_UPDATE`, `Custom`.
 
 <Warning>
 iOS does **not** support `IMAGE_BANNER_WITH_TEXT`, `TIMER`, or `TIMER_WITH_PROGRESS_BAR`. Submitting any of these for iOS fails validation.
@@ -750,7 +838,8 @@ iOS does **not** support `IMAGE_BANNER_WITH_TEXT`, `TIMER`, or `TIMER_WITH_PROGR
 
 | Sub-object | Schema | When used |
 | :--- | :--- | :--- |
-| `basic_details` | [iOS basic details fields](#ios-basic-details-fields) | Always. |
+| `basic_details` | [iOS basic details fields](#ios-basic-details-fields) | All templates except `BACKGROUND_UPDATE`. |
+| `custom_kv_pairs` | object | **Required** for `BACKGROUND_UPDATE`. See [iOS background update fields](#ios-background-update-fields). |
 | `buttons` | array of [iOS button fields](#ios-button-fields) | Optional. iOS button categories. |
 | `advanced` | [iOS advanced fields](#ios-advanced-fields) | Optional. Custom sound, badge, group key. |
 | `template_backup` | [iOS template backup fields](#ios-template-backup-fields) | **Required** for `STYLIZED_BASIC` and `SIMPLE_IMAGE_CAROUSEL`. |
@@ -871,6 +960,35 @@ Optional rich media: `rich_media_type` (`Image`, `Video`, or `GIF`, in title cas
 `custom_template_id` is required.
 
 </Tab>
+<Tab title="BACKGROUND_UPDATE">
+
+The `BACKGROUND_UPDATE` template sends a silent notification that displays nothing to the user. The payload in `custom_kv_pairs` is passed to your app to act on. See [iOS background update fields](#ios-background-update-fields) for the complete set of rules.
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "ios": {
+          "template_type": "BACKGROUND_UPDATE",
+          "custom_kv_pairs": {
+            "order_id": "12345",
+            "status": "shipped",
+            "meta": {
+              "region": "us-west",
+              "priority": 1
+            }
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+`custom_kv_pairs` is required. The `basic_details`, `buttons`, `advanced`, and `template_backup` objects are not used with `BACKGROUND_UPDATE`.
+
+</Tab>
 </Tabs>
 
 ### iOS basic details fields
@@ -890,9 +1008,9 @@ Optional rich media: `rich_media_type` (`Image`, `Video`, or `GIF`, in title cas
 | `image_url` | URI | All. **Required** when `template_type` is `SIMPLE_IMAGE_CAROUSEL`. |
 | `background_color_code` | hex string | `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`. |
 | `apply_background_color_in_text_editor` | boolean | `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`. |
-| `carousel_content` | object | **Required** for `SIMPLE_IMAGE_CAROUSEL`. See [iOS carousel content](#ios-carousel-content). |
+| `carousel_content` | object | **Required** for `SIMPLE_IMAGE_CAROUSEL`. See [iOS carousel content fields](#ios-carousel-content-fields). |
 
-#### iOS carousel content
+### iOS carousel content fields
 
 | Field | Type | Notes |
 | :--- | :--- | :--- |
@@ -901,6 +1019,62 @@ Optional rich media: `rich_media_type` (`Image`, `Video`, or `GIF`, in title cas
 | `slide_data[].image_click_action` | enum | `DEEPLINKING`, `RICH_LANDING`, or `NAVIGATE_TO_A_SCREEN`. |
 | `slide_data[].image_click_action_value` | string | The target for the slide click. |
 | `slide_data[].key_value_pairs` | array of `{ key, value }` | Per-slide custom payload keys. |
+
+### iOS background update fields
+
+`BACKGROUND_UPDATE` is a silent push that displays nothing to the recipient. The notification carries only custom key-value pairs, which the MoEngage SDK passes to your app to act on in the background, for example to sync an order status, refresh a cached catalog, or start an in-app flow. Because your app determines how to process the payload, the template is known as self-handled.
+
+Set `template_type` to `BACKGROUND_UPDATE` and send the payload in `custom_kv_pairs`. The objects that carry a visible notification are not used: `basic_details` (and therefore `title`, `message`, and `default_click_action`), `buttons`, the platform-level `advanced`, and `template_backup`.
+
+| Field | Type | Notes |
+| :--- | :--- | :--- |
+| `custom_kv_pairs` | object | **Required** for `BACKGROUND_UPDATE`. The payload delivered to your app, as one or more key-value pairs. |
+
+The template is available on `ONE_TIME`, `PERIODIC`, and `EVENT_TRIGGERED` campaigns only, the same three delivery types that offer it on the dashboard. Every campaign structure is supported: single content, A/B variations, multiple locales, and locales combined with variations. The `BACKGROUND_UPDATE` content sits under the variation, the locale, or both, exactly as any other template does, and templates can be mixed across platforms, variations, and locales. The iOS device-permission options in `basic_details.platform_specific_details.ios` apply to `BACKGROUND_UPDATE` exactly as to any other push template.
+
+The following rules apply to keys:
+
+- A key is required and cannot be empty or only whitespace.
+- A key must be a plain string. JSON objects are rejected.
+- A key does not support personalization.
+- A key cannot be reserved.
+- Multiple pairs can be added to the same variation or locale.
+
+The MoEngage iOS SDK reserves `moengage`, `moeFeatures`, `app_extra`, and `aps`, along with any key beginning with `moe` in any letter case, so `moe_app_id` and `MOEsync` are both rejected. A campaign that sends a reserved key in `custom_kv_pairs` is rejected.
+
+The following rules apply to values:
+
+- A value is required and cannot be empty, only whitespace, or `null`.
+- A value can be up to 1048 characters. 1048 is accepted; 1049 is rejected.
+- A value can be a string, number, boolean, or JSON, including nested JSON. Unlike Android, iOS accepts a raw JSON object as a value.
+- A value supports personalization, including personalization inside a JSON value.
+
+```json
+{
+  "campaign_content": {
+    "content": {
+      "push": {
+        "ios": {
+          "template_type": "BACKGROUND_UPDATE",
+          "custom_kv_pairs": {
+            "order_id": "12345",
+            "qty": 5,
+            "in_stock": true,
+            "order": { "id": 99, "region": "us-west" },
+            "customer_name": "{{UserAttribute['First Name']|default('there')}}"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+A draft can be created with an empty `custom_kv_pairs` object, but validating or publishing the draft fails. Add at least one pair before you validate the campaign.
+
+To add or change key-value pairs on an existing draft, send the complete set in `PATCH /v5/campaigns/{campaign_id}`, including the pairs already saved. Keys omitted from the request are not retained.
+
+A background update carries no visible notification, and therefore does not require the recipient's push permission. To deliver the campaign to users who have opted out of push, set `advanced_targeting` to `true` in the campaign-level `advanced` object, which sits beside `campaign_content` in the request body rather than inside the platform content. See [Background update targeting](/api/campaigns/audience-scheduling-delivery-reference#background-update-targeting) for the rule that governs when the field can be `true`.
 
 ### iOS button fields
 
@@ -939,6 +1113,10 @@ Required for `STYLIZED_BASIC` and `SIMPLE_IMAGE_CAROUSEL`.
 ## Web push content
 
 `campaign_content.content.push.web`. Web push currently supports only `template_type: BASIC`.
+
+<Warning>
+Web does not support `BACKGROUND_UPDATE`. Sending `BACKGROUND_UPDATE` for Web fails validation. A campaign can still target all three platforms by setting Android and iOS to `BACKGROUND_UPDATE` and Web to `BASIC`, as in [Mixing background update with Web](#mixing-background-update-with-web).
+</Warning>
 
 <CodeGroup>
 
@@ -1029,6 +1207,45 @@ Each entry in `buttons` is a `WebButton`.
 | :--- | :--- | :--- |
 | `icon_image_type` | enum | `DEFAULT` or `ICON_URL`. |
 | `icon_url` | URI | The custom icon URL. Required when `icon_image_type` is `ICON_URL`. |
+
+### Mixing background update with Web
+
+Android and iOS support `BACKGROUND_UPDATE`; Web does not. To reach all three platforms in one campaign, send `BACKGROUND_UPDATE` on Android and iOS and `BASIC` on Web. A campaign that mixes templates this way must send `advanced.advanced_targeting` as `false`.
+
+```json Three platforms, Web on BASIC
+{
+  "basic_details": {
+    "platforms": ["ANDROID", "IOS", "WEB"]
+  },
+  "campaign_content": {
+    "content": {
+      "push": {
+        "android": {
+          "template_type": "BACKGROUND_UPDATE",
+          "custom_kv_pairs": { "order_id": "12345" }
+        },
+        "ios": {
+          "template_type": "BACKGROUND_UPDATE",
+          "custom_kv_pairs": { "order_id": "12345" }
+        },
+        "web": {
+          "template_type": "BASIC",
+          "basic_details": {
+            "title": "Your order has shipped",
+            "message": "Track it in the app.",
+            "redirect_url": "https://example.com/orders/12345"
+          }
+        }
+      }
+    }
+  },
+  "advanced": {
+    "advanced_targeting": false
+  }
+}
+```
+
+For the full set of rules, see [Android background update fields](#android-background-update-fields) and [iOS background update fields](#ios-background-update-fields).
 
 ## Email content
 
@@ -1586,8 +1803,12 @@ The following rules span multiple sub-objects on this page. Each is enforced at 
 | Rule | Source |
 | :--- | :--- |
 | For Push `template_type: Custom`, `custom_template_id` is required (Android, iOS). | `AndroidPushContent.custom_template_id`, `IOSPushContent.custom_template_id` |
-| iOS supports only `BASIC`, `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`, and `Custom`. Submitting `IMAGE_BANNER_WITH_TEXT`, `TIMER`, or `TIMER_WITH_PROGRESS_BAR` for iOS fails. | `IOSPushContent.template_type` enum |
-| Web push supports only `BASIC`. | `WebPushContent.template_type` enum |
+| iOS supports only `BASIC`, `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`, `BACKGROUND_UPDATE`, and `Custom`. Submitting `IMAGE_BANNER_WITH_TEXT`, `TIMER`, or `TIMER_WITH_PROGRESS_BAR` for iOS fails. | `IOSPushContent.template_type` enum |
+| Web push supports only `BASIC`. Sending `BACKGROUND_UPDATE` for Web fails. | `WebPushContent.template_type` enum |
+| `BACKGROUND_UPDATE` is available on `ONE_TIME`, `PERIODIC`, and `EVENT_TRIGGERED` campaigns only. | [Android background update fields](#android-background-update-fields), [iOS background update fields](#ios-background-update-fields) |
+| For `BACKGROUND_UPDATE`, `custom_kv_pairs` keys and values must follow the key and value rules, and on Android a JSON value has to be stringified. | [Android background update fields](#android-background-update-fields), [iOS background update fields](#ios-background-update-fields) |
+| For `BACKGROUND_UPDATE`, an empty `custom_kv_pairs` object can be saved as a draft, but validating or publishing the draft fails. At least one pair is required. | [Android background update fields](#android-background-update-fields), [iOS background update fields](#ios-background-update-fields) |
+| `advanced.advanced_targeting` can be `true` only when every platform, A/B variation, and locale in the campaign uses `BACKGROUND_UPDATE`. | `AdvancedDetails.advanced_targeting` |
 | For Android `STYLIZED_BASIC`, `SIMPLE_IMAGE_CAROUSEL`, `IMAGE_BANNER_WITH_TEXT`, `TIMER`, and `TIMER_WITH_PROGRESS_BAR`, `template_backup` is required. | `AndroidTemplateBackup` description |
 | For iOS `STYLIZED_BASIC` and `SIMPLE_IMAGE_CAROUSEL`, `template_backup` is required. | `IOSTemplateBackup` description |
 | For Android `IMAGE_BANNER_WITH_TEXT`, `banner_image_url` is required. | `AndroidBasicDetails.banner_image_url` |
