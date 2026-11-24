@@ -25,7 +25,7 @@ With HTML editor, you can perform the following actions:
 ### Add HTML Code
 
 <Info>
-  If you have turned on the **Auto-format HTML code** toggle in the [Email settings](/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel#general-settings-tab), Custom HTML editor of MoEngage performs some actions in the HTML templates. This offers a significant advantage through automatic HTML cleanup, ensuring semantic correctness and reliable rendering across browsers. For more information on these actions, refer to [Automatic Edits MoEngage Performs on an HTML Template](/user-guide/campaigns-and-channels/email/faqs-email/what-are-the-auto-formats-moengage-performs-on-an-html-template-added-in-the-moengage-email-editor-custom-html-editor).
+  If you have turned on the **Auto-format HTML code** toggle in the [Email settings](/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel#general-settings-tab), Custom HTML editor of MoEngage performs some actions in the HTML templates. This offers a significant advantage through automatic HTML cleanup, ensuring semantic correctness and reliable rendering across browsers. For more information on these actions, refer to [How MoEngage Formats Your HTML](#how-moengage-formats-your-html).
 </Info>
 
 You can add an HTML code that you have prepared previously or create it with the editor. The editor supports the following editor tools to create HTML code:
@@ -39,6 +39,61 @@ You can add an HTML code that you have prepared previously or create it with the
 <Warning>
 Do not embed base64-encoded image data in your HTML (for example, `<img src="data:image/png;base64,...">`) or paste it into a link or URL field. Reference images with a hosted URL or upload them instead. A large base64 image can exceed the message-size limit during sending and cause the campaign to fail silently, with a Sent count of 0.
 </Warning>
+
+### How MoEngage Formats Your HTML
+
+MoEngage applies some edits to every HTML template in the Custom HTML Editor, and applies more edits when the **Auto-format HTML code** toggle is turned on in the **General Settings** of Email.
+
+#### Edits MoEngage Always Applies
+
+MoEngage applies the following edits regardless of the **Auto-format HTML code** toggle:
+
+- **Head and meta tags**: If your HTML contains a `<head>` tag, MoEngage adds meta tags inside it. If there is no `<head>` tag, MoEngage adds one with the following meta tags:
+
+  ```html Inserted Head and Meta Tags wrap
+  <head><meta charset="utf-8" content="text/html" http-equiv="Content-Type"/><meta content="noindex, nofollow, noarchive" name="robots"/><meta content="noindex, nofollow, noarchive" name="googlebot"/></head>
+  ```
+
+- **View in browser (VIB) link**: MoEngage adds the VIB link with the required styling:
+
+  ```html View in Browser Link wrap
+  <p style="text-align:center;"><a href="https://example-tracking-domain.com/v1/emailview?q=ENCODED_TRACKING_TOKEN&amp;event_date=2025-07-11&amp;event_time=1752206312" id="moe_internal_email_vib">View in browser</a></p>
+  ```
+
+- **Open tracking pixel**: MoEngage inserts an open tracking pixel with the required styling:
+
+  ```html Open Tracking Pixel wrap
+  <img src="https://example-tracking-domain.com/v1/emailopen?q=ENCODED_TRACKING_TOKEN" alt="" style="display:none;width:1px;height:1px;" height="1" width="1">
+  ```
+
+- **HTML tag correction**: MoEngage uses a backend library (BeautifulSoup) to correct incomplete or malformed HTML tags:
+  - If an opening tag has no matching closing tag, MoEngage adds the closing tag. For example, MoEngage changes this HTML:
+
+    ```html Original HTML wrap
+    <!DOCTYPE html> <html> <body> <h1>My First Heading</h1> <strong>test 123 <p>My first paragraph
+    ```
+
+    to this HTML:
+
+    ```html Corrected HTML wrap
+    <!DOCTYPE html> <html> <body> <h1>My First Heading</h1> <strong>test 123 </strong><p>My first paragraph</p></body></html>
+    ```
+
+  - An empty `<b />` tag, which is not valid HTML, becomes a `<b></b>` tag pair. For example, `<a><b /></a>` becomes `<a><b></b></a>`.
+  - A closing tag without a matching opening tag is ignored entirely, or corrected if possible. For example, `<a></p>` becomes `<a></a>`.
+
+#### Edits That Depend on the Auto-Format HTML Code Toggle
+
+MoEngage applies the following edits only if you turn on the **Auto-format HTML code** toggle in the **General Settings** of Email. For more information, refer to [Configure Email Channel](/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel).
+
+- Removes empty tags, unless they are listed in _htmlAllowedEmptyTags_.
+- Normalizes whitespace and removes unnecessary or trailing spaces.
+- Inserts `<br>` where it is structurally required for visual breaks.
+- Sanitizes lists and tables, for example, by inserting `<tbody>` inside `<table>`.
+- Cleans up redundant `<br>` or `<div>` tags.
+- Converts deprecated or invalid tags and attributes to HTML5 standards.
+- Removes invalid or unknown attributes based on the editor configuration.
+- Fixes nested structures that do not comply with HTML rules.
 
 ### Known Editor Behavior: HTML Attribute Casing and Inline SVG
 
@@ -81,10 +136,14 @@ You can craft your email content by uploading a ZIP file (containing an HTML fil
 To upload a ZIP file, make sure to follow the specifications below:
 
 - Limit your file size to 5 MB.
-- The file name should not contain any special characters (such as  \*, / , , & ,~, ").
+- The file name should not contain any of the following characters: `*`, `/`, `&`, `~`, or `"`.
 - The ZIP file should contain only one HTML file with inlined CSS. If you see an error regarding the file name, ensure that there is only one HTML file.
 - Make sure the images are in the JPG, JPEG, PNG, or GIF formats.
 - All images should be located on the relative path mentioned in HTML (with case sensitivity). If you encounter an error regarding the image location, ensure that all images are placed in the correct folders inside the ZIP.
+- Make sure the HTML is error-free. Every opening tag needs a closing tag, for example `<div><p>contents</p></div>`, and every CSS class needs its closing brace.
+- If the upload fails with the error _Oh snap! Zip upload failed. Please contact our support team._, check the ZIP file against each of these specifications.
+
+  <img alt="Upload Zip Template dialog with the Zip upload failed error message highlighted" src="/images/moengage_26821b.png" />
 
 ### Steps to Upload an Email Template in ZIP Format
 
@@ -126,6 +185,13 @@ For further assistance, please contact your MoEngage Customer Success Manager (C
 ### Fonts
 
 - Custom or branded web fonts (Google Fonts, `@import`, etc.) will not render in most inbox clients — this is an email-client limitation, not a MoEngage gap. Custom fonts only display in "View in Browser," and the font `<link>`/`@import` must be added manually for View in Browser to pick it up. Design with web-safe fonts and a solid fallback stack for the inbox itself.
+- If a font is not supported in the recipient's inbox, the email client uses its own fallback fonts, so the font in the sent email can differ from the font you used while composing it. To control the fallback sequence, set the `font-family` property with your preferred web-safe fonts. In the following example, _Noto Sans_ is the primary font. If the recipient's email client does not support _Noto Sans_, it falls back to _Arial_, and then to _sans-serif_:
+
+  ```html Font Fallback Sequence wrap
+  <p style="font-family: 'Noto Sans', Arial, sans-serif;">This is sample text.</p>
+  ```
+
+  To upload your own fonts and configure fallback fonts from the dashboard instead of editing HTML, refer to [Custom Fonts](/user-guide/campaigns-and-channels/email/getting-started-with-email/custom-fonts).
 
 ### Editor Behavior Quirks
 

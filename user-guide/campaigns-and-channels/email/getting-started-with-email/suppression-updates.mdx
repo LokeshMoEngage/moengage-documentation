@@ -131,6 +131,72 @@ To ensure your subscription list is imported correctly, your CSV file must follo
 - If self-serve for email onboarding is enabled for your workspace, you can manage the suppression as described [here](/user-guide/campaigns-and-channels/email/getting-started-with-email/self-service-for-email-onboarding#manage-email-suppression).
 - If self-serve for email onboarding is not enabled for your workspace, you can manage the suppression as described [here](/user-guide/campaigns-and-channels/email/getting-started-with-email/configure-email-channel#subscription-management-tab). 
 
+# Segment Users Who Bounced, Complained, or Unsubscribed
+
+To isolate users for suppression, list hygiene, or investigating a spike in complaints, create a **User behavior** segment based on the email event that matches the user group:
+
+| User group | Event to select | When MoEngage tracks it |
+| --- | --- | --- |
+| Hard bounces | **Email Bounced** | MoEngage detects that the recipient's email address does not exist. |
+| Soft bounces | **Email Soft Bounced** | A temporary delivery issue prevents delivery. |
+| Spam complaints | **Email Spam Complained** | The user reports one of your emails as spam. |
+| Unsubscribes | **Email Unsubscribed** | The user unsubscribes from your emails. |
+
+MoEngage tracks hard bounces and soft bounces uniquely for each user, based on the user ID.
+
+## Create the Segment
+
+1. **(Optional)** To find users affected by a specific campaign, open the campaign's analytics page and copy its **Campaign ID**.
+
+   <img alt="Email campaign analytics page with the Campaign ID and the Bounced metric highlighted" src="/images/moengage_b1296e.png" />
+
+2. On the sidebar menu in MoEngage, hover over **Segment** and click **Create New**. The **Create segment** page appears.
+3. Select **Filter users by**, then click the **User behavior** tab.
+4. Leave the condition as **Has Executed**, then select the event from the event dropdown, such as **Email Spam Complained**.
+
+   ![Create segment page with User behavior tab selected and the Email Spam Complained event chosen](/images/segment-email-spam-complained.png)
+
+5. Set how many times and over what period the event occurred:
+   - Choose a frequency comparator, such as **at least**, and enter the number of times, such as **1**.
+   - Choose a time window, such as **in the last 3 days**. Increase the window to capture events further back.
+6. **(Optional)** Narrow the segment to a specific campaign or condition:
+   - Click **+ Attributes**.
+   - Select an attribute, such as **Readable Campaign Id**, from the dropdown.
+   - Set the condition, such as **is**, and search for or select the value, such as the campaign ID you copied, in the **Select Option** field. The match is case-insensitive.
+7. **(Optional)** Refine the segment further:
+   - Click **+ Filter** to add another condition, and combine the conditions with **AND** or **OR**.
+   - Select **Exclude Users** to use this as an exclusion rule instead of an inclusion rule, for example, to exclude spam complainers from a campaign's target audience.
+   - Click **+ Nested Filter** to group conditions.
+8. Click **Show count** to preview how many users match the segment.
+9. Name and save the segment.
+
+The event dropdown also lists **Email Resubscribed**, **Email Subscription Category Updated**, **Email Unsubscribe Drop**, and **Email Opt-in Status Updated**. Use these to build segments around re-engagement or preference changes instead of suppression.
+
+![Event dropdown open, showing Email Unsubscribed and other available email events](/images/segment-email-unsubscribed-event-list.png)
+
+To export the users in the segment or access their user profiles, refer to [User Data Exports](/user-guide/analyze/analytics/user-data-exports).
+
+## Combine Hard and Soft Bounces
+
+To find every user whose email bounced, add one filter for **Email Bounced** and another for **Email Soft Bounced**, and set the condition between them to **OR** instead of **AND**.
+
+For example, the following segment combines two filters, each with **Readable Campaign Id** matching the same campaign ID:
+
+- The first filter finds users who had at least one hard bounce in the last 30 days.
+- The second filter finds users who had at least one soft bounce in the last 30 days.
+
+<img alt="Segment with Email Bounced and Email Soft Bounced filters joined by the OR condition" src="/images/moengage_b7f1ca.png" />
+
+The resulting segment includes users who had either a hard bounce or a soft bounce for that campaign in the last 30 days.
+
+<img alt="Segmentation query result for users who had a hard or soft bounce for one campaign" src="/images/moengage_d44746.png" />
+
+## Uses for These Segments
+
+- **Suppression and list hygiene**: Use the segment with **Exclude Users** to keep recent spam complainers, bounces, or unsubscribes out of upcoming campaigns.
+- **Root-cause investigation**: Narrow by **Readable Campaign Id** to check whether complaints are concentrated around a specific send, so you can review its content, frequency, or targeting.
+- **Compliance reporting**: Track complaint volume over a rolling window, such as the last 3, 7, or 30 days, to monitor whether your complaint rate is trending toward mailbox provider thresholds.
+
 # FUP Limits
 
 To maintain system stability and prevent excessive load on the Suppression Management service, the following constraints are enforced at the workspace level:
@@ -187,4 +253,4 @@ To maintain system stability and prevent excessive load on the Suppression Manag
   <Accordion title="How can I audit changes made in Suppression Management?">
     To ensure complete traceability, all modifications are automatically recorded in your [Audit Logs](/user-guide/settings/account/audit-logs/audit-logs#email-suppression-updates).
   </Accordion>
-</AccordionGroup>  
+</AccordionGroup>

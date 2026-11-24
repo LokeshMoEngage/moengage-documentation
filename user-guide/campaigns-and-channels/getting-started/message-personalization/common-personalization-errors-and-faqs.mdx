@@ -44,6 +44,35 @@ Consider a scenario where you have personalized both the template and backup not
 
 To avoid this issue, make sure that you add a personalization backup to your messages.
 
+### Custom Attribute Shares a Name With a MoEngage Tracked Attribute
+
+If a custom attribute has the same readable name as a MoEngage tracked attribute, personalization based on that name resolves to the MoEngage tracked attribute, not to the custom attribute. If the MoEngage tracked attribute does not exist for the users in the target segment, personalization fails and MoEngage removes those users from the campaign.
+
+For example, an email campaign uses the following personalization code, intending to read a custom attribute named _First Name_:
+
+```text Personalization Code
+{{UserAttribute['First Name']|default('MOE_NOT_SEND')}}
+```
+
+Because the custom attribute and the MoEngage tracked attribute are both named _First Name_, the personalization looks up the MoEngage tracked attribute. That attribute did not exist for any user in the target segment, so every targeted user was removed due to personalization failure.
+
+![Campaign delivery breakdown showing all targeted users removed due to personalization failure and 0 emails sent](/images/personalization-failure-email.png)
+
+To avoid this, do not track custom attributes with the same names as MoEngage tracked attributes, because these names are reserved. MoEngage still tracks the data on the user profile, but personalization based on these attributes fails. The MoEngage tracked attributes are:
+
+- Name
+- First Name
+- Last Name
+- Birthday
+- Gender
+- Location
+- Mobile Number (Standard)
+- Email (Standard)
+- ID
+- Advertising Identifier
+
+For the keys reserved for user attributes, refer to [Reserved Keywords for User Attributes](/api/data/data-overview#reserved-keywords-for-user-attributes).
+
 ## Internal Errors
 
 MoEngage internal system generates a few errors, which apply to Push messages sent to all platforms.
