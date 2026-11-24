@@ -22,6 +22,8 @@ security:
 paths:
   /emails/v1.0/bulk-resubscribe:
     post:
+      security:
+        - Basic Auth (Legacy Data key): []
       tags:
         - Resubscribe
       summary: Bulk Resubscribe Users
@@ -45,7 +47,7 @@ paths:
           schema:
             type: string
           description: |
-            This is the Workspace ID of your MoEngage account that must be passed with the request. You can find it in the MoEngage dashboard at **Settings** > **Account** > **APIs** > **Workspace ID (earlier app id)**.
+            This is the Workspace ID of your MoEngage account that must be passed with the request. You can find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
           example: 'YOUR_WORKSPACE_ID'
         - name: MOE-PROJECT-CODE
           in: header
@@ -211,6 +213,9 @@ paths:
 
   /v1.0/opt-in-management/user-preferences:
     put:
+      security:
+        - Basic Auth (Email Double Opt-in): []
+        - OAuth 2.0 (Email Double Opt-in): []
       tags:
         - Opt-in Management
       summary: Update User Email Opt-in Preferences
@@ -234,7 +239,7 @@ paths:
           schema:
             type: string
           description: |
-            This is the Workspace ID of your MoEngage account that must be passed with the request. You can find it in the MoEngage dashboard at **Settings** > **Account** > **APIs** > **Workspace ID (earlier app id)**.
+            This is the Workspace ID of your MoEngage account that must be passed with the request. You can find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
           example: 'YOUR_WORKSPACE_ID'
         - name: MOE-PROJECT-CODE
           in: header
@@ -435,16 +440,44 @@ paths:
 
 components:
   securitySchemes:
+    Basic Auth (Email Double Opt-in):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Data APIs** group and its **Email Double Opt-in** scope. The legacy **Data** key (auth type **Basic Auth (Legacy)**) also works.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    OAuth 2.0 (Email Double Opt-in):
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Send an OAuth 2.0 access token as `Bearer <access_token>`.
+
+        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Data APIs** group and its **Email Double Opt-in** scope. Then exchange the key for an access token. OAuth 2.0 must be enabled for your workspace. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+    Basic Auth (Legacy Data key):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: The legacy **Data** key from **Settings** > **Account** > **API keys** (auth type **Basic Auth (Legacy)**). This endpoint accepts only this legacy key, so a key you create with **+ Create new key** doesn't work with it.
+
+        For the key that each MoEngage API accepts, refer to [API Keys by Feature](/api/introduction#api-keys-by-feature).
     basicAuth:
       type: http
       scheme: basic
       description: |
         Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format 'username:password'.
 
-        - **Username**: Use your MoEngage workspace ID (also known as the App ID). You can find it in the MoEngage dashboard at **Settings** > **Account** > **APIs** > **Workspace ID (earlier app id)**.
-        - **Password**: Use your API Key, which you can find within the **Data** tile.
+        - **Username**: Use your MoEngage workspace ID (also known as the App ID). You can find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
+        - **Password**: Use the **Data** key from **Settings** > **Account** > **API keys**. Its auth type is **Basic Auth (Legacy)**. Bulk Resubscribe Users accepts only this legacy key. Update User Email Opt-in Preferences also accepts a new API key: [generate a new API key](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#create-a-key) and select the **Data APIs** - **Email Double Opt-in** scope under **Create new key**.
 
-        For more information on authentication and getting your credentials, refer [here](https://www.moengage.com/docs/api/introduction#getting-your-credentials).
+        For the key that each MoEngage API accepts, refer to [API Keys by Feature](/api/introduction#api-keys-by-feature).
   schemas:
     # Resubscribe Schemas
     ResubscribeRequest:

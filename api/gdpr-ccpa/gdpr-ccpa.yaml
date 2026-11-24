@@ -20,6 +20,9 @@ security:
 paths:
   /opengdpr_requests/{appId}:
     post:
+      security:
+        - Basic Auth: []
+        - OAuth 2.0: []
       tags:
         - GDPR
       summary: Submit a GDPR / CCPA Data Request
@@ -47,7 +50,7 @@ paths:
           schema:
             type: string
           description: |
-            This is the Workspace ID of your MoEngage account that must be passed with the request. You can find it in the MoEngage dashboard at **Settings** > **Account** > **APIs** > **Workspace ID (earlier app id)**.
+            This is the Workspace ID of your MoEngage account that must be passed with the request. You can find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
           example: 'YOUR_WORKSPACE_ID'
       requestBody:
         description: |
@@ -166,16 +169,34 @@ paths:
                 $ref: '#/components/schemas/GdprError500Response'
 components:
   securitySchemes:
+    Basic Auth:
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Data APIs** group and its **GDPR Delete** scope. The legacy **Data** key (auth type **Basic Auth (Legacy)**) also works.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    OAuth 2.0:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Send an OAuth 2.0 access token as `Bearer <access_token>`.
+
+        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Data APIs** group and its **GDPR Delete** scope. Then exchange the key for an access token. OAuth 2.0 must be enabled for your workspace. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
     basicAuth:
       type: http
       scheme: basic
       description: |
         Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format 'username:password'.
 
-        - **Username**: Use your MoEngage Workspace ID (also known as the App ID). You can find it in the MoEngage dashboard at **Settings** > **Account** > **APIs** > **Workspace ID (earlier app id)**.
-        - **Password**: Use your API Key, which you can find within the **Data** tile.
+        - **Username**: Use your MoEngage Workspace ID (also known as the App ID). You can find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
+        - **Password**: Use an API key from **Settings** > **Account** > **API keys**. You need to [generate a new API key](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#create-a-key) to use the GDPR / CCPA API and select the **Data APIs** - **GDPR Delete** scope under **Create new key**. The legacy **Data** key (auth type **Basic Auth (Legacy)**) also works.
 
-        For more information on authentication and getting your credentials, refer [here](https://www.moengage.com/docs/api/introduction#getting-your-credentials).
+        For the key that each MoEngage API accepts, refer to [API Keys by Feature](/api/introduction#api-keys-by-feature).
   schemas:
     GdprRequest:
       type: object

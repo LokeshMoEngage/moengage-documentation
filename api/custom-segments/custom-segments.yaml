@@ -59,6 +59,8 @@ security:
 paths:
   /v2/custom-segments/file-segment:
     post:
+      security:
+        - Basic Auth (File-based custom segments): []
       tags:
         - File Segments
       summary: Create File Segment
@@ -211,6 +213,8 @@ paths:
           $ref: '#/components/callbacks/segmentProcessingCallback'
   /v2/custom-segments/file-segment/add-users:
     put:
+      security:
+        - Basic Auth (File-based custom segments): []
       tags:
         - File Segments
       summary: Add Users to File Segment
@@ -284,6 +288,8 @@ paths:
                 title: "Internal Server Error"
   /v2/custom-segments/file-segment/remove-users:
     put:
+      security:
+        - Basic Auth (File-based custom segments): []
       tags:
         - File Segments
       summary: Remove Users from File Segment
@@ -357,6 +363,8 @@ paths:
                 title: "Internal Server Error"
   /v2/custom-segments/file-segment/replace:
     put:
+      security:
+        - Basic Auth (File-based custom segments): []
       tags:
         - File Segments
       summary: Replace Users from File Segment
@@ -434,6 +442,8 @@ paths:
                 title: "Internal Server Error"
   /v2/custom-segments/archive:
     patch:
+      security:
+        - Basic Auth (Archive/Unarchive custom segment): []
       tags:
         - Manage Segments
       summary: Archive Segment
@@ -486,6 +496,8 @@ paths:
           $ref: '#/components/responses/5XX_FileSegmentError'
   /v2/custom-segments/unarchive:
     patch:
+      security:
+        - Basic Auth (Archive/Unarchive custom segment): []
       tags:
         - Manage Segments
       summary: Unarchive Segment
@@ -535,6 +547,8 @@ paths:
           $ref: '#/components/responses/5XX_FileSegmentError'
   /v3/custom-segments:
     get:
+      security:
+        - Basic Auth (View custom segments): []
       tags:
         - Filter Segments
       summary: List Segments
@@ -565,6 +579,8 @@ paths:
         '500':
           $ref: '#/components/responses/500_FilterSegmentError'
     post:
+      security:
+        - Basic Auth (Filter-based custom segments): []
       tags:
         - Filter Segments
       summary: Create Filter Segment
@@ -1460,6 +1476,8 @@ paths:
           $ref: '#/components/responses/500_FilterSegmentError'
   /v3/custom-segments/{id}:
     get:
+      security:
+        - Basic Auth (View custom segments): []
       tags:
         - Filter Segments
       summary: Get Segment by ID
@@ -1492,6 +1510,8 @@ paths:
         '500':
           $ref: '#/components/responses/500_FilterSegmentError'
     patch:
+      security:
+        - Basic Auth (Filter-based custom segments): []
       tags:
         - Filter Segments
       summary: Update Filter Segment
@@ -3144,7 +3164,7 @@ components:
       name: MOE-APPKEY
       in: header
       description: |
-        This is the Workspace ID of your MoEngage account that must be passed with the request. You can find it in the MoEngage dashboard at **Settings** > **Account** > **APIs** > **Workspace ID (earlier app id)**.
+        This is the Workspace ID of your MoEngage account that must be passed with the request. You can find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
 
         You can send `MOE-DBNAME` with your database name instead of this header. The request must include one of the two.
       required: true
@@ -3668,13 +3688,53 @@ components:
             '200':
               description: OK. Acknowledges receipt of the callback. Your endpoint should return this.
   securitySchemes:
+    Basic Auth (View custom segments):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Segmentation APIs** group and its **View custom segments** scope. The legacy **Data** key (auth type **Basic Auth (Legacy)**) also works.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    Basic Auth (Filter-based custom segments):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Segmentation APIs** group and its **Filter-based custom segments** scope. The legacy **Data** key (auth type **Basic Auth (Legacy)**) also works.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    Basic Auth (File-based custom segments):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Segmentation APIs** group and its **File-based custom segments** scope. The legacy **Data** key (auth type **Basic Auth (Legacy)**) also works.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    Basic Auth (Archive/Unarchive custom segment):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Segmentation APIs** group and its **Archive/Unarchive custom segment** scope. The legacy **Data** key (auth type **Basic Auth (Legacy)**) also works.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
     basicAuth:
       type: http
       scheme: basic
       description: |
         Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format 'username:password'.
 
-        - **Username**: Use your MoEngage workspace ID (also known as the App ID). You can find it in the MoEngage dashboard at **Settings** > **Account** > **APIs** > **Workspace ID (earlier app id)**.
-        - **Password**: Use your API Key, which you can find within the **Data** tile.
+        - **Username**: Use your MoEngage workspace ID (also known as the App ID). You can find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
+        - **Password**: Use an API key from **Settings** > **Account** > **API keys**. You need to [generate a new API key](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#create-a-key) to use the Segments API and select the **Segmentation APIs** group under **Create new key** with the scope your calls need: **View custom segments**, **Filter-based custom segments**, **File-based custom segments**, or **Archive/Unarchive custom segment**. The key must use Basic Auth. The legacy **Data** key (auth type **Basic Auth (Legacy)**) also works.
 
-        For more information on authentication and getting your credentials, refer [here](https://www.moengage.com/docs/api/introduction#getting-your-credentials).
+        For the key that each MoEngage API accepts, refer to [API Keys by Feature](/api/introduction#api-keys-by-feature).

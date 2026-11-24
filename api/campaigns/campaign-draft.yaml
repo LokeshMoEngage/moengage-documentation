@@ -84,9 +84,67 @@ components:
         Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format `username:password`.
 
         - **Username**: Use your MoEngage Workspace ID (also known as the App ID). Find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
-        - **Password**: Use an API key from **Settings** > **Account** > **API keys**.
+        - **Password**: Use an API key from **Settings** > **Account** > **API keys**. You need to [generate a new API key](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#create-a-key) to use the Campaigns API and select the **Campaigns** group under **Create new key** with the permission your calls need: **View** to search and get campaigns, **Create & Manage** to create and update campaigns, or **Create, Manage & Publish** to publish campaigns, send them, and manage their content. The key can use Basic Auth or OAuth 2.0.
 
         Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+
+    Basic Auth (View):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Campaigns** group, and assign at least the **View** permission.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    OAuth 2.0 (View):
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Send an OAuth 2.0 access token as `Bearer <access_token>`.
+
+        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Campaigns** group, and assign at least the **View** permission. Then exchange the key for an access token. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+
+    Basic Auth (Create & Manage):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Campaigns** group, and assign at least the **Create & Manage** permission.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    OAuth 2.0 (Create & Manage):
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Send an OAuth 2.0 access token as `Bearer <access_token>`.
+
+        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Campaigns** group, and assign at least the **Create & Manage** permission. Then exchange the key for an access token. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+
+    Basic Auth (Create, Manage & Publish):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Campaigns** group, and assign the **Create, Manage & Publish** permission.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    OAuth 2.0 (Create, Manage & Publish):
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Send an OAuth 2.0 access token as `Bearer <access_token>`.
+
+        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Campaigns** group, and assign the **Create, Manage & Publish** permission. Then exchange the key for an access token. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+
   
   parameters:
     MOE-APPKEY:
@@ -4430,6 +4488,9 @@ paths:
   /v5/campaigns:
     post:
       operationId: create_draft_campaign_v5
+      security:
+        - Basic Auth (Create & Manage): []
+        - OAuth 2.0 (Create & Manage): []
       summary: Create Campaign Draft (V5)
       description: |
         Creates a Push or Email campaign draft. Content, audience, and delivery settings can be included at the time of creation, or added later via `PATCH /v5/campaigns/{campaign_id}`.
@@ -5299,6 +5360,9 @@ paths:
   /v5/campaigns/{campaign_id}:
     get:
       operationId: get_single_campaign_v5
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       summary: Get Campaign (V5)
       description: |
         Returns the full configuration and current status of a single campaign by its ID.
@@ -5542,6 +5606,9 @@ paths:
           $ref: '#/components/responses/V5InternalError'
     patch:
       operationId: patch_draft_campaign_v5
+      security:
+        - Basic Auth (Create & Manage): []
+        - OAuth 2.0 (Create & Manage): []
       summary: Update Campaign (V5)
       description: |
         Updates individual components of a campaign draft.
@@ -6027,6 +6094,9 @@ paths:
   /v5/campaigns/{campaign_id}/validate:
     post:
       operationId: validate_draft_campaign_v5
+      security:
+        - Basic Auth (Create & Manage): []
+        - OAuth 2.0 (Create & Manage): []
       summary: Validate Campaign (V5)
       description: |
         Runs full publish-time validation (`DRAFT_PUBLISH`) on a saved draft without mutating it. Returns `valid: true` if the campaign would pass, or a list of blocking errors if it would not.
@@ -6166,6 +6236,9 @@ paths:
   /v5/campaigns/{campaign_id}/status:
     patch:
       operationId: change_campaign_status_v5
+      security:
+        - Basic Auth (Create & Manage): []
+        - OAuth 2.0 (Create & Manage): []
       summary: Update Campaign Status (V5)
       description: |
         Applies a state transition to a published campaign. Supported for **Email** and **Push** campaigns.
@@ -6291,6 +6364,9 @@ paths:
     post:
       summary: Trigger Message
       operationId: triggerMessage
+      security:
+        - Basic Auth (Create, Manage & Publish): []
+        - OAuth 2.0 (Create, Manage & Publish): []
       tags:
         - Trigger
       description: |
@@ -6643,6 +6719,9 @@ paths:
   /v5/campaigns/search:
     post:
       operationId: search_campaigns_v5
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       summary: Search Campaigns (V5)
       description: |
         Returns the full V5 campaign payload for all campaigns that match the specified filters.
@@ -6830,6 +6909,9 @@ paths:
   /v5/campaigns/meta:
     post:
       operationId: get_campaign_meta_v5
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       summary: Get Campaign Meta (V5)
       description: |
         Returns lightweight metadata for one or more campaigns without loading their full configuration.
@@ -7062,6 +7144,9 @@ paths:
   /v5/campaigns/test:
     post:
       operationId: test_campaign_v5
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       summary: Test Campaign (V5)
       description: |
         Sends a test Push or Email message to specific users or device identifiers before publishing the campaign.
@@ -7241,6 +7326,9 @@ paths:
   /v5/personalizations/previews:
     post:
       operationId: preview_personalized_content_v5
+      security:
+        - Basic Auth (Create, Manage & Publish): []
+        - OAuth 2.0 (Create, Manage & Publish): []
       summary: Personalized Preview (V5)
       description: |
         Resolves Jinja personalization tokens (`UserAttribute`, `EventAttribute`, `ContentBlock`, `ContentApi`, and `ProductSet`) inside a content payload or a saved custom template, and returns the fully rendered output for the specified user — without sending a message.

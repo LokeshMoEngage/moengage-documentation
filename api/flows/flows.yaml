@@ -70,6 +70,9 @@ security:
 paths:
   /v5/flows/search:
     post:
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       operationId: searchFlows
       summary: Search Flows
       description: |
@@ -82,8 +85,6 @@ paths:
           The rate limits are at the workspace level. A maximum of 10 requests per second, 100 requests per minute, and 6,000 requests per hour are allowed per workspace.
       tags:
         - Flows
-      security:
-        - basicAuth: []
       parameters:
         - $ref: '#/components/parameters/XMoeRequestIdHeader'
       requestBody:
@@ -164,6 +165,9 @@ paths:
 
   /v5/flows/{flow_id}:
     get:
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       operationId: getFlow
       summary: Get a Single Flow
       description: |
@@ -176,8 +180,6 @@ paths:
           The rate limits are at the workspace level. A maximum of 10 requests per second, 100 requests per minute, and 6,000 requests per hour are allowed per workspace.
       tags:
         - Flows
-      security:
-        - basicAuth: []
       parameters:
         - $ref: '#/components/parameters/FlowId'
         - name: version_no
@@ -287,6 +289,9 @@ paths:
 
   /v5/flows/{flow_id}/versions/{version_id}:
     get:
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       operationId: getFlowVersion
       summary: Get a Specific Version of a Flow
       description: |
@@ -299,8 +304,6 @@ paths:
           The rate limits are at the workspace level. A maximum of 10 requests per second, 100 requests per minute, and 6,000 requests per hour are allowed per workspace.
       tags:
         - Flows
-      security:
-        - basicAuth: []
       parameters:
         - $ref: '#/components/parameters/FlowId'
         - name: version_id
@@ -403,6 +406,9 @@ paths:
 
   /v5/flows/{flow_id}/status:
     patch:
+      security:
+        - Basic Auth (Create & Manage): []
+        - OAuth 2.0 (Create & Manage): []
       operationId: updateFlowStatus
       summary: Update Flow Status
       description: |
@@ -426,8 +432,6 @@ paths:
           The rate limits are at the workspace level. A maximum of 10 requests per second, 100 requests per minute, and 6,000 requests per hour are allowed per workspace.
       tags:
         - Flows
-      security:
-        - basicAuth: []
       parameters:
         - $ref: '#/components/parameters/FlowId'
         - name: Idempotency-Key
@@ -499,6 +503,42 @@ paths:
 
 components:
   securitySchemes:
+    Basic Auth (View):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Campaigns** group, and assign at least the **View** permission.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    OAuth 2.0 (View):
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Send an OAuth 2.0 access token as `Bearer <access_token>`.
+
+        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Campaigns** group, and assign at least the **View** permission. Then exchange the key for an access token. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+    Basic Auth (Create & Manage):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Campaigns** group, and assign at least the **Create & Manage** permission.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    OAuth 2.0 (Create & Manage):
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Send an OAuth 2.0 access token as `Bearer <access_token>`.
+
+        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Campaigns** group, and assign at least the **Create & Manage** permission. Then exchange the key for an access token. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
     basicAuth:
       type: http
       scheme: basic
@@ -506,7 +546,7 @@ components:
         Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format `username:password`.
 
         - **Username**: Use your MoEngage Workspace ID (also known as the App ID). Find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
-        - **Password**: Use an API key from **Settings** > **Account** > **API keys**.
+        - **Password**: Use an API key from **Settings** > **Account** > **API keys**. You need to [generate a new API key](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#create-a-key) to use the Flows API and select the **Campaigns** group under **Create new key** with the permission your calls need: **View** to search and get flows, or **Create & Manage** to update flow status. The key can use Basic Auth or OAuth 2.0.
 
         Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
 

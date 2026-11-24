@@ -20,6 +20,9 @@ servers:
 paths:
   /v5/offers:
     get:
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       operationId: listPublicOfferings
       summary: List Offerings
       description: |
@@ -69,8 +72,6 @@ paths:
 
       tags:
         - Public Offerings
-      security:
-        - basicAuth: []
       parameters:
         - name: id
           in: query
@@ -292,6 +293,9 @@ paths:
           $ref: '#/components/responses/ServiceUnavailable'
 
     post:
+      security:
+        - Basic Auth (Create & Manage): []
+        - OAuth 2.0 (Create & Manage): []
       operationId: createPublicOffering
       summary: Create Offering
       description: |
@@ -361,8 +365,6 @@ paths:
               For attribute-based targeting, use filter_type: "user_attributes" with data_type required.
       tags:
         - Public Offerings
-      security:
-        - basicAuth: []
       parameters:
         - name: Idempotency-Key
           in: header
@@ -1358,6 +1360,9 @@ paths:
 
   /v5/offers/{offer_id}:
     get:
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       operationId: getPublicOffering
       summary: Get Offering
       description: Retrieve the full configuration of a single offering by its ID.
@@ -1385,8 +1390,6 @@ paths:
               Obtain this from list_offerings — it is the 'id' field in the data array.
       tags:
         - Public Offerings
-      security:
-        - basicAuth: []
       parameters:
         - name: offer_id
           in: path
@@ -1463,6 +1466,9 @@ paths:
         '503':
           $ref: '#/components/responses/ServiceUnavailable'
     patch:
+      security:
+        - Basic Auth (Create & Manage): []
+        - OAuth 2.0 (Create & Manage): []
       operationId: updatePublicOffering
       summary: Update Offering
       description: |
@@ -1510,8 +1516,6 @@ paths:
               Obtain this from list_offerings — it is the 'id' field in the data array.
       tags:
         - Public Offerings
-      security:
-        - basicAuth: []
       parameters:
         - name: offer_id
           in: path
@@ -1916,6 +1920,9 @@ paths:
 
   /v5/offers/{offer_id}/validate:
     post:
+      security:
+        - Basic Auth (Create, Manage & Publish): []
+        - OAuth 2.0 (Create, Manage & Publish): []
       operationId: validatePublicOffering
       summary: Validate Offering
       description: |
@@ -1928,8 +1935,6 @@ paths:
         Validate Offering also checks that each template field's `value` matches its value in `meta.metaConfigObject`, and the in-session attribute limits (up to 10 attributes in a group and up to 5 groups per offering).
       tags:
         - Public Offerings
-      security:
-        - basicAuth: []
       parameters:
         - name: offer_id
           in: path
@@ -2106,6 +2111,9 @@ paths:
 
   /v5/offers/templates:
     get:
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       operationId: listPublicOfferTemplates
       summary: List Offer Templates
       description: |
@@ -2146,8 +2154,6 @@ paths:
               Number of templates per page. Default 20, maximum 100.
       tags:
         - Public Offerings
-      security:
-        - basicAuth: []
       parameters:
         - name: cursor
           in: query
@@ -2296,6 +2302,9 @@ paths:
 
   /v5/offers/templates/{template_id}:
     get:
+      security:
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       operationId: getPublicOfferTemplate
       summary: Get Offer Template
       description: |
@@ -2348,8 +2357,6 @@ paths:
               Obtain this from list_offer_templates — it is the 'id' field in the data array.
       tags:
         - Public Offerings
-      security:
-        - basicAuth: []
       parameters:
         - $ref: '#/components/parameters/TemplateId'
       responses:
@@ -4309,6 +4316,60 @@ components:
             example: "<html><body><h1>503 Service Temporarily Unavailable</h1></body></html>"
 
   securitySchemes:
+    Basic Auth (View):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Offerings** group, and assign at least the **View** permission.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    OAuth 2.0 (View):
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Send an OAuth 2.0 access token as `Bearer <access_token>`.
+
+        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Offerings** group, and assign at least the **View** permission. Then exchange the key for an access token. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+    Basic Auth (Create & Manage):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Offerings** group, and assign at least the **Create & Manage** permission.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    OAuth 2.0 (Create & Manage):
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Send an OAuth 2.0 access token as `Bearer <access_token>`.
+
+        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Offerings** group, and assign at least the **Create & Manage** permission. Then exchange the key for an access token. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
+    Basic Auth (Create, Manage & Publish):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Offerings** group, and assign the **Create, Manage & Publish** permission.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    OAuth 2.0 (Create, Manage & Publish):
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: |
+        Send an OAuth 2.0 access token as `Bearer <access_token>`.
+
+        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Offerings** group, and assign the **Create, Manage & Publish** permission. Then exchange the key for an access token. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
     basicAuth:
       type: http
       scheme: basic
@@ -4316,6 +4377,6 @@ components:
         Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format `username:password`.
 
         - **Username**: Use your MoEngage Workspace ID (also known as the App ID). Find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
-        - **Password**: Use an API key from **Settings** > **Account** > **API keys**.
+        - **Password**: Use an API key from **Settings** > **Account** > **API keys**. You need to [generate a new API key](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#create-a-key) to use the Offerings API and select the **Offerings** group under **Create new key** with the permission your calls need: **View** to list and get offerings and templates, **Create & Manage** or **Create, Manage & Publish** to create and update offerings and drafts, or **Download** to download offering reports. The key can use Basic Auth or OAuth 2.0.
 
         Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.

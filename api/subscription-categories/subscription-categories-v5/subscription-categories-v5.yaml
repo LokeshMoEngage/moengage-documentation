@@ -30,6 +30,8 @@ security:
 paths:
   /v5/subscription-categories:
     get:
+      security:
+        - Basic Auth (View): []
       tags:
         - Subscription Categories
       summary: Get Subscription Categories (V5)
@@ -173,6 +175,8 @@ paths:
                   target: null
   /v5/subscription-preferences:
     get:
+      security:
+        - Basic Auth (View): []
       tags:
         - Subscription Preferences
       summary: Get Subscription Preferences (V5)
@@ -369,6 +373,8 @@ paths:
                   message: Something went wrong, please retry
                   target: null
     patch:
+      security:
+        - Basic Auth (Setup & Manage): []
       tags:
         - Subscription Preferences
       summary: Update Subscription Preferences (V5)
@@ -640,18 +646,38 @@ paths:
                   target: null
 components:
   securitySchemes:
+    Basic Auth (View):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Channel Configuration** group, and assign at least the **View** permission. This route accepts Basic Auth only.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
+    Basic Auth (Setup & Manage):
+      type: http
+      scheme: basic
+      description: |
+        Send your Workspace ID and API key as a base64-encoded `username:password` string.
+
+        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
+        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Channel Configuration** group, and assign the **Setup & Manage** permission. This route accepts Basic Auth only.
+
+        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
     basicAuth:
       type: http
       scheme: basic
       description: |
         Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format 'username:password'.
 
-        - **Username**: Your MoEngage app key.
-        - **Password**: Your MoEngage API secret.
+        - **Username**: Use your MoEngage Workspace ID (also known as the App ID). Find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
+        - **Password**: Use an API key from **Settings** > **Account** > **API keys**. You need to [generate a new API key](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#create-a-key) to use the Subscription Preferences API and select the **Channel Configuration** group under **Create new key** with the permission your calls need: **View** to get subscription categories and preferences, or **Setup & Manage** to also update preferences.
 
         **Transitional note:** This route currently accepts Basic Auth only. Bearer token support (`Authorization: Bearer <token>`) is planned but not yet active here — Bearer requests return `401` until the APISIX gateway fronts this route.
 
-        For more information on authentication and getting your credentials, refer [here](https://www.moengage.com/docs/api/introduction#getting-your-credentials).
+        For the key that each MoEngage API accepts, refer to [API Keys by Feature](/api/introduction#api-keys-by-feature).
   schemas:
     SubscriptionCategory:
       type: object
