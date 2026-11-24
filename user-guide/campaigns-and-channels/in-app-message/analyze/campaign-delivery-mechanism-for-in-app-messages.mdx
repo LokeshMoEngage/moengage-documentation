@@ -87,6 +87,16 @@ When you enable **Re-evaluate campaign eligibility before displaying**, the SDK 
   - **Limit**: Available for up to five campaigns.
 </Info>
 
+Without re-evaluation, MoEngage checks in-app and on-site message eligibility for user-property-based segments against a cached segment state, not the live property value. A user whose property changed can stay eligible for a while and keep seeing the message. This is expected for the default configuration.
+
+If re-evaluation isn't available for a campaign, for example because you've reached the five-campaign limit, target the campaign at all users and use Jinja on the user property to decide whether the content displays:
+
+```text Suppress With Jinja
+{% if User.plan == 'free' %}Upgrade to Pro today{% else %}MOE_NOT_SEND{% endif %}
+```
+
+When the condition resolves to `MOE_NOT_SEND`, MoEngage doesn't deliver the message. Jinja is evaluated when the message renders, so it reads the current property value instead of the cached segment. This works in both HTML and non-HTML campaigns. For more information, see [Personalize Content Using the Jinja Templating Language](/user-guide/campaigns-and-channels/getting-started/message-personalization/overview#personalize-content-using-the-jinja-templating-language).
+
 #### Campaign Audience Limit
 
 You can cap how many users a campaign reaches based on engagement metrics such as sends, impressions, and conversions, using total, daily, or instance-level limits. This is useful for controlling reach and cost. For more information, refer to [Campaign Audience Limit](/user-guide/settings/channels/delivery-controls/campaign-audience-limit).
@@ -190,9 +200,18 @@ Even when these conditions are met, a message may not display for the following 
 - With Re-evaluate Campaign Eligibility enabled, the user no longer matches the segment at the moment of display.
 - The user is on a different screen than the one specified in the trigger criteria (screen mismatch).
 
+**Campaign timing**
+
+- The user hasn't opened the app since the campaign went live. In-app messages display only when the user opens the app after you create the campaign.
+- The time between campaign creation and expiry is too short, and the user didn't open the app during that window.
+
 **Device conditions**
 
 - Network connectivity is poor, which can delay or fail the campaign asset download (template, HTML, and images).
+
+<Note>
+In-app messages with images can show with a delay after the app opens. MoEngage downloads the images in the background and shows the message only after they finish downloading, so larger images add more delay.
+</Note>
 
 For the specific reason a campaign failed to display, refer to the error breakdown on the campaign's info page. For more information, refer to [Analyze In-App Campaigns](/user-guide/campaigns-and-channels/in-app-message/analyze/analyze-in-app-campaigns).
 
