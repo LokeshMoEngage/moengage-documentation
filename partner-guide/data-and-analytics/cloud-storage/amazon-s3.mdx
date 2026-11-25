@@ -109,7 +109,7 @@ Select the authentication method that matches how you plan to use the connection
     Access-key credentials are stored once as a reusable S3 connection in MoEngage, rather than being entered inside each import. Create the connection once (Step 4), and then select it when you configure any S3 import.
 
     <Tip>
-      MoEngage recommends rotating your access key regularly. To learn how to rotate it, see [Rotate Access Keys](#rotate-access-keys).
+      MoEngage recommends rotating your access key every 90 days or as per your IT policy. To learn how to rotate it, see [Rotate Access Keys](#rotate-access-keys).
     </Tip>
   </Accordion>
 
@@ -273,20 +273,33 @@ To route campaign interaction logs to your Amazon S3 bucket, configure automated
 
 ## Rotate Access Keys
 
-If your connection uses the **Access key \[Imports\]** method, rotate the access key regularly. An IAM user can hold two access keys at the same time, so your current key keeps working while you switch to the new one.
-
-1. In the **AWS Management Console**, open **IAM** \> **Users**, and then open the user that MoEngage uses. On the **Security credentials** tab, create a new access key.
-2. Copy the new **Access Key ID** and **Secret Access Key**. AWS shows the secret access key only once.
-3. In the MoEngage dashboard, go to **App marketplace**, open **Amazon S3**, and go to the **Integrate** tab. Edit the existing connection and enter the new **Access Key ID** and **Secret Key**. If other applications or tools use the same access key, update them to use the new key as well.
-4. Click **Test**, and then click **Connect**. Configuration changes can take up to 15 minutes to take effect.
-5. After your next scheduled import runs successfully, deactivate the old access key in IAM. If the next import fails, reactivate the old key, check that the connection uses the new key, and try again. After one more successful run, delete the old key.
-
-For more information, see [Update access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id-credentials-access-keys-update.html) in the AWS documentation.
-
 <Tip>
-  You can switch this connection to the **Cross account role** method instead. AWS recommends this method because it avoids long-lived access keys. For setup steps, see [Step 1: Set Up Authentication](#step-1-set-up-authentication).
+  AWS recommends the **Cross account role** method because it avoids long-lived access keys. Instead of rotating access keys, you can switch this connection to a cross account role. For setup steps, see [Step 1: Set Up Authentication](#step-1-set-up-authentication).
 </Tip>
 
-<Note>
-  If you have not yet moved your S3 import credentials to an App Marketplace connection, each import holds its own copy of the access key. Update the access key in every active import before you deactivate the old key.
-</Note>
+If your connection uses the **Access key \[Imports\]** method, MoEngage recommends rotating the access key every 90 days or as per your IT policy. An IAM user can hold two access keys at the same time, so your current key keeps working while you switch to the new one.
+
+The steps depend on how you manage your access key in MoEngage.
+
+<AccordionGroup>
+  <Accordion title="If your connections are managed on the App Marketplace">
+    1. In the **AWS Management Console**, open **IAM** \> **Users**, and then open the user that MoEngage uses. On the **Security credentials** tab, create a new access key.
+    2. Copy the new **Access Key ID** and **Secret Access Key**. AWS shows the secret access key only once.
+    3. In the MoEngage dashboard, go to **App marketplace**, open **Amazon S3**, and go to the **Integrate** tab. Edit the existing connection and enter the new **Access Key ID** and **Secret Key**. If other applications or tools use the same access key, update them to use the new key as well.
+    4. Click **Test**, and then click **Connect**. Configuration changes can take up to 15 minutes to take effect.
+    5. After your next scheduled import runs successfully, deactivate the old access key in IAM. If the next import fails, reactivate the old key, check that the connection uses the new key, and try again. After one more successful run, delete the old key.
+  </Accordion>
+
+  <Accordion title="If you enter connection details when setting up an import">
+    1. In the **AWS Management Console**, open **IAM** \> **Users**, and then open the user that MoEngage uses. On the **Security credentials** tab, create a new access key.
+    2. Copy the new **Access Key ID** and **Secret Access Key**. AWS shows the secret access key only once.
+    3. In the MoEngage dashboard, go to **Data** \> **Data Imports**, and locate your active imports.
+    4. Open an import and click **Edit**. In **Step 1**, enter the new **Access Key ID** and **Secret Key**.
+    5. Click **Preview** to confirm that MoEngage can connect to your bucket and read your files. If the preview fails, check the keys and try again.
+    6. Save the updated import. Configuration changes can take up to 15 minutes to take effect.
+    7. Repeat steps 4 to 6 for every active import in all your workspaces.
+    8. After the next scheduled run of each import succeeds with the new key, deactivate the old access key in IAM. After one more successful run, delete it. Do not deactivate the old key until every active import uses the new one.
+  </Accordion>
+</AccordionGroup>
+
+For more information, see [Update access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id-credentials-access-keys-update.html) in the AWS documentation.
