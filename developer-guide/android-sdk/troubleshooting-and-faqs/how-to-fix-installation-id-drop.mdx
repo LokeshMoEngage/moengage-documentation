@@ -1,11 +1,11 @@
 ---
-title: "How to Fix Installation ID Drop?"
+title: "Fix Installation ID or Token Drop"
 description: "Learn why MoEngage does not hold a Firebase Installation ID for all users of your Android app and how to fix it."
 keywords: ["installation id drop", "Firebase Installation ID missing", "Android push not delivered", "passInstallationId", "registerForInstallationId", "firebase_messaging_installation_id_enabled"]
 ---
 
 <Warning>
-  This page applies to MoEngage Android BOM 4.4.0 and above, where the SDK registers devices for push using the Firebase Installation ID. For earlier BOM versions, refer to [How to fix Token Drop? (Legacy)](/developer-guide/android-sdk/troubleshooting-and-faqs/how-to-fix-token-drop).
+  This page applies to MoEngage Android BOM 4.4.0 and above, where the SDK registers devices for push using the Firebase Installation ID. For earlier versions (Android SDK versions below 15.03.00), refer to [Token Drop on Earlier SDK Versions](#token-drop-on-earlier-sdk-versions).
 </Warning>
 
 ## What Is an Installation ID Drop?
@@ -39,4 +39,36 @@ An Installation ID drop can happen for several reasons:
 
 <Info>
   MoEngage recommends letting the MoEngage SDK generate the Installation ID and display the notification. Refer to [Flow 1: MoEngage Handles Installation ID Generation](/developer-guide/android-sdk/push/basic/push-token-registration-and-display#flow-1-moengage-handles-installation-id-generation).
+</Info>
+
+## Token Drop on Earlier SDK Versions
+
+This section applies to MoEngage Android SDK versions below 15.03.00 (BOM versions below 4.4.0), where push notifications are sent using the push token.
+
+A token drop is a situation where the MoEngage platform does not have push tokens for all the users of your application. For example, if your application is installed by 100 new users every day but the MoEngage platform holds tokens for only 60 of them, this is a token drop. A push notification cannot be sent without a token, so fixing the drop is required to keep your users engaged.
+
+### Why Token Drop Occurs
+
+A token drop can happen for several reasons:
+
+- Poor or no internet connectivity, which results in the Firebase SDK not generating the token.
+- Google Play services version mismatch, where the Play services version on the device is not compatible with the Firebase version used in the application.
+- The application has an internal check or flag that decides whether the token is passed to the MoEngage SDK, and that flag is disabled when the token is generated.
+- Integration error, where the push token is not passed to the MoEngage SDK.
+
+### How to Fix Token Drop
+
+- If the token is not available on application open, deploy a retry mechanism where the application periodically attempts to generate a token until a token is successfully generated.
+- If you have a check before passing the token to the MoEngage SDK, remove it or keep the flag enabled by default, so that tokens are passed on the first application open.
+- Revisit [Push Token Registration and Display (Legacy)](/developer-guide/android-sdk/push/basic/push-token-registration-and-display-legacy) to check that the token is passed to the SDK correctly.
+
+### Suggestions for a Retry Mechanism
+
+MoEngage recommends that the application attempts to generate a push token on every application open and passes it to the MoEngage SDK. If the application does not get the token from the Firebase API for any reason, it should retry registration periodically until it succeeds or the application is foregrounded.
+
+For an example of how to set up a retry mechanism, refer to this [library](https://github.com/umang91/fcm-client-lib). You can also use the library instead of setting up the mechanism yourself.
+
+<Info>
+  - This is not an official library from MoEngage. It is built by one of the developers at MoEngage.
+  - The MoEngage SDK has a built-in retry mechanism to reduce token drop. MoEngage recommends letting the MoEngage SDK handle token registration to keep token drop minimal (typically under 2%). Refer to [Push Token Registration and Display (Legacy)](/developer-guide/android-sdk/push/basic/push-token-registration-and-display-legacy) to learn more about letting the MoEngage SDK manage your push token.
 </Info>

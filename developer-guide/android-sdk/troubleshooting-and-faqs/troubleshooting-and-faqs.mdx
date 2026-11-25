@@ -21,7 +21,7 @@ SDKLogger will help you debug the MoEngage Android SDK implementation issues. Yo
   - Cordova SDK 9.0.0
 </Info>
 
-To use the MoEngage SDK logger, refer to [How To Use the MoEngage SDK Logger?](https://www.moengage.com/docs/developer-guide/android-sdk/troubleshooting-and-faqs/how-to-use-the-moengage-sdk-logger)
+To use the MoEngage SDK logger, refer to [Use the SDK Logger](/developer-guide/android-sdk/troubleshooting-and-faqs/how-to-share-android-moengage-sdk-logs#use-the-sdk-logger).
 
 ## How to enable MoEngage SDK to debug logs for signed/unsigned builds?
 
@@ -162,6 +162,93 @@ The following are the reasons for click events not being recorded with MoEngage 
 1. Push Payload not passed to SDK - The push payload is consumed by the application and the application takes care of showing push. This is based on the type of library you are using to pass the payload to MoEngage SDK.
 2. Data not synced to MoEngage Server - Click attribution data would be sent to the MoEngage server only when the application is sent to the background. Please make sure that the application is sent to the background and wait for a couple of minutes.
 
+## Impressions Not Tracked
+
+If the MoEngage SDK does not track push campaign impressions on Android devices, check the following based on how your app handles push notifications.
+
+**When the MoEngage SDK handles push notifications by default:**
+
+- **Confirm SDK initialization.** Check whether the SDK is initialized with a delay. If it is, change the SDK initialization to the default configuration: initialize the SDK in the `onCreate()` method of the Application class on the main thread, not in any callbacks. For more information, refer to the SDK initialization page for your framework:
+  - [Android Native](/developer-guide/android-sdk/sdk-integration/basic-integration/sdk-initialization)
+  - [React Native](/developer-guide/react-native-sdk/sdk-integration/react-native/sdk-initialization/manual-initialization/android)
+  - [Flutter](/developer-guide/flutter-sdk/sdk-integration/sdk-initialization/manual-initialization/android-sdk-initialization)
+  - [Cordova](/developer-guide/cordova-sdk/sdk-integration/sdk-initialization/android-sdk-initialization)
+  - [Unity](/developer-guide/unity-sdk/sdk-integration/sdk-initialization/manual-initialization/android)
+  - [Capacitor](/developer-guide/capacitor-sdk/sdk-integration/basic/sdk-initialization/android-sdk-initialization)
+- **Check for network issues.** Network issues, such as Private DNS or an ad blocker, might prevent data from syncing from the SDK to the MoEngage backend.
+
+**When the MoEngage SDK handles push notifications with customizations:**
+
+- **Confirm SDK initialization.** Ensure the SDK is not initialized with a delay.
+- **Check the `PushMessageListener` or `PluginPushCallback` code.** Verify that the Builder does not interfere with the MoEngage SDK callbacks.
+
+**When the app handles push notifications:**
+
+- **Confirm SDK initialization.** Ensure the SDK is not initialized with a delay.
+- **Verify push notification handling.** Confirm that the app notifies the MoEngage SDK when a push notification is received. The app must call `logNotificationReceived()` in the `onMessageReceived()` callback when it creates the push notification. For more information, refer to [Push Display Handled by Application](/developer-guide/android-sdk/push/advanced/push-display-handled-by-application).
+
+## Push Notification Images
+
+### Why Is the Small Icon Not Rendering Properly?
+
+In some cases, the small notification icon appears as a box or a circle, as shown in the following image.
+
+<Frame>
+  ![Small notification icon rendered as a solid box in the notification](/images/SmallIcon_Issue.png)
+</Frame>
+
+To render the small notification icon properly, ensure that the icon is:
+
+- Flat.
+- Pictured face-on.
+- White on a transparent background.
+
+For more information, refer to [Small Notification Icon Guidelines](/developer-guide/android-sdk/push/basic/push-configuration) and [Android Notification Guidelines](https://m2.material.io/design/platform-guidance/android-notifications.html#anatomy-of-a-notification).
+
+### Why Is the Large Icon Not Rendering?
+
+The large icon is not displayed in push notifications in the following cases:
+
+- The notification large icon is not set in the SDK initialization. To set the large icon, refer to [Push Configuration](/developer-guide/android-sdk/push/basic/push-configuration).
+- The download of the large icon configured in the campaign failed.
+- You disabled the large icon display in the notification configuration while integrating the SDK. Check whether `isLargeIconDisplayEnabled` is set to `false` in the `NotificationConfig` object during SDK initialization. If it is, the large icon is not displayed.
+- The large icon display is disabled in the template settings for the campaign. Check your campaign.
+- The template does not support a large icon. Check the campaign preview.
+
+## Push Redirection
+
+### Deep Link Redirection Is Not Working
+
+This can happen if you have not configured an activity in your manifest to handle the deep link. Use the following adb command to verify that the deep link is configured properly and redirects to the expected screen.
+
+```bash Test a Deep Link
+adb shell am start -W -a android.intent.action.VIEW -d "<URI>" <PACKAGE>
+```
+
+If navigation does not work as expected with this command, the deep link is not configured correctly. To configure deep links in your application, refer to the [Android deep linking documentation](https://developer.android.com/training/app-links/deep-linking).
+
+### Push Notification CTA Button Clicks Are Not Working
+
+This can happen when you have a custom push listener in addition to the default MoEngage handler. You might handle the default click on the push notification but not the click on the CTA button. Add CTA button click handling to your custom listener.
+
+### Rich Landing Page Does Not Render the Webpage or URL
+
+Rich landing pages load inside a WebView within the app. According to the Android documentation, WebView objects display web content as part of your activity layout but lack some features of fully developed browsers. Because WebView does not support all browser features, your webpage might not load in the rich landing redirection.
+
+To handle this, either make your webpage compatible with WebView or redirect the user to the device browser using a custom push listener.
+
+### Click Callbacks Are Not Received in React Native, Flutter, or Cordova
+
+This can happen in hybrid framework implementations when the initialization code is missing. Ensure the following line is in your code, as described in the SDK initialization instructions for your framework.
+
+```kotlin Kotlin wrap
+MoEInitializer.initializeDefaultInstance(applicationContext, moEngage)
+```
+
+### Deep Links Open the App on Android 11 and the Browser on Android 12
+
+Starting in Android 12 (API level 31), a generic web intent resolves to an activity in your application only if your application is approved for the specific domain in that web intent. If your application is not approved for the domain, the web intent resolves to the default browser on the device. To approve or verify your application for your domain, refer to the [Android App Links verification documentation](https://developer.android.com/training/app-links/verify-android-applinks).
+
 ## Why do we recommend letting MoEngage SDK handle push registration?
 
 Push token registration is very important for sending push notifications.\
@@ -182,7 +269,7 @@ All the extra parameters passed along while campaign creation will be a part of 
 
 ## What is a token drop and how to fix it?
 
-For more information, refer to the [How to fix Token Drop?](https://www.moengage.com/docs/developer-guide/android-sdk/troubleshooting-and-faqs/how-to-fix-token-drop)
+For more information, refer to [Token Drop on Earlier SDK Versions](/developer-guide/android-sdk/troubleshooting-and-faqs/how-to-fix-installation-id-drop#token-drop-on-earlier-sdk-versions).
 
 ## Failed resolution of: Landroidx/lifecycle/ProcessLifecycleOwner
 
