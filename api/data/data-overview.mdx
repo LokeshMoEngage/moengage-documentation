@@ -446,6 +446,22 @@ The Data API is designed to handle high volumes of data across our customer base
   <Accordion icon="sparkles" title="What is the SLA to see user details reflect after the merge?">
     The maximum SLA is 30 minutes.
   </Accordion>
+  <Accordion icon="sparkles" title="Why are users not merged after I call the Merge User API?">
+    This usually happens when the payload uses the user's MoEngage ID instead of their ID. Use the UID, which MoEngage stores in the [ID attribute of the user profile](/user-guide/data/user-data/user-profile), for both users:
+
+    ```json Merge User Payload
+    {
+      "merge_data": [
+        {
+          "merged_user": "user_id_that_you_want_to_merge",
+          "retained_user": "user_id_that_you_want_to_retain"
+        }
+      ]
+    }
+    ```
+
+    The Merge User API doesn't work in workspaces where Identity Resolution is enabled.
+  </Accordion>
   <Accordion icon="sparkles" title="How are events copied from the merged user to the retained user?">
     In the user profile, all events are moved from the merged user to the retained user.
   </Accordion>
@@ -463,7 +479,11 @@ The Data API is designed to handle high volumes of data across our customer base
     However, once the user is deleted from MoEngage, the events corresponding to the user will not be accessible. For example, if an event is used in a segmentation query, the deleted user who executed that event will not be added to the calculated segment or campaign.
   </Accordion>
   <Accordion icon="sparkles" title="How do you check if a user has been deleted from MoEngage?">
+    Deletion can take up to 24 hours, so wait at least 24 hours after you submit the Delete Users request before you check.
+
     Navigate to **Segment** -\> **Create Segment** on the MoEngage dashboard. Type the unique identifier for the deleted user (ID, MoEngage ID, phone number, email, or any unique identifier you have configured). If the user has been deleted (hard delete), you will not see any search results. For more information about searching users, refer to [Search User in Segmentation].
+
+    You can also call the [Get User](/api/user/get-user) API, if it's enabled for your workspace. If the deleted user appears in the `users_not_found` field of the response, the deletion is complete.
   </Accordion>
 </AccordionGroup>
 

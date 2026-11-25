@@ -1,0 +1,79 @@
+---
+title: "Troubleshoot Data"
+description: "Diagnose missing events, user properties that don't appear on the dashboard, and data type changes that don't reflect in Data Management."
+keywords: ["missing events", "events missing for specific users", "FUP breach", "fair usage policy", "new event not showing", "user property not reflected", "data type change not reflecting", "segment count dropped after data type change"]
+---
+
+Use this page to diagnose issues with events and user properties tracked in MoEngage. For file import errors, see [Import Error Reference](/user-guide/data/imports/import-error-reference).
+
+## Events Missing for Specific Users
+
+Events are missing on the MoEngage dashboard for a small set of users, while the rest of your user base is unaffected.
+
+When only a few users are affected, they have likely breached the [Fair Usage Policy (FUP)](/user-guide/data/key-concepts/fair-usage-policy-fup) limits. FUP limits apply per user. When a single user ID sends a high volume of data requests in a short window and crosses a safety threshold, MoEngage temporarily blocks data tracking for that user ID to protect platform stability. Data for all other users continues to be tracked.
+
+The limits differ for SDK and non-SDK sources. After three consecutive breaches in any time interval, MoEngage blocks all data tracking for that user for 7 days. For the limits and the action taken for each, see [Fair Usage Policy Limits and Actions](/user-guide/data/key-concepts/fair-usage-policy-fup#fair-usage-policy-limits-and-actions).
+
+<Note>
+An event that is blocked or hidden in Data Management is missing for your entire user base, not specific users. To rule that out, see [New Events or User Properties Not Showing](#new-events-or-user-properties-not-showing).
+</Note>
+
+### Confirm an FUP Breach
+
+<Info>
+**Prerequisites:**
+
+- Access to **Analyze** > **Behavior** and **Settings** > **Data Management**.
+- The affected user ID.
+</Info>
+
+1. Confirm the event is active and not blocked globally. Go to **Settings** > **Data Management** and verify the event **Status** is **Allowed**. If you don't have access to Data Management, contact your workspace admin. For more information, refer to [Overview - Data Management](/user-guide/settings/data-management/overview-data-management).
+
+   ![MoEngage Data Management page showing event statuses set to Allowed.](/images/fup-data-management-page.png)
+
+2. Go to **Analyze** > **Behavior**. In the **Events & filters** section, select the event that appears to be missing for the user.
+3. In the **Filter Users** section, select **Filter users by**. In the **Filter users by** list, click **ID** and enter the affected user ID.
+
+   ![MoEngage Behavior analysis with an event selected and users filtered by ID.](/images/fup-behavior-filter-by-id.png)
+
+4. In the **Behavior Options** section, in the **Analysis type** list, click **Total events**.
+5. In **Duration**, select the period when the events went missing, and then click **Apply**.
+6. Review the **Behavior chart**. Hover over the spikes to view the hourly or minute-by-minute breakdown of events.
+
+   ![MoEngage Behavior chart with a spike of 535 total events.](/images/fup-behavior-chart-spike.png)
+
+If a spike shows a high concentration of requests in a short window (for example, 535 events in one minute), the user crossed the SDK limit (500 per minute) but stayed under the non-SDK limit (5,000 per minute). This confirms that later events for that user were blocked because of an FUP breach.
+
+## New Events or User Properties Not Showing
+
+New events or user properties sent through S2S API calls or SDK requests don't appear on the dashboard.
+
+1. Go to **Settings** > **Data Management** and make sure the event or user property isn't blocked or hidden. If you don't have access to Data Management, contact your admin or manager.
+2. In Data Management, check that you haven't exceeded the event or user property limit.
+
+<Info>
+If you've exceeded the limit, block unused events or user properties to make room for new ones, or contact your CSM about extending your limits.
+</Info>
+
+For more information, see [Overview - Data Management](/user-guide/settings/data-management/overview-data-management).
+
+## New Data Type Not Reflecting in Data Management
+
+**Data Management** doesn't show the new data type you set for a user or event property, and segmentation still uses the old data type.
+
+1. **Update the data type**: Go to **Settings** > **Data Management**, edit the user or event property, and select the new data type.
+2. **Send test values**: Send sample values in the new data type to a test user profile.
+3. **Verify the change**: After MoEngage processes values in the new data type, the updated type appears in **Data Management**, in segmentation, and throughout the system.
+
+<Info>
+- Updating the data type doesn't change existing data. For example, if property `x` was a string and you change it to numeric, it can store both numeric and string values.
+- This applies to both user properties and event properties.
+</Info>
+
+### Segmentation Returns Fewer Users After the Change
+
+Existing data keeps its original data type, so the property holds a mix of both types. A query evaluates the property as one data type at a time, so a segment or analysis filtered on the new data type matches only the values ingested since the change. The count is low, or zero, until enough new data arrives. This is the usual reason a segment count appears to drop right after a data type change.
+
+To match the full history while both data types are present, add one condition per data type and combine them with OR: the property as the new type for recent values, OR the property as the previous type for older values.
+
+Relative date operators, such as "in the last 7 days", work only on the Date data type, so the condition for String-stored values needs an absolute value or range. To match the full history with relative dates, re-ingest the historical values in the new data type instead. For the complete behavior and its effect on value suggestions, see [Set Allowed Data types](/user-guide/settings/data-management/overview-data-management#set-allowed-data-types).

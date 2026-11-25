@@ -1,0 +1,90 @@
+---
+title: "Import Error Reference"
+description: "Causes and fixes for common file import errors in MoEngage, including empty rows, file not found, and UTF-8 encoding errors."
+keywords: ["import errors", "file import failed", "empty rows error", "file not found at the location", "periodic SFTP import failed", "UTF-8 encoding error", "utf-8 codec can't decode byte", "unsupported format or contains invalid characters"]
+---
+
+Use this page to look up an error shown on a file import. For import setup and file requirements, see [Setting Up a File Import](/user-guide/data/imports/setting-up-a-file-import).
+
+## File Errors
+
+| Error | Cause | Fix |
+| --- | --- | --- |
+| Empty rows | The file has blank rows, often added unintentionally when the file is created or saved, especially in Microsoft Excel. | <ol><li>Open the file in a text editor such as Notepad, or in Google Sheets.</li><li>Scroll to the end of the file and press the down arrow key. If the cursor moves down, the file has empty rows.</li><li>Delete the empty rows.</li><li>Save the file as a CSV file directly from the editor, and import it again.</li></ol> |
+| File not found at the location | <ul><li>**First import**: The file isn't in the specified SFTP location.</li><li>**Periodic import**: The file was already processed as part of another import. MoEngage skips any file name it has already processed, as described in [Naming Conventions](/user-guide/data/imports/setting-up-a-file-import#naming-conventions).</li></ul> | <ul><li>On the import page, hover over the status to view the error details.</li><li>For a first import, confirm the file exists in the specified SFTP folder.</li><li>Process each file in only one import. If several imports need the same file, give each copy a unique file name or store the copies in separate folder paths.</li></ul> |
+| Import fails because a file is too large | Each file must be less than 1 GB for a user import, or less than 500 MB for an event or auxiliary data import. For a PGP-encrypted file, MoEngage decrypts the file first and then checks its size, so an encrypted file under the limit can still fail. | Make sure each file, after decryption, is within the limit for its import type. For more information, see [Limits](/user-guide/data/imports/setting-up-a-file-import#limits). |
+| File is in an unsupported format or contains invalid characters. Please save it as UTF-8 and re-upload.<br />Also seen as: `'utf-8' codec can't decode byte 0xe9 in position 154: invalid continuation byte` | The file isn't saved with UTF-8 encoding, which MoEngage requires. This commonly happens when the data includes special characters, accents, emojis, or symbols from other languages. | Save the file with UTF-8 encoding. See [Fix UTF-8 Encoding Errors](#fix-utf-8-encoding-errors). |
+
+If an event data upload from Amazon S3 fails with a timeout error, see [Why Are Event Data Uploads From S3 Failing Due to a Timeout Error?](/user-guide/data/faqs-data/why-are-event-data-uploads-from-s3-failing-due-to-a-timeout-error)
+
+<img alt="File import status showing the file not found at the location error" src="/images/moengage_480553.png" />
+
+## Fix UTF-8 Encoding Errors
+
+<img alt="Import error asking to save the file as UTF-8 and re-upload" src="/images/moengage_34dce1.png" />
+
+<img alt="Import error showing that the utf-8 codec can't decode a byte" src="/images/moengage_0bd3b4.png" />
+
+UTF-8 is a character encoding standard that can represent almost any character in any language. MoEngage requires data files in UTF-8 so that all user properties are processed and stored correctly, regardless of language or special characters. Files saved in other encodings, such as ASCII or ISO-8859-1, support a smaller set of characters. Using the wrong encoding can corrupt data, so that characters appear as strange symbols (for example, "Ã©").
+
+### Check the File's Encoding
+
+- **Identify the current encoding**: Open the file in a text editor such as Visual Studio Code or Notepad++. The current encoding usually appears in the status bar at the bottom-right corner of the window.
+- **Find characters that aren't valid UTF-8**: Open the file in a text editor set to UTF-8. Invalid characters often appear as a black diamond with a question mark or other garbled symbols. You can also paste the file contents into an online ASCII or UTF-8 checker, which highlights the characters that aren't compliant.
+
+### Save the File With UTF-8 Encoding
+
+<Tabs>
+  <Tab title="Microsoft Excel">
+    **Save as CSV UTF-8 (newer Microsoft Excel versions)**
+
+    1. Open your file in Microsoft Excel.
+    2. Go to **File** > **Save As**.
+    3. In the **Save as type** list, select **CSV UTF-8 (Comma delimited) (\*.csv)**.
+    4. Click **Save**.
+
+    **Use the Text Import Wizard (older Microsoft Excel versions)**
+
+    If your version of Microsoft Excel doesn't have the **CSV UTF-8** option:
+
+    1. Open a new, blank workbook in Microsoft Excel.
+    2. On the **Data** tab, click **From Text/CSV**.
+    3. Select your CSV file and click **Import**.
+    4. In the preview, select a **File Origin** encoding that makes your text appear correctly (for example, **1252: Western European (Windows)**).
+    5. Click **Load** to import the data into the blank sheet.
+    6. Go to **File** > **Save As**.
+    7. In the **Tools** list next to the **Save** button, select **Web Options**.
+    8. On the **Encoding** tab, under **Save this document as**, select **Unicode (UTF-8)**.
+    9. Click **OK**, and then click **Save**.
+  </Tab>
+  <Tab title="Google Sheets">
+    Google Sheets handles UTF-8 encoding automatically.
+
+    1. Open Google Sheets.
+    2. Go to **File** > **Import** and upload your file.
+    3. After you verify the data looks correct, go to **File** > **Download**.
+    4. Select **Comma Separated Values (.csv)**. The file downloads in UTF-8 format.
+  </Tab>
+  <Tab title="Notepad (Windows)">
+    1. Open your file in Notepad.
+    2. Go to **File** > **Save As**.
+    3. In the **Encoding** list at the bottom of the **Save As** dialog box, select **UTF-8**.
+    4. Click **Save**.
+  </Tab>
+</Tabs>
+
+### Supported and Unsupported Characters
+
+With a correctly encoded UTF-8 file, MoEngage supports:
+
+- **Standard alphanumeric characters**: a-z, A-Z, 0-9.
+- **Common symbols**: @, ., \_, -, +, !, and others typically found in names, emails, and addresses.
+- **International characters and accents**: ñ, é, ü, ç.
+- **Symbols and emojis**: for example, currency symbols such as € and ₹, and emoji characters.
+
+The following can cause import errors even when the file is UTF-8 encoded:
+
+- **Complex attribute types**: You can't import complex data such as JSON objects, dictionaries, or lists directly into a single CSV field.
+- **Incorrect newline characters**: The only supported newline character is `\n` (Line Feed). Files created on Windows sometimes use `\r\n` (Carriage Return + Line Feed), which can cause parsing issues. Saving the file through Google Sheets or a text editor often fixes this.
+- **Hidden control characters**: Non-printable characters, such as null characters, can corrupt the file and cause the import to fail. These are often introduced when you export data from certain systems.
+- **Very small files**: A file with fewer than five rows of data may cause an error. If this happens, add dummy rows to meet the minimum.
