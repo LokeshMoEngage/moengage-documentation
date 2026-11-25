@@ -120,6 +120,10 @@ To securely connect MoEngage to your Databricks SQL warehouse, MoEngage recommen
       <Info>
         Copy the returned `token_value` immediately, because it is displayed only once.
       </Info>
+
+    <Tip>
+      MoEngage recommends rotating your PAT regularly. To learn how to rotate it, see [Rotate the Personal Access Token (PAT)](#rotate-the-personal-access-token-pat).
+    </Tip>
   </Accordion>
 </AccordionGroup>
 
@@ -207,19 +211,25 @@ You must assign the **Can use** permission on the SQL warehouse referenced in yo
 
 To maintain a secure connection, use the following procedures to manage and rotate your authentication credentials.
 
-#### Personal Access Token (PAT) lifetime and rotation
+#### Rotate the Personal Access Token (PAT)
 
 <Info>
   Unlike OAuth credentials, PATs are static and do not refresh automatically. When a token expires or is revoked, the MoEngage connection stops working until you update it. Set a token lifetime that aligns with your corporate security policy and avoid using no-expiry tokens.
 </Info>
 
-To rotate an expiring or compromised PAT, perform the following steps:
+Create the new token first and switch the MoEngage connection to it before you revoke the old one, so your imports and exports keep running.
 
-1. Generate a new token in Databricks (see Method 2: Personal Access Token (PAT) for detailed generation steps).
-2. Copy the newly generated token.
-3. Sign in to your MoEngage dashboard, go to the active connection, click **Edit**, and then paste the new token in the **Access token** box.
-4. Click **Save**.
-5. Revoke the old token in the Databricks workspace immediately to terminate outdated access.
+1. In your Databricks workspace, generate a new PAT for the same identity that the current token uses. Set a token lifetime that follows your security policy, and avoid tokens that never expire. For the generation steps, see **Method 2: Personal Access Token (PAT)** in [Part A: Set Up Authentication](#part-a-set-up-authentication).
+2. Copy the new token. Databricks shows it only once.
+3. In the MoEngage dashboard, go to **App marketplace**, open **Databricks**, and go to the **Integrate** tab. Edit the active connection and paste the new token in the **Access token** box.
+4. Click **Test** to confirm that MoEngage can connect with the new token. When the test succeeds, click **Save**. The next scheduled import or export uses the new token.
+5. After your next scheduled import or export runs successfully, revoke the old token in your Databricks workspace.
+
+For more information, see [Authenticate with Databricks personal access tokens](https://docs.databricks.com/aws/en/dev-tools/auth/pat) in the Databricks documentation.
+
+<Tip>
+  You can switch this connection to OAuth instead. Databricks recommends OAuth over PATs because OAuth credentials refresh automatically and avoid long-lived tokens. For setup steps, see **Method 1: Service Principal with OAuth (Recommended)** in [Part A: Set Up Authentication](#part-a-set-up-authentication). Before you switch, read [Switch between a Personal Access Token (PAT) and OAuth](#switch-between-a-personal-access-token-pat-and-oauth).
+</Tip>
 
 #### Rotate the Client Secret
 
