@@ -52,7 +52,7 @@ To create a new SFTP connection, perform the following steps:
    | Host | Enter the hostname that you want to connect to. | `128.0.0.0` or `ftp.moengage.com` |
    | Port | Enter or select the port to which you want to connect your SFTP server. Valid ports range from 1 to 65535. The default port is 22. | 22 |
    | Username | Enter the username for the SFTP connection. You can enter an existing user with read and write access or create a new one for MoEngage. | John Doe |
-   | Authentication Method | You must select one of the following methods for MoEngage to connect to your SFTP server: <ul><li>**Password**: Enter the password of the SFTP user (username) in the **Password** box.</li><li>**Key**: MoEngage connects to your SFTP server using the key pair authentication method. You must use this option to generate a key. For more information, refer to [Manage Your SFTP Key (Key Rotation)](#manage-your-sftp-key-key-rotation).</li><li>**2FA (Both)**: MoEngage attempts to connect using both Password and Key authentication. The connection proceeds successfully if either the password or the key matches; it does not perform a strict check requiring both.</li></ul> For **Key** and **2FA (Both)** authentication: <ol><li>Select **Key** or **2FA (Both)** as your Authentication method.</li><li>Click the **Generate Key** icon <img src="/images/partner_33187158924564.png" alt="Generate Key icon" />, and MoEngage displays your public key. You must add this public key to your SFTP server. For more information, refer to [How to add a new SSH key to a cloud server](https://www.servers.com/support/knowledge/linux-administration/how-to-add-new-ssh-key-to-a-cloud-server) (unverified public article).</li></ol> **Note**: The key generated is a public key. For 2FA (Both), you must enter the Password and generate/use the Key. | Password / Key / 2FA (Both) |
+   | Authentication Method | You must select one of the following methods for MoEngage to connect to your SFTP server: <ul><li>**Password**: Enter the password of the SFTP user (username) in the **Password** box. For more information, refer to [Rotate Your SFTP Credentials](#rotate-your-sftp-credentials).</li><li>**Key**: MoEngage connects to your SFTP server using the key pair authentication method. You must use this option to generate a key. For more information, refer to [Rotate Your SFTP Credentials](#rotate-your-sftp-credentials).</li><li>**2FA (Both)**: MoEngage attempts to connect using both Password and Key authentication. The connection proceeds successfully if either the password or the key matches; it does not perform a strict check requiring both.</li></ul> For **Key** and **2FA (Both)** authentication: <ol><li>Select **Key** or **2FA (Both)** as your Authentication method.</li><li>Click the **Generate Key** icon <img src="/images/partner_33187158924564.png" alt="Generate Key icon" style={{ display: "inline-block", height: "20px", width: "auto", margin: 0, verticalAlign: "middle" }} />, and MoEngage displays your public key. You must add this public key to your SFTP server. For more information, refer to [How to add a new SSH key to a cloud server](https://www.servers.com/support/knowledge/linux-administration/how-to-add-new-ssh-key-to-a-cloud-server) (unverified public article).</li></ol> **Note**: The key generated is a public key. For 2FA (Both), you must enter the Password and generate/use the Key. | Password / Key / 2FA (Both) |
    | <img src="/images/partner_43256271555348.png" alt="Generated public key displayed when you select Key or 2FA (Both) authentication" /> |  |  |
 6. You can click **Test connect** to verify the credentials and test your details before saving the connection. When you're ready, click **Connect** to save the connection and proceed.
    <Note>
@@ -61,13 +61,29 @@ To create a new SFTP connection, perform the following steps:
 
 After the connection between MoEngage and your SFTP server is successful, you can use it to configure various imports and exports in MoEngage.
 
-#### Manage Your SFTP Key (Key Rotation)
+#### Rotate Your SFTP Credentials
 
-MoEngage also supports key rotation. If your IT policy requires you to rotate the keys, you can do it by performing the following steps:
+MoEngage recommends rotating your SFTP credentials every 90 days or as per your IT policy. The steps depend on the authentication method that your connection uses.
 
-1. Go to the **App marketplace** \> **SFTP** \> **Integrate** and edit the connection.
-2. Click the **Generate new key** icon <img src="/images/partner_33187158924564.png" alt="Generate new key icon" />. The **Generate a new key** pop-up window appears, prompting you to review the instructions. **Note**: Read the instructions carefully. After you save the connection with the newly generated key, MoEngage will no longer use the previous key. You must ensure that the new key is added to your SFTP server so the rotation works properly. If the new key is not added after saving the connection, your imports and exports might break. <img src="/images/partner_33213799352980.png" alt="Generate a new key pop-up window" />
-3. Click **Generate new key**. After MoEngage successfully generates the key, a confirmation message is displayed. MoEngage highly recommends that you copy this new key using the <img src="/images/partner_33187158929940.png" alt="Copy icon" /> icon and attach it as an additional key to your SFTP server. You can also download the key using the <img src="/images/partner_33187183848852.png" alt="Download icon" /> icon. After attaching the new key, you must test the connection successfully to complete the rotation. **Note**: If you generate a new key for rotation, you must test the connection successfully to complete the rotation, or MoEngage will continue using the old key.
+<AccordionGroup>
+  <Accordion title="Rotate Your Username and Password">
+    Update the username and password that MoEngage uses to connect to your SFTP server. Follow the order below so that your imports and exports keep running throughout.
+
+    1. Create a new SFTP user dedicated to MoEngage on your SFTP server. Give it the same folder access as the current user. For exports, the user needs permission to create folders and write files.
+    2. In the MoEngage dashboard, go to **App marketplace**, open **SFTP**, and go to the **Integrate** tab. Edit the existing connection.
+    3. Enter the new username and password. Keep the host, port, and authentication method as they are.
+    4. Click **Test connect**, and then click **Connect** to save. Every import and export that uses this connection starts using the new user.
+    5. After your next scheduled import or export runs successfully, delete the old SFTP user from your server.
+  </Accordion>
+
+  <Accordion title="Rotate Your SSH Key">
+    To rotate the SSH key, perform the following steps:
+
+    1. Go to the **App marketplace** \> **SFTP** \> **Integrate** and edit the connection.
+    2. Click the **Generate new key** icon <img src="/images/partner_33187158924564.png" alt="Generate new key icon" style={{ display: "inline-block", height: "20px", width: "auto", margin: 0, verticalAlign: "middle" }} />. The **Generate a new key** pop-up window appears, prompting you to review the instructions. **Note**: Read the instructions carefully. After you save the connection with the newly generated key, MoEngage will no longer use the previous key. You must ensure that the new key is added to your SFTP server so the rotation works properly. If the new key is not added after saving the connection, your imports and exports might break. <img src="/images/partner_33213799352980.png" alt="Generate a new key pop-up window" />
+    3. Click **Generate new key**. After MoEngage successfully generates the key, a confirmation message is displayed. MoEngage highly recommends that you copy this new key using the <img src="/images/partner_33187158929940.png" alt="Copy icon" style={{ display: "inline-block", height: "20px", width: "auto", margin: 0, verticalAlign: "middle" }} /> icon and attach it as an additional key to your SFTP server. You can also download the key using the <img src="/images/partner_33187183848852.png" alt="Download icon" style={{ display: "inline-block", height: "20px", width: "auto", margin: 0, verticalAlign: "middle" }} /> icon. After attaching the new key, you must test the connection successfully to complete the rotation. **Note**: If you generate a new key for rotation, you must test the connection successfully to complete the rotation, or MoEngage will continue using the old key.
+  </Accordion>
+</AccordionGroup>
 
 ### Set Up Imports from SFTP
 
