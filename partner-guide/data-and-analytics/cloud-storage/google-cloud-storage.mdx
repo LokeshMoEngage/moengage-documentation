@@ -43,6 +43,10 @@ On your Google Cloud Platform console, go to the **IAM & Admin** console.
     ![Selecting JSON as the key type when creating a service account key](/images/partner_12062926508052.png)
 11. Your new key is automatically downloaded in JSON format. Store this file safely. You will need to upload it later on the MoEngage dashboard.
 
+<Tip>
+  MoEngage recommends rotating your service account key regularly. To learn how to rotate it, see [Rotate Your Service Account Key](#rotate-your-service-account-key).
+</Tip>
+
 ### Step 2: Grant this service account permissions to your bucket
 
 1. On your service account details page, copy the email of your service account.
@@ -80,6 +84,24 @@ To perform end-to-end testing, MoEngage requires a few additional permissions to
 | `resourcemanager.projects.getIamPolicy` | Optional | Allows the user to view the IAM policy for a project in Google Cloud Resource Manager. MoEngage uses this permission to test the connection and to turn a paused export back on. If you skip it, testing the connection fails with a `403` error, and you can't turn the export back on after MoEngage pauses it. |
 
 Feel free to create a custom role that incorporates the mandatory permissions required by MoEngage along with any optional permissions cleared by your IT policy for testing.
+
+### Rotate Your Service Account Key
+
+MoEngage recommends rotating your service account key every 90 days or as per your IT policy. A service account can have multiple keys, so your current key keeps working while you switch to the new one.
+
+1. In your Google Cloud console, go to **IAM & Admin** > **Service Accounts**, and open the service account that MoEngage uses.
+2. Go to the **Keys** tab and note the ID and creation date of the current key, so that you can identify it later. Click **Add key**, and select **Create new key**. Select **JSON** as the key type and click **Create**. Google downloads the JSON key file to your computer. Store it securely, because Google does not show the private key again.
+3. In your MoEngage dashboard, go to **App marketplace**, open **Google Cloud Storage**, and go to the **Integrate** tab. Edit the existing integration and upload the new service account credential JSON file.
+4. Test the connection, and then save the integration. Testing the connection requires the `resourcemanager.projects.getIamPolicy` permission. For more information, see [Note on Required Permissions](#note-on-required-permissions).
+5. After you confirm that your next scheduled export runs successfully, go to the **Keys** tab of the service account in the Google Cloud console and click **Delete** for the old key, using the ID you noted in step 2. Then delete the downloaded JSON file from your computer.
+
+You can't restore a deleted key. If you want a reversible step first, disable the old key with the gcloud CLI, confirm that your exports keep running, and then delete it. For more information, see [Service account key rotation](https://docs.cloud.google.com/iam/docs/key-rotation) in the Google Cloud documentation.
+
+<Warning>
+  The rotation is not complete until you delete the old key in Google Cloud. Editing, disabling, or removing the integration in MoEngage does not revoke the key, and the old key keeps working until you delete it.
+</Warning>
+
+If you have more than one GCS integration, check which service account each one uses, and repeat these steps for each integration.
 
 ## Export Events from MoEngage to GCS
 
