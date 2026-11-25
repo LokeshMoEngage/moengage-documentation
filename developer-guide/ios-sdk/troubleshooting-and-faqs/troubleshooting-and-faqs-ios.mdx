@@ -114,10 +114,66 @@ All MoEngage logs are prefixed by the keyword "MoEngage".
 ## Images/Video/Audio in Rich Notifications(iOS10 and above) not showing in push notifications?
 
 - Make sure you have implemented the [Rich Notification](/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#tracking-and-analytics-verification) feature correctly.
+- Verify that the Notification Service Extension (NSE) is implemented in your app. If it isn't, implement it as described in [Step 1: Implement Notification Service Extension (NSE)](/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse). If it's already implemented, verify its setup against the same steps.
 - **If HTTP link**: HTTP URLs aren't supported in iOS9 and above unless explicitly specified in the plist. Include **App Transport Security Settings** Dictionary in your Notification Service Extensions **Info.plist** and inside this set **Allow Arbitrary Loads to YES**.
 - Check if the Image/Audio/Video URL is valid.
 - **If only the video doesn't display**: Check that the video URL uses HTTPS and that the file is within Apple's attachment size limit for video. The NSE doesn't report an error, so the notification is still delivered with its title and body. Refer to [Media Requirements](/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#media-requirements).
 - **If the image is in WebP (`.webp`) format**: iOS supports only [the formats listed by Apple for notification attachments](https://developer.apple.com/documentation/usernotifications/unnotificationattachment#Supported-File-Types), which don't include WebP. Use JPG, PNG, or GIF.
+
+## Push Campaign Impressions Not Tracked on iOS Devices?
+
+The SDK tracks push notification impressions through the Notification Service Extension (NSE).
+
+- Verify that the NSE is implemented in your app.
+- If the NSE isn't implemented, implement it as described in [Step 1: Implement Notification Service Extension (NSE)](/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse).
+- If the NSE is already implemented, verify its setup against the same steps.
+
+## Push Templates Not Displaying Correctly in iOS Push Notifications?
+
+If push templates (carousel images, background color, font color, and so on) don't display correctly, verify that both the Notification Service Extension and the Notification Content Extension are implemented in your app:
+
+- If the Notification Service Extension isn't implemented, implement it as described in [Step 1: Implement Notification Service Extension (NSE)](/developer-guide/ios-sdk/push/basic/ios-push-integration-tutorial#step-1-implement-notification-service-extension-nse). If it's already implemented, verify its setup against the same steps.
+- If the Notification Content Extension isn't implemented, implement it as described in [Push Templates](/developer-guide/ios-sdk/push/optional/push-templates).
+- If the Notification Content Extension is already implemented, complete the checks in [Verify the Notification Content Extension Setup](#verify-the-notification-content-extension-setup).
+
+### Verify the Notification Content Extension Setup
+
+If push templates don't display correctly even though the Notification Content Extension is implemented, make sure you completed the code changes in [Push Templates](/developer-guide/ios-sdk/push/optional/push-templates), then verify the following:
+
+1. The `Info.plist` of the Notification Content Extension contains the following attributes:
+
+   ```xml Info.plist wrap
+   <key>NSExtensionAttributes</key>
+   <dict>
+       <key>UNNotificationExtensionCategory</key>
+       <string>MOE_PUSH_TEMPLATE</string>
+       <key>UNNotificationExtensionDefaultContentHidden</key>
+       <true/>
+       <key>UNNotificationExtensionInitialContentSizeRatio</key>
+       <real>1.2</real>
+       <key>UNNotificationExtensionUserInteractionEnabled</key>
+       <true/>
+   </dict>
+   ```
+
+   Update `UNNotificationExtensionCategory` to match the categories you declared.
+
+2. Select **MainInterface.storyboard** in the Notification Content Extension, remove the default label, and set the background color of the view to clear.
+
+   ![Xcode storyboard editor for MainInterface in the Notification Content Extension, with the View selected and its Background set to Clear Color](/images/moengage_2ae942.png)
+
+3. In the main app target, open **Build Phases**. Under **Embed App Extensions** or **Embed Foundation Extensions**, make sure **Copy only when installing** isn't selected.
+
+   ![Xcode Build Phases tab of the main app target with Copy only when installing cleared under Embed App Extensions](/images/moengage_7f39a4.png)
+
+4. Make sure the App Group ID is the same across all schemes and configurations in the project (for example, Debug, Release, QA, and UAT).
+5. When you run or archive the project, make sure the build configuration of the main app target, the Notification Service Extension target, and the Notification Content Extension target point to the same scheme configuration.
+
+   ![Xcode scheme editor for the main app scheme with the Run action set to the Debug build configuration](/images/moengage_10faed.png)
+
+   ![Xcode scheme editor Build action listing the Notification Service Extension and main app targets](/images/moengage_805a55.png)
+
+   ![Xcode scheme editor for the Notification Content Extension scheme with the Run action set to the Debug build configuration](/images/moengage_a717f9.png)
 
 ## Not Getting notifications that are not clicked by users in the Notification Center(Inbox)?
 
