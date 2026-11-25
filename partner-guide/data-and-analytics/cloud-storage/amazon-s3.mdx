@@ -107,6 +107,10 @@ Select the authentication method that matches how you plan to use the connection
     3. Enter the **Access Key ID** and **Secret Access Key** on the **Add Connection** page (see [Step 4: Connect Amazon S3 on the App Marketplace](#step-4-connect-amazon-s3-on-the-app-marketplace)).
 
     Access-key credentials are stored once as a reusable S3 connection in MoEngage, rather than being entered inside each import. Create the connection once (Step 4), and then select it when you configure any S3 import.
+
+    <Tip>
+      MoEngage recommends rotating your access key regularly. To learn how to rotate it, see [Rotate Access Keys](#rotate-access-keys).
+    </Tip>
   </Accordion>
 
   <Accordion title="IAM Policy [Exports] — supports exports only">
@@ -266,3 +270,23 @@ To configure user and event data imports using this connection, see the [S3 Data
 </Info>
 
 To route campaign interaction logs to your Amazon S3 bucket, configure automated exports using the [S3 Data Exports Guide](/user-guide/data/exports/events/data-warehouse/s3-exports).
+
+## Rotate Access Keys
+
+If your connection uses the **Access key \[Imports\]** method, rotate the access key regularly. An IAM user can hold two access keys at the same time, so your current key keeps working while you switch to the new one.
+
+1. In the **AWS Management Console**, open **IAM** \> **Users**, and then open the user that MoEngage uses. On the **Security credentials** tab, create a new access key.
+2. Copy the new **Access Key ID** and **Secret Access Key**. AWS shows the secret access key only once.
+3. In the MoEngage dashboard, go to **App marketplace**, open **Amazon S3**, and go to the **Integrate** tab. Edit the existing connection and enter the new **Access Key ID** and **Secret Key**. If other applications or tools use the same access key, update them to use the new key as well.
+4. Click **Test**, and then click **Connect**. Configuration changes can take up to 15 minutes to take effect.
+5. After your next scheduled import runs successfully, deactivate the old access key in IAM. If the next import fails, reactivate the old key, check that the connection uses the new key, and try again. After one more successful run, delete the old key.
+
+For more information, see [Update access keys](https://docs.aws.amazon.com/IAM/latest/UserGuide/id-credentials-access-keys-update.html) in the AWS documentation.
+
+<Tip>
+  You can switch this connection to the **Cross account role** method instead. AWS recommends this method because it avoids long-lived access keys. For setup steps, see [Step 1: Set Up Authentication](#step-1-set-up-authentication).
+</Tip>
+
+<Note>
+  If you have not yet moved your S3 import credentials to an App Marketplace connection, each import holds its own copy of the access key. Update the access key in every active import before you deactivate the old key.
+</Note>
