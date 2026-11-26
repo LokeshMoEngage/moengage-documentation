@@ -45,9 +45,8 @@ Send your credentials in the `Authorization` header as a Base64-encoded string i
 
 - **Username**: Use your MoEngage Workspace ID (also known as the App ID). Find it in the MoEngage dashboard at **Settings** \> **Account** \> **API keys**.
 - **Password**: Enter an API key generated from **Settings** \> **Account** \> **API keys** (supports Basic Auth or OAuth 2.0). To use the Offerings API, click **+ Create new key**, select the **Offerings** group, and assign the permission level your calls require:
-  - **View**: List and get offerings and offering templates.
+  - **View**: List and get offerings and offering templates, and validate offerings.
   - **Create & Manage**: Also create and update offerings.
-  - **Create, Manage & Publish**: Also validate offerings.
   - **Download**: Download offering reports.
 
 Each endpoint page lists the minimum permission it needs. Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
@@ -211,6 +210,12 @@ For the full list of error codes per endpoint, see the individual endpoint pages
     Despite its name, `imp_track_hours` is in days when `attribution_multiplier` is `24`.
 
     The same rules apply on Update Offering when you add or change a conversion goal on a draft offering. Get Offering returns `attribution_multiplier` along with `imp_track_hours`.
+
+    Each conversion goal also needs an `attributes` block. If you don't want to filter the goal, send `{"filter_operator": "and", "filters": []}`. When there are no secondary goals, send `secondary` as `[]`. The dashboard needs both of these to open the goal.
+
+    Revenue tracking is only available on the primary goal. If you aren't tracking revenue, leave out `is_revenue_tracking`, `revenue_amount` and `revenue_currency`.
+
+    On Update Offering, `conversion` replaces the existing goals. Send the primary goal along with every secondary goal you want to keep.
   </Accordion>
   <Accordion title="Can I change variation_meta after creation?">
     Yes, while the offering is a `draft`. The entire `variation_meta` object is editable on a draft, including the `type`, the variation keys and split percentages in `smv_distribution`, and the `control_group`. Only drafts can be updated through the API. Don't send `smv_distribution` when the `type` is `DMV`. The variation types are `SMV` (static allocation you control) and `DMV` (dynamic allocation MoEngage optimizes).
@@ -288,6 +293,26 @@ For the full list of error codes per endpoint, see the individual endpoint pages
     ```
 
     To learn more about in-session attributes and the supported operators and data types, see [In-session attributes](https://www.moengage.com/docs/user-guide/decisioning/offer-decisioning/create-offerings#in-session-attributes).
+  </Accordion>
+  <Accordion title="How do I attach a Content Block to an offering?">
+    Instead of writing the content inline, you can use a Content Block that already exists in your Content Block library. To do this, set the content `type` to `content_block` and send the following:
+
+    - `value`: a token that contains the block's label, for example `{{ContentBlock['Loyalty_Banner']}}`. Use the block's label, not its name.
+    - `meta.personalization_meta.content_block_ids`: an array that contains the block's ID.
+    - `meta.displayed_value`: the block's display name.
+
+    ```json
+    "content_1": {
+      "type": "content_block",
+      "value": "{{ContentBlock['Loyalty_Banner']}}",
+      "meta": {
+        "personalization_meta": { "content_block_ids": ["65a1c0de9b2f4a7d8e3c5f30"] },
+        "displayed_value": "Loyalty_Banner"
+      }
+    }
+    ```
+
+    Don't send only the block's ID as `value`. The API accepts it, but the dashboard doesn't show the block as attached. To switch to another block, update the offering with the whole `content_1` for the new block. For a complete request, see the "Offering with a content block" example on the [Create Offering](/api/public-offerings/create-offering) page.
   </Accordion>
 </AccordionGroup>
 ### Update Offering

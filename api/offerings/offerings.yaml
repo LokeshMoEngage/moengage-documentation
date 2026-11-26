@@ -523,9 +523,13 @@ paths:
                       goal_name: Purchase
                       action: purchase
                       filter_type: actions
+                      attributes:
+                        filter_operator: and
+                        filters: []
                       is_revenue_tracking: true
                       revenue_amount: order_value
                       revenue_currency: USD
+                    secondary: []
                   attribution_multiplier: 1
                   imp_track_hours: 24
               templateSingleVariation:
@@ -1090,6 +1094,51 @@ paths:
                       enabled: true
                       limit_value: 2
                       limit_schedule: DAILY
+              contentBlock:
+                summary: "Offering with a content block"
+                value:
+                  display_name: Summer_Loyalty_Content_Block
+                  description: Summer offer that uses a content block
+                  priority: 50
+                  created_by: john.doe@example.com
+                  request_id: 5b2f7c1e-3d94-4a68-8e1b-9c0a7d42f6a3
+                  status: draft
+                  scheduling:
+                    start_datetime: '2027-06-01T00:00:00Z'
+                    expiry_datetime: '2027-08-31T23:59:00Z'
+                    timezone: Asia/Kolkata
+                  segment_info:
+                    filters:
+                      included_filters:
+                        filter_operator: and
+                        filters:
+                        - filter_type: custom_segments
+                          name: custom_segment
+                          id: 65a1c0de9b2f4a7d8e3c5f2a
+                  offer_content:
+                    locales:
+                      '0':
+                        variations:
+                          variation_1:
+                            content_1:
+                              type: content_block
+                              value: '{{ContentBlock[''Loyalty_Banner'']}}'
+                              meta:
+                                personalization_meta:
+                                  content_block_ids:
+                                  - 65a1c0de9b2f4a7d8e3c5f30
+                                displayed_value: Loyalty_Banner
+                  variation_meta:
+                    type: SMV
+                    control_group:
+                      is_enabled: false
+                      percentage: 0
+                    smv_distribution:
+                      split:
+                        variation_1: 100
+                  capping_rules: {}
+                  is_global_control_enabled: false
+                  imp_track_hours: 36
               inSessionTargeting:
                 summary: "Target visitors by in-session attributes"
                 value:
@@ -1921,8 +1970,8 @@ paths:
   /v5/offers/{offer_id}/validate:
     post:
       security:
-        - Basic Auth (Create, Manage & Publish): []
-        - OAuth 2.0 (Create, Manage & Publish): []
+        - Basic Auth (View): []
+        - OAuth 2.0 (View): []
       operationId: validatePublicOffering
       summary: Validate Offering
       description: |
@@ -3501,8 +3550,8 @@ components:
         `json` — Serialised JSON string containing the offering content 
         payload.
 
-        `content_block` — The ID of a content block stored in the
-        MoEngage Content Block library.
+        `content_block` — A content block that already exists in the MoEngage Content Block library.
+        `value` holds a token with the block's label, and `meta` holds the block's ID and display name.
 
         `template` — value is a JSON object of the template's field values. `meta.templateId`
         carries the template ID (from `GET /v5/offers/templates`), and `meta.metaConfigObject`
@@ -3514,7 +3563,7 @@ components:
           type: string
           description: >
             Format of the content payload. Determines how `value` is interpreted.
-            `json` — serialised JSON string. `content_block` — Content Block library reference ID.
+            `json` — serialised JSON string. `content_block` — a Content Block that already exists.
             `template` — object of template field key-value pairs.
           enum: [json, content_block, template]
         value:
@@ -3524,8 +3573,10 @@ components:
             - **`json`** — value must be a **serialised JSON string** (not an inline JSON object).
               The entire payload is encoded as a string. Example: `"{\"discount\": \"10%\"}"`.
               Passing a raw JSON object instead of a string returns `400 INVALID_TYPE`.
-            - **`content_block`** — value is the reference ID string of a Content Block from the
-              MoEngage Content Block library.
+            - **`content_block`** — value is a token that contains the block's label, for example
+              `{{ContentBlock['Loyalty_Banner']}}`. Use the block's label, not its name. Along with `value`, send
+              `meta.personalization_meta.content_block_ids` and `meta.displayed_value`. If you send only the
+              block's ID, the API accepts it, but the dashboard doesn't show the block as attached.
             - **`template`** — value is a JSON **object** (not a string) whose keys are the field names
               (`outputKeyName`) from `template_config` in the [Get Offer Template](/api/public-offerings/get-offer-template) response.
               Include every required field (`validations.REQUIRED: true`) and any optional field you want MoEngage to return.
@@ -3534,7 +3585,9 @@ components:
               For a dropdown field, use the option's `value` — not its `label` or `id`.
           oneOf:
             - type: string
-              description: For `json` and `content_block` types. For `json`, must be a serialised JSON string — not an inline object.
+              description: >
+                For `json` and `content_block` types. For `json`, a serialised JSON string — not an inline object.
+                For `content_block`, the token that contains the block's label.
             - type: object
               description: For `template` type — a map of template field names to their values.
               additionalProperties: true
@@ -3542,7 +3595,12 @@ components:
         meta:
           type: object
           description: |
-            Metadata for the content block. Used with the `template` type. Get the template's
+            Metadata for the content item. Used with the `template` and `content_block` types.
+
+            **For `content_block`:** send `personalization_meta.content_block_ids` (an array with the block's ID)
+            and `displayed_value` (the block's display name). Use an existing block; create blocks in the dashboard.
+
+            **For `template`:** Get the template's
             field configuration from the [Get Offer Template](/api/public-offerings/get-offer-template)
             API, then apply the following rules:
 
@@ -3572,6 +3630,21 @@ components:
                 Field configuration of the template, in the same structure as `template_config` in the Get Offer Template response. Each key is a field's `outputKeyName`. Set each field's `value` to match the same field in `value`.
               additionalProperties:
                 $ref: '#/components/schemas/TemplateConfigField'
+            personalization_meta:
+              type: object
+              description: >
+                For `content_block`. Identifies which content block is used.
+              properties:
+                content_block_ids:
+                  type: array
+                  description: IDs of the content blocks that this content item uses. Send the block's 24-character ID.
+                  items:
+                    type: string
+                  example: ["65a1c0de9b2f4a7d8e3c5f30"]
+            displayed_value:
+              type: string
+              description: For `content_block`. The block's display name, as it appears in the dashboard.
+              example: Loyalty_Banner
           additionalProperties: true
           example:
             templateId: promo_banner_demo
@@ -3696,9 +3769,12 @@ components:
 
     ConversionDto:
       description: |
-        List of conversion goals to track.
+        Conversion goals to track. Each goal needs `goal_name`, `action` and `attributes`. When there are no secondary
+        goals, send `secondary` as `[]`. The dashboard needs `attributes` and `secondary` to display the goals.
 
-        A conversion goal can be set at creation, or later via PATCH while the offering is a `draft`.
+        You can set a conversion goal when you create the offering, or later with PATCH while the offering is a `draft`.
+        Updating `conversion` replaces the existing goals, so send the complete `primary` goal along with every
+        secondary goal you want to keep.
 
         When you add a conversion goal, `attribution_multiplier` and `imp_track_hours` are also required to publish.
       type: object
@@ -3706,18 +3782,20 @@ components:
         primary:
           $ref: '#/components/schemas/ConversionGoal'
           description: >
-            Primary conversion goal.
+            The primary conversion goal. Revenue tracking is available only on this goal.
         secondary:
           type: array
+          maxItems: 4
           description: >
-            Additional conversion goals tracked alongside the primary goal.
+            Additional conversion goals tracked along with the primary goal. When there are none, send `[]`.
+            You can add up to 4 secondary goals (5 goals in total). Secondary goals can't track revenue.
           items:
             $ref: '#/components/schemas/ConversionGoal'
 
     ConversionGoal:
       description: A single conversion goal that tracks a specific user action.
       type: object
-      required: [goal_name, action]
+      required: [goal_name, action, attributes]
       properties:
         goal_name:
           type: string
@@ -3727,7 +3805,8 @@ components:
         action:
           type: string
           description: >
-            MoEngage event name associated with the conversion goal.
+            The name of an existing MoEngage event in your workspace that counts as a conversion. Enter it
+            exactly as it appears in MoEngage. `goal_name` is only a label.
           example: add_to_cart
         filter_type:
           type: string
@@ -3740,13 +3819,16 @@ components:
         attributes:
           $ref: '#/components/schemas/ConversionAttributesDto'
           description: >
-            Optional attribute-level filters to narrow which occurrences of the action
-            count as a conversion (e.g. only purchase events where category = "Electronics").
+            Attribute-level filters that narrow down which occurrences of the action count as a conversion
+            (for example, only purchase events where category = "Electronics"). If you don't want to filter, send
+            `{"filter_operator": "and", "filters": []}`. The dashboard needs this block to display the goal.
         is_revenue_tracking:
           type: boolean
           description: >
-            When true, the conversion also records the monetary value from the event.
-            Requires the `revenue_amount` and `revenue_currency` fields to be set.
+            When true, the conversion also records the monetary value from the event, and the
+            `revenue_amount` and `revenue_currency` fields must be set. Revenue tracking is available only
+            on the primary goal. If you aren't tracking revenue, leave out `is_revenue_tracking`,
+            `revenue_amount` and `revenue_currency` instead of sending `false`.
           default: false
         revenue_amount:
           type: string
@@ -4283,9 +4365,13 @@ components:
               goal_name: Purchase
               action: purchase
               filter_type: actions
+              attributes:
+                filter_operator: and
+                filters: []
               is_revenue_tracking: true
               revenue_amount: order_value
               revenue_currency: USD
+            secondary: []
           imp_track_hours: 24
           attribution_multiplier: 1
 
@@ -4352,24 +4438,6 @@ components:
         Send an OAuth 2.0 access token as `Bearer <access_token>`.
 
         To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Offerings** group, and assign at least the **Create & Manage** permission. Then exchange the key for an access token. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
-    Basic Auth (Create, Manage & Publish):
-      type: http
-      scheme: basic
-      description: |
-        Send your Workspace ID and API key as a base64-encoded `username:password` string.
-
-        - **Username**: Your MoEngage Workspace ID (also known as the App ID), from **Settings** > **Account** > **API keys**.
-        - **Password**: An API key generated from **Settings** > **Account** > **API keys**. Click **+ Create new key**, set **Authentication type** to **Basic Auth**, select the **Offerings** group, and assign the **Create, Manage & Publish** permission.
-
-        Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
-    OAuth 2.0 (Create, Manage & Publish):
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: |
-        Send an OAuth 2.0 access token as `Bearer <access_token>`.
-
-        To get a token, click **+ Create new key** on **Settings** > **Account** > **API keys**, set **Authentication type** to **OAuth 2.0**, select the **Offerings** group, and assign the **Create, Manage & Publish** permission. Then exchange the key for an access token. Refer to [OAuth 2.0 Overview](/api/oauth/oauth-overview).
     basicAuth:
       type: http
       scheme: basic
@@ -4377,6 +4445,6 @@ components:
         Authentication is done via Basic Auth. This requires a base64-encoded string of your credentials in the format `username:password`.
 
         - **Username**: Use your MoEngage Workspace ID (also known as the App ID). Find it in the MoEngage dashboard at **Settings** > **Account** > **API keys**.
-        - **Password**: Use an API key from **Settings** > **Account** > **API keys**. You need to [generate a new API key](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#create-a-key) to use the Offerings API and select the **Offerings** group under **Create new key** with the permission your calls need: **View** to list and get offerings and templates, **Create & Manage** or **Create, Manage & Publish** to create and update offerings and drafts, or **Download** to download offering reports. The key can use Basic Auth or OAuth 2.0.
+        - **Password**: Use an API key from **Settings** > **Account** > **API keys**. You need to [generate a new API key](/user-guide/settings/account/api-and-api-keys/api-key-dashboard#create-a-key) to use the Offerings API and select the **Offerings** group under **Create new key** with the permission your calls need: **View** to list and get offerings and templates, **Create & Manage** to create and update offerings and drafts, or **Download** to download offering reports. The key can use Basic Auth or OAuth 2.0.
 
         Refer to [API Key Dashboard](/user-guide/settings/account/api-and-api-keys/api-key-dashboard) for details on creating and managing API keys.
