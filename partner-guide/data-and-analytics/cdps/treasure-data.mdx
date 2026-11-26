@@ -1,114 +1,136 @@
 ---
 title: "Treasure Data"
+description: "Send users and events from Treasure Data to MoEngage, and send MoEngage campaign interaction data back to Treasure Data with the Postback API."
+keywords: ["Treasure Data", "Treasure AI", "CDP", "Postback API", "Postback API v2", "custom connector", "HTTP export"]
 ---
 
-## Introduction
+# Introduction
 
-[Treasure Data](https://www.treasuredata.com/) is a customer data platform (CDP) that collects and routes information from multiple sources to a variety of other locations in your marketing stack.
+[Treasure Data](https://www.treasure.ai/) is a customer data platform (CDP) that collects customer data from many sources and sends it to the other tools in your marketing stack.
 
-## MoEngage × Treasure Data
+# MoEngage × Treasure Data
 
-MoEngage and Treasure Data bi-directional integration allows you to write job results from Treasure Data directly to MoEngage. You can
+The MoEngage and Treasure Data integration works in both directions. You can do the following:
 
-- Forward user actions and events from Treasure Data to MoEngage
-- Create or update users in MoEngage
-- Send MoEngage campaign interaction data back to Treasure Data
+- Send users and events from Treasure Data to MoEngage.
+- Create or update users in MoEngage.
+- Send MoEngage campaign interaction data back to Treasure Data.
 
-## Integration
+## Use Cases
+
+- **Target segments**: Sync your consolidated customer profiles from Treasure Data to MoEngage to build segments. Treasure Data profiles can include first-party cookie data, mobile IDs, and data from third-party systems such as your CRM.
+- **Campaign data in Treasure Data**: Send MoEngage campaign interactions back to Treasure Data to analyze them with the rest of your customer data.
+
+# Send Data from Treasure Data to MoEngage
 
 <Info>
   **Prerequisites**
 
-  - Ensure you have permission to create a HTTP webhook on Treasure Data
-  - Ensure you have access to the MoEngage Dashboard.
+  - Permission to create an HTTP authentication in Treasure Data.
+  - Your MoEngage Workspace ID and Data API Key. To find them, in the MoEngage UI, navigate to **Settings** \> **Account** \> **APIs**.
 </Info>
 
-### Use cases
-
-1. You can synchronize your consolidated customer profiles from Treasure Data into MoEngage to build-out target segments. Treasure Data supports first-party cookie data, Mobile IDs, third-party systems like your CRM, and many more.
-2. You can also send back MoEngage campaign interaction data back to Treasure Data
-
 <Note>
-  Please note that the integration is not available directly. Please reach out to your Customer Success Managers to get it enabled!
+  This integration isn't enabled by default. Contact your MoEngage Customer Success Manager (CSM) to enable it.
 </Note>
 
-### Step 1: Get your MoEngage endpoint
+## Step 1: Get Your MoEngage Endpoints
 
-Speak to your MoEngage Customer Success Manager to help you get a dedicated endpoint for TreasureData. You will be getting two separate endpoints for importing Users and Events.
+Contact your MoEngage CSM to get dedicated Treasure Data endpoints. You get two endpoints: one to import users and one to import events.
 
-### Step 2: Configure MoEngage connection on Treasure Data
+## Step 2: Create an HTTP Authentication in Treasure Data
 
-Repeat the following steps for each of the two URLs given to you:
+Perform the following steps once for each endpoint:
 
-1. On your Treasure Data dashboard, navigate to **Catalog**.
-   ![Treasure Data Catalog page](/images/partner_26760984990740.png)
-2. Search for **HTTP** and click on **Create Authentication** and enter the MoEngage endpoints.
+1. In Treasure Data, click **Integrations Hub** \> **Catalog**.
 
-#### Set up MoEngage destination
+   ![Integrations Hub Catalog page in Treasure Data with the HTTP tile](/images/treasure-data-catalog-http.png)
+2. Search for **HTTP**, and then click **Create Authentication**.
+3. Enter the following details:
 
-1. Enter MoEngage user API endpoints
-   ![MoEngage destination configuration in Treasure Data](/images/partner_35097946571412.png)
-2. Select **HTTPS** and enter the following details:
-   | Field | Description |
+   | Field | Value |
    | --- | --- |
-   | **HTTPS** | Check this box. |
-   | **Host** | Enter the URL part before "/v1/partner/treasuredata/events/?configName=" excluding _https://_. |
-   | **Port** | Leave this as blank. |
-   | **Basic auth username** | The Workspace ID of your MoEngage account is available at **Settings** \> **Account** \> **APIs** \> **Workspace ID**. The Data API ID and the Workspace ID of your MoEngage account are the same. |
-   | **Basic auth password** | The secret key is the Data API Key. The Data API key of your MoEngage account is available at **Settings** \> **Account** \> **APIs** \> **API Keys** \> **Data**. |
-3. Click **Continue** and save it as _moengage\_event\_sync_ or _moengage\_user\_sync._
+   | HTTPS | Select this check box. |
+   | Host | The part of your MoEngage endpoint before `/v1/partner/treasuredata/`, without `https://`. |
+   | Port | Leave empty. |
+   | Basic auth username | Your MoEngage Workspace ID. |
+   | Basic auth password | Your MoEngage Data API Key. |
 
-### Step 3: Define your query
+   ![New Authentication dialog box in Treasure Data with the HTTPS, Host, Port, Basic auth username, and Basic auth password fields, and the Continue button](/images/treasure-data-http-authentication.png)
+4. Click **Continue**.
+5. Save the authentication with a name, such as `moengage_user_sync` or `moengage_event_sync`.
 
-On your Treasure Data dashboard,
+## Step 3: Export Query Results to MoEngage
 
-1. Navigate to **Data Workbench** \> **Queries** and select a query you would like to export data.
-   ![Treasure Data Data Workbench Queries page](/images/partner_26760949405332.png)
-2. Run this query to validate the result set. Ensure that the query has a `customer_id` column. This will be used to identify users in MoEngage.
-   Note: For users using HIVE to build queries, HIVE requires that any columns or tables that begin with an underscore be wrapped by backquotes, such as _merge\_objects._
-3. Select **Export Results** and select an existing integration authentication.
-   ![Treasure Data Export Results integration selection](/images/partner_26760984992148.png)
-4. Enter the remaining part of your MoEngage URL after "moengage.com":
-   ![MoEngage URL configuration in Treasure Data export](/images/partner_35097953628692.png)
+1. In Treasure Data, click **Data Workbench** \> **Queries**, and then select the query whose results you want to send.
 
-Read more on pre-formatted fields, example queries, parameter details, and query export job scheduling on Treasure Data [here](https://docs.treasure.ai/int/web-server-and-http-put-endpoint-export-integration).
+   ![Data Workbench Queries page in Treasure Data with the Queries menu and a MoEngage query highlighted](/images/treasure-data-queries.png)
+2. Run the query.
+3. Click **Export Results**, and then select the authentication you created in [Step 2](/partner-guide/data-and-analytics/cdps/treasure-data#step-2-create-an-http-authentication-in-treasure-data).
+4. In **Path and params**, enter the rest of your MoEngage endpoint, starting from `/v1/partner/treasuredata/`.
+5. Click **Done**.
 
-### Step 4: Validate data on MoEngage
+   ![Export Results dialog box in Treasure Data with the moengage_event_sync integration, the Path and params box, and the Done button](/images/treasure-data-export-results.png)
 
-You can search for the new users and see users and events getting created.
+The query must return a `customer_id` column. MoEngage uses it to identify users. If you write queries in Hive, wrap column and table names that start with an underscore in backquotes, such as `` `_merge_objects` ``.
 
-## Send campaign interaction data back to Treasure Data
+For more information about pre-formatted fields, example queries, and scheduling export jobs, refer to [Web Server and HTTP PUT Endpoint Export Integration](https://docs.treasure.ai/int/web-server-and-http-put-endpoint-export-integration) in the Treasure Data docs.
 
-Treasure Data users can ingest data through its [Postback APIs](https://docs.treasure.ai/products/customer-data-platform/integration-hub/streaming/postback-api) via Connector Campaigns. To create a connector campaign on MoEngage,
+## Step 4: Check the Data in MoEngage
 
-1. Navigate to **Create Campaign** \> **Connectors** \> **Custom** and choose the delivery type most suitable to your needs
-   ![Connector campaign creation page in MoEngage](/images/partner_35136318752788.png)
-2. In step 2 of the campaign, connect to the [Postback APIs](https://docs.treasure.ai/products/customer-data-platform/integration-hub/streaming/postback-api). First, go to your Treasure Data dashboard to [generate](https://docs.treasure.ai/products/my-settings/getting-your-api-keys) your Write-Only Keys.
-   - **Method**: POST
-   - **URL**: `<treasure-data-base-url>/postback/v3/event/{database}/{table}` You can get your Treasure Data's Base URL from [here](https://api-docs.treasuredata.com/en/overview/aboutendpoints/#treasure-data-api-baseurls). Look for the Postback service URLs for your region.
-   - **Headers**:
-     | Key | Description |
-     | --- | --- |
-     | **Content-Type** | Set this header to `application/json`. |
-     | **X-TD-Write-Key** | Your Treasure Data [Write-Only API Key](https://docs.treasure.ai/products/my-settings/getting-your-api-keys). |
-   - **Body**:
-     ```json
-     {
-         "col1": "val1",
-         "col2": "val2",
-         ...
-     }
-     ```
+In MoEngage, click **Segment** \> **Search Users**, and search for a `customer_id` from your query. The user profile shows the new attributes and events.
 
-Note that
+# Send Campaign Interaction Data to Treasure Data
 
-- You need to pass `"key": "value"` pairs for each of your columns. The key is the column name in your table.
-- Treasure Data does not support bulk operations at the moment.
+Send MoEngage campaign interactions to Treasure Data with a custom connector campaign that calls the Treasure Data Postback API.
 
-### Preview your request
+<Info>
+  **Prerequisites**
 
-At this point, your campaign should be ready to test and send. You can also test your connector configuration using the **Test** functionality available in Step 2 of Create Connector Campaign.
+  - A Treasure Data [Write-only API key](https://docs.treasure.ai/products/my-settings/getting-your-api-keys).
+  - A Treasure Data database and table that the key can write to.
+</Info>
 
-![Preview of the connector campaign request](/images/partner_35136318755220.png)
+To create the connector campaign, perform the following steps:
 
-You can go ahead and Publish the campaign.
+1. On the left navigation menu in the MoEngage UI, click **+ Create New**, and then click **Campaign**.
+2. Under **Connector**, click **Custom**, and then click the delivery type you need: **One Time**, **Periodic**, or **Event Triggered**.
+
+   ![New Campaign dialog box in MoEngage with Custom under Connector and the One Time, Periodic, and Event Triggered delivery types](/images/treasure-data-connector-custom.png)
+3. In **Step 1** (Target Users), select your audience.
+4. In **Step 2** (Content), enter the following details:
+
+   | Field | Value |
+   | --- | --- |
+   | Method | **POST** |
+   | URL | `<postback-base-url>/postback/v3/event/<database>/<table>`. For the Postback base URL of your region, refer to [Sites and Endpoints](https://docs.treasure.ai/apis/endpoints/endpoints) in the Treasure Data docs. |
+   | Headers | `Content-Type`: `application/json`<br />`X-TD-Write-Key`: Your Treasure Data Write-only API key. |
+   | Body | A JSON object with one key-value pair for each column in your table. The key is the column name. |
+
+5. Under **Test Campaign**, select an identifier, enter the value of a test user, and then click **Test**.
+
+   ![Preview of the connector campaign request](/images/partner_35136318755220.png)
+6. Click **Next**, set the schedule in **Step 3** (Schedule and Goals), and then publish the campaign.
+
+The following is an example body:
+
+```json Example Body
+{
+  "email": "{{UserAttribute['Email (Standard)']}}",
+  "campaign_name": "Spring Sale Push"
+}
+```
+
+Each request sends one record.
+
+Treasure Data returns `200 OK` even if the Write-only API key is invalid, because it checks the key after it responds. If data doesn't appear in your table, check the key first.
+
+<Tip>
+  **Use Postback API v2**
+
+  You can also send data to Treasure Data's newer [Postback API v2](https://docs.treasure.ai/apis/postback-v2/quickstart). It uses the same path, with these changes:
+
+  - **URL**: `https://<region>.records.in.treasuredata.com/postback/v3/event/<database>/<table>`. For example, `https://us01.records.in.treasuredata.com/postback/v3/event/marketing_db/campaign_events`.
+  - **Authentication**: Send your key in a header, either `X-TD-Write-Key: <key>` or `Authorization: TD1 <key>`. Postback API v2 doesn't accept the key as a URL parameter (`?td_write_key=`).
+  - **Size limit**: Each request body can be up to 1,048,064 bytes.
+</Tip>
