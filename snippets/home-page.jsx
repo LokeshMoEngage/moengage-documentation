@@ -327,8 +327,8 @@ export const HomeSections = () => {
       name: "Set up",
       blurb: "Get to know the dashboard, integrate the SDKs, and bring in your data.",
       cards: [
-        { icon: "layout", title: "Dashboard overview", desc: "Familiarize yourself with the MoEngage dashboard, navigation, and key concepts.", href: "/user-guide/getting-started/initial-setup/dashboard-overview" },
-        { icon: "code", title: "SDK integration", desc: "Integrate MoEngage SDKs across Web, Android, iOS, and other platforms.", href: "/developer-guide/introduction" },
+        { icon: "layout", title: "Dashboard Overview", desc: "Familiarize yourself with the MoEngage dashboard, navigation, and key concepts.", href: "/user-guide/getting-started/initial-setup/dashboard-overview" },
+        { icon: "code", title: "SDK Integration", desc: "Integrate MoEngage SDKs across Web, Android, iOS, and other platforms.", href: "/developer-guide/introduction" },
         { icon: "database", title: "Data", desc: "User and event data, imports, exports, privacy, and how data is modeled in MoEngage.", href: "/user-guide/data/key-concepts/overview-data" },
       ],
     },
@@ -338,7 +338,7 @@ export const HomeSections = () => {
       blurb: "Build audiences and reach them across every channel.",
       cards: [
         { icon: "users", title: "Segments", desc: "Build and manage audiences with segmentation, reachability, and advanced segment tools.", href: "/user-guide/segment/getting-started/basics-of-segmentation" },
-        { icon: "send", title: "Campaigns & channels", desc: "Email, push, SMS, WhatsApp, in-app, and cross-channel messaging from the dashboard.", href: "/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels" },
+        { icon: "send", title: "Campaigns & Channels", desc: "Email, push, SMS, WhatsApp, in-app, and cross-channel messaging from the dashboard.", href: "/user-guide/campaigns-and-channels/getting-started/introduction/moengage-channels" },
         { icon: "flow", title: "Flows", desc: "Cross-channel journeys: triggers, branches, experiments, and flow analytics.", href: "/user-guide/flows-cross-channel-messaging/getting-started/overview-flows/overview-flows" },
       ],
     },
@@ -355,12 +355,12 @@ export const HomeSections = () => {
   ];
 
   const sdks = [
-    { icon: "phone", label: "iOS", href: "/developer-guide/ios-sdk/sdk-integration/basic/sdk-integration" },
-    { icon: "phone", label: "Android", href: "/developer-guide/android-sdk/sdk-integration/basic-integration/Install-Using-BOM" },
-    { icon: "globe", label: "Web", href: "/developer-guide/web-sdk/web-sdk-overview/web-sdk-overview" },
-    { icon: "code", label: "React Native", href: "/developer-guide/react-native-sdk/overview/getting-started-with-react-native-sdk" },
-    { icon: "code", label: "Flutter", href: "/developer-guide/flutter-sdk/overview/getting-started-with-flutter-sdk" },
-    { icon: "box", label: "Unity", href: "/developer-guide/unity-sdk/sdk-integration/sdk-installation/sdk-installation" },
+    { icon: "phone", label: "iOS", href: "/developer-guide/ios-sdk/overview" },
+    { icon: "phone", label: "Android", href: "/developer-guide/android-sdk/overview" },
+    { icon: "globe", label: "Web", href: "/developer-guide/web-sdk/overview" },
+    { icon: "code", label: "React Native", href: "/developer-guide/react-native-sdk/overview" },
+    { icon: "code", label: "Flutter", href: "/developer-guide/flutter-sdk/overview" },
+    { icon: "box", label: "Unity", href: "/developer-guide/unity-sdk/overview" },
     { icon: "notes", label: "API Guide", href: "/api/introduction" },
   ];
 
