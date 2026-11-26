@@ -32,9 +32,19 @@ To know how to setup/reset the FC settings, please visit [Setting up of FC](/use
 
 **Turn ON Ignore DND** - Having this setting as ON will ensure that **Do Not Disturb (DND) settings are not applied** to the messages sent by this Flow i.e. messages will be sent at all times.
 
-**Turn OFF Ignore DND** - Having this setting as ON will ensure that **Do Not Disturb (DND) settings are applied** for the messages sent by the particular Flow i.e. messages won't be sent during DND time.
+**Turn OFF Ignore DND** - Having this setting as OFF will ensure that **Do Not Disturb (DND) settings are applied** for the messages sent by the particular Flow i.e. messages won't be sent during DND time.
 
 To know how to setup/modify the DND settings, please visit [Setting up of DND](/user-guide/settings/channels/delivery-controls/do-not-disturb)
+
+## How DND Works in Flows
+
+When the flow applies DND and the user is in their DND window, MoEngage doesn't retry the message. It holds the user at the campaign stage and queues the message until the DND window ends.
+
+The channel's [DND settings](/user-guide/settings/channels/delivery-controls/do-not-disturb) (**Settings** > **Channels** > **Delivery Controls** > **Do not disturb**), not the flow, decide what happens to the queued message. Depending on those settings, the channel sends all queued messages, sends only the first or the latest one, or discards them. The flow only decides whether DND applies.
+
+Whenever a campaign stage applies FC or DND, the user waits 15 minutes at that stage so that the flow can learn whether the message was blocked. If nothing blocks the message, the user moves on when the wait ends. If DND holds the message, the wait lasts until the DND window ends, plus 15 minutes.
+
+When a user is in DND and FC also applies, MoEngage checks DND first and doesn't check FC while it holds the message. It checks FC when it releases the message after the DND window ends. If the user has reached the frequency cap by then, MoEngage doesn't send the message.
 
 # Preference Management Settings
 
@@ -51,17 +61,32 @@ If you are using any of the FC or DND settings to restrict your messages, some o
 1. To move the users to the next stage in Flow (even if the message is not sent to them because of FC/DND)
 2. To remove the users from the Flow (if the message is not sent to them because of FC/DND)
 
+Moving users to the next stage is the default. The option applies whenever a message isn't sent, which happens when:
+
+- The user has reached the frequency cap.
+- The channel's DND settings discard queued messages.
+- A message held for DND isn't sent at release, for example, because the user has reached the frequency cap by then.
+
 # Result
 
-| Is FC breached? | In DND Period? | Result |
+The following table shows what happens at a campaign stage. **Applied** means the flow's **Ignore frequency capping** or **Ignore DND** setting is OFF.
+
+| FC | DND | Result |
 | --- | --- | --- |
-| Yes | Yes | If your status is Do Not Disturb (DND), MoEngage will try to send the message again three times at 15-minute intervals. If you're still in DND after three attempts, MoEngage will move you to the next stage or or exit Flow, based on your [settings](#other-settings). |
-| Yes | No | MoEngage will not send the message. Instead, you'll be moved to to the next stage or exit Flow as configured, based on your [settings](#other-settings). |
-| No | Yes | If your status is Do Not Disturb (DND), MoEngage will try to send the message again three times at 15-minute intervals. If you're still in DND after three attempts, MoEngage will move you to the next stage or end the flow, based on your [settings](#other-settings). |
-| No | No | MoEngage will send the message and move you to the next stage. |
+| Not applied | Not applied | MoEngage sends the message, and the user moves to the next stage immediately. |
+| Applied, cap not reached | Applied, user not in DND | MoEngage sends the message. The user moves to the next stage after a 15-minute wait. |
+| Applied, cap reached | Applied, user not in DND | MoEngage doesn't send the message. The user moves to the next stage or exits the flow, based on your [settings](#other-settings). |
+| Applied, cap not reached | Applied, user in DND | MoEngage holds the user at the stage until the DND window ends, and the channel's DND settings decide what happens to the message. The user moves to the next stage within 15 minutes after the DND window ends. |
+| Applied, cap reached | Applied, user in DND | DND takes precedence. MoEngage holds the user until the DND window ends and then checks FC. If the user has still reached the cap, MoEngage doesn't send the message, and the user moves to the next stage or exits the flow, based on your [settings](#other-settings). |
+
+When only one of FC or DND applies, that check works as described above, and the user still waits 15 minutes at the stage:
+
+- **FC applied, DND not applied**: If the user hasn't reached the cap, MoEngage sends the message. If the user has reached the cap, MoEngage doesn't send it, and the user moves to the next stage or exits the flow, based on your [settings](#other-settings).
+- **DND applied, FC not applied**: If the user isn't in DND, MoEngage sends the message. If the user is in DND, MoEngage holds the user until the DND window ends, and the channel's DND settings decide what happens to the message.
 
 For more information about channel level, refer to [Frequency capping](/user-guide/settings/channels/delivery-controls/frequency-capping).
 
 <Info>
-All the settings are not applicable for Facebook and Google Ads Audience campaigns. These settings, if present in the Flow campaign will be bypassed for FB Audience.
+- Facebook Audience and Google Ads Audience stages bypass all these settings.
+- In-App and On-Site Messaging stages don't apply DND or the 15-minute wait.
 </Info>
