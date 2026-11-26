@@ -12,7 +12,7 @@ import ConnectedSegmentsAddOn from '/snippets/connected-segments-add-on.mdx';
 
 The MoEngage and Reddit Ads Conversions integration establishes a secure, server-to-server (S2S) connection. By bypassing browser-side obstacles such as cookie restrictions, Intelligent Tracking Prevention (ITP), and ad blockers, it captures conversions that client-side tracking often misses.
 
-MoEngage provides a single omnichannel connector for Reddit — **Reddit Omnichannel Conversions** — available through the **Reddit Ads Conversions** app in the MoEngage App Marketplace. It sends conversion events captured across all your environments (website, mobile app, and physical store) directly into your Reddit Ads Manager.
+MoEngage provides a single omnichannel connector for Reddit — **Track Reddit Ads Conversions** — available through the **Reddit Ads Conversions** app in the MoEngage App Marketplace. It sends conversion events captured across all your environments (website, mobile app, and physical store) directly into your Reddit Ads Manager.
 
 ## Use Cases
 
@@ -32,7 +32,7 @@ Integrating Reddit Ads Conversions with MoEngage allows you to sync event data t
 
 </Info>
 
-# Integration
+# Integration with Reddit Ads Conversions
 
 ## Step 1: Generate Credentials in Reddit
 
@@ -95,51 +95,45 @@ To connect Reddit Ads Conversions in the App Marketplace, perform the following 
 
 To create a Reddit Conversions campaign, perform the following steps:
 
-1. On the left navigation menu in the MoEngage UI, click **Engage**, and then click **Campaigns**.
-2. On the **All campaigns** page, click **+ Create campaign**.
-3. In the **Create campaign** dialog box, under **Connected Apps**, click **Reddit Ads Conversions**, and then click the most suitable delivery type.
-4. In **Step 1** (Target Users), select your audience.
-5. In **Step 2** (Content), select your connector (**Reddit Omnichannel Conversions**) and your created connection.
-6. Under **Conversion Goals**, select the following. The **Action Source** drives omnichannel tracking, letting you attribute conversions to app interactions, web visits, or physical storefront purchases.
+1. On the left navigation menu in the MoEngage UI, click **+ Create New**, and then click **Campaign**.
+2. Under **Active Apps**, click **See all**.
+3. In the **Connected Apps** dialog box, search for **Reddit**, and then click the **Reddit Ads Conversions** tile.
+4. Click the delivery type you need: **One Time**, **Periodic**, or **Event Triggered**.
+5. In **Step 1** (Target Users), select your audience.
+6. In **Step 2** (Content), select your connector (**Track Reddit Ads Conversions**) and your created connection.
+
+   ![Select connector section with Track Reddit Ads Conversions in the Connector list and a connection in the Connections list](/images/reddit-conversions-connector.png)
+7. Under **Conversion Goals** and **Event Details**, enter the following fields:
 
    | Field | Required | Description |
    | --- | --- | --- |
-   | Action Source | Yes | Defines the channel (Website, App, Store, or Other) of the conversion. |
-   | Event Type | Yes | A Reddit taxonomy standard event (for example, Purchase, Lead, Sign Up). Default is Purchase. |
+   | Event Type | Yes | A Reddit standard event (for example, Purchase, Lead, or Sign Up). Default is **Purchase**. For the full list, refer to [Supported Conversion Events](/partner-guide/retargeting-and-audience-sync/ad-conversions/reddit-ads-conversions#supported-conversion-events). |
+   | Action Source | Yes | The channel where the conversion happened: Website, App, Store, or Other. Default is **Website**. |
+   | Event ID | No | A unique transaction or order ID, used for deduplication. Reddit records only the first conversion with this ID. |
+   | Conversion Value | No | The monetary value of the conversion, used to measure ROAS and revenue. |
+   | Currency | No | The ISO code of the transaction currency. Default is **USD**. |
+   | Page URL | No | The URL of the page where the conversion happened. |
 
-7. Under **Event Details**, enter the following:
+   ![Conversion Goals section with the Event Type and Action Source lists, and the Event Details section with the Event ID, Conversion Value, Currency, and Page URL fields](/images/reddit-conversions-conversion-goals.png)
+8. Under **User Identifiers**, enter the identifiers Reddit uses to match the conversion to a Reddit user:
 
    | Field | Required | Description |
    | --- | --- | --- |
-   | Event ID | Optional | Unique transaction or order ID used for deduplication. Ensures only the first signal with this ID is recorded. |
-   | Click ID | Optional | The `rdt_cid` parameter. Used for deterministic attribution of web conversions. |
-   | Conversion Value | Optional | Numerical monetary value. Used to measure ROAS and revenue metrics. |
-   | Currency | Optional | ISO code for the transaction currency. Uses USD by default. |
+   | Click ID | No | The `rdt_cid` parameter that Reddit adds to your landing-page URL. Used for deterministic attribution of web conversions. |
+   | Email | No | The user's email address. Mapped to **Email (Standard)** by default. MoEngage normalizes it and hashes it with SHA-256. |
+   | Mobile Number | No | The user's mobile number. Mapped to **Mobile Number (Standard)** by default. MoEngage normalizes it to E.164 and hashes it with SHA-256. |
+   | External ID | No | Your internal user ID. MoEngage hashes it with SHA-256. |
+   | IP Address | No | The user's IP address. |
+   | User Agent | No | The User-Agent string of the user's browser. |
+   | Android Advertising ID | No | The user's Android advertising ID (AAID). MoEngage hashes it with SHA-256. |
+   | iOS Advertising ID | No | The user's iOS advertising ID (IDFA). MoEngage hashes it with SHA-256. |
+   | Reddit Browser ID | No | The value of the first-party `_rdt_uuid` cookie on your domain. |
 
-   ![Reddit campaign Conversion Goals and Event Details fields in MoEngage](/images/reddit-conversions-conversion-goals.png)
+   ![User Identifiers section with the Click ID, Email, Mobile Number, External ID, IP Address, User Agent, Android Advertising ID, iOS Advertising ID, and Reddit Browser ID fields](/images/reddit-conversions-user-identifiers.png)
+9. Under **Test Campaign**, select an identifier, enter the value of a test user, and then click **Test**.
 
-8. Under **Attribution & Advanced Matching**, map user identifiers. Identifiers such as personally identifiable information (PII) and device signals help Reddit link conversions to specific users. Using the Key-Value block, sensitive data such as email, phone, and mobile advertising IDs (MAIDs) is automatically normalized and SHA-256 hashed to protect privacy.
-
-   Under **User Identifiers**, map the following keys:
-
-   | Field | Description |
-   | --- | --- |
-   | email | Maps to the user email. The system strips aliases and periods, lowercases the string, and applies SHA-256 hashing. |
-   | phone_number | Maps to the mobile number. Values are normalized to E.164 and SHA-256 hashed automatically. |
-   | external_id | Internal user identifier, protected with SHA-256 hashing. |
-   | aaid | Android mobile advertising identifier, automatically hashed with SHA-256. |
-   | idfa | iOS mobile advertising identifier, automatically hashed with SHA-256. |
-   | user_agent | The browser's User-Agent string for technical identification. |
-   | uuid | The value from the first-party `_rdt_uuid` cookie on your domain. |
-   | ip_address | Passed to Reddit to improve user matching accuracy. |
-
-   ![Reddit campaign Attribution and Advanced Matching showing Page URL and User Identifiers](/images/reddit-conversions-advanced-matching.png)
-
-   <Info>
-     Include at least one high-fidelity match signal (Click ID, Phone, or Email) to maximize attribution performance.
-   </Info>
-
-9. Test your connector configuration, and then publish the campaign.
+   ![Test Campaign section with the identifier list, the value box, and the Test button](/images/reddit-conversions-test-campaign.png)
+10. Click **Next**, set the schedule in **Step 3** (Schedule and Goals), and then publish the campaign.
 
 ## Supported Conversion Events
 
@@ -162,6 +156,6 @@ MoEngage supports direct mapping to Reddit's standard event taxonomy.
 
 ## Usage Constraints
 
-- **Deduplication hygiene**: Mapping a unique Conversion ID (such as a transaction ID) prevents over-reporting by ensuring Reddit counts only unique event occurrences.
-- **Signal requirements**: Successful API transmission requires at least one match key (Phone, Email, or Click ID). Without these signals, conversions cannot be attributed to Reddit ads.
+- **Deduplication hygiene**: Mapping a unique Event ID (such as a transaction ID) prevents over-reporting by ensuring Reddit counts only unique event occurrences.
+- **Signal requirements**: Successful API transmission requires at least one match key (Mobile Number, Email, or Click ID). Without these signals, conversions cannot be attributed to Reddit ads.
 - **Automated normalization**: Pass raw PII directly to the connector. The system handles all cryptographic requirements natively, including whitespace stripping and SHA-256 hashing.
